@@ -9,45 +9,55 @@
 
 Metrics
 =======
-This is a general package for PyTorch Metrics. These can also be used with regular non-lightning PyTorch code.
-Metrics are used to monitor model performance.
+Metrics are quantitative measures that can be used to monitor model performance,
+and they therefore are essential ingridient in any machine learning project. They
+can be used to measure performance during training, comparing different models and
+asses pitfalls such as overfitting.
 
-In this package, we provide two major pieces of functionality.
+The `pytorch lightning metric package` offers a general package for PyTorch Metrics.
+This means that they can be used with regular non-lightning PyTorch code.
+
+In this package, we provide three major pieces of functionality.
 
 1. A Metric class you can use to implement metrics with built-in distributed (ddp) support which are device agnostic.
-2. A collection of ready to use popular metrics. There are two types of metrics: Class metrics and Functional metrics.
-3. An interface to call `sklearns metrics <https://scikit-learn.org/stable/modules/classes.html#module-sklearn.metrics>`_
+
+2. A collection of ready to use popular metrics. These comes with both a functional and class
+   based interface.
+
+3. An interface to call `sklearns metrics <https://scikit-learn.org/stable/modules/classes.html#module-sklearn.metrics>`_ .
 
 Example::
-
+    
+    # calculate accuracy between two tensors
     from pytorch_lightning.metrics.functional import accuracy
 
     pred = torch.tensor([0, 1, 2, 3])
     target = torch.tensor([0, 1, 2, 2])
 
-    # calculates accuracy across all GPUs and all Nodes used in training
+    # calculates accuracy
     accuracy(pred, target)
 
 .. warning::
     The metrics package is still in development! If we're missing a metric or you find a mistake, please send a PR!
-    to a few metrics. Please feel free to create an issue/PR if you have a proposed metric or have found a bug.
 
 ----------------
 
 Implement a metric
 ------------------
-You can implement metrics as either a PyTorch metric or a Numpy metric (It is recommended to use PyTorch metrics when possible,
-since Numpy metrics slow down training).
+While lighning provides a collection of standard used metrics, it is also possible
+to implement your own metric using our base interface. All metrics are subclasses 
+from our base class ``Metric`` which automatically implements device agnostics
+and DDP syncing. That said we recommend that users either subclass from either 
 
-Use :class:`TensorMetric` to implement native PyTorch metrics. This class
-handles automated DDP syncing and converts all inputs and outputs to tensors.
+* :class:`TensorMetric` to implement native PyTorch metrics. Will automatically 
+  convert all input and output to tensors.
 
-Use :class:`NumpyMetric` to implement numpy metrics. This class
-handles automated DDP syncing and converts all inputs and outputs to tensors.
+* :class:`NumpyMetric` to implement numpy metrics. Will automatically convert all 
+  input between numpy arrays and torch tensors.
 
-.. warning::
-    Numpy metrics might slow down your training substantially,
-    since every metric computation requires a GPU sync to convert tensors to numpy.
+It is recommended to use PyTorch metrics when possible, since Numpy metrics slow 
+down training because data needs to be converted back and forth between numpy arrays 
+and torch tensors.
 
 ----------------
 
@@ -57,9 +67,10 @@ Here's an example showing how to implement a TensorMetric
 
 .. testcode::
 
-    class RMSE(TensorMetric):
+    from pytorch_lightning.metrics import TensorMetric
+    class MSE(TensorMetric):
         def forward(self, x, y):
-            return torch.sqrt(torch.mean(torch.pow(x-y, 2.0)))
+            return torch.mean(torch.pow(x-y, 2.0))
 
 .. autoclass:: pytorch_lightning.metrics.metric.TensorMetric
     :noindex:
@@ -72,24 +83,135 @@ Here's an example showing how to implement a NumpyMetric
 
 .. testcode::
 
-    class RMSE(NumpyMetric):
+    from pytorch_lightning.metrics import NumpyMetric
+    class MSE(NumpyMetric):
         def forward(self, x, y):
-            return np.sqrt(np.mean(np.power(x-y, 2.0)))
-
+            return np.mean(np.power(x-y, 2.0))
 
 .. autoclass:: pytorch_lightning.metrics.metric.NumpyMetric
     :noindex:
 
-----------------
+Metric hooks
+^^^^^^^^^^^^
+
+Similar to a standard `torch.nn.Module`, the only *nessesary* method that should
+be implemented for a specific metric is ``forward`` method. In this case, output
+we automatically be collected and averaged. That said, to gain fine control over 
+metric calculation a number of `hooks` can be overridden. The order of evaluation 
+is the following:
+
+* ``input_convert``
+* ``forward``
+* ``output_convert``
+* ``ddp_reduce``
+    - ``ddp_sync``
+    - ``aggregate``
+* ``compute``
+
+Note that all hooks are ``@staticmethod``s as default. Additionally, each metric 
+has the ``aggregated`` property implemented 
+
+input_convert
+"""""""""""""
+
+.. code-block::
+
+    @staticmethod
+    def input_convert(self, data: Any):
+
+Pre-hook that implements how input should be converted before passing it to ``forward`` 
+The default for ``TensorMetric`` is to convert everything to tensors and ``NumpyMetric``
+will convert everything to numpy arrays.
+
+
+output_convert
+""""""""""""""
+
+.. code-block::
+
+    @staticmethod
+    def output_convert(self, data: Any, output: Any):
+
+Post-hook that implements how output from ``forward`` should be casted. The default
+for both ``TensorMetric`` and ``NumpyMetric`` is do convert to tensors.
+
+ddp_reduce
+""""""""""
+
+.. code-block::
+    
+    @staticmethod
+    def ddp_reduce(self, data: Any, output: Any):
+
+Post-hook that implements how output from multiple devices should be collected and
+aggregated. We do not recommend overriding this, but instead consider overriding
+the two sub-methods called inside this hook: ``ddp_sync`` and ``aggregate``.
+
+ddp_sync
+""""""""
+
+.. code-block::
+
+    def ddp_sync(self, tensor: Any):
+
+Method for implementing how output from different devices should be synced. As
+default we do a ``gather_all`` such that output from each device is broadcast
+to all other devices.
+
+aggregate
+"""""""""
+
+.. code-block::
+
+    def aggregate(self, *tensors: torch.Tensor) -> torch.Tensor:
+
+Method on how aggregation should work. As default input will be summed together
+over all devices or/and over all batches.
+
+compute
+"""""""
+
+.. code-block::
+
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+    
+Post-hook that can be used to implement computations that needs to happen after
+output has been synced between devices. As default this will output the average
+of the aggregated values.
+
+-------
+
+To summaries, in most cases it should be sufficient to implement ``forward`` (pre-ddp)
+and ``compute`` (post-ddp) computations, and the remaining hooks are for special cases.
+Below is shown an example of implementing root mean squared error (RMSE) metric where
+the root need to be taken after syncing the output to get the right result:
+
+.. testcode::
+
+    from pytorch_lightning.metrics import TensorMetric
+    class RMSE(TensorMetric):
+        def forward(self, x, y):
+            return {'sum_squared_error': torch.pow(x-y, 2.0).sum(),
+                    'n_observations': x.numel()}
+                    
+        @staticmethod
+        def compute(self, data, output):
+            # sse and n has automatically be synced (summed) over all devices
+            sse, n = output['sum_squared_error'], output['n_observations']
+            return torch.sqrt(sse / n)
+
 
 Class Metrics
 -------------
 Class metrics can be instantiated as part of a module definition (even with just
-plain PyTorch).
+plain PyTorch). Class metrics are device agnostic, meaning that similar to any
+`torch.nn.Module` they will move to the correct device when defined as part of the
+model definition.
 
 .. testcode::
 
-    from pytorch_lightning.metrics import Accuracy
+    from pytorch_lightning.metrics import Accuracy  
 
     # Plain PyTorch
     class MyModule(Module):
@@ -121,6 +243,33 @@ These metrics even work when using distributed training:
 
     # any metric automatically reduces across GPUs (even the ones you implement using Lightning)
     trainer.fit(model)
+    
+Class metrics aggregate both over multi device and multiple batches. The aggregated
+value can be access through the `metric.aggregated` property. When this property is 
+called the internal state is reset.
+
+.. testcode::
+
+    # Plain PyTorch
+    metric = Accuracy()
+    for pred, target in zip(predictions, target):
+        batch_val = metric(pred, target)
+    aggregated_val = metric.aggregated
+    
+    # Pytorch Lightning (evaluation loop)
+    class MyModule(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.metric = Accuracy()
+        
+        def validation_step(self, batch, batch_idx):
+            data, target = batch
+            pred = self(data)
+            batch_val = self.metric(pred, target)
+            
+        def validation_epoch_end(self, outputs):
+            acc = self.metric.aggregated
+            return acc # this will be the aggregated value over the hole validation set
 
 Accuracy
 ^^^^^^^^
@@ -263,20 +412,6 @@ Functional metrics can be called anywhere (even used with just plain PyTorch).
 
     # calculates accuracy across all GPUs and all Nodes used in training
     accuracy(pred, target)
-
-These metrics even work when using distributed training:
-
-.. code-block:: python
-
-    class MyModule(...):
-        def forward(self, x, y):
-            return accuracy(x, y)
-
-    model = MyModule()
-    trainer = Trainer(gpus=8, num_nodes=2)
-
-    # any metric automatically reduces across GPUs (even the ones you implement using Lightning)
-    trainer.fit(model)
 
 
 accuracy (F)
@@ -439,6 +574,9 @@ stat_scores_multiple_classes (F)
 
 Metric pre-processing
 ---------------------
+
+We supply a couple of utility functions that may be usefull for converting tensors
+to correct input format.
 
 to_categorical (F)
 ^^^^^^^^^^^^^^^^^^
