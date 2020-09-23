@@ -24,6 +24,7 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.nn.parallel._functions import Gather
 
 from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.utilities.warning_utils import WarningCache
 
 
 def _find_tensors(obj):  # pragma: no-cover
@@ -52,6 +53,9 @@ def get_a_var(obj):  # pragma: no-cover
             if isinstance(result, torch.Tensor):
                 return result
     return None
+
+
+warning_cache = WarningCache()
 
 
 class LightningDataParallel(DataParallel):
@@ -157,6 +161,8 @@ class LightningDistributedDataParallel(DistributedDataParallel):
 
     def forward(self, *inputs, **kwargs):  # pragma: no-cover
         self._sync_params()
+        fx_called: str = ''
+
         if self.device_ids:
             inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)
             if len(self.device_ids) == 1:
@@ -168,10 +174,13 @@ class LightningDistributedDataParallel(DistributedDataParallel):
                 # lightning
                 if self.module.training:
                     output = self.module.training_step(*inputs[0], **kwargs[0])
+                    fx_called = 'training_step'
                 elif self.module.testing:
                     output = self.module.test_step(*inputs[0], **kwargs[0])
+                    fx_called = 'test_step'
                 else:
                     output = self.module.validation_step(*inputs[0], **kwargs[0])
+                    fx_called = 'validation_step'
             else:
                 outputs = self.parallel_apply(self._module_copies[:len(inputs)], inputs, kwargs)
                 output = self.gather(outputs, self.output_device)
@@ -195,7 +204,30 @@ class LightningDistributedDataParallel(DistributedDataParallel):
                 self.reducer.prepare_for_backward(list(_find_tensors(output)))
             else:
                 self.reducer.prepare_for_backward([])
+
+        if output is None:
+            warn_missing_output(fx_called)
+
+            m = f'{fx_called} returned None. Did you forget to re'
         return output
+
+
+def warn_missing_output(fx_called):
+    if fx_called == 'training_step':
+        m = """
+            Your training_step returned None. Hint:
+            return loss
+            or 
+            return TrainResult
+        """
+    elif fx_called in ['validation_step', 'test_step']:
+        m = f"""
+            Your {fx_called} returned None. Hint:
+            return loss
+            or 
+            return TrainResult
+        """
+    warning_cache.warn(m)
 
 
 def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: no-cover
@@ -229,6 +261,7 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
 
     def _worker(i, module, input, kwargs, device=None):
         torch.set_grad_enabled(grad_enabled)
+        fx_called: str = ''
         if device is None:
             device = get_a_var(input).get_device()
         try:
@@ -243,14 +276,18 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
                 # CHANGE
                 if module.training:
                     output = module.training_step(*input, **kwargs)
-
+                    fx_called = 'training_step'
                 elif module.testing:
                     output = module.test_step(*input, **kwargs)
-
+                    fx_called = 'test_step'
                 else:
                     output = module.validation_step(*input, **kwargs)
+                    fx_called = 'validation_step'
 
-                if module.use_dp or module.use_ddp2:
+                if output is None:
+                    warn_missing_output(fx_called)
+
+                if output is not None and (module.use_dp or module.use_ddp2):
                     auto_squeeze_dim_zeros(output)
                 # ---------------
 
@@ -296,6 +333,10 @@ def auto_squeeze_dim_zeros(output):
     :param output:
     :return:
     """
+    if isinstance(output, torch.Tensor):
+        output = output.unsqueeze(0)
+        return output
+
     for k, v in output.items():
         if not isinstance(v, torch.Tensor):
             continue
