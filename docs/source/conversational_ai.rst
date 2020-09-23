@@ -775,4 +775,4 @@ our collections of pretrained
 `ASR <https://ngc.nvidia.com/catalog/models/nvidia:nemospeechmodels>`_, 
 `NLP <https://ngc.nvidia.com/catalog/models/nvidia:nemonlpmodels>`_, 
 and `TTS <https://ngc.nvidia.com/catalog/models/nvidia:nemospeechmodels>`_ models 
-on NVIDIA NGC.
+on `NVIDIA NGC <https://ngc.nvidia.com/>`_.
