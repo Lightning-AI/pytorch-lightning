@@ -19,7 +19,7 @@ from argparse import ArgumentParser, Namespace
 from typing import Any, List, Optional, Tuple, Union
 
 import torch
-from pytorch_lightning.core.hooks import DataHooks
+from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
 from pytorch_lightning.utilities import parsing, rank_zero_only
 from torch.utils.data import DataLoader
 
