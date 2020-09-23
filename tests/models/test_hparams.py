@@ -28,7 +28,6 @@ class AssignHparamsModel(EvalModelTemplate):
         super().__init__()
         self.hparams = hparams
 
-
 # -------------------------
 # STANDARD TESTS
 # -------------------------
@@ -541,3 +540,41 @@ def test_args(tmpdir):
     with pytest.raises(TypeError, match="__init__\(\) got an unexpected keyword argument 'test'"):
         SubClassVarArgs.load_from_checkpoint(raw_checkpoint_path)
 
+
+
+class SaveHparamsAfterPretrainModel(EvalModelTemplate):
+    """ Tests that a model saves hyperparameters after mutation.
+
+    For example, useful in conjunction with the learning rate finder."""
+    def __init__(self, lr=1e-4, save=False):
+        super().__init__()
+        self.lr = lr
+        if save:
+            self.save_hyperparameters()
+
+def test_hparams_inplace_mutation(tmpdir):
+    "Test that a model saves correct hparam after inplace mutation."
+    model = SaveHparamsAfterPretrainModel(save=True)
+    model.lr = 3e-4
+    model.save_hyperparameters()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer.fit(model)
+    raw_checkpoint_path = _raw_checkpoint_path(trainer)
+    model = SaveHparamsAfterPretrainModel.load_from_checkpoint(raw_checkpoint_path)
+    assert model.hparams.lr == 3e-4
+
+def test_hparams_after_mutation(tmpdir):
+    "Test that a model saves hparam if added after init."
+    model = SaveHparamsAfterPretrainModel(save=False)
+    model.lr = 3e-4
+    model.save_hyperparameters('lr')
+    # this succeeds
+    assert model.hparams.lr == 3e-4, "did not save hparams"
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    assert model.hparams.lr == 3e-4, "Trainer changed hparams"
+    trainer.fit(model)
+    assert model.hparams.lr == 3e-4, "Fit changed hparams"
+    raw_checkpoint_path = _raw_checkpoint_path(trainer)
+    model = SaveHparamsAfterPretrainModel.load_from_checkpoint(raw_checkpoint_path)
+    # this fails?!
+    assert model.hparams.lr == 3e-4, "Checkpoint did not save hparams"

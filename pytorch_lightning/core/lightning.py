@@ -111,6 +111,9 @@ class LightningModule(
         self._results: Result = None
         self._current_fx_name = ''
 
+        # keep track of attributes/arguments used as hyperparameters
+        self._hparams_keys = set()
+
     @property
     def example_input_array(self) -> Any:
         return self._example_input_array
@@ -1337,6 +1340,16 @@ class LightningModule(
             parents_arguments.update(args)
         return self_arguments, parents_arguments
 
+    def __lookup_hparam(self, attr, default:dict):
+        """Lookup hyperparameter, prefering attribute on self, then self.hparam,
+        and falling back to default."""
+        if hasattr(self,attr):
+            return getattr(self, attr) 
+        elif hasattr(self, "hparams") and hasattr(self.hparams, attr):
+            return getattr(self.hparams, attr)
+        else:
+            return default[attr]
+
     def save_hyperparameters(self, *args, frame=None) -> None:
         """Save all model arguments.
 
@@ -1385,20 +1398,36 @@ class LightningModule(
         """
         if not frame:
             frame = inspect.currentframe().f_back
+        # all calls after first to save_hyperparameters will update
+        # we assume that init_args and attributes that share a name are the
+        # same hyperparameter following convention of `self.x = x`
+        # Thus, we will use this set to accumulate all hyperparameters and 
+        # first try reading from attributes, falling back to init_args
+        
+        if hasattr(self, "hparams"):
+            self._hparams_keys = self._hparams_keys.union(set(self.hparams.keys()))
         init_args = get_init_args(frame)
-        assert init_args, "failed to inspect the self init"
-        if not args:
-            hp = init_args
-            self._hparams_name = "kwargs" if hp else None
+        
+        isx_non_str = []
+
+        if args:
+            self._hparams_keys = self._hparams_keys.union(set(
+                [arg for arg in args if isinstance(arg, str)]))
+            isx_non_str = [i for i, arg in enumerate(self._hparams_keys) if not isinstance(arg, str)]
+        elif init_args:
+            self._hparams_keys = self._hparams_keys.union(set(init_args.keys()))
+        
+        if len(isx_non_str) == 1:
+            # get value of the single non-string key
+            hp = args[isx_non_str[0]]
+            # get key of the single non-string key
+            cand_names = [k for k, v in init_args.items() if v == hp]
+            # set the name to this key
+            self._hparams_name = cand_names[0] if cand_names else None
         else:
-            isx_non_str = [i for i, arg in enumerate(args) if not isinstance(arg, str)]
-            if len(isx_non_str) == 1:
-                hp = args[isx_non_str[0]]
-                cand_names = [k for k, v in init_args.items() if v == hp]
-                self._hparams_name = cand_names[0] if cand_names else None
-            else:
-                hp = {arg: init_args[arg] for arg in args if isinstance(arg, str)}
-                self._hparams_name = "kwargs"
+            # we save latest value of hyperparameter if mutated after init
+            hp = {arg: self.__lookup_hparam(arg, init_args) for arg in self._hparams_keys if isinstance(arg, str)}
+            self._hparams_name = "kwargs"
 
         # `hparams` are expected here
         if hp:
