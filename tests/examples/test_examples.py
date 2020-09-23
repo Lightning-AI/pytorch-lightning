@@ -29,13 +29,13 @@ ddp_args = """
 """
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.parametrize('cli_args', [dp_16_args])
-def test_examples_dp_mnist(cli_args):
-    from pl_examples.basic_examples.mnist import cli_main
-
-    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
-        cli_main()
+# @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+# @pytest.mark.parametrize('cli_args', [dp_16_args])
+# def test_examples_dp_mnist(cli_args):
+#     from pl_examples.basic_examples.mnist import cli_main
+#
+#     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
+#         cli_main()
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
