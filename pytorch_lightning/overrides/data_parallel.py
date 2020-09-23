@@ -215,17 +215,15 @@ class LightningDistributedDataParallel(DistributedDataParallel):
 def warn_missing_output(fx_called):
     if fx_called == 'training_step':
         m = """
-            Your training_step returned None. Hint:
+            Your training_step returned None. You should instead do:
             return loss
             or 
             return TrainResult
         """
     elif fx_called in ['validation_step', 'test_step']:
         m = f"""
-            Your {fx_called} returned None. Hint:
-            return loss
-            or 
-            return TrainResult
+            Your {fx_called} returned None. You should instead do:
+            return EvalResult
         """
     warning_cache.warn(m)
 
