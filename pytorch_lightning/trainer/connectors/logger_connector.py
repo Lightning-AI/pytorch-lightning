@@ -172,8 +172,10 @@ class LoggerConnector:
                 # log metrics
                 self.trainer.logger_connector.log_metrics(log_metrics, {})
 
-                # track metrics for callbacks
+                # track metrics for callbacks (all prog bar, logged and callback metrics)
                 self.trainer.logger_connector.callback_metrics.update(callback_metrics)
+                self.trainer.logger_connector.callback_metrics.update(log_metrics)
+                self.trainer.logger_connector.callback_metrics.update(prog_bar_metrics)
 
                 if len(dataloader_result_metrics) > 0:
                     eval_loop_results.append(dataloader_result_metrics)
@@ -263,16 +265,18 @@ class LoggerConnector:
         # --------------------------
         # track results
         # --------------------------
-        # add the metrics to the loggers
+        # add the metrics to the loggers and callbacks
         if epoch_log_metrics and len(epoch_log_metrics) > 0:
             self.log_metrics(epoch_log_metrics, {})
+            self.callback_metrics.update(epoch_log_metrics)
 
         # add metrics to callbacks
         self.callback_metrics.update(epoch_callback_metrics)
 
-        # add metrics to progress_bar
+        # add metrics to progress_bar and callbacks
         if len(epoch_progress_bar_metrics) > 0:
             self.add_progress_bar_metrics(epoch_progress_bar_metrics)
+            self.callback_metrics.update(epoch_progress_bar_metrics)
 
     def __auto_reduce_results_on_epoch_end(self, epoch_output):
         epoch_log_metrics = {}
@@ -326,3 +330,4 @@ class LoggerConnector:
             grad_norm_dic = batch_output.grad_norm_dic
             if len(metrics) > 0 or len(grad_norm_dic) > 0:
                 self.log_metrics(metrics, grad_norm_dic)
+                self.callback_metrics.update(metrics)
