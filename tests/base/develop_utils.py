@@ -3,7 +3,6 @@ import os
 
 import numpy as np
 
-# from pl_examples import LightningTemplateModel
 from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger, TestTubeLogger
