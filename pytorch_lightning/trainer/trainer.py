@@ -297,7 +297,7 @@ class Trainer(
         self.accelerator_backend.setup(model)
 
         # hook
-        self.call_hook('on_fit_start', model)
+        self.call_hook('on_fit_start')
 
         results = self.accelerator_backend.train()
         self.accelerator_backend.teardown()
