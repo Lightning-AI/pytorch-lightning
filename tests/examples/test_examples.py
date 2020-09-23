@@ -28,6 +28,7 @@ ddp_args = """
 --precision 16 \
 """
 
+
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.parametrize('cli_args', [dp_16_args])
 def test_examples_dp_mnist(cli_args):
