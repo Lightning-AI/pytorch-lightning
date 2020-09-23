@@ -164,19 +164,25 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
             aggregated values
 
         """
+        def stack_and_agg(tensors):
+            if isinstance(tensors, list):
+                return self._agg_fn(torch.stack([t for t in tensors]), 0)
+            return tensors.squeeze()
+
         # single tensor
         if len(tensors) == 1:
             tensors = tensors[0]
             if isinstance(tensors, Mapping):
-                return {k: self._agg_fn(torch.stack([t for t in tensors[k]]), 0) if isinstance(tensors[k], list) else tensors[k] for k in tensors.keys()}
+                return {k: stack_and_agg(tensors[k]) for k in tensors.keys()}
             if isinstance(tensors, list):
-                return self._agg_fn(torch.stack([t for t in tensors]), 0)
+                return stack_and_agg(tensors)
             if isinstance(tensors, tuple):
                 return tensors
             if isinstance(tensors, torch.Tensor):
                 if tensors.numel() == 1:
                     tensors = tensors.squeeze()
                 return tensors
+
         # multiple tensors (from aggregation over batches)
         if isinstance(tensors[0], Mapping):
             return {k: self._agg_fn(torch.stack([tensor[k] for tensor in tensors]), 0) for k in tensors[0].keys()}
