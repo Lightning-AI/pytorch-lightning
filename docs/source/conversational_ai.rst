@@ -103,8 +103,9 @@ Automatic Speech Recognition (ASR)
 ----------------------------------
 
 Everything needed to train Convolutional ASR models is included with NeMo. 
-NeMo supports multiple Speech Recognition architectures, including Jasper 
-and QuartzNet. These models can be trained from scratch on custom datasets or 
+NeMo supports multiple Speech Recognition architectures, including Jasper and QuartzNet. 
+`NeMo Speech Models <https://ngc.nvidia.com/catalog/models/nvidia:nemospeechmodels>` 
+can be trained from scratch on custom datasets or 
 fine-tuned using pre-trained checkpoints trained on thousands of hours of audio 
 that can be restored for immediate use.
 
