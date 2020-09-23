@@ -81,7 +81,7 @@ class Trainer(
     def __init__(
         self,
         logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
-        checkpoint_callback: Union[ModelCheckpoint, bool] = True,
+        checkpoint_callback: Union[ModelCheckpoint, bool, List[ModelCheckpoint]] = True,
         early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,
         callbacks: Optional[List[Callback]] = None,
         default_root_dir: Optional[str] = None,

@@ -39,7 +39,7 @@ class CallbackConnector:
         # pass through the required args to figure out defaults
         checkpoint_callback = self.init_default_checkpoint_callback(checkpoint_callback)
         if checkpoint_callback:
-            self.trainer.callbacks.append(checkpoint_callback)
+            self.trainer.callbacks.extend(checkpoint_callback)
 
         # TODO refactor codebase (tests) to not directly reach into these callbacks
         self.trainer.checkpoint_callback = checkpoint_callback
@@ -52,11 +52,15 @@ class CallbackConnector:
 
     def init_default_checkpoint_callback(self, checkpoint_callback):
         if checkpoint_callback is True:
-            checkpoint_callback = ModelCheckpoint(filepath=None)
+            checkpoint_callback = [ModelCheckpoint(filepath=None)]
         elif checkpoint_callback is False:
-            checkpoint_callback = None
+            checkpoint_callback = []
+        elif not isinstance(checkpoint_callback, (list, tuple)):
+            checkpoint_callback = [checkpoint_callback]
+
         if checkpoint_callback:
-            checkpoint_callback.save_function = self.trainer.save_checkpoint
+            for c in checkpoint_callback:
+                c.save_function = self.trainer.save_checkpoint
 
         return checkpoint_callback
 
