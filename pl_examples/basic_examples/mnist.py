@@ -23,7 +23,7 @@ try:
     from torchvision import transforms
 except Exception as e:
     from tests.base.datasets import MNIST
-    
+
 
 class LitClassifier(pl.LightningModule):
     def __init__(self, hidden_dim=128, learning_rate=1e-3):
