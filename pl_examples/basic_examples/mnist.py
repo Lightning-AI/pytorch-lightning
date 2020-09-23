@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from argparse import ArgumentParser
-from warnings import warn
 
 import torch
 import pytorch_lightning as pl

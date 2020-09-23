@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from argparse import ArgumentParser
-from warnings import warn
 
 import torch
 import pytorch_lightning as pl
