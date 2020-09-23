@@ -287,7 +287,8 @@ Natural Language Processing (NLP)
 ---------------------------------
 
 Everything needed to finetune BERT-like language models for NLP tasks is included with NeMo.
-NeMo supports language models from `HuggingFace Transformers <https://github.com/huggingface/transformers>`_ 
+`NeMo NLP Models <https://ngc.nvidia.com/catalog/models/nvidia:nemonlpmodels>`  
+include `HuggingFace Transformers <https://github.com/huggingface/transformers>`_ 
 and `NVIDIA Megatron-LM <https://github.com/NVIDIA/Megatron-LM>`_ BERT and Bio-Megatron models. 
 NeMo can also be used for pretraining BERT-based language models from HuggingFace.
 
@@ -540,12 +541,13 @@ Text-To-Speech (TTS)
 --------------------
 
 Everything needed to train TTS models and generate audio is included with NeMo. 
-Models can be trained from scratch on your own data or pretrained models can be downloaded
+`NeMo TTS Models <https://ngc.nvidia.com/catalog/models/nvidia:nemottsmodels>` 
+can be trained from scratch on your own data or pretrained models can be downloaded
 automatically. NeMo currently supports  a two step inference procedure. 
 First, a model is used to generate a mel spectrogram from text. 
 Second, a model is used to generate audio from a mel spectrogram.
 
-Mel Spectogram Generators:
+Mel Spectrogram Generators:
 
 - `Tacotron 2 <https://github.com/NVIDIA/NeMo/blob/main/examples/tts/tacotron2.py>`_
 - `Glow-TTS <https://github.com/NVIDIA/NeMo/blob/main/examples/tts/glow_tts.py>`_
