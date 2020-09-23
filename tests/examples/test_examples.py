@@ -28,29 +28,58 @@ ddp_args = """
 --precision 16 \
 """
 
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.parametrize('cli_args', [dp_16_args])
+def test_examples_dp_mnist(cli_args):
+    from pl_examples.basic_examples.mnist import cli_main
+
+    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
+        cli_main()
+
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.parametrize('cli_args', [dp_16_args])
-def test_examples_dp(cli_args):
-    from pl_examples.basic_examples.mnist import cli_main as mnist_cli
-    from pl_examples.basic_examples.image_classifier import cli_main as ic_cli
-    from pl_examples.basic_examples.autoencoder import cli_main as ae_cli
+def test_examples_dp_image_classifier(cli_args):
+    from pl_examples.basic_examples.image_classifier import cli_main
 
-    for cli_cmd in [mnist_cli, ic_cli, ae_cli]:
-        with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
-            cli_cmd()
+    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
+        cli_main()
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.parametrize('cli_args', [dp_16_args])
+def test_examples_dp_autoencoder(cli_args):
+    from pl_examples.basic_examples.autoencoder import cli_main
+
+    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
+        cli_main()
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.parametrize('cli_args', [ddp_args])
-def test_examples_ddp(cli_args):
-    from pl_examples.basic_examples.mnist import cli_main as mnist_cli
-    from pl_examples.basic_examples.image_classifier import cli_main as ic_cli
-    from pl_examples.basic_examples.autoencoder import cli_main as ae_cli
+def test_examples_ddp_mnist(cli_args):
+    from pl_examples.basic_examples.mnist import cli_main
 
-    for cli_cmd in [mnist_cli, ic_cli, ae_cli]:
-        with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
-            cli_cmd()
+    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
+        cli_main()
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.parametrize('cli_args', [ddp_args])
+def test_examples_ddp_image_classifier(cli_args):
+    from pl_examples.basic_examples.image_classifier import cli_main
+
+    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
+        cli_main()
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.parametrize('cli_args', [ddp_args])
+def test_examples_ddp_autoencoder(cli_args):
+    from pl_examples.basic_examples.autoencoder import cli_main
+
+    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
+        cli_main()
 
 
 @pytest.mark.parametrize('cli_args', [cpu_args])
