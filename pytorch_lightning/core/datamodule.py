@@ -92,7 +92,7 @@ def track_data_hook_calls(fn):
     return wrapped_fn
 
 
-class LightningDataModule(DataHooks, metaclass=_DataModuleWrapper):
+class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapper):
     """
     A DataModule standardizes the training, val, test splits, data preparation and transforms.
     The main advantage is consistent data splits, data preparation and transforms across models.

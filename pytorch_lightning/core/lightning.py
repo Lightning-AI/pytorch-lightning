@@ -25,7 +25,7 @@ import torch
 import torch.distributed as torch_distrib
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
-from pytorch_lightning.core.hooks import DataHooks, ModelHooks
+from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
 from pytorch_lightning.core.step_result import EvalResult, TrainResult
@@ -53,7 +53,14 @@ else:
 
 
 class LightningModule(
-    ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks, DataHooks, Module
+    ABC,
+    DeviceDtypeModuleMixin,
+    GradInformation,
+    ModelIO,
+    ModelHooks,
+    DataHooks,
+    CheckpointHooks,
+    Module,
 ):
     # Below is for property support of JIT in PyTorch 1.7
     # since none of them is important when using JIT, we are going to ignore them.
@@ -1377,49 +1384,6 @@ class LightningModule(
             param.requires_grad = True
 
         self.train()
-
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        r"""
-        Called by Lightning to restore your model.
-        If you saved something with :meth:`on_save_checkpoint` this is your chance to restore this.
-
-        Args:
-            checkpoint: Loaded checkpoint
-
-
-        Example:
-            .. code-block:: python
-
-                def on_load_checkpoint(self, checkpoint):
-                    # 99% of the time you don't need to implement this method
-                    self.something_cool_i_want_to_save = checkpoint['something_cool_i_want_to_save']
-
-        Note:
-            Lightning auto-restores global step, epoch, and train state including amp scaling.
-            There is no need for you to restore anything regarding training.
-        """
-
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        r"""
-        Called by Lightning when saving a checkpoint to give you a chance to store anything
-        else you might want to save.
-
-        Args:
-            checkpoint: Checkpoint to be saved
-
-        Example:
-            .. code-block:: python
-
-                def on_save_checkpoint(self, checkpoint):
-                    # 99% of use cases you don't need to implement this method
-                    checkpoint['something_cool_i_want_to_save'] = my_cool_pickable_object
-
-        Note:
-            Lightning saves all aspects of training (epoch, global step, etc...)
-            including amp scaling.
-            There is no need for you to store anything about training.
-
-        """
 
     def get_progress_bar_dict(self) -> Dict[str, Union[int, str]]:
         r"""
