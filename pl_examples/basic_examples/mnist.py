@@ -17,9 +17,7 @@ import torch
 import pytorch_lightning as pl
 from torch.nn import functional as F
 from torch.utils.data import DataLoader, random_split
-
-from torchvision import transforms
-from torchvision.datasets import MNIST
+from tests.base.datasets import MNIST
 
 
 class LitClassifier(pl.LightningModule):
@@ -84,8 +82,8 @@ def cli_main():
     # ------------
     # data
     # ------------
-    dataset = MNIST('', train=True, download=True, transform=transforms.ToTensor())
-    mnist_test = MNIST('', train=False, download=True, transform=transforms.ToTensor())
+    dataset = MNIST('', train=True, download=True)
+    mnist_test = MNIST('', train=False, download=True)
     mnist_train, mnist_val = random_split(dataset, [55000, 5000])
 
     train_loader = DataLoader(mnist_train, batch_size=args.batch_size)
