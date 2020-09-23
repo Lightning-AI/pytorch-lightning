@@ -48,7 +48,7 @@ Installing the latest NeMo release is a simple pip install.
 
 .. code-block:: bash
 
-    pip install nemo_toolkit[all]
+    pip install nemo_toolkit[all]==1.0.0a1
 
 To install the main branch from GitHub:
 
@@ -56,6 +56,11 @@ To install the main branch from GitHub:
 
     python -m pip install git+https://github.com/NVIDIA/NeMo.git@main#egg=nemo_toolkit[all]
 
+To install from a local clone of NeMo:
+
+.. code-block:: bash
+
+    ./reinstall.sh # from cloned NeMo's git root
 
 For Docker users, the NeMo container is available on 
 `NGC <https://ngc.nvidia.com/catalog/containers/nvidia:nemo>`_
