@@ -45,10 +45,10 @@ class TrialMNISTDataModule(LightningDataModule):
         return DataLoader(self.mnist_test, batch_size=32)
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        checkpoint[f"{self.__class__.__name__}"] = "checkpoint state"
+        checkpoint[self.__class__.__name__] = self.__class__.__name__
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        self.checkpoint_state = checkpoint.get(f"{self.__class__.__name__}")
+        self.checkpoint_state = checkpoint.get(self.__class__.__name__)
 
 
 class MNISTDataModule(LightningDataModule):
