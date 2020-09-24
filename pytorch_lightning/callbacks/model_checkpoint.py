@@ -22,6 +22,7 @@ Automatically save model checkpoints during training.
 
 import os
 import re
+from copy import deepcopy
 from typing import Any, Dict, Optional
 
 import numpy as np
@@ -219,7 +220,8 @@ class ModelCheckpoint(Callback):
 
         monitor_op = {"min": torch.lt, "max": torch.gt}[self.mode]
 
-        return monitor_op(current, self.best_k_models[self.kth_best_model_path])
+        val = monitor_op(current, self.best_k_models[self.kth_best_model_path])
+        return val
 
     @classmethod
     def _format_checkpoint_name(
@@ -351,7 +353,11 @@ class ModelCheckpoint(Callback):
 
         self.epoch_last_check = epoch
 
-        ckpt_name_metrics = trainer.logger_connector.logged_metrics
+        # anything logged or in callbacks can be in the name
+        ckpt_name_metrics = deepcopy(trainer.logger_connector.logged_metrics)
+        ckpt_name_metrics.update(trainer.logger_connector.callback_metrics)
+        ckpt_name_metrics.update(trainer.logger_connector.progress_bar_metrics)
+
         filepath = self.format_checkpoint_name(epoch, ckpt_name_metrics)
         version_cnt = 0
         while self._fs.exists(filepath):
@@ -366,18 +372,19 @@ class ModelCheckpoint(Callback):
 
             if not isinstance(current, torch.Tensor):
                 rank_zero_warn(
-                    f"The metric you returned {current} must be a `torch.Tensor` instance, checkpoint not saved"
-                    f" HINT: what is the value of {self.monitor} in validation_epoch_end()?",
+                    f"The metric you returned {self.monitor}={current} must be a `torch.Tensor` "
+                    f"instance, checkpoint not saved HINT: what is the value of {self.monitor}?",
                     RuntimeWarning,
                 )
                 if current is not None:
-                    current = torch.tensor(current)
+                    current = torch.tensor(current).to(pl_module.device)
 
             if current is None:
-                rank_zero_warn(
-                    f"Can save best model only with {self.monitor} available, skipping.",
-                    RuntimeWarning,
-                )
+                m = f"Can save best model only with {self.monitor} available, skipping."
+                if self.monitor == 'checkpoint_on':
+                    m = f'No checkpoint_on found. Hint: Did you set it in EvalResult(checkpoint_on=tensor) or ' \
+                        f'TrainResult(checkpoint_on=tensor)?'
+                rank_zero_warn(m, RuntimeWarning)
             elif self.check_monitor_top_k(current):
                 self._do_check_save(filepath, current, epoch, trainer, pl_module)
             elif self.verbose:
@@ -402,6 +409,7 @@ class ModelCheckpoint(Callback):
             self._save_model(filepath, trainer, pl_module)
             if self.last_model_path and self.last_model_path != filepath:
                 self._del_model(self.last_model_path)
+            self.last_model_path = filepath
 
     def _is_valid_monitor_key(self, metrics):
         return self.monitor in metrics or len(metrics) == 0

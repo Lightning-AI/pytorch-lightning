@@ -58,6 +58,7 @@ def test_training_step_result_log_step_only(tmpdir):
         assert len(logged_metrics) == 4
 
     # make sure we are using the correct metrics for callbacks
+    assert len(trainer.logger_connector.callback_metrics) == 8
     assert trainer.logger_connector.callback_metrics['checkpoint_on'] == 171
 
     # make sure pbar metrics are correct ang log metrics did not leak
@@ -122,6 +123,8 @@ def test_training_step_result_log_epoch_only(tmpdir):
     assert model.training_step_called
     assert not model.training_step_end_called
     assert not model.training_epoch_end_called
+
+    assert len(trainer.logger_connector.callback_metrics) == 12
 
     # make sure correct metrics are logged (one per batch step as requested)
     assert len(trainer.dev_debugger.logged_metrics) == epochs
@@ -197,6 +200,8 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
     assert model.training_step_called
     assert not model.training_step_end_called
     assert not model.training_epoch_end_called
+
+    assert len(trainer.logger_connector.callback_metrics) == 8
 
     # make sure correct metrics are logged (one per batch step as requested)
     assert len(trainer.dev_debugger.logged_metrics) == (epochs * batches) + epochs
@@ -323,6 +328,8 @@ def test_training_step_epoch_end_result(tmpdir):
     )
     trainer.fit(model)
 
+    assert len(trainer.logger_connector.callback_metrics) == 11
+
     # make sure correct steps were called
     assert model.training_step_called
     assert not model.training_step_end_called
@@ -402,6 +409,8 @@ def test_no_auto_callbacks_with_train_loop_only(tmpdir):
         weights_summary=None,
     )
     trainer.fit(model)
+
+    assert len(trainer.logger_connector.callback_metrics) == 2
 
     all_losses = trainer.dev_debugger.saved_train_losses
     assert len(all_losses) == batches * epochs
