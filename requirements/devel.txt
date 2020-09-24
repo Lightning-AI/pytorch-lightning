@@ -8,4 +8,4 @@
 -r ./test.txt
 
 # install all extra dependencies for running examples
--t ./examples.txt
+-r ./examples.txt
