@@ -57,13 +57,12 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
 
     """
 
-    def __init__(self, name: str, reduce_group: Optional[Any] = None, default_agg: str = 'sum'):
+    def __init__(self, name: str, reduce_group: Optional[Any] = None):
         """
         Args:
             name: the metric's name
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            default_agg: default aggregation function, either 'sum' or 'mean'
 
         """
         super().__init__()
@@ -73,8 +72,8 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
 
         self.reduce_group = reduce_group
 
+        # Buffer for holding aggregated state after each batch
         self._step_vals = []
-        self._agg_fn = torch.sum if default_agg == 'sum' else torch.mean
 
         # Register hooks
         self.register_forward_pre_hook(self.input_convert)
