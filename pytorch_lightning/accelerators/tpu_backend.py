@@ -46,6 +46,7 @@ class TPUBackend(Accelerator):
     def setup(self, model):
         rank_zero_info(f'training on {self.trainer.tpu_cores} TPU cores')
 
+        # TODO: Move this check to Trainer __init__ or device parser
         if not TPU_AVAILABLE:
             raise MisconfigurationException('PyTorch XLA not installed.')
 
