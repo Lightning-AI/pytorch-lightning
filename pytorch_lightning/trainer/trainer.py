@@ -54,7 +54,6 @@ from pytorch_lightning.trainer.connectors.precision_connector import PrecisionCo
 from pytorch_lightning.trainer.connectors.profiler_connector import ProfilerConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.utilities.model_utils import is_overridden
-from pytorch_lightning.trainer import docstrings
 from pytorch_lightning.trainer.properties import TrainerProperties
 
 # warnings to ignore in trainer
