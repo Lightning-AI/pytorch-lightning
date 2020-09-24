@@ -30,7 +30,7 @@ class KillCallback(Callback):
         assert trainer.interrupted
 
 
-def get_available_signal_codes():
+def _get_available_signal_codes():
     codes = [signal.SIGINT]
     if platform.system() != "Windows":
         codes += [signal.SIGTERM, signal.SIGSEGV]
@@ -39,7 +39,7 @@ def get_available_signal_codes():
 
 
 @pytest.mark.skipif(not torch.distributed.is_available(), reason="test requires torch.distributed module")
-@pytest.mark.parametrize(["signal_code"], get_available_signal_codes())
+@pytest.mark.parametrize(["signal_code"], _get_available_signal_codes())
 def test_graceful_training_shutdown(tmpdir, signal_code):
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -52,7 +52,7 @@ def test_graceful_training_shutdown(tmpdir, signal_code):
     trainer.fit(model)
 
 
-@pytest.mark.parametrize(["signal_code"], get_available_signal_codes())
+@pytest.mark.parametrize(["signal_code"], _get_available_signal_codes())
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_graceful_training_shutdown_gpu(tmpdir, signal_code):
     trainer = Trainer(
