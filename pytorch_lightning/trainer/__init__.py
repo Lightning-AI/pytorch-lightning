@@ -417,8 +417,8 @@ early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
   Will raise an error if a :class:`~pytorch_lightning.core.step_result.Result` is returned
   and ``early_stopping_on`` was not specified.
 - ``False``: Early stopping will be disabled.
-- ``None``: Same as, if ``True`` is specified.
-- Default: ``None``.
+- ``None``: Equivalent to ``True``.
+- Default: ``False``.
 
 .. testcode::
 
@@ -1094,4 +1094,5 @@ Trainer class API
 from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities.seed import seed_everything
 
-__all__ = ['Trainer', 'seed_everything']
+__all__ = ["Trainer", "seed_everything"]
+
