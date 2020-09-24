@@ -69,7 +69,7 @@ def test_gpu_stats_monitor_no_logger(tmpdir):
         callbacks=[gpu_stats],
         max_epochs=1,
         gpus=1,
-        logger=None
+        logger=False
     )
 
     with pytest.raises(MisconfigurationException, match='Trainer that has no logger.'):

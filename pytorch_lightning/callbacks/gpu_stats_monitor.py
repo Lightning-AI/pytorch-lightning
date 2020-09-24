@@ -119,28 +119,30 @@ class GPUStatsMonitor(Callback):
     def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         gpu_stat_keys = self._get_gpu_stat_keys()
         gpu_stats = self._get_gpu_stats(gpu_stat_keys)
+        logs = self._parse_gpu_stats(gpu_stats, gpu_stat_keys)
 
         if self._log_stats.inter_step_time and self._snap_inter_step_time:
             # First log at beginning of second step
-            gpu_stats['batch_time/inter_step (ms)'] = (time.time() - self._snap_inter_step_time) * 1000
+            logs['batch_time/inter_step (ms)'] = (time.time() - self._snap_inter_step_time) * 1000
 
         if self._log_stats.intra_step_time:
             self._snap_intra_step_time = time.time()
 
-        trainer.logger.log_metrics(gpu_stats, step=trainer.global_step)
+        trainer.logger.log_metrics(logs, step=trainer.global_step)
 
     @rank_zero_only
     def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         gpu_stat_keys = self._get_gpu_stat_keys() + self._get_gpu_device_stat_keys()
         gpu_stats = self._get_gpu_stats(gpu_stat_keys)
+        logs = self._parse_gpu_stats(gpu_stats, gpu_stat_keys)
 
         if self._log_stats.inter_step_time:
             self._snap_inter_step_time = time.time()
 
         if self._log_stats.intra_step_time and self._snap_intra_step_time:
-            gpu_stats['batch_time/intra_step (ms)'] = (time.time() - self._snap_intra_step_time) * 1000
+            logs['batch_time/intra_step (ms)'] = (time.time() - self._snap_intra_step_time) * 1000
 
-        trainer.logger.log_metrics(gpu_stats, step=trainer.global_step)
+        trainer.logger.log_metrics(logs, step=trainer.global_step)
 
     def _get_gpu_stats(self, gpu_stat_keys):
         gpu_query = ','.join([m[0] for m in gpu_stat_keys])
@@ -162,12 +164,13 @@ class GPUStatsMonitor(Callback):
 
         stats = result.stdout.strip().split(os.linesep)
         stats = [list(map(_to_float, x.split(', '))) for x in stats]
+        return stats
 
+    def _parse_gpu_stats(self, stats, keys):
         logs = {}
         for i, gpu_id in enumerate(self._gpu_ids.split(',')):
-            gpu_stat_keys = [f'gpu_id: {gpu_id}/{x} ({unit})' for x, unit in gpu_stat_keys]
-            logs.update(dict(zip(gpu_stat_keys, stats[i])))
-
+            keys = [f'gpu_id: {gpu_id}/{x} ({unit})' for x, unit in keys]
+            logs.update(dict(zip(keys, stats[i])))
         return logs
 
     def _get_gpu_stat_keys(self):
