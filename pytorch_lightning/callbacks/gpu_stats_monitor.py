@@ -144,6 +144,7 @@ class GPUStatsMonitor(Callback):
 
         trainer.logger.log_metrics(logs, step=trainer.global_step)
 
+    def _get_gpu_stats(self, queries: List[str]) -> List[List[float]]:
         """Run nvidia-smi to get the gpu stats"""
         format = 'csv,nounits,noheader'
 
@@ -155,7 +156,7 @@ class GPUStatsMonitor(Callback):
             check=True
         )
 
-        def _to_float(x):
+        def _to_float(x: str) -> float:
             try:
                 return float(x)
             except ValueError:
@@ -165,6 +166,7 @@ class GPUStatsMonitor(Callback):
         stats = [list(map(_to_float, x.split(', '))) for x in stats]
         return stats
 
+    def _parse_gpu_stats(self, stats: List[List[float]], keys: List[Tuple[str, str]]) -> Dict[str, float]:
         """Parse the gpu stats into a loggable dict"""
         logs = {}
         for i, gpu_id in enumerate(self._gpu_ids.split(',')):
@@ -172,6 +174,7 @@ class GPUStatsMonitor(Callback):
             logs.update(dict(zip(keys, stats[i])))
         return logs
 
+    def _get_gpu_stat_keys(self) -> List[Tuple[str, str]]:
         """Get the GPU stats keys"""
         stat_keys = []
 
@@ -183,6 +186,7 @@ class GPUStatsMonitor(Callback):
 
         return stat_keys
 
+    def _get_gpu_device_stat_keys(self) -> List[Tuple[str, str]]:
         """Get the device stats keys"""
         stat_keys = []
 
