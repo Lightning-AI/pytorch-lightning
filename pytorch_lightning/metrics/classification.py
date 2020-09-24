@@ -18,6 +18,7 @@ import torch
 
 from pytorch_lightning.metrics.functional.classification import (
     accuracy,
+    accuracy_topk,
     auroc,
     average_precision,
     confusion_matrix,
@@ -85,6 +86,61 @@ class Accuracy(TensorMetric):
         """
         return accuracy(pred=pred, target=target,
                         num_classes=self.num_classes, class_reduction=self.class_reduction)
+
+
+class AccuracyTopk(TensorMetric):
+    """
+    Computes the accuracy classification score
+
+    Example:
+
+        >>> pred = torch.tensor([0, 1, 2, 3])
+        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> metric = AccuracyTopk(topk=1)
+        >>> metric(pred, target).item()
+        0.75
+
+    """
+
+    def __init__(
+        self,
+        num_classes: Optional[int] = None,
+        class_reduction: str = 'micro',
+        topk: int = 1,
+        reduce_group: Any = None,
+    ):
+        """
+        Args:
+            num_classes: number of classes
+            class_reduction: method to reduce metric score over labels
+
+                - ``'micro'``: calculate metrics globally (default)
+                - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
+                - ``'none'``: returns calculated metric per class
+
+            topk: Top kth accuracy to compute. E.g. top-1, top-3.
+            reduce_group: the process group to reduce metric results from DDP
+        """
+        super().__init__(name="accuracy", reduce_group=reduce_group)
+        self.num_classes = num_classes
+        self.topk = topk
+        assert class_reduction in ('micro', 'macro', 'weighted', 'none')
+        self.class_reduction = class_reduction
+
+    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """
+        Actual metric computation
+
+        Args:
+            pred: predicted labels
+            target: ground truth labels
+
+        Return:
+            A Tensor with the classification score.
+        """
+        return accuracy_topk(pred=pred, target=target,
+                             num_classes=self.num_classes, topk=self.topk, class_reduction=self.class_reduction)
 
 
 class ConfusionMatrix(TensorMetric):
