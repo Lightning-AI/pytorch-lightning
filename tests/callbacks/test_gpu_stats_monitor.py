@@ -93,3 +93,9 @@ def test_gpu_stats_monitor_no_gpu_warning(tmpdir):
 
     with pytest.raises(MisconfigurationException, match='not running on GPU'):
         trainer.fit(model)
+
+
+def test_gpu_stats_monitor_parse_gpu_stats():
+    logs = GPUStatsMonitor._parse_gpu_stats('1,2', [[3, 4, 5], [6, 7]], [('gpu', 'a'), ('memory', 'b')])
+    expected = {'gpu_id: 1/gpu (a)': 3, 'gpu_id: 1/memory (b)': 4, 'gpu_id: 2/gpu (a)': 6, 'gpu_id: 2/memory (b)': 7}
+    assert logs == expected

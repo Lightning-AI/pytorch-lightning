@@ -120,7 +120,7 @@ class GPUStatsMonitor(Callback):
     def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         gpu_stat_keys = self._get_gpu_stat_keys()
         gpu_stats = self._get_gpu_stats([k for k, _ in gpu_stat_keys])
-        logs = self._parse_gpu_stats(gpu_stats, gpu_stat_keys)
+        logs = self._parse_gpu_stats(self._gpu_ids, gpu_stats, gpu_stat_keys)
 
         if self._log_stats.inter_step_time and self._snap_inter_step_time:
             # First log at beginning of second step
@@ -135,7 +135,7 @@ class GPUStatsMonitor(Callback):
     def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         gpu_stat_keys = self._get_gpu_stat_keys() + self._get_gpu_device_stat_keys()
         gpu_stats = self._get_gpu_stats([k for k, _ in gpu_stat_keys])
-        logs = self._parse_gpu_stats(gpu_stats, gpu_stat_keys)
+        logs = self._parse_gpu_stats(self._gpu_ids, gpu_stats, gpu_stat_keys)
 
         if self._log_stats.inter_step_time:
             self._snap_inter_step_time = time.time()
@@ -167,12 +167,13 @@ class GPUStatsMonitor(Callback):
         stats = [[_to_float(x) for x in s.split(', ')] for s in stats]
         return stats
 
-    def _parse_gpu_stats(self, stats: List[List[float]], keys: List[Tuple[str, str]]) -> Dict[str, float]:
+    @staticmethod
+    def _parse_gpu_stats(gpu_ids: str, stats: List[List[float]], keys: List[Tuple[str, str]]) -> Dict[str, float]:
         """Parse the gpu stats into a loggable dict"""
         logs = {}
-        for i, gpu_id in enumerate(self._gpu_ids.split(',')):
-            keys = [f'gpu_id: {gpu_id}/{x} ({unit})' for x, unit in keys]
-            logs.update(dict(zip(keys, stats[i])))
+        for i, gpu_id in enumerate(gpu_ids.split(',')):
+            for j, (x, unit) in enumerate(keys):
+                logs[f'gpu_id: {gpu_id}/{x} ({unit})'] = stats[i][j]
         return logs
 
     def _get_gpu_stat_keys(self) -> List[Tuple[str, str]]:
