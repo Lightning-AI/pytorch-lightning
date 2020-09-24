@@ -144,8 +144,7 @@ class GPUStatsMonitor(Callback):
 
         trainer.logger.log_metrics(logs, step=trainer.global_step)
 
-    def _get_gpu_stats(self, gpu_stat_keys):
-        gpu_query = ','.join([m[0] for m in gpu_stat_keys])
+        """Run nvidia-smi to get the gpu stats"""
         format = 'csv,nounits,noheader'
 
         result = subprocess.run(
@@ -166,14 +165,14 @@ class GPUStatsMonitor(Callback):
         stats = [list(map(_to_float, x.split(', '))) for x in stats]
         return stats
 
-    def _parse_gpu_stats(self, stats, keys):
+        """Parse the gpu stats into a loggable dict"""
         logs = {}
         for i, gpu_id in enumerate(self._gpu_ids.split(',')):
             keys = [f'gpu_id: {gpu_id}/{x} ({unit})' for x, unit in keys]
             logs.update(dict(zip(keys, stats[i])))
         return logs
 
-    def _get_gpu_stat_keys(self):
+        """Get the GPU stats keys"""
         stat_keys = []
 
         if self._log_stats.gpu_utilization:
@@ -184,7 +183,7 @@ class GPUStatsMonitor(Callback):
 
         return stat_keys
 
-    def _get_gpu_device_stat_keys(self):
+        """Get the device stats keys"""
         stat_keys = []
 
         if self._log_stats.fan_speed:
