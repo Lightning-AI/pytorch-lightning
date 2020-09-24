@@ -24,6 +24,7 @@ import os
 import shutil
 import subprocess
 import time
+from typing import List, Tuple, Dict
 
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_only
@@ -118,7 +119,7 @@ class GPUStatsMonitor(Callback):
     @rank_zero_only
     def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         gpu_stat_keys = self._get_gpu_stat_keys()
-        gpu_stats = self._get_gpu_stats(gpu_stat_keys)
+        gpu_stats = self._get_gpu_stats([k for k, _ in gpu_stat_keys])
         logs = self._parse_gpu_stats(gpu_stats, gpu_stat_keys)
 
         if self._log_stats.inter_step_time and self._snap_inter_step_time:
@@ -133,7 +134,7 @@ class GPUStatsMonitor(Callback):
     @rank_zero_only
     def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         gpu_stat_keys = self._get_gpu_stat_keys() + self._get_gpu_device_stat_keys()
-        gpu_stats = self._get_gpu_stats(gpu_stat_keys)
+        gpu_stats = self._get_gpu_stats([k for k, _ in gpu_stat_keys])
         logs = self._parse_gpu_stats(gpu_stats, gpu_stat_keys)
 
         if self._log_stats.inter_step_time:
@@ -146,8 +147,8 @@ class GPUStatsMonitor(Callback):
 
     def _get_gpu_stats(self, queries: List[str]) -> List[List[float]]:
         """Run nvidia-smi to get the gpu stats"""
+        gpu_query = ','.join(queries)
         format = 'csv,nounits,noheader'
-
         result = subprocess.run(
             [shutil.which('nvidia-smi'), f'--query-gpu={gpu_query}', f'--format={format}', f'--id={self._gpu_ids}'],
             encoding="utf-8",
@@ -163,7 +164,7 @@ class GPUStatsMonitor(Callback):
                 return 0.
 
         stats = result.stdout.strip().split(os.linesep)
-        stats = [list(map(_to_float, x.split(', '))) for x in stats]
+        stats = [[_to_float(x) for x in s.split(', ')] for s in stats]
         return stats
 
     def _parse_gpu_stats(self, stats: List[List[float]], keys: List[Tuple[str, str]]) -> Dict[str, float]:
