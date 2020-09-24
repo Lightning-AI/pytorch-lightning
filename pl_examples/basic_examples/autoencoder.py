@@ -23,7 +23,7 @@ from torch.utils.data import random_split
 try:
     from torchvision.datasets.mnist import MNIST
     from torchvision import transforms
-except Exception as e:
+except ImportError:
     from tests.base.datasets import MNIST
 
 
