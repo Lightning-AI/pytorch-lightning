@@ -51,9 +51,13 @@ else:
     XLA_AVAILABLE = True
 
 
-class LightningModule(
-    ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks, DataHooks, Module
-):
+class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks, DataHooks, Module):
+    # Below is for property support of JIT in PyTorch 1.7
+    # since none of them is important when using JIT, we are going to ignore them.
+    # https://github.com/pytorch/pytorch/commit/e7d782e724c76bb0572023d52ee7438a40a7a262#diff-ff4f8670281cd1eb4e09329cc1dcb43b
+    __ignored_properties__ = ['datamodule', 'example_input_array',
+                              'hparams', 'on_gpu'] + DeviceDtypeModuleMixin.__ignored_properties__
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -755,7 +759,6 @@ class LightningModule(
     def test_epoch_end(
         self, outputs: Union[EvalResult, List[EvalResult]]
     ) -> EvalResult:
-
         """
         Called at the end of a test epoch with the output of all test steps.
 
