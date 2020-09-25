@@ -83,6 +83,7 @@ RUN conda create -y --name $CONDA_ENV "cudatoolkit=$CUDA_VERSION" && \
     python -c "fname = 'environment.yml' ; req = open(fname).readlines() ; open(fname, 'w').writelines([ln for ln in req if 'horovod' not in ln])" && \
     cat environment.yml && \
     conda env update --file environment.yml && \
+    cat environment.yml && \
     conda clean -ya && \
     rm environment.yml
 
