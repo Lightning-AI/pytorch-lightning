@@ -1427,5 +1427,5 @@ def test_trainer_profiler_correct_args(trainer_kwargs, expected):
 
 def test_trainer_profiler_incorrect_str_arg():
     with pytest.raises(ValueError, match=r'when passing string value for the `profiler` parameter of '
-                                          '`trainer`, it can only be `simple` or `advanced`'):
+                                          '`Trainer`, it can only be `simple` or `advanced`'):
         Trainer(profiler="unknown_profiler")
