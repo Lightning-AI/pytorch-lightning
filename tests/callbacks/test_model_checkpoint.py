@@ -1,5 +1,5 @@
 import os
-import json
+import yaml
 import pickle
 import platform
 import re
@@ -48,8 +48,8 @@ def test_model_checkpoint_to_json(tmpdir, save_top_k):
     trainer = Trainer(default_root_dir=tmpdir, checkpoint_callback=checkpoint, overfit_batches=0.20, max_epochs=2)
     trainer.fit(model)
 
-    checkpoint.to_json('./best_k_models.json')
-    d = json.load(open('./best_k_models.json', 'r'))
+    checkpoint.to_yaml('./best_k_models.yaml')
+    d = yaml.full_load(open('./best_k_models.yaml', 'r'))
     best_k = {k: torch.Tensor(v) for k, v in d.items()}
     torch.testing.assert_allclose(best_k, checkpoint.best_k_models)
 
