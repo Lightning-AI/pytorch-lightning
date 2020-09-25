@@ -24,7 +24,8 @@ import os
 import re
 import yaml
 from copy import deepcopy
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -532,7 +533,7 @@ class ModelCheckpoint(Callback):
             if cur_path != filepath:
                 self._del_model(cur_path)
 
-    def to_yaml(self, save_path=None):
+    def to_yaml(self, save_path: Optional[Union[str, Path]]=None):
         """ Saves `{'checkpoint_name': score}` dict as a YAML file."""
         best_k = {k: v.item() for k, v in self.best_k_models.items()}
         if save_path is None:
