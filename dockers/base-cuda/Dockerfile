@@ -91,7 +91,7 @@ RUN \
     python -c "fname = 'requirements-extra.txt' ; req = open(fname).readlines() ; open(fname, 'w').writelines([l for l in req if 'horovod' in l])" && \
     #cat requirements-extra.txt && \
     # Install all requirements
-    MAKEFLAGS="-j2" ; pip install -r requirements-extra.txt && \
+    MAKEFLAGS="-j$(nproc)" ; pip install -r requirements-extra.txt && \
     pip install -r requirements-tests.txt --upgrade-strategy only-if-needed --no-cache-dir && \
     pip install -r requirements-examples.txt --upgrade-strategy only-if-needed --no-cache-dir && \
     rm requirements* && \
