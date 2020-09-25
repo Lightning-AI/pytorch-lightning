@@ -278,7 +278,7 @@ class Trainer(
         self.profile_connector = ProfilerConnector(self)
         self.checkpoint_connector = CheckpointConnector(self)
         self.slurm_connector = SLURMConnector(self)
-        self.signal_connector = SignalConnector(self)
+        self.signal_connector = SignalConnector()
         self.tuner = Tuner(self)
         self.accelerator_backend = None
         self.evaluation_loop = EvaluationLoop(self)

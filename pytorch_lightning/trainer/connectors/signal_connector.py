@@ -11,8 +11,7 @@ class SignalConnector:
     SIGTERM, SIGINT and SIGSEGV by raising KeyboardInterrupt and letting Trainer do graceful shutdown.
     """
 
-    def __init__(self, trainer):
-        self.trainer = trainer
+    def __init__(self):
         self.original_handlers = {}
 
     def setup(self):
