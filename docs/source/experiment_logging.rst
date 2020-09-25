@@ -192,7 +192,7 @@ First, install the package:
 
 Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
-.. testcode::
+.. code-block:: python
 
     from pytorch_lightning.loggers import WandbLogger
     wandb_logger = WandbLogger(offline=True)

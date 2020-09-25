@@ -1,9 +1,7 @@
 import os
-from unittest.mock import MagicMock
 
 import pytest
 import torch
-import wandb
 
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
