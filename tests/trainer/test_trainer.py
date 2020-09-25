@@ -1423,9 +1423,9 @@ def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, l
 def test_trainer_profiler_correct_args(trainer_kwargs, expected):
     trainer = Trainer(**trainer_kwargs)
     assert isinstance(trainer.profiler, expected)
-    
+
 
 def test_trainer_profiler_incorrect_str_arg():
     with pytest.raises(ValueError, match=r'when passing string value for the `profiler` parameter of '
-                                          '`Trainer`, it can only be `simple` or `advanced`'):
+                       '`Trainer`, it can only be `simple` or `advanced`'):
         Trainer(profiler="unknown_profiler")

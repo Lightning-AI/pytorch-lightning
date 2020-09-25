@@ -60,7 +60,7 @@ This option uses Python's cProfiler_ to provide a report of time spent on *each*
 .. code-block:: python
 
     trainer = Trainer(..., profiler="advanced")
-    
+
     or
 
     profiler = AdvancedProfiler()
