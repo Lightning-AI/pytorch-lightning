@@ -55,6 +55,8 @@ jobs:
     # https://gist.github.com/mwouts/9842452d020c08faf9e84a3bba38a66f
     - name: Setup Miniconda
       uses: goanpeca/setup-miniconda@v1.6.0
+      env:
+        MAKEFLAGS: "-j2"
       with:
           # auto-update-conda: true
           auto-activate-base: false
