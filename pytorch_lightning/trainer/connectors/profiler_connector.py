@@ -11,7 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
-from pytorch_lightning.profiler import PassThroughProfiler, SimpleProfiler
+
+from typing import Union
+
+from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler, SimpleProfiler, AdvancedProfiler
 
 
 class ProfilerConnector:
@@ -19,8 +22,13 @@ class ProfilerConnector:
     def __init__(self, trainer):
         self.trainer = trainer
 
-    def on_trainer_init(self, profiler):
+    def on_trainer_init(self, profiler: Union[BaseProfiler, bool, str]):
         # configure profiler
-        if profiler is True:
+        if profiler is True or profiler == "simple":
             profiler = SimpleProfiler()
+        elif profiler == "advanced":
+            profiler = AdvancedProfiler()
+        elif isinstance(profiler, str):
+            raise ValueError('when passing string value for the `profiler` parameter of'
+                             ' `trainer`, it can only be `simple` or `advanced`')
         self.trainer.profiler = profiler or PassThroughProfiler()
