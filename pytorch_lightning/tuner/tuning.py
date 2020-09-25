@@ -63,7 +63,7 @@ class Tuner:
             num_training,
             mode,
             early_stop_threshold,
-            datamodule
+            datamodule,
         )
 
     def internal_find_lr(self, trainer, model: LightningModule):
