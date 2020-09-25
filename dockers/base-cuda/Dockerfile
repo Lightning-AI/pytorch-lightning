@@ -101,4 +101,4 @@ RUN \
     conda list && \
     pip list
 
-CMD ["bin/bash"]
+CMD ["/bin/bash"]
