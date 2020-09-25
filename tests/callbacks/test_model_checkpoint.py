@@ -6,8 +6,9 @@ from pathlib import Path
 
 import cloudpickle
 import pytest
-import tests.base.develop_utils as tutils
 import torch
+
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -257,3 +258,20 @@ def test_ckpt_metric_names_results(tmpdir):
     assert len(ckpts) == 1
     val = re.sub("[^0-9.]", "", ckpts[0])
     assert len(val) > 3
+
+
+@pytest.mark.parametrize('max_epochs', [1, 2])
+@pytest.mark.parametrize('should_validate', [True, False])
+@pytest.mark.parametrize('save_last', [True, False])
+def test_model_checkpoint_save_last_warning(tmpdir, caplog, max_epochs, should_validate, save_last):
+    """Tests 'Saving latest checkpoint...' log"""
+    model = EvalModelTemplate()
+    if not should_validate:
+        model.validation_step = None
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        checkpoint_callback=ModelCheckpoint(filepath=tmpdir, save_top_k=0, save_last=save_last),
+        max_epochs=max_epochs,
+    )
+    trainer.fit(model)
+    assert caplog.messages.count('Saving latest checkpoint...') == save_last

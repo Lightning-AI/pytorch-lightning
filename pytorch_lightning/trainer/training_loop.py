@@ -13,30 +13,30 @@
 # limitations under the License.
 
 import subprocess
+from copy import copy, deepcopy
+
 import numpy as np
 import torch
 import torch.distributed as torch_distrib
-from pytorch_lightning.utilities.model_utils import is_overridden
-from pytorch_lightning.trainer.supporters import TensorRunningAccum, Accumulator
+
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities.memory import recursive_detach
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.core.step_result import EvalResult, Result
-from pytorch_lightning.utilities.parsing import AttributeDict
-from copy import copy, deepcopy
-from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import parsing, AMPType
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.utilities.distributed import rank_zero_warn
+from pytorch_lightning.core.step_result import EvalResult, Result
+from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.supporters import TensorRunningAccum, Accumulator
+from pytorch_lightning.utilities import parsing, AMPType
+from pytorch_lightning.utilities.distributed import rank_zero_info
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.memory import recursive_detach
+from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.parsing import AttributeDict
 
 
 class TrainLoop:
 
     def __init__(self, trainer):
         self.trainer = trainer
-        self.should_check_val = False
         self.early_stopping_accumulator = None
         self.checkpoint_accumulator = None
         self.accumulated_loss = None
@@ -164,9 +164,8 @@ class TrainLoop:
 
         self._teardown_already_run = True
 
-        # Save latest checkpoint
-        rank_zero_warn('Saving latest checkpoint..')
-        self.check_checkpoint_callback(should_check_val=False, force_save=True)
+        # maybe save checkpoint
+        self.check_checkpoint_callback(should_save=True, is_last=True)
 
         # hook
         self.trainer.call_hook('on_train_end')
@@ -193,14 +192,13 @@ class TrainLoop:
             model.cpu()
             torch.cuda.empty_cache()
 
-    def check_checkpoint_callback(self, should_check_val, force_save=False):
-        model = self.trainer.get_model()
-
-        # when no val loop is present or fast-dev-run still need to call checkpoints
+    def check_checkpoint_callback(self, should_save, is_last=False):
         # TODO bake this logic into the checkpoint callback
-        should_activate = not is_overridden('validation_step', model) and not should_check_val
-        if should_activate or force_save:
+        if should_save:
             checkpoint_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
+            if is_last and any(c.save_last for c in checkpoint_callbacks):
+                rank_zero_info('Saving latest checkpoint...')
+            model = self.trainer.get_model()
             [c.on_validation_end(self.trainer, model) for c in checkpoint_callbacks]
 
     def on_train_epoch_start(self, epoch):
@@ -223,9 +221,6 @@ class TrainLoop:
         self.accumulated_loss = TensorRunningAccum(
             window_length=self.trainer.accumulate_grad_batches
         )
-
-        # bookkeeping
-        self.should_check_val = False
 
         # structured result accumulators for callbacks
         self.early_stopping_accumulator = Accumulator()
@@ -432,6 +427,7 @@ class TrainLoop:
         # enable profiling for the dataloader
         train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         dataloader_idx = 0
+        should_check_val = False
         for batch_idx, (batch, is_last_batch) in train_dataloader:
             # stop epoch if we limited the number of training batches
             if batch_idx >= self.trainer.num_training_batches:
@@ -502,8 +498,8 @@ class TrainLoop:
             self.num_optimizers
         )
 
-        # checkpoint callback
-        self.check_checkpoint_callback(self.should_check_val)
+        # when no val loop is present or fast-dev-run still need to call checkpoints
+        self.check_checkpoint_callback(not (should_check_val or is_overridden('validation_step', model)))
 
         # epoch end hook
         self.run_on_epoch_end_hook()
@@ -671,10 +667,10 @@ class TrainLoop:
     def should_check_val_fx(self, batch_idx, is_last_batch):
         # decide if we should run validation
         is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
-        can_check_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
-        can_check_val = self.trainer.enable_validation and can_check_epoch
+        is_val_check_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
+        can_check_val = self.trainer.enable_validation and is_val_check_epoch
         should_check_val = is_val_check_batch or self.trainer.should_stop
-        is_last_batch_for_infinite_dataset = (is_last_batch and self.trainer.val_check_batch == float('inf'))
+        is_last_batch_for_infinite_dataset = is_last_batch and self.trainer.val_check_batch == float('inf')
         should_check_val = can_check_val and (should_check_val or is_last_batch_for_infinite_dataset)
 
         return should_check_val
