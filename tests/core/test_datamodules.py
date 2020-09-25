@@ -68,6 +68,22 @@ def test_can_prepare_data(tmpdir):
     assert trainer.data_connector.can_prepare_data()
 
 
+def test_hooks_no_recursion_error(tmpdir):
+    # hooks were appended in cascade every tine a new data module was instantiated leading to a recursion error.
+    # See https://github.com/PyTorchLightning/pytorch-lightning/issues/3652
+    class DummyDM(LightningDataModule):
+        def setup(self, *args, **kwargs):
+            pass
+
+        def prepare_data(self, *args, **kwargs):
+            pass
+
+    for i in range(1005):
+        dm = DummyDM()
+        dm.setup()
+        dm.prepare_data()
+
+
 def test_base_datamodule(tmpdir):
     dm = TrialMNISTDataModule()
     dm.prepare_data()

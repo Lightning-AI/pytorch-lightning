@@ -25,6 +25,10 @@ from torch.utils.data import DataLoader
 
 
 class _DataModuleWrapper(type):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__has_added_checks = False
+
     def __call__(cls, *args, **kwargs):
         """A wrapper for LightningDataModule that:
 
@@ -32,11 +36,12 @@ class _DataModuleWrapper(type):
             2. Assures prepare_data() runs on rank 0
             3. Lets you check prepare_data and setup to see if they've been called
         """
-
-        # Track prepare_data calls and make sure it runs on rank zero
-        cls.prepare_data = track_data_hook_calls(rank_zero_only(cls.prepare_data))
-        # Track setup calls
-        cls.setup = track_data_hook_calls(cls.setup)
+        if not cls.__has_added_checks:
+            cls.__has_added_checks = True
+            # Track prepare_data calls and make sure it runs on rank zero
+            cls.prepare_data = track_data_hook_calls(rank_zero_only(cls.prepare_data))
+            # Track setup calls
+            cls.setup = track_data_hook_calls(cls.setup)
 
         # Get instance of LightningDataModule by mocking its __init__ via __call__
         obj = type.__call__(cls, *args, **kwargs)
