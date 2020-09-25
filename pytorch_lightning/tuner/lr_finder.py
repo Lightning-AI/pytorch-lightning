@@ -101,7 +101,7 @@ def lr_find(
             loss at any point is larger than early_stop_threshold*best_loss
             then the search is stopped. To disable, set to None.
 
-        datamodule: A instance of Pytorch lightning data module
+        datamodule: A :class:`LightningDataModule`.
 
 
     Example::
