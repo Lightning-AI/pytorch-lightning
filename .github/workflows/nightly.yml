@@ -22,7 +22,7 @@ jobs:
       run: >-
         python -m pip install --user --upgrade setuptools wheel
     - name: Build
-      run: >-
+      run: |
         python .github/prepare_nightly.py
         python setup.py sdist bdist_wheel
         ls -lh dist/
