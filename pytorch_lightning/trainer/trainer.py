@@ -407,6 +407,8 @@ class Trainer(
         Runs the full optimization routine.
 
         Args:
+            datamodule: A instance of :class:`LightningDataModule`.
+
             model: Model to fit.
 
             train_dataloader: A Pytorch DataLoader with training samples. If the model has
@@ -666,6 +668,8 @@ class Trainer(
         Args:
             ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
                 If ``None``, use the weights from the last epoch to test. Default to ``best``.
+
+            datamodule: A instance of :class:`LightningDataModule`.
 
             model: The model to test.
 
