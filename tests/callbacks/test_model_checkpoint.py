@@ -205,6 +205,30 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
         assert w0.eq(w1).all()
 
 
+def test_model_checkpoint_none_monitor(tmpdir):
+    model = EvalModelTemplate()
+    epochs = 2
+    checkpoint_callback = ModelCheckpoint(filepath=tmpdir, monitor=None, save_top_k=-1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        early_stop_callback=False,
+        checkpoint_callback=checkpoint_callback,
+        max_epochs=epochs,
+    )
+    trainer.fit(model)
+
+    # these should not be set if monitor is None
+    assert checkpoint_callback.best_model_path == ''
+    assert checkpoint_callback.best_model_score == 0
+    assert checkpoint_callback.best_k_models == {}
+    assert checkpoint_callback.kth_best_model_path == ''
+
+    # check that the correct ckpts were created
+    expected = ['lightning_logs']
+    expected.extend(f'epoch={e}.ckpt' for e in range(epochs))
+    assert set(os.listdir(tmpdir)) == set(expected)
+
+
 def test_ckpt_metric_names(tmpdir):
     model = EvalModelTemplate()
 
