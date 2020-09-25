@@ -56,7 +56,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
     # since none of them is important when using JIT,
     # we are going to ignore them.
     # https://github.com/pytorch/pytorch/commit/e7d782e724c76bb0572023d52ee7438a40a7a262#diff-ff4f8670281cd1eb4e09329cc1dcb43b
-    __ignored_properties__ = ['datamodule', 'device', 'dtype', 'example_input_array', 'hparams', 'on_gpu']
+    __ignored_properties__ = ['datamodule', 'example_input_array',
+                              'hparams', 'on_gpu'] + DeviceDtypeModuleMixin.__ignored_properties__
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -759,7 +760,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
     def test_epoch_end(
         self, outputs: Union[EvalResult, List[EvalResult]]
     ) -> EvalResult:
-
         """
         Called at the end of a test epoch with the output of all test steps.
 
