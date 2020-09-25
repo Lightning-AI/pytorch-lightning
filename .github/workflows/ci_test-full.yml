@@ -81,10 +81,15 @@ jobs:
           ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-
 
     - name: Install dependencies
+      env:
+        # MAKEFLAGS: "-j2"
+        HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
+        HOROVOD_WITHOUT_MXNET: 1
+        HOROVOD_WITHOUT_TENSORFLOW: 1
       run: |
         # python -m pip install --upgrade --user pip
         pip install --requirement requirements/base.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet --upgrade
-        HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install --requirement ./requirements/devel.txt --quiet --upgrade
+        pip install --requirement ./requirements/devel.txt --quiet --upgrade
         python --version
         pip --version
         pip list
@@ -92,11 +97,13 @@ jobs:
 
     - name: Reinstall Horovod if necessary
       if: runner.os != 'windows'
+      env:
+        HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
       run: |
         HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')" || true)
         if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
           pip uninstall -y horovod
-          HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install --no-cache-dir $(grep "horovod" requirements/extra.txt)
+          pip install --no-cache-dir $(grep "horovod" requirements/extra.txt)
         fi
         horovodrun --check-build
       shell: bash
