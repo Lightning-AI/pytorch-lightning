@@ -43,7 +43,7 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         brew install libomp  # https://github.com/pytorch/pytorch/issues/20030
-        brew install openmpi  # Horovod on macOS requires OpenMPI, Gloo not currently supported
+        brew install openmpi libuv  # Horovod on macOS requires OpenMPI, Gloo not currently supported
 
     - name: Setup Windows
       if: runner.os == 'windows'

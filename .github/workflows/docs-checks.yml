@@ -41,6 +41,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          apt install libuv1-dev
           # python -m pip install --upgrade --user pip
           pip install --requirement requirements/base.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
           pip install --requirement requirements/extra.txt
