@@ -77,19 +77,17 @@ ENV LD_LIBRARY_PATH="${WORKDIR}/miniconda/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH
 ENV CONDA_DEFAULT_ENV=${CONDA_ENV}
 
 COPY --chown=flash ./requirements/extra.txt requirements-extra.txt
-#COPY --chown=flash ./requirements/test.txt requirements-tests.txt
-#COPY --chown=flash ./requirements/examples.txt requirements-examples.txt
+COPY --chown=flash ./requirements/test.txt requirements-tests.txt
+COPY --chown=flash ./requirements/examples.txt requirements-examples.txt
 
 RUN \
-    # Disable cache
-    pip config set global.cache-dir false && \
     # filter only Horovod
     python -c "fname = 'requirements-extra.txt' ; req = open(fname).readlines() ; open(fname, 'w').writelines([l for l in req if 'horovod' in l])" && \
     # Install all requirements
     cat requirements-extra.txt && \
     MAKEFLAGS="-j$(nproc)" ; pip install -r requirements-extra.txt && \
-    #pip install -r requirements-tests.txt --upgrade-strategy only-if-needed && \
-    #pip install -r requirements-examples.txt --upgrade-strategy only-if-needed && \
+    pip install -r requirements-tests.txt --upgrade-strategy only-if-needed && \
+    pip install -r requirements-examples.txt --upgrade-strategy only-if-needed && \
     rm requirements* && \
     # Show what we have
     pip --version && \
