@@ -1206,10 +1206,10 @@ See the :ref:`profiler documentation <profiler>`. for more details.
     # to profile standard training events
     trainer = Trainer(profiler=True)
 
-    # equivalent to profiler=True
+    # equivalent to profiler=True and profiler="simple"
     trainer = Trainer(profiler=SimpleProfiler())
 
-    # advanced profiler for function-level stats
+    # advanced profiler for function-level stats, equivalent to profiler="advanced"
     trainer = Trainer(profiler=AdvancedProfiler())
 
 progress_bar_refresh_rate
