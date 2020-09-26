@@ -120,7 +120,7 @@ class ModelCheckpoint(Callback):
     def __init__(
         self,
         filepath: Optional[str] = None,
-        monitor: Optional[str] = "checkpoint_on",
+        monitor: Optional[str] = None,
         verbose: bool = False,
         save_last: bool = False,
         save_top_k: int = 1,
@@ -168,6 +168,10 @@ class ModelCheckpoint(Callback):
         self.last_model_path = ""
         self.save_function = None
         self.warned_result_obj = False
+
+        if self.save_top_k != 1 and self.monitor is None:
+            raise MisconfigurationException('To save checkpoints for a top_k metric, '
+                                            'ModelCheckpoint(monitor) cannot be None')
 
         torch_inf = torch.tensor(np.Inf)
         mode_dict = {
@@ -367,15 +371,28 @@ class ModelCheckpoint(Callback):
             # this epoch called before
             version_cnt += 1
 
-        if self.save_top_k != -1:
+        save_all_models = self.save_top_k == -1
+        should_save_last = self.monitor is None or self.save_last
+
+        if should_save_last:
+            last_filepath = filepath
+
+            # when user ALSO asked for the 'last.ckpt' change the name
+            if self.save_last:
+                filename = self._format_checkpoint_name(
+                    self.CHECKPOINT_NAME_LAST, epoch, ckpt_name_metrics, prefix=self.prefix
+                )
+                last_filepath = os.path.join(self.dirpath, f"{filename}.ckpt")
+
+            self._save_model(last_filepath, trainer, pl_module)
+            if self.last_model_path and self.last_model_path != last_filepath:
+                self._del_model(self.last_model_path)
+            self.last_model_path = last_filepath
+
+        if not save_all_models:
             current = metrics.get(self.monitor)
 
-            if not isinstance(current, torch.Tensor):
-                rank_zero_warn(
-                    f"The metric you returned {self.monitor}={current} must be a `torch.Tensor` "
-                    f"instance, checkpoint not saved HINT: what is the value of {self.monitor}?",
-                    RuntimeWarning,
-                )
+            if not isinstance(current, torch.Tensor) and current is not None:
                 if current is not None:
                     current = torch.tensor(current).to(pl_module.device)
 
@@ -400,16 +417,6 @@ class ModelCheckpoint(Callback):
                 trainer.global_rank == 0
             ), "tried to make a checkpoint from non global_rank=0"
             self._save_model(filepath, trainer, pl_module)
-
-        if self.save_last:
-            filename = self._format_checkpoint_name(
-                self.CHECKPOINT_NAME_LAST, epoch, ckpt_name_metrics, prefix=self.prefix
-            )
-            filepath = os.path.join(self.dirpath, f"{filename}.ckpt")
-            self._save_model(filepath, trainer, pl_module)
-            if self.last_model_path and self.last_model_path != filepath:
-                self._del_model(self.last_model_path)
-            self.last_model_path = filepath
 
     def _is_valid_monitor_key(self, metrics):
         return self.monitor in metrics or len(metrics) == 0
