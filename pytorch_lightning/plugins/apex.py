@@ -23,20 +23,9 @@ class ApexPlugin:
     def __init__(self, trainer):
         self.trainer = trainer
 
-    def connect(self, model, optimizers=None):
-        model, optimizers = self.configure_apex(model, optimizers, self.trainer.amp_level)
-
-        if optimizers is not None:
-            self.trainer.reinit_scheduler_properties(optimizers, self.trainer.lr_schedulers)
-        
-        return model, optimizers
-
-    def configure_apex(self, model, optimizers, amp_level):
-        if optimizers is None:
-            model = amp.initialize(model, opt_level=amp_level)
-        else:
-            model, optimizers = amp.initialize(model, optimizers, opt_level=amp_level)
-
+    def connect(self, model, optimizers):
+        model, optimizers = model.configure_apex(model, optimizers, self.trainer.amp_level)
+        self.trainer.reinit_scheduler_properties(optimizers, self.trainer.lr_schedulers)
         return model, optimizers
 
     def training_step(self, fx, args):

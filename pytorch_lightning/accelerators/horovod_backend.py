@@ -56,31 +56,30 @@ class HorovodBackend(Accelerator):
 
         # Horovod: scale the learning rate by the number of workers to account for
         # increased total batch size
-        if hasattr(self.trainer, 'optimizers'):
-            for optimizer in self.trainer.optimizers:
-                for param_group in optimizer.param_groups:
-                    param_group['lr'] *= hvd.size()
+        for optimizer in self.trainer.optimizers:
+            for param_group in optimizer.param_groups:
+                param_group['lr'] *= hvd.size()
 
-            # Horovod: adjust base LR used by schedulers to match scaled optimizer initial LR
-            for scheduler in self.trainer.lr_schedulers:
-                scheduler = scheduler['scheduler']
-                if isinstance(scheduler, _LRScheduler):
-                    scheduler.base_lrs = [lr * hvd.size() for lr in scheduler.base_lrs]
+         # Horovod: adjust base LR used by schedulers to match scaled optimizer initial LR
+        for scheduler in self.trainer.lr_schedulers:
+            scheduler = scheduler['scheduler']
+            if isinstance(scheduler, _LRScheduler):
+                scheduler.base_lrs = [lr * hvd.size() for lr in scheduler.base_lrs]
 
-            # Horovod: broadcast parameters & optimizer state to ensure consistent initialization
-            hvd.broadcast_parameters(model.state_dict(), root_rank=0)
-            for optimizer in self.trainer.optimizers:
-                hvd.broadcast_optimizer_state(optimizer, root_rank=0)
+        # Horovod: broadcast parameters & optimizer state to ensure consistent initialization
+        hvd.broadcast_parameters(model.state_dict(), root_rank=0)
+        for optimizer in self.trainer.optimizers:
+            hvd.broadcast_optimizer_state(optimizer, root_rank=0)
 
-            def filter_named_parameters(model, optimizer):
-                opt_params = set([p for group in optimizer.param_groups for p in group.get('params', [])])
-                return [(name, p) for name, p in model.named_parameters() if p in opt_params]
+        def _filter_named_parameters(model, optimizer):
+            opt_params = set([p for group in optimizer.param_groups for p in group.get('params', [])])
+            return [(name, p) for name, p in model.named_parameters() if p in opt_params]
 
-            # Horovod: wrap optimizers to perform gradient aggregation via allreduce
-            self.trainer.optimizers = [
-                hvd.DistributedOptimizer(optimizer, named_parameters=filter_named_parameters(model, optimizer))
-                for optimizer in self.trainer.optimizers
-            ]
+        # Horovod: wrap optimizers to perform gradient aggregation via allreduce
+        self.trainer.optimizers = [
+            hvd.DistributedOptimizer(optimizer, named_parameters=_filter_named_parameters(model, optimizer))
+            for optimizer in self.trainer.optimizers
+        ]
 
         # 16-bit
         model = self.trainer.precision_connector.connect(model)

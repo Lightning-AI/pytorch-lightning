@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVALAIBLE, rank_zero_warn, AMPType
 from pytorch_lightning.plugins.native_amp import NativeAMP
@@ -73,12 +74,8 @@ class PrecisionConnector:
             )
 
     def connect(self, model):
-        optimizers = getattr(self.trainer, 'optimizers', None)
-
         if self.backend:
             model, optimizers = self.backend.connect(model, optimizers)
-
-            if optimizers is not None:
-                self.trainer.optimizers = optimizers
+            self.trainer.optimizers = optimizers
 
         return model
