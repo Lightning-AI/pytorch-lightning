@@ -148,7 +148,8 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     ckpt_name = ModelCheckpoint(monitor='val_loss', filepath=filepath, prefix='test').format_checkpoint_name(3, {})
     assert ckpt_name == filepath / 'test-epoch=3.ckpt'
     # with ver
-    ckpt_name = ModelCheckpoint(monitor='val_loss', filepath=tmpdir / 'name', prefix='test').format_checkpoint_name(3, {}, ver=3)
+    ckpt_name = ModelCheckpoint(monitor='val_loss',
+                                filepath=tmpdir / 'name', prefix='test').format_checkpoint_name(3, {}, ver=3)
     assert ckpt_name == tmpdir / 'test-name-v3.ckpt'
 
 
@@ -168,8 +169,8 @@ def test_model_checkpoint_save_last(tmpdir):
     last_filename = model_checkpoint._format_checkpoint_name(ModelCheckpoint.CHECKPOINT_NAME_LAST, epochs - 1, {})
     last_filename = last_filename + '.ckpt'
     assert str(tmpdir / last_filename) == model_checkpoint.last_model_path
-    assert set(os.listdir(tmpdir)) == set([f'epoch={i}.ckpt' for i in range(epochs)]
-                                          + [last_filename, 'lightning_logs'])
+    assert set(os.listdir(tmpdir)) == \
+           set([f'epoch={i}.ckpt' for i in range(epochs)] + [last_filename, 'lightning_logs'])
     ModelCheckpoint.CHECKPOINT_NAME_LAST = 'last'
 
 
