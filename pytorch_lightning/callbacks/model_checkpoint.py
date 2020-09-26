@@ -533,10 +533,13 @@ class ModelCheckpoint(Callback):
             if cur_path != filepath:
                 self._del_model(cur_path)
 
-    def to_yaml(self, save_path: Optional[Union[str, Path]]=None):
-        """ Saves `{'checkpoint_name': score}` dict as a YAML file."""
+    def to_yaml(self, filepath: Optional[Union[str, Path]] = None):
+        """
+        Saves the `best_k_models` dict containing the checkpoint
+        paths with the corresponding scores to a YAML file.
+        """
         best_k = {k: v.item() for k, v in self.best_k_models.items()}
-        if save_path is None:
-            save_path = os.path.join(self.dirpath, "best_k_models.yaml")
-        with open(save_path, "w") as fp:
+        if filepath is None:
+            filepath = os.path.join(self.dirpath, "best_k_models.yaml")
+        with open(filepath, "w") as fp:
             yaml.dump(best_k, fp)
