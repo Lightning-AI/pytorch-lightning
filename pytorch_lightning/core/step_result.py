@@ -354,7 +354,8 @@ class Result(Dict):
         batch_sizes = torch.tensor(result.get_batch_sizes())
 
         for k, value in result.items():
-            if k == 'meta':
+            if k == 'meta' or value.dim() == 0:
+                # meta and scalars cannot be reduced
                 continue
             if k in ['checkpoint_on', 'early_stop_on', 'minimize']:
                 reduced_val = torch.mean(value)

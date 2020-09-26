@@ -201,7 +201,8 @@ class EvaluationLoop(object):
         if not isinstance(eval_results, list):
             eval_results = [eval_results]
 
-        if using_eval_result:
+        is_result_obj = isinstance(eval_results[0], Result)
+        if is_result_obj:
             eval_results = self.__auto_reduce_result_objs(eval_results)
 
         return eval_results
