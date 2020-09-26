@@ -33,10 +33,7 @@ class CPUBackend(Accelerator):
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
         if not self.trainer.testing:
-            optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
-            self.trainer.optimizers = optimizers
-            self.trainer.lr_schedulers = lr_schedulers
-            self.trainer.optimizer_frequencies = optimizer_frequencies
+            self.setup_optimizers(model)
 
         self.trainer.model = model
 

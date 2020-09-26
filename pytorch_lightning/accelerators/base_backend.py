@@ -165,3 +165,9 @@ class Accelerator(object):
 
     def early_stopping_should_stop(self, pl_module):
         return self.trainer.should_stop
+
+    def setup_optimizers(self, model):
+        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
+        self.trainer.optimizers = optimizers
+        self.trainer.lr_schedulers = lr_schedulers
+        self.trainer.optimizer_frequencies = optimizer_frequencies

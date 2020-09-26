@@ -145,10 +145,7 @@ class DDPBase(Accelerator):
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
         if not self.trainer.testing:
-            optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
-            self.trainer.optimizers = optimizers
-            self.trainer.lr_schedulers = lr_schedulers
-            self.trainer.optimizer_frequencies = optimizer_frequencies
+            self.setup_optimizers(model)
 
         # set model properties before going into wrapper
         self.trainer.model_connector.copy_trainer_model_properties(model)
