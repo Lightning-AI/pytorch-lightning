@@ -1127,3 +1127,17 @@ def test_trainer_setup_call(tmpdir):
     trainer.test(ckpt_path=None)
     assert trainer.stage == 'test'
     assert trainer.get_model().stage == 'test'
+
+
+@patch("pytorch_lightning.trainer.connectors.logger_connector.LoggerConnector.log_metrics")
+def test_row_log_interval(log_metrics_mock, tmpdir):
+    model = EvalModelTemplate()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        row_log_interval=5,
+        limit_train_batches=3,
+        limit_val_batches=1,
+        max_steps=10
+    )
+    trainer.fit(model)
+    assert log_metrics_mock.call_count == 2
