@@ -213,9 +213,9 @@ class ModelCheckpoint(Callback):
 
         # Mode 2: save all checkpoints OR only the top k
         if self.save_top_k == -1:
-            self._save_all_checkpoints(self, trainer, pl_module, epoch, filepath)
+            self._save_all_checkpoints(trainer, pl_module, epoch, filepath)
         else:
-            self._save_top_k_checkpoints(self, monitor_candidates, trainer, pl_module, epoch, filepath)
+            self._save_top_k_checkpoints(monitor_candidates, trainer, pl_module, epoch, filepath)
 
     def __validate_init_configuration(self):
         if self.save_top_k != 1 and self.monitor is None:
