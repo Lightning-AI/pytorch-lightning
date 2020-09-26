@@ -136,7 +136,7 @@ class Result(Dict):
             step_name = f'step_{name}'
             self.__set_meta(
                 step_name,
-                # value,
+                value,
                 prog_bar,
                 logger,
                 on_step=True,
@@ -151,7 +151,7 @@ class Result(Dict):
             epoch_name = f'epoch_{name}'
             self.__set_meta(
                 epoch_name,
-                # value,
+                value,
                 prog_bar,
                 logger,
                 on_step=False,
@@ -164,7 +164,7 @@ class Result(Dict):
         else:
             self.__set_meta(
                 name,
-                # value,
+                value,
                 prog_bar,
                 logger,
                 on_step,
@@ -180,7 +180,7 @@ class Result(Dict):
     def __set_meta(
         self,
         name: str,
-        # value: Any,
+        value: Any,
         prog_bar: bool,
         logger: bool,
         on_step: bool,
@@ -190,14 +190,14 @@ class Result(Dict):
         tbptt_reduce_fx: Callable,
     ):
         # set the meta for the item
-        # meta_value = value
+        meta_value = value
         meta = dict(
             prog_bar=prog_bar,
             logger=logger,
             on_step=on_step,
             on_epoch=on_epoch,
             reduce_fx=reduce_fx,
-            # value=meta_value,
+            value=meta_value,
             tbptt_reduce_fx=tbptt_reduce_fx,
             tbptt_pad_token=tbptt_pad_token,
         )
@@ -356,7 +356,6 @@ class Result(Dict):
         for k, value in result.items():
             if k == 'meta':
                 continue
-            
             if k in ['checkpoint_on', 'early_stop_on', 'minimize']:
                 reduced_val = torch.mean(value)
             elif meta[k]['on_epoch']:
@@ -423,9 +422,6 @@ class Result(Dict):
 
 def recursive_gather(outputs: Sequence[dict], result: Optional[MutableMapping] = None) -> Optional[MutableMapping]:
     for out in outputs:
-        # if 'meta' in out:
-        #     del out['meta']
-
         for k, v in out.items():
             if k == 'meta':
                 continue
