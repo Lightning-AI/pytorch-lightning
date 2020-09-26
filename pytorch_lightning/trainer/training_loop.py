@@ -372,7 +372,7 @@ class TrainLoop:
 
     def _track_gradient_norm(self, batch_idx):
         grad_norm_dict = {}
-        if (batch_idx + 1) % self.trainer.row_log_interval == 0:
+        if (self.trainer.global_step + 1) % self.trainer.row_log_interval == 0:
             if float(self.trainer.track_grad_norm) > 0:
                 model = self.trainer.get_model()
                 grad_norm_dict = model.grad_norm(self.trainer.track_grad_norm)
@@ -465,12 +465,12 @@ class TrainLoop:
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
             # -----------------------------------------
-            self.save_loggers_on_train_batch_end(batch_idx)
+            self.save_loggers_on_train_batch_end()
 
             # -----------------------------------------
             # SAVE METRICS TO LOGGERS
             # -----------------------------------------
-            self.trainer.logger_connector.save_train_loop_metrics_to_loggers(batch_idx, batch_output)
+            self.trainer.logger_connector.save_train_loop_metrics_to_loggers(batch_output)
 
             # update LR schedulers
             monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
@@ -695,9 +695,9 @@ class TrainLoop:
 
         return args
 
-    def save_loggers_on_train_batch_end(self, batch_idx):
+    def save_loggers_on_train_batch_end(self):
         # when loggers should save to disk
-        should_save_log = (batch_idx + 1) % self.trainer.log_save_interval == 0 or self.trainer.should_stop
+        should_save_log = (self.trainer.global_step + 1) % self.trainer.log_save_interval == 0 or self.trainer.should_stop
         if should_save_log or self.trainer.fast_dev_run:
             if self.trainer.is_global_zero and self.trainer.logger is not None:
                 self.trainer.logger.save()
