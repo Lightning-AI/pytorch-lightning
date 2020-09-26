@@ -63,7 +63,7 @@ class ModelCheckpoint(Callback):
             :paramref:`~pytorch_lightning.trainer.trainer.Trainer.weights_save_path` arguments,
             and if the Trainer uses a logger, the path will also contain logger name and version.
 
-        monitor: quantity to monitor. If None, a checkpoint will be saved every epoch.
+        monitor: quantity to monitor. By default it is None which saves a checkpoint only for the last epoch
         verbose: verbosity mode. Default: ``False``.
         save_last: always saves the model at the end of the epoch. Default: ``False``.
         save_top_k: if ``save_top_k == k``,
@@ -93,13 +93,13 @@ class ModelCheckpoint(Callback):
         >>> from pytorch_lightning import Trainer
         >>> from pytorch_lightning.callbacks import ModelCheckpoint
 
-        # saves checkpoints to 'my/path/' whenever 'val_loss' has a new min
+        # saves checkpoints to 'my/path/' at every epoch
         >>> checkpoint_callback = ModelCheckpoint(filepath='my/path/')
         >>> trainer = Trainer(checkpoint_callback=checkpoint_callback)
 
         # save epoch and val_loss in name
         # saves a file like: my/path/sample-mnist-epoch=02-val_loss=0.32.ckpt
-        >>> checkpoint_callback = ModelCheckpoint(
+        >>> checkpoint_callback = ModelCheckpoint(monitor='val_loss',
         ...     filepath='my/path/sample-mnist-{epoch:02d}-{val_loss:.2f}'
         ... )
 
@@ -109,7 +109,6 @@ class ModelCheckpoint(Callback):
         model = ...
         trainer.fit(model)
         checkpoint_callback.best_model_path
-
     """
 
     CHECKPOINT_JOIN_CHAR = "-"
@@ -130,20 +129,111 @@ class ModelCheckpoint(Callback):
         prefix: str = "",
     ):
         super().__init__()
+        self.monitor = monitor
+        self.verbose = verbose
+        self.save_last = save_last
+        self.save_top_k = save_top_k
+        self.save_weights_only = save_weights_only
+        self.period = period
+        self.epoch_last_check = None
+        self.prefix = prefix
+        self.best_k_models = {}
+        self.kth_best_model_path = ""
+        self.best_model_score = 0
+        self.best_model_path = ""
+        self.last_model_path = ""
+        self.save_function = None
+        self.warned_result_obj = False
+
+        self.__init_monitor_mode(monitor, mode)
+        self.__init_ckpt_dir(filepath, save_top_k)
+        self.__validate_init_configuration()
+
+    def on_pretrain_routine_start(self, trainer, pl_module):
+        """
+        When pretrain routine starts we build the ckpt dir on the fly
+        """
+        self.__resolve_ckpt_dir(trainer, pl_module)
+
+    def on_validation_end(self, trainer, pl_module):
+        """
+        checkpoints can be saved at the end of the val loop
+        """
+        self.save_checkpoint(trainer, pl_module)
+
+    def on_save_checkpoint(self, trainer, pl_module) -> Dict[str, Any]:
+        return {
+            "best_model_score": self.best_model_score,
+            "best_model_path": self.best_model_path,
+        }
+
+    def on_load_checkpoint(self, checkpointed_state: Dict[str, Any]):
+        self.best_model_score = checkpointed_state["best_model_score"]
+        self.best_model_path = checkpointed_state["best_model_path"]
+
+    @rank_zero_only
+    def save_checkpoint(self, trainer, pl_module):
+        """
+        Performs the main logic around saving a checkpoint
+        """
+        # only run on main process
+        if trainer.global_rank != 0:
+            return
+
+        # no models are saved
+        if self.save_top_k == 0:
+            return
+
+        # don't save anything during sanity check
+        if trainer.running_sanity_check:
+            return
+
+        # skip this epoch
+        if self._should_skip_epoch(trainer):
+            return
+
+        self._add_backward_monitor_support(trainer)
+        self._validate_monitor_key(trainer)
+
+        epoch = trainer.current_epoch
+
+        # track epoch when ckpt was last checked
+        self.epoch_last_check = trainer.current_epoch
+
+        # what can be monitored
+        monitor_candidates = self._monitor_candidates(trainer)
+
+        filepath = self._get_metric_interpolated_filepath_name(epoch, monitor_candidates)
+
+        # callback supports multiple simultaneous modes
+        # here we call each mode sequentially
+        # Mode 1: save the last checkpoint
+        self._save_last_checkpoint(trainer, pl_module, epoch, monitor_candidates, filepath)
+
+        # Mode 2: save all checkpoints OR only the top k
+        if self.save_top_k == -1:
+            self._save_all_checkpoints(self, trainer, pl_module, epoch, filepath)
+        else:
+            self._save_top_k_checkpoints(self, monitor_candidates, trainer, pl_module, epoch, filepath)
+
+    def __validate_init_configuration(self):
+        if self.save_top_k != 1 and self.monitor is None:
+            raise MisconfigurationException('To save checkpoints for a top_k metric, '
+                                            'ModelCheckpoint(monitor) cannot be None')
+
+    def __init_ckpt_dir(self, filepath, save_top_k):
         self._fs = get_filesystem(filepath if filepath is not None else "")
         if (
-            save_top_k > 0
-            and filepath is not None
-            and self._fs.isdir(filepath)
-            and len(self._fs.ls(filepath)) > 0
+                save_top_k > 0
+                and filepath is not None
+                and self._fs.isdir(filepath)
+                and len(self._fs.ls(filepath)) > 0
         ):
             rank_zero_warn(
                 f"Checkpoint directory {filepath} exists and is not empty with save_top_k != 0."
                 " All files in this directory will be deleted when a checkpoint is saved!"
             )
 
-        self.monitor = monitor
-        self.verbose = verbose
         if not filepath:  # will be determined by trainer at runtime
             self.dirpath, self.filename = None, None
         else:
@@ -154,25 +244,8 @@ class ModelCheckpoint(Callback):
                     filepath = os.path.realpath(filepath)
                 self.dirpath, self.filename = os.path.split(filepath)
             self._fs.makedirs(self.dirpath, exist_ok=True)
-        self.save_last = save_last
-        self.save_top_k = save_top_k
-        self.save_weights_only = save_weights_only
-        self.period = period
-        self.epoch_last_check = None
-        self.prefix = prefix
-        self.best_k_models = {}
-        # {filename: monitor}
-        self.kth_best_model_path = ""
-        self.best_model_score = 0
-        self.best_model_path = ""
-        self.last_model_path = ""
-        self.save_function = None
-        self.warned_result_obj = False
 
-        if self.save_top_k != 1 and self.monitor is None:
-            raise MisconfigurationException('To save checkpoints for a top_k metric, '
-                                            'ModelCheckpoint(monitor) cannot be None')
-
+    def __init_monitor_mode(self, monitor, mode):
         torch_inf = torch.tensor(np.Inf)
         mode_dict = {
             "min": (torch_inf, "min"),
@@ -280,7 +353,7 @@ class ModelCheckpoint(Callback):
         return os.path.join(self.dirpath, ckpt_name) if self.dirpath else ckpt_name
 
     @rank_zero_only
-    def on_pretrain_routine_start(self, trainer, pl_module):
+    def __resolve_ckpt_dir(self, trainer, pl_module):
         """
         Determines model checkpoint save directory at runtime. References attributes from the
         trainer's logger to determine where to save checkpoints.
@@ -324,51 +397,32 @@ class ModelCheckpoint(Callback):
         ), "tried to make a checkpoint from non global_rank=0"
         self._fs.makedirs(self.dirpath, exist_ok=True)
 
-    @rank_zero_only
-    def on_validation_end(self, trainer, pl_module):
-        # only run on main process
-        if trainer.global_rank != 0:
-            return
-
-        # no models are saved
-        if self.save_top_k == 0:
-            return
-
-        if trainer.running_sanity_check:
-            return
-
+    def _add_backward_monitor_support(self, trainer):
         metrics = trainer.logger_connector.callback_metrics
-        epoch = trainer.current_epoch
 
         # backward compatibility... need to deprecate
-        if 'val_loss' in metrics:
+        if self.monitor is None and 'val_loss' in metrics:
             self.monitor = 'val_loss'
 
-        if 'checkpoint_on' in metrics:
+        if self.monitor is None and 'checkpoint_on' in metrics:
             self.monitor = 'checkpoint_on'
 
+    def _validate_monitor_key(self, trainer):
+        metrics = trainer.logger_connector.callback_metrics
+
         # validate metric
-        if not (self.monitor is None or self._is_valid_monitor_key(metrics)):
+        if not self._is_valid_monitor_key(metrics):
             m = (
                 f"ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics:"
                 f" {list(metrics.keys())}. HINT: Did you call result.log('{self.monitor}', tensor)?"
             )
             raise MisconfigurationException(m)
 
-        if (
-            self.epoch_last_check is not None
-            and (epoch - self.epoch_last_check) < self.period
-        ):
-            # skipping in this term
-            return
+    def _should_skip_epoch(self, trainer):
+        epoch = trainer.current_epoch
+        return (self.epoch_last_check is not None) and (epoch - self.epoch_last_check) < self.period
 
-        self.epoch_last_check = epoch
-
-        # anything logged or in callbacks can be in the name
-        ckpt_name_metrics = deepcopy(trainer.logger_connector.logged_metrics)
-        ckpt_name_metrics.update(trainer.logger_connector.callback_metrics)
-        ckpt_name_metrics.update(trainer.logger_connector.progress_bar_metrics)
-
+    def _get_metric_interpolated_filepath_name(self, epoch, ckpt_name_metrics):
         filepath = self.format_checkpoint_name(epoch, ckpt_name_metrics)
         version_cnt = 0
         while self._fs.exists(filepath):
@@ -377,56 +431,64 @@ class ModelCheckpoint(Callback):
             )
             # this epoch called before
             version_cnt += 1
+        return filepath
 
-        save_all_models = self.save_top_k == -1
+    def _monitor_candidates(self, trainer):
+        ckpt_name_metrics = deepcopy(trainer.logger_connector.logged_metrics)
+        ckpt_name_metrics.update(trainer.logger_connector.callback_metrics)
+        ckpt_name_metrics.update(trainer.logger_connector.progress_bar_metrics)
+        return ckpt_name_metrics
+
+    def _save_last_checkpoint(self, trainer, pl_module, epoch, ckpt_name_metrics, filepath):
         should_save_last = self.monitor is None or self.save_last
+        if not should_save_last:
+            return
 
-        if should_save_last:
-            last_filepath = filepath
+        last_filepath = filepath
 
-            # when user ALSO asked for the 'last.ckpt' change the name
-            if self.save_last:
-                filename = self._format_checkpoint_name(
-                    self.CHECKPOINT_NAME_LAST, epoch, ckpt_name_metrics, prefix=self.prefix
-                )
-                last_filepath = os.path.join(self.dirpath, f"{filename}.ckpt")
+        # when user ALSO asked for the 'last.ckpt' change the name
+        if self.save_last:
+            filename = self._format_checkpoint_name(
+                self.CHECKPOINT_NAME_LAST, epoch, ckpt_name_metrics, prefix=self.prefix
+            )
+            last_filepath = os.path.join(self.dirpath, f"{filename}.ckpt")
 
-            self._save_model(last_filepath, trainer, pl_module)
-            if self.last_model_path and self.last_model_path != last_filepath:
-                self._del_model(self.last_model_path)
-            self.last_model_path = last_filepath
+        self._save_model(last_filepath, trainer, pl_module)
+        if self.last_model_path and self.last_model_path != last_filepath:
+            self._del_model(self.last_model_path)
+        self.last_model_path = last_filepath
 
-            if self.monitor is None:
-                self.best_model_path = self.last_model_path
+        if self.monitor is None:
+            self.best_model_path = self.last_model_path
 
-        if not save_all_models:
-            current = metrics.get(self.monitor)
+    def _save_top_k_checkpoints(self, metrics, trainer, pl_module, epoch, filepath):
+        current = metrics.get(self.monitor)
 
-            if not isinstance(current, torch.Tensor) and current is not None:
-                if current is not None:
-                    current = torch.tensor(current).to(pl_module.device)
+        if not isinstance(current, torch.Tensor) and current is not None:
+            if current is not None:
+                current = torch.tensor(current).to(pl_module.device)
 
-            if current is None:
-                m = f"Can save best model only with {self.monitor} available, skipping."
-                if self.monitor == 'checkpoint_on':
-                    m = f'No checkpoint_on found. Hint: Did you set it in EvalResult(checkpoint_on=tensor) or ' \
-                        f'TrainResult(checkpoint_on=tensor)?'
-                rank_zero_warn(m, RuntimeWarning)
-            elif self.check_monitor_top_k(current):
-                self._do_check_save(filepath, current, epoch, trainer, pl_module)
-            elif self.verbose:
-                log.info(
-                    f"Epoch {epoch:d}: {self.monitor} was not in top {self.save_top_k}"
-                )
+        if current is None:
+            m = f"Can save best model only with {self.monitor} available, skipping."
+            if self.monitor == 'checkpoint_on':
+                m = f'No checkpoint_on found. Hint: Did you set it in EvalResult(checkpoint_on=tensor) or ' \
+                    f'TrainResult(checkpoint_on=tensor)?'
+            rank_zero_warn(m, RuntimeWarning)
+        elif self.check_monitor_top_k(current):
+            self._do_check_save(filepath, current, epoch, trainer, pl_module)
+        elif self.verbose:
+            log.info(
+                f"Epoch {epoch:d}: {self.monitor} was not in top {self.save_top_k}"
+            )
 
-        else:
-            if self.verbose:
-                log.info(f"Epoch {epoch:d}: saving model to {filepath}")
+    def _save_all_checkpoints(self, trainer, pl_module, epoch, filepath):
+        if self.verbose:
+            log.info(f"Epoch {epoch:d}: saving model to {filepath}")
 
-            assert (
+        assert (
                 trainer.global_rank == 0
-            ), "tried to make a checkpoint from non global_rank=0"
-            self._save_model(filepath, trainer, pl_module)
+        ), "tried to make a checkpoint from non global_rank=0"
+        self._save_model(filepath, trainer, pl_module)
 
     def _is_valid_monitor_key(self, metrics):
         return self.monitor in metrics or len(metrics) == 0
@@ -472,14 +534,3 @@ class ModelCheckpoint(Callback):
             if cur_path != filepath:
                 self._del_model(cur_path)
 
-    def on_save_checkpoint(
-        self, trainer, pl_module
-    ) -> Dict[str, Any]:
-        return {
-            "best_model_score": self.best_model_score,
-            "best_model_path": self.best_model_path,
-        }
-
-    def on_load_checkpoint(self, checkpointed_state: Dict[str, Any]):
-        self.best_model_score = checkpointed_state["best_model_score"]
-        self.best_model_path = checkpointed_state["best_model_path"]

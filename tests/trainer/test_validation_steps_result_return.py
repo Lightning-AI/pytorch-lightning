@@ -182,7 +182,7 @@ def test_val_step_only_step_metrics(tmpdir):
     os.environ['PL_DEV_DEBUG'] = '1'
 
     model = DeterministicModel()
-    model.training_step = model.training_step_result_log_epoch_and_step_for_callbacks
+    model.training_step  model.training_step_result_log_epoch_and_step_for_callbacks
     model.training_step_end = None
     model.training_epoch_end = None
     model.validation_step = model.validation_step_result_only_step_metrics
