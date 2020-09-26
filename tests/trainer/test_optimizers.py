@@ -195,7 +195,7 @@ def test_none_optimizer_warning():
     trainer = Trainer()
 
     model = EvalModelTemplate()
-    model.configure_optimizers = lambda: None
+    model.configure_optimizers = model.configure_optimizers__empty
 
     with pytest.warns(UserWarning, match='will run with no optimizer'):
         _, __, ___ = trainer.init_optimizers(model)
@@ -255,3 +255,21 @@ def test_configure_optimizers_with_frequency(tmpdir):
     )
     result = trainer.fit(model)
     assert result
+
+
+def test_init_optimizers_during_testing(tmpdir):
+    """
+    Test that optimizers is an empty list during testing.
+    """
+    model = EvalModelTemplate()
+    model.configure_optimizers = model.configure_optimizers__multiple_schedulers
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_test_batches=10
+    )
+    trainer.test(model, ckpt_path=None)
+
+    assert not len(trainer.lr_schedulers)
+    assert not len(trainer.optimizers)
+    assert not len(trainer.optimizer_frequencies)
