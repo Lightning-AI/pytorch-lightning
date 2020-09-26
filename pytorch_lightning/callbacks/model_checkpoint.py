@@ -344,6 +344,9 @@ class ModelCheckpoint(Callback):
         if 'val_loss' in metrics:
             self.monitor = 'val_loss'
 
+        if 'checkpoint_on' in metrics:
+            self.monitor = 'checkpoint_on'
+
         # validate metric
         if not (self.monitor is None or self._is_valid_monitor_key(metrics)):
             m = (
