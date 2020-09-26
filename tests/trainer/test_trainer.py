@@ -7,7 +7,7 @@ import types
 from argparse import Namespace
 from copy import deepcopy
 from pathlib import Path
-from unittest.mock import patch, call
+from unittest.mock import patch, call, ANY
 
 import cloudpickle
 import pytest
@@ -1132,19 +1132,17 @@ def test_trainer_setup_call(tmpdir):
 @patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_metrics")
 def test_row_log_interval(log_metrics_mock, tmpdir):
     model = EvalModelTemplate()
-    a = 3
-    b = 10
+    num_batches = 3
+    max_steps = 10
+    interval = 5
     trainer = Trainer(
         default_root_dir=tmpdir,
-        row_log_interval=5,
-        limit_train_batches=a,
+        row_log_interval=interval,
+        limit_train_batches=num_batches,
         limit_val_batches=0,
-        max_steps=b
+        max_steps=max_steps
     )
     trainer.fit(model)
-    print(log_metrics_mock.call_args_list)
-    expected_calls = [
-        call(step=4),
-        call(step=9)
-    ]
-    log_metrics_mock.has_calls(expected_calls)
+    expected_calls = [call(metrics=ANY, step=s) for s in range(interval - 1, max_steps, interval)]
+    log_metrics_mock.assert_has_calls(expected_calls)
+
