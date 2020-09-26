@@ -38,7 +38,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
 
 
 @pytest.mark.parametrize('save_top_k', [-1, 0, 1, 2])
-def test_model_checkpoint_to_json(tmpdir, save_top_k):
+def test_model_checkpoint_to_yaml(tmpdir, save_top_k):
     """ Test that None in checkpoint callback is valid and that chkp_path is set correctly """
     tutils.reset_seed()
     model = EvalModelTemplate()
@@ -50,8 +50,8 @@ def test_model_checkpoint_to_json(tmpdir, save_top_k):
 
     checkpoint.to_yaml('./best_k_models.yaml')
     d = yaml.full_load(open('./best_k_models.yaml', 'r'))
-    best_k = {k: torch.Tensor(v) for k, v in d.items()}
-    torch.testing.assert_allclose(best_k, checkpoint.best_k_models)
+    best_k = {k: v.item() for k, v in checkpoint.best_k_models.items()}
+    assert d == best_k
 
 
 @pytest.mark.parametrize(
