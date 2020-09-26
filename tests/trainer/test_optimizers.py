@@ -270,6 +270,6 @@ def test_init_optimizers_during_testing(tmpdir):
     )
     trainer.test(model, ckpt_path=None)
 
-    assert not len(trainer.lr_schedulers)
-    assert not len(trainer.optimizers)
-    assert not len(trainer.optimizer_frequencies)
+    assert len(trainer.lr_schedulers) == 0
+    assert len(trainer.optimizers) == 0
+    assert len(trainer.optimizer_frequencies) == 0
