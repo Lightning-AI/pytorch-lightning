@@ -16,7 +16,7 @@ from pytorch_lightning.core import memory
 from pytorch_lightning.loggers import TensorBoardLogger, LoggerCollection
 from pytorch_lightning.utilities import flatten_dict
 from pytorch_lightning.utilities.model_utils import is_overridden
-from pytorch_lightning.core.step_result import EvalResult, Result
+from pytorch_lightning.core.step_result import EvalResult, Result, TrainResult
 from pprint import pprint
 from typing import Iterable
 
@@ -284,14 +284,14 @@ class LoggerConnector:
         for opt_outputs in epoch_output:
             # reduce across time first
             time_reduced_outputs = []
-            for train_step_idx in range(len(opt_outputs)):
-                tbptt_outs = opt_outputs[train_step_idx]
-                tbptt_outs = tbptt_outs[0].__class__.reduce_across_time(tbptt_outs)
-                time_reduced_outputs.append(tbptt_outs)
+            for tbptt_outs in opt_outputs:
+                tbptt_outs = TrainResult.gather(tbptt_outs)
+                time_reduced_outputs.append(TrainResult.reduce_across_time(tbptt_outs))
 
             # reduce across training steps
-            opt_outputs = time_reduced_outputs[0].__class__.reduce_on_epoch_end(time_reduced_outputs)
-            opt_outputs.minimize = opt_outputs.minimize.mean()
+            time_reduced_outputs = TrainResult.gather(time_reduced_outputs)
+            opt_outputs = TrainResult.reduce_on_epoch_end(time_reduced_outputs)
+
             epoch_log_metrics.update(opt_outputs.epoch_log_metrics)
             epoch_progress_bar_metrics.update(opt_outputs.epoch_pbar_metrics)
 
@@ -309,15 +309,12 @@ class LoggerConnector:
         for opt_outputs in epoch_output:
             # gather across time first
             time_gathered_outputs = []
-            for train_step_idx in range(len(opt_outputs)):
-                tbptt_outs = opt_outputs[train_step_idx]
-                tbptt_outs = tbptt_outs[0].__class__.gather(tbptt_outs)
-                time_gathered_outputs.append(tbptt_outs)
+            for tbptt_outs in opt_outputs:
+                time_gathered_outputs.append(TrainResult.gather(tbptt_outs))
 
             # gather across training steps
             # each metric has dimensions (training_steps, seq_len) (seq_len=1 when no tbptt is used)
-            gathered_opt_output = time_gathered_outputs[0].__class__.padded_gather(time_gathered_outputs)
-            gathered_epoch_outputs.append(gathered_opt_output)
+            gathered_epoch_outputs.append(TrainResult.padded_gather(time_gathered_outputs))
 
         return gathered_epoch_outputs
 

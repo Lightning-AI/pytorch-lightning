@@ -136,7 +136,7 @@ class Result(Dict):
             step_name = f'step_{name}'
             self.__set_meta(
                 step_name,
-                value,
+                # value,
                 prog_bar,
                 logger,
                 on_step=True,
@@ -151,7 +151,7 @@ class Result(Dict):
             epoch_name = f'epoch_{name}'
             self.__set_meta(
                 epoch_name,
-                value,
+                # value,
                 prog_bar,
                 logger,
                 on_step=False,
@@ -164,7 +164,7 @@ class Result(Dict):
         else:
             self.__set_meta(
                 name,
-                value,
+                # value,
                 prog_bar,
                 logger,
                 on_step,
@@ -180,7 +180,7 @@ class Result(Dict):
     def __set_meta(
         self,
         name: str,
-        value: Any,
+        # value: Any,
         prog_bar: bool,
         logger: bool,
         on_step: bool,
@@ -190,14 +190,14 @@ class Result(Dict):
         tbptt_reduce_fx: Callable,
     ):
         # set the meta for the item
-        meta_value = value
+        # meta_value = value
         meta = dict(
             prog_bar=prog_bar,
             logger=logger,
             on_step=on_step,
             on_epoch=on_epoch,
             reduce_fx=reduce_fx,
-            value=meta_value,
+            # value=meta_value,
             tbptt_reduce_fx=tbptt_reduce_fx,
             tbptt_pad_token=tbptt_pad_token,
         )
@@ -214,11 +214,10 @@ class Result(Dict):
 
     def get_batch_sizes(self):
         meta = self['meta']
-        return torch.tensor(meta['_internal']['batch_sizes'])
+        return meta['_internal']['batch_sizes']
 
     def get_callback_metrics(self) -> dict:
         result = {'early_stop_on': self.early_stop_on, 'checkpoint_on': self.checkpoint_on}
-
         return result
 
     def get_batch_log_metrics(self) -> dict:
@@ -312,6 +311,7 @@ class Result(Dict):
         recursive_stack(result)
 
         if meta:
+            meta['_internal']['batch_sizes'] = [x.get_batch_sizes()[0] for x in outputs]
             result['meta'] = meta
         return result
 
@@ -349,38 +349,30 @@ class Result(Dict):
         return result
 
     @classmethod
-    def reduce_on_epoch_end(cls, outputs):
-        # get the batch sizes for all outputs
-        batch_sizes = torch.stack([x.get_batch_sizes() for x in outputs]).view(-1)
+    def reduce_on_epoch_end(cls, result):
+        meta = result['meta']
+        batch_sizes = torch.tensor(result.get_batch_sizes())
 
-        meta = outputs[0]['meta']
-        result = cls()
-        result = recursive_gather(outputs, result)
-        recursive_stack(result)
-
-        for k, option in meta.items():
-            if k == '_internal':
+        for k, value in result.items():
+            if k == 'meta':
                 continue
-
-            if option['on_epoch']:
-                fx = option['reduce_fx']
+            
+            if k in ['checkpoint_on', 'early_stop_on', 'minimize']:
+                reduced_val = torch.mean(value)
+            elif meta[k]['on_epoch']:
+                fx = meta[k]['reduce_fx']
                 if fx == torch.mean:
                     reduced_val = weighted_mean(result[k], batch_sizes)
                 else:
                     reduced_val = fx(result[k])
 
-                result[k] = reduced_val
+            result[k] = reduced_val
 
-        result['meta'] = meta
         return result
 
     @classmethod
-    def reduce_across_time(cls, time_outputs):
-        # auto-reduce across time for tbptt
-        meta = time_outputs[0]['meta']
-        result = cls()
-        result = recursive_gather(time_outputs, result)
-        recursive_stack(result)
+    def reduce_across_time(cls, result):
+        meta = result['meta']
 
         for k, value in result.items():
             if k == 'meta':
@@ -393,7 +385,6 @@ class Result(Dict):
                 tbptt_reduce_fx = meta[k]['tbptt_reduce_fx']
             result[k] = tbptt_reduce_fx(value)
 
-        result['meta'] = meta
         return result
 
     def dp_reduce(self):
@@ -432,10 +423,13 @@ class Result(Dict):
 
 def recursive_gather(outputs: Sequence[dict], result: Optional[MutableMapping] = None) -> Optional[MutableMapping]:
     for out in outputs:
-        if 'meta' in out:
-            del out['meta']
+        # if 'meta' in out:
+        #     del out['meta']
 
         for k, v in out.items():
+            if k == 'meta':
+                continue
+            
             if isinstance(v, dict):
                 v = recursive_gather([v], result)
 
