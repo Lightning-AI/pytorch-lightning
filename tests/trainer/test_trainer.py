@@ -1148,4 +1148,3 @@ def test_row_log_interval(log_metrics_mock, tmpdir, train_batches, max_steps, lo
     trainer.fit(model)
     expected_calls = [call(metrics=ANY, step=s) for s in range(log_interval - 1, max_steps, log_interval)]
     log_metrics_mock.assert_has_calls(expected_calls)
-
