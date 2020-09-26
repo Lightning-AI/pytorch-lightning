@@ -203,6 +203,7 @@ class ModelCheckpoint(Callback):
         # what can be monitored
         monitor_candidates = self._monitor_candidates(trainer)
 
+        # ie: path/val_loss=0.5.ckpt
         filepath = self._get_metric_interpolated_filepath_name(epoch, monitor_candidates)
 
         # callback supports multiple simultaneous modes
