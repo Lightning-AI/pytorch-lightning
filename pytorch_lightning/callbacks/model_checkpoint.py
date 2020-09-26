@@ -340,6 +340,10 @@ class ModelCheckpoint(Callback):
         metrics = trainer.logger_connector.callback_metrics
         epoch = trainer.current_epoch
 
+        # backward compatibility... need to deprecate
+        if 'val_loss' in metrics:
+            self.monitor = 'val_loss'
+
         # validate metric
         if not (self.monitor is None or self._is_valid_monitor_key(metrics)):
             m = (
@@ -388,6 +392,9 @@ class ModelCheckpoint(Callback):
             if self.last_model_path and self.last_model_path != last_filepath:
                 self._del_model(self.last_model_path)
             self.last_model_path = last_filepath
+
+            if self.monitor is None:
+                self.best_model_path = self.last_model_path
 
         if not save_all_models:
             current = metrics.get(self.monitor)

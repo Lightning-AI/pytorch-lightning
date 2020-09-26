@@ -513,7 +513,6 @@ class Trainer(
             self.on_sanity_check_end()
             self.running_sanity_check = False
 
-    @trainer_state(entering=TrainerState.RUNNING, exiting=TrainerState.FINISHED)
     def test(
         self,
         model: Optional[LightningModule] = None,

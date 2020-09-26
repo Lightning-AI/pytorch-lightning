@@ -267,6 +267,8 @@ def test_ckpt_metric_names(tmpdir):
 def test_default_checkpoint_behavior(tmpdir):
     os.environ['PL_DEV_DEBUG'] = '1'
     model = EvalModelTemplate()
+    model.validation_step = model.validation_step_no_monitor
+    model.validation_epoch_end = model.validation_epoch_end_no_monitor
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -277,7 +279,10 @@ def test_default_checkpoint_behavior(tmpdir):
     )
 
     trainer.fit(model)
+    results = trainer.test()
 
+    assert len(results) == 1
+    assert results[0]['test_acc'] >= 0.90
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 3
 
     # make sure the checkpoint we saved has the metric in the name
