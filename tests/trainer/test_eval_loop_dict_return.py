@@ -136,7 +136,7 @@ def test_validation_step_dict_return(tmpdir):
         assert k in eval_results[1]
 
     # ensure all the keys ended up as candidates for callbacks
-    assert len(trainer.logger_connector.callback_metrics) in [8, 9]
+    assert len(trainer.logger_connector.callback_metrics) in [9, 10]
 
     # make sure correct steps were called
     assert model.validation_step_called
