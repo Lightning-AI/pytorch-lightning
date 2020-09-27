@@ -311,7 +311,8 @@ class Result(Dict):
         recursive_stack(result)
 
         if meta:
-            meta['_internal']['batch_sizes'] = [*x.get_batch_sizes() for x in outputs]
+            # import pdb; pdb.set_trace()
+            meta['_internal']['batch_sizes'] = [x.get_batch_sizes()[0] for x in outputs]
             result['meta'] = meta
         return result
 
