@@ -13,20 +13,21 @@
 # limitations under the License
 import os
 import re
-import torch
 
-from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.accelerators.base_backend import Accelerator
+import torch
 import torch.distributed as torch_distrib
 import torch.distributed as dist
-from pytorch_lightning.utilities.cloud_io import atomic_save
-from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_only
+
 from pytorch_lightning import _logger as log
+from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities.cloud_io import atomic_save
+from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.seed import seed_everything
 
 try:
-    from hydra.utils import to_absolute_path, get_original_cwd
     from hydra.core.hydra_config import HydraConfig
+    from hydra.utils import get_original_cwd, to_absolute_path
 except ImportError:
     HYDRA_AVAILABLE = False
 else:

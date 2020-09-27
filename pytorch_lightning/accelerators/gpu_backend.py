@@ -13,8 +13,9 @@
 # limitations under the License.
 
 import torch
-from pytorch_lightning.utilities import AMPType
+
 from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.utilities import AMPType
 
 
 class GPUBackend(Accelerator):

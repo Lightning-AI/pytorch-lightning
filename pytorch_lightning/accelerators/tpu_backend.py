@@ -19,17 +19,17 @@ import torch
 import torch.multiprocessing as mp
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.core import LightningModule
-from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn, AMPType
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.core import LightningModule
+from pytorch_lightning.utilities import AMPType, rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
     import torch_xla
     import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
     import torch_xla.distributed.parallel_loader as xla_pl
+    import torch_xla.distributed.xla_multiprocessing as xmp
 except ImportError:
     XLA_AVAILABLE = False
 else:

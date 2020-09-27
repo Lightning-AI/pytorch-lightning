@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import ExitStack
+
 import torch
-from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.accelerators.base_backend import Accelerator
-from pytorch_lightning.utilities.distributed import rank_zero_only
 from torch.optim.lr_scheduler import _LRScheduler
+
+from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities.distributed import rank_zero_only
 
 try:
     import horovod.torch as hvd
