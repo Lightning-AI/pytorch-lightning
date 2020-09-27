@@ -273,6 +273,7 @@ def test_full_loop(tmpdir):
     result = result[0]
     assert result['test_acc'] > 0.8
 
+
 def test_trainer_attached_to_dm(tmpdir):
     reset_seed()
 
