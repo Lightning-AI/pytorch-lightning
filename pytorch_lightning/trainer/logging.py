@@ -67,7 +67,7 @@ class TrainerLoggingMixin(ABC):
                     m = """
                     The {'log':dict} keyword was deprecated in 0.9.1 and will be removed in 1.0.0
                     Please use self.log(...) inside the lightningModule instead.
-                    
+ 
                     # log on a step or aggregate epoch metric to the logger and/or progress bar
                     # (inside LightningModule)
                     self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
