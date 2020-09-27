@@ -485,7 +485,7 @@ class ModelCheckpoint(Callback):
             if self.monitor == 'checkpoint_on':
                 m = (
                     'No checkpoint_on found. HINT: Did you set it in '
-                    'EvalResult(checkpoint_on=tensor) or TrainResult(checkpoint_on=tensor)?',
+                    'EvalResult(checkpoint_on=tensor) or TrainResult(checkpoint_on=tensor)?'
                 )
             rank_zero_warn(m, RuntimeWarning)
         elif self.check_monitor_top_k(current):
