@@ -204,13 +204,6 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     ckpt_last_epoch = torch.load(path_last_epoch)
     ckpt_last = torch.load(model_checkpoint.last_model_path)
     assert all(ckpt_last_epoch[k] == ckpt_last[k] for k in ("epoch", "global_step"))
-    for k in ("best_model_score", "best_model_path") :
-        print(ckpt_last["callbacks"][type(model_checkpoint)][k])
-        print(ckpt_last_epoch["callbacks"][type(model_checkpoint)][k])
-    assert all(
-        ckpt_last["callbacks"][type(model_checkpoint)][k] == ckpt_last_epoch["callbacks"][type(model_checkpoint)][k]
-        for k in ("best_model_score", "best_model_path")
-    )
 
     # it is easier to load the model objects than to iterate over the raw dict of tensors
     model_last_epoch = EvalModelTemplate.load_from_checkpoint(path_last_epoch)
