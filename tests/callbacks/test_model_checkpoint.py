@@ -193,14 +193,39 @@ def test_model_checkpoint_save_last(tmpdir):
     ModelCheckpoint.CHECKPOINT_NAME_LAST = 'last'
 
 
+def test_invalid_top_k(tmpdir):
+    """
+    Make sure that a MisconfigurationException is raised for a negative top_k argument
+    """
+    with pytest.raises(MisconfigurationException, match=r'.*Must be None or >= -1'):
+        ModelCheckpoint(filepath=tmpdir, save_top_k=-3)
+
+
 def test_none_monitor_top_k(tmpdir):
     """
-    Make sure that when saving top k of anything (if it's not 1), then monitor cannot be none
+    Test warning appears for positive top_k with monitor=None
     """
-    seed_everything(100)
-    num_epochs = 3
-    with pytest.raises(MisconfigurationException, match=r'To save checkpoints for a top_k metric.*'):
-        ModelCheckpoint(filepath=tmpdir, save_top_k=num_epochs, save_last=True)
+    with pytest.raises(
+        MisconfigurationException, match=r'ModelCheckpoint\(save_top_k=3, monitor=None\) is not a valid.*'
+    ):
+        ModelCheckpoint(filepath=tmpdir, save_top_k=3)
+    # These should not fail
+    ModelCheckpoint(filepath=tmpdir, save_top_k=None)
+    ModelCheckpoint(filepath=tmpdir, save_top_k=-1)
+    ModelCheckpoint(filepath=tmpdir, save_top_k=0)
+
+
+def test_none_monitor_save_last(tmpdir):
+    """
+    Test warning appears for save_last=True with monitor=None
+    """
+    with pytest.raises(
+        MisconfigurationException, match=r'ModelCheckpoint\(save_last=True, monitor=None\) is not a valid.*'
+    ):
+        ModelCheckpoint(filepath=tmpdir, save_last=True)
+    # These should not fail
+    ModelCheckpoint(filepath=tmpdir, save_last=None)
+    ModelCheckpoint(filepath=tmpdir, save_last=False)
 
 
 def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):

@@ -67,7 +67,7 @@ class ModelCheckpoint(Callback):
 
         monitor: quantity to monitor. By default it is None which saves a checkpoint only for the last epoch
         verbose: verbosity mode. Default: ``False``.
-        save_last: always saves the model at the end of the epoch. Default: ``False``.
+        save_last: always saves the model at the end of the last epoch. Default: ``None``.
         save_top_k: if ``save_top_k == k``,
             the best k models according to
             the quantity monitored will be saved.
@@ -123,8 +123,8 @@ class ModelCheckpoint(Callback):
         filepath: Optional[str] = None,
         monitor: Optional[str] = None,
         verbose: bool = False,
-        save_last: bool = False,
-        save_top_k: int = 1,
+        save_last: Optional[bool] = None,
+        save_top_k: Optional[int] = None,
         save_weights_only: bool = False,
         mode: str = "auto",
         period: int = 1,
@@ -146,6 +146,9 @@ class ModelCheckpoint(Callback):
         self.last_model_path = ""
         self.save_function = None
         self.warned_result_obj = False
+
+        if save_top_k is None and monitor is not None:
+            self.save_top_k = 1
 
         self.__init_monitor_mode(monitor, mode)
         self.__init_ckpt_dir(filepath, save_top_k)
@@ -214,25 +217,43 @@ class ModelCheckpoint(Callback):
         self._save_last_checkpoint(trainer, pl_module, epoch, monitor_candidates, filepath)
 
         # Mode 2: save all checkpoints OR only the top k
-        if self.monitor is not None:
+        if self.monitor is not None and self.save_top_k:
             if self.save_top_k == -1:
                 self._save_all_checkpoints(trainer, pl_module, epoch, filepath)
             else:
                 self._save_top_k_checkpoints(monitor_candidates, trainer, pl_module, epoch, filepath)
 
     def __validate_init_configuration(self):
-        if self.save_top_k != 1 and self.monitor is None:
-            raise MisconfigurationException('To save checkpoints for a top_k metric, '
-                                            'ModelCheckpoint(monitor) cannot be None')
+        if self.save_top_k is not None and self.save_top_k < -1:
+            raise MisconfigurationException(
+                f'Invalid value for ModelCheckpoint.save_top_k={self.save_top_k}. ' 'Must be None or >= -1'
+            )
+        if self.monitor is None:
+            # None: save last epoch, -1: save all epochs, 0: nothing is saved
+            if self.save_top_k not in [None, -1, 0]:
+                raise MisconfigurationException(
+                    f'ModelCheckpoint(save_top_k={self.save_top_k}, monitor=None) is not a valid '
+                    'configuration. No quantity for top_k to track'
+                )
+            if self.save_last:
+                raise MisconfigurationException(
+                    'ModelCheckpoint(save_last=True, monitor=None) is not a valid configuration. '
+                    'You can save the last checkpoint with ModelCheckpoint(save_top_k=None, monitor=None)'
+                )
 
     def __init_ckpt_dir(self, filepath, save_top_k):
         self._fs = get_filesystem(filepath if filepath is not None else "")
-        if save_top_k > 0 and filepath is not None:
-            if self._fs.isdir(filepath) and len(self._fs.ls(filepath)) > 0:
-                rank_zero_warn(
-                    f"Checkpoint directory {filepath} exists and is not empty with save_top_k != 0."
-                    " All files in this directory will be deleted when a checkpoint is saved!"
-                )
+        if (
+            save_top_k is not None
+            and save_top_k > 0
+            and filepath is not None
+            and self._fs.isdir(filepath)
+            and len(self._fs.ls(filepath)) > 0
+        ):
+            rank_zero_warn(
+                f"Checkpoint directory {filepath} exists and is not empty with save_top_k={save_top_k}"
+                " All files in this directory will be deleted when a checkpoint is saved!"
+            )
 
         if not filepath:  # will be determined by trainer at runtime
             self.dirpath, self.filename = None, None
