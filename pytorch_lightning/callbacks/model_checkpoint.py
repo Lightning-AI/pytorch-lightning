@@ -67,7 +67,7 @@ class ModelCheckpoint(Callback):
 
         monitor: quantity to monitor. By default it is None which saves a checkpoint only for the last epoch
         verbose: verbosity mode. Default: ``False``.
-        save_last: always saves the model at the end of the last epoch. Default: ``None``.
+        save_last: When `True`, always saves the model at the end of the epoch to a file `last.ckpt`. Default: ``None``.
         save_top_k: if ``save_top_k == k``,
             the best k models according to
             the quantity monitored will be saved.
