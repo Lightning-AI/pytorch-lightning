@@ -704,10 +704,9 @@ class TrainLoop:
         batch_log_metrics = {k: v for d in batch_log_metrics for k, v in d.items()}
 
         # track all metrics for callbacks
-        if not using_results_obj:
-            self.trainer.logger_connector.callback_metrics.update(
-                {k: v for d in batch_callback_metrics for k, v in d.items()}
-            )
+        self.trainer.logger_connector.callback_metrics.update(
+            {k: v for d in batch_callback_metrics for k, v in d.items() if v is not None}
+        )
 
         result = AttributeDict(
             signal=0,
