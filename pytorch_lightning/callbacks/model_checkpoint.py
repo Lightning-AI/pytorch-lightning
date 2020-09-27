@@ -212,10 +212,11 @@ class ModelCheckpoint(Callback):
         self._save_last_checkpoint(trainer, pl_module, epoch, monitor_candidates, filepath)
 
         # Mode 2: save all checkpoints OR only the top k
-        if self.save_top_k == -1:
-            self._save_all_checkpoints(trainer, pl_module, epoch, filepath)
-        else:
-            self._save_top_k_checkpoints(monitor_candidates, trainer, pl_module, epoch, filepath)
+        if self.monitor is not None:
+            if self.save_top_k == -1:
+                self._save_all_checkpoints(trainer, pl_module, epoch, filepath)
+            else:
+                self._save_top_k_checkpoints(monitor_candidates, trainer, pl_module, epoch, filepath)
 
     def __validate_init_configuration(self):
         if self.save_top_k != 1 and self.monitor is None:
@@ -408,7 +409,7 @@ class ModelCheckpoint(Callback):
         metrics = trainer.logger_connector.callback_metrics
 
         # validate metric
-        if not self._is_valid_monitor_key(metrics):
+        if self.monitor is not None and not self._is_valid_monitor_key(metrics):
             m = (
                 f"ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics:"
                 f" {list(metrics.keys())}. "
