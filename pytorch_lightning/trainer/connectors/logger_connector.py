@@ -234,7 +234,6 @@ class LoggerConnector:
         # EPOCH END STEP IF DEFINED
         # --------------------------
         if is_overridden('training_epoch_end', model=model):
-            self.trainer.global_step += 1
 
             if is_result_obj:
                 # with result object gather across time and training steps so each opt idx has a single result obj
