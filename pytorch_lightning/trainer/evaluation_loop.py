@@ -198,7 +198,7 @@ class EvaluationLoop(object):
             if is_overridden('validation_epoch_end', model=model):
                 eval_results = model.validation_epoch_end(eval_results)
 
-        if not isinstance(eval_results, list):
+        if not isinstance(eval_results, list) or len(eval_results) == 0:
             eval_results = [eval_results]
 
         is_result_obj = isinstance(eval_results[0], Result)
