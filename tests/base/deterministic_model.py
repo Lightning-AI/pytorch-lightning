@@ -59,6 +59,14 @@ class DeterministicModel(LightningModule):
 
         return num_graphs
 
+    def training_step_scalar_anything_return(self, batch, batch_idx):
+        # TODO
+        acc = self.step(batch, batch_idx)
+
+        self.training_step_called = True
+        something = ['a', 1, torch.rand(2, 3)]
+        return {'loss': acc, 'something': something}
+
     # ---------------------------
     # scalar return
     # ---------------------------
