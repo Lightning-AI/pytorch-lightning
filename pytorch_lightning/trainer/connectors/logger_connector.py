@@ -358,6 +358,10 @@ class LoggerConnector:
             for train_step_idx in range(len(opt_outputs)):
                 tbptt_outs = opt_outputs[train_step_idx]
                 tbptt_outs = [x.extra for x in tbptt_outs]
+
+                # when time = 0, pass in the literal dict instead of array
+                if len(tbptt_outs) == 1:
+                    tbptt_outs = tbptt_outs[0]
                 time_gathered_outputs.append(tbptt_outs)
 
             gathered_epoch_outputs.append(time_gathered_outputs)
