@@ -254,7 +254,7 @@ def test_no_val_step_end(tmpdir):
         assert k in eval_results
 
     # ensure all the keys ended up as candidates for callbacks
-    assert len(trainer.logger_connector.callback_metrics) in [9, 10]
+    assert len(trainer.logger_connector.callback_metrics) in [10, 11]
 
     # make sure correct steps were called
     assert model.validation_step_called
