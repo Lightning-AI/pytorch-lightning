@@ -38,8 +38,7 @@ class DataParallelBackend(Accelerator):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        if not self.trainer.testing:
-            self.setup_optimizers(model)
+        self.setup_optimizers(model)
 
         # init torch data parallel
         model = self.__init_torch_data_parallel(model)

@@ -1095,3 +1095,4 @@ from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities.seed import seed_everything
 
 __all__ = ["Trainer", "seed_everything"]
+

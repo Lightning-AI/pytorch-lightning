@@ -48,8 +48,7 @@ class HorovodBackend(Accelerator):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        if not self.trainer.testing:
-            self.setup_optimizers(model)
+        self.setup_optimizers(model)
 
         # Horovod: scale the learning rate by the number of workers to account for
         # increased total batch size

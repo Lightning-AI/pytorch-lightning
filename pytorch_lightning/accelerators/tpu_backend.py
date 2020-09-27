@@ -210,8 +210,7 @@ class TPUBackend(Accelerator):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        if not self.trainer.testing:
-            self.setup_optimizers(model)
+        self.setup_optimizers(model)
 
         # init 16 bit for TPU
         if trainer.precision == 16:

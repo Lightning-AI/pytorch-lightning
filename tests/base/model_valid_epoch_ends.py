@@ -30,6 +30,7 @@ class ValidationEpochEndVariations(ABC):
         results = {'progress_bar': metrics_dict, 'log': metrics_dict}
         return results
 
+
     def validation_epoch_end(self, outputs):
         """
         Called at the end of validation to aggregate outputs
