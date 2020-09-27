@@ -549,9 +549,9 @@ class Trainer(
 
     def __test_using_best_weights(self, ckpt_path, test_dataloaders):
         model = self.get_model()
-
+        print(self.checkpoint_callback.monitor)
         # if user requests the best checkpoint but we don't have it, error
-        if ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
+        if ckpt_path == 'best' and self.checkpoint_callback.save_top_k in [-1, 0, None]:
             raise MisconfigurationException(
                 'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.'
             )

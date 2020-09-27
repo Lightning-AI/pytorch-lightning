@@ -296,7 +296,7 @@ def test_default_checkpoint_behavior(tmpdir):
     )
 
     trainer.fit(model)
-    results = trainer.test()
+    results = trainer.test(model)
 
     assert len(results) == 1
     assert results[0]['test_acc'] >= 0.80
