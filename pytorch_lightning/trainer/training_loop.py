@@ -483,6 +483,8 @@ class TrainLoop:
             if self.trainer.should_stop:
                 break
 
+            self.trainer.total_batch_idx += 1
+
             # stop epoch if we limited the number of training batches
             if batch_idx + 1 >= self.trainer.num_training_batches:
                 break
@@ -665,7 +667,6 @@ class TrainLoop:
         # progress global step according to grads progress
         if num_accumulated_batches_reached or num_training_batches_reached:
             self.trainer.global_step += 1
-        self.trainer.total_batch_idx += 1
 
     def should_check_val_fx(self, batch_idx, is_last_batch):
         # decide if we should run validation
