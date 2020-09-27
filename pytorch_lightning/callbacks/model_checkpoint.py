@@ -224,9 +224,22 @@ class ModelCheckpoint(Callback):
                 self._save_top_k_checkpoints(monitor_candidates, trainer, pl_module, epoch, filepath)
 
     def __validate_init_configuration(self):
-        if self.save_top_k and self.monitor is None:
-            raise MisconfigurationException('To save checkpoints for a top_k metric, '
-                                            'ModelCheckpoint(monitor) cannot be None')
+        if self.save_top_k is not None and self.save_top_k < -1:
+            raise MisconfigurationException(
+                f'Invalid value for save_top_k={self.save_top_k}. Must be None or >= -1'
+            )
+        if self.monitor is None:
+            # None: save last epoch, -1: save all epochs, 0: nothing is saved
+            if self.save_top_k not in [None, -1, 0]:
+                raise MisconfigurationException(
+                    f'ModelCheckpoint(save_top_k={self.save_top_k}, monitor=None) is not a valid'
+                    ' configuration. No quantity for top_k to track.'
+                )
+            if self.save_last:
+                raise MisconfigurationException(
+                    'ModelCheckpoint(save_last=True, monitor=None) is not a valid configuration.'
+                    ' You can save the last checkpoint with ModelCheckpoint(save_top_k=None, monitor=None)'
+                )
 
     def __init_ckpt_dir(self, filepath, save_top_k):
         self._fs = get_filesystem(filepath if filepath is not None else "")
