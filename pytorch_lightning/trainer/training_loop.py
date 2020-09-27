@@ -474,7 +474,7 @@ class TrainLoop:
             self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
 
             # max steps reached, end training
-            if self.trainer.max_steps is not None and self.trainer.max_steps == self.trainer.global_step:
+            if self.trainer.max_steps is not None and self.trainer.max_steps == self.trainer.global_step + 1:
                 break
 
             # end epoch early
