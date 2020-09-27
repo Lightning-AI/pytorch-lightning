@@ -217,7 +217,7 @@ class ModelCheckpoint(Callback):
         self._save_last_checkpoint(trainer, pl_module, epoch, monitor_candidates, filepath)
 
         # Mode 2: save all checkpoints OR only the top k
-        if self.save_top_k is not None:
+        if self.save_top_k:
             if self.save_top_k == -1:
                 self._save_all_checkpoints(trainer, pl_module, epoch, filepath)
             else:
