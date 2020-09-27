@@ -67,7 +67,7 @@ class ModelCheckpoint(Callback):
 
         monitor: quantity to monitor. By default it is None which saves a checkpoint only for the last epoch
         verbose: verbosity mode. Default: ``False``.
-        save_last: always saves the model at the end of the epoch. Default: ``False``.
+        save_last: always saves the model at the end of the last epoch. Default: ``None``.
         save_top_k: if ``save_top_k == k``,
             the best k models according to
             the quantity monitored will be saved.
@@ -123,7 +123,7 @@ class ModelCheckpoint(Callback):
         filepath: Optional[str] = None,
         monitor: Optional[str] = None,
         verbose: bool = False,
-        save_last: bool = False,
+        save_last: Optional[bool] = None,
         save_top_k: Optional[int] = None,
         save_weights_only: bool = False,
         mode: str = "auto",
@@ -230,12 +230,17 @@ class ModelCheckpoint(Callback):
 
     def __init_ckpt_dir(self, filepath, save_top_k):
         self._fs = get_filesystem(filepath if filepath is not None else "")
-        if save_top_k and filepath is not None:
-            if self._fs.isdir(filepath) and len(self._fs.ls(filepath)) > 0:
-                rank_zero_warn(
-                    f"Checkpoint directory {filepath} exists and is not empty with save_top_k != 0."
-                    " All files in this directory will be deleted when a checkpoint is saved!"
-                )
+        if (
+            save_top_k is not None
+            and save_top_k > 0
+            and filepath is not None
+            and self._fs.isdir(filepath)
+            and len(self._fs.ls(filepath)) > 0
+        ):
+            rank_zero_warn(
+                f"Checkpoint directory {filepath} exists and is not empty with save_top_k={save_top_k}"
+                " All files in this directory will be deleted when a checkpoint is saved!"
+            )
 
         if not filepath:  # will be determined by trainer at runtime
             self.dirpath, self.filename = None, None
