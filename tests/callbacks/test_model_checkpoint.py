@@ -202,7 +202,7 @@ def test_invalid_top_k(tmpdir):
 def test_none_monitor_top_k(tmpdir):
     """ Test that a warning appears for positive top_k with monitor=None. """
     with pytest.raises(
-        MisconfigurationException, match='ModelCheckpoint(save_top_k=3, monitor=None) is not a valid.*'
+        MisconfigurationException, match=r'ModelCheckpoint\(save_top_k=3, monitor=None\) is not a valid*'
     ):
         ModelCheckpoint(filepath=tmpdir, save_top_k=3)
     # These should not fail
