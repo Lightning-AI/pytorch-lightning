@@ -22,8 +22,10 @@ Automatically save model checkpoints during training.
 
 import os
 import re
+import yaml
 from copy import deepcopy
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -531,3 +533,13 @@ class ModelCheckpoint(Callback):
             if cur_path != filepath:
                 self._del_model(cur_path)
 
+    def to_yaml(self, filepath: Optional[Union[str, Path]] = None):
+        """
+        Saves the `best_k_models` dict containing the checkpoint
+        paths with the corresponding scores to a YAML file.
+        """
+        best_k = {k: v.item() for k, v in self.best_k_models.items()}
+        if filepath is None:
+            filepath = os.path.join(self.dirpath, "best_k_models.yaml")
+        with open(filepath, "w") as fp:
+            yaml.dump(best_k, fp)
