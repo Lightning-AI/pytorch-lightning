@@ -279,6 +279,28 @@ def test_model_checkpoint_none_monitor(tmpdir):
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
+def test_model_checkpoint_topk_zero(tmpdir):
+    """ Test that no checkpoints are saved when save_top_k=0. """
+    model = EvalModelTemplate()
+    checkpoint_callback = ModelCheckpoint(filepath=tmpdir, save_top_k=0)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        early_stop_callback=False,
+        checkpoint_callback=checkpoint_callback,
+        max_epochs=2,
+        logger=False,
+    )
+    trainer.fit(model)
+    # these should not be set if monitor is None
+    assert checkpoint_callback.monitor is None
+    assert checkpoint_callback.best_model_path == ''
+    assert checkpoint_callback.best_model_score == 0
+    assert checkpoint_callback.best_k_models == {}
+    assert checkpoint_callback.kth_best_model_path == ''
+    # check that no ckpts were created
+    assert len(set(os.listdir(tmpdir))) == 0
+
+
 def test_ckpt_metric_names(tmpdir):
     model = EvalModelTemplate()
 
