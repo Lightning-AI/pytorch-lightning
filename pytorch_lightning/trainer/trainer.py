@@ -560,9 +560,6 @@ class Trainer(
         if ckpt_path is not None:
             # ckpt_path is 'best' so load the best model
             if ckpt_path == 'best':
-                # if not self.checkpoint_callback.best_model_path:
-                #     # if user requests the best checkpoint but we don't have it, error
-                #     raise MisconfigurationException('ckpt_path is "best", but we could not find the best model path')
                 ckpt_path = self.checkpoint_callback.best_model_path
 
             if len(ckpt_path) == 0:
