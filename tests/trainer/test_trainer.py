@@ -507,7 +507,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         max_epochs=2,
         limit_train_batches=0.65,
         limit_val_batches=1,
-        checkpoint_callback=ModelCheckpoint(tmpdir, monitor='checkpoint_on', save_top_k=-1),
+        checkpoint_callback=ModelCheckpoint(tmpdir, monitor='val_loss', save_top_k=-1),
         default_root_dir=tmpdir,
         early_stop_callback=False,
         val_check_interval=1.,
