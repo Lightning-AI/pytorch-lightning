@@ -48,8 +48,9 @@ def test_model_checkpoint_to_yaml(tmpdir, save_top_k):
     trainer = Trainer(default_root_dir=tmpdir, checkpoint_callback=checkpoint, overfit_batches=0.20, max_epochs=2)
     trainer.fit(model)
 
-    checkpoint.to_yaml('./best_k_models.yaml')
-    d = yaml.full_load(open('./best_k_models.yaml', 'r'))
+    path_yaml = os.path.join(tmpdir, 'best_k_models.yaml')
+    checkpoint.to_yaml(path_yaml)
+    d = yaml.full_load(open(path_yaml, 'r'))
     best_k = {k: v.item() for k, v in checkpoint.best_k_models.items()}
     assert d == best_k
 
