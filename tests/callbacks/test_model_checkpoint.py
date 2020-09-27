@@ -253,7 +253,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
 def test_model_checkpoint_none_monitor(tmpdir):
     model = EvalModelTemplate()
     epochs = 2
-    checkpoint_callback = ModelCheckpoint(monitor='val_loss', filepath=tmpdir, save_top_k=-1)
+    checkpoint_callback = ModelCheckpoint(monitor=None, filepath=tmpdir, save_top_k=-1)
     trainer = Trainer(
         default_root_dir=tmpdir,
         early_stop_callback=False,
