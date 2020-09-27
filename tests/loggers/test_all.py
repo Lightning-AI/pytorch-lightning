@@ -249,7 +249,7 @@ class RankZeroLoggerCheck(Callback):
 ])
 @mock.patch('pytorch_lightning.loggers.neptune.neptune')
 def test_logger_created_on_rank_zero_only(neptune, tmpdir, monkeypatch, logger_class):
-    """ Test that loggers get replaced by dummy logges on global rank > 0"""
+    """ Test that loggers get replaced by dummy loggers on global rank > 0"""
     if logger_class == CometLogger:
         # prevent comet logger from trying to print at exit, since
         # pytest's stdout/stderr redirection breaks it
