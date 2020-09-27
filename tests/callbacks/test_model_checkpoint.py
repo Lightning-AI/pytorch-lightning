@@ -253,6 +253,9 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
 def test_model_checkpoint_none_monitor(tmpdir):
     """ Test that it is possible to save all checkpoints when monitor=None. """
     model = EvalModelTemplate()
+    model.validation_step = model.validation_step_no_monitor
+    model.validation_epoch_end = model.validation_epoch_end_no_monitor
+
     epochs = 2
     checkpoint_callback = ModelCheckpoint(monitor=None, filepath=tmpdir, save_top_k=-1)
     trainer = Trainer(
@@ -264,7 +267,8 @@ def test_model_checkpoint_none_monitor(tmpdir):
     trainer.fit(model)
 
     # these should not be set if monitor is None
-    assert checkpoint_callback.best_model_path == ''
+    assert checkpoint_callback.monitor is None
+    assert checkpoint_callback.best_model_path == checkpoint_callback.last_model_path == tmpdir / 'epoch=1.ckpt'
     assert checkpoint_callback.best_model_score == 0
     assert checkpoint_callback.best_k_models == {}
     assert checkpoint_callback.kth_best_model_path == ''
