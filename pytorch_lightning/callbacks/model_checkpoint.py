@@ -124,7 +124,7 @@ class ModelCheckpoint(Callback):
         monitor: Optional[str] = None,
         verbose: bool = False,
         save_last: bool = False,
-        save_top_k: int = 1,
+        save_top_k: Optional[int] = None,
         save_weights_only: bool = False,
         mode: str = "auto",
         period: int = 1,
@@ -146,6 +146,9 @@ class ModelCheckpoint(Callback):
         self.last_model_path = ""
         self.save_function = None
         self.warned_result_obj = False
+
+        if save_top_k is None and monitor is not None:
+            self.save_top_k = 1
 
         self.__init_monitor_mode(monitor, mode)
         self.__init_ckpt_dir(filepath, save_top_k)
@@ -214,20 +217,20 @@ class ModelCheckpoint(Callback):
         self._save_last_checkpoint(trainer, pl_module, epoch, monitor_candidates, filepath)
 
         # Mode 2: save all checkpoints OR only the top k
-        if self.monitor is not None:
+        if self.monitor is not None and self.save_top_k:
             if self.save_top_k == -1:
                 self._save_all_checkpoints(trainer, pl_module, epoch, filepath)
             else:
                 self._save_top_k_checkpoints(monitor_candidates, trainer, pl_module, epoch, filepath)
 
     def __validate_init_configuration(self):
-        if self.save_top_k != 1 and self.monitor is None:
+        if self.save_top_k and self.monitor is None:
             raise MisconfigurationException('To save checkpoints for a top_k metric, '
                                             'ModelCheckpoint(monitor) cannot be None')
 
     def __init_ckpt_dir(self, filepath, save_top_k):
         self._fs = get_filesystem(filepath if filepath is not None else "")
-        if save_top_k > 0 and filepath is not None:
+        if save_top_k and filepath is not None:
             if self._fs.isdir(filepath) and len(self._fs.ls(filepath)) > 0:
                 rank_zero_warn(
                     f"Checkpoint directory {filepath} exists and is not empty with save_top_k != 0."
