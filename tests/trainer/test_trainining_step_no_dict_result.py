@@ -38,7 +38,8 @@ def test_training_step_scalar(tmpdir):
 
             for b in outputs:
                 # time = 1
-                assert len(b) == 0
+                assert len(b) == 1
+                assert 'loss' in b
                 assert isinstance(b, dict)
 
         def backward(self, trainer, loss, optimizer, optimizer_idx):
