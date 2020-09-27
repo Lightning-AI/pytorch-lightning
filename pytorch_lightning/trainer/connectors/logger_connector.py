@@ -206,9 +206,7 @@ class LoggerConnector:
 
         model = self.trainer.get_model()
 
-        epoch_log_metrics = {}
         epoch_callback_metrics = {}
-        epoch_progress_bar_metrics = {}
 
         # -----------------------
         # Calculate epoch callback values if given
@@ -248,7 +246,13 @@ class LoggerConnector:
 
         # TODO: deprecate 1.0
         else:
-            out = self.__run_legacy_training_epoch_end(num_optimizers, epoch_output, model, is_result_obj)
+            out = self.__run_legacy_training_epoch_end(
+                num_optimizers,
+                epoch_output,
+                model,
+                is_result_obj,
+                epoch_callback_metrics
+            )
             epoch_log_metrics, epoch_progress_bar_metrics, epoch_callback_metrics = out
 
         # --------------------------
@@ -293,7 +297,18 @@ class LoggerConnector:
             new_epoch_end_logs = model._results
             return new_epoch_end_logs
 
-    def __run_legacy_training_epoch_end(self, num_optimizers, epoch_output, model, is_result_obj):
+    def __run_legacy_training_epoch_end(
+            self,
+            num_optimizers,
+            epoch_output,
+            model,
+            is_result_obj,
+            epoch_callback_metrics
+    ):
+
+        epoch_log_metrics = {}
+        epoch_progress_bar_metrics = {}
+
         # --------------------------
         # EPOCH END STEP IF DEFINED
         # --------------------------
