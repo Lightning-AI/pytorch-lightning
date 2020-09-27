@@ -43,7 +43,7 @@ def test_model_checkpoint_to_yaml(tmpdir, save_top_k):
     tutils.reset_seed()
     model = EvalModelTemplate()
 
-    checkpoint = ModelCheckpoint(filepath=None, save_top_k=save_top_k)
+    checkpoint = ModelCheckpoint(filepath=tmpdir, monitor='val_loss', save_top_k=save_top_k)
 
     trainer = Trainer(default_root_dir=tmpdir, checkpoint_callback=checkpoint, overfit_batches=0.20, max_epochs=2)
     trainer.fit(model)
