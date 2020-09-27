@@ -261,6 +261,7 @@ def test_model_checkpoint_none_monitor(tmpdir):
         early_stop_callback=False,
         checkpoint_callback=checkpoint_callback,
         max_epochs=epochs,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -272,8 +273,28 @@ def test_model_checkpoint_none_monitor(tmpdir):
     assert checkpoint_callback.kth_best_model_path == ''
 
     # check that the correct ckpts were created
-    expected = ['lightning_logs']
-    expected.extend(f'epoch={e}.ckpt' for e in range(epochs))
+    expected = [f'epoch={e}.ckpt' for e in range(epochs)]
+    assert set(os.listdir(tmpdir)) == set(expected)
+
+
+@pytest.mark.parametrize("period", list(range(4)))
+def test_model_checkpoint_period(tmpdir, period):
+    model = EvalModelTemplate()
+    epochs = 5
+    checkpoint_callback = ModelCheckpoint(filepath=tmpdir, save_top_k=-1, period=period)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        early_stop_callback=False,
+        checkpoint_callback=checkpoint_callback,
+        max_epochs=epochs,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+        logger=False,
+    )
+    trainer.fit(model)
+
+    # check that the correct ckpts were created
+    expected = [f'epoch={e}.ckpt' for e in range(epochs) if not (e + 1) % period] if period > 0 else []
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
