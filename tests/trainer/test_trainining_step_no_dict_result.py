@@ -81,12 +81,12 @@ def test_training_step_scalar(tmpdir):
     # epoch 0
     assert trainer.dev_debugger.logged_metrics[0]['global_step'] == 0
     assert trainer.dev_debugger.logged_metrics[1]['global_step'] == 1
-    assert trainer.dev_debugger.logged_metrics[2]['global_step'] == 2
+    assert trainer.dev_debugger.logged_metrics[2]['global_step'] == 1
 
     # epoch 1
     assert trainer.dev_debugger.logged_metrics[3]['global_step'] == 2
     assert trainer.dev_debugger.logged_metrics[4]['global_step'] == 3
-    assert trainer.dev_debugger.logged_metrics[5]['global_step'] == 4
+    assert trainer.dev_debugger.logged_metrics[5]['global_step'] == 3
 
 
 def test_training_step_dict(tmpdir):
@@ -156,9 +156,7 @@ def test_training_step_dict(tmpdir):
     # epoch 0
     assert trainer.dev_debugger.logged_metrics[0]['global_step'] == 0
     assert trainer.dev_debugger.logged_metrics[1]['global_step'] == 1
-    assert trainer.dev_debugger.logged_metrics[2]['global_step'] == 2
 
     # epoch 1
     assert trainer.dev_debugger.logged_metrics[3]['global_step'] == 2
     assert trainer.dev_debugger.logged_metrics[4]['global_step'] == 3
-    assert trainer.dev_debugger.logged_metrics[5]['global_step'] == 4
