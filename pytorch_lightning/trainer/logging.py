@@ -64,8 +64,8 @@ class TrainerLoggingMixin(ABC):
         if isinstance(output, dict):
             for k, v in output.items():
                 if k in ['log', 'progress_bar']:
-                    m = """
-                    The {'log':dict} keyword was deprecated in 0.9.1 and will be removed in 1.0.0
+                    m = f"""
+                    The {{{k}:dict keyword}} was deprecated in 0.9.1 and will be removed in 1.0.0
                     Please use self.log(...) inside the lightningModule instead.
  
                     # log on a step or aggregate epoch metric to the logger and/or progress bar
