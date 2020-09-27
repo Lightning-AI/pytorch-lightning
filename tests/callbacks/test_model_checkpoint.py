@@ -194,19 +194,15 @@ def test_model_checkpoint_save_last(tmpdir):
 
 
 def test_invalid_top_k(tmpdir):
-    """
-    Make sure that a MisconfigurationException is raised for a negative top_k argument
-    """
+    """ Make sure that a MisconfigurationException is raised for a negative save_top_k argument. """
     with pytest.raises(MisconfigurationException, match=r'.*Must be None or >= -1'):
         ModelCheckpoint(filepath=tmpdir, save_top_k=-3)
 
 
 def test_none_monitor_top_k(tmpdir):
-    """
-    Test warning appears for positive top_k with monitor=None
-    """
+    """ Test that a warning appears for positive top_k with monitor=None. """
     with pytest.raises(
-        MisconfigurationException, match=r'ModelCheckpoint\(save_top_k=3, monitor=None\) is not a valid.*'
+        MisconfigurationException, match='ModelCheckpoint(save_top_k=3, monitor=None) is not a valid.*'
     ):
         ModelCheckpoint(filepath=tmpdir, save_top_k=3)
     # These should not fail
@@ -216,9 +212,7 @@ def test_none_monitor_top_k(tmpdir):
 
 
 def test_none_monitor_save_last(tmpdir):
-    """
-    Test warning appears for save_last=True with monitor=None
-    """
+    """ Test that a warning appears for save_last=True with monitor=None. """
     with pytest.raises(
         MisconfigurationException, match=r'ModelCheckpoint\(save_last=True, monitor=None\) is not a valid.*'
     ):
