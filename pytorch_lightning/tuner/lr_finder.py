@@ -102,7 +102,7 @@ def lr_find(
             then the search is stopped. To disable, set to None.
 
         datamodule: An optional `LightningDataModule` which holds the training
-            and validation dataloader(s). Note that the `train_dataloader` and 
+            and validation dataloader(s). Note that the `train_dataloader` and
             `val_dataloaders` parameters cannot be used at the same time as
             this parameter, or a `MisconfigurationException` will be raised.
 
