@@ -84,7 +84,7 @@ def lr_find(
 
         train_dataloader: A PyTorch
             DataLoader with training samples. If the model has
-            a predefined train_dataloader method this will be skipped.
+            a predefined train_dataloader method, this will be skipped.
 
         min_lr: minimum learning rate to investigate
 
@@ -101,7 +101,10 @@ def lr_find(
             loss at any point is larger than early_stop_threshold*best_loss
             then the search is stopped. To disable, set to None.
 
-        datamodule: A :class:`LightningDataModule`.
+        datamodule: An optional `LightningDataModule` which holds the training
+            and validation dataloader(s). Note that the `train_dataloader` and 
+            `val_dataloaders` parameters cannot be used at the same time as
+            this parameter, or a `MisconfigurationException` will be raised.
 
 
     Example::
