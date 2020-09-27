@@ -415,6 +415,9 @@ class ModelCheckpoint(Callback):
         if self.monitor is None and 'checkpoint_on' in metrics:
             self.monitor = 'checkpoint_on'
 
+        if self.save_top_k is None:
+            self.save_top_k = 1
+
     def _validate_monitor_key(self, trainer):
         metrics = trainer.logger_connector.callback_metrics
 
