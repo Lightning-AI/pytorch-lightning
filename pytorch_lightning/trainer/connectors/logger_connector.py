@@ -232,6 +232,7 @@ class LoggerConnector:
             is_1_0_result = is_result_obj and 'extra' in sample_obj
         except IndexError as e:
             is_result_obj = False
+            is_1_0_result = False
 
         # ------------------
         # NEW 1.0.0 PATH
