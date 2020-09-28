@@ -7,6 +7,60 @@ import os
 import torch
 
 
+def test_training_step_scalar_no_epoch_end_log(tmpdir):
+    """
+    Tests that only training_step can be used
+    """
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    class TestModel(DeterministicModel):
+        def training_step(self, batch, batch_idx):
+            acc = self.step(batch, batch_idx)
+            acc = acc + batch_idx
+            self.log('step_acc', acc, on_step=True, on_epoch=False)
+            self.log('epoch_acc', acc, on_step=False, on_epoch=True)
+            self.log('no_prefix_step_epoch_acc', acc, on_step=True, on_epoch=True)
+            self.log('pbar_step_acc', acc, on_step=True, prog_bar=True, on_epoch=False, logger=False)
+            self.log('pbar_epoch_acc', acc, on_step=False, on_epoch=True, prog_bar=True, logger=False)
+            self.log('pbar_step_epoch_acc', acc, on_step=True, on_epoch=True, prog_bar=True, logger=False)
+
+            self.training_step_called = True
+            return acc
+
+        def backward(self, trainer, loss, optimizer, optimizer_idx):
+            loss.backward()
+
+    model = TestModel()
+    model.val_dataloader = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=2,
+        row_log_interval=1,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    # make sure correct steps were called
+    assert model.training_step_called
+    assert not model.training_step_end_called
+
+    # make sure all the metrics are available for callbacks
+    metrics = [
+        'step_acc',
+        'epoch_acc',
+        'no_prefix_step_epoch_acc', 'step_no_prefix_step_epoch_acc', 'epoch_no_prefix_step_epoch_acc',
+        'pbar_step_acc',
+        'pbar_epoch_acc',
+        'pbar_step_epoch_acc', 'step_pbar_step_epoch_acc', 'epoch_pbar_step_epoch_acc',
+    ]
+    expected_metrics = set(metrics + ['debug_epoch'])
+    callback_metrics = set(trainer.callback_metrics.keys())
+    assert expected_metrics == callback_metrics
+
+
 def test_training_step_scalar(tmpdir):
     """
     Tests that only training_step can be used
