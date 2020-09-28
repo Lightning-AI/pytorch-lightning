@@ -551,7 +551,7 @@ class Trainer(
         model = self.get_model()
 
         # if user requests the best checkpoint but we don't have it, error
-        if ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
+        if ckpt_path == 'best' and not self.checkpoint_callback.best_model_path:
             raise MisconfigurationException(
                 'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.'
             )

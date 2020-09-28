@@ -193,14 +193,33 @@ def test_model_checkpoint_save_last(tmpdir):
     ModelCheckpoint.CHECKPOINT_NAME_LAST = 'last'
 
 
+def test_invalid_top_k(tmpdir):
+    """ Make sure that a MisconfigurationException is raised for a negative save_top_k argument. """
+    with pytest.raises(MisconfigurationException, match=r'.*Must be None or >= -1'):
+        ModelCheckpoint(filepath=tmpdir, save_top_k=-3)
+
+
 def test_none_monitor_top_k(tmpdir):
-    """
-    Make sure that when saving top k of anything (if it's not 1), then monitor cannot be none
-    """
-    seed_everything(100)
-    num_epochs = 3
-    with pytest.raises(MisconfigurationException, match=r'To save checkpoints for a top_k metric.*'):
-        ModelCheckpoint(filepath=tmpdir, save_top_k=num_epochs, save_last=True)
+    """ Test that a warning appears for positive top_k with monitor=None. """
+    with pytest.raises(
+        MisconfigurationException, match=r'ModelCheckpoint\(save_top_k=3, monitor=None\) is not a valid*'
+    ):
+        ModelCheckpoint(filepath=tmpdir, save_top_k=3)
+    # These should not fail
+    ModelCheckpoint(filepath=tmpdir, save_top_k=None)
+    ModelCheckpoint(filepath=tmpdir, save_top_k=-1)
+    ModelCheckpoint(filepath=tmpdir, save_top_k=0)
+
+
+def test_none_monitor_save_last(tmpdir):
+    """ Test that a warning appears for save_last=True with monitor=None. """
+    with pytest.raises(
+        MisconfigurationException, match=r'ModelCheckpoint\(save_last=True, monitor=None\) is not a valid.*'
+    ):
+        ModelCheckpoint(filepath=tmpdir, save_last=True)
+    # These should not fail
+    ModelCheckpoint(filepath=tmpdir, save_last=None)
+    ModelCheckpoint(filepath=tmpdir, save_last=False)
 
 
 def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
@@ -232,9 +251,13 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
 
 
 def test_model_checkpoint_none_monitor(tmpdir):
+    """ Test that it is possible to save all checkpoints when monitor=None. """
     model = EvalModelTemplate()
+    model.validation_step = model.validation_step_no_monitor
+    model.validation_epoch_end = model.validation_epoch_end_no_monitor
+
     epochs = 2
-    checkpoint_callback = ModelCheckpoint(monitor='val_loss', filepath=tmpdir, save_top_k=-1)
+    checkpoint_callback = ModelCheckpoint(monitor=None, filepath=tmpdir, save_top_k=-1)
     trainer = Trainer(
         default_root_dir=tmpdir,
         early_stop_callback=False,
@@ -244,7 +267,8 @@ def test_model_checkpoint_none_monitor(tmpdir):
     trainer.fit(model)
 
     # these should not be set if monitor is None
-    assert checkpoint_callback.best_model_path == ''
+    assert checkpoint_callback.monitor is None
+    assert checkpoint_callback.best_model_path == checkpoint_callback.last_model_path == tmpdir / 'epoch=1.ckpt'
     assert checkpoint_callback.best_model_score == 0
     assert checkpoint_callback.best_k_models == {}
     assert checkpoint_callback.kth_best_model_path == ''
@@ -253,6 +277,28 @@ def test_model_checkpoint_none_monitor(tmpdir):
     expected = ['lightning_logs']
     expected.extend(f'epoch={e}.ckpt' for e in range(epochs))
     assert set(os.listdir(tmpdir)) == set(expected)
+
+
+def test_model_checkpoint_topk_zero(tmpdir):
+    """ Test that no checkpoints are saved when save_top_k=0. """
+    model = EvalModelTemplate()
+    checkpoint_callback = ModelCheckpoint(filepath=tmpdir, save_top_k=0)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        early_stop_callback=False,
+        checkpoint_callback=checkpoint_callback,
+        max_epochs=2,
+        logger=False,
+    )
+    trainer.fit(model)
+    # these should not be set if monitor is None
+    assert checkpoint_callback.monitor is None
+    assert checkpoint_callback.best_model_path == ''
+    assert checkpoint_callback.best_model_score == 0
+    assert checkpoint_callback.best_k_models == {}
+    assert checkpoint_callback.kth_best_model_path == ''
+    # check that no ckpts were created
+    assert len(set(os.listdir(tmpdir))) == 0
 
 
 def test_ckpt_metric_names(tmpdir):
