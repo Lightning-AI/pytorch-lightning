@@ -17,6 +17,7 @@ from pytorch_lightning.loggers import TensorBoardLogger, LoggerCollection
 from pytorch_lightning.utilities import flatten_dict
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.core.step_result import EvalResult, Result
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pprint import pprint
 from typing import Iterable
 
@@ -205,9 +206,7 @@ class LoggerConnector:
 
         model = self.trainer.get_model()
 
-        epoch_log_metrics = {}
         epoch_callback_metrics = {}
-        epoch_progress_bar_metrics = {}
 
         # -----------------------
         # Calculate epoch callback values if given
@@ -224,17 +223,96 @@ class LoggerConnector:
         # [optimizer_idx][training_step_idx][tbptt_index]
         opt_idx_outputs = epoch_output[0]
 
+        # TODO: deprecate 1.0
         try:
             sample_obj = opt_idx_outputs[0][0] if isinstance(opt_idx_outputs[0], list) else opt_idx_outputs[0]
             is_result_obj = len(epoch_output) > 0 and isinstance(sample_obj, Result)
+            is_1_0_result = is_result_obj and 'extra' in sample_obj
         except IndexError as e:
             is_result_obj = False
+            is_1_0_result = False
+
+        # ------------------
+        # NEW 1.0.0 PATH
+        # ------------------
+        if is_1_0_result:
+            # lightning module hook
+            epoch_end_log_result = self.training_epoch_end(model, epoch_output, num_optimizers)
+
+            # log/aggregate metrics automatically
+            epoch_log_metrics, epoch_progress_bar_metrics = self.__auto_reduce_results_on_epoch_end(epoch_output)
+            epoch_log_metrics.update(epoch_end_log_result.get_epoch_log_metrics())
+            epoch_progress_bar_metrics.update(epoch_end_log_result.get_epoch_pbar_metrics())
+
+        # TODO: deprecate 1.0
+        else:
+            out = self.__run_legacy_training_epoch_end(
+                num_optimizers,
+                epoch_output,
+                model,
+                is_result_obj,
+                epoch_callback_metrics
+            )
+            epoch_log_metrics, epoch_progress_bar_metrics, epoch_callback_metrics = out
+
+        # --------------------------
+        # track results
+        # --------------------------
+        # add the metrics to the loggers and callbacks
+        if epoch_log_metrics and len(epoch_log_metrics) > 0:
+            self.log_metrics(epoch_log_metrics, {})
+            self.callback_metrics.update(epoch_log_metrics)
+
+        # add metrics to callbacks
+        self.callback_metrics.update(epoch_callback_metrics)
+
+        # add metrics to progress_bar and callbacks
+        if len(epoch_progress_bar_metrics) > 0:
+            self.add_progress_bar_metrics(epoch_progress_bar_metrics)
+            self.callback_metrics.update(epoch_progress_bar_metrics)
+
+    def training_epoch_end(self, model, epoch_output, num_optimizers):
+        # run training_epoch_end
+        # a list with a result per optimizer index
+        if is_overridden('training_epoch_end', model=model):
+            # refresh the result for custom logging at the epoch level
+            model._current_fx_name = 'training_epoch_end'
+            model._results = Result()
+
+            epoch_output = self.__prepare_epoch_end_inputs(epoch_output)
+
+            if num_optimizers == 1:
+                epoch_output = epoch_output[0]
+
+            # lightningmodule hook
+            epoch_output = model.training_epoch_end(epoch_output)
+
+            model._current_fx_name = ''
+
+            if epoch_output is not None:
+                raise MisconfigurationException('training_epoch_end expects a return of None. '
+                                                'HINT: remove the return statement in training_epoch_end')
+
+            # user can ALSO log at the end of an epoch
+            new_epoch_end_logs = model._results
+            return new_epoch_end_logs
+
+    def __run_legacy_training_epoch_end(
+            self,
+            num_optimizers,
+            epoch_output,
+            model,
+            is_result_obj,
+            epoch_callback_metrics
+    ):
+
+        epoch_log_metrics = {}
+        epoch_progress_bar_metrics = {}
 
         # --------------------------
         # EPOCH END STEP IF DEFINED
         # --------------------------
         if is_overridden('training_epoch_end', model=model):
-
             if is_result_obj:
                 # with result object gather across time and training steps so each opt idx has a single result obj
                 epoch_output = self.__gather_result_across_time_and_optimizers(epoch_output)
@@ -261,21 +339,7 @@ class LoggerConnector:
         elif is_result_obj:
             epoch_log_metrics, epoch_progress_bar_metrics = self.__auto_reduce_results_on_epoch_end(epoch_output)
 
-        # --------------------------
-        # track results
-        # --------------------------
-        # add the metrics to the loggers and callbacks
-        if epoch_log_metrics and len(epoch_log_metrics) > 0:
-            self.log_metrics(epoch_log_metrics, {})
-            self.callback_metrics.update(epoch_log_metrics)
-
-        # add metrics to callbacks
-        self.callback_metrics.update(epoch_callback_metrics)
-
-        # add metrics to progress_bar and callbacks
-        if len(epoch_progress_bar_metrics) > 0:
-            self.add_progress_bar_metrics(epoch_progress_bar_metrics)
-            self.callback_metrics.update(epoch_progress_bar_metrics)
+        return epoch_log_metrics, epoch_progress_bar_metrics, epoch_callback_metrics
 
     def __auto_reduce_results_on_epoch_end(self, epoch_output):
         epoch_log_metrics = {}
@@ -295,6 +359,34 @@ class LoggerConnector:
             epoch_progress_bar_metrics.update(opt_outputs.epoch_pbar_metrics)
 
         return epoch_log_metrics, epoch_progress_bar_metrics
+
+    def __prepare_epoch_end_inputs(self, epoch_output):
+        """
+        Pulls out only the "extra" information for epoch end
+
+        Return:
+            a single list, each element per optimizer then batch then time
+        """
+        gathered_epoch_outputs = []
+        for opt_outputs in epoch_output:
+            # gather across time first
+            time_gathered_outputs = []
+            for train_step_idx in range(len(opt_outputs)):
+                tbptt_outs = opt_outputs[train_step_idx]
+                result = []
+                for x in tbptt_outs:
+                    out = x.extra
+                    out['loss'] = x.minimize
+                    result.append(out)
+
+                # when time = 0, pass in the literal dict instead of array
+                if len(result) == 1:
+                    result = result[0]
+                time_gathered_outputs.append(result)
+
+            gathered_epoch_outputs.append(time_gathered_outputs)
+
+        return gathered_epoch_outputs
 
     def __gather_result_across_time_and_optimizers(self, epoch_output):
         """
