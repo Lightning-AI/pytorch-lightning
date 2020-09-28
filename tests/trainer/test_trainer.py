@@ -388,7 +388,7 @@ def test_dp_output_reduce():
                  id="CASE K=4 (save all 4 base)"),
     pytest.param(3, False, '', {'epoch=2.ckpt', 'epoch=3.ckpt', 'epoch=4.ckpt'},
                  id="CASE K=3 (save the 2nd, 3rd, 4th model)"),
-    pytest.param(1, True, '', {'epoch=4.ckpt', 'last.ckpt'},
+    pytest.param(1, True, '', {'epoch=4.ckpt', 'last-epoch=4.ckpt'},
                  id="CASE K=1 (save the 4th model and the last model)"),
 ])
 def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, expected_files):
