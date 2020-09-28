@@ -152,7 +152,7 @@ class TrainingStepVariations(ABC):
         setattr(result, f'epoch_{eval_name}_step_metric', reduced)
 
         reduced = getattr(result, f'{eval_name}_step_metric').mean()
-        setattr(result, f'eval_name}_step_metric', reduced)
+        setattr(result, f'{eval_name}_step_metric', reduced)
 
         result.checkpoint_on = result.checkpoint_on.mean()
         result.early_stop_on = result.early_stop_on.mean()
