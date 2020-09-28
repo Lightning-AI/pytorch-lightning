@@ -181,13 +181,13 @@ def test_model_checkpoint_save_last(tmpdir):
         early_stop_callback=False,
         checkpoint_callback=model_checkpoint,
         max_epochs=epochs,
+        logger=False,
     )
     trainer.fit(model)
     last_filename = model_checkpoint._format_checkpoint_name(ModelCheckpoint.CHECKPOINT_NAME_LAST, epochs - 1, {})
     last_filename = last_filename + '.ckpt'
     assert str(tmpdir / last_filename) == model_checkpoint.last_model_path
-    assert set(os.listdir(tmpdir)) == \
-           set([f'epoch={i}.ckpt' for i in range(epochs)] + [last_filename, 'lightning_logs'])
+    assert set(os.listdir(tmpdir)) == set([f'epoch={i}.ckpt' for i in range(epochs)] + [last_filename])
     ModelCheckpoint.CHECKPOINT_NAME_LAST = 'last'
 
 
@@ -317,7 +317,7 @@ def test_model_checkpoint_topk_zero(tmpdir):
     assert checkpoint_callback.best_k_models == {}
     assert checkpoint_callback.kth_best_model_path == ''
     # check that no ckpts were created
-    assert len(set(os.listdir(tmpdir))) == 0
+    assert len(os.listdir(tmpdir)) == 0
 
 
 def test_ckpt_metric_names(tmpdir):
