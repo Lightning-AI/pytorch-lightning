@@ -278,7 +278,7 @@ def test_val_step_epoch_step_metrics(tmpdir):
     )
     trainer.fit(model)
 
-    assert len(trainer.logger_connector.callback_metrics) == 7
+    assert len(trainer.logger_connector.callback_metrics) == 11
 
     # make sure correct steps were called
     assert model.validation_step_called
