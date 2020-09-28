@@ -87,7 +87,7 @@ class LoggerConnector:
             self.trainer.logger.save()
 
             # track the logged metrics
-            self.logged_metrics = scalar_metrics
+            self.logged_metrics.update(scalar_metrics)
             self.trainer.dev_debugger.track_logged_metrics_history(scalar_metrics)
 
     def add_progress_bar_metrics(self, metrics):
@@ -191,9 +191,8 @@ class LoggerConnector:
 
         return eval_loop_results
 
-    def on_train_epoch_end(self, epoch_output, checkpoint_accumulator, early_stopping_accumulator, num_optimizers):
-        self.log_train_epoch_end_metrics(epoch_output, checkpoint_accumulator,
-                                         early_stopping_accumulator, num_optimizers)
+    def on_train_epoch_end(self, epoch_output):
+        pass
 
     def log_train_epoch_end_metrics(self,
                                     epoch_output,
@@ -272,30 +271,31 @@ class LoggerConnector:
             self.callback_metrics.update(epoch_progress_bar_metrics)
 
     def training_epoch_end(self, model, epoch_output, num_optimizers):
+        if not is_overridden('training_epoch_end', model=model):
+            return Result()
+
         # run training_epoch_end
-        # a list with a result per optimizer index
-        if is_overridden('training_epoch_end', model=model):
-            # refresh the result for custom logging at the epoch level
-            model._current_fx_name = 'training_epoch_end'
-            model._results = Result()
+        # refresh the result for custom logging at the epoch level
+        model._current_fx_name = 'training_epoch_end'
+        model._results = Result()
 
-            epoch_output = self.__prepare_epoch_end_inputs(epoch_output)
+        epoch_output = self.__prepare_epoch_end_inputs(epoch_output)
 
-            if num_optimizers == 1:
-                epoch_output = epoch_output[0]
+        if num_optimizers == 1:
+            epoch_output = epoch_output[0]
 
-            # lightningmodule hook
-            epoch_output = model.training_epoch_end(epoch_output)
+        # lightningmodule hook
+        epoch_output = model.training_epoch_end(epoch_output)
 
-            model._current_fx_name = ''
+        model._current_fx_name = ''
 
-            if epoch_output is not None:
-                raise MisconfigurationException('training_epoch_end expects a return of None. '
-                                                'HINT: remove the return statement in training_epoch_end')
+        if epoch_output is not None:
+            raise MisconfigurationException('training_epoch_end expects a return of None. '
+                                            'HINT: remove the return statement in training_epoch_end')
 
-            # user can ALSO log at the end of an epoch
-            new_epoch_end_logs = model._results
-            return new_epoch_end_logs
+        # user can ALSO log at the end of an epoch
+        new_epoch_end_logs = model._results
+        return new_epoch_end_logs
 
     def __run_legacy_training_epoch_end(
             self,
@@ -412,7 +412,7 @@ class LoggerConnector:
 
         return gathered_epoch_outputs
 
-    def save_train_loop_metrics_to_loggers(self, batch_output):
+    def log_train_step_metrics(self, batch_output):
         # when metrics should be logged
         should_log_metrics = (
             (self.trainer.global_step + 1) % self.trainer.row_log_interval == 0 or self.trainer.should_stop
