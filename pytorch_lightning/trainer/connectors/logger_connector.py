@@ -272,30 +272,31 @@ class LoggerConnector:
             self.callback_metrics.update(epoch_progress_bar_metrics)
 
     def training_epoch_end(self, model, epoch_output, num_optimizers):
+        if not is_overridden('training_epoch_end', model=model):
+            return Result()
+
         # run training_epoch_end
-        # a list with a result per optimizer index
-        if is_overridden('training_epoch_end', model=model):
-            # refresh the result for custom logging at the epoch level
-            model._current_fx_name = 'training_epoch_end'
-            model._results = Result()
+        # refresh the result for custom logging at the epoch level
+        model._current_fx_name = 'training_epoch_end'
+        model._results = Result()
 
-            epoch_output = self.__prepare_epoch_end_inputs(epoch_output)
+        epoch_output = self.__prepare_epoch_end_inputs(epoch_output)
 
-            if num_optimizers == 1:
-                epoch_output = epoch_output[0]
+        if num_optimizers == 1:
+            epoch_output = epoch_output[0]
 
-            # lightningmodule hook
-            epoch_output = model.training_epoch_end(epoch_output)
+        # lightningmodule hook
+        epoch_output = model.training_epoch_end(epoch_output)
 
-            model._current_fx_name = ''
+        model._current_fx_name = ''
 
-            if epoch_output is not None:
-                raise MisconfigurationException('training_epoch_end expects a return of None. '
-                                                'HINT: remove the return statement in training_epoch_end')
+        if epoch_output is not None:
+            raise MisconfigurationException('training_epoch_end expects a return of None. '
+                                            'HINT: remove the return statement in training_epoch_end')
 
-            # user can ALSO log at the end of an epoch
-            new_epoch_end_logs = model._results
-            return new_epoch_end_logs
+        # user can ALSO log at the end of an epoch
+        new_epoch_end_logs = model._results
+        return new_epoch_end_logs
 
     def __run_legacy_training_epoch_end(
             self,
