@@ -27,7 +27,7 @@ In this package, we provide three major pieces of functionality.
 3. An interface to call `sklearns metrics <https://scikit-learn.org/stable/modules/classes.html#module-sklearn.metrics>`_ .
 
 Example::
-    
+
     # calculate accuracy between two tensors
     from pytorch_lightning.metrics.functional import accuracy
 
@@ -44,19 +44,19 @@ Example::
 
 Implement a metric
 ------------------
-While lighning provides a collection of standard used metrics, it is also possible
-to implement your own metric using our base interface. All metrics are subclasses 
+While lightning provides a collection of standard used metrics, it is also possible
+to implement your own metric using our base interface. All metrics are subclasses
 from our base class ``Metric`` which automatically implements device agnostics
-and DDP syncing. That said we recommend that users either subclass from either 
+and DDP syncing. That said we recommend that user subclass from either
 
-* :class:`TensorMetric` to implement native PyTorch metrics. Will automatically 
+* :class:`TensorMetric` to implement native PyTorch metrics. Will automatically
   convert all input and output to tensors.
 
-* :class:`NumpyMetric` to implement numpy metrics. Will automatically convert all 
+* :class:`NumpyMetric` to implement numpy metrics. Will automatically convert all
   input between numpy arrays and torch tensors.
 
-It is recommended to use PyTorch metrics when possible, since Numpy metrics slow 
-down training because data needs to be converted back and forth between numpy arrays 
+It is recommended to use PyTorch metrics when possible, since Numpy metrics slow
+down training because data needs to be converted back and forth between numpy arrays
 and torch tensors.
 
 ----------------
@@ -69,6 +69,9 @@ Here's an example showing how to implement a TensorMetric
 
     from pytorch_lightning.metrics import TensorMetric
     class MSE(TensorMetric):
+        def __init__(self):
+            super().__init__(name='mean_squared_error')
+
         def forward(self, x, y):
             return torch.mean(torch.pow(x-y, 2.0))
 
@@ -85,31 +88,32 @@ Here's an example showing how to implement a NumpyMetric
 
     from pytorch_lightning.metrics import NumpyMetric
     class MSE(NumpyMetric):
+        def __init__(self):
+            super().__init__(name='mean_squared_error')
+
         def forward(self, x, y):
             return np.mean(np.power(x-y, 2.0))
 
 .. autoclass:: pytorch_lightning.metrics.metric.NumpyMetric
     :noindex:
 
+
 Metric hooks
 ^^^^^^^^^^^^
 
 Similar to a standard `torch.nn.Module`, the only *nessesary* method that should
-be implemented for a specific metric is ``forward`` method. In this case, output
-we automatically be collected and averaged. That said, to gain fine control over 
-metric calculation a number of `hooks` can be overridden. The order of evaluation 
+be implemented for a specific metric is the ``forward`` method. In this case, output
+we automatically be collected and averaged. That said, to gain fine control over
+metric calculation a number of `hooks` can be overridden. The order of evaluation
 is the following:
 
-* ``input_convert``
-* ``forward``
-* ``output_convert``
-* ``ddp_reduce``
-    - ``ddp_sync``
-    - ``aggregate``
-* ``compute``
-
-Note that all hooks are ``@staticmethod``s as default. Additionally, each metric 
-has the ``aggregated`` property implemented 
+1. ``input_convert``
+2. ``forward``
+3. ``output_convert``
+4. ``ddp_reduce``
+    4a. ``ddp_sync``
+    4b. ``aggregate``
+5. ``compute``
 
 input_convert
 """""""""""""
@@ -119,7 +123,7 @@ input_convert
     @staticmethod
     def input_convert(self, data: Any):
 
-Pre-hook that implements how input should be converted before passing it to ``forward`` 
+Pre-hook that implements how input should be converted before passing it to ``forward``
 The default for ``TensorMetric`` is to convert everything to tensors and ``NumpyMetric``
 will convert everything to numpy arrays.
 
@@ -133,13 +137,13 @@ output_convert
     def output_convert(self, data: Any, output: Any):
 
 Post-hook that implements how output from ``forward`` should be casted. The default
-for both ``TensorMetric`` and ``NumpyMetric`` is do convert to tensors.
+for both ``TensorMetric`` and ``NumpyMetric`` is to convert to tensors.
 
 ddp_reduce
 """"""""""
 
 .. code-block::
-    
+
     @staticmethod
     def ddp_reduce(self, data: Any, output: Any):
 
@@ -175,17 +179,16 @@ compute
 
     @staticmethod
     def compute(self, data: Any, output: Any):
-    
+
 Post-hook that can be used to implement computations that needs to happen after
-output has been synced between devices. As default this will output the average
-of the aggregated values.
+output has been synced between devices.
 
 -------
 
 To summaries, in most cases it should be sufficient to implement ``forward`` (pre-ddp)
 and ``compute`` (post-ddp) computations, and the remaining hooks are for special cases.
 Below is shown an example of implementing root mean squared error (RMSE) metric where
-the root need to be taken after syncing the output to get the right result:
+the root need to be taken care of after syncing the output to get the right result:
 
 .. testcode::
 
@@ -194,7 +197,7 @@ the root need to be taken after syncing the output to get the right result:
         def forward(self, x, y):
             return {'sum_squared_error': torch.pow(x-y, 2.0).sum(),
                     'n_observations': x.numel()}
-                    
+
         @staticmethod
         def compute(self, data, output):
             # sse and n has automatically be synced (summed) over all devices
@@ -211,7 +214,7 @@ model definition.
 
 .. testcode::
 
-    from pytorch_lightning.metrics import Accuracy  
+    from pytorch_lightning.metrics import Accuracy
 
     # Plain PyTorch
     class MyModule(Module):
@@ -243,9 +246,9 @@ These metrics even work when using distributed training:
 
     # any metric automatically reduces across GPUs (even the ones you implement using Lightning)
     trainer.fit(model)
-    
+
 Class metrics aggregate both over multi device and multiple batches. The aggregated
-value can be access through the `metric.aggregated` property. When this property is 
+value can be access through the `metric.aggregated` property. When this property is
 called the internal state is reset.
 
 .. testcode::
@@ -255,18 +258,18 @@ called the internal state is reset.
     for pred, target in zip(predictions, target):
         batch_val = metric(pred, target)
     aggregated_val = metric.aggregated
-    
+
     # Pytorch Lightning (evaluation loop)
     class MyModule(LightningModule):
         def __init__(self):
             super().__init__()
             self.metric = Accuracy()
-        
+
         def validation_step(self, batch, batch_idx):
             data, target = batch
             pred = self(data)
             batch_val = self.metric(pred, target)
-            
+
         def validation_epoch_end(self, outputs):
             acc = self.metric.aggregated
             return acc # this will be the aggregated value over the hole validation set
@@ -312,7 +315,7 @@ EmbeddingSimilarity
 
 .. autoclass:: pytorch_lightning.metrics.self_supervised.EmbeddingSimilarity
     :noindex:
-    
+
 F1
 ^^
 
@@ -598,6 +601,7 @@ Sklearn interface
 Lightning supports `sklearns metrics module <https://scikit-learn.org/stable/modules/classes.html#module-sklearn.metrics>`_
 as a backend for calculating metrics. Sklearns metrics are well tested and robust,
 but requires conversion between pytorch and numpy thus may slow down your computations.
+Do note that we support many but not all sklearn metrics.
 
 To use the sklearn backend of metrics simply import as
 
