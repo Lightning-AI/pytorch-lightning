@@ -337,7 +337,7 @@ class ModelCheckpoint(Callback):
             filename = "{epoch}"
         # check and parse user passed keys in the string
         groups = re.findall(r"(\{.*?)[:\}]", filename)
-        if groups:
+        if len(groups) >= 0:
             metrics["epoch"] = epoch
             for group in groups:
                 name = group[1:]
@@ -474,10 +474,7 @@ class ModelCheckpoint(Callback):
 
         # when user ALSO asked for the 'last.ckpt' change the name
         if self.save_last:
-            filename = self._format_checkpoint_name(
-                self.CHECKPOINT_NAME_LAST, epoch, ckpt_name_metrics, prefix=self.prefix
-            )
-            last_filepath = os.path.join(self.dirpath, f"{filename}.ckpt")
+            last_filepath = os.path.join(self.dirpath, f"last.ckpt")
 
         self._save_model(last_filepath, trainer, pl_module)
         if (
