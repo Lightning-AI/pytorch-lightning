@@ -188,6 +188,12 @@ class DeterministicModel(LightningModule):
             # only saw 4 batches
             assert isinstance(result, TrainResult)
 
+        result.step_epoch_log_acc2 = result.step_step_epoch_log_acc2.prod()
+        result.step_epoch_pbar_acc3 = result.step_step_epoch_pbar_acc3.prod()
+        result.step_epoch_log_and_pbar_acc1 = result.step_epoch_log_and_pbar_acc1.prod()
+        result.minimize = result.minimize.mean()
+        result.checkpoint_on = result.checkpoint_on.mean()
+
         result.step_step_epoch_log_and_pbar_acc1 = result.step_step_epoch_log_and_pbar_acc1.prod()
         result.epoch_step_epoch_log_and_pbar_acc1 = result.epoch_step_epoch_log_and_pbar_acc1.prod()
         result.step_step_epoch_log_acc2 = result.step_step_epoch_log_acc2.prod()

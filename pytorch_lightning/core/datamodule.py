@@ -152,6 +152,8 @@ class LightningDataModule(DataHooks, metaclass=_DataModuleWrapper):
         self._has_setup_fit = False
         self._has_setup_test = False
 
+        self.trainer = None
+
     @property
     def train_transforms(self):
         """

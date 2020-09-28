@@ -201,7 +201,7 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
     assert not model.training_step_end_called
     assert not model.training_epoch_end_called
 
-    assert len(trainer.logger_connector.callback_metrics) == 8
+    assert len(trainer.logger_connector.callback_metrics) == 11
 
     # make sure correct metrics are logged (one per batch step as requested)
     assert len(trainer.dev_debugger.logged_metrics) == (epochs * batches) + epochs
@@ -227,7 +227,7 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
             assert logged_metrics['step_step_epoch_log_and_pbar_acc1'] == expected_val_1
             assert logged_metrics['step_step_epoch_log_acc2'] == expected_val_2
             assert 'step_epoch_pbar_acc3' not in logged_metrics
-            assert len(logged_metrics) == 4
+            assert len(logged_metrics) == 6
 
         # make sure the metrics for the epoch end are actual means (the default reduce fx) or all the batches
         epoch_end_metrics = epoch_outputs[-1]
@@ -236,7 +236,7 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
         assert epoch_end_metrics['epoch_step_epoch_log_and_pbar_acc1'] == eval_1
         assert epoch_end_metrics['epoch_step_epoch_log_acc2'] == eval_2
         assert 'step_epoch_pbar_acc3' not in epoch_end_metrics
-        assert len(logged_metrics) == 4
+        assert len(logged_metrics) == 6
 
     # make sure we are using the correct metrics for callbacks
     assert trainer.logger_connector.callback_metrics['checkpoint_on'] == 171
@@ -268,7 +268,7 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
             assert logged_metrics['step_step_epoch_log_and_pbar_acc1'] == expected_val_1
             assert logged_metrics['step_step_epoch_pbar_acc3'] == expected_val_2
             assert 'step_epoch_log_acc2' not in logged_metrics
-            assert len(logged_metrics) == 3
+            assert len(logged_metrics) == 5
 
         # make sure the metrics for the epoch end are actual means (the default reduce fx) or all the batches
         epoch_end_metrics = epoch_outputs[-1]
@@ -277,7 +277,7 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
         assert epoch_end_metrics['epoch_step_epoch_log_and_pbar_acc1'] == eval_1
         assert epoch_end_metrics['epoch_step_epoch_pbar_acc3'] == eval_2
         assert 'step_epoch_log_acc2' not in epoch_end_metrics
-        assert len(logged_metrics) == 3
+        assert len(logged_metrics) == 5
 
     # -----------------------------------------
     # make sure training outputs what is expected
@@ -287,7 +287,7 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
 
     out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
-    assert len(out.batch_log_metrics) == 2
+    assert len(out.batch_log_metrics) == 4
 
     train_step_out = out.training_step_output_for_epoch_end
     assert len(train_step_out) == 1
@@ -328,7 +328,7 @@ def test_training_step_epoch_end_result(tmpdir):
     )
     trainer.fit(model)
 
-    assert len(trainer.logger_connector.callback_metrics) == 11
+    assert len(trainer.logger_connector.callback_metrics) == 17
 
     # make sure correct steps were called
     assert model.training_step_called
@@ -369,7 +369,7 @@ def test_training_step_epoch_end_result(tmpdir):
 
     out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
-    assert len(out.batch_log_metrics) == 2
+    assert len(out.batch_log_metrics) == 4
 
     train_step_out = out.training_step_output_for_epoch_end
     assert len(train_step_out) == 1
