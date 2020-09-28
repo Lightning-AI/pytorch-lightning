@@ -429,10 +429,6 @@ class TrainLoop:
         dataloader_idx = 0
         should_check_val = False
         for batch_idx, (batch, is_last_batch) in train_dataloader:
-            # stop epoch if we limited the number of training batches
-            if batch_idx >= self.trainer.num_training_batches:
-                break
-
             self.trainer.batch_idx = batch_idx
             model.global_step = self.trainer.global_step
 
@@ -477,11 +473,8 @@ class TrainLoop:
             monitor_metrics.update(batch_output.batch_log_metrics)
             self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
 
-            # progress global step according to grads progress
-            self.increment_accumulated_grad_global_step()
-
             # max steps reached, end training
-            if self.trainer.max_steps is not None and self.trainer.max_steps == self.trainer.global_step:
+            if self.trainer.max_steps is not None and self.trainer.max_steps == self.trainer.global_step + 1:
                 break
 
             # end epoch early
@@ -489,6 +482,15 @@ class TrainLoop:
             # requested in the batches
             if self.trainer.should_stop:
                 break
+
+            self.trainer.total_batch_idx += 1
+
+            # stop epoch if we limited the number of training batches
+            if batch_idx + 1 >= self.trainer.num_training_batches:
+                break
+
+            # progress global step according to grads progress
+            self.increment_accumulated_grad_global_step()
 
         # process epoch outputs
         self.trainer.logger_connector.on_train_epoch_end(
@@ -503,6 +505,9 @@ class TrainLoop:
 
         # epoch end hook
         self.run_on_epoch_end_hook()
+
+        # progress global step according to grads progress
+        self.increment_accumulated_grad_global_step()
 
     def run_training_batch(self, batch, batch_idx, dataloader_idx):
         # track grad norms
@@ -662,7 +667,6 @@ class TrainLoop:
         # progress global step according to grads progress
         if num_accumulated_batches_reached or num_training_batches_reached:
             self.trainer.global_step += 1
-        self.trainer.total_batch_idx += 1
 
     def should_check_val_fx(self, batch_idx, is_last_batch):
         # decide if we should run validation
