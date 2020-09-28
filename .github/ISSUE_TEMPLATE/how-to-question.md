@@ -1,6 +1,6 @@
 ---
 name: How to question
-about: Asking how-to questions.
+about: Asking how-to questions
 title: ''
 labels: question
 assignees: ''
