@@ -51,7 +51,6 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
     result = trainer.fit(model)
     post_train_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
 
-    # correct result and ok accuracy
     assert result == 1, 'trainer failed'
     # Check that the model is actually changed post-training
     assert torch.norm(initial_values - post_train_values) > 0.1
