@@ -1,6 +1,6 @@
 ---
 name: How to question
-about: Asking how-to questions
+about: Asking how-to questions.
 title: ''
 labels: question
 assignees: ''
@@ -9,9 +9,10 @@ assignees: ''
 
 ## ❓ Questions and Help
 
-### Before asking:   
-1. search the issues.   
-2. search the docs.    
+### Before asking: 
+1. Try to find answers to your questions in [the Lightning Forum!](https://forums.pytorchlightning.ai/)
+2. Search the issues.   
+2. Search the docs.    
 
 <!-- If you still can't find what you need: -->
 
