@@ -14,7 +14,7 @@ and they therefore are essential ingridient in any machine learning project. The
 can be used to measure performance during training, comparing different models and
 asses pitfalls such as overfitting.
 
-The `pytorch lightning metric package` offers a general package for PyTorch Metrics.
+The `pytorch_lightning.metrics package` offers a general package for PyTorch Metrics.
 This means that they can be used with regular non-lightning PyTorch code.
 
 In this package, we provide three major pieces of functionality.
@@ -44,7 +44,7 @@ Example::
 
 Implement a metric
 ------------------
-While lightning provides a collection of standard used metrics, it is also possible
+While pytorch lightning provides a collection of standard used metrics, it is also possible
 to implement your own metric using our base interface. All metrics are subclasses
 from our base class ``Metric`` which automatically implements device agnostics
 and DDP syncing. That said we recommend that user subclass from either
@@ -103,7 +103,7 @@ Metric hooks
 
 Similar to a standard `torch.nn.Module`, the only *nessesary* method that should
 be implemented for a specific metric is the ``forward`` method. In this case, output
-we automatically be collected and averaged. That said, to gain fine control over
+will automatically be collected and averaged. That said, to gain fine control over
 metric calculation a number of `hooks` can be overridden. The order of evaluation
 is the following:
 
@@ -149,7 +149,7 @@ ddp_reduce
 
 Post-hook that implements how output from multiple devices should be collected and
 aggregated. We do not recommend overriding this, but instead consider overriding
-the two sub-methods called inside this hook: ``ddp_sync`` and ``aggregate``.
+the two sub-methods called inside this hook: ``ddp_sync`` and ``aggregate``. If however, your operation for reduction can be done during syncing (e.g. via ``all_reduce``), this is the correct place to overwrite.
 
 ddp_sync
 """"""""
@@ -185,7 +185,7 @@ output has been synced between devices.
 
 -------
 
-To summaries, in most cases it should be sufficient to implement ``forward`` (pre-ddp)
+To summarize, in most cases it should be sufficient to implement ``forward`` (pre-ddp)
 and ``compute`` (post-ddp) computations, and the remaining hooks are for special cases.
 Below is shown an example of implementing root mean squared error (RMSE) metric where
 the root need to be taken care of after syncing the output to get the right result:
@@ -248,7 +248,7 @@ These metrics even work when using distributed training:
     trainer.fit(model)
 
 Class metrics aggregate both over multi device and multiple batches. The aggregated
-value can be access through the `metric.aggregated` property. When this property is
+value over batches can be access through the `metric.aggregated` property. The aggregated value over multiple devices in the same state is returned upon module call. When this property is
 called the internal state is reset.
 
 .. testcode::
