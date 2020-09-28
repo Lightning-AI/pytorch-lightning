@@ -443,13 +443,13 @@ class TrainLoop:
 
     def on_before_backward(self, batch_idx, optimizer):
         # track gradient norms
-        grad_norm_dic = self._track_gradient_norm(batch_idx)
+        grad_norm_dic = self._track_gradient_norm()
 
         # clip gradients
         self.trainer.accelerator_backend.clip_gradients(optimizer)
         return grad_norm_dic
 
-    def _track_gradient_norm(self, batch_idx):
+    def _track_gradient_norm(self):
         grad_norm_dict = {}
         if (self.trainer.global_step + 1) % self.trainer.row_log_interval == 0:
             if float(self.trainer.track_grad_norm) > 0:
