@@ -33,6 +33,7 @@
     "pytorch_lightning/trainer/lr_scheduler_connector.py",
     "pytorch_lightning/trainer/training_loop_temp.py",
     "pytorch_lightning/trainer/connectors/checkpoint_connector.py",
+    "pytorch_lightning/trainer/connectors/data_connector.py",
     "pytorch_lightning/tuner",
     "pytorch_lightning/plugins"
   ],
