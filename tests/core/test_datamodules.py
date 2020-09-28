@@ -280,7 +280,6 @@ def test_trainer_attached_to_dm(tmpdir):
     assert dm.trainer is not None
 
 
-
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires multi-GPU machine")
 def test_full_loop_single_gpu(tmpdir):
     reset_seed()

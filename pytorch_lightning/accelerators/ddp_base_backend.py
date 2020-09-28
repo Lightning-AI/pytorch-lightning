@@ -102,7 +102,6 @@ class DDPBase(Accelerator):
         if seed is not None:
             seed_everything(int(seed))
 
-
         # offset the process id if requested
         process_idx = process_idx + proc_offset
 
