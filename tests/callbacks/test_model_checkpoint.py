@@ -91,22 +91,20 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
     # due to the way ddp process is launched
 
     def __init__(self, expected_count, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.count = 0
-        self.expected_count = expected_count
+        os.environ['PL_DEV_DEBUG'] = '1'
 
-    def _save_model(self, filepath, trainer, pl_module):
-        # make sure we don't save twice
-        assert not os.path.isfile(filepath)
-        self.count += 1
-        super()._save_model(filepath, trainer, pl_module)
+        super().__init__(*args, **kwargs)
+        self.expected_count = expected_count
 
     def on_train_end(self, trainer, pl_module):
         super().on_train_end(trainer, pl_module)
+        if not trainer.is_global_zero:
+            self.expected_count = 0
 
         # expect all ranks to run but only rank 0 will actually write
         # the checkpoint file
-        assert self.count == self.expected_count
+        logged_times = len(trainer.dev_debugger.checkpoint_callback_history)
+        assert logged_times == self.expected_count
 
 
 @pytest.mark.skipif(
@@ -225,7 +223,7 @@ def test_model_checkpoint_save_last(tmpdir):
     model = EvalModelTemplate()
     epochs = 3
     ModelCheckpoint.CHECKPOINT_NAME_LAST = "last-{epoch}"
-    model_checkpoint = ModelCheckpoint(filepath=tmpdir, save_top_k=-1, save_last=True)
+    model_checkpoint = ModelCheckpoint(monitor='val_loss', filepath=tmpdir, save_top_k=-1, save_last=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         early_stop_callback=False,
@@ -403,7 +401,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     num_epochs = 3
     ModelCheckpoint.CHECKPOINT_NAME_LAST = "last-{epoch}"
     model_checkpoint = ModelCheckpoint(
-        filepath=tmpdir, save_top_k=num_epochs, save_last=True
+        monitor='val_loss', filepath=tmpdir, save_top_k=num_epochs, save_last=True
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
