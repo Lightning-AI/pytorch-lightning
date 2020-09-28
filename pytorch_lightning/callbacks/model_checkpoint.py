@@ -523,12 +523,12 @@ class ModelCheckpoint(Callback):
         return self.monitor in metrics or len(metrics) == 0
 
     def _do_check_save(
-        self,	
-        filepath: str,	
-        current: torch.Tensor,	
-        epoch: int,	
-        trainer,	
-        pl_module,	
+        self,
+        filepath: str,
+        current: torch.Tensor,
+        epoch: int,
+        trainer,
+        pl_module,
     ):
         # remove kth
 
