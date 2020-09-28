@@ -542,12 +542,12 @@ class TrainLoop:
             # -----------------------------------------
             # SAVE METRICS TO LOGGERS
             # -----------------------------------------
-            self.trainer.logger_connector.save_train_loop_metrics_to_loggers(batch_idx, batch_output)
+            self.trainer.logger_connector.save_train_loop_metrics_to_loggers(batch_output)
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
             # -----------------------------------------
-            self.save_loggers_on_train_batch_end(batch_idx)
+            self.save_loggers_on_train_batch_end()
 
             # update LR schedulers
             monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
