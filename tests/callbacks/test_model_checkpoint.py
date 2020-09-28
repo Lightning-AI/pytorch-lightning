@@ -429,9 +429,9 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     ckpt_last_epoch = torch.load(path_last_epoch)
     ckpt_last = torch.load(model_checkpoint.last_model_path)
     assert all(ckpt_last_epoch[k] == ckpt_last[k] for k in ("epoch", "global_step"))
+    ch_type = type(model_checkpoint)
     assert all(
-        ckpt_last["callbacks"][type(model_checkpoint)][k]
-        == ckpt_last_epoch["callbacks"][type(model_checkpoint)][k]
+        ckpt_last["callbacks"][ch_type][k] == ckpt_last_epoch["callbacks"][ch_type][k]
         for k in ("best_model_score", "best_model_path")
     )
 
