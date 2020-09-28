@@ -63,7 +63,7 @@ To install from a local clone of NeMo:
     ./reinstall.sh # from cloned NeMo's git root
 
 For Docker users, the NeMo container is available on 
-`NGC <https://ngc.nvidia.com/catalog/containers/nvidia:nemo>`_
+`NGC <https://ngc.nvidia.com/catalog/containers/nvidia:nemo>`_:
 
 .. code-block:: bash
 
@@ -73,7 +73,7 @@ For Docker users, the NeMo container is available on
 
 .. code-block:: bash
 
-    docker run --runtime=nvidia -it --rm -v --shm-size=16g -p 8888:8888 -p 6006:6006 --ulimit memlock=-1 --ulimit stack=67108864 nvcr.io/nvidia/nemo:1.0.0b1
+    docker run --runtime=nvidia -it --rm -v --shm-size=8g -p 8888:8888 -p 6006:6006 --ulimit memlock=-1 --ulimit stack=67108864 nvcr.io/nvidia/nemo:1.0.0b1
 
 Experiment Manager
 ^^^^^^^^^^^^^^^^^^
@@ -766,7 +766,7 @@ for a production-grade application.
 --------
 
 Learn More
-^^^^^^^^^^
+----------
 
 Download pre-trained 
 `ASR <https://ngc.nvidia.com/catalog/models/nvidia:nemospeechmodels>`_, 
