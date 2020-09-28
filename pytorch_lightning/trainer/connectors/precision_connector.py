@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVALAIBLE, rank_zero_warn, AMPType
-from pytorch_lightning.plugins.native_amp import NativeAMP
 from pytorch_lightning.plugins.apex import ApexPlugin
+from pytorch_lightning.plugins.native_amp import NativeAMP
+from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVALAIBLE, AMPType, rank_zero_warn
 
 
 class PrecisionConnector:
@@ -72,8 +73,9 @@ class PrecisionConnector:
                 f' Consider installing torch >= 1.6 or NVIDIA Apex.'
             )
 
-    def connect(self, model, optimizers):
+    def connect(self, model):
         if self.backend:
-            model, optimizers = self.backend.connect(model, optimizers)
+            model, optimizers = self.backend.connect(model, self.trainer.optimizers)
+            self.trainer.optimizers = optimizers
 
-        return model, optimizers
+        return model
