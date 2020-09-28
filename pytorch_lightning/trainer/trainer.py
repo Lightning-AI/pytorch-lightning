@@ -15,10 +15,8 @@
 import os
 import warnings
 from typing import Dict, Iterable, List, Optional, Union
-
 import torch
 from torch.utils.data import DataLoader
-
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
@@ -53,6 +51,7 @@ from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.trainer.connectors.precision_connector import PrecisionConnector
 from pytorch_lightning.trainer.connectors.profiler_connector import ProfilerConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer import docstrings
 from pytorch_lightning.trainer.properties import TrainerProperties
@@ -569,7 +568,9 @@ class Trainer(
                 )
                 return {}
 
-            ckpt = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
+            fs = get_filesystem(ckpt_path)
+            with fs.open(ckpt_path) as f:
+                ckpt = torch.load(f, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt['state_dict'])
 
         # attach dataloaders
