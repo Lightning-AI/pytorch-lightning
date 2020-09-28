@@ -137,6 +137,10 @@ class TrainingStepVariations(ABC):
         result.log(f'{eval_name}_step_metric', loss_val + 1, on_step=True)
 
         setattr(self, f'{eval_name}_step_called', True)
+
+        import pdb; pdb.set_trace()
+        print(result)
+
         return result
 
     def eval_step_end_full_loop_result_obj_dp(self, result):
@@ -178,9 +182,6 @@ class TrainingStepVariations(ABC):
 
         reduced = getattr(result, f'{eval_name}_step_metric').mean()
         setattr(result, f'{eval_name}_step_metric', reduced)
-
-        import pdb; pdb.set_trace()
-        print(result)
 
         return result
 
