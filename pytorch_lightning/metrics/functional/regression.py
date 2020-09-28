@@ -48,7 +48,7 @@ def rmse(
         pred: torch.Tensor,
         target: torch.Tensor,
         reduction: str = 'elementwise_mean',
-        return_state=False
+        return_state: bool = False
 ) -> torch.Tensor:
     """
     Computes root mean squared error

@@ -119,7 +119,7 @@ class RMSE(Metric):
 
     @staticmethod
     def compute(self, data: Any, output: Any):
-        """ Squaring needs to happend after ddp sync"""
+        """ Squaring needs to happend after ddp sync """
         sse, n = output['squared_error'], output['n_observations']
         return torch.sqrt(sse / n)
 
@@ -217,7 +217,7 @@ class RMSLE(Metric):
 
     @staticmethod
     def compute(self, data: Any, output: Any):
-        """ Squaring needs to happend after ddp sync"""
+        """ Squaring needs to happend after ddp sync """
         sse, n = output['squared_error'], output['n_observations']
         return torch.sqrt(sse / n)
 
@@ -271,7 +271,7 @@ class PSNR(Metric):
         return psnr(pred, target, self.data_range, self.base, self.reduction, return_state=True)
 
     def aggregate(self, *tensors: torch.Tensor) -> torch.Tensor:
-        """ Special aggregation function as the data range needs to be correct synced """
+        """ Special aggregation function as the data range needs to be correctly synced """
         if len(tensors) == 1:
             tensors = tensors[0]
             output = {'data_range': torch.stack([t for t in tensors['data_range']]).max()}
