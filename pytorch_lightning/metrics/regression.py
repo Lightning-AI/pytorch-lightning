@@ -285,7 +285,8 @@ class PSNR(Metric):
     @staticmethod
     def compute(self, data: Any, output: Any):
         """
-        Implement additionally metric computations to be done after the aggregation
+        Compute final value based on the synced data_range, sum of squared errors
+        and number of samples.
 
         Args:
             data: input to forward method

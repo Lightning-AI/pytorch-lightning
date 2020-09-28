@@ -543,15 +543,11 @@ class F1(FBeta):
 
             reduce_group: the process group to reduce metric results from DDP
         """
-        super(TensorMetric, self).__init__(
-            name="f1",
-            reduce_group=reduce_group,
-        )
-
-        self.num_classes = num_classes
-        assert class_reduction in ('micro', 'macro', 'weighted', 'none')
-        self.class_reduction = class_reduction
-        self.beta = 1.0
+        super().__init__(beta=1.0,
+                         num_classes=num_classes,
+                         class_reduction=class_reduction,
+                         reduce_group=reduce_group)
+        self.name = "f1"
 
 
 class ROC(TensorMetric):

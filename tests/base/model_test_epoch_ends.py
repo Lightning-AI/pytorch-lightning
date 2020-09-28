@@ -75,9 +75,3 @@ class TestEpochEndVariations(ABC):
         tqdm_dict = {'test_loss': test_loss_mean, 'test_acc': test_acc_mean}
         result = {'progress_bar': tqdm_dict}
         return result
-
-    def test_epoch_end__metrics(self, outputs):
-        aggregated_val = self.metric.aggregated
-        result = EvalResult()
-        result.log('metric_val', aggregated_val)
-        return result
