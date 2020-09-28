@@ -179,6 +179,9 @@ class TrainingStepVariations(ABC):
         reduced = getattr(result, f'{eval_name}_step_metric').mean()
         setattr(result, f'{eval_name}_step_metric', reduced)
 
+        import pdb; pdb.set_trace()
+        print(result)
+
         return result
 
     def training_step__using_metrics(self, batch, batch_idx, optimizer_idx=None):
