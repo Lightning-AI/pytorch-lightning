@@ -240,7 +240,7 @@ def accuracy(
         target: torch.Tensor,
         num_classes: Optional[int] = None,
         class_reduction: str = 'micro',
-        return_state=False
+        return_state: bool = False
 ) -> torch.Tensor:
     """
     Computes the accuracy classification score
