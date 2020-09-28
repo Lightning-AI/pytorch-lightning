@@ -48,7 +48,7 @@ Installing the latest NeMo release is a simple pip install.
 
 .. code-block:: bash
 
-    pip install nemo_toolkit[all]==1.0.0a1
+    pip install nemo_toolkit[all]==1.0.0b1
 
 To install the main branch from GitHub:
 
@@ -68,12 +68,12 @@ For Docker users, the NeMo container is available on
 .. code-block:: bash
 
     # TODO: update container tag when available
-    docker pull nvcr.io/nvidia/nemo:v0.11
+    docker pull nvcr.io/nvidia/nemo:1.0.0b1
 
 
 .. code-block:: bash
 
-    docker run --runtime=nvidia -it --rm -v --shm-size=16g -p 8888:8888 -p 6006:6006 --ulimit memlock=-1 --ulimit stack=67108864 nvcr.io/nvidia/nemo:v0.11
+    docker run --runtime=nvidia -it --rm -v --shm-size=16g -p 8888:8888 -p 6006:6006 --ulimit memlock=-1 --ulimit stack=67108864 nvcr.io/nvidia/nemo:1.0.0b1
 
 Experiment Manager
 ^^^^^^^^^^^^^^^^^^
