@@ -35,7 +35,7 @@ def test_tensorboard_hparams_reload(tmpdir):
 
     # verify artifacts
     assert len(os.listdir(os.path.join(folder_path, "checkpoints"))) == 1
-    
+
     # verify tb logs
     event_acc = EventAccumulator(folder_path)
     event_acc.Reload()
@@ -49,7 +49,7 @@ def test_tensorboard_hparams_reload(tmpdir):
                   b'\x06\n\x02b2 \x03*\r\n\x0b\x12\thp_metric'
 
     hparams_data = data_pt_1_6 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0") else data_pt_1_5
-    
+
     assert event_acc.summary_metadata['_hparams_/experiment'].plugin_data.plugin_name == 'hparams'
     assert event_acc.summary_metadata['_hparams_/experiment'].plugin_data.content == hparams_data
 

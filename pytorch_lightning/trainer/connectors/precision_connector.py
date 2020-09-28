@@ -75,7 +75,7 @@ class PrecisionConnector:
 
     def connect(self, model):
         if self.backend:
-            model, optimizers = self.backend.connect(model, optimizers)
+            model, optimizers = self.backend.connect(model, self.trainer.optimizers)
             self.trainer.optimizers = optimizers
 
         return model

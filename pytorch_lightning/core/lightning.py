@@ -32,7 +32,12 @@ from pytorch_lightning.core.step_result import EvalResult, TrainResult
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
-from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
+from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.utilities.parsing import (
+    AttributeDict,
+    collect_init_args,
+    get_init_args,
+)
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.nn.parallel import DistributedDataParallel
@@ -166,6 +171,19 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         Example::
 
             result.log('train_loss', loss)
+
+            # defaults used
+            result.log(
+                name,
+                value,
+                on_step=False,
+                on_epoch=False,
+                logger=True,
+                prog_bar=False,
+                reduce_fx=torch.mean,
+                enable_graph=False
+            )
+
 
         Args:
             name: key name

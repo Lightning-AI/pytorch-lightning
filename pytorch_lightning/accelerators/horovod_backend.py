@@ -58,7 +58,7 @@ class HorovodBackend(Accelerator):
             for param_group in optimizer.param_groups:
                 param_group['lr'] *= hvd.size()
 
-         # Horovod: adjust base LR used by schedulers to match scaled optimizer initial LR
+        # Horovod: adjust base LR used by schedulers to match scaled optimizer initial LR
         for scheduler in self.trainer.lr_schedulers:
             scheduler = scheduler['scheduler']
             if isinstance(scheduler, _LRScheduler):
