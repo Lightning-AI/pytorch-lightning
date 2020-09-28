@@ -328,7 +328,7 @@ def test_training_step_epoch_end_result(tmpdir):
     )
     trainer.fit(model)
 
-    assert len(trainer.logger_connector.callback_metrics) == 11
+    assert len(trainer.logger_connector.callback_metrics) == 17
 
     # make sure correct steps were called
     assert model.training_step_called
@@ -369,7 +369,7 @@ def test_training_step_epoch_end_result(tmpdir):
 
     out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
-    assert len(out.batch_log_metrics) == 2
+    assert len(out.batch_log_metrics) == 4
 
     train_step_out = out.training_step_output_for_epoch_end
     assert len(train_step_out) == 1
