@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from abc import ABC
+import inspect
 from typing import Union, Iterable
 
 import torch
@@ -65,14 +66,14 @@ class TrainerLoggingMixin(ABC):
         if isinstance(output, dict):
             for k, v in output.items():
                 if k in ['log', 'progress_bar']:
-                    m = f"""
-                    The {{{k}:dict keyword}} was deprecated in 0.9.1 and will be removed in 1.0.0
-                    Please use self.log(...) inside the lightningModule instead.
- 
-                    # log on a step or aggregate epoch metric to the logger and/or progress bar
-                    # (inside LightningModule)
-                    self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
-                    """
+                    m = inspect.cleandoc(
+                        f"""The {{{k}:dict keyword}} was deprecated in 0.9.1 and will be removed in 1.0.0
+                        Please use self.log(...) inside the lightningModule instead.
+    
+                        # log on a step or aggregate epoch metric to the logger and/or progress bar
+                        # (inside LightningModule)
+                        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
+                    """)
                     rank_zero_warn(m)
 
         # --------------------------
