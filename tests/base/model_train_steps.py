@@ -138,9 +138,6 @@ class TrainingStepVariations(ABC):
 
         setattr(self, f'{eval_name}_step_called', True)
 
-        import pdb; pdb.set_trace()
-        print(result)
-
         return result
 
     def eval_step_end_full_loop_result_obj_dp(self, result):
@@ -158,6 +155,10 @@ class TrainingStepVariations(ABC):
         result.early_stop_on = result.early_stop_on.mean()
         result.log(f'{eval_name}_step_end_metric', torch.tensor(1).type_as(result.checkpoint_on))
         setattr(self, f'{eval_name}_step_end_called', True)
+
+        import pdb; pdb.set_trace()
+        print(result)
+
         return result
 
     def eval_epoch_end_full_loop_result_obj_dp(self, result):
