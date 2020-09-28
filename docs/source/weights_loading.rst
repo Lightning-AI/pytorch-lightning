@@ -45,7 +45,7 @@ To modify the behavior of checkpointing pass in your own callback.
         filepath=os.getcwd(),
         save_top_k=1,
         verbose=True,
-        monitor='val_loss',
+        monitor='checkpoint_on',
         mode='min',
         prefix=''
     )

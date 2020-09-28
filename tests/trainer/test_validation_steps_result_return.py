@@ -59,7 +59,7 @@ def test_val_step_result_callbacks(tmpdir):
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 2
 
     # make sure the last known metric is correct
-    assert trainer.logger_connector.callback_metrics['val_checkpoint_on'] == 171 + 22
+    assert trainer.logger_connector.callback_metrics['checkpoint_on'] == 171 + 15
 
     # did not request any metrics to log (except the metrics saying which epoch we are on)
     assert len(trainer.logger_connector.progress_bar_metrics) == 0
@@ -108,7 +108,7 @@ def test_val_step_using_train_callbacks(tmpdir):
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 2
 
     # make sure the last known metric is correct
-    assert trainer.logger_connector.callback_metrics['val_checkpoint_on'] == 171 + 50
+    assert trainer.logger_connector.callback_metrics['checkpoint_on'] == 171 + 20
 
     # did not request any metrics to log (except the metrics saying which epoch we are on)
     assert len(trainer.logger_connector.progress_bar_metrics) == 0
@@ -171,7 +171,7 @@ def test_val_step_only_epoch_metrics(tmpdir):
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 1
 
     # make sure the last known metric is correct
-    assert trainer.logger_connector.callback_metrics['val_checkpoint_on'] == 171
+    assert trainer.logger_connector.callback_metrics['checkpoint_on'] == 189
 
 
 def test_val_step_only_step_metrics(tmpdir):
@@ -248,7 +248,7 @@ def test_val_step_only_step_metrics(tmpdir):
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 1
 
     # make sure the last known metric is correct
-    assert trainer.logger_connector.callback_metrics['val_checkpoint_on'] == 171
+    assert trainer.logger_connector.callback_metrics['checkpoint_on'] == 189
 
 
 def test_val_step_epoch_step_metrics(tmpdir):
@@ -277,6 +277,19 @@ def test_val_step_epoch_step_metrics(tmpdir):
         weights_summary=None,
     )
     trainer.fit(model)
+
+    assert len(trainer.logger_connector.callback_metrics) == 11
+    expected_metrics = {
+        'early_stop_on',
+        'checkpoint_on',
+        'val_step_pbar_acc', 'epoch_val_step_pbar_acc',
+        'val_step_log_acc', 'epoch_val_step_log_acc',
+        'val_step_log_pbar_acc', 'epoch_val_step_log_pbar_acc',
+        'val_step_batch_idx', 'epoch_val_step_batch_idx'
+    }
+    expected_metrics.add('debug_epoch')
+    seen_metrics = set(trainer.logger_connector.callback_metrics)
+    assert expected_metrics == seen_metrics
 
     # make sure correct steps were called
     assert model.validation_step_called
@@ -323,7 +336,7 @@ def test_val_step_epoch_step_metrics(tmpdir):
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 1
 
     # make sure the last known metric is correct
-    assert trainer.logger_connector.callback_metrics['val_checkpoint_on'] == 171
+    assert trainer.logger_connector.callback_metrics['checkpoint_on'] == 189
 
 
 def test_val_step_epoch_end_result(tmpdir):
@@ -352,6 +365,8 @@ def test_val_step_epoch_end_result(tmpdir):
     )
     trainer.fit(model)
 
+    assert len(trainer.logger_connector.callback_metrics) == 6
+
     # make sure correct steps were called
     assert model.validation_step_called
     assert not model.validation_step_end_called
@@ -378,7 +393,7 @@ def test_val_step_epoch_end_result(tmpdir):
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 1
 
     # make sure the last known metric is correct
-    assert trainer.logger_connector.callback_metrics['val_checkpoint_on'] == 171
+    assert trainer.logger_connector.callback_metrics['checkpoint_on'] == 189
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -475,8 +490,8 @@ def test_full_loop_result_cpu(tmpdir):
     assert results['test_loss'] < 0.3
     assert results['test_acc'] > 0.9
     assert len(results) == 2
-    assert 'val_early_stop_on' not in results
-    assert 'val_checkpoint_on' not in results
+    assert 'early_stop_on' not in results
+    assert 'checkpoint_on' not in results
 
     results2 = trainer.test()[0]
     for k, v in results.items():

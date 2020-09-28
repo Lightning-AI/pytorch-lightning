@@ -9,6 +9,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from tests.base import EvalModelTemplate
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class EarlyStoppingTestRestore(EarlyStopping):
@@ -36,7 +37,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     """
 
     model = EvalModelTemplate()
-    checkpoint_callback = ModelCheckpoint(save_top_k=1)
+    checkpoint_callback = ModelCheckpoint(monitor="val_loss", save_top_k=1)
     early_stop_callback = EarlyStoppingTestRestore()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -47,7 +48,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     )
     trainer.fit(model)
 
-    checkpoint_filepath = checkpoint_callback.kth_best_model
+    checkpoint_filepath = checkpoint_callback.kth_best_model_path
     # ensure state is persisted properly
     checkpoint = torch.load(checkpoint_filepath)
     # the checkpoint saves "epoch + 1"
@@ -63,7 +64,9 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
         resume_from_checkpoint=checkpoint_filepath,
         early_stop_callback=early_stop_callback,
     )
-    new_trainer.fit(model)
+
+    with pytest.raises(MisconfigurationException, match=r'.*you restored a checkpoint with current_epoch*'):
+        new_trainer.fit(model)
 
 
 def test_early_stopping_no_extraneous_invocations(tmpdir):
@@ -137,17 +140,17 @@ def test_early_stopping_no_val_step(tmpdir):
     model.validation_step = None
     model.val_dataloader = None
 
-    stopping = EarlyStopping(monitor='my_train_metric', min_delta=0.1)
+    stopping = EarlyStopping(monitor='my_train_metric', min_delta=0.1, patience=0)
     trainer = Trainer(
         default_root_dir=tmpdir,
         early_stop_callback=stopping,
         overfit_batches=0.20,
-        max_epochs=2,
+        max_epochs=10,
     )
     result = trainer.fit(model)
 
     assert result == 1, 'training failed to complete'
-    assert trainer.current_epoch < trainer.max_epochs
+    assert trainer.current_epoch < trainer.max_epochs - 1
 
 
 def test_early_stopping_functionality(tmpdir):
@@ -168,3 +171,24 @@ def test_early_stopping_functionality(tmpdir):
     )
     trainer.fit(model)
     assert trainer.current_epoch == 5, 'early_stopping failed'
+
+
+def test_early_stopping_functionality_arbitrary_key(tmpdir):
+    """Tests whether early stopping works with a custom key and dictionary results on val step."""
+
+    class CurrentModel(EvalModelTemplate):
+        def validation_epoch_end(self, outputs):
+            losses = [8, 4, 2, 3, 4, 5, 8, 10]
+            val_loss = losses[self.current_epoch]
+            return {'jiraffe': torch.tensor(val_loss)}
+
+    model = CurrentModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        early_stop_callback=EarlyStopping(monitor='jiraffe'),
+        overfit_batches=0.20,
+        max_epochs=20,
+    )
+    trainer.fit(model)
+    assert trainer.current_epoch >= 5, 'early_stopping failed'

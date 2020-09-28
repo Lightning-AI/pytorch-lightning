@@ -19,13 +19,16 @@ from argparse import ArgumentParser, Namespace
 from typing import Any, List, Optional, Tuple, Union
 
 import torch
-from torch.utils.data import DataLoader
-
 from pytorch_lightning.core.hooks import DataHooks
 from pytorch_lightning.utilities import parsing, rank_zero_only
+from torch.utils.data import DataLoader
 
 
 class _DataModuleWrapper(type):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__has_added_checks = False
+
     def __call__(cls, *args, **kwargs):
         """A wrapper for LightningDataModule that:
 
@@ -33,11 +36,12 @@ class _DataModuleWrapper(type):
             2. Assures prepare_data() runs on rank 0
             3. Lets you check prepare_data and setup to see if they've been called
         """
-
-        # Track prepare_data calls and make sure it runs on rank zero
-        cls.prepare_data = track_data_hook_calls(rank_zero_only(cls.prepare_data))
-        # Track setup calls
-        cls.setup = track_data_hook_calls(cls.setup)
+        if not cls.__has_added_checks:
+            cls.__has_added_checks = True
+            # Track prepare_data calls and make sure it runs on rank zero
+            cls.prepare_data = track_data_hook_calls(rank_zero_only(cls.prepare_data))
+            # Track setup calls
+            cls.setup = track_data_hook_calls(cls.setup)
 
         # Get instance of LightningDataModule by mocking its __init__ via __call__
         obj = type.__call__(cls, *args, **kwargs)
@@ -67,20 +71,20 @@ def track_data_hook_calls(fn):
         obj = args[0]
 
         # If calling setup, we check the stage and assign stage-specific bool args
-        if fn.__name__ == 'setup':
+        if fn.__name__ == "setup":
 
             # Get stage either by grabbing from args or checking kwargs.
             # If not provided, set call status of 'fit' and 'test' to True.
             # We do this so __attach_datamodule in trainer.py doesn't mistakenly call setup('test') on trainer.test()
-            stage = args[1] if len(args) > 1 else kwargs.get('stage', None)
+            stage = args[1] if len(args) > 1 else kwargs.get("stage", None)
 
-            if stage == 'fit' or stage is None:
+            if stage == "fit" or stage is None:
                 obj._has_setup_fit = True
 
-            if stage == 'test' or stage is None:
+            if stage == "test" or stage is None:
                 obj._has_setup_test = True
 
-        if fn.__name__ == 'prepare_data':
+        if fn.__name__ == "prepare_data":
             obj._has_prepared_data = True
 
         return fn(*args, **kwargs)
@@ -131,13 +135,17 @@ class LightningDataModule(DataHooks, metaclass=_DataModuleWrapper):
     name: str = ...
 
     def __init__(
-        self, train_transforms=None, val_transforms=None, test_transforms=None,
+        self,
+        train_transforms=None,
+        val_transforms=None,
+        test_transforms=None,
+        dims=None,
     ):
         super().__init__()
         self._train_transforms = train_transforms
         self._val_transforms = val_transforms
         self._test_transforms = test_transforms
-        self.dims = ()
+        self._dims = dims if dims is not None else ()
 
         # Private attrs to keep track of whether or not data hooks have been called yet
         self._has_prepared_data = False
@@ -177,9 +185,21 @@ class LightningDataModule(DataHooks, metaclass=_DataModuleWrapper):
     def test_transforms(self, t):
         self._test_transforms = t
 
+    @property
+    def dims(self):
+        """
+        A tuple describing the shape of your data. Extra functionality exposed in ``size``.
+        """
+        return self._dims
+
+    @dims.setter
+    def dims(self, d):
+        self._dims = d
+
     def size(self, dim=None) -> Union[Tuple, int]:
         """
-        Return the dimension of each input either as a tuple or list of tuples.
+        Return the dimension of each input either as a tuple or list of tuples. You can index this
+        just as you would with a torch tensor.
         """
 
         if dim is not None:
@@ -242,10 +262,10 @@ class LightningDataModule(DataHooks, metaclass=_DataModuleWrapper):
     def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
         r"""Extends existing argparse by default `LightningDataModule` attributes.
         """
-        parser = ArgumentParser(parents=[parent_parser], add_help=False,)
+        parser = ArgumentParser(parents=[parent_parser], add_help=False)
         added_args = [x.dest for x in parser._actions]
 
-        blacklist = ['kwargs']
+        blacklist = ["kwargs"]
         depr_arg_names = blacklist + added_args
         depr_arg_names = set(depr_arg_names)
 
@@ -253,7 +273,9 @@ class LightningDataModule(DataHooks, metaclass=_DataModuleWrapper):
 
         # TODO: get "help" from docstring :)
         for arg, arg_types, arg_default in (
-            at for at in cls.get_init_arguments_and_types() if at[0] not in depr_arg_names
+            at
+            for at in cls.get_init_arguments_and_types()
+            if at[0] not in depr_arg_names
         ):
             arg_types = [at for at in allowed_types if at in arg_types]
             if not arg_types:
@@ -278,11 +300,11 @@ class LightningDataModule(DataHooks, metaclass=_DataModuleWrapper):
                 arg_default = None
 
             parser.add_argument(
-                f'--{arg}',
+                f"--{arg}",
                 dest=arg,
                 default=arg_default,
                 type=use_type,
-                help=f'autogenerated by plb.{cls.__name__}',
+                help=f"autogenerated by plb.{cls.__name__}",
                 **arg_kwargs,
             )
 
@@ -312,7 +334,9 @@ class LightningDataModule(DataHooks, metaclass=_DataModuleWrapper):
 
         # we only want to pass in valid DataModule args, the rest may be user specific
         valid_kwargs = inspect.signature(cls.__init__).parameters
-        datamodule_kwargs = dict((name, params[name]) for name in valid_kwargs if name in params)
+        datamodule_kwargs = dict(
+            (name, params[name]) for name in valid_kwargs if name in params
+        )
         datamodule_kwargs.update(**kwargs)
 
         return cls(**datamodule_kwargs)

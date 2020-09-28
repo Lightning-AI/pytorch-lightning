@@ -4,7 +4,7 @@ from typing import Callable, Optional, Sequence, Tuple
 import torch
 from torch.nn import functional as F
 
-from pytorch_lightning.metrics.functional.reduction import reduce, class_reduce
+from pytorch_lightning.metrics.functional.reduction import class_reduce, reduce
 from pytorch_lightning.utilities import FLOAT16_EPSILON, rank_zero_warn
 
 
@@ -584,12 +584,12 @@ def roc(
     Example:
 
         >>> x = torch.tensor([0, 1, 2, 3])
-        >>> y = torch.tensor([0, 1, 2, 2])
+        >>> y = torch.tensor([0, 1, 1, 1])
         >>> fpr, tpr, thresholds = roc(x, y)
         >>> fpr
-        tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000])
+        tensor([0., 0., 0., 0., 1.])
         >>> tpr
-        tensor([0., 0., 0., 1., 1.])
+        tensor([0.0000, 0.3333, 0.6667, 1.0000, 1.0000])
         >>> thresholds
         tensor([4, 3, 2, 1, 0])
 
@@ -682,12 +682,12 @@ def precision_recall_curve(
     Example:
 
         >>> pred = torch.tensor([0, 1, 2, 3])
-        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> target = torch.tensor([0, 1, 1, 0])
         >>> precision, recall, thresholds = precision_recall_curve(pred, target)
         >>> precision
-        tensor([0.3333, 0.0000, 0.0000, 1.0000])
+        tensor([0.6667, 0.5000, 0.0000, 1.0000])
         >>> recall
-        tensor([1., 0., 0., 0.])
+        tensor([1.0000, 0.5000, 0.0000, 0.0000])
         >>> thresholds
         tensor([1, 2, 3])
 
@@ -858,10 +858,14 @@ def auroc(
     Example:
 
         >>> x = torch.tensor([0, 1, 2, 3])
-        >>> y = torch.tensor([0, 1, 2, 2])
+        >>> y = torch.tensor([0, 1, 1, 0])
         >>> auroc(x, y)
-        tensor(0.3333)
+        tensor(0.5000)
     """
+    if any(target > 1):
+        raise ValueError('AUROC metric is meant for binary classification, but'
+                         ' target tensor contains value different from 0 and 1.'
+                         ' Multiclass is currently not supported.')
 
     @auc_decorator(reorder=True)
     def _auroc(pred, target, sample_weight, pos_label):
@@ -921,12 +925,11 @@ def dice_score(
         bg: whether to also compute dice for the background
         nan_score: score to return, if a NaN occurs during computation
         no_fg_score: score to return, if no foreground pixel was found in target
-        reduction: a method to reduce metric score over labels (default: takes the mean)
-            Available reduction methods:
+        reduction: a method to reduce metric score over labels.
 
-            - elementwise_mean: takes the mean
-            - none: pass array
-            - sum: add elements
+            - ``'elementwise_mean'``: takes the mean (default)
+            - ``'sum'``: takes the sum
+            - ``'none'``: no reduction will be applied
 
     Return:
         Tensor containing dice score
@@ -963,9 +966,10 @@ def dice_score(
 def iou(
         pred: torch.Tensor,
         target: torch.Tensor,
+        ignore_index: Optional[int] = None,
+        absent_score: float = 0.0,
         num_classes: Optional[int] = None,
-        remove_bg: bool = False,
-        reduction: str = 'elementwise_mean'
+        reduction: str = 'elementwise_mean',
 ) -> torch.Tensor:
     """
     Intersection over union, or Jaccard index calculation.
@@ -973,17 +977,20 @@ def iou(
     Args:
         pred: Tensor containing predictions
         target: Tensor containing targets
+        ignore_index: optional int specifying a target class to ignore. If given, this class index does not contribute
+            to the returned score, regardless of reduction method. Has no effect if given an int that is not in the
+            range [0, num_classes-1], where num_classes is either given or derived from pred and target. By default, no
+            index is ignored, and all classes are used.
+        absent_score: score to use for an individual class, if no instances of the class index were present in
+            `pred` AND no instances of the class index were present in `target`. For example, if we have 3 classes,
+            [0, 0] for `pred`, and [0, 2] for `target`, then class 1 would be assigned the `absent_score`. Default is
+            0.0.
         num_classes: Optionally specify the number of classes
-        remove_bg: Flag to state whether a background class has been included
-            within input parameters. If true, will remove background class. If
-            false, return IoU over all classes
-            Assumes that background is '0' class in input tensor
-        reduction: a method to reduce metric score over labels (default: takes the mean)
-            Available reduction methods:
+        reduction: a method to reduce metric score over labels.
 
-            - elementwise_mean: takes the mean
-            - none: pass array
-            - sum: add elements
+            - ``'elementwise_mean'``: takes the mean (default)
+            - ``'sum'``: takes the sum
+            - ``'none'``: no reduction will be applied
 
     Return:
         IoU score : Tensor containing single value if reduction is
@@ -998,12 +1005,39 @@ def iou(
         tensor(0.4914)
 
     """
+    num_classes = get_num_classes(pred=pred, target=target, num_classes=num_classes)
+
     tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred, target, num_classes)
-    if remove_bg:
-        tps = tps[1:]
-        fps = fps[1:]
-        fns = fns[1:]
-    denom = fps + fns + tps
-    denom[denom == 0] = torch.tensor(FLOAT16_EPSILON).type_as(denom)
-    iou = tps / denom
-    return reduce(iou, reduction=reduction)
+
+    scores = torch.zeros(num_classes, device=pred.device, dtype=torch.float32)
+
+    for class_idx in range(num_classes):
+        if class_idx == ignore_index:
+            continue
+
+        tp = tps[class_idx]
+        fp = fps[class_idx]
+        fn = fns[class_idx]
+        sup = sups[class_idx]
+
+        # If this class is absent in the target (no support) AND absent in the pred (no true or false
+        # positives), then use the absent_score for this class.
+        if sup + tp + fp == 0:
+            scores[class_idx] = absent_score
+            continue
+
+        denom = tp + fp + fn
+        # Note that we do not need to worry about division-by-zero here since we know (sup + tp + fp != 0) from above,
+        # which means ((tp+fn) + tp + fp != 0), which means (2tp + fp + fn != 0). Since all vars are non-negative, we
+        # can conclude (tp + fp + fn > 0), meaning the denominator is non-zero for each class.
+        score = tp.to(torch.float) / denom
+        scores[class_idx] = score
+
+    # Remove the ignored class index from the scores.
+    if ignore_index is not None and ignore_index >= 0 and ignore_index < num_classes:
+        scores = torch.cat([
+            scores[:ignore_index],
+            scores[ignore_index + 1:],
+        ])
+
+    return reduce(scores, reduction=reduction)

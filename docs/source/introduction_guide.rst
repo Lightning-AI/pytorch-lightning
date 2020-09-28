@@ -683,6 +683,9 @@ Since the `validation_step` processes a single batch, use the `EvalResult` to lo
 .. code-block:: python
 
     def validation_step(self, batch, batch_idx):
+        loss = MSE_loss(...)
+
+        # loss is a tensor. The Checkpoint Callback is monitoring 'checkpoint_on'
         result = pl.EvalResult(checkpoint_on=loss)
         result.log('val_loss', loss)
 

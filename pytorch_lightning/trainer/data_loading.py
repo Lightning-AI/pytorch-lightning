@@ -155,7 +155,7 @@ class TrainerDataLoadingMixin(ABC):
             assert self.distributed_backend is not None
             kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.global_rank)
 
-        kwargs['shuffle'] = train
+        kwargs['shuffle'] = train and not self.overfit_batches
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler
 
@@ -294,7 +294,7 @@ class TrainerDataLoadingMixin(ABC):
                     min_pct = 1.0 / len(dataloader)
                     raise MisconfigurationException(
                         f'you requested to check {limit_eval_batches} of the {mode} dataloader but'
-                        f' {limit_eval_batches}*{num_batches} = 0. Please increase the limit_{mode}_batches.'
+                        f' {limit_eval_batches}*{num_batches} < 1. Please increase the limit_{mode}_batches.'
                         f' Try at least limit_{mode}_batches={min_pct}'
                     )
 

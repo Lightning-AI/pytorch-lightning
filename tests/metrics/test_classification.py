@@ -113,12 +113,12 @@ def test_average_precision(pos_label):
     assert isinstance(ap, torch.Tensor)
 
 
-@pytest.mark.parametrize('pos_label', [1, 2])
+@pytest.mark.parametrize('pos_label', [0, 1])
 def test_auroc(pos_label):
     auroc = AUROC(pos_label=pos_label)
     assert auroc.name == 'auroc'
 
-    pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 2, 0, 1])
+    pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 1, 0, 1])
     area = auroc(pred=pred, target=target, sample_weight=[0.1, 0.2, 0.3, 0.4])
     assert isinstance(area, torch.Tensor)
 
@@ -226,9 +226,9 @@ def test_dice_coefficient(include_background):
     assert isinstance(dice, torch.Tensor)
 
 
-@pytest.mark.parametrize('remove_bg', [True, False])
-def test_iou(remove_bg):
-    iou = IoU(remove_bg=remove_bg)
+@pytest.mark.parametrize('ignore_index', [0, 1, None])
+def test_iou(ignore_index):
+    iou = IoU(ignore_index=ignore_index)
     assert iou.name == 'iou'
 
     score = iou(torch.randint(0, 1, (10, 25, 25)),

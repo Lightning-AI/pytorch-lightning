@@ -88,7 +88,7 @@ def test_cpu_slurm_save_load(tmpdir):
 
 def test_early_stopping_cpu_model(tmpdir):
     """Test each of the trainer options."""
-    stopping = EarlyStopping(monitor='val_loss', min_delta=0.1)
+    stopping = EarlyStopping(monitor='early_stop_on', min_delta=0.1)
     trainer_options = dict(
         default_root_dir=tmpdir,
         early_stop_callback=stopping,
@@ -327,7 +327,7 @@ def test_tbptt_cpu_model(tmpdir):
             training_step_outputs = training_step_outputs[0]
             assert len(training_step_outputs) == (sequence_size / truncated_bptt_steps)
             loss = torch.stack([x['loss'] for x in training_step_outputs]).mean()
-            return {'log': {'train_loss': loss}}
+            self.log('train_loss', loss)
 
         def train_dataloader(self):
             return torch.utils.data.DataLoader(

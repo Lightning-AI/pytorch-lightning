@@ -27,46 +27,6 @@ def test_tbd_remove_in_v0_11_0_trainer_gpu():
         gpu_usage = GpuUsageLogger()
 
 
-def test_tbd_remove_in_v0_10_0_trainer():
-    rnd_val = random.random()
-    with pytest.deprecated_call(match='will be removed in v0.10.0'):
-        trainer = Trainer(overfit_pct=rnd_val)
-    assert trainer.overfit_batches == rnd_val
-    with pytest.deprecated_call(match='will be removed in v0.10.0'):
-        assert trainer.overfit_pct == rnd_val
-
-    rnd_val = random.random()
-    with pytest.deprecated_call(match='will be removed in v0.10.0'):
-        trainer = Trainer(train_percent_check=rnd_val)
-    assert trainer.limit_train_batches == rnd_val
-    with pytest.deprecated_call(match='v0.10.0'):
-        assert trainer.train_percent_check == rnd_val
-
-    rnd_val = random.random()
-    with pytest.deprecated_call(match='will be removed in v0.10.0'):
-        trainer = Trainer(val_percent_check=rnd_val)
-    assert trainer.limit_val_batches == rnd_val
-    with pytest.deprecated_call(match='will be removed in v0.10.0'):
-        assert trainer.val_percent_check == rnd_val
-
-    rnd_val = random.random()
-    with pytest.deprecated_call(match='will be removed in v0.10.0'):
-        trainer = Trainer(test_percent_check=rnd_val)
-    assert trainer.limit_test_batches == rnd_val
-    with pytest.deprecated_call(match='will be removed in v0.10.0'):
-        assert trainer.test_percent_check == rnd_val
-
-    trainer = Trainer()
-    with pytest.deprecated_call(match='will be removed in v0.10.0'):
-        trainer.proc_rank = 0
-    with pytest.deprecated_call(match='will be removed in v0.10.0'):
-        assert trainer.proc_rank == trainer.global_rank
-
-    with pytest.deprecated_call(match='will be removed in v0.10.0'):
-        trainer.ckpt_path = 'foo'
-        assert trainer.ckpt_path == trainer.weights_save_path == 'foo'
-
-
 class ModelVer0_6(EvalModelTemplate):
 
     # todo: this shall not be needed while evaluate asks for dataloader explicitly
