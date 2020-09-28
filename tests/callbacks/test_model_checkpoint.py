@@ -103,10 +103,10 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
 
     def on_train_end(self, trainer, pl_module):
         super().on_train_end(trainer, pl_module)
-        # on rank 0 we expect the saved files and on all others no saves
-        assert (trainer.global_rank == 0 and self.count == self.expected_count) or (
-            trainer.global_rank > 0 and self.count == 0
-        )
+
+        # expect all ranks to run but only rank 0 will actually write
+        # the checkpoint file
+        assert self.count == self.expected_count
 
 
 @pytest.mark.skipif(
@@ -220,32 +220,28 @@ def test_none_monitor_save_last(tmpdir):
     ModelCheckpoint(filepath=tmpdir, save_last=False)
 
 
-def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
-    """Tests that the save_last checkpoint contains the latest information."""
-    seed_everything(100)
+def test_model_checkpoint_save_last(tmpdir):
+    """Tests that save_last produces only one last checkpoint."""
     model = EvalModelTemplate()
-    num_epochs = 3
-    model_checkpoint = ModelCheckpoint(monitor='val_loss', filepath=tmpdir, save_top_k=num_epochs, save_last=True)
+    epochs = 3
+    ModelCheckpoint.CHECKPOINT_NAME_LAST = "last-{epoch}"
+    model_checkpoint = ModelCheckpoint(filepath=tmpdir, save_top_k=-1, save_last=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         early_stop_callback=False,
         checkpoint_callback=model_checkpoint,
-        max_epochs=num_epochs,
+        max_epochs=epochs,
     )
     trainer.fit(model)
-
-    path_last_epoch = model_checkpoint.format_checkpoint_name(num_epochs - 1, {})
-    assert path_last_epoch != model_checkpoint.last_model_path
-
-    ckpt_last_epoch = torch.load(path_last_epoch)
-    ckpt_last = torch.load(model_checkpoint.last_model_path)
-    assert all(ckpt_last_epoch[k] == ckpt_last[k] for k in ("epoch", "global_step"))
-
-    # it is easier to load the model objects than to iterate over the raw dict of tensors
-    model_last_epoch = EvalModelTemplate.load_from_checkpoint(path_last_epoch)
-    model_last = EvalModelTemplate.load_from_checkpoint(model_checkpoint.last_model_path)
-    for w0, w1 in zip(model_last_epoch.parameters(), model_last.parameters()):
-        assert w0.eq(w1).all()
+    last_filename = model_checkpoint._format_checkpoint_name(
+        ModelCheckpoint.CHECKPOINT_NAME_LAST, epochs - 1, {}
+    )
+    last_filename = last_filename + ".ckpt"
+    assert str(tmpdir / last_filename) == model_checkpoint.last_model_path
+    assert set(os.listdir(tmpdir)) == set(
+        [f"epoch={i}.ckpt" for i in range(epochs)] + [last_filename, "lightning_logs"]
+    )
+    ModelCheckpoint.CHECKPOINT_NAME_LAST = "last"
 
 
 def test_model_checkpoint_none_monitor(tmpdir):
@@ -398,3 +394,52 @@ def test_model_checkpoint_save_last_warning(tmpdir, caplog, max_epochs, should_v
     )
     trainer.fit(model)
     assert caplog.messages.count('Saving latest checkpoint...') == save_last
+
+
+def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
+    """Tests that the save_last checkpoint contains the latest information."""
+    seed_everything(100)
+    model = EvalModelTemplate()
+    num_epochs = 3
+    ModelCheckpoint.CHECKPOINT_NAME_LAST = "last-{epoch}"
+    model_checkpoint = ModelCheckpoint(
+        filepath=tmpdir, save_top_k=num_epochs, save_last=True
+    )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        early_stop_callback=False,
+        checkpoint_callback=model_checkpoint,
+        max_epochs=num_epochs,
+    )
+    trainer.fit(model)
+    last_filename = model_checkpoint._format_checkpoint_name(
+        ModelCheckpoint.CHECKPOINT_NAME_LAST, num_epochs - 1, {}
+    )
+    path_last_epoch = model_checkpoint.format_checkpoint_name(
+        num_epochs - 1, {}
+    )  # epoch=3.ckpt
+    path_last = str(tmpdir / f"{last_filename}.ckpt")  # last-epoch=3.ckpt
+    assert path_last_epoch != path_last
+    ckpt_last_epoch = torch.load(path_last_epoch)
+    ckpt_last = torch.load(path_last)
+
+    path_last_epoch = model_checkpoint.format_checkpoint_name(num_epochs - 1, {})
+    assert path_last_epoch != model_checkpoint.last_model_path
+
+    ckpt_last_epoch = torch.load(path_last_epoch)
+    ckpt_last = torch.load(model_checkpoint.last_model_path)
+    assert all(ckpt_last_epoch[k] == ckpt_last[k] for k in ("epoch", "global_step"))
+    assert all(
+        ckpt_last["callbacks"][type(model_checkpoint)][k]
+        == ckpt_last_epoch["callbacks"][type(model_checkpoint)][k]
+        for k in ("best_model_score", "best_model_path")
+    )
+
+    # it is easier to load the model objects than to iterate over the raw dict of tensors
+    model_last_epoch = EvalModelTemplate.load_from_checkpoint(path_last_epoch)
+    model_last = EvalModelTemplate.load_from_checkpoint(
+        model_checkpoint.last_model_path
+    )
+    for w0, w1 in zip(model_last_epoch.parameters(), model_last.parameters()):
+        assert w0.eq(w1).all()
+    ModelCheckpoint.CHECKPOINT_NAME_LAST = "last"
