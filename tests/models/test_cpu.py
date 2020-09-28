@@ -327,7 +327,7 @@ def test_tbptt_cpu_model(tmpdir):
             training_step_outputs = training_step_outputs[0]
             assert len(training_step_outputs) == (sequence_size / truncated_bptt_steps)
             loss = torch.stack([x['loss'] for x in training_step_outputs]).mean()
-            return {'log': {'train_loss': loss}}
+            self.log('train_loss', loss)
 
         def train_dataloader(self):
             return torch.utils.data.DataLoader(
