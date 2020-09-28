@@ -53,6 +53,7 @@ from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.trainer.connectors.precision_connector import PrecisionConnector
 from pytorch_lightning.trainer.connectors.profiler_connector import ProfilerConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
+from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer import docstrings
 from pytorch_lightning.trainer.properties import TrainerProperties
@@ -569,7 +570,7 @@ class Trainer(
                 )
                 return {}
 
-            ckpt = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
+            ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt['state_dict'])
 
         # attach dataloaders
