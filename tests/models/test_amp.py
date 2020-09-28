@@ -6,6 +6,7 @@ import torch
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
@@ -147,7 +148,7 @@ def test_cpu_model_with_amp(tmpdir):
 
 
 def test_amp_without_apex(tmpdir):
-    """Check that even with apex amp type without requesting percussion=16 the amp backend is void."""
+    """Check that even with apex amp type without requesting precision=16 the amp backend is void."""
     os.environ['PL_DEV_DEBUG'] = '1'
     model = EvalModelTemplate()
 
