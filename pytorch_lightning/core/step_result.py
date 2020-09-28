@@ -161,21 +161,22 @@ class Result(Dict):
                 tbptt_pad_token=tbptt_pad_token,
             )
             self.__setitem__(epoch_name, value)
-        else:
-            self.__set_meta(
-                name,
-                value,
-                prog_bar,
-                logger,
-                on_step,
-                on_epoch,
-                reduce_fx,
-                tbptt_reduce_fx=tbptt_reduce_fx,
-                tbptt_pad_token=tbptt_pad_token,
-            )
 
-            # set the value
-            self.__setitem__(name, value)
+        # always log the original metric
+        self.__set_meta(
+            name,
+            value,
+            prog_bar,
+            logger,
+            on_step,
+            on_epoch,
+            reduce_fx,
+            tbptt_reduce_fx=tbptt_reduce_fx,
+            tbptt_pad_token=tbptt_pad_token,
+        )
+
+        # set the value
+        self.__setitem__(name, value)
 
     def __set_meta(
         self,
@@ -378,12 +379,17 @@ class Result(Dict):
     def reduce_across_time(cls, time_outputs):
         # auto-reduce across time for tbptt
         meta = time_outputs[0]['meta']
+
+        # in 1.0 the results have 'extra'. Once we deprecate 0.10.0 we may not need this
+        if 'extra' in time_outputs[0]:
+            [x.pop('extra', None) for x in time_outputs]
+
         result = cls()
         result = recursive_gather(time_outputs, result)
         recursive_stack(result)
 
         for k, value in result.items():
-            if k == 'meta':
+            if k in ['meta', 'extra']:
                 continue
 
             # pick the reduce fx

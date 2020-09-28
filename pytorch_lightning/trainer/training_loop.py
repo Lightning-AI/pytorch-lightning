@@ -26,7 +26,7 @@ from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import TensorRunningAccum, Accumulator
 from pytorch_lightning.utilities import parsing, AMPType
-from pytorch_lightning.utilities.distributed import rank_zero_info
+from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_utils import is_overridden
@@ -289,51 +289,29 @@ class TrainLoop:
         self.trainer.dev_debugger.track_train_loss_history(batch_idx, untouched_loss.detach())
 
     def training_step(self, split_batch, batch_idx, opt_idx, hiddens):
+        # give the PL module a result for logging
+        model = self.trainer.get_model()
+        model._results = Result()
+        model._current_fx_name = 'training_step'
+
         with self.trainer.profiler.profile('model_forward'):
             args = self.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
             training_step_output = self.trainer.accelerator_backend.training_step(args)
             training_step_output = self.trainer.call_hook('training_step_end', training_step_output)
 
-            # ----------------------------
-            # PROCESS THE RESULT
-            # ----------------------------
-            # format and reduce outputs accordingly
-            training_step_output_for_epoch_end = training_step_output
+            training_step_output_for_epoch_end, training_step_output = self._process_training_step_output(
+                training_step_output,
+                split_batch
+            )
             is_result_obj = isinstance(training_step_output, Result)
-
-            # track batch size for weighted average
-            if is_result_obj:
-                training_step_output.track_batch_size(len(split_batch))
-
-            # don't allow EvalResult in the training_step
-            if isinstance(training_step_output, EvalResult):
-                raise MisconfigurationException('training_step cannot return EvalResult, '
-                                                'use a dict or TrainResult instead')
-
-            # handle regular dicts
-            if not is_result_obj:
-                training_step_output = self.trainer.process_dict_result(training_step_output, train=True)
-
-                training_step_output = AttributeDict(
-                    batch_loss=training_step_output[0],
-                    pbar_on_batch_end=training_step_output[1],
-                    log_metrics=training_step_output[2],
-                    callback_metrics=training_step_output[3],
-                    hiddens=training_step_output[4],
-                )
-
-            # if the user decides to finally reduce things in epoch_end, save raw output without graphs
-            if isinstance(training_step_output_for_epoch_end, torch.Tensor):
-                training_step_output_for_epoch_end = training_step_output_for_epoch_end.detach()
-            elif is_result_obj:
-                training_step_output_for_epoch_end = copy(training_step_output)
-                training_step_output_for_epoch_end.detach()
-            else:
-                training_step_output_for_epoch_end = recursive_detach(training_step_output_for_epoch_end)
 
         # accumulate loss
         # (if accumulate_grad_batches = 1 no effect)
-        closure_loss = training_step_output.minimize if is_result_obj else training_step_output.batch_loss
+        if is_result_obj:
+            closure_loss = training_step_output.minimize
+        else:
+            closure_loss = training_step_output.batch_loss
+
         closure_loss = closure_loss / self.trainer.accumulate_grad_batches
 
         # the loss will get scaled for amp. avoid any modifications to it
@@ -348,6 +326,107 @@ class TrainLoop:
             hiddens=training_step_output.hiddens,
         )
         return result
+
+    def _process_training_step_output(self, training_step_output, split_batch):
+        training_step_output_for_epoch_end = training_step_output
+
+        # -----------------------------------------
+        # process result return (DEPRECATE in 1.0)
+        # -----------------------------------------
+        if isinstance(training_step_output, Result):
+            training_step_output_for_epoch_end = self._process_result(training_step_output, split_batch)
+            return training_step_output_for_epoch_end, training_step_output
+
+        # -----------------------------------------
+        # process hybrid (1.0)
+        # -----------------------------------------
+        # no need for these checks in 1.0.0
+        # TODO: remove checks in 1.0.0
+        is_tensor = isinstance(training_step_output_for_epoch_end, torch.Tensor)
+        is_1_0_output = is_tensor or ('log' not in training_step_output and 'progress_bar' not in training_step_output)
+        if is_1_0_output:
+            return self._process_training_step_output_1_0(training_step_output, split_batch)
+
+        # -----------------------------------------
+        # process old dict (deprecate 1.0)
+        # -----------------------------------------
+        training_step_output = self.trainer.process_dict_result(training_step_output, train=True)
+
+        training_step_output = AttributeDict(
+            batch_loss=training_step_output[0],
+            pbar_on_batch_end=training_step_output[1],
+            log_metrics=training_step_output[2],
+            callback_metrics=training_step_output[3],
+            hiddens=training_step_output[4],
+        )
+        # if the user decides to finally reduce things in epoch_end, save raw output without graphs
+        if isinstance(training_step_output_for_epoch_end, torch.Tensor):
+            training_step_output_for_epoch_end = training_step_output_for_epoch_end.detach()
+        else:
+            training_step_output_for_epoch_end = recursive_detach(training_step_output_for_epoch_end)
+
+        return training_step_output_for_epoch_end, training_step_output
+
+    def _process_training_step_output_1_0(self, training_step_output, split_batch):
+        result = self.trainer.get_model()._results
+
+        loss = None
+        hiddens = None
+
+        # handle dict return
+        if isinstance(training_step_output, dict):
+            loss = training_step_output.pop('loss', None)
+            hiddens = training_step_output.pop('hiddens', None)
+            result['extra'] = training_step_output
+
+        # handle scalar return
+        elif isinstance(training_step_output, torch.Tensor):
+            loss = training_step_output
+            result['extra'] = {}
+
+        # map to results under the hood
+        result.minimize = loss
+        result.hiddens = hiddens
+
+        # track batch for manual reduction with result
+        result.track_batch_size(len(split_batch))
+
+        # track metrics without grads for epoch reduction
+        training_step_output_for_epoch_end = copy(result)
+        training_step_output_for_epoch_end.detach()
+
+        # what flows back into the system
+        training_step_output = result
+
+        return training_step_output_for_epoch_end, training_step_output
+
+    def _process_result(self, training_step_output, split_batch):
+        training_step_output.track_batch_size(len(split_batch))
+        m = """
+        TrainResult and EvalResult were deprecated in 0.9.1 and support will drop in 1.0.0.
+        Use self.log and .write from the LightningModule to log metrics and write predictions.
+        training_step can now only return a scalar (for the loss) or a dictionary with anything you want.
+
+        Option 1:
+        return loss
+
+        Option 2:
+        return {'loss': loss, 'anything_else': ...}
+
+        Option 3:
+        return {'loss': loss, 'hiddens': hiddens, 'anything_else': ...}
+            """
+        rank_zero_warn(m)
+
+        # don't allow EvalResult in the training_step
+        if isinstance(training_step_output, EvalResult):
+            raise MisconfigurationException('training_step cannot return EvalResult, '
+                                            'use a dict or TrainResult instead')
+
+        training_step_output_for_epoch_end = copy(training_step_output)
+        training_step_output_for_epoch_end.detach()
+
+        return training_step_output_for_epoch_end
 
     def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):
         with self.trainer.profiler.profile('optimizer_step'):
@@ -398,6 +477,7 @@ class TrainLoop:
         # track progress bar metrics
         if len(step_pbar_metrics) > 0:
             self.trainer.logger_connector.add_progress_bar_metrics(step_pbar_metrics)
+            self.trainer.logger_connector.callback_metrics.update(step_pbar_metrics)
 
     def process_hiddens(self, opt_closure_result):
         hiddens = opt_closure_result.hiddens
@@ -429,10 +509,6 @@ class TrainLoop:
         dataloader_idx = 0
         should_check_val = False
         for batch_idx, (batch, is_last_batch) in train_dataloader:
-            # stop epoch if we limited the number of training batches
-            if batch_idx >= self.trainer.num_training_batches:
-                break
-
             self.trainer.batch_idx = batch_idx
             model.global_step = self.trainer.global_step
 
@@ -450,6 +526,7 @@ class TrainLoop:
             )
 
             # hook
+            # TODO: add outputs to batches
             self.on_train_batch_end(epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx)
 
             # when returning -1 from train_step, we end epoch early
@@ -463,25 +540,22 @@ class TrainLoop:
                 self.trainer.run_evaluation(test_mode=False)
 
             # -----------------------------------------
-            # SAVE LOGGERS (ie: Tensorboard, etc...)
-            # -----------------------------------------
-            self.save_loggers_on_train_batch_end()
-
-            # -----------------------------------------
             # SAVE METRICS TO LOGGERS
             # -----------------------------------------
-            self.trainer.logger_connector.save_train_loop_metrics_to_loggers(batch_output)
+            self.trainer.logger_connector.save_train_loop_metrics_to_loggers(batch_idx, batch_output)
+
+            # -----------------------------------------
+            # SAVE LOGGERS (ie: Tensorboard, etc...)
+            # -----------------------------------------
+            self.save_loggers_on_train_batch_end(batch_idx)
 
             # update LR schedulers
             monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
             monitor_metrics.update(batch_output.batch_log_metrics)
             self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
 
-            # progress global step according to grads progress
-            self.increment_accumulated_grad_global_step()
-
             # max steps reached, end training
-            if self.trainer.max_steps is not None and self.trainer.max_steps == self.trainer.global_step:
+            if self.trainer.max_steps is not None and self.trainer.max_steps == self.trainer.global_step + 1:
                 break
 
             # end epoch early
@@ -489,6 +563,15 @@ class TrainLoop:
             # requested in the batches
             if self.trainer.should_stop:
                 break
+
+            self.trainer.total_batch_idx += 1
+
+            # stop epoch if we limited the number of training batches
+            if batch_idx + 1 >= self.trainer.num_training_batches:
+                break
+
+            # progress global step according to grads progress
+            self.increment_accumulated_grad_global_step()
 
         # process epoch outputs
         self.trainer.logger_connector.on_train_epoch_end(
@@ -503,6 +586,10 @@ class TrainLoop:
 
         # epoch end hook
         self.run_on_epoch_end_hook()
+
+        # increment the global step once
+        # progress global step according to grads progress
+        self.increment_accumulated_grad_global_step()
 
     def run_training_batch(self, batch, batch_idx, dataloader_idx):
         # track grad norms
@@ -562,6 +649,8 @@ class TrainLoop:
                     self.trainer.hiddens
                 )
 
+                using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
+
                 # log metrics
                 self.log_training_step_metrics(opt_closure_result, batch_callback_metrics, batch_log_metrics)
 
@@ -615,10 +704,9 @@ class TrainLoop:
         batch_log_metrics = {k: v for d in batch_log_metrics for k, v in d.items()}
 
         # track all metrics for callbacks
-        if not using_results_obj:
-            self.trainer.logger_connector.callback_metrics.update(
-                {k: v for d in batch_callback_metrics for k, v in d.items()}
-            )
+        self.trainer.logger_connector.callback_metrics.update(
+            {k: v for d in batch_callback_metrics for k, v in d.items() if v is not None}
+        )
 
         result = AttributeDict(
             signal=0,
@@ -662,7 +750,6 @@ class TrainLoop:
         # progress global step according to grads progress
         if num_accumulated_batches_reached or num_training_batches_reached:
             self.trainer.global_step += 1
-        self.trainer.total_batch_idx += 1
 
     def should_check_val_fx(self, batch_idx, is_last_batch):
         # decide if we should run validation

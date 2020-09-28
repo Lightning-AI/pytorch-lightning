@@ -191,7 +191,7 @@ def test_train_loop_only(tmpdir):
     # fit model
     result = trainer.fit(model, dm)
     assert result == 1
-    assert trainer.logger_connector.callback_metrics['checkpoint_on'] < 0.6
+    assert trainer.logger_connector.callback_metrics['loss'] < 0.6
 
 
 def test_train_val_loop_only(tmpdir):
@@ -213,7 +213,7 @@ def test_train_val_loop_only(tmpdir):
     # fit model
     result = trainer.fit(model, dm)
     assert result == 1
-    assert trainer.logger_connector.callback_metrics['checkpoint_on'] < 0.6
+    assert trainer.logger_connector.callback_metrics['loss'] < 0.6
 
 
 def test_test_loop_only(tmpdir):
@@ -253,6 +253,31 @@ def test_full_loop(tmpdir):
     result = trainer.test(datamodule=dm)
     result = result[0]
     assert result['test_acc'] > 0.8
+
+
+def test_trainer_attached_to_dm(tmpdir):
+    reset_seed()
+
+    dm = TrialMNISTDataModule(tmpdir)
+
+    model = EvalModelTemplate()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        weights_summary=None,
+        deterministic=True,
+    )
+
+    # fit model
+    result = trainer.fit(model, dm)
+    assert result == 1
+    assert dm.trainer is not None
+
+    # test
+    result = trainer.test(datamodule=dm)
+    result = result[0]
+    assert dm.trainer is not None
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires multi-GPU machine")
