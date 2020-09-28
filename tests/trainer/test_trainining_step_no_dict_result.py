@@ -217,7 +217,7 @@ def test_training_step_dict(tmpdir):
     assert trainer.dev_debugger.logged_metrics[4]['global_step'] == 3
 
 
-def test_training_step_scalar(tmpdir):
+def test_validation_step_logging(tmpdir):
     """
     Tests that only training_step can be used
     """
@@ -227,16 +227,15 @@ def test_training_step_scalar(tmpdir):
         def training_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
-            self.log('no_prefix_step_epoch_acc', acc, on_step=True, on_epoch=True)
+            self.log('train_step_acc', acc, on_step=True, on_epoch=True)
             self.training_step_called = True
             return acc
 
         def validation_step(self, batch, batch_idx):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
-            self.log('val_np_step_acc', acc, on_step=True, on_epoch=True)
+            self.log('val_step_acc', acc, on_step=True, on_epoch=True)
             self.training_step_called = True
-            return acc
 
         def backward(self, trainer, loss, optimizer, optimizer_idx):
             loss.backward()
@@ -256,27 +255,19 @@ def test_training_step_scalar(tmpdir):
     trainer.fit(model)
 
     # make sure all the metrics are available for callbacks
-    metrics = [
-        'step_acc',
-        'epoch_acc',
-        'no_prefix_step_epoch_acc', 'step_no_prefix_step_epoch_acc', 'epoch_no_prefix_step_epoch_acc',
-        'pbar_step_acc',
-        'pbar_epoch_acc',
-        'pbar_step_epoch_acc', 'step_pbar_step_epoch_acc', 'epoch_pbar_step_epoch_acc',
-        'custom_epoch_end_metric'
+    expected_logged_metrics = {
+        'epoch',
+        'train_step_acc', 'step_train_step_acc', 'epoch_train_step_acc',
+        'val_step_acc/epoch_0', 'val_step_acc/epoch_1',
+        'step_val_step_acc/epoch_0', 'step_val_step_acc/epoch_1',
+    }
+    logged_metrics = set(trainer.logged_metrics.keys())
+    assert expected_logged_metrics == logged_metrics
+
+    # we don't want to enable val metrics during steps because it is not something that users should do
+    expected_cb_metrics = [
+        'train_step_acc', 'step_train_step_acc', 'epoch_train_step_acc',
     ]
-    expected_metrics = set(metrics + ['debug_epoch'])
+    expected_cb_metrics = set(expected_cb_metrics)
     callback_metrics = set(trainer.callback_metrics.keys())
-    assert expected_metrics == callback_metrics
-
-    # verify global steps were correctly called
-
-    # epoch 0
-    assert trainer.dev_debugger.logged_metrics[0]['global_step'] == 0
-    assert trainer.dev_debugger.logged_metrics[1]['global_step'] == 1
-    assert trainer.dev_debugger.logged_metrics[2]['global_step'] == 1
-
-    # epoch 1
-    assert trainer.dev_debugger.logged_metrics[3]['global_step'] == 2
-    assert trainer.dev_debugger.logged_metrics[4]['global_step'] == 3
-    assert trainer.dev_debugger.logged_metrics[5]['global_step'] == 3
+    assert expected_cb_metrics == callback_metrics

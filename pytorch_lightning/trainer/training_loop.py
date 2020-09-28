@@ -542,7 +542,7 @@ class TrainLoop:
             # -----------------------------------------
             # SAVE METRICS TO LOGGERS
             # -----------------------------------------
-            self.trainer.logger_connector.save_train_loop_metrics_to_loggers(batch_idx, batch_output)
+            self.trainer.logger_connector.log_train_step_metrics(batch_idx, batch_output)
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
@@ -573,13 +573,16 @@ class TrainLoop:
             # progress global step according to grads progress
             self.increment_accumulated_grad_global_step()
 
-        # process epoch outputs
-        self.trainer.logger_connector.on_train_epoch_end(
+        # log epoch metrics
+        self.trainer.logger_connector.log_train_epoch_end_metrics(
             epoch_output,
             self.checkpoint_accumulator,
             self.early_stopping_accumulator,
             self.num_optimizers
         )
+
+        # hook
+        self.trainer.logger_connector.on_train_epoch_end(epoch_output)
 
         # when no val loop is present or fast-dev-run still need to call checkpoints
         self.check_checkpoint_callback(not (should_check_val or is_overridden('validation_step', model)))
@@ -704,6 +707,7 @@ class TrainLoop:
         batch_log_metrics = {k: v for d in batch_log_metrics for k, v in d.items()}
 
         # track all metrics for callbacks
+        # TODO: is this needed?
         self.trainer.logger_connector.callback_metrics.update(
             {k: v for d in batch_callback_metrics for k, v in d.items() if v is not None}
         )

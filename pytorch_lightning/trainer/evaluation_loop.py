@@ -278,26 +278,28 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_epoch_end', *args, **kwargs)
 
-    def log_step_metrics(self, output, batch_idx):
+    def log_evaluation_step_metrics(self, output, batch_idx):
         if self.trainer.running_sanity_check:
             return
 
+        results = self.trainer.get_model()._results
+        self.__log_result_step_metrics(results, batch_idx)
 
-        # deprecate
-        self.__log_legacy_step_metrics(output, batch_idx)
-
-    def __log_legacy_step_metrics(self, output, batch_idx):
+        # TODO: deprecate at 1.0
         if isinstance(output, EvalResult):
-            step_log_metrics = output.batch_log_metrics
-            step_pbar_metrics = output.batch_pbar_metrics
+            self.__log_result_step_metrics(output, batch_idx)
 
-            if len(step_log_metrics) > 0:
-                # make the metrics appear as a different line in the same graph
-                metrics_by_epoch = {}
-                for k, v in step_log_metrics.items():
-                    metrics_by_epoch[f'{k}/epoch_{self.trainer.current_epoch}'] = v
+    def __log_result_step_metrics(self, output, batch_idx):
+        step_log_metrics = output.batch_log_metrics
+        step_pbar_metrics = output.batch_pbar_metrics
 
-                self.trainer.logger_connector.log_metrics(metrics_by_epoch, {}, step=batch_idx)
+        if len(step_log_metrics) > 0:
+            # make the metrics appear as a different line in the same graph
+            metrics_by_epoch = {}
+            for k, v in step_log_metrics.items():
+                metrics_by_epoch[f'{k}/epoch_{self.trainer.current_epoch}'] = v
 
-            if len(step_pbar_metrics) > 0:
-                self.trainer.logger_connector.add_progress_bar_metrics(step_pbar_metrics)
+            self.trainer.logger_connector.log_metrics(metrics_by_epoch, {}, step=batch_idx)
+
+        if len(step_pbar_metrics) > 0:
+            self.trainer.logger_connector.add_progress_bar_metrics(step_pbar_metrics)

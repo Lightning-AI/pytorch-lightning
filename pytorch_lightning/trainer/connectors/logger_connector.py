@@ -87,7 +87,7 @@ class LoggerConnector:
             self.trainer.logger.save()
 
             # track the logged metrics
-            self.logged_metrics = scalar_metrics
+            self.logged_metrics.update(scalar_metrics)
             self.trainer.dev_debugger.track_logged_metrics_history(scalar_metrics)
 
     def add_progress_bar_metrics(self, metrics):
@@ -191,9 +191,8 @@ class LoggerConnector:
 
         return eval_loop_results
 
-    def on_train_epoch_end(self, epoch_output, checkpoint_accumulator, early_stopping_accumulator, num_optimizers):
-        self.log_train_epoch_end_metrics(epoch_output, checkpoint_accumulator,
-                                         early_stopping_accumulator, num_optimizers)
+    def on_train_epoch_end(self, epoch_output):
+        pass
 
     def log_train_epoch_end_metrics(self,
                                     epoch_output,
@@ -413,7 +412,7 @@ class LoggerConnector:
 
         return gathered_epoch_outputs
 
-    def save_train_loop_metrics_to_loggers(self, batch_idx, batch_output):
+    def log_train_step_metrics(self, batch_idx, batch_output):
         # when metrics should be logged
         should_log_metrics = (batch_idx + 1) % self.trainer.row_log_interval == 0 or self.trainer.should_stop
         if should_log_metrics or self.trainer.fast_dev_run:
