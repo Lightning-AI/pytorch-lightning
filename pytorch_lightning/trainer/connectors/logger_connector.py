@@ -241,8 +241,10 @@ class LoggerConnector:
 
             # log/aggregate metrics automatically
             epoch_log_metrics, epoch_progress_bar_metrics = self.__auto_reduce_results_on_epoch_end(epoch_output)
-            epoch_log_metrics.update(epoch_end_log_result.get_epoch_log_metrics())
-            epoch_progress_bar_metrics.update(epoch_end_log_result.get_epoch_pbar_metrics())
+
+            if epoch_end_log_result is not None:
+                epoch_log_metrics.update(epoch_end_log_result.get_epoch_log_metrics())
+                epoch_progress_bar_metrics.update(epoch_end_log_result.get_epoch_pbar_metrics())
 
         # TODO: deprecate 1.0
         else:

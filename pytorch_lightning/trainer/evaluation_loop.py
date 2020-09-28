@@ -245,6 +245,11 @@ class EvaluationLoop(object):
         return eval_results
 
     def on_evaluation_batch_start(self, *args, **kwargs):
+        # reset the result of the PL module
+        model = self.trainer.get_model()
+        model._results = Result()
+        model._current_fx_name = 'evaluation_step'
+
         if self.testing:
             self.trainer.call_hook('on_test_batch_start', *args, **kwargs)
         else:
@@ -277,6 +282,11 @@ class EvaluationLoop(object):
         if self.trainer.running_sanity_check:
             return
 
+
+        # deprecate
+        self.__log_legacy_step_metrics(output, batch_idx)
+
+    def __log_legacy_step_metrics(self, output, batch_idx):
         if isinstance(output, EvalResult):
             step_log_metrics = output.batch_log_metrics
             step_pbar_metrics = output.batch_pbar_metrics
