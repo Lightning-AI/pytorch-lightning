@@ -436,7 +436,7 @@ class Trainer(
 
                 # clean up
                 self.evaluation_loop.evaluation_batch_end_cleanup(output, batch_idx, dataloader_idx)
-                self.evaluation_loop.log_step_metrics(output, batch_idx)
+                self.evaluation_loop.log_evaluation_step_metrics(output, batch_idx)
 
                 # track epoch level metrics
                 if output is not None:
