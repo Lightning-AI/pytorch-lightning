@@ -34,6 +34,9 @@ from nvidia.dali.plugin.pytorch import DALIClassificationIterator
 
 
 class ExternalMNISTInputIterator(object):
+    """
+    This iterator class wraps torchvision's MNIST dataset and returns the images and labels in batches
+    """
     def __init__(self, mnist_ds, batch_size):
         self.batch_size = batch_size
         self.mnist_ds = mnist_ds
@@ -58,6 +61,9 @@ class ExternalMNISTInputIterator(object):
 
 
 class ExternalSourcePipeline(Pipeline):
+    """
+    This DALI pipeline class just contains the MNIST iterator
+    """
     def __init__(self, batch_size, eii, num_threads, device_id):
         super(ExternalSourcePipeline, self).__init__(batch_size, num_threads, device_id, seed=12)
         self.source = ops.ExternalSource(source=eii, num_outputs=2)
@@ -67,8 +73,10 @@ class ExternalSourcePipeline(Pipeline):
         return images, labels
 
 
-# we extend DALIClassificationIterator with the __len__() function so that we can call len() on it
 class DALIClassificationLoader(DALIClassificationIterator):
+    """
+    This class extends DALI's original DALIClassificationIterator with the __len__() function so that we can call len() on it
+    """
     def __init__(
         self,
         pipelines,
