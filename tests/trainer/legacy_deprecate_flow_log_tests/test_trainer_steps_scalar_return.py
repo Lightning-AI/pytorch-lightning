@@ -1,11 +1,9 @@
 """
 Tests to ensure that the training loop works with a scalar
 """
-import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.deterministic_model import DeterministicModel
 
 
