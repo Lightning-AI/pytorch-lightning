@@ -155,8 +155,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         value: Any,
         prog_bar: bool = False,
         logger: bool = True,
-        on_step: bool = True,
-        on_epoch: bool = True,
+        on_step: Union[None, bool] = None,
+        on_epoch: Union[None, bool] = None,
         reduce_fx: Callable = torch.mean,
         tbptt_reduce_fx: Callable = torch.mean,
         tbptt_pad_token: int = 0,
@@ -190,8 +190,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             value: value name
             prog_bar: if True logs to the progress base
             logger: if True logs to the logger
-            on_step: if True logs the output of validation_step or test_step
-            on_epoch: if True, logs the output of the training loop aggregated
+            on_step: if True logs at this step. None auto-logs for training_step but not validation/test_step
+            on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
             reduce_fx: Torch.mean by default
             tbptt_reduce_fx: function to reduce on truncated back prop
             tbptt_pad_token: token to use for padding
@@ -204,6 +204,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             # in any epoch end can't log step metrics (only epoch metric)
             if 'epoch_end' in self._current_fx_name and on_step:
                 on_step = False
+
+            # set the default depending on the fx_name
+            on_step = self.__auto_choose_log_on_step(on_step)
+            on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
             self._results.log(
                 name,
@@ -220,6 +224,30 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 sync_dist_op,
                 sync_dist_group
             )
+
+    def __auto_choose_log_on_step(self, on_step):
+        if on_step is None:
+            if self._current_fx_name in {'training_step', 'training_step_end'}:
+                on_step = True
+            elif self._current_fx_name in {'evaluation_step', 'evaluation_step_end',
+                                           'evaluation_epoch_end', 'training_epoch_end'}:
+                on_step = False
+            else:
+                on_step = False
+
+        return on_step
+
+    def __auto_choose_log_on_epoch(self, on_epoch):
+        if on_epoch is None:
+            if self._current_fx_name in {'training_step', 'training_step_end'}:
+                on_epoch = False
+            elif self._current_fx_name in {'evaluation_step', 'evaluation_step_end',
+                                           'evaluation_epoch_end', 'training_epoch_end'}:
+                on_epoch = True
+            else:
+                on_epoch = True
+
+        return on_epoch
 
     def forward(self, *args, **kwargs):
         r"""
