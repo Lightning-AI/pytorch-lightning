@@ -22,7 +22,7 @@ initial lr.
 
 .. warning:: 
     For the moment, this feature only works with models having a single optimizer. 
-    LR support for DDP is not implemented yet, it is coming soon.
+    LR Finder support for DDP is not implemented yet, it is coming soon.
 
 ----------
 
