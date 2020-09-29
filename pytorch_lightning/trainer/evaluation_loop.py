@@ -16,6 +16,9 @@ from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.core.step_result import Result, EvalResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_utils import is_overridden
+import torch
+from pytorch_lightning.utilities.distributed import rank_zero_warn
+from pytorch_lightning.utilities.warning_utils import WarningCache
 
 
 class EvaluationLoop(object):
@@ -25,6 +28,7 @@ class EvaluationLoop(object):
         self.outputs = []
         self.predictions = None
         self.max_batches = None
+        self.warning_cache = WarningCache()
 
     def on_trainer_init(self):
         self.trainer.num_val_batches = []
@@ -168,6 +172,12 @@ class EvaluationLoop(object):
 
         # call the model epoch end
         eval_results = self.__run_eval_epoch_end(num_dataloaders, using_eval_result)
+
+        # enable returning anything
+        for r in eval_results:
+            if not isinstance(r, (dict, Result, torch.Tensor)):
+                return []
+
         return eval_results
 
     def log_epoch_metrics(self, eval_results, test_mode):
@@ -205,6 +215,13 @@ class EvaluationLoop(object):
 
                 eval_results = model.validation_epoch_end(eval_results)
                 user_reduced = True
+
+        # depre warning
+        if eval_results is not None:
+            step = 'testing_epoch_end' if self.testing else 'validation_epoch_end'
+            m = f'The {step} should not return anything as of 9.1.' \
+                f'to log, use self.log(...) or self.write(...) directly in the LightningModule'
+            self.warning_cache.warn(m)
 
         if using_eval_result and not user_reduced:
             eval_results = self.__auto_reduce_result_objs(outputs)
