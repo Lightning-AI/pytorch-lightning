@@ -164,9 +164,6 @@ def test__validation_step__step_end__epoch_end__flow(tmpdir):
     """
     Tests that only training_step can be used
     """
-    """
-    Tests that only training_step can be used
-    """
     os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(DeterministicModel):
