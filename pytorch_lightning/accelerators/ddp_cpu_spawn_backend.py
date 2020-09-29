@@ -155,7 +155,6 @@ class DDPCPUSpawnBackend(Accelerator):
         # clean up memory
         torch.cuda.empty_cache()
 
-
     def training_step(self, args):
         if self.trainer.amp_backend == AMPType.NATIVE:
             with torch.cuda.amp.autocast():
