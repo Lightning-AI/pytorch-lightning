@@ -300,7 +300,7 @@ class ModelCheckpoint(Callback):
         if trainer.is_global_zero:
             self._fs.makedirs(os.path.dirname(filepath), exist_ok=True)
 
-        # delegate the saving to the model
+        # delegate the saving to the trainer
         if self.save_function is not None:
             self.save_function(filepath, self.save_weights_only)
         else:
@@ -474,7 +474,10 @@ class ModelCheckpoint(Callback):
 
         # when user ALSO asked for the 'last.ckpt' change the name
         if self.save_last:
-            last_filepath = os.path.join(self.dirpath, f"last.ckpt")
+            last_filepath = self._format_checkpoint_name(
+                self.CHECKPOINT_NAME_LAST, epoch, ckpt_name_metrics, prefix=self.prefix
+            )
+            last_filepath = os.path.join(self.dirpath, f"{last_filepath}.ckpt")
 
         self._save_model(last_filepath, trainer, pl_module)
         if (
