@@ -14,7 +14,14 @@ python mnist.py
 python mnist.py --gpus 2 --distributed_backend 'dp'
 ```
 
----   
+---
+#### MNIST with DALI
+The MNIST example above using [NVIDIA DALI](https://developer.nvidia.com/DALI).
+```bash
+python mnist_dali.py
+```
+
+---
 #### Image classifier
 Generic image classifier with an arbitrary backbone (ie: a simple system)
 ```bash
