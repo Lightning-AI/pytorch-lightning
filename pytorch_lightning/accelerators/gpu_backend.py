@@ -13,8 +13,9 @@
 # limitations under the License.
 
 import torch
-from pytorch_lightning.utilities import AMPType
+
 from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.utilities import AMPType
 
 
 class GPUBackend(Accelerator):
@@ -33,13 +34,10 @@ class GPUBackend(Accelerator):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
-        self.trainer.optimizers = optimizers
-        self.trainer.lr_schedulers = lr_schedulers
-        self.trainer.optimizer_frequencies = optimizer_frequencies
+        self.setup_optimizers(model)
 
-        # init precision
-        model, optimizers = self.trainer.precision_connector.connect(model, optimizers)
+        # 16-bit
+        model = self.trainer.precision_connector.connect(model)
 
         self.trainer.model = model
 
@@ -51,7 +49,6 @@ class GPUBackend(Accelerator):
 
         # train or test
         results = self.train_or_test()
-
         return results
 
     def training_step(self, args):

@@ -32,6 +32,7 @@ from pytorch_lightning.core.step_result import EvalResult, TrainResult
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
+from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities.parsing import (
     AttributeDict,
     collect_init_args,
@@ -102,6 +103,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         # optionally can be set by user
         self._example_input_array = None
         self._datamodule = None
+        self._results = None
+        self._current_fx_name = ''
 
     @property
     def example_input_array(self) -> Any:
@@ -145,6 +148,106 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         """
         if self.trainer.is_global_zero:
             print(*args, **kwargs)
+
+    def log(
+        self,
+        name: str,
+        value: Any,
+        prog_bar: bool = False,
+        logger: bool = True,
+        on_step: Union[None, bool] = None,
+        on_epoch: Union[None, bool] = None,
+        reduce_fx: Callable = torch.mean,
+        tbptt_reduce_fx: Callable = torch.mean,
+        tbptt_pad_token: int = 0,
+        enable_graph: bool = False,
+        sync_dist: bool = False,
+        sync_dist_op: Union[Any, str] = 'mean',
+        sync_dist_group: Optional[Any] = None,
+    ):
+        """
+        Log a key, value
+
+        Example::
+
+            result.log('train_loss', loss)
+
+            # defaults used
+            result.log(
+                name,
+                value,
+                on_step=False,
+                on_epoch=False,
+                logger=True,
+                prog_bar=False,
+                reduce_fx=torch.mean,
+                enable_graph=False
+            )
+
+
+        Args:
+            name: key name
+            value: value name
+            prog_bar: if True logs to the progress base
+            logger: if True logs to the logger
+            on_step: if True logs at this step. None auto-logs for training_step but not validation/test_step
+            on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
+            reduce_fx: Torch.mean by default
+            tbptt_reduce_fx: function to reduce on truncated back prop
+            tbptt_pad_token: token to use for padding
+            enable_graph: if True, will not auto detach the graph
+            sync_dist: if True, reduces the metric across GPUs/TPUs
+            sync_dist_op: the op to sync across
+            sync_dist_group: the ddp group
+        """
+        if self._results is not None:
+            # in any epoch end can't log step metrics (only epoch metric)
+            if 'epoch_end' in self._current_fx_name and on_step:
+                on_step = False
+
+            # set the default depending on the fx_name
+            on_step = self.__auto_choose_log_on_step(on_step)
+            on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
+
+            self._results.log(
+                name,
+                value,
+                prog_bar,
+                logger,
+                on_step,
+                on_epoch,
+                reduce_fx,
+                tbptt_reduce_fx,
+                tbptt_pad_token,
+                enable_graph,
+                sync_dist,
+                sync_dist_op,
+                sync_dist_group
+            )
+
+    def __auto_choose_log_on_step(self, on_step):
+        if on_step is None:
+            if self._current_fx_name in {'training_step', 'training_step_end'}:
+                on_step = True
+            elif self._current_fx_name in {'evaluation_step', 'evaluation_step_end',
+                                           'evaluation_epoch_end', 'training_epoch_end'}:
+                on_step = False
+            else:
+                on_step = False
+
+        return on_step
+
+    def __auto_choose_log_on_epoch(self, on_epoch):
+        if on_epoch is None:
+            if self._current_fx_name in {'training_step', 'training_step_end'}:
+                on_epoch = False
+            elif self._current_fx_name in {'evaluation_step', 'evaluation_step_end',
+                                           'evaluation_epoch_end', 'training_epoch_end'}:
+                on_epoch = True
+            else:
+                on_epoch = True
+
+        return on_epoch
 
     def forward(self, *args, **kwargs):
         r"""
@@ -976,7 +1079,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     return model, optimizers
         """
         model, optimizers = amp.initialize(model, optimizers, opt_level=amp_level)
-
         return model, optimizers
 
     def configure_optimizers(

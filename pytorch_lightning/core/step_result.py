@@ -161,21 +161,22 @@ class Result(Dict):
                 tbptt_pad_token=tbptt_pad_token,
             )
             self.__setitem__(epoch_name, value)
-        else:
-            self.__set_meta(
-                name,
-                value,
-                prog_bar,
-                logger,
-                on_step,
-                on_epoch,
-                reduce_fx,
-                tbptt_reduce_fx=tbptt_reduce_fx,
-                tbptt_pad_token=tbptt_pad_token,
-            )
 
-            # set the value
-            self.__setitem__(name, value)
+        # always log the original metric
+        self.__set_meta(
+            name,
+            value,
+            prog_bar,
+            logger,
+            on_step,
+            on_epoch,
+            reduce_fx,
+            tbptt_reduce_fx=tbptt_reduce_fx,
+            tbptt_pad_token=tbptt_pad_token,
+        )
+
+        # set the value
+        self.__setitem__(name, value)
 
     def __set_meta(
         self,
@@ -351,9 +352,14 @@ class Result(Dict):
     @classmethod
     def reduce_on_epoch_end(cls, outputs):
         # get the batch sizes for all outputs
-        batch_sizes = torch.stack([x.get_batch_sizes() for x in outputs]).view(-1)
+        batch_sizes = []
+        meta = {}
+        for x in outputs:
+            batch_sizes.append(x.get_batch_sizes())
+            meta.update(x['meta'])
 
-        meta = outputs[0]['meta']
+        batch_sizes = torch.stack(batch_sizes).view(-1)
+
         result = cls()
         result = recursive_gather(outputs, result)
         recursive_stack(result)
@@ -370,6 +376,8 @@ class Result(Dict):
                     reduced_val = fx(result[k])
 
                 result[k] = reduced_val
+            else:
+                del result[k]
 
         result['meta'] = meta
         return result
@@ -378,12 +386,17 @@ class Result(Dict):
     def reduce_across_time(cls, time_outputs):
         # auto-reduce across time for tbptt
         meta = time_outputs[0]['meta']
+
+        # in 1.0 the results have 'extra'. Once we deprecate 0.10.0 we may not need this
+        if 'extra' in time_outputs[0]:
+            [x.pop('extra', None) for x in time_outputs]
+
         result = cls()
         result = recursive_gather(time_outputs, result)
         recursive_stack(result)
 
         for k, value in result.items():
-            if k == 'meta':
+            if k in ['meta', 'extra']:
                 continue
 
             # pick the reduce fx
@@ -865,7 +878,7 @@ class EvalResult(Result):
 
 
 def weighted_mean(result, weights):
-    weights = weights.to(result.device)
+    weights = weights.to(result.device)[:result.size(0)]
     numerator = torch.dot(result.float(), weights.transpose(-1, 0).float())
     result = numerator / weights.sum().float()
     return result
