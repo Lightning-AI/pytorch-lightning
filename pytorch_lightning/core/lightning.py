@@ -155,8 +155,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         value: Any,
         prog_bar: bool = False,
         logger: bool = True,
-        on_step: bool = True,
-        on_epoch: bool = True,
+        on_step: Union[None, bool] = None,
+        on_epoch: Union[None, bool] = None,
         reduce_fx: Callable = torch.mean,
         tbptt_reduce_fx: Callable = torch.mean,
         tbptt_pad_token: int = 0,
@@ -204,6 +204,23 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             # in any epoch end can't log step metrics (only epoch metric)
             if 'epoch_end' in self._current_fx_name and on_step:
                 on_step = False
+
+            # set the default depending on the fx_name
+            if on_step is None:
+                if self._current_fx_name in {'training_step', 'training_step_end', 'training_epoch_end'}:
+                    on_step = True
+                elif self._current_fx_name in {'evaluation_step', 'evaluation_step_end', 'evaluation_epoch_end'}:
+                    on_step = False
+                else:
+                    on_step = False
+
+            if on_epoch is None:
+                if self._current_fx_name in {'training_step', 'training_step_end', 'training_epoch_end'}:
+                    on_epoch = False
+                elif self._current_fx_name in {'evaluation_step', 'evaluation_step_end', 'evaluation_epoch_end'}:
+                    on_epoch = True
+                else:
+                    on_epoch = True
 
             self._results.log(
                 name,

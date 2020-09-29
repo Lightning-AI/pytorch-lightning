@@ -23,6 +23,7 @@ class EvaluationLoop(object):
         self.trainer = trainer
         self.testing = False
         self.outputs = []
+        self.step_metrics = []
         self.predictions = None
         self.max_batches = None
 
@@ -278,14 +279,17 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_epoch_end', *args, **kwargs)
 
-    def log_evaluation_step_metrics(self, output, batch_idx):
+    def log_evaluation_step_metrics(self, batch, batch_idx):
+        results = self.trainer.get_model()._results
+        results.track_batch_size(len(batch))
+        self.__log_result_step_metrics(results, batch_idx)
+        return results
+
+    # TODO: deprecate at 1.0
+    def log_evaluation_step_metrics_legacy(self, output, batch_idx):
         if self.trainer.running_sanity_check:
             return
 
-        results = self.trainer.get_model()._results
-        self.__log_result_step_metrics(results, batch_idx)
-
-        # TODO: deprecate at 1.0
         if isinstance(output, EvalResult):
             self.__log_result_step_metrics(output, batch_idx)
 
