@@ -132,6 +132,8 @@ class AcceleratorConnector:
         use_ddp_spawn = self.trainer.use_ddp and self.trainer.distributed_backend == 'ddp_spawn'
         use_ddp_cpu_spawn = self.trainer.use_ddp and self.trainer.distributed_backend == 'ddp_cpu'
 
+        valid_modes = ['dp', 'ddp', 'ddp2', 'ddp_cpu', 'ddp_spawn', 'horovod']
+
         # choose the appropriate accelerator backend
         if self.trainer.use_ddp2:
             accelerator_backend = accelerators.DDP2Backend(self.trainer)
@@ -163,8 +165,10 @@ class AcceleratorConnector:
         elif self.trainer.use_tpu:
             accelerator_backend = accelerators.TPUBackend(self.trainer)
 
-        else:
+        elif self.trainer.distributed_backend is None:
             accelerator_backend = accelerators.CPUBackend(self.trainer)
+        else:
+            raise MisconfigurationException(f'{self.trainer.distributed_backend} is not a supported backend')
 
         return accelerator_backend
 
