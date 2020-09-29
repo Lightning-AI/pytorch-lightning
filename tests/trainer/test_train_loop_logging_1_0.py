@@ -115,6 +115,7 @@ def test__training_step__epoch_end__log(tmpdir):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
             self.log('a', acc, on_step=True, on_epoch=True)
+            self.log_dict({'a1': acc, 'a2': acc})
             return acc
 
         def training_epoch_end(self, outputs):
@@ -150,6 +151,8 @@ def test__training_step__epoch_end__log(tmpdir):
         'step_a',
         'epoch_a',
         'b',
+        'a1',
+        'a2'
     }
     assert logged_metrics == expected_logged_metrics
 
