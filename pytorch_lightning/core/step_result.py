@@ -234,8 +234,6 @@ class Result(Dict):
         """
         Gets the metrics to log at the end of the batch step
 
-        Args:
-            include_forked_originals: If True also includes the original metric split into step_ and epoch_
         """
         result = {}
 
