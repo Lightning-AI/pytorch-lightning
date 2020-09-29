@@ -119,7 +119,7 @@ def test__training_step__epoch_end__log(tmpdir):
 
         def training_epoch_end(self, outputs):
             self.training_epoch_end_called = True
-            self.log('b', outputs[0]['loss'], on_step=True, on_epoch=True, prog_bar=True, logger=True)
+            self.log('b', outputs[0]['loss'], on_epoch=True, prog_bar=True, logger=True)
 
         def backward(self, trainer, loss, optimizer, optimizer_idx):
             loss.backward()
@@ -157,6 +157,77 @@ def test__training_step__epoch_end__log(tmpdir):
     expected_pbar_metrics = {
         'b',
     }
+    assert pbar_metrics == expected_pbar_metrics
+
+    callback_metrics = set(trainer.callback_metrics.keys())
+    callback_metrics.remove('debug_epoch')
+    expected_callback_metrics = set()
+    expected_callback_metrics = expected_callback_metrics.union(logged_metrics)
+    expected_callback_metrics = expected_callback_metrics.union(pbar_metrics)
+    expected_callback_metrics.remove('epoch')
+    assert callback_metrics == expected_callback_metrics
+
+
+def test__training_step__step_end__epoch_end__log(tmpdir):
+    """
+    Tests that only training_step can be used
+    """
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    class TestModel(DeterministicModel):
+        def training_step(self, batch, batch_idx):
+            self.training_step_called = True
+            acc = self.step(batch, batch_idx)
+            acc = acc + batch_idx
+            self.log('a', acc, on_step=True, on_epoch=True)
+            return acc
+
+        def training_step_end(self, out):
+            self.training_step_end_called = True
+            self.log('b', out, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+            return out
+
+        def training_epoch_end(self, outputs):
+            self.training_epoch_end_called = True
+            self.log('c', outputs[0]['loss'], on_epoch=True, prog_bar=True, logger=True)
+
+        def backward(self, trainer, loss, optimizer, optimizer_idx):
+            loss.backward()
+
+    model = TestModel()
+    model.val_dataloader = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=2,
+        row_log_interval=1,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    # make sure correct steps were called
+    assert model.training_step_called
+    assert model.training_step_end_called
+    assert model.training_epoch_end_called
+
+    # make sure all the metrics are available for callbacks
+    logged_metrics = set(trainer.logged_metrics.keys())
+    expected_logged_metrics = {
+        'a',
+        'step_a',
+        'epoch_a',
+        'b',
+        'step_b',
+        'epoch_b',
+        'c',
+        'epoch',
+    }
+    assert logged_metrics == expected_logged_metrics
+
+    pbar_metrics = set(trainer.progress_bar_metrics.keys())
+    expected_pbar_metrics = {'b', 'c', 'epoch_b', 'step_b'}
     assert pbar_metrics == expected_pbar_metrics
 
     callback_metrics = set(trainer.callback_metrics.keys())

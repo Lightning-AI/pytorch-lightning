@@ -32,6 +32,7 @@ from pytorch_lightning.core.step_result import EvalResult, TrainResult
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities.parsing import (
     AttributeDict,
@@ -203,7 +204,15 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         if self._results is not None:
             # in any epoch end can't log step metrics (only epoch metric)
             if 'epoch_end' in self._current_fx_name and on_step:
-                on_step = False
+                m = f'on_step=True cannot be used on {self._current_fx_name} method'
+                raise MisconfigurationException(m)
+
+            if 'epoch_end' in self._current_fx_name and not on_epoch:
+                m = f'on_epoch cannot be False when called from the {self._current_fx_name} method'
+                raise MisconfigurationException(m)
+
+            # add log_dict
+            # TODO: if logged twice fail with crash
 
             # set the default depending on the fx_name
             on_step = self.__auto_choose_log_on_step(on_step)
