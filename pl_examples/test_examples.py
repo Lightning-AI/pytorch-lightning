@@ -86,9 +86,10 @@ ddp_args = """
 @pytest.mark.parametrize('cli_args', [cpu_args])
 def test_examples_cpu(cli_args):
     from pl_examples.basic_examples.mnist import cli_main as mnist_cli
+    from pl_examples.basic_examples.mnist_dali import cli_main as mnist_dali_cli
     from pl_examples.basic_examples.image_classifier import cli_main as ic_cli
     from pl_examples.basic_examples.autoencoder import cli_main as ae_cli
 
-    for cli_cmd in [mnist_cli, ic_cli, ae_cli]:
+    for cli_cmd in [mnist_cli, mnist_dali_cli, ic_cli, ae_cli]:
         with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
             cli_cmd()
