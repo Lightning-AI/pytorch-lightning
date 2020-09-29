@@ -211,6 +211,8 @@ def test_training_step_skip_return_when_even(tmpdir):
         limit_train_batches=3,
         max_epochs=4,
         weights_summary=None,
+        logger=False,
+        checkpoint_callback=False,
     )
     trainer.fit(model)
 
@@ -229,7 +231,7 @@ def test_training_step_skip_return_when_even(tmpdir):
         train_step_out = out.training_step_output_for_epoch_end
         assert len(train_step_out) == 1
         train_step_out = train_step_out[0][0]
-        assert train_step_out.item() == 171
+        assert train_step_out['minimize'].item() == 171
 
         # make sure the optimizer closure returns the correct things
         opt_closure_result = trainer.train_loop.training_step_and_backward(
