@@ -66,6 +66,8 @@ ENV HOROVOD_WITHOUT_TENSORFLOW=1
 ENV HOROVOD_WITHOUT_MXNET=1
 ENV HOROVOD_WITH_GLOO=1
 ENV HOROVOD_WITHOUT_MPI=1
+# TODO: uncomment in horovod next release, https://github.com/horovod/horovod/pull/2239
+# ENV MAKEFLAGS="-j$(nproc)"
 
 ENV CONDA_ENV=lightning
 COPY environment.yml environment.yml
