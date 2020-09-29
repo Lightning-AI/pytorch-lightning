@@ -11,12 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import torch
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.core.step_result import Result, EvalResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_utils import is_overridden
-import torch
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.warning_utils import WarningCache
 
@@ -26,6 +25,7 @@ class EvaluationLoop(object):
         self.trainer = trainer
         self.testing = False
         self.outputs = []
+        self.step_metrics = []
         self.predictions = None
         self.max_batches = None
         self.warning_cache = WarningCache()
@@ -295,14 +295,21 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_epoch_end', *args, **kwargs)
 
-    def log_evaluation_step_metrics(self, output, batch_idx):
+    def log_evaluation_step_metrics(self, batch, batch_idx):
+        results = self.trainer.get_model()._results
+        if len(results) == 1:
+            return None
+
+        results.track_batch_size(len(batch))
+        self.__log_result_step_metrics(results, batch_idx)
+
+        return results
+
+    # TODO: deprecate at 1.0
+    def log_evaluation_step_metrics_legacy(self, output, batch_idx):
         if self.trainer.running_sanity_check:
             return
 
-        results = self.trainer.get_model()._results
-        self.__log_result_step_metrics(results, batch_idx)
-
-        # TODO: deprecate at 1.0
         if isinstance(output, EvalResult):
             self.__log_result_step_metrics(output, batch_idx)
 
