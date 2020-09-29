@@ -51,8 +51,6 @@ ENV HOROVOD_WITHOUT_TENSORFLOW=1
 ENV HOROVOD_WITHOUT_MXNET=1
 ENV HOROVOD_WITH_GLOO=1
 ENV HOROVOD_WITHOUT_MPI=1
-# TODO: uncomment in horovod next release, https://github.com/horovod/horovod/pull/2239
-# ENV MAKEFLAGS="-j$(nproc)"
 
 ENV CONDA_ENV=lightning
 COPY environment.yml environment.yml
@@ -86,7 +84,7 @@ RUN \
     # filter only Horovod
     python -c "fname = 'requirements-extra.txt' ; req = open(fname).readlines() ; open(fname, 'w').writelines([l for l in req if 'horovod' in l])" && \
     # Install all requirements
-    pip install -r requirements-extra.txt && \
+    MAKEFLAGS="-j$(nproc)" ; pip install -r requirements-extra.txt && \
     pip install -r requirements-tests.txt --upgrade-strategy only-if-needed && \
     pip install -r requirements-examples.txt --upgrade-strategy only-if-needed && \
     rm requirements*
