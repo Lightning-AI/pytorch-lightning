@@ -54,7 +54,18 @@ import pytorch_lightning  # noqa: E402
 for md in glob.glob(os.path.join(PATH_ROOT, '.github', '*.md')):
     shutil.copy(md, os.path.join(PATH_HERE, os.path.basename(md)))
 # copy also the changelog
-shutil.copy(os.path.join(PATH_ROOT, 'CHANGELOG.md'), os.path.join(PATH_HERE, 'CHANGELOG.md'))
+with open(os.path.join(PATH_ROOT, 'CHANGELOG.md'), 'r') as fp:
+    chlog_lines = fp.readlines()
+# enrich short subsub-titles to be unique
+chlog_ver = ''
+for i, ln in enumerate(chlog_lines):
+    if ln.startswith('## '):
+        chlog_ver = ln[2:].split('-')[0].strip()
+    elif ln.startswith('### '):
+        ln = ln.replace('###', f'### {chlog_ver} -')
+        chlog_lines[i] = ln
+with open(os.path.join(PATH_HERE, 'CHANGELOG.md'), 'w') as fp:
+    fp.writelines(chlog_lines)
 
 # -- Project information -----------------------------------------------------
 
