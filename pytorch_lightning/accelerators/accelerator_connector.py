@@ -168,7 +168,10 @@ class AcceleratorConnector:
         elif self.trainer.distributed_backend is None:
             accelerator_backend = accelerators.CPUBackend(self.trainer)
         else:
-            raise MisconfigurationException(f'{self.trainer.distributed_backend} is not a supported backend')
+            raise MisconfigurationException(
+                f'Trainer(distributed_backend={self.trainer.distributed_backend} '
+                f'is not a supported backend'
+            )
 
         return accelerator_backend
 
