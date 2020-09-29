@@ -35,7 +35,7 @@ else:
     HYDRA_AVAILABLE = True
 
 
-class DDPSpawnBackend(Accelerator):
+class DDPCPUSpawnBackend(Accelerator):
 
     def __init__(self, trainer, nprocs):
         super().__init__(trainer)
@@ -124,14 +124,6 @@ class DDPSpawnBackend(Accelerator):
         if self.trainer.sync_batchnorm:
             model = model.configure_sync_batchnorm(model)
 
-        # MODEL
-        # copy model to each gpu
-        if self.trainer.on_gpu:
-            gpu_idx = process_idx
-            self.trainer.root_gpu = gpu_idx
-            torch.cuda.set_device(self.trainer.root_gpu)
-            model.cuda(self.trainer.root_gpu)
-
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
         self.setup_optimizers(model)
@@ -142,8 +134,8 @@ class DDPSpawnBackend(Accelerator):
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
 
-        # DDP spawn already spawned off each process, this is that process' id
-        device_ids = [self.trainer.root_gpu]
+        # DDP spawn already spawned off each process... no need to do anything
+        device_ids = None
 
         # allow user to configure ddp
         model = model.configure_ddp(model, device_ids)
