@@ -59,10 +59,7 @@ class ExternalMNISTInputIterator(object):
 
 class ExternalSourcePipeline(Pipeline):
     def __init__(self, batch_size, eii, num_threads, device_id):
-        super(ExternalSourcePipeline, self).__init__(batch_size,
-                                                     num_threads,
-                                                     device_id,
-                                                     seed=12)
+        super(ExternalSourcePipeline, self).__init__(batch_size, num_threads, device_id, seed=12)
         self.source = ops.ExternalSource(source=eii, num_outputs=2)
 
     def define_graph(self):
@@ -82,13 +79,7 @@ class DALIClassificationLoader(DALIClassificationIterator):
         dynamic_shape=False,
         last_batch_padded=False,
     ):
-        super().__init__(pipelines,
-                         size,
-                         reader_name,
-                         auto_reset,
-                         fill_last_batch,
-                         dynamic_shape,
-                         last_batch_padded)
+        super().__init__(pipelines, size, reader_name, auto_reset, fill_last_batch, dynamic_shape, last_batch_padded)
 
     def __len__(self):
         batch_count = self._size // (self._num_gpus * self.batch_size)
@@ -111,7 +102,7 @@ class LitClassifier(pl.LightningModule):
         return x
 
     def split_batch(self, batch):
-        return batch[0]['data'], batch[0]['label'].squeeze().long()
+        return batch[0]["data"], batch[0]["label"].squeeze().long()
 
     def training_step(self, batch, batch_idx):
         x, y = self.split_batch(batch)
@@ -124,7 +115,7 @@ class LitClassifier(pl.LightningModule):
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
         result = pl.EvalResult(checkpoint_on=loss)
-        result.log('valid_loss', loss)
+        result.log("valid_loss", loss)
         return result
 
     def test_step(self, batch, batch_idx):
@@ -132,7 +123,7 @@ class LitClassifier(pl.LightningModule):
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
         result = pl.EvalResult(checkpoint_on=loss)
-        result.log('test_loss', loss)
+        result.log("test_loss", loss)
         return result
 
     def configure_optimizers(self):
@@ -141,8 +132,8 @@ class LitClassifier(pl.LightningModule):
     @staticmethod
     def add_model_specific_args(parent_parser):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument('--hidden_dim', type=int, default=128)
-        parser.add_argument('--learning_rate', type=float, default=0.0001)
+        parser.add_argument("--hidden_dim", type=int, default=128)
+        parser.add_argument("--learning_rate", type=float, default=0.0001)
         return parser
 
 
@@ -153,7 +144,7 @@ def cli_main():
     # args
     # ------------
     parser = ArgumentParser()
-    parser.add_argument('--batch_size', default=32, type=int)
+    parser.add_argument("--batch_size", default=32, type=int)
     parser = pl.Trainer.add_argparse_args(parser)
     parser = LitClassifier.add_model_specific_args(parser)
     args = parser.parse_args()
@@ -161,8 +152,8 @@ def cli_main():
     # ------------
     # data
     # ------------
-    dataset = MNIST('', train=True, download=True, transform=transforms.ToTensor())
-    mnist_test = MNIST('', train=False, download=True, transform=transforms.ToTensor())
+    dataset = MNIST("", train=True, download=True, transform=transforms.ToTensor())
+    mnist_test = MNIST("", train=False, download=True, transform=transforms.ToTensor())
     mnist_train, mnist_val = random_split(dataset, [55000, 5000])
 
     eii_train = ExternalMNISTInputIterator(mnist_train, args.batch_size)
@@ -198,5 +189,5 @@ def cli_main():
     trainer.test(test_dataloaders=test_loader)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli_main()
