@@ -206,21 +206,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 on_step = False
 
             # set the default depending on the fx_name
-            if on_step is None:
-                if self._current_fx_name in {'training_step', 'training_step_end', 'training_epoch_end'}:
-                    on_step = True
-                elif self._current_fx_name in {'evaluation_step', 'evaluation_step_end', 'evaluation_epoch_end'}:
-                    on_step = False
-                else:
-                    on_step = False
-
-            if on_epoch is None:
-                if self._current_fx_name in {'training_step', 'training_step_end', 'training_epoch_end'}:
-                    on_epoch = False
-                elif self._current_fx_name in {'evaluation_step', 'evaluation_step_end', 'evaluation_epoch_end'}:
-                    on_epoch = True
-                else:
-                    on_epoch = True
+            on_step = self.__auto_choose_log_on_step(on_step)
+            on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
             self._results.log(
                 name,
@@ -237,6 +224,28 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 sync_dist_op,
                 sync_dist_group
             )
+
+    def __auto_choose_log_on_step(self, on_step):
+        if on_step is None:
+            if self._current_fx_name in {'training_step', 'training_step_end', 'training_epoch_end'}:
+                on_step = True
+            elif self._current_fx_name in {'evaluation_step', 'evaluation_step_end', 'evaluation_epoch_end'}:
+                on_step = False
+            else:
+                on_step = False
+
+        return on_step
+
+    def __auto_choose_log_on_epoch(self, on_epoch):
+        if on_epoch is None:
+            if self._current_fx_name in {'training_step', 'training_step_end', 'training_epoch_end'}:
+                on_epoch = False
+            elif self._current_fx_name in {'evaluation_step', 'evaluation_step_end', 'evaluation_epoch_end'}:
+                on_epoch = True
+            else:
+                on_epoch = True
+
+        return on_epoch
 
     def forward(self, *args, **kwargs):
         r"""
