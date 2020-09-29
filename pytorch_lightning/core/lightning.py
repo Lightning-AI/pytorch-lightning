@@ -227,9 +227,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
     def __auto_choose_log_on_step(self, on_step):
         if on_step is None:
-            if self._current_fx_name in {'training_step', 'training_step_end', 'training_epoch_end'}:
+            if self._current_fx_name in {'training_step', 'training_step_end'}:
                 on_step = True
-            elif self._current_fx_name in {'evaluation_step', 'evaluation_step_end', 'evaluation_epoch_end'}:
+            elif self._current_fx_name in {'evaluation_step', 'evaluation_step_end',
+                                           'evaluation_epoch_end', 'training_epoch_end'}:
                 on_step = False
             else:
                 on_step = False
@@ -238,9 +239,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
     def __auto_choose_log_on_epoch(self, on_epoch):
         if on_epoch is None:
-            if self._current_fx_name in {'training_step', 'training_step_end', 'training_epoch_end'}:
+            if self._current_fx_name in {'training_step', 'training_step_end'}:
                 on_epoch = False
-            elif self._current_fx_name in {'evaluation_step', 'evaluation_step_end', 'evaluation_epoch_end'}:
+            elif self._current_fx_name in {'evaluation_step', 'evaluation_step_end',
+                                           'evaluation_epoch_end', 'training_epoch_end'}:
                 on_epoch = True
             else:
                 on_epoch = True
