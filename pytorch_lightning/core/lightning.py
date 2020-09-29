@@ -190,8 +190,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             value: value name
             prog_bar: if True logs to the progress base
             logger: if True logs to the logger
-            on_step: if True logs the output of validation_step or test_step
-            on_epoch: if True, logs the output of the training loop aggregated
+            on_step: if True logs at this step. None auto-logs for training_step but not validation/test_step
+            on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
             reduce_fx: Torch.mean by default
             tbptt_reduce_fx: function to reduce on truncated back prop
             tbptt_pad_token: token to use for padding
