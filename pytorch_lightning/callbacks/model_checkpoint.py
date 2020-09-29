@@ -559,10 +559,10 @@ class ModelCheckpoint(Callback):
             )
         self._save_model(filepath, trainer, pl_module)
 
-        if trainer.is_global_zero:
-            for cur_path in del_list:
-                if cur_path != filepath:
-                    self._del_model(cur_path)
+
+        for cur_path in del_list:
+            if cur_path != filepath:
+                self._del_model(cur_path)
 
     def to_yaml(self, filepath: Optional[Union[str, Path]] = None):
         """
