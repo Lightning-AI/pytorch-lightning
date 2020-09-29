@@ -155,8 +155,6 @@ class DDPCPUSpawnBackend(Accelerator):
         # clean up memory
         torch.cuda.empty_cache()
 
-        if self.trainer.global_rank == 0:
-            return results
 
     def training_step(self, args):
         if self.trainer.amp_backend == AMPType.NATIVE:
