@@ -68,15 +68,13 @@ COPY ./ ./pytorch-lightning/
 RUN \
 # Install PL dependencies
     cd pytorch-lightning && \
-    # drop Torch
+    # drop Torch as it was installed with XLA
     python -c "fname = \"./requirements/base.txt\" ; lines = [line for line in open(fname).readlines() if not line.startswith(\"torch\")] ; open(fname, \"w\").writelines(lines)" && \
-    pip install --requirement ./requirements/base.txt --upgrade-strategy only-if-needed && \
-    # drop Horovod
+    # drop Horovod as it is not needed
     python -c "fname = \"./requirements/extra.txt\" ; lines = [line for line in open(fname).readlines() if not line.startswith(\"horovod\")] ; open(fname, \"w\").writelines(lines)" && \
-    pip install --requirement ./requirements/extra.txt --upgrade-strategy only-if-needed && \
-    # drop TorchVision
+    # drop TorchVision as it was installed with XLA
     python -c "fname = \"./requirements/examples.txt\" ; lines = [line for line in open(fname).readlines() if not line.startswith(\"torchvision\")] ; open(fname, \"w\").writelines(lines)" && \
-    pip install --requirement ./requirements/examples.txt --upgrade-strategy only-if-needed && \
+    pip install --requirement ./requirements/devel.txt --upgrade-strategy only-if-needed && \
     cd .. && \
     rm -rf pytorch-lightning && \
     rm -rf /root/.cache

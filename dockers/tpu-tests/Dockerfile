@@ -10,11 +10,10 @@ COPY ./ ./pytorch-lightning/
 # If using this image for tests, intall more dependencies and don"t delete the source code where the tests live.
 RUN \
     # Install pytorch-lightning at the current PR, plus dependencies.
-    pip install --requirement pytorch-lightning/requirements/base.txt --no-cache-dir && \
+    #pip install -r pytorch-lightning/requirements/base.txt --no-cache-dir && \
     # drop Horovod
     #python -c "fname = 'pytorch-lightning/requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)" && \
-    #pip install --requirement pytorch-lightning/requirements/extra.txt --no-cache-dir && \
-    pip install --requirement pytorch-lightning/requirements/test.txt --no-cache-dir
+    pip install -r pytorch-lightning/requirements/devel.txt --no-cache-dir --upgrade-strategy only-if-needed
 
 #RUN python -c "import pytorch_lightning as pl; print(pl.__version__)"
 
