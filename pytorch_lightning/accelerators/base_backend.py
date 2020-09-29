@@ -1,10 +1,11 @@
-import torch
-from typing import Any
-from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities import AMPType, rank_zero_warn
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 import math
+from typing import Any
 
+import torch
+
+from pytorch_lightning.utilities import AMPType, rank_zero_warn
+from pytorch_lightning.utilities.apply_func import move_data_to_device
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
     from apex import amp
@@ -165,3 +166,12 @@ class Accelerator(object):
 
     def early_stopping_should_stop(self, pl_module):
         return self.trainer.should_stop
+
+    def setup_optimizers(self, model):
+        if self.trainer.testing is True:
+            return
+
+        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
+        self.trainer.optimizers = optimizers
+        self.trainer.lr_schedulers = lr_schedulers
+        self.trainer.optimizer_frequencies = optimizer_frequencies
