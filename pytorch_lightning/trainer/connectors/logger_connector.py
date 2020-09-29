@@ -180,7 +180,7 @@ class LoggerConnector:
                     # with a scalar return, auto set it to "val_loss" for callbacks
                     if isinstance(eval_result, torch.Tensor):
                         flat = {'val_loss': eval_result}
-                    else:
+                    elif isinstance(eval_result, dict):
                         flat = flatten_dict(eval_result)
 
                     # removing val_loss magic word to map to checkpoint + ES callback

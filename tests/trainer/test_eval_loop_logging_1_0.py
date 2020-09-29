@@ -141,7 +141,6 @@ def test__validation_step__epoch_end__log(tmpdir):
         'epoch_d',
         'e',
         'epoch_e',
-        'debug_epoch',
     }
 
     callback_metrics = set(trainer.callback_metrics.keys())
