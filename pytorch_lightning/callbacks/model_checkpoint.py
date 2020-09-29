@@ -181,26 +181,20 @@ class ModelCheckpoint(Callback):
         """
         Performs the main logic around saving a checkpoint
         """
-        # only run on main process
-        if trainer.global_rank != 0:
-            return
+        epoch = trainer.current_epoch
 
-        # no models are saved
-        if self.save_top_k == 0:
-            return
-
-        # don't save anything during sanity check
-        if trainer.running_sanity_check:
-            return
-
-        # skip this epoch
-        if self._should_skip_epoch(trainer):
+        if (
+            trainer.global_rank != 0  # only run on main process
+            or self.save_top_k == 0  # no models are saved
+            or self.period < 1  # no models are saved
+            or (epoch + 1) % self.period  # skip epoch
+            or trainer.running_sanity_check  # don't save anything during sanity check
+            or self.epoch_last_check == epoch  # already saved
+        ):
             return
 
         self._add_backward_monitor_support(trainer)
         self._validate_monitor_key(trainer)
-
-        epoch = trainer.current_epoch
 
         # track epoch when ckpt was last checked
         self.epoch_last_check = trainer.current_epoch
@@ -278,7 +272,7 @@ class ModelCheckpoint(Callback):
 
         if mode not in mode_dict:
             rank_zero_warn(
-                f"ModelCheckpoint mode {mode} is unknown, " f"fallback to auto mode.",
+                f"ModelCheckpoint mode {mode} is unknown, fallback to auto mode",
                 RuntimeWarning,
             )
             mode = "auto"
@@ -292,7 +286,6 @@ class ModelCheckpoint(Callback):
             log.debug(f"Removed checkpoint: {filepath}")
 
     def _save_model(self, filepath: str, trainer, pl_module):
-
         # in debugging, track when we save checkpoints
         trainer.dev_debugger.track_checkpointing_history(filepath)
 
@@ -320,9 +313,7 @@ class ModelCheckpoint(Callback):
             current = torch.tensor(current)
 
         monitor_op = {"min": torch.lt, "max": torch.gt}[self.mode]
-
-        val = monitor_op(current, self.best_k_models[self.kth_best_model_path])
-        return val
+        return monitor_op(current, self.best_k_models[self.kth_best_model_path]).item()
 
     @classmethod
     def _format_checkpoint_name(
@@ -444,10 +435,6 @@ class ModelCheckpoint(Callback):
             )
             raise MisconfigurationException(m)
 
-    def _should_skip_epoch(self, trainer):
-        epoch = trainer.current_epoch
-        return (self.epoch_last_check is not None) and (epoch - self.epoch_last_check) < self.period
-
     def _get_metric_interpolated_filepath_name(self, epoch, ckpt_name_metrics):
         filepath = self.format_checkpoint_name(epoch, ckpt_name_metrics)
         version_cnt = 0
@@ -499,8 +486,10 @@ class ModelCheckpoint(Callback):
         if current is None:
             m = f"Can save best model only with {self.monitor} available, skipping."
             if self.monitor == 'checkpoint_on':
-                m = 'No checkpoint_on found. Hint: Did you set it in EvalResult(checkpoint_on=tensor) or ' \
-                    'TrainResult(checkpoint_on=tensor)?'
+                m = (
+                    'No checkpoint_on found. HINT: Did you set it in '
+                    'EvalResult(checkpoint_on=tensor) or TrainResult(checkpoint_on=tensor)?'
+                )
             rank_zero_warn(m, RuntimeWarning)
         elif self.check_monitor_top_k(current):
             self._do_check_save(filepath, current, epoch, trainer, pl_module)

@@ -20,6 +20,7 @@ from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pprint import pprint
 from typing import Iterable
+from copy import deepcopy
 
 
 class LoggerConnector:
@@ -29,6 +30,7 @@ class LoggerConnector:
         self.callback_metrics = {}
         self.logged_metrics = {}
         self.progress_bar_metrics = {}
+        self.eval_loop_results = []
 
     def on_trainer_init(self, logger, log_save_interval, row_log_interval):
         # logging
@@ -87,7 +89,7 @@ class LoggerConnector:
             self.trainer.logger.save()
 
             # track the logged metrics
-            self.logged_metrics = scalar_metrics
+            self.logged_metrics.update(scalar_metrics)
             self.trainer.dev_debugger.track_logged_metrics_history(scalar_metrics)
 
     def add_progress_bar_metrics(self, metrics):
@@ -100,11 +102,69 @@ class LoggerConnector:
         self.trainer.dev_debugger.track_pbar_metrics_history(metrics)
 
     def on_evaluation_epoch_end(self, eval_results, using_eval_result, test_mode):
-        # TODO: merge both functions?
-        self._log_on_evaluation_epoch_end_metrics(eval_results, using_eval_result)
-        return self.__log_evaluation_epoch_metrics_2(eval_results, test_mode)
+        self._track_callback_metrics(eval_results, using_eval_result)
+        self._log_on_evaluation_epoch_end_metrics()
 
-    def _log_on_evaluation_epoch_end_metrics(self, eval_results, using_eval_result):
+        # TODO: deprecate parts of this for 1.0 (when removing results)
+        self.__process_eval_epoch_end_results_and_log_legacy(eval_results, test_mode)
+
+        # get the final loop results
+        eval_loop_results = self._get_evaluate_epoch_results(test_mode)
+        return eval_loop_results
+
+    def _get_evaluate_epoch_results(self, test_mode):
+        # log results of test
+        if test_mode and self.trainer.is_global_zero and self.trainer.verbose_test:
+            print('-' * 80)
+            for result_idx, results in enumerate(self.eval_loop_results):
+                print(f'DATALOADER:{result_idx} TEST RESULTS')
+                pprint(results)
+                print('-' * 80)
+
+        results = self.eval_loop_results
+
+        # clear mem
+        self.eval_loop_results = []
+        return results
+
+    def _log_on_evaluation_epoch_end_metrics(self):
+        step_metrics = self.trainer.evaluation_loop.step_metrics
+
+        # clear mem
+        self.trainer.evaluation_loop.step_metrics = []
+
+        num_loaders = len(step_metrics)
+
+        # process metrics per dataloader
+        for dl_idx, dl_metrics in enumerate(step_metrics):
+            if len(dl_metrics) == 0:
+                continue
+
+            reduced_epoch_metrics = dl_metrics[0].__class__.reduce_on_epoch_end(dl_metrics)
+            # make the keys 'k/dl'
+            reduced_epoch_metrics = self.__rename_keys_by_dataloader_idx(reduced_epoch_metrics, dl_idx, num_loaders)
+
+            # track the metrics
+            logger_metrics = reduced_epoch_metrics.get_epoch_log_metrics()
+            pbar_metrics = reduced_epoch_metrics.get_epoch_pbar_metrics()
+            self.logged_metrics.update(logger_metrics)
+            self.progress_bar_metrics.update(pbar_metrics)
+
+            # enable the metrics to be monitored
+            self.callback_metrics.update(logger_metrics)
+            self.callback_metrics.update(pbar_metrics)
+
+            # track the final results for the dataloader
+            self.eval_loop_results.append(deepcopy(self.callback_metrics))
+
+    def __rename_keys_by_dataloader_idx(self, metrics, dataloader_idx, num_loaders):
+        if num_loaders == 1:
+            return metrics
+
+        result = {f'{k}/dataloader_idx_{dataloader_idx}': v for k, v in metrics.items()}
+        return result
+
+    def _track_callback_metrics(self, eval_results, using_eval_result):
         if len(eval_results) > 0 and eval_results[0] is None:
             return
 
@@ -120,7 +180,7 @@ class LoggerConnector:
                     # with a scalar return, auto set it to "val_loss" for callbacks
                     if isinstance(eval_result, torch.Tensor):
                         flat = {'val_loss': eval_result}
-                    else:
+                    elif isinstance(eval_result, dict):
                         flat = flatten_dict(eval_result)
 
                     # removing val_loss magic word to map to checkpoint + ES callback
@@ -141,11 +201,10 @@ class LoggerConnector:
                     flat['early_stop_on'] = flat['val_loss']
                 self.trainer.logger_connector.callback_metrics.update(flat)
 
-    def __log_evaluation_epoch_metrics_2(self, eval_results, test_mode):
+    def __process_eval_epoch_end_results_and_log_legacy(self, eval_results, test_mode):
         if self.trainer.running_sanity_check:
             return
 
-        eval_loop_results = []
         if eval_results is not None and len(eval_results) > 0:
 
             # in eval, the user may return something at every validation step without final reduction
@@ -179,21 +238,10 @@ class LoggerConnector:
                 self.trainer.logger_connector.callback_metrics.update(prog_bar_metrics)
 
                 if len(dataloader_result_metrics) > 0:
-                    eval_loop_results.append(dataloader_result_metrics)
+                    self.eval_loop_results.append(dataloader_result_metrics)
 
-        # log results of test
-        if test_mode and self.trainer.is_global_zero and self.trainer.verbose_test:
-            print('-' * 80)
-            for result_idx, results in enumerate(eval_loop_results):
-                print(f'DATALOADER:{result_idx} TEST RESULTS')
-                pprint(results)
-                print('-' * 80)
-
-        return eval_loop_results
-
-    def on_train_epoch_end(self, epoch_output, checkpoint_accumulator, early_stopping_accumulator, num_optimizers):
-        self.log_train_epoch_end_metrics(epoch_output, checkpoint_accumulator,
-                                         early_stopping_accumulator, num_optimizers)
+    def on_train_epoch_end(self, epoch_output):
+        pass
 
     def log_train_epoch_end_metrics(self,
                                     epoch_output,
@@ -272,30 +320,31 @@ class LoggerConnector:
             self.callback_metrics.update(epoch_progress_bar_metrics)
 
     def training_epoch_end(self, model, epoch_output, num_optimizers):
+        if not is_overridden('training_epoch_end', model=model):
+            return Result()
+
         # run training_epoch_end
-        # a list with a result per optimizer index
-        if is_overridden('training_epoch_end', model=model):
-            # refresh the result for custom logging at the epoch level
-            model._current_fx_name = 'training_epoch_end'
-            model._results = Result()
+        # refresh the result for custom logging at the epoch level
+        model._current_fx_name = 'training_epoch_end'
+        model._results = Result()
 
-            epoch_output = self.__prepare_epoch_end_inputs(epoch_output)
+        epoch_output = self.__prepare_epoch_end_inputs(epoch_output)
 
-            if num_optimizers == 1:
-                epoch_output = epoch_output[0]
+        if num_optimizers == 1:
+            epoch_output = epoch_output[0]
 
-            # lightningmodule hook
-            epoch_output = model.training_epoch_end(epoch_output)
+        # lightningmodule hook
+        epoch_output = model.training_epoch_end(epoch_output)
 
-            model._current_fx_name = ''
+        model._current_fx_name = ''
 
-            if epoch_output is not None:
-                raise MisconfigurationException('training_epoch_end expects a return of None. '
-                                                'HINT: remove the return statement in training_epoch_end')
+        if epoch_output is not None:
+            raise MisconfigurationException('training_epoch_end expects a return of None. '
+                                            'HINT: remove the return statement in training_epoch_end')
 
-            # user can ALSO log at the end of an epoch
-            new_epoch_end_logs = model._results
-            return new_epoch_end_logs
+        # user can ALSO log at the end of an epoch
+        new_epoch_end_logs = model._results
+        return new_epoch_end_logs
 
     def __run_legacy_training_epoch_end(
             self,
@@ -412,7 +461,7 @@ class LoggerConnector:
 
         return gathered_epoch_outputs
 
-    def save_train_loop_metrics_to_loggers(self, batch_idx, batch_output):
+    def log_train_step_metrics(self, batch_idx, batch_output):
         # when metrics should be logged
         should_log_metrics = (batch_idx + 1) % self.trainer.row_log_interval == 0 or self.trainer.should_stop
         if should_log_metrics or self.trainer.fast_dev_run:
