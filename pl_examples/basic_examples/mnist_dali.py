@@ -52,7 +52,7 @@ class ExternalMNISTInputIterator(object):
             index = self.indices[self.i]
             img, label = self.mnist_ds[index]
             batch.append(img.numpy())
-            labels.append(np.array([label], dtype = np.uint8))
+            labels.append(np.array([label], dtype=np.uint8))
             self.i = (self.i + 1) % self.n
         return (batch, labels)
 
@@ -60,10 +60,10 @@ class ExternalMNISTInputIterator(object):
 class ExternalSourcePipeline(Pipeline):
     def __init__(self, batch_size, eii, num_threads, device_id):
         super(ExternalSourcePipeline, self).__init__(batch_size,
-                                      num_threads,
-                                      device_id,
-                                      seed=12)
-        self.source = ops.ExternalSource(source = eii, num_outputs = 2)
+                                                     num_threads,
+                                                     device_id,
+                                                     seed=12)
+        self.source = ops.ExternalSource(source=eii, num_outputs=2)
 
     def define_graph(self):
         images, labels = self.source()
@@ -80,14 +80,14 @@ class DALIClassificationLoader(DALIClassificationIterator):
         auto_reset=False,
         fill_last_batch=True,
         dynamic_shape=False,
-        last_batch_padded=False,    
+        last_batch_padded=False,
     ):
-        super().__init__(pipelines, 
-                         size, 
-                         reader_name, 
-                         auto_reset, 
-                         fill_last_batch, 
-                         dynamic_shape, 
+        super().__init__(pipelines,
+                         size,
+                         reader_name,
+                         auto_reset,
+                         fill_last_batch,
+                         dynamic_shape,
                          last_batch_padded)
 
     def __len__(self):
