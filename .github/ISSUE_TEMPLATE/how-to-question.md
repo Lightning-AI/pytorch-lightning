@@ -11,8 +11,8 @@ assignees: ''
 
 ### Before asking: 
 1. Try to find answers to your questions in [the Lightning Forum!](https://forums.pytorchlightning.ai/)
-2. Search the issues.   
-2. Search the docs.    
+2. Search for a similar [issues](https://github.com/PyTorchLightning/pytorch-lightning/issues).   
+3. Search the [docs](https://pytorch-lightning.readthedocs.io/en/latest/).    
 
 <!-- If you still can't find what you need: -->
 
