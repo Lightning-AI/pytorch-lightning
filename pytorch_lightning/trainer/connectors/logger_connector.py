@@ -137,8 +137,10 @@ class LoggerConnector:
 
         # process metrics per dataloader
         for dl_idx, dl_metrics in enumerate(step_metrics):
-            reduced_epoch_metrics = dl_metrics[0].__class__.reduce_on_epoch_end(dl_metrics)
+            if len(dl_metrics) == 0:
+                continue
 
+            reduced_epoch_metrics = dl_metrics[0].__class__.reduce_on_epoch_end(dl_metrics)
             # make the keys 'k/dl'
             reduced_epoch_metrics = self.__rename_keys_by_dataloader_idx(reduced_epoch_metrics, dl_idx, num_loaders)
 

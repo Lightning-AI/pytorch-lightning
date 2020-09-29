@@ -281,8 +281,12 @@ class EvaluationLoop(object):
 
     def log_evaluation_step_metrics(self, batch, batch_idx):
         results = self.trainer.get_model()._results
+        if len(results) == 1:
+            return None
+
         results.track_batch_size(len(batch))
         self.__log_result_step_metrics(results, batch_idx)
+
         return results
 
     # TODO: deprecate at 1.0

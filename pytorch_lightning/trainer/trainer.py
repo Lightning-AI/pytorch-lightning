@@ -443,7 +443,9 @@ class Trainer(
 
                 # log step metrics
                 step_metrics = self.evaluation_loop.log_evaluation_step_metrics(batch, batch_idx)
-                dl_step_metrics.append(step_metrics)
+
+                if step_metrics is not None:
+                    dl_step_metrics.append(step_metrics)
 
                 # track epoch level outputs
                 if output is not None:
