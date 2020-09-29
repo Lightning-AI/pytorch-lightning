@@ -143,5 +143,3 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
     callback_metrics = set(trainer.callback_metrics.keys())
     expected_cb_metrics = {'a', 'b', 'c', 'd', 'e', 'epoch_b', 'epoch_d', 'epoch_f', 'f', 'g', 'step_b'}
     assert expected_cb_metrics == callback_metrics
-
-
