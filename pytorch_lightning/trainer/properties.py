@@ -32,7 +32,6 @@ class TrainerProperties(ABC):
     _weights_save_path: str
     model_connector: ModelConnector
     checkpoint_connector: CheckpointConnector
-    SKIP: str = 'skip'
 
     @property
     def use_amp(self) -> bool:

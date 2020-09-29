@@ -302,13 +302,10 @@ class TrainLoop:
             training_step_output = self.trainer.accelerator_backend.training_step(args)
             training_step_output = self.trainer.call_hook('training_step_end', training_step_output)
             if training_step_output is None:
-                raise MisconfigurationException(
-                    'training_step cannot return None.'
-                    ' HINT: Did you add a return statement?'
-                    ' If you want to skip training_step, return Trainer.SKIP'
+                rank_zero_info(
+                    'training_step returned None. This is unusual, so please verify this was your intention'
                 )
-            if not isinstance(training_step_output, torch.Tensor) and training_step_output == self.trainer.SKIP:
-                return training_step_output
+                return
 
             training_step_output_for_epoch_end, training_step_output = self._process_training_step_output(
                 training_step_output,
@@ -539,7 +536,7 @@ class TrainLoop:
             if batch_output.signal == -1:
                 break
 
-            if batch_output != self.trainer.SKIP:
+            if batch_output is not None:
                 # only track outputs when user implements training_epoch_end
                 # otherwise we will build up unnecessary memory
                 epoch_end_outputs = self.process_train_step_outputs(
@@ -562,7 +559,7 @@ class TrainLoop:
             if should_check_val:
                 self.trainer.run_evaluation(test_mode=False)
 
-            if batch_output != self.trainer.SKIP:
+            if batch_output is not None:
                 # -----------------------------------------
                 # SAVE METRICS TO LOGGERS
                 # -----------------------------------------
@@ -675,8 +672,8 @@ class TrainLoop:
                     optimizer,
                     self.trainer.hiddens
                 )
-                if opt_closure_result == self.trainer.SKIP:
-                    return opt_closure_result
+                if opt_closure_result is None:
+                    return
 
                 if opt_closure_result is None:
                     continue
@@ -755,8 +752,8 @@ class TrainLoop:
         """
         # lightning module hook
         result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
-        if result == self.trainer.SKIP:
-            return result
+        if result is None:
+            return
 
         if result is None:
             self.warning_cache.warn('training_step returned None if it was on purpose, ignore this warning...')

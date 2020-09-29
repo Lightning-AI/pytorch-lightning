@@ -375,7 +375,7 @@ class LightningModule(
         """
         return super().forward(*args, **kwargs)
 
-    def training_step(self, *args, **kwargs):
+    def training_step(self, *args, **kwargs) -> Optional[TrainResult]:
         r"""
         Here you compute and return the training loss and some additional metrics for e.g.
         the progress bar or logger.
@@ -391,10 +391,9 @@ class LightningModule(
         Return:
             Any of.
 
-            - torch.Tensor
+            - `torch.Tensor`
             - A dictionary with anything you want (must include the keyword 'loss')
-            - `Trainer.`:paramref:`~pytorch_lightning.trainer.properties.TrainerProperties.SKIP` -
-              Training will skip to the next batch
+            - `None` - Training will skip to the next batch
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
         You can also do fancier things like multiple forward passes or something model specific.

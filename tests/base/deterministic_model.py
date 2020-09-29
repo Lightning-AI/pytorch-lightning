@@ -336,7 +336,7 @@ class DeterministicModel(LightningModule):
         return result
 
     # --------------------------
-    # dictionary returns
+    # dictionary return
     # --------------------------
     def training_step_dict_return(self, batch, batch_idx):
         acc = self.step(batch, batch_idx)
@@ -441,31 +441,15 @@ class DeterministicModel(LightningModule):
         return result
 
     # --------------------------
-    # SKIP returns
-    # --------------------------
-    def training_step_skip_return(self, batch, batch_idx):
-        self.training_step_called = True
-        return self.trainer.SKIP
-
-    def training_step_skip_return_when_even(self, batch, batch_idx):
-        from pytorch_lightning import Trainer
-
-        self.training_step_called = True
-        return self.step(batch, batch_idx) if batch_idx % 2 else Trainer.SKIP
-
-    # --------------------------
-    # Invalid returns
+    # None return
     # --------------------------
     def training_step_no_return(self, batch, batch_idx):
         self.training_step_called = True
 
-    def training_step_evalresult_return(self, batch, batch_idx):
+    def training_step_no_return_when_even(self, batch, batch_idx):
         self.training_step_called = True
-        return EvalResult()
+        return self.step(batch, batch_idx) if batch_idx % 2 else None
 
-    # --------------------------
-    # None returns
-    # --------------------------
     def validation_step_no_return(self, batch, batch_idx):
         self.validation_step_called = True
         self.step(batch, batch_idx)
@@ -476,6 +460,13 @@ class DeterministicModel(LightningModule):
         assert val_step_output['log']['log_acc1'] >= 12
         assert val_step_output['progress_bar']['pbar_acc1'] == 17
         self.validation_step_end_called = True
+
+    # --------------------------
+    # Invalid return
+    # --------------------------
+    def training_step_evalresult_return(self, batch, batch_idx):
+        self.training_step_called = True
+        return EvalResult()
 
     # -----------------------------
     # DATA
