@@ -199,7 +199,7 @@ class LightningModule(
            "validation_step_end*", "F", "T", "F", "T"
            "validation_epoch_end*", "F", "T", "F", "T"
 
-            * same applies to the test loop
+        * same applies to the test loop
 
         Args:
             name: key name
