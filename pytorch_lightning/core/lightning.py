@@ -184,28 +184,54 @@ class LightningModule(
 
         Example::
 
-            result.log('train_loss', loss)
+            self.log('train_loss', loss)
 
-            # defaults used
-            result.log(
-                name,
-                value,
-                on_step=False,
-                on_epoch=False,
-                logger=True,
-                prog_bar=False,
-                reduce_fx=torch.mean,
-                enable_graph=False
-            )
-
+        .. list-table:: Argument defaults by LightningModule hook
+            :widths: 50 25 25 25 25
+            :header-rows: 1
+            * - LightningModule Hook
+              - on_step
+              - on_epoch
+              - prog_bar
+              - logger
+            * - training_step
+              - T
+              - F
+              - F
+              - T
+            * - training_step_end
+              - T
+              - F
+              - F
+              - T
+            * - training_epoch_end
+              - F
+              - T
+              - F
+              - T
+            * - validation_step
+              - F
+              - T
+              - F
+              - T
+            * - validation_step_end
+              - F
+              - T
+              - F
+              - T
+            * - validation_epoch_end
+              - F
+              - T
+              - F
+              - T
 
         Args:
             name: key name
             value: value name
             prog_bar: if True logs to the progress base
             logger: if True logs to the logger
-            on_step: if True logs at this step. None auto-logs for training_step but not validation/test_step
-            on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
+            on_step: if True logs at this step. None auto-logs at the training_step but not validation/test_step
+            on_epoch: if True logs epoch accumulated metrics. None auto-logs at the val/test step but not training_step
             reduce_fx: Torch.mean by default
             tbptt_reduce_fx: function to reduce on truncated back prop
             tbptt_pad_token: token to use for padding
