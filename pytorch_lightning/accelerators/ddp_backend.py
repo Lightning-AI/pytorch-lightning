@@ -190,40 +190,50 @@ class DDPBackend(DDPBase):
             log.info(f'All DDP processes registered. Starting ddp with {self.trainer.world_size} processes')
             log.info('-' * 100)
 
-        # call sync_bn before .cuda(), configure_apex and configure_ddp
-        if self.trainer.sync_batchnorm:
-            model = model.configure_sync_batchnorm(model)
+            # call sync_bn before .cuda(), configure_apex and configure_ddp
+            if self.trainer.sync_batchnorm:
+                model = model.configure_sync_batchnorm(model)
 
         # MODEL
         # copy model to each gpu
+        print('-' * 100, '\na\n', '-' * 100)
         self.model_to_device(model, process_idx, is_master)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
+        print('-' * 100, '\nb\n', '-' * 100)
         self.setup_optimizers(model)
 
         # set model properties before going into wrapper
+        print('-' * 100, '\nc\n', '-' * 100)
         self.trainer.model_connector.copy_trainer_model_properties(model)
 
         # AMP - run through amp wrapper before going to distributed DP
+        print('-' * 100, '\nd\n', '-' * 100)
         model = self.trainer.precision_connector.connect(model)
 
         # DDP uses all GPUs on the machine
+        print('-' * 100, '\ne\n', '-' * 100)
         device_ids = self.get_device_ids()
 
         # allow user to configure ddp
+        print('-' * 100, '\nf\n', '-' * 100)
         model = model.configure_ddp(model, device_ids)
 
         # set up training routine
+        print('-' * 100, '\ng\n', '-' * 100)
         self.trainer.train_loop.setup_training(model)
 
         # train or test
+        print('-' * 100, '\nh\n', '-' * 100)
         results = self.train_or_test()
 
         # get original model
+        print('-' * 100, '\ni\n', '-' * 100)
         model = self.trainer.get_model()
 
         # persist info in ddp_spawn
+        print('-' * 100, '\nj\n', '-' * 100)
         self.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
 
         # clean up memory
