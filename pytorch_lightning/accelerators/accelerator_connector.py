@@ -81,12 +81,14 @@ class AcceleratorConnector:
 
         # override with environment flag
         gpus = os.environ.get('PL_TRAINER_GPUS', gpus)
+        print('-'*100)
+        print('env GPUs', gpus)
+        print('-'*100)
+        self.trainer.gpus = gpus
 
         # for gpus allow int, string and gpu list
         if auto_select_gpus and isinstance(gpus, int):
             self.trainer.gpus = self.trainer.tuner.pick_multiple_gpus(gpus)
-        else:
-            self.trainer.gpus = gpus
 
         self.trainer.data_parallel_device_ids = device_parser.parse_gpu_ids(self.trainer.gpus)
         self.trainer.root_gpu = device_parser.determine_root_gpu_device(self.trainer.data_parallel_device_ids)
