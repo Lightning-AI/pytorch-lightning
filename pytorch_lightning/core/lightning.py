@@ -1643,7 +1643,7 @@ class LightningModule(
 
     def _set_hparams(self, hp: Union[dict, Namespace, str]) -> None:
         if OMEGACONF_AVAILABLE and isinstance(hp, Container):
-            self.hparams = OmegaConf.merge(self.hparams, hp)
+            self.hparams = OmegaConf.merge(OmegaConf.create(self.hparams), hp)
             return
 
         if isinstance(hp, Namespace):
