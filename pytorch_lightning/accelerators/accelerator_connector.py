@@ -194,8 +194,9 @@ class AcceleratorConnector:
             elif self.trainer.num_gpus > 1:
                 rank_zero_warn(
                     'You requested multiple GPUs but did not specify a backend, e.g.'
-                    ' Trainer(distributed_backend=dp) (or ddp, ddp2).'
-                    ' Setting distributed_backend=ddp_spawn for you.'
+                    f' Trainer(distributed_backend={str(BackendType.DP)}|'
+                    f'{str(BackendType.DDP)}|{str(BackendType.DDP2)}).'
+                    f' Setting distributed_backend={str(BackendType.DDP_SPAWN)} for you.'
                 )
                 self.trainer.distributed_backend = BackendType.DDP_SPAWN
 
