@@ -218,11 +218,12 @@ class DDPBackend(DDPBase):
         model = model.configure_ddp(model, device_ids)
 
         # set up training routine
+        self.barrier('ddp_setup')
+        print('-' * 100, f'\n {self.task_idx} TRAIN_SETUP \n', '-' * 100)
         self.trainer.train_loop.setup_training(model)
 
         # train or test
-        self.barrier('ddp_setup')
-        print('-' * 100, '\ng\n', '-' * 100)
+        print('-' * 100, f'\n {self.task_idx} TRAIN \n', '-' * 100)
         results = self.train_or_test()
 
         # clean up memory
