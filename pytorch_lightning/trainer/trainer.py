@@ -440,7 +440,6 @@ class Trainer(
         # hook
         self.call_hook('on_fit_start')
 
-        print('-' * 100, '\nSTART\n', '-' * 100)
         results = self.accelerator_backend.train()
         self.accelerator_backend.teardown()
 
@@ -448,11 +447,9 @@ class Trainer(
         # POST-Training
         # -------------------------
         # hook
-        print('-' * 100, '\nSTART-1\n', '-' * 100)
         self.call_hook('on_fit_end')
 
         # hook
-        print('-' * 100, '\nSTART-2\n', '-' * 100)
         self.teardown('fit')
         if self.is_function_implemented('teardown'):
             model.teardown('fit')
@@ -460,7 +457,6 @@ class Trainer(
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
 
-        print('-' * 100, '\nSTART-3\n', '-' * 100)
         if self._state != TrainerState.INTERRUPTED:
             self._state = TrainerState.FINISHED
         return results or 1

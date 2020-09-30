@@ -164,7 +164,6 @@ class DDPBackend(Accelerator):
         """
         # offset the process id if requested
         process_idx = process_idx + proc_offset
-        print('-' * 100, f'\n {self.task_idx} DDP_TRAIN \n', '-' * 100)
 
         # show progressbar only on progress_rank 0
         if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:
@@ -212,23 +211,17 @@ class DDPBackend(Accelerator):
         self.trainer.model_connector.copy_trainer_model_properties(model)
 
         # AMP - run through amp wrapper before going to distributed DP
-        print('-' * 100, f'\n {self.task_idx} APEX_CONFIG \n', '-' * 100)
-        model = self.trainer.precision_connector.connect(model)
-
         # DDP uses all GPUs on the machine
         device_ids = self.get_device_ids()
 
         # allow user to configure ddp
-        print('-' * 100, f'\n {self.task_idx} DDP_CONFIG \n', '-' * 100)
         model = model.configure_ddp(model, device_ids)
 
         # set up training routine
         self.barrier('ddp_setup')
-        print('-' * 100, f'\n {self.task_idx} TRAIN_SETUP \n', '-' * 100)
         self.trainer.train_loop.setup_training(model)
 
         # train or test
-        print('-' * 100, f'\n {self.task_idx} TRAIN \n', '-' * 100)
         results = self.train_or_test()
 
         # clean up memory
