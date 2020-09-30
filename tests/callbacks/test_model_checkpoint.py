@@ -111,7 +111,7 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
         if trainer.is_global_zero:
             assert torch.save.call_count == self.expected_count
         else:
-            assert torch.save.call_count == 1
+            assert torch.save.call_count == 0
 
 
 @pytest.mark.skipif(
