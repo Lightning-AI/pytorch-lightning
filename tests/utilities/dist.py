@@ -23,14 +23,11 @@ def call_training_script(module_file, cli_args, method, tmpdir, timeout=60):
 
     try:
         std, err = p.communicate(timeout=timeout)
+        # bubble up the error to tests
+        if len(err) > 0:
+            err = str(err.decode("utf-8"))
+            raise Exception(err)
     except TimeoutExpired:
         p.kill()
-        std = ''
-        err = ''
-
-    # bubble up the error to tests
-    if len(err) > 0:
-        err = str(err.decode("utf-8"))
-        raise Exception(err)
 
     return std, err
