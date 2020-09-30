@@ -98,7 +98,6 @@ class DDPBackend(DDPBase):
         # code reaches this point. so, to call the scripts, we need to leave cuda visible devices alone
         # but forward the GPUs selected via environment variables
         # set the flag for ddp scripts
-        import pdb; pdb.set_trace()
         os.environ['PL_TRAINER_GPUS'] = ','.join([str(i) for i in self.trainer.data_parallel_device_ids])
 
         gpu_ids = os.environ.get('CUDA_VISIBLE_DEVICES', '')
