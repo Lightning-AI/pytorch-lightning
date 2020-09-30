@@ -35,14 +35,15 @@ RUN apt-get update && \
 # Cleaning
     apt-get autoremove -y && \
     apt-get clean && \
-    rm -rf /root/.cache
+    rm -rf /root/.cache && \
+    rm -rf /var/lib/apt/lists/*
 
 ENV PATH="/root/miniconda3/bin:$PATH"
 ENV LD_LIBRARY_PATH="/root/miniconda3/lib:$LD_LIBRARY_PATH"
 
-RUN conda create -y --name $CONDA_ENV python=$PYTHON_VERSION && \
+RUN conda create -y --name $CONDA_ENV "python=$PYTHON_VERSION" && \
     conda init bash && \
-    conda install -y python=$PYTHON_VERSION mkl && \
+    conda install -y mkl && \
 
 # Disable cache
     pip config set global.cache-dir false && \

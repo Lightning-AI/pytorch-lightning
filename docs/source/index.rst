@@ -39,7 +39,6 @@ PyTorch Lightning Documentation
    datamodules
    loggers
    metrics
-   results
 
 .. toctree::
    :maxdepth: 1
