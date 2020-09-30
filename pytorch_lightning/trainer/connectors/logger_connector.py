@@ -39,6 +39,7 @@ class LoggerConnector:
         self.trainer.row_log_interval = row_log_interval
 
     def configure_logger(self, logger):
+        import pdb; pdb.set_trace()
         if logger is True:
             # default logger
             self.trainer.logger = TensorBoardLogger(
