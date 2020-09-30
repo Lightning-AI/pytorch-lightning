@@ -59,6 +59,7 @@ except ImportError:
 else:
     OMEGACONF_AVAILABLE = True
 
+
 class LightningModule(
     ABC,
     DeviceDtypeModuleMixin,
