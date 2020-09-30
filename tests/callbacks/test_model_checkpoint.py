@@ -100,6 +100,7 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
     def on_save_checkpoint(self, trainer, pl_module):
         super().on_save_checkpoint(trainer, pl_module)
         self.on_save_checkpoint_count += 1
+        print(self.on_save_checkpoint_count)
 
     def on_train_end(self, trainer, pl_module):
         super().on_train_end(trainer, pl_module)
@@ -111,6 +112,7 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
         #     logged_times = 1
         #
         # assert logged_times == self.expected_count
+        print(self.on_save_checkpoint_count)
         assert self.on_save_checkpoint_count == self.expected_count
 
 
