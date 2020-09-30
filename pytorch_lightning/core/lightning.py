@@ -25,13 +25,15 @@ import torch
 import torch.distributed as torch_distrib
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
-from pytorch_lightning.core.hooks import DataHooks, ModelHooks
+from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
 from pytorch_lightning.core.step_result import EvalResult, TrainResult
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities.parsing import (
     AttributeDict,
     collect_init_args,
@@ -52,8 +54,25 @@ else:
 
 
 class LightningModule(
-    ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks, DataHooks, Module
+    ABC,
+    DeviceDtypeModuleMixin,
+    GradInformation,
+    ModelIO,
+    ModelHooks,
+    DataHooks,
+    CheckpointHooks,
+    Module,
 ):
+    # Below is for property support of JIT in PyTorch 1.7
+    # since none of them is important when using JIT, we are going to ignore them.
+    # https://github.com/pytorch/pytorch/commit/e7d782e724c76bb0572023d52ee7438a40a7a262#diff-ff4f8670281cd1eb4e09329cc1dcb43b
+    __ignored_properties__ = [
+        "datamodule",
+        "example_input_array",
+        "hparams",
+        "on_gpu",
+    ] + DeviceDtypeModuleMixin.__ignored_properties__
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -98,6 +117,8 @@ class LightningModule(
         # optionally can be set by user
         self._example_input_array = None
         self._datamodule = None
+        self._results = None
+        self._current_fx_name = ''
 
     @property
     def example_input_array(self) -> Any:
@@ -141,6 +162,168 @@ class LightningModule(
         """
         if self.trainer.is_global_zero:
             print(*args, **kwargs)
+
+    def log(
+        self,
+        name: str,
+        value: Any,
+        prog_bar: bool = False,
+        logger: bool = True,
+        on_step: Union[None, bool] = None,
+        on_epoch: Union[None, bool] = None,
+        reduce_fx: Callable = torch.mean,
+        tbptt_reduce_fx: Callable = torch.mean,
+        tbptt_pad_token: int = 0,
+        enable_graph: bool = False,
+        sync_dist: bool = False,
+        sync_dist_op: Union[Any, str] = 'mean',
+        sync_dist_group: Optional[Any] = None,
+    ):
+        """
+        Log a key, value
+
+        Example::
+
+            result.log('train_loss', loss)
+
+            # defaults used
+            result.log(
+                name,
+                value,
+                on_step=False,
+                on_epoch=False,
+                logger=True,
+                prog_bar=False,
+                reduce_fx=torch.mean,
+                enable_graph=False
+            )
+
+
+        Args:
+            name: key name
+            value: value name
+            prog_bar: if True logs to the progress base
+            logger: if True logs to the logger
+            on_step: if True logs at this step. None auto-logs for training_step but not validation/test_step
+            on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
+            reduce_fx: Torch.mean by default
+            tbptt_reduce_fx: function to reduce on truncated back prop
+            tbptt_pad_token: token to use for padding
+            enable_graph: if True, will not auto detach the graph
+            sync_dist: if True, reduces the metric across GPUs/TPUs
+            sync_dist_op: the op to sync across
+            sync_dist_group: the ddp group
+        """
+        if self._results is not None:
+            # in any epoch end can't log step metrics (only epoch metric)
+            if 'epoch_end' in self._current_fx_name and on_step:
+                m = f'on_step=True cannot be used on {self._current_fx_name} method'
+                raise MisconfigurationException(m)
+
+            if 'epoch_end' in self._current_fx_name and on_epoch == False:
+                m = f'on_epoch cannot be False when called from the {self._current_fx_name} method'
+                raise MisconfigurationException(m)
+
+            # add log_dict
+            # TODO: if logged twice fail with crash
+
+            # set the default depending on the fx_name
+            on_step = self.__auto_choose_log_on_step(on_step)
+            on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
+
+            self._results.log(
+                name,
+                value,
+                prog_bar,
+                logger,
+                on_step,
+                on_epoch,
+                reduce_fx,
+                tbptt_reduce_fx,
+                tbptt_pad_token,
+                enable_graph,
+                sync_dist,
+                sync_dist_op,
+                sync_dist_group
+            )
+
+    def log_dict(
+        self,
+        dictionary: dict,
+        prog_bar: bool = False,
+        logger: bool = True,
+        on_step: Union[None, bool] = None,
+        on_epoch: Union[None, bool] = None,
+        reduce_fx: Callable = torch.mean,
+        tbptt_reduce_fx: Callable = torch.mean,
+        tbptt_pad_token: int = 0,
+        enable_graph: bool = False,
+        sync_dist: bool = False,
+        sync_dist_op: Union[Any, str] = 'mean',
+        sync_dist_group: Optional[Any] = None,
+    ):
+        """
+        Log a dictonary of values at once
+
+        Example::
+
+            values = {'loss': loss, 'acc': acc, ..., 'metric_n': metric_n}
+            self.log_dict(values)
+
+        Args:
+            dictionary: key value pairs (str, tensors)
+            prog_bar: if True logs to the progress base
+            logger: if True logs to the logger
+            on_step: if True logs at this step. None auto-logs for training_step but not validation/test_step
+            on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
+            reduce_fx: Torch.mean by default
+            tbptt_reduce_fx: function to reduce on truncated back prop
+            tbptt_pad_token: token to use for padding
+            enable_graph: if True, will not auto detach the graph
+            sync_dist: if True, reduces the metric across GPUs/TPUs
+            sync_dist_op: the op to sync across
+            sync_dist_group: the ddp group:
+        """
+        for k, v in dictionary.items():
+            self.log(
+                name=k,
+                value=v,
+                prog_bar=prog_bar,
+                logger=logger,
+                on_step=on_step,
+                on_epoch=on_epoch,
+                reduce_fx=reduce_fx,
+                enable_graph=enable_graph,
+                sync_dist=sync_dist,
+                sync_dist_group=sync_dist_group,
+                sync_dist_op=sync_dist_op,
+                tbptt_pad_token=tbptt_pad_token,
+                tbptt_reduce_fx=tbptt_reduce_fx,
+            )
+
+    def __auto_choose_log_on_step(self, on_step):
+        if on_step is None:
+            if self._current_fx_name in {'training_step', 'training_step_end'}:
+                on_step = True
+            elif self._current_fx_name in {'evaluation_step', 'evaluation_step_end',
+                                           'evaluation_epoch_end', 'training_epoch_end'}:
+                on_step = False
+            else:
+                on_step = False
+
+        return on_step
+
+    def __auto_choose_log_on_epoch(self, on_epoch):
+        if on_epoch is None:
+            if self._current_fx_name in {'training_step', 'training_step_end'}:
+                on_epoch = False
+            elif self._current_fx_name in {'evaluation_step', 'evaluation_step_end',
+                                           'evaluation_epoch_end', 'training_epoch_end'}:
+                on_epoch = True
+            else:
+                on_epoch = True
+
+        return on_epoch
 
     def forward(self, *args, **kwargs):
         r"""
@@ -755,7 +938,6 @@ class LightningModule(
     def test_epoch_end(
         self, outputs: Union[EvalResult, List[EvalResult]]
     ) -> EvalResult:
-
         """
         Called at the end of a test epoch with the output of all test steps.
 
@@ -973,7 +1155,6 @@ class LightningModule(
                     return model, optimizers
         """
         model, optimizers = amp.initialize(model, optimizers, opt_level=amp_level)
-
         return model, optimizers
 
     def configure_optimizers(
@@ -1294,49 +1475,6 @@ class LightningModule(
             param.requires_grad = True
 
         self.train()
-
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        r"""
-        Called by Lightning to restore your model.
-        If you saved something with :meth:`on_save_checkpoint` this is your chance to restore this.
-
-        Args:
-            checkpoint: Loaded checkpoint
-
-
-        Example:
-            .. code-block:: python
-
-                def on_load_checkpoint(self, checkpoint):
-                    # 99% of the time you don't need to implement this method
-                    self.something_cool_i_want_to_save = checkpoint['something_cool_i_want_to_save']
-
-        Note:
-            Lightning auto-restores global step, epoch, and train state including amp scaling.
-            There is no need for you to restore anything regarding training.
-        """
-
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        r"""
-        Called by Lightning when saving a checkpoint to give you a chance to store anything
-        else you might want to save.
-
-        Args:
-            checkpoint: Checkpoint to be saved
-
-        Example:
-            .. code-block:: python
-
-                def on_save_checkpoint(self, checkpoint):
-                    # 99% of use cases you don't need to implement this method
-                    checkpoint['something_cool_i_want_to_save'] = my_cool_pickable_object
-
-        Note:
-            Lightning saves all aspects of training (epoch, global step, etc...)
-            including amp scaling.
-            There is no need for you to store anything about training.
-
-        """
 
     def get_progress_bar_dict(self) -> Dict[str, Union[int, str]]:
         r"""

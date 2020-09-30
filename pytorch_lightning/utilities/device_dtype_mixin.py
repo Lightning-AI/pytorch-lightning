@@ -19,6 +19,7 @@ from torch.nn import Module
 
 
 class DeviceDtypeModuleMixin(Module):
+    __ignored_properties__ = ['device', 'dtype']
 
     def __init__(self):
         super().__init__()

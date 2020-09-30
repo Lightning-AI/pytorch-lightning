@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import ExitStack
+
 import torch
-from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.accelerators.base_backend import Accelerator
-from pytorch_lightning.utilities.distributed import rank_zero_only
 from torch.optim.lr_scheduler import _LRScheduler
+
+from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities.distributed import rank_zero_only
 
 try:
     import horovod.torch as hvd
@@ -48,10 +50,7 @@ class HorovodBackend(Accelerator):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
-        self.trainer.optimizers = optimizers
-        self.trainer.lr_schedulers = lr_schedulers
-        self.trainer.optimizer_frequencies = optimizer_frequencies
+        self.setup_optimizers(model)
 
         # Horovod: scale the learning rate by the number of workers to account for
         # increased total batch size
@@ -70,18 +69,18 @@ class HorovodBackend(Accelerator):
         for optimizer in self.trainer.optimizers:
             hvd.broadcast_optimizer_state(optimizer, root_rank=0)
 
-        def filter_named_parameters(model, optimizer):
+        def _filter_named_parameters(model, optimizer):
             opt_params = set([p for group in optimizer.param_groups for p in group.get('params', [])])
             return [(name, p) for name, p in model.named_parameters() if p in opt_params]
 
         # Horovod: wrap optimizers to perform gradient aggregation via allreduce
         self.trainer.optimizers = [
-            hvd.DistributedOptimizer(optimizer, named_parameters=filter_named_parameters(model, optimizer))
+            hvd.DistributedOptimizer(optimizer, named_parameters=_filter_named_parameters(model, optimizer))
             for optimizer in self.trainer.optimizers
         ]
 
         # 16-bit
-        model, self.trainer.optimizers = self.trainer.precision_connector.connect(model, self.trainer.optimizers)
+        model = self.trainer.precision_connector.connect(model)
 
         # Update logger rank info from Horovod to avoid race conditions from  different ranks
         # creating directories / writing files in the same locations.

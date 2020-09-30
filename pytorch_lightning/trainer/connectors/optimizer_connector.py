@@ -22,7 +22,7 @@ class OptimizerConnector:
 
     def on_trainer_init(self):
         self.trainer.lr_schedulers = []
-        self.trainer.optimizers = None
+        self.trainer.optimizers = []
         self.trainer.optimizer_frequencies = []
 
     def update_learning_rates(self, interval: str, monitor_metrics=None):

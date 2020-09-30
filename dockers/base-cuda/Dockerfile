@@ -41,8 +41,6 @@ ENV CONDA_ENV=lightning
 ENV WORKDIR=/home/flash
 WORKDIR $WORKDIR
 
-COPY --chown=flash environment.yml environment.yml
-
 # install conda and python
 RUN curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-${CONDA_VERSION}-Linux-x86_64.sh  && \
     chmod +x ~/miniconda.sh && \
@@ -60,8 +58,8 @@ ENV HOROVOD_WITHOUT_TENSORFLOW=1
 ENV HOROVOD_WITHOUT_MXNET=1
 ENV HOROVOD_WITH_GLOO=1
 ENV HOROVOD_WITHOUT_MPI=1
-# TODO: uncomment in horovod next release, https://github.com/horovod/horovod/pull/2239
-# ENV MAKEFLAGS="-j$(nproc)"
+
+COPY --chown=flash environment.yml environment.yml
 
 # conda init
 RUN conda create -y --name $CONDA_ENV python=$PYTHON_VERSION pytorch=$PYTORCH_VERSION torchvision cudatoolkit=$CUDA_VERSION --channel=$PYTORCH_CHANNEL && \
@@ -71,29 +69,31 @@ RUN conda create -y --name $CONDA_ENV python=$PYTHON_VERSION pytorch=$PYTORCH_VE
     python -c "fname = 'environment.yml' ; req = open(fname).readlines() ; open(fname, 'w').writelines([l for l in req if 'horovod' not in l])" && \
     conda env update --file environment.yml && \
     conda clean -ya && \
+    # conda config --set auto_activate_base true && \
     rm environment.yml
 
-ENV PATH ${WORKDIR}/miniconda/envs/${CONDA_ENV}/bin:$PATH
+ENV PATH=${WORKDIR}/miniconda/envs/${CONDA_ENV}/bin:$PATH
 ENV LD_LIBRARY_PATH="${WORKDIR}/miniconda/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH"
 # if you want this environment to be the default one, uncomment the following line:
-ENV CONDA_DEFAULT_ENV=${CONDA_ENV}
+#ENV CONDA_DEFAULT_ENV=${CONDA_ENV}
+#ENV CONDA_AUTO_ACTIVATE_BASE=true
+
+# set default init conda env, the cases above with ENV did not work...
+RUN echo ". ${WORKDIR}/miniconda/etc/profile.d/conda.sh" >> ~/.bashrc && \
+    echo "conda activate ${CONDA_ENV}" >> ~/.bashrc
 
 COPY --chown=flash ./requirements/extra.txt requirements-extra.txt
 COPY --chown=flash ./requirements/test.txt requirements-tests.txt
 COPY --chown=flash ./requirements/examples.txt requirements-examples.txt
 
 RUN \
-    # Disable cache
-    pip config set global.cache-dir false && \
-    #echo ". ${WORKDIR}/miniconda/etc/profile.d/conda.sh" >> ~/.bashrc && \
-    #echo "conda activate ${CONDA_ENV}" >> ~/.bashrc && \
-    #source ~/.bashrc && \
     # filter only Horovod
     python -c "fname = 'requirements-extra.txt' ; req = open(fname).readlines() ; open(fname, 'w').writelines([l for l in req if 'horovod' in l])" && \
+    #cat requirements-extra.txt && \
     # Install all requirements
-    pip install --global-option="--quiet" -r requirements-extra.txt && \
-    pip install -r requirements-tests.txt --upgrade-strategy only-if-needed && \
-    pip install -r requirements-examples.txt --upgrade-strategy only-if-needed && \
+    MAKEFLAGS="-j$(nproc)" ; pip install -r requirements-extra.txt && \
+    pip install -r requirements-tests.txt --upgrade-strategy only-if-needed --no-cache-dir && \
+    pip install -r requirements-examples.txt --upgrade-strategy only-if-needed --no-cache-dir && \
     rm requirements* && \
     # Show what we have
     pip --version && \
@@ -101,4 +101,4 @@ RUN \
     conda list && \
     pip list
 
-CMD ["bin/bash"]
+CMD ["/bin/bash"]
