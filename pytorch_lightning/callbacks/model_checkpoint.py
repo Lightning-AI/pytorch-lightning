@@ -385,6 +385,8 @@ class ModelCheckpoint(Callback):
 
         self.filename = None
 
+        trainer.accelerator_backend.barrier()
+
         if trainer.logger is not None:
             if trainer.weights_save_path != trainer.default_root_dir:
                 # the user has changed weights_save_path, it overrides anything
@@ -408,7 +410,8 @@ class ModelCheckpoint(Callback):
 
         self.dirpath = ckpt_path
 
-        self._fs.makedirs(self.dirpath, exist_ok=True)
+        if trainer.is_global_zero:
+            self._fs.makedirs(self.dirpath, exist_ok=True)
 
     def _add_backward_monitor_support(self, trainer):
         metrics = trainer.logger_connector.callback_metrics

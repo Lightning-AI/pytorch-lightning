@@ -248,7 +248,8 @@ class DDPBackend(Accelerator):
         return output
 
     def barrier(self, name: str = None):
-        torch_distrib.barrier()
+        if torch_distrib.is_initialized():
+            torch_distrib.barrier()
 
     def _check_can_spawn_children(self):
         if self._has_spawned_children:

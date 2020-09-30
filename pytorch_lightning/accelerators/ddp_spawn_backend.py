@@ -164,7 +164,8 @@ class DDPSpawnBackend(Accelerator):
         return output
 
     def barrier(self, name: str = None):
-        torch_distrib.barrier()
+        if torch_distrib.is_initialized():
+            torch_distrib.barrier()
 
     def set_world_ranks(self, process_idx):
         self.trainer.local_rank = process_idx

@@ -175,7 +175,8 @@ class DDPCPUSpawnBackend(Accelerator):
         return output
 
     def barrier(self, name: str = None):
-        torch_distrib.barrier()
+        if torch_distrib.is_initialized():
+            torch_distrib.barrier()
 
     def broadcast(self, obj, src=0):
         return self.dist.broadcast(obj)

@@ -336,19 +336,5 @@ class TrainerDataLoadingMixin(ABC):
             The dataloader
         """
         dataloader = dataloader_fx()
-
-        # get the function we'll use to get data
-        if self.use_ddp or self.use_ddp2:
-            # all processes wait until data download has happened
-            torch_distrib.barrier()
-
-        # data download/load on TPU
-        elif self.use_tpu and XLA_AVAILABLE:
-            # all processes wait until data download has happened
-            torch_xla.core.xla_model.rendezvous('pl.TrainerDataLoadingMixin.get_dataloaders')
-
-        elif self.use_horovod:
-            # all processes wait until data download has happened
-            hvd.join()
-
+        self.accelerator_backend.barrier('get_dataloaders')
         return dataloader
