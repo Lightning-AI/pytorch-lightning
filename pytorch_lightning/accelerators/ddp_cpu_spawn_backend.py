@@ -114,7 +114,7 @@ class DDPCPUSpawnBackend(Accelerator):
         self.trainer.call_setup_hook(model)
 
         # on world_size=0 let everyone know training is starting
-        if self.trainer.is_global_zero:
+        if self.trainer.is_global_zero and not torch.distributed.is_initialized():
             log.info('-' * 100)
             log.info(f'distributed_backend={self.trainer.distributed_backend}')
             log.info(f'All DDP processes registered. Starting ddp with {self.trainer.world_size} processes')
