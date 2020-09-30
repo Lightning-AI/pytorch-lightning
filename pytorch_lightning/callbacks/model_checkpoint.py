@@ -31,7 +31,7 @@ import numpy as np
 import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn, rank_zero_info
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -176,16 +176,16 @@ class ModelCheckpoint(Callback):
         self.best_model_score = checkpointed_state["best_model_score"]
         self.best_model_path = checkpointed_state["best_model_path"]
 
-    @rank_zero_only
     def save_checkpoint(self, trainer, pl_module):
         """
-        Performs the main logic around saving a checkpoint
+        Performs the main logic around saving a checkpoint.
+        This method runs on all ranks, it is the responsibility of `self.save_function`
+        to handle correct behaviour in distributed training, i.e., saving only on rank 0.
         """
         epoch = trainer.current_epoch
 
         if (
-            trainer.global_rank != 0  # only run on main process
-            or self.save_top_k == 0  # no models are saved
+            self.save_top_k == 0  # no models are saved
             or self.period < 1  # no models are saved
             or (epoch + 1) % self.period  # skip epoch
             or trainer.running_sanity_check  # don't save anything during sanity check
@@ -207,12 +207,12 @@ class ModelCheckpoint(Callback):
 
         # callback supports multiple simultaneous modes
         # here we call each mode sequentially
-        # Mode 1: save the last checkpoint
-        self._save_last_checkpoint(trainer, pl_module, epoch, monitor_candidates, filepath)
-
-        # Mode 2: save all checkpoints OR only the top k
+        # Mode 1: save all checkpoints OR only the top k
         if self.save_top_k:
             self._save_top_k_checkpoints(monitor_candidates, trainer, pl_module, epoch, filepath)
+
+        # Mode 2: save the last checkpoint
+        self._save_last_checkpoint(trainer, pl_module, epoch, monitor_candidates, filepath)
 
     def __validate_init_configuration(self):
         if self.save_top_k is not None and self.save_top_k < -1:
@@ -255,7 +255,6 @@ class ModelCheckpoint(Callback):
                 if self._fs.protocol == "file":  # dont normalize remote paths
                     filepath = os.path.realpath(filepath)
                 self.dirpath, self.filename = os.path.split(filepath)
-            self._fs.makedirs(self.dirpath, exist_ok=True)
 
     def __init_monitor_mode(self, monitor, mode):
         torch_inf = torch.tensor(np.Inf)
@@ -276,18 +275,21 @@ class ModelCheckpoint(Callback):
 
         self.kth_value, self.mode = mode_dict[mode]
 
+    @rank_zero_only
     def _del_model(self, filepath: str):
         if self._fs.exists(filepath):
             self._fs.rm(filepath)
+            log.debug(f"Removed checkpoint: {filepath}")
 
     def _save_model(self, filepath: str, trainer, pl_module):
         # in debugging, track when we save checkpoints
         trainer.dev_debugger.track_checkpointing_history(filepath)
 
         # make paths
-        self._fs.makedirs(os.path.dirname(filepath), exist_ok=True)
+        if trainer.is_global_zero:
+            self._fs.makedirs(os.path.dirname(filepath), exist_ok=True)
 
-        # delegate the saving to the model
+        # delegate the saving to the trainer
         if self.save_function is not None:
             self.save_function(filepath, self.save_weights_only)
         else:
@@ -325,7 +327,7 @@ class ModelCheckpoint(Callback):
             filename = "{epoch}"
         # check and parse user passed keys in the string
         groups = re.findall(r"(\{.*?)[:\}]", filename)
-        if groups:
+        if len(groups) >= 0:
             metrics["epoch"] = epoch
             for group in groups:
                 name = group[1:]
@@ -404,10 +406,8 @@ class ModelCheckpoint(Callback):
 
         self.dirpath = ckpt_path
 
-        assert (
-            trainer.global_rank == 0
-        ), "tried to make a checkpoint from non global_rank=0"
-        self._fs.makedirs(self.dirpath, exist_ok=True)
+        if trainer.is_global_zero:
+            self._fs.makedirs(self.dirpath, exist_ok=True)
 
     def _add_backward_monitor_support(self, trainer):
         metrics = trainer.logger_connector.callback_metrics
@@ -460,13 +460,18 @@ class ModelCheckpoint(Callback):
 
         # when user ALSO asked for the 'last.ckpt' change the name
         if self.save_last:
-            filename = self._format_checkpoint_name(
+            last_filepath = self._format_checkpoint_name(
                 self.CHECKPOINT_NAME_LAST, epoch, ckpt_name_metrics, prefix=self.prefix
             )
-            last_filepath = os.path.join(self.dirpath, f"{filename}.ckpt")
+            last_filepath = os.path.join(self.dirpath, f"{last_filepath}.ckpt")
 
         self._save_model(last_filepath, trainer, pl_module)
-        if self.last_model_path and self.last_model_path != last_filepath and (self.save_top_k != -1 or self.save_last):
+        if (
+                self.last_model_path
+                and self.last_model_path != last_filepath
+                and (self.save_top_k != -1 or self.save_last)
+                and trainer.is_global_zero
+        ):
             self._del_model(self.last_model_path)
         self.last_model_path = last_filepath
 
@@ -490,7 +495,7 @@ class ModelCheckpoint(Callback):
         elif self.check_monitor_top_k(current):
             self._update_best_and_save(filepath, current, epoch, trainer, pl_module)
         elif self.verbose:
-            log.info(
+            rank_zero_info(
                 f"Epoch {epoch:d}: {self.monitor} was not in top {self.save_top_k}"
             )
 
@@ -528,7 +533,7 @@ class ModelCheckpoint(Callback):
         self.best_model_score = self.best_k_models[self.best_model_path]
 
         if self.verbose:
-            log.info(
+            rank_zero_info(
                 f"Epoch {epoch:d}: {self.monitor} reached"
                 f" {current:0.5f} (best {self.best_model_score:0.5f}),"
                 f" saving model to {filepath} as top {k}"

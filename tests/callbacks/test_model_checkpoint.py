@@ -1,4 +1,6 @@
 import os
+from unittest.mock import MagicMock, Mock
+
 import yaml
 import pickle
 import platform
@@ -92,21 +94,26 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
 
     def __init__(self, expected_count, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.count = 0
         self.expected_count = expected_count
+        self.on_save_checkpoint_count = 0
 
-    def _save_model(self, filepath, trainer, pl_module):
-        # make sure we don't save twice
-        assert not os.path.isfile(filepath)
-        self.count += 1
-        super()._save_model(filepath, trainer, pl_module)
+    def on_train_start(self, trainer, pl_module):
+        torch.save = Mock(wraps=torch.save)
+
+    def on_save_checkpoint(self, trainer, pl_module):
+        # expect all ranks to run but only rank 0 will actually write the checkpoint file
+        super().on_save_checkpoint(trainer, pl_module)
+        self.on_save_checkpoint_count += 1
 
     def on_train_end(self, trainer, pl_module):
         super().on_train_end(trainer, pl_module)
-        # on rank 0 we expect the saved files and on all others no saves
-        assert (trainer.global_rank == 0 and self.count == self.expected_count) or (
-            trainer.global_rank > 0 and self.count == 0
-        )
+        assert self.best_model_path
+        assert self.best_model_score
+        assert self.on_save_checkpoint_count == self.expected_count
+        if trainer.is_global_zero:
+            assert torch.save.call_count == self.expected_count
+        else:
+            assert torch.save.call_count == 0
 
 
 @pytest.mark.skipif(
@@ -218,34 +225,6 @@ def test_none_monitor_save_last(tmpdir):
     # These should not fail
     ModelCheckpoint(filepath=tmpdir, save_last=None)
     ModelCheckpoint(filepath=tmpdir, save_last=False)
-
-
-def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
-    """Tests that the save_last checkpoint contains the latest information."""
-    seed_everything(100)
-    model = EvalModelTemplate()
-    num_epochs = 3
-    model_checkpoint = ModelCheckpoint(monitor='val_loss', filepath=tmpdir, save_top_k=num_epochs, save_last=True)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        early_stop_callback=False,
-        checkpoint_callback=model_checkpoint,
-        max_epochs=num_epochs,
-    )
-    trainer.fit(model)
-
-    path_last_epoch = model_checkpoint.format_checkpoint_name(num_epochs - 1, {})
-    assert path_last_epoch != model_checkpoint.last_model_path
-
-    ckpt_last_epoch = torch.load(path_last_epoch)
-    ckpt_last = torch.load(model_checkpoint.last_model_path)
-    assert all(ckpt_last_epoch[k] == ckpt_last[k] for k in ("epoch", "global_step"))
-
-    # it is easier to load the model objects than to iterate over the raw dict of tensors
-    model_last_epoch = EvalModelTemplate.load_from_checkpoint(path_last_epoch)
-    model_last = EvalModelTemplate.load_from_checkpoint(model_checkpoint.last_model_path)
-    for w0, w1 in zip(model_last_epoch.parameters(), model_last.parameters()):
-        assert w0.eq(w1).all()
 
 
 def test_model_checkpoint_none_monitor(tmpdir):
@@ -439,3 +418,42 @@ def test_model_checkpoint_save_last_warning(tmpdir, caplog, max_epochs, should_v
     )
     trainer.fit(model)
     assert caplog.messages.count('Saving latest checkpoint...') == save_last
+
+
+def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
+    """ Tests that the save_last checkpoint contains the latest information. """
+    seed_everything(100)
+    model = EvalModelTemplate()
+    num_epochs = 3
+    model_checkpoint = ModelCheckpoint(
+        monitor='val_loss', filepath=tmpdir, save_top_k=num_epochs, save_last=True
+    )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        early_stop_callback=False,
+        checkpoint_callback=model_checkpoint,
+        max_epochs=num_epochs,
+    )
+    trainer.fit(model)
+
+    path_last_epoch = str(tmpdir / f"epoch={num_epochs - 1}.ckpt")
+    path_last = str(tmpdir / f"last.ckpt")
+    assert path_last == model_checkpoint.last_model_path
+
+    ckpt_last_epoch = torch.load(path_last_epoch)
+    ckpt_last = torch.load(path_last)
+    assert all(ckpt_last_epoch[k] == ckpt_last[k] for k in ("epoch", "global_step"))
+
+    ch_type = type(model_checkpoint)
+    assert all(list(
+        ckpt_last["callbacks"][ch_type][k] == ckpt_last_epoch["callbacks"][ch_type][k]
+        for k in ("best_model_score", "best_model_path")
+    ))
+
+    # it is easier to load the model objects than to iterate over the raw dict of tensors
+    model_last_epoch = EvalModelTemplate.load_from_checkpoint(path_last_epoch)
+    model_last = EvalModelTemplate.load_from_checkpoint(
+        model_checkpoint.last_model_path
+    )
+    for w0, w1 in zip(model_last_epoch.parameters(), model_last.parameters()):
+        assert w0.eq(w1).all()
