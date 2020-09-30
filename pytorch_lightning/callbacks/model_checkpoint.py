@@ -176,7 +176,7 @@ class ModelCheckpoint(Callback):
         self.best_model_score = checkpointed_state["best_model_score"]
         self.best_model_path = checkpointed_state["best_model_path"]
 
-    @rank_zero_only
+    # @rank_zero_only
     def save_checkpoint(self, trainer, pl_module):
         """
         Performs the main logic around saving a checkpoint
@@ -184,8 +184,8 @@ class ModelCheckpoint(Callback):
         epoch = trainer.current_epoch
 
         if (
-            trainer.global_rank != 0  # only run on main process
-            or self.save_top_k == 0  # no models are saved
+            # trainer.global_rank != 0  # only run on main process
+            self.save_top_k == 0  # no models are saved
             or self.period < 1  # no models are saved
             or (epoch + 1) % self.period  # skip epoch
             or trainer.running_sanity_check  # don't save anything during sanity check
