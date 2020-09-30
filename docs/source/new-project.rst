@@ -406,7 +406,7 @@ use the x_step_end to manually aggregate (or don't implement it to let lightning
     for batch in data:
         gpu_outs = []
         model_copies = copy_model_per_gpu(model, num_gpus)
-        batch_split = split_batch_per_gpu(model, batch)
+        batch_split = split_batch_per_gpu(batch, num_gpus)
         for model, batch_part in zip(model_copies, batch_split):
             # loop hook
             gpu_out = training_step(batch_part)
