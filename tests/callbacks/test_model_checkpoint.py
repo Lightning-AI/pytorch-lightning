@@ -111,7 +111,7 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
         #     logged_times = 1
         #
         # assert logged_times == self.expected_count
-        assert self.on_save_checkpoint == self.expected_count
+        assert self.on_save_checkpoint_count == self.expected_count
 
 
 @pytest.mark.skipif(
