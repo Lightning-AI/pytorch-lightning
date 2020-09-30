@@ -95,9 +95,7 @@ class DDPCPUSpawnBackend(Accelerator):
             self.trainer.progress_bar_callback.disable()
 
         # determine which process we are and world size
-        self.trainer.local_rank = process_idx
-        self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
-        self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
+        self.set_world_ranks(process_idx)
 
         # set warning rank
         rank_zero_only.rank = self.trainer.global_rank
@@ -126,6 +124,9 @@ class DDPCPUSpawnBackend(Accelerator):
         if self.trainer.sync_batchnorm:
             model = model.configure_sync_batchnorm(model)
 
+        # move the model to the correct device
+        self.model_to_device(model, process_idx)
+
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
         self.setup_optimizers(model)
@@ -137,7 +138,7 @@ class DDPCPUSpawnBackend(Accelerator):
         model = self.trainer.precision_connector.connect(model)
 
         # DDP spawn already spawned off each process... no need to do anything
-        device_ids = None
+        device_ids = self.get_device_ids()
 
         # allow user to configure ddp
         model = model.configure_ddp(model, device_ids)
@@ -185,6 +186,19 @@ class DDPCPUSpawnBackend(Accelerator):
         dist.barrier()
         should_stop = stop == self.trainer.world_size
         return should_stop
+
+    def set_world_ranks(self, process_idx):
+        self.trainer.local_rank = process_idx
+        self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
+        self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
+
+    def model_to_device(self, model, process_idx):
+        # in ddp cpu we don't actually move models to a device
+        pass
+
+    def get_device_ids(self):
+        device_ids = None
+        return device_ids
 
     def transfer_distrib_spawn_state_on_fit_end(self, model, mp_queue, results):
         # track the best model path
