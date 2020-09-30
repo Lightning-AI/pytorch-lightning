@@ -25,13 +25,13 @@ import torch
 import torch.distributed as torch_distrib
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
-from pytorch_lightning.core.hooks import DataHooks, ModelHooks
+from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
-from pytorch_lightning.core.step_result import EvalResult, TrainResult
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities.parsing import (
     AttributeDict,
@@ -52,12 +52,25 @@ else:
     XLA_AVAILABLE = True
 
 
-class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks, DataHooks, Module):
+class LightningModule(
+    ABC,
+    DeviceDtypeModuleMixin,
+    GradInformation,
+    ModelIO,
+    ModelHooks,
+    DataHooks,
+    CheckpointHooks,
+    Module,
+):
     # Below is for property support of JIT in PyTorch 1.7
     # since none of them is important when using JIT, we are going to ignore them.
     # https://github.com/pytorch/pytorch/commit/e7d782e724c76bb0572023d52ee7438a40a7a262#diff-ff4f8670281cd1eb4e09329cc1dcb43b
-    __ignored_properties__ = ['datamodule', 'example_input_array',
-                              'hparams', 'on_gpu'] + DeviceDtypeModuleMixin.__ignored_properties__
+    __ignored_properties__ = [
+        "datamodule",
+        "example_input_array",
+        "hparams",
+        "on_gpu",
+    ] + DeviceDtypeModuleMixin.__ignored_properties__
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -103,7 +116,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         # optionally can be set by user
         self._example_input_array = None
         self._datamodule = None
-        self._results = None
+        self._results: Result = None
         self._current_fx_name = ''
 
     @property
@@ -170,28 +183,28 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         Example::
 
-            result.log('train_loss', loss)
+            self.log('train_loss', loss)
 
-            # defaults used
-            result.log(
-                name,
-                value,
-                on_step=False,
-                on_epoch=False,
-                logger=True,
-                prog_bar=False,
-                reduce_fx=torch.mean,
-                enable_graph=False
-            )
+        The default behavior per hook is as follows
 
+        .. csv-table:: ``*`` also applies to the test loop
+           :header: "LightningMoule Hook", "on_step", "on_epoch", "prog_bar", "logger"
+           :widths: 20, 10, 10, 10, 10
+
+           "training_step", "T", "F", "F", "T"
+           "training_step_end", "T", "F", "F", "T"
+           "training_epoch_end", "F", "T", "F", "T"
+           "validation_step*", "F", "T", "F", "T"
+           "validation_step_end*", "F", "T", "F", "T"
+           "validation_epoch_end*", "F", "T", "F", "T"
 
         Args:
             name: key name
             value: value name
-            prog_bar: if True logs to the progress base
+            prog_bar: if True logs to the progress bar
             logger: if True logs to the logger
-            on_step: if True logs at this step. None auto-logs for training_step but not validation/test_step
-            on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
+            on_step: if True logs at this step. None auto-logs at the training_step but not validation/test_step
+            on_epoch: if True logs epoch accumulated metrics. None auto-logs at the val/test step but not training_step
             reduce_fx: Torch.mean by default
             tbptt_reduce_fx: function to reduce on truncated back prop
             tbptt_pad_token: token to use for padding
@@ -203,7 +216,15 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         if self._results is not None:
             # in any epoch end can't log step metrics (only epoch metric)
             if 'epoch_end' in self._current_fx_name and on_step:
-                on_step = False
+                m = f'on_step=True cannot be used on {self._current_fx_name} method'
+                raise MisconfigurationException(m)
+
+            if 'epoch_end' in self._current_fx_name and on_epoch == False:
+                m = f'on_epoch cannot be False when called from the {self._current_fx_name} method'
+                raise MisconfigurationException(m)
+
+            # add log_dict
+            # TODO: if logged twice fail with crash
 
             # set the default depending on the fx_name
             on_step = self.__auto_choose_log_on_step(on_step)
@@ -223,6 +244,60 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 sync_dist,
                 sync_dist_op,
                 sync_dist_group
+            )
+
+    def log_dict(
+        self,
+        dictionary: dict,
+        prog_bar: bool = False,
+        logger: bool = True,
+        on_step: Union[None, bool] = None,
+        on_epoch: Union[None, bool] = None,
+        reduce_fx: Callable = torch.mean,
+        tbptt_reduce_fx: Callable = torch.mean,
+        tbptt_pad_token: int = 0,
+        enable_graph: bool = False,
+        sync_dist: bool = False,
+        sync_dist_op: Union[Any, str] = 'mean',
+        sync_dist_group: Optional[Any] = None,
+    ):
+        """
+        Log a dictonary of values at once
+
+        Example::
+
+            values = {'loss': loss, 'acc': acc, ..., 'metric_n': metric_n}
+            self.log_dict(values)
+
+        Args:
+            dictionary: key value pairs (str, tensors)
+            prog_bar: if True logs to the progress base
+            logger: if True logs to the logger
+            on_step: if True logs at this step. None auto-logs for training_step but not validation/test_step
+            on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
+            reduce_fx: Torch.mean by default
+            tbptt_reduce_fx: function to reduce on truncated back prop
+            tbptt_pad_token: token to use for padding
+            enable_graph: if True, will not auto detach the graph
+            sync_dist: if True, reduces the metric across GPUs/TPUs
+            sync_dist_op: the op to sync across
+            sync_dist_group: the ddp group:
+        """
+        for k, v in dictionary.items():
+            self.log(
+                name=k,
+                value=v,
+                prog_bar=prog_bar,
+                logger=logger,
+                on_step=on_step,
+                on_epoch=on_epoch,
+                reduce_fx=reduce_fx,
+                enable_graph=enable_graph,
+                sync_dist=sync_dist,
+                sync_dist_group=sync_dist_group,
+                sync_dist_op=sync_dist_op,
+                tbptt_pad_token=tbptt_pad_token,
+                tbptt_reduce_fx=tbptt_reduce_fx,
             )
 
     def __auto_choose_log_on_step(self, on_step):
@@ -316,10 +391,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0.
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.TrainResult`
-
-            .. note:: :class:`~pytorch_lightning.core.step_result.TrainResult` is simply a Dict with convenient
-                functions for logging, distributed sync and error checking.
+            roch.Tensor or a dictionary with anything you want (must include the keyword 'loss')
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
         You can also do fancier things like multiple forward passes or something model specific.
@@ -328,31 +400,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
             def training_step(self, batch, batch_idx):
                 x, y, z = batch
-
-                # implement your own
-                out = self(x)
+                out = self.encoder(x)
                 loss = self.loss(out, x)
-
-                # TrainResult auto-detaches the loss after the optimization steps are complete
-                result = pl.TrainResult(minimize=loss)
-
-        The return object :class:`~pytorch_lightning.core.step_result.TrainResult` controls where to log,
-        when to log (step or epoch) and syncing with multiple GPUs.
-
-        .. code-block:: python
-
-            # log to progress bar and logger
-            result.log('train_loss', loss, prog_bar=True, logger=True)
-
-            # sync metric value across GPUs in distributed training
-            result.log('train_loss_2', loss, sync_dist=True)
-
-            # log to progress bar as well
-            result.log('train_loss_2', loss, prog_bar=True)
-
-            # assign arbitrary values
-            result.predictions = predictions
-            result.some_value = 'some_value'
+                return loss
 
         If you define multiple optimizers, this step will be called with an additional
         ``optimizer_idx`` parameter.
@@ -378,10 +428,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 ...
                 out, hiddens = self.lstm(data, hiddens)
                 ...
-
-                # TrainResult auto-detaches hiddens
-                result = pl.TrainResult(minimize=loss, hiddens=hiddens)
-                return result
+                return {'loss': loss, 'hiddens': hiddens}
 
         Notes:
             The loss value shown in the progress bar is smoothed (averaged) over the last values,
@@ -412,10 +459,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             batch_parts_outputs: What you return in `training_step` for each batch part.
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.TrainResult`
-
-            .. note:: :class:`~pytorch_lightning.core.step_result.TrainResult` is simply a Dict with convenient
-                functions for logging, distributed sync and error checking.
+            Anything
 
         When using dp/ddp2 distributed backends, only a portion of the batch is inside the training_step:
 
@@ -430,7 +474,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 # softmax uses only a portion of the batch in the denomintaor
                 loss = self.softmax(out)
                 loss = nce_loss(loss)
-                return pl.TrainResult(loss)
+                return loss
 
         If you wish to do something with all the parts of the batch, then use this method to do it:
 
@@ -440,24 +484,23 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 # batch is 1/num_gpus big
                 x, y = batch
 
-                out = self(x)
-                result = pl.TrainResult()
-                result.out = out
+                out = self.encoder(x)
+                return {'pred': out}
 
             def training_step_end(self, training_step_outputs):
-                # this out is now the full size of the batch
-                all_outs = training_step_outputs.out
+                gpu_0_pred = training_step_outputs[0]['pred']
+                gpu_1_pred = training_step_outputs[1]['pred']
+                gpu_n_pred = training_step_outputs[n]['pred']
 
                 # this softmax now uses the full batch
-                loss = nce_loss(all_outs)
-                result = pl.TrainResult(loss)
-                return result
+                loss = nce_loss([gpu_0_pred, gpu_1_pred, gpu_n_pred])
+                return loss
 
         See Also:
             See the :ref:`multi_gpu` guide for more details.
         """
 
-    def training_epoch_end(self, outputs: Union[TrainResult, List[TrainResult]]):
+    def training_epoch_end(self, outputs: List[Any]):
         """
         Called at the end of the training epoch with the outputs of all training steps.
         Use this in case you need to do something with all the outputs for every training_step.
@@ -476,10 +519,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 multiple dataloaders, a list containing a list of outputs for each dataloader.
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.TrainResult`
-
-        .. note:: :class:`~pytorch_lightning.core.step_result.TrainResult` is simply a Dict with convenient
-            functions for logging, distributed sync and error checking.
+            None
 
         Note:
             If this method is not overridden, this won't be called.
@@ -496,15 +536,12 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         .. code-block:: python
 
-            def training_epoch_end(self, outputs):
-                epoch_result = pl.TrainResult()
-                for train_result in outputs:
-                    all_losses = train_result.minimize
-                    # do something with all losses
-                return results
+            def training_epoch_end(self, training_step_outputs):
+                for out in training_step_outputs:
+                    # do something here
         """
 
-    def validation_step(self, *args, **kwargs) -> EvalResult:
+    def validation_step(self, *args, **kwargs):
         r"""
         Operates on a single batch of data from the validation set.
         In this step you'd might generate examples or calculate anything of interest like accuracy.
@@ -526,7 +563,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 (only if multiple val datasets used)
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.EvalResult`
+            None or whatever you want
 
         .. code-block:: python
 
@@ -567,9 +604,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
 
                     # log the outputs!
-                    result = pl.EvalResult(checkpoint_on=loss)
-                    result.log_dict({'val_loss': loss, 'val_acc': val_acc})
-                    return result
+                    self.log_dict({'val_loss': loss, 'val_acc': val_acc})
 
             If you pass in multiple val datasets, validation_step will have an additional argument.
 
@@ -588,7 +623,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             the model goes back to training mode and gradients are enabled.
         """
 
-    def validation_step_end(self, *args, **kwargs) -> EvalResult:
+    def validation_step_end(self, *args, **kwargs):
         """
         Use this when validating with dp or ddp2 because :meth:`validation_step`
         will operate on only part of the batch. However, this is still optional
@@ -610,7 +645,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 for each batch part.
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.EvalResult`
+            None or anything
 
         .. code-block:: python
 
@@ -620,12 +655,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 # batch is 1/num_gpus big
                 x, y = batch
 
-                out = self(x)
+                out = self.encoder(x)
                 loss = self.softmax(out)
                 loss = nce_loss(loss)
-                result = pl.EvalResult()
-                result.log('val_loss', loss)
-                return result
+                self.log('val_loss', loss)
 
             # --------------
             # with validation_step_end to do softmax over the full batch
@@ -634,18 +667,11 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 x, y = batch
 
                 out = self(x)
-                result = pl.EvalResult()
-                result.out = out
-                return result
+                return out
 
-            def validation_epoch_end(self, output_results):
-                # this out is now the full size of the batch
-                all_val_step_outs = output_results.out
-                loss = nce_loss(all_val_step_outs)
-
-                result = pl.EvalResult(checkpoint_on=loss)
-                result.log('val_loss', loss)
-                return result
+            def validation_epoch_end(self, val_step_outputs):
+                for out in val_step_outputs:
+                    # do something with these
 
         See Also:
             See the :ref:`multi_gpu` guide for more details.
@@ -659,8 +685,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         """
 
     def validation_epoch_end(
-        self, outputs: Union[EvalResult, List[EvalResult]]
-    ) -> EvalResult:
+        self, outputs: List[Any]
+    ):
         """
         Called at the end of the validation epoch with the outputs of all validation steps.
 
@@ -678,13 +704,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 are multiple dataloaders, a list containing a list of outputs for each dataloader.
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.EvalResult`
+            None
 
         Note:
             If you didn't define a :meth:`validation_step`, this won't be called.
-
-        - The outputs here are strictly for logging or progress bar.
-        - If you don't need to display anything, don't return anything.
 
         Examples:
             With a single dataloader:
@@ -692,11 +715,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             .. code-block:: python
 
                 def validation_epoch_end(self, val_step_outputs):
-                    # do something with the outputs of all val batches
-                    all_val_preds = val_step_outputs.predictions
-
-                    val_step_outputs.some_result = calc_all_results(all_val_preds)
-                    return val_step_outputs
+                    for out in val_step_outputs:
+                        # do something
 
             With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
             one entry per dataloader, while the inner list contains the individual outputs of
@@ -708,12 +728,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     for dataloader_output_result in outputs:
                         dataloader_outs = dataloader_output_result.dataloader_i_outputs
 
-                    result = pl.EvalResult()
-                    result.log('final_metric', final_value)
-                    return result
+                    self.log('final_metric', final_value)
         """
 
-    def test_step(self, *args, **kwargs) -> EvalResult:
+    def test_step(self, *args, **kwargs):
         r"""
         Operates on a single batch of data from the test set.
         In this step you'd normally generate examples or calculate anything of interest
@@ -736,7 +754,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 (only if multiple test datasets used).
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.EvalResult`
+            None or anything
 
         .. code-block:: python
 
@@ -768,9 +786,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     test_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
 
                     # log the outputs!
-                    result = pl.EvalResult(checkpoint_on=loss)
-                    result.log_dict({'test_loss': loss, 'test_acc': test_acc})
-                    return resultt
+                    self.log_dict({'test_loss': loss, 'test_acc': test_acc})
 
             If you pass in multiple validation datasets, :meth:`test_step` will have an additional
             argument.
@@ -790,7 +806,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             to training mode and gradients are enabled.
         """
 
-    def test_step_end(self, *args, **kwargs) -> EvalResult:
+    def test_step_end(self, *args, **kwargs):
         """
         Use this when testing with dp or ddp2 because :meth:`test_step` will operate
         on only part of the batch. However, this is still optional
@@ -811,7 +827,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             batch_parts_outputs: What you return in :meth:`test_step` for each batch part.
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.EvalResult`
+            None or anything
 
         .. code-block:: python
 
@@ -823,10 +839,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
                 out = self(x)
                 loss = self.softmax(out)
-                loss = nce_loss(loss)
-                result = pl.EvalResult()
                 result.log('test_loss', loss)
-                return result
 
             # --------------
             # with test_step_end to do softmax over the full batch
@@ -834,19 +847,14 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 # batch is 1/num_gpus big
                 x, y = batch
 
-                out = self(x)
-                result = pl.EvalResult()
-                result.out = out
-                return result
+                out = self.encoder(x)
+                return out
 
             def test_epoch_end(self, output_results):
                 # this out is now the full size of the batch
                 all_test_step_outs = output_results.out
                 loss = nce_loss(all_test_step_outs)
-
-                result = pl.EvalResult(checkpoint_on=loss)
-                result.log('test_loss', loss)
-                return result
+                self.log('test_loss', loss)
 
         See Also:
             See the :ref:`multi_gpu` guide for more details.
@@ -860,8 +868,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         """
 
     def test_epoch_end(
-        self, outputs: Union[EvalResult, List[EvalResult]]
-    ) -> EvalResult:
+        self, outputs: List[Any]
+    ):
         """
         Called at the end of a test epoch with the output of all test steps.
 
@@ -879,13 +887,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 are multiple dataloaders, a list containing a list of outputs for each dataloader
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.EvalResult`
+            None
 
         Note:
             If you didn't define a :meth:`test_step`, this won't be called.
-
-        - The outputs here are strictly for logging or progress bar.
-        - If you don't need to display anything, don't return anything.
 
         Examples:
             With a single dataloader:
@@ -896,8 +901,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     # do something with the outputs of all test batches
                     all_test_preds = test_step_outputs.predictions
 
-                    test_step_outputs.some_result = calc_all_results(all_test_preds)
-                    return test_step_outputs
+                    some_result = calc_all_results(all_test_preds)
+                    self.log(some_result)
 
             With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
             one entry per dataloader, while the inner list contains the individual outputs of
@@ -906,12 +911,13 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             .. code-block:: python
 
                 def test_epoch_end(self, outputs):
-                    for dataloader_output_result in outputs:
-                        dataloader_outs = dataloader_output_result.dataloader_i_outputs
+                    final_value = 0
+                    for dataloader_outputs in outputs:
+                        for test_step_out in dataloader_outputs:
+                            # do something
+                            final_value += test_step_out
 
-                    result = pl.EvalResult()
-                    result.log('final_metric', final_value)
-                    return results
+                    self.log('final_metric', final_value)
         """
 
     def configure_ddp(
@@ -1399,49 +1405,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             param.requires_grad = True
 
         self.train()
-
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        r"""
-        Called by Lightning to restore your model.
-        If you saved something with :meth:`on_save_checkpoint` this is your chance to restore this.
-
-        Args:
-            checkpoint: Loaded checkpoint
-
-
-        Example:
-            .. code-block:: python
-
-                def on_load_checkpoint(self, checkpoint):
-                    # 99% of the time you don't need to implement this method
-                    self.something_cool_i_want_to_save = checkpoint['something_cool_i_want_to_save']
-
-        Note:
-            Lightning auto-restores global step, epoch, and train state including amp scaling.
-            There is no need for you to restore anything regarding training.
-        """
-
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        r"""
-        Called by Lightning when saving a checkpoint to give you a chance to store anything
-        else you might want to save.
-
-        Args:
-            checkpoint: Checkpoint to be saved
-
-        Example:
-            .. code-block:: python
-
-                def on_save_checkpoint(self, checkpoint):
-                    # 99% of use cases you don't need to implement this method
-                    checkpoint['something_cool_i_want_to_save'] = my_cool_pickable_object
-
-        Note:
-            Lightning saves all aspects of training (epoch, global step, etc...)
-            including amp scaling.
-            There is no need for you to store anything about training.
-
-        """
 
     def get_progress_bar_dict(self) -> Dict[str, Union[int, str]]:
         r"""

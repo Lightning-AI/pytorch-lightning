@@ -52,8 +52,6 @@ def test__validation_step__log(tmpdir):
         'b',
         'step_b/epoch_0',
         'step_b/epoch_1',
-        'b/epoch_0',
-        'b/epoch_1',
         'epoch_b',
         'epoch',
     }
@@ -67,7 +65,7 @@ def test__validation_step__log(tmpdir):
     assert expected_cb_metrics == callback_metrics
 
 
-def test__validation_step__epoch_end__log(tmpdir):
+def test__validation_step__step_end__epoch_end__log(tmpdir):
     """
     Tests that validation_step can log
     """
@@ -88,16 +86,22 @@ def test__validation_step__epoch_end__log(tmpdir):
             self.log('c', acc)
             self.log('d', acc, on_step=True, on_epoch=True)
             self.validation_step_called = True
+            return acc
+
+        def validation_step_end(self, acc):
+            self.validation_step_end_called = True
+            self.log('e', acc)
+            self.log('f', acc, on_step=True, on_epoch=True)
+            return ['random_thing']
 
         def validation_epoch_end(self, outputs):
-            self.log('e', torch.tensor(2, device=self.device), on_step=True, on_epoch=True)
+            self.log('g', torch.tensor(2, device=self.device), on_epoch=True)
             self.validation_epoch_end_called = True
 
         def backward(self, trainer, loss, optimizer, optimizer_idx):
             loss.backward()
 
     model = TestModel()
-    model.validation_step_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -110,39 +114,32 @@ def test__validation_step__epoch_end__log(tmpdir):
     trainer.fit(model)
 
     # make sure all the metrics are available for callbacks
+    logged_metrics = set(trainer.logged_metrics.keys())
     expected_logged_metrics = {
+        'epoch',
         'a',
         'b',
         'step_b',
         'epoch_b',
         'c',
         'd',
-        'd/epoch_0',
-        'd/epoch_1',
         'step_d/epoch_0',
         'step_d/epoch_1',
         'epoch_d',
         'e',
-        'epoch_e',
-        'epoch',
+        'f',
+        'step_f/epoch_0',
+        'step_f/epoch_1',
+        'epoch_f',
+        'g',
     }
-
-    logged_metrics = set(trainer.logged_metrics.keys())
     assert expected_logged_metrics == logged_metrics
 
-    # we don't want to enable val metrics during steps because it is not something that users should do
-    expected_cb_metrics = {
-        'a',
-        'b',
-        'step_b',
-        'epoch_b',
-        'c',
-        'd',
-        'epoch_d',
-        'e',
-        'epoch_e',
-        'debug_epoch',
-    }
+    progress_bar_metrics = set(trainer.progress_bar_metrics.keys())
+    expected_pbar_metrics = set()
+    assert expected_pbar_metrics == progress_bar_metrics
 
+    # we don't want to enable val metrics during steps because it is not something that users should do
     callback_metrics = set(trainer.callback_metrics.keys())
+    expected_cb_metrics = {'a', 'b', 'c', 'd', 'e', 'epoch_b', 'epoch_d', 'epoch_f', 'f', 'g', 'step_b'}
     assert expected_cb_metrics == callback_metrics

@@ -181,26 +181,20 @@ class ModelCheckpoint(Callback):
         """
         Performs the main logic around saving a checkpoint
         """
-        # only run on main process
-        if trainer.global_rank != 0:
-            return
+        epoch = trainer.current_epoch
 
-        # no models are saved
-        if self.save_top_k == 0:
-            return
-
-        # don't save anything during sanity check
-        if trainer.running_sanity_check:
-            return
-
-        # skip this epoch
-        if self._should_skip_epoch(trainer):
+        if (
+            trainer.global_rank != 0  # only run on main process
+            or self.save_top_k == 0  # no models are saved
+            or self.period < 1  # no models are saved
+            or (epoch + 1) % self.period  # skip epoch
+            or trainer.running_sanity_check  # don't save anything during sanity check
+            or self.epoch_last_check == epoch  # already saved
+        ):
             return
 
         self._add_backward_monitor_support(trainer)
         self._validate_monitor_key(trainer)
-
-        epoch = trainer.current_epoch
 
         # track epoch when ckpt was last checked
         self.epoch_last_check = trainer.current_epoch
@@ -218,10 +212,7 @@ class ModelCheckpoint(Callback):
 
         # Mode 2: save all checkpoints OR only the top k
         if self.save_top_k:
-            if self.save_top_k == -1:
-                self._save_all_checkpoints(trainer, pl_module, epoch, filepath)
-            else:
-                self._save_top_k_checkpoints(monitor_candidates, trainer, pl_module, epoch, filepath)
+            self._save_top_k_checkpoints(monitor_candidates, trainer, pl_module, epoch, filepath)
 
     def __validate_init_configuration(self):
         if self.save_top_k is not None and self.save_top_k < -1:
@@ -278,7 +269,7 @@ class ModelCheckpoint(Callback):
 
         if mode not in mode_dict:
             rank_zero_warn(
-                f"ModelCheckpoint mode {mode} is unknown, " f"fallback to auto mode.",
+                f"ModelCheckpoint mode {mode} is unknown, fallback to auto mode",
                 RuntimeWarning,
             )
             mode = "auto"
@@ -290,7 +281,6 @@ class ModelCheckpoint(Callback):
             self._fs.rm(filepath)
 
     def _save_model(self, filepath: str, trainer, pl_module):
-
         # in debugging, track when we save checkpoints
         trainer.dev_debugger.track_checkpointing_history(filepath)
 
@@ -304,6 +294,9 @@ class ModelCheckpoint(Callback):
             raise ValueError(".save_function() not set")
 
     def check_monitor_top_k(self, current) -> bool:
+        if self.save_top_k == -1:
+            return True
+
         less_than_k_models = len(self.best_k_models) < self.save_top_k
         if less_than_k_models:
             return True
@@ -317,9 +310,7 @@ class ModelCheckpoint(Callback):
             current = torch.tensor(current)
 
         monitor_op = {"min": torch.lt, "max": torch.gt}[self.mode]
-
-        val = monitor_op(current, self.best_k_models[self.kth_best_model_path])
-        return val
+        return monitor_op(current, self.best_k_models[self.kth_best_model_path]).item()
 
     @classmethod
     def _format_checkpoint_name(
@@ -443,10 +434,6 @@ class ModelCheckpoint(Callback):
             )
             raise MisconfigurationException(m)
 
-    def _should_skip_epoch(self, trainer):
-        epoch = trainer.current_epoch
-        return (self.epoch_last_check is not None) and (epoch - self.epoch_last_check) < self.period
-
     def _get_metric_interpolated_filepath_name(self, epoch, ckpt_name_metrics):
         filepath = self.format_checkpoint_name(epoch, ckpt_name_metrics)
         version_cnt = 0
@@ -490,33 +477,27 @@ class ModelCheckpoint(Callback):
         current = metrics.get(self.monitor)
 
         if not isinstance(current, torch.Tensor) and current is not None:
-            if current is not None:
-                current = torch.tensor(current).to(pl_module.device)
+            current = torch.tensor(current, device=pl_module.device)
 
         if current is None:
             m = f"Can save best model only with {self.monitor} available, skipping."
             if self.monitor == 'checkpoint_on':
-                m = 'No checkpoint_on found. Hint: Did you set it in EvalResult(checkpoint_on=tensor) or ' \
-                    'TrainResult(checkpoint_on=tensor)?'
+                m = (
+                    'No checkpoint_on found. HINT: Did you set it in '
+                    'EvalResult(checkpoint_on=tensor) or TrainResult(checkpoint_on=tensor)?'
+                )
             rank_zero_warn(m, RuntimeWarning)
         elif self.check_monitor_top_k(current):
-            self._do_check_save(filepath, current, epoch, trainer, pl_module)
+            self._update_best_and_save(filepath, current, epoch, trainer, pl_module)
         elif self.verbose:
             log.info(
                 f"Epoch {epoch:d}: {self.monitor} was not in top {self.save_top_k}"
             )
 
-    def _save_all_checkpoints(self, trainer, pl_module, epoch, filepath):
-        if self.verbose:
-            log.info(f"Epoch {epoch:d}: saving model to {filepath}")
-
-        assert (trainer.global_rank == 0), "tried to make a checkpoint from non global_rank=0"
-        self._save_model(filepath, trainer, pl_module)
-
     def _is_valid_monitor_key(self, metrics):
         return self.monitor in metrics or len(metrics) == 0
 
-    def _do_check_save(
+    def _update_best_and_save(
         self,
         filepath: str,
         current: torch.Tensor,
@@ -524,16 +505,17 @@ class ModelCheckpoint(Callback):
         trainer,
         pl_module,
     ):
-        # remove kth
+
+        k = epoch + 1 if self.save_top_k == -1 else self.save_top_k
 
         del_list = []
-        if len(self.best_k_models) == self.save_top_k and self.save_top_k > 0:
+        if len(self.best_k_models) == k and k > 0:
             delpath = self.kth_best_model_path
             self.best_k_models.pop(self.kth_best_model_path)
             del_list.append(delpath)
 
         self.best_k_models[filepath] = current
-        if len(self.best_k_models) == self.save_top_k:
+        if len(self.best_k_models) == k:
             # monitor dict has reached k elements
             _op = max if self.mode == "min" else min
             self.kth_best_model_path = _op(
@@ -549,7 +531,7 @@ class ModelCheckpoint(Callback):
             log.info(
                 f"Epoch {epoch:d}: {self.monitor} reached"
                 f" {current:0.5f} (best {self.best_model_score:0.5f}),"
-                f" saving model to {filepath} as top {self.save_top_k}"
+                f" saving model to {filepath} as top {k}"
             )
         self._save_model(filepath, trainer, pl_module)
 
