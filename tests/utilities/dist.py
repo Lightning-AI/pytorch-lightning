@@ -22,7 +22,7 @@ def call_training_script(module_file, cli_args, method, tmpdir):
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
 
     try:
-        std, err = p.communicate(timeout=60)
+        std, err = p.communicate(timeout=30)
     except TimeoutExpired:
         p.kill()
         std = ''
