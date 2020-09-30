@@ -20,6 +20,7 @@ from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pprint import pprint
 from typing import Iterable
+from copy import deepcopy
 
 
 class LoggerConnector:
@@ -29,6 +30,7 @@ class LoggerConnector:
         self.callback_metrics = {}
         self.logged_metrics = {}
         self.progress_bar_metrics = {}
+        self.eval_loop_results = []
 
     def on_trainer_init(self, logger, log_save_interval, row_log_interval):
         # logging
@@ -100,11 +102,69 @@ class LoggerConnector:
         self.trainer.dev_debugger.track_pbar_metrics_history(metrics)
 
     def on_evaluation_epoch_end(self, eval_results, using_eval_result, test_mode):
-        # TODO: merge both functions?
-        self._log_on_evaluation_epoch_end_metrics(eval_results, using_eval_result)
-        return self.__log_evaluation_epoch_metrics_2(eval_results, test_mode)
+        self._track_callback_metrics(eval_results, using_eval_result)
+        self._log_on_evaluation_epoch_end_metrics()
 
-    def _log_on_evaluation_epoch_end_metrics(self, eval_results, using_eval_result):
+        # TODO: deprecate parts of this for 1.0 (when removing results)
+        self.__process_eval_epoch_end_results_and_log_legacy(eval_results, test_mode)
+
+        # get the final loop results
+        eval_loop_results = self._get_evaluate_epoch_results(test_mode)
+        return eval_loop_results
+
+    def _get_evaluate_epoch_results(self, test_mode):
+        # log results of test
+        if test_mode and self.trainer.is_global_zero and self.trainer.verbose_test:
+            print('-' * 80)
+            for result_idx, results in enumerate(self.eval_loop_results):
+                print(f'DATALOADER:{result_idx} TEST RESULTS')
+                pprint(results)
+                print('-' * 80)
+
+        results = self.eval_loop_results
+
+        # clear mem
+        self.eval_loop_results = []
+        return results
+
+    def _log_on_evaluation_epoch_end_metrics(self):
+        step_metrics = self.trainer.evaluation_loop.step_metrics
+
+        # clear mem
+        self.trainer.evaluation_loop.step_metrics = []
+
+        num_loaders = len(step_metrics)
+
+        # process metrics per dataloader
+        for dl_idx, dl_metrics in enumerate(step_metrics):
+            if len(dl_metrics) == 0:
+                continue
+
+            reduced_epoch_metrics = dl_metrics[0].__class__.reduce_on_epoch_end(dl_metrics)
+            # make the keys 'k/dl'
+            reduced_epoch_metrics = self.__rename_keys_by_dataloader_idx(reduced_epoch_metrics, dl_idx, num_loaders)
+
+            # track the metrics
+            logger_metrics = reduced_epoch_metrics.get_epoch_log_metrics()
+            pbar_metrics = reduced_epoch_metrics.get_epoch_pbar_metrics()
+            self.logged_metrics.update(logger_metrics)
+            self.progress_bar_metrics.update(pbar_metrics)
+
+            # enable the metrics to be monitored
+            self.callback_metrics.update(logger_metrics)
+            self.callback_metrics.update(pbar_metrics)
+
+            # track the final results for the dataloader
+            self.eval_loop_results.append(deepcopy(self.callback_metrics))
+
+    def __rename_keys_by_dataloader_idx(self, metrics, dataloader_idx, num_loaders):
+        if num_loaders == 1:
+            return metrics
+
+        result = {f'{k}/dataloader_idx_{dataloader_idx}': v for k, v in metrics.items()}
+        return result
+
+    def _track_callback_metrics(self, eval_results, using_eval_result):
         if len(eval_results) > 0 and eval_results[0] is None:
             return
 
@@ -120,7 +180,7 @@ class LoggerConnector:
                     # with a scalar return, auto set it to "val_loss" for callbacks
                     if isinstance(eval_result, torch.Tensor):
                         flat = {'val_loss': eval_result}
-                    else:
+                    elif isinstance(eval_result, dict):
                         flat = flatten_dict(eval_result)
 
                     # removing val_loss magic word to map to checkpoint + ES callback
@@ -141,11 +201,10 @@ class LoggerConnector:
                     flat['early_stop_on'] = flat['val_loss']
                 self.trainer.logger_connector.callback_metrics.update(flat)
 
-    def __log_evaluation_epoch_metrics_2(self, eval_results, test_mode):
+    def __process_eval_epoch_end_results_and_log_legacy(self, eval_results, test_mode):
         if self.trainer.running_sanity_check:
             return
 
-        eval_loop_results = []
         if eval_results is not None and len(eval_results) > 0:
 
             # in eval, the user may return something at every validation step without final reduction
@@ -179,17 +238,7 @@ class LoggerConnector:
                 self.trainer.logger_connector.callback_metrics.update(prog_bar_metrics)
 
                 if len(dataloader_result_metrics) > 0:
-                    eval_loop_results.append(dataloader_result_metrics)
-
-        # log results of test
-        if test_mode and self.trainer.is_global_zero and self.trainer.verbose_test:
-            print('-' * 80)
-            for result_idx, results in enumerate(eval_loop_results):
-                print(f'DATALOADER:{result_idx} TEST RESULTS')
-                pprint(results)
-                print('-' * 80)
-
-        return eval_loop_results
+                    self.eval_loop_results.append(dataloader_result_metrics)
 
     def on_train_epoch_end(self, epoch_output):
         pass

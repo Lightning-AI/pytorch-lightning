@@ -352,9 +352,14 @@ class Result(Dict):
     @classmethod
     def reduce_on_epoch_end(cls, outputs):
         # get the batch sizes for all outputs
-        batch_sizes = torch.stack([x.get_batch_sizes() for x in outputs]).view(-1)
+        batch_sizes = []
+        meta = {}
+        for x in outputs:
+            batch_sizes.append(x.get_batch_sizes())
+            meta.update(x['meta'])
 
-        meta = outputs[0]['meta']
+        batch_sizes = torch.stack(batch_sizes).view(-1)
+
         result = cls()
         result = recursive_gather(outputs, result)
         recursive_stack(result)
@@ -371,6 +376,8 @@ class Result(Dict):
                     reduced_val = fx(result[k])
 
                 result[k] = reduced_val
+            else:
+                del result[k]
 
         result['meta'] = meta
         return result
@@ -871,7 +878,7 @@ class EvalResult(Result):
 
 
 def weighted_mean(result, weights):
-    weights = weights.to(result.device)
+    weights = weights.to(result.device)[:result.size(0)]
     numerator = torch.dot(result.float(), weights.transpose(-1, 0).float())
     result = numerator / weights.sum().float()
     return result

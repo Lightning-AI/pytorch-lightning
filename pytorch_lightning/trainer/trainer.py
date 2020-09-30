@@ -413,6 +413,7 @@ class Trainer(
         for dataloader_idx, dataloader in enumerate(dataloaders):
             # bookkeeping
             dl_outputs = []
+            dl_step_metrics = []
             dataloader = self.accelerator_backend.process_dataloader(dataloader)
             dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
 
@@ -436,13 +437,22 @@ class Trainer(
 
                 # clean up
                 self.evaluation_loop.evaluation_batch_end_cleanup(output, batch_idx, dataloader_idx)
-                self.evaluation_loop.log_evaluation_step_metrics(output, batch_idx)
 
-                # track epoch level metrics
+                # TODO: deprecate 1.0
+                self.evaluation_loop.log_evaluation_step_metrics_legacy(output, batch_idx)
+
+                # log step metrics
+                step_metrics = self.evaluation_loop.log_evaluation_step_metrics(batch, batch_idx)
+
+                if step_metrics is not None:
+                    dl_step_metrics.append(step_metrics)
+
+                # track epoch level outputs
                 if output is not None:
                     dl_outputs.append(output)
 
             self.evaluation_loop.outputs.append(dl_outputs)
+            self.evaluation_loop.step_metrics.append(dl_step_metrics)
 
         # lightning module method
         eval_results = self.evaluation_loop.evaluation_epoch_end(num_dataloaders=len(dataloaders))
