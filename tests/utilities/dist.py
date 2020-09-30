@@ -1,5 +1,6 @@
 import os
 import subprocess
+from subprocess import TimeoutExpired
 import sys
 from pathlib import Path
 
@@ -19,7 +20,13 @@ def call_training_script(module_file, cli_args, method, tmpdir):
 
     # for running in ddp mode, we need to lauch it's own process or pytest will get stuck
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
-    std, err = p.communicate(timeout=60)
+
+    try:
+        std, err = p.communicate(timeout=60)
+    except TimeoutExpired:
+        p.kill()
+        std = ''
+        err = ''
 
     # bubble up the error to tests
     if len(err) > 0:
