@@ -186,12 +186,11 @@ class LightningModule(
 
             self.log('train_loss', loss)
 
-        These are the defaults used when .log is called from each of these LightningModule hooks.
-        (``*`` also applies to the test loop)
+        The default behavior per hook is as follows
 
-        .. csv-table::
-            :header: "LightningModule Hook", "on_step", "on_epoch", "prog_bar", "logger"
-            :widths: 50, 25, 25, 25, 25
+        .. csv-table:: ``*`` applies to test loop
+           :header: "LightningMoule Hook", "on_step", "on_epoch", "prog_bar", "logger"
+           :widths: 20, 10, 10, 10, 10
 
            "training_step", "T", "F", "F", "T"
            "training_step_end", "T", "F", "F", "T"
@@ -203,7 +202,7 @@ class LightningModule(
         Args:
             name: key name
             value: value name
-            prog_bar: if True logs to the progress base
+            prog_bar: if True logs to the progress bar
             logger: if True logs to the logger
             on_step: if True logs at this step. None auto-logs at the training_step but not validation/test_step
             on_epoch: if True logs epoch accumulated metrics. None auto-logs at the val/test step but not training_step
