@@ -165,7 +165,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         """
         try:
             return torch.cat(tensors).mean(0)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as e:
             if isinstance(tensors[0], Mapping):
                 return {k: torch.stack([tensor[k] for tensor in tensors]).mean(0) for k in tensors[0].keys()}
             elif isinstance(tensors[0], Sequence) and not isinstance(tensors[0], torch.Tensor):
@@ -173,7 +173,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
             elif isinstance(tensors[0], torch.Tensor):
                 return torch.stack(tensors).mean(0)
             else:
-                raise TypeError("unknown metric value format to aggregate")
+                raise TypeError("unknown metric value format to aggregate") from e
 
     @staticmethod
     def compute(self, data: Any, output: Any):
