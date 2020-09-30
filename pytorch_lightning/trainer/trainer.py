@@ -260,11 +260,11 @@ class Trainer(
         super().__init__()
 
         # deprecation warnings
-        if log_every_n_steps is not None:
+        if row_log_interval is not None:
             warnings.warn("row_log_interval is deprecated, use log_every_n_steps instead", DeprecationWarning)
             log_every_n_steps = row_log_interval
 
-        if flush_logs_every_n_steps is not None:
+        if log_save_interval is not None:
             warnings.warn("log_save_interval is deprecated, use flush_logs_every_n_steps instead", DeprecationWarning)
             flush_logs_every_n_steps = log_save_interval
 
