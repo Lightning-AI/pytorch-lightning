@@ -84,6 +84,7 @@ RUN conda create -y --name $CONDA_ENV "cudatoolkit=$CUDA_VERSION" && \
     cat environment.yml && \
     conda env update --file environment.yml && \
     cat environment.yml && \
+    conda env update --file environment.yml && \
     conda clean -ya && \
     rm environment.yml
 
