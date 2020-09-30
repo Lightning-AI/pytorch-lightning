@@ -320,11 +320,12 @@ def test_model_checkpoint_topk_zero(tmpdir):
     assert len(os.listdir(tmpdir)) == 0
 
 
-def test_model_checkpoint_topk_neg_one(tmpdir):
+def test_model_checkpoint_topk_all(tmpdir):
+    """ Test that save_top_k=-1 tracks the best models when monitor key is provided. """
     seed_everything(1000)
     epochs = 3
     model = EvalModelTemplate()
-    checkpoint_callback = ModelCheckpoint(monitor=None, filepath=tmpdir, save_top_k=-1)
+    checkpoint_callback = ModelCheckpoint(filepath=tmpdir, monitor="val_loss", save_top_k=-1)
     trainer = Trainer(
         default_root_dir=tmpdir,
         early_stop_callback=False,
@@ -333,11 +334,10 @@ def test_model_checkpoint_topk_neg_one(tmpdir):
         logger=False,
     )
     trainer.fit(model)
-
-    assert checkpoint_callback.best_model_path == tmpdir / 'epoch=2.ckpt'
+    assert checkpoint_callback.best_model_path == tmpdir / "epoch=2.ckpt"
     assert checkpoint_callback.best_model_score > 0
-    assert set(checkpoint_callback.best_k_models.keys()) == set(tmpdir / f'epoch={i}.ckpt' for i in range(epochs))
-    assert checkpoint_callback.kth_best_model_path == tmpdir / 'epoch=0.ckpt'
+    assert set(checkpoint_callback.best_k_models.keys()) == set(tmpdir / f"epoch={i}.ckpt" for i in range(epochs))
+    assert checkpoint_callback.kth_best_model_path == tmpdir / "epoch=0.ckpt"
 
 
 def test_ckpt_metric_names(tmpdir):
