@@ -392,7 +392,7 @@ class LightningModule(
             Any of.
 
             - `torch.Tensor`
-            - `dict` - can include anything (must include the keyword 'loss')
+            - `dict` - Can include any keys, but must include the key 'loss'
             - `None` - Training will skip to the next batch
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
@@ -567,7 +567,7 @@ class LightningModule(
         Return:
             Any of.
 
-            - Whatever you want
+            - Any object or value
             - `None` - Validation will skip to the next batch
 
         .. code-block:: python
@@ -761,7 +761,7 @@ class LightningModule(
         Return:
             Any of.
 
-            - Whatever you want
+            - Any object or value
             - `None` - Testing will skip to the next batch
 
         .. code-block:: python
