@@ -285,5 +285,6 @@ class DDPBackend(DDPBase):
         return device_ids
 
     def on_train_end(self):
-        if self.trainer.global_rank != 0:
-            exit()
+        pass
+        # if self.trainer.global_rank != 0:
+        #     exit()
