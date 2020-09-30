@@ -371,6 +371,65 @@ If you prefer to do it manually, here's the equivalent
     model = LitModel()
     model.load_state_dict(ckpt['state_dict'])
 
+---------
+
+*********
+Data flow
+*********
+Each loop (train, val, step) has three hooks you can implement (x_step, x_step_end, x_epoch_end).
+
+.. code-block:: python
+
+    outs = []
+    for batch in data:
+        out = training_step(batch)
+        outs.append(out)
+     training_epoch_end(outs)
+
+The equivalent in Lightning is:
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        prediction = ...
+        return prediction
+
+    def training_epoch_end(self, training_step_outputs):
+        for prediction in predictions:
+            # do something with these
+
+In the event that you use DP or DDP2 distributed modes (ie: split a batch across GPUs),
+use the x_step_end to manually aggregate (or don't implement it to let lightning auto-aggregate for you).
+
+.. code-block:: python
+
+    for batch in data:
+        gpu_outs = []
+        model_copies = copy_model_per_gpu(model, num_gpus)
+        batch_split = split_batch_per_gpu(model, batch)
+        for model, batch_part in zip(model_copies, batch_split):
+            # loop hook
+            gpu_out = training_step(batch_part)
+            gpu_outs.append(gpu_out)
+
+        # loop hook
+        out = training_step_end(gpu_outs)
+
+The lightning equivalent is:
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        loss = ...
+        return loss
+
+    def training_step_end(self, losses):
+        gpu_0_loss = losses[0]
+        gpu_1_loss = losses[1]
+        return (gpu_0_loss + gpu_1_loss) * 1/2
+
+The validation and test loops have the same structure.
+
 -----------------
 
 *****************
