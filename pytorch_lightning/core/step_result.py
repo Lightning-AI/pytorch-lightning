@@ -131,7 +131,10 @@ class Result(Dict):
 
         # if user requests both step and epoch, then we split the metric in two automatically
         # one will be logged per step. the other per epoch
+        was_forked = False
         if on_step and on_epoch:
+            was_forked = True
+
             # set step version
             step_name = f'step_{name}'
             self.__set_meta(
@@ -144,6 +147,7 @@ class Result(Dict):
                 reduce_fx=reduce_fx,
                 tbptt_reduce_fx=tbptt_reduce_fx,
                 tbptt_pad_token=tbptt_pad_token,
+                forked=False
             )
             self.__setitem__(step_name, value)
 
@@ -159,6 +163,7 @@ class Result(Dict):
                 reduce_fx=reduce_fx,
                 tbptt_reduce_fx=tbptt_reduce_fx,
                 tbptt_pad_token=tbptt_pad_token,
+                forked=False
             )
             self.__setitem__(epoch_name, value)
 
@@ -173,6 +178,7 @@ class Result(Dict):
             reduce_fx,
             tbptt_reduce_fx=tbptt_reduce_fx,
             tbptt_pad_token=tbptt_pad_token,
+            forked=was_forked
         )
 
         # set the value
@@ -189,6 +195,7 @@ class Result(Dict):
         reduce_fx: Callable,
         tbptt_pad_token: int,
         tbptt_reduce_fx: Callable,
+        forked: bool
     ):
         # set the meta for the item
         meta_value = value
@@ -201,6 +208,7 @@ class Result(Dict):
             value=meta_value,
             tbptt_reduce_fx=tbptt_reduce_fx,
             tbptt_pad_token=tbptt_pad_token,
+            forked=forked
         )
 
         self['meta'][name] = meta
@@ -222,9 +230,10 @@ class Result(Dict):
 
         return result
 
-    def get_batch_log_metrics(self) -> dict:
+    def get_batch_log_metrics(self, include_forked_originals=True) -> dict:
         """
         Gets the metrics to log at the end of the batch step
+
         """
         result = {}
 
@@ -232,6 +241,10 @@ class Result(Dict):
         for k, options in meta.items():
             if k == '_internal':
                 continue
+
+            if options['forked'] and not include_forked_originals:
+                continue
+
             if options['logger'] and options['on_step']:
                 result[k] = self[k]
         return result
@@ -264,7 +277,7 @@ class Result(Dict):
                 result[k] = self[k]
         return result
 
-    def get_batch_pbar_metrics(self):
+    def get_batch_pbar_metrics(self, include_forked_originals=True):
         """
         Gets the metrics to log at the end of the batch step
         """
@@ -274,6 +287,9 @@ class Result(Dict):
         for k, options in meta.items():
             if k == '_internal':
                 continue
+            if options['forked'] and not include_forked_originals:
+                continue
+
             if options['prog_bar'] and options['on_step']:
                 result[k] = self[k]
         return result

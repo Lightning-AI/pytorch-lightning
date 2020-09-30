@@ -202,6 +202,7 @@ class EvaluationLoop(object):
 
         if self.testing:
             if is_overridden('test_epoch_end', model=model):
+                model._current_fx_name = 'test_epoch_end'
                 if using_eval_result:
                     eval_results = self.__gather_epoch_end_eval_results(outputs)
 
@@ -210,6 +211,7 @@ class EvaluationLoop(object):
 
         else:
             if is_overridden('validation_epoch_end', model=model):
+                model._current_fx_name = 'validation_epoch_end'
                 if using_eval_result:
                     eval_results = self.__gather_epoch_end_eval_results(outputs)
 
@@ -314,8 +316,8 @@ class EvaluationLoop(object):
             self.__log_result_step_metrics(output, batch_idx)
 
     def __log_result_step_metrics(self, output, batch_idx):
-        step_log_metrics = output.batch_log_metrics
-        step_pbar_metrics = output.batch_pbar_metrics
+        step_log_metrics = output.get_batch_log_metrics(include_forked_originals=False)
+        step_pbar_metrics = output.get_batch_pbar_metrics(include_forked_originals=False)
 
         if len(step_log_metrics) > 0:
             # make the metrics appear as a different line in the same graph
