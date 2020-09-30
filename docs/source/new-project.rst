@@ -467,6 +467,14 @@ you can override the default behavior by manually setting the flags
     def training_step(self, batch, batch_idx):
         self.log('my_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
+You can also use any method of your logger directly:
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        tensorboard = self.logger.experiment
+        tensorboard.any_summary_writer_method_you_want())
+
 Once your training starts, you can view the logs by using your favorite logger or booting up the Tensorboard logs:
 
 .. code-block:: bash
