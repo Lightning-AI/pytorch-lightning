@@ -465,6 +465,12 @@ you can override the default behavior by manually setting the flags
     def training_step(self, batch, batch_idx):
         self.log('my_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
+Once your training starts, you can view the logs by using your favorite logger or booting up the Tensorboard logs:
+
+.. code-block:: bash
+
+    tensorboard --logdir ./lightning_logs
+
 Read more about :ref:`loggers`.
 
 ----------------
@@ -518,8 +524,8 @@ Things you can do with a callback:
 :ref:`Learn more about custom callbacks <callbacks>`.
 
 
-Datamodules
-===========
+LightningDataModules
+====================
 DataLoaders and data processing code tends to end up scattered around.
 Make your data code reusable by organizing it into a :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
 
@@ -650,21 +656,14 @@ Or read our :ref:`introduction_guide` to learn more!
 -------------
 
 **********
-Learn more
+Community
 **********
-
-That's it! Once you build your module, data, and call trainer.fit(), Lightning trainer calls each loop at the correct time as needed.
-
-You can then boot up your logger or tensorboard instance to view training logs
-
-.. code-block:: bash
-
-    tensorboard --logdir ./lightning_logs
+Out community of core maintainers and thousands of expert researchers is active on our Slack and Forum. Drop by to
+hang out, ask Lightning questions or even discuss research!
 
 Masterclass
 ===========
-
-Go pro by tunning in to our Masterclass! New episodes every week.
+We also offer a Masterclass to teach you the advanced uses of Lightning.
 
 .. image:: _images/general/PTL101_youtube_thumbnail.jpg
     :width: 500
