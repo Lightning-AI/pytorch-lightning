@@ -125,6 +125,9 @@ class AcceleratorConnector:
         self.trainer.replace_sampler_ddp = replace_sampler_ddp
 
     def select_accelerator(self):
+        if self.trainer.accelerator_backend is not None:
+            return self.trainer.accelerator_backend
+
         # SLURM ddp
         use_slurm_ddp = self.trainer.use_ddp and self.trainer.is_slurm_managing_tasks
 
