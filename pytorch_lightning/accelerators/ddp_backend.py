@@ -199,7 +199,7 @@ class DDPBackend(DDPBase):
         # AMP - run through amp wrapper before going to distributed DP
         model = self.trainer.precision_connector.connect(model)
 
-        # DDP2 uses all GPUs on the machine
+        # DDP uses all GPUs on the machine
         device_ids = self.get_device_ids()
 
         # allow user to configure ddp
@@ -220,7 +220,7 @@ class DDPBackend(DDPBase):
         # clean up memory
         torch.cuda.empty_cache()
 
-        if self.trainer.global_rank == 0 and self.trainer.distributed_backend not in ['ddp_spawn', 'ddp_cpu']:
+        if self.trainer.global_rank == 0:
             return results
 
     def training_step(self, args):
