@@ -1642,11 +1642,14 @@ class LightningModule(
             self._set_hparams(hp)
 
     def _set_hparams(self, hp: Union[dict, Namespace, str]) -> None:
-        if OMEGACONF_AVAILABLE and isinstance(hp, Container):
-            self.hparams = OmegaConf.merge(OmegaConf.create(self.hparams), hp)
-            return
 
-        if isinstance(hp, Namespace):
+        if OMEGACONF_AVAILABLE and isinstance(hp, Container):
+            pass
+            # if isinstance(self.hparams, dict):
+            #     hp = OmegaConf.merge(OmegaConf.create(self.hparams), hp)
+            # self._hparams = hp
+            # return
+        elif isinstance(hp, Namespace):
             hp = vars(hp)
         elif isinstance(hp, dict):
             hp = AttributeDict(hp)
@@ -1655,8 +1658,11 @@ class LightningModule(
         elif not isinstance(hp, ALLOWED_CONFIG_TYPES):
             raise ValueError(f"Unsupported config type of {type(hp)}.")
 
-        if isinstance(hp, dict) and isinstance(self.hparams, dict):
-            self.hparams.update(hp)
+        if isinstance(self.hparams, dict):
+            if OMEGACONF_AVAILABLE and isinstance(hp, Container):
+                self.hparams = OmegaConf.merge(self.hparams, hp)
+            else:
+                self.hparams.update(hp)
         else:
             self._hparams = hp
 
