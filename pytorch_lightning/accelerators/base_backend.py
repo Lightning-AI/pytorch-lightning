@@ -194,3 +194,8 @@ class BackendType(Enum):
     DDP_CPU = 'ddp_cpu'
     TPU = 'tpu'
     HOROVOD = 'horovod'
+
+class DeviceType(Enum):
+    GPU = 'gpu'
+    CPU = 'cpu'
+    TPU = 'tpu'

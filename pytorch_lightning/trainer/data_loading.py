@@ -14,7 +14,7 @@
 
 import multiprocessing
 import platform
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Union, List, Tuple, Callable, Optional
 
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
@@ -57,12 +57,8 @@ class TrainerDataLoadingMixin(ABC):
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
     global_rank: int
-    use_ddp: bool
-    use_ddp2: bool
-    use_horovod: bool
     shown_warnings: ...
     val_check_interval: float
-    use_tpu: bool
     tpu_local_core_rank: int
     train_dataloader: DataLoader
     num_training_batches: Union[int, float]
@@ -115,7 +111,8 @@ class TrainerDataLoadingMixin(ABC):
 
         if not is_dataloader or is_iterable_ds:
             return dataloader
-        need_dist_sampler = (self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu)
+        need_dist_sampler = (self.distributed_backend in
+                             (BackendType.DDP, BackendType.DDP2, BackendType.HOROVOD, BackendType.TPU))
 
         if self.replace_sampler_ddp and need_dist_sampler:
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):

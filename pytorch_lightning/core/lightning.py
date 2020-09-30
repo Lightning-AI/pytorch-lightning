@@ -94,18 +94,6 @@ class LightningModule(
         #: Pointer to the logger object
         self.logger = None
 
-        #: True if using dp
-        self.use_dp = False
-
-        #: True if using ddp
-        self.use_ddp = False
-
-        #: True if using ddp2
-        self.use_ddp2 = False
-
-        # True if on tpu
-        self.use_tpu = False
-
         #: True if using amp
         self.use_amp = False
 

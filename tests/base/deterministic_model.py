@@ -3,6 +3,7 @@ from torch import nn
 from torch.utils.data import Dataset, DataLoader
 
 from pytorch_lightning import TrainResult, EvalResult
+from pytorch_lightning.accelerators.base_backend import BackendType
 from pytorch_lightning.core.lightning import LightningModule
 
 
@@ -87,7 +88,7 @@ class DeterministicModel(LightningModule):
         """
         self.training_epoch_end_called = True
 
-        if self.use_dp or self.use_ddp2:
+        if self.distributed_backend in (BackendType.DP, BackendType.DDP2):
             pass
         else:
             # only saw 4 batches
@@ -180,7 +181,7 @@ class DeterministicModel(LightningModule):
         """
         self.training_epoch_end_called = True
 
-        if self.use_dp or self.use_ddp2:
+        if self.distributed_backend in (BackendType.DP, BackendType.DDP2):
             pass
         else:
             # only saw 4 batches
@@ -377,7 +378,7 @@ class DeterministicModel(LightningModule):
     def training_epoch_end_dict(self, outputs):
         self.training_epoch_end_called = True
 
-        if self.use_dp or self.use_ddp2:
+        if self.distributed_backend in (BackendType.DP, BackendType.DDP2):
             pass
         else:
             # only saw 4 batches

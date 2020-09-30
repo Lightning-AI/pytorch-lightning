@@ -1,6 +1,7 @@
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.accelerators.base_backend import BackendType
 from tests.base.develop_utils import load_model_from_checkpoint, get_default_logger, \
     reset_seed
 
@@ -28,7 +29,7 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
     for dataloader in test_loaders:
         run_prediction(dataloader, pretrained_model, min_acc=min_acc)
 
-    if trainer.use_ddp:
+    if trainer.distributed_backend == BackendType.DDP:
         # on hpc this would work fine... but need to hack it for the purpose of the test
         trainer.model = pretrained_model
         trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
@@ -67,7 +68,7 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
         run_prediction(dataloader, pretrained_model)
 
     if with_hpc:
-        if trainer.use_ddp or trainer.use_ddp2:
+        if trainer.distributed_backend in (BackendType.DP, BackendType.DDP2):
             # on hpc this would work fine... but need to hack it for the purpose of the test
             trainer.model = pretrained_model
             trainer.optimizers, trainer.lr_schedulers, trainer.optimizer_frequencies = \

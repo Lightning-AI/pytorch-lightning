@@ -1,3 +1,4 @@
+from pytorch_lightning.accelerators.base_backend import BackendType
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.states import TrainerState
@@ -21,9 +22,7 @@ class TrainerProperties(ABC):
     _state: TrainerState
     global_rank: int
     fast_dev_run: bool
-    use_dp: bool
-    use_ddp: bool
-    use_ddp2: bool
+    distributed_backend: BackendType
     model: LightningModule
     data_parallel_device_ids: Optional[List[int]]
     _progress_bar_callback: ProgressBarBase
@@ -125,7 +124,7 @@ class TrainerProperties(ABC):
 
     @property
     def data_parallel(self) -> bool:
-        return self.use_dp or self.use_ddp or self.use_ddp2
+        return self.distributed_backend in (BackendType.DP, BackendType.DDP, BackendType.DDP2)
 
     @property
     def progress_bar_callback(self):

@@ -23,6 +23,7 @@ from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 from torch.nn.parallel._functions import Gather
 
+from pytorch_lightning.accelerators.base_backend import BackendType
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities.warning_utils import WarningCache
 
@@ -285,7 +286,7 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
                 if output is None:
                     warn_missing_output(fx_called)
 
-                if output is not None and (module.use_dp or module.use_ddp2):
+                if output is not None and module.distributed_backend in (BackendType.DP, BackendType.DDP2):
                     auto_squeeze_dim_zeros(output)
                 # ---------------
 

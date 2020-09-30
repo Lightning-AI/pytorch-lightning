@@ -14,12 +14,12 @@
 
 from abc import ABC
 import inspect
-from typing import Union, Iterable
+from typing import Union
 
 import torch
 
-from pytorch_lightning.core import memory
-from pytorch_lightning.loggers import TensorBoardLogger, LightningLoggerBase, LoggerCollection
+from pytorch_lightning.accelerators.base_backend import BackendType
+from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 
@@ -30,12 +30,11 @@ class TrainerLoggingMixin(ABC):
     #  the proper values/initialisation should be done in child class
     current_epoch: int
     on_gpu: bool
+    distributed_backend: BackendType
     log_gpu_memory: ...
     logger: Union[LightningLoggerBase, bool]
     global_step: int
     global_rank: int
-    use_dp: bool
-    use_ddp2: bool
     default_root_dir: str
     slurm_job_id: int
     num_gpus: int
@@ -97,7 +96,7 @@ class TrainerLoggingMixin(ABC):
                 if k not in ['progress_bar', 'log', 'hiddens']:
                     callback_metrics[k] = v
 
-        if train and (self.use_dp or self.use_ddp2):
+        if train and self.distributed_backend in (BackendType.DP, BackendType.DDP2):
             num_gpus = self.num_gpus
             callback_metrics = self.reduce_distributed_output(callback_metrics, num_gpus)
 
@@ -108,7 +107,7 @@ class TrainerLoggingMixin(ABC):
             progress_output = output['progress_bar']
 
             # reduce progress metrics for progress bar when using dp
-            if train and (self.use_dp or self.use_ddp2):
+            if train and self.distributed_backend in (BackendType.DP, BackendType.DDP2):
                 num_gpus = self.num_gpus
                 progress_output = self.reduce_distributed_output(progress_output, num_gpus)
 
@@ -124,7 +123,7 @@ class TrainerLoggingMixin(ABC):
             log_output = output['log']
 
             # reduce progress metrics for progress bar when using dp
-            if train and (self.use_dp or self.use_ddp2):
+            if train and self.distributed_backend in (BackendType.DP, BackendType.DDP2):
                 num_gpus = self.num_gpus
                 log_output = self.reduce_distributed_output(log_output, num_gpus)
 
@@ -150,7 +149,7 @@ class TrainerLoggingMixin(ABC):
                     ) from exp
 
             # when using dp need to reduce the loss
-            if self.use_dp or self.use_ddp2:
+            if self.distributed_backend in (BackendType.DP, BackendType.DDP2):
                 loss = self.reduce_distributed_output(loss, self.num_gpus)
 
         # ---------------

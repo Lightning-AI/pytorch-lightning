@@ -38,9 +38,7 @@ class ModelConnector:
         for m in [model, ref_model]:
             m.trainer = self.trainer
             m.logger = self.trainer.logger
-            m.use_dp = self.trainer.use_dp
-            m.use_ddp2 = self.trainer.use_ddp2
-            m.use_ddp = self.trainer.use_ddp
+            m.distributed_backend = self.trainer.distributed_backend
             m.use_amp = self.trainer.amp_backend is not None
             m.testing = self.trainer.testing
             m.use_single_gpu = self.trainer.use_single_gpu
