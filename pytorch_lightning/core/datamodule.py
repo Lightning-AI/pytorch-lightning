@@ -147,6 +147,9 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
         self._test_transforms = test_transforms
         self._dims = dims if dims is not None else ()
 
+        # Pointer to the trainer object
+        self.trainer = None
+
         # Private attrs to keep track of whether or not data hooks have been called yet
         self._has_prepared_data = False
         self._has_setup_fit = False
