@@ -9,7 +9,6 @@ import pytest
 import torch
 from torchtext.data import Batch, Dataset, Example, Field, LabelField
 
-import pytorch_lightning
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
@@ -17,9 +16,7 @@ from pytorch_lightning.core import memory
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-from tests.models.data.ddp import train_test_variations
 from pytorch_lightning.accelerators.gpu_backend import GPUBackend
-from pytorch_lightning.accelerators.cpu_backend import CPUBackend
 
 
 PRETEND_N_OF_GPUS = 16
