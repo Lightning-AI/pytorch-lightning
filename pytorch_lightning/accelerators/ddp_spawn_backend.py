@@ -15,10 +15,12 @@ import os
 import re
 
 import torch
+import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.distributed import find_free_network_port
@@ -144,6 +146,25 @@ class DDPSpawnBackend(Accelerator):
 
         # persist info in ddp_spawn
         self.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
+
+    def training_step(self, args):
+        if self.trainer.amp_backend == AMPType.NATIVE:
+            with torch.cuda.amp.autocast():
+                output = self.trainer.model(*args)
+        else:
+            output = self.trainer.model(*args)
+        return output
+
+    def validation_step(self, args):
+        output = self.training_step(args)
+        return output
+
+    def test_step(self, args):
+        output = self.training_step(args)
+        return output
+
+    def barrier(self, name: str = None):
+        torch_distrib.barrier()
 
     def set_world_ranks(self, process_idx):
         self.trainer.local_rank = process_idx
