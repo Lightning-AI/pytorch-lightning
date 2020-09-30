@@ -258,7 +258,6 @@ class ModelCheckpoint(Callback):
                 if self._fs.protocol == "file":  # dont normalize remote paths
                     filepath = os.path.realpath(filepath)
                 self.dirpath, self.filename = os.path.split(filepath)
-            self._fs.makedirs(self.dirpath, exist_ok=True)
 
     def __init_monitor_mode(self, monitor, mode):
         torch_inf = torch.tensor(np.Inf)
