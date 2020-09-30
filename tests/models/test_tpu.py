@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 
 import tests.base.develop_pipelines as tpipes
 from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning.accelerators.base_backend import BackendType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 from tests.base import EvalModelTemplate
@@ -230,7 +231,7 @@ def test_exception_when_no_tpu_found(tmpdir):
 @pytest.mark.parametrize('tpu_cores', [1, 8, [1]])
 def test_distributed_backend_set_when_using_tpu(tmpdir, tpu_cores):
     """Test if distributed_backend is set to `tpu` when tpu_cores is not None"""
-    assert Trainer(tpu_cores=tpu_cores).distributed_backend == 'tpu'
+    assert Trainer(tpu_cores=tpu_cores).distributed_backend == BackendType.TPU
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
