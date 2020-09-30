@@ -20,6 +20,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.base_backend import Accelerator
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.distributed import find_free_network_port
 
 
 class DDPSpawnBackend(Accelerator):
