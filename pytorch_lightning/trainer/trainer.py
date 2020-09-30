@@ -712,8 +712,6 @@ class Trainer(
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
         self.data_connector.attach_datamodule(model or self.get_model(), datamodule, 'test')
 
-        print('-' * 100, f'\n {self.accelerator_backend.task_idx} TEST-DM \n', '-' * 100)
-
         if model is not None:
             results = self.__test_given_model(model, test_dataloaders)
         else:
@@ -725,6 +723,8 @@ class Trainer(
 
     def __test_using_best_weights(self, ckpt_path, test_dataloaders):
         model = self.get_model()
+
+        print('-' * 100, f'\n {self.accelerator_backend.task_idx} TEST-DM \n', '-' * 100)
 
         # if user requests the best checkpoint but we don't have it, error
         if ckpt_path == 'best' and not self.checkpoint_callback.best_model_path:

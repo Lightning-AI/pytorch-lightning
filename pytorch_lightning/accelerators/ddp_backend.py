@@ -25,7 +25,7 @@ import numpy as np
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities.distributed import find_free_network_port
-from pytorch_lightning.accelerators.ddp_base_backend import DDPBase
+from pytorch_lightning.accelerators.base_backend import Accelerator
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities import AMPType
 
@@ -39,7 +39,7 @@ else:
     HYDRA_AVAILABLE = True
 
 
-class DDPBackend(DDPBase):
+class DDPBackend(Accelerator):
 
     def __init__(self, trainer, mode: str = 'ddp'):
         super().__init__(trainer)
