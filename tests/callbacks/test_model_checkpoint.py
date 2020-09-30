@@ -107,6 +107,9 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
 
     def on_train_end(self, trainer, pl_module):
         super().on_train_end(trainer, pl_module)
+        assert self.last_model_path
+        assert self.best_model_path
+        assert self.best_model_score
         assert self.on_save_checkpoint_count == self.expected_count
         if trainer.is_global_zero:
             assert torch.save.call_count == self.expected_count
