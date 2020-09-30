@@ -280,5 +280,3 @@ class DDPBackend(DDPBase):
     def on_train_end(self):
         if self.trainer.global_rank != 0:
             exit()
-        # for proc in self.interactive_ddp_procs:
-        #     subprocess.Popen.kill(proc)
