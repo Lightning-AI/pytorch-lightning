@@ -314,6 +314,7 @@ class ProgressBar(ProgressBarBase):
         super().on_sanity_check_end(trainer, pl_module)
         self.main_progress_bar.close()
         self.val_progress_bar.close()
+        self.val_progress_bar = None
 
     def on_train_start(self, trainer, pl_module):
         super().on_train_start(trainer, pl_module)
@@ -340,8 +341,9 @@ class ProgressBar(ProgressBarBase):
 
     def on_validation_start(self, trainer, pl_module):
         super().on_validation_start(trainer, pl_module)
-        self.val_progress_bar = self.init_validation_tqdm()
-        self.val_progress_bar.total = convert_inf(self.total_val_batches)
+        if self.val_progress_bar is None:
+            self.val_progress_bar = self.init_validation_tqdm()
+            self.val_progress_bar.total = convert_inf(self.total_val_batches)
 
     def on_validation_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         super().on_validation_batch_end(trainer, pl_module, batch, batch_idx, dataloader_idx)
