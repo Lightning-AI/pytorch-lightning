@@ -1032,9 +1032,11 @@ class LightningModule(
         log.info(
             f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank+1}/{world_size}"
         )
-        torch_distrib.init_process_group(
-            torch_backend, rank=global_rank, world_size=world_size
-        )
+
+        if not torch.distributed.is_initialized():
+            torch_distrib.init_process_group(
+                torch_backend, rank=global_rank, world_size=world_size
+            )
 
     def configure_sync_batchnorm(self, model: "LightningModule") -> "LightningModule":
         """
