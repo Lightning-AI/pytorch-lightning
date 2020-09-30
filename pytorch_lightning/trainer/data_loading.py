@@ -21,6 +21,7 @@ import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
+from pytorch_lightning.accelerators.base_backend import BackendType
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
@@ -84,7 +85,7 @@ class TrainerDataLoadingMixin(ABC):
 
         # ddp_spawn + num_workers > 0 don't mix! tell the user
         is_dataloader = isinstance(dataloader, DataLoader)
-        using_spawn = self.distributed_backend == 'ddp_spawn'
+        using_spawn = self.distributed_backend == BackendType.DDP_SPAWN
         if is_dataloader and not on_windows:
             if dataloader.num_workers > 0 and using_spawn:
                 rank_zero_warn('Dataloader(num_workers>0) and ddp_spawn do not mix well!'

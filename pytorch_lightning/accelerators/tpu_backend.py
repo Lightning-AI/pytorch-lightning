@@ -19,7 +19,7 @@ import torch
 import torch.multiprocessing as mp
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.accelerators.base_backend import Accelerator, BackendType
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import AMPType, rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save
@@ -295,7 +295,7 @@ class TPUBackend(Accelerator):
         return loaded_model
 
     def transfer_distrib_spawn_state_on_fit_end(self, model, mp_queue, results):
-        if self.trainer.distributed_backend.lower() not in ['ddp_spawn', 'ddp_cpu', 'tpu']:
+        if self.trainer.distributed_backend not in (BackendType.DDP_SPAWN, BackendType.DDP_CPU, BackendType.TPU):
             return
 
         # track the best model path
