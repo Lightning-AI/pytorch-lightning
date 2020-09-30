@@ -1,6 +1,7 @@
 """
 Tests to ensure that the training loop works with a scalar
 """
+import pytest
 import torch
 
 from pytorch_lightning import Trainer
@@ -190,18 +191,13 @@ def test_training_step_no_return(tmpdir, caplog):
         max_epochs=2,
         weights_summary=None,
     )
-    trainer.fit(model)
+    with pytest.warns(RuntimeWarning, match=r'training_step returned None'):
+        trainer.fit(model)
 
     # make sure correct steps were called
     assert model.training_step_called
     assert not model.training_step_end_called
     assert not model.training_epoch_end_called
-
-    # check that the correct number of messages was printed
-    assert (
-        caplog.messages.count('training_step returned None. This is unusual, so please verify this was your intention')
-        == trainer.max_epochs * trainer.limit_train_batches
-    )
 
 
 def test_training_step_skip_return_when_even(tmpdir, caplog):
@@ -218,7 +214,8 @@ def test_training_step_skip_return_when_even(tmpdir, caplog):
         logger=False,
         checkpoint_callback=False,
     )
-    trainer.fit(model)
+    with pytest.warns(RuntimeWarning, match=r'training_step returned None'):
+        trainer.fit(model)
 
     # make sure correct steps were called
     assert model.training_step_called
@@ -243,11 +240,3 @@ def test_training_step_skip_return_when_even(tmpdir, caplog):
             batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens
         )
         assert opt_closure_result['loss'].item() == 171
-
-    # check that the correct number of messages was printed
-    total_messages = trainer.max_epochs * sum(divmod(trainer.limit_train_batches, 2))
-    total_messages += sum(divmod(len(model.train_dataloader()), 2))
-    assert (
-        caplog.messages.count('training_step returned None. This is unusual, so please verify this was your intention')
-        == total_messages
-    )

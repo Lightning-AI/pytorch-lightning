@@ -302,8 +302,9 @@ class TrainLoop:
             training_step_output = self.trainer.accelerator_backend.training_step(args)
             training_step_output = self.trainer.call_hook('training_step_end', training_step_output)
             if training_step_output is None:
-                rank_zero_info(
-                    'training_step returned None. This is unusual, so please verify this was your intention'
+                rank_zero_warn(
+                    'training_step returned None. This is unusual, so please verify this was your intention',
+                    RuntimeWarning,
                 )
                 return
 
