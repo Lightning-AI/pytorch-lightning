@@ -53,7 +53,7 @@ else:
 
 
 try:
-    from omegaconf import OmegaConf
+    from omegaconf import OmegaConf, Container
 except ImportError:
     OmegaConf = None
 
@@ -1640,7 +1640,7 @@ class LightningModule(
             self._set_hparams(hp)
 
     def _set_hparams(self, hp: Union[dict, Namespace, str]) -> None:
-        if OmegaConf is not None and OmegaConf.is_config(hp):
+        if OmegaConf is not None and isinstance(hp, Container):
             self.hparams = OmegaConf.merge(self.hparams, hp)
             return
 
