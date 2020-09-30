@@ -188,7 +188,7 @@ class LightningModule(
 
         The default behavior per hook is as follows
 
-        .. csv-table:: ``*`` applies to test loop
+        .. csv-table:: ``*`` also applies to the test loop
            :header: "LightningMoule Hook", "on_step", "on_epoch", "prog_bar", "logger"
            :widths: 20, 10, 10, 10, 10
 
