@@ -701,7 +701,8 @@ class Trainer(
         self.verbose_test = verbose
 
         print('-' * 100, f'\n {self.accelerator_backend.task_idx} TEST CHECK \n', '-' * 100)
-        if self.global_rank != 0 and not self.distributed_backend == 'ddp':
+        print(self.distributed_backend)
+        if not self.distributed_backend == 'ddp' and self.global_rank != 0:
             print('-' * 100, f'\n {self.accelerator_backend.task_idx} RETURN TEST \n', '-' * 100)
             return
 
