@@ -107,8 +107,10 @@ class Trainer(
         limit_val_batches: Union[int, float] = 1.0,
         limit_test_batches: Union[int, float] = 1.0,
         val_check_interval: Union[int, float] = 1.0,
-        log_save_interval: int = 100,
-        row_log_interval: int = 50,
+        log_save_interval: Optional[int] = None,  # backward compatible, todo: remove
+        row_log_interval: Optional[int] = None,  # backward compatible, todo: remove
+        flush_logs_every_n_steps: int = 100,
+        log_every_n_steps: int = 50,
         distributed_backend: Optional[str] = None,
         sync_batchnorm: bool = False,
         precision: int = 32,
@@ -177,6 +179,8 @@ class Trainer(
 
             fast_dev_run: runs 1 batch of train, test and val to find any bugs (ie: a sort of unit test).
 
+            flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
+
             gpus: number of gpus to train on (int) or which GPUs to train on (list or str) applied per node
 
             gradient_clip_val: 0 means don't clip.
@@ -191,7 +195,7 @@ class Trainer(
 
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance
 
-            log_save_interval: Writes logs to disk this often
+            log_every_n_steps: How often to log within steps (defaults to every 50 steps).
 
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
@@ -230,8 +234,6 @@ class Trainer(
             resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.
                 This can be a URL.
 
-            row_log_interval: How often to add logging rows (does not write to disk)
-
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
 
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
@@ -256,6 +258,15 @@ class Trainer(
                     Defaults to `default_root_dir`.
         """
         super().__init__()
+
+        # deprecation warnings
+        if log_every_n_steps is not None:
+            warnings.warn("row_log_interval is deprecated, use log_every_n_steps instead", DeprecationWarning)
+            log_every_n_steps = row_log_interval
+
+        if flush_logs_every_n_steps is not None:
+            warnings.warn("log_save_interval is deprecated, use flush_logs_every_n_steps instead", DeprecationWarning)
+            flush_logs_every_n_steps = log_save_interval
 
         # init connectors
         self.dev_debugger = InternalDebugger(self)
@@ -291,7 +302,7 @@ class Trainer(
             process_position,
             default_root_dir,
             weights_save_path,
-            resume_from_checkpoint
+            resume_from_checkpoint,
         )
 
         # hook
@@ -302,18 +313,12 @@ class Trainer(
 
         # init data flags
         self.data_connector.on_trainer_init(
-            check_val_every_n_epoch,
-            reload_dataloaders_every_epoch,
-            prepare_data_per_node
+            check_val_every_n_epoch, reload_dataloaders_every_epoch, prepare_data_per_node
         )
 
         # init training tricks
         self.training_tricks_connector.on_trainer_init(
-            gradient_clip_val,
-            track_grad_norm,
-            accumulate_grad_batches,
-            truncated_bptt_steps,
-            terminate_on_nan
+            gradient_clip_val, track_grad_norm, accumulate_grad_batches, truncated_bptt_steps, terminate_on_nan
         )
 
         # init accelerator related flags
@@ -328,7 +333,7 @@ class Trainer(
             sync_batchnorm,
             benchmark,
             replace_sampler_ddp,
-            deterministic
+            deterministic,
         )
 
         # init train loop related flags
@@ -342,7 +347,7 @@ class Trainer(
         self.profile_connector.on_trainer_init(profiler)
 
         # init logger flags
-        self.logger_connector.on_trainer_init(logger, log_save_interval, row_log_interval)
+        self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps)
 
         # init debugging flags
         self.debugging_connector.on_init_start(
@@ -352,7 +357,7 @@ class Trainer(
             limit_test_batches,
             val_check_interval,
             overfit_batches,
-            fast_dev_run
+            fast_dev_run,
         )
 
         # set precision
@@ -502,13 +507,15 @@ class Trainer(
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
                 if self.should_stop:
-                    if (met_min_epochs and met_min_steps):
+                    if met_min_epochs and met_min_steps:
                         self.train_loop.on_train_end()
                         return
                     else:
-                        log.info('Trainer was signaled to stop but required minimum epochs'
-                                 f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
-                                 ' not been met. Training will continue...')
+                        log.info(
+                            'Trainer was signaled to stop but required minimum epochs'
+                            f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
+                            ' not been met. Training will continue...'
+                        )
 
             # hook
             self.train_loop.on_train_end()

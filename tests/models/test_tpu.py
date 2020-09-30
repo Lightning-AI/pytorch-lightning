@@ -266,7 +266,7 @@ def test_result_obj_on_tpu(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=epochs,
         early_stop_callback=True,
-        row_log_interval=2,
+        log_every_n_steps=2,
         limit_train_batches=batches,
         weights_summary=None,
         tpu_cores=8

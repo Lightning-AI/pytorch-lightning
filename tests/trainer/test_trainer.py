@@ -1166,12 +1166,12 @@ def test_trainer_setup_call(tmpdir):
     pytest.param(3, 10, 5),
 ])
 @patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_metrics")
-def test_row_log_interval(log_metrics_mock, tmpdir, train_batches, max_steps, log_interval):
+def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, log_interval):
     model = EvalModelTemplate()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        row_log_interval=log_interval,
-        log_save_interval=log_interval,
+        log_every_n_steps=log_interval,
+        flush_logs_every_n_steps=log_interval,
         limit_train_batches=train_batches,
         limit_val_batches=0,
         max_steps=max_steps,

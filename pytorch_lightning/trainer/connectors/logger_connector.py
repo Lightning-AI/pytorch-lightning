@@ -33,11 +33,11 @@ class LoggerConnector:
         self.progress_bar_metrics = {}
         self.eval_loop_results = []
 
-    def on_trainer_init(self, logger, log_save_interval, row_log_interval):
+    def on_trainer_init(self, logger, flush_logs_every_n_steps, log_every_n_steps):
         # logging
         self.configure_logger(logger)
-        self.trainer.log_save_interval = log_save_interval
-        self.trainer.row_log_interval = row_log_interval
+        self.trainer.flush_logs_every_n_steps = flush_logs_every_n_steps
+        self.trainer.log_every_n_steps = log_every_n_steps
 
     def configure_logger(self, logger):
         if logger is True:
@@ -470,7 +470,7 @@ class LoggerConnector:
     def log_train_step_metrics(self, batch_output):
         # when metrics should be logged
         should_log_metrics = (
-            (self.trainer.global_step + 1) % self.trainer.row_log_interval == 0 or self.trainer.should_stop
+            (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0 or self.trainer.should_stop
         )
         if should_log_metrics or self.trainer.fast_dev_run:
             # logs user requested information to logger

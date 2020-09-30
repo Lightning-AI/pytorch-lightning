@@ -574,7 +574,7 @@ Options:
 
 .. note:: Might slow performance because it uses the output of nvidia-smi.
 
-log_save_interval
+flush_logs_every_n_steps
 ^^^^^^^^^^^^^^^^^
 
 Writes logs to disk this often.
@@ -582,7 +582,7 @@ Writes logs to disk this often.
 .. testcode::
 
     # default used by the Trainer
-    trainer = Trainer(log_save_interval=100)
+    trainer = Trainer(flush_logs_every_n_steps=100)
 
 See Also:
     - :ref:`Experiment Reporting <experiment_reporting>`
@@ -909,7 +909,7 @@ To resume training from a specific checkpoint pass in the path here.
     # resume from a specific checkpoint
     trainer = Trainer(resume_from_checkpoint='some/path/to/my_checkpoint.ckpt')
 
-row_log_interval
+log_every_n_steps
 ^^^^^^^^^^^^^^^^
 
 How often to add logging rows (does not write to disk)
@@ -917,7 +917,7 @@ How often to add logging rows (does not write to disk)
 .. testcode::
 
     # default used by the Trainer
-    trainer = Trainer(row_log_interval=50)
+    trainer = Trainer(log_every_n_steps=50)
 
 See Also:
     - :ref:`Experiment Reporting <experiment_reporting>`
