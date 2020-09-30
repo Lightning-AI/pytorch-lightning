@@ -23,7 +23,7 @@ jobs:
         python -m pip install --user --upgrade setuptools wheel
     - name: Build
       run: |
-        python .github/prepare_nightly.py
+        python prepare-nightly_version.py
         python setup.py sdist bdist_wheel
         ls -lh dist/
 
@@ -34,12 +34,7 @@ jobs:
         user: __token__
         password: ${{ secrets.test_pypi_password }}
         repository_url: https://test.pypi.org/legacy/
-
-    - name: Publish distribution 📦 to PyPI
-      uses: pypa/gh-action-pypi-publish@master
-      with:
-        user: __token__
-        password: ${{ secrets.pypi_password }}
+        verbose: true
 
   docker-XLA:
     runs-on: ubuntu-20.04
