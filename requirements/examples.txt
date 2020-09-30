@@ -1,4 +1,4 @@
+--extra-index-url https://developer.download.nvidia.com/compute/redist
 torchvision>=0.4.1
 gym>=0.17.0
-nvidia-pyindex
 nvidia-dali-cuda100
