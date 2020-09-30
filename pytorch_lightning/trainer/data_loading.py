@@ -74,6 +74,7 @@ class TrainerDataLoadingMixin(ABC):
     accelerator_backend: Accelerator
     num_nodes: int
     num_processes: int
+    on_device: DeviceType
     distributed_backend: Optional[BackendType]
     dev_debugger: InternalDebugger
 
@@ -111,8 +112,8 @@ class TrainerDataLoadingMixin(ABC):
 
         if not is_dataloader or is_iterable_ds:
             return dataloader
-        need_dist_sampler = (self.distributed_backend in
-                             (BackendType.DDP, BackendType.DDP2, BackendType.HOROVOD, BackendType.TPU))
+        need_dist_sampler = (self.distributed_backend in (BackendType.DDP, BackendType.DDP2, BackendType.HOROVOD) or
+                             self.on_device == DeviceType.TPU)
 
         if self.replace_sampler_ddp and need_dist_sampler:
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):

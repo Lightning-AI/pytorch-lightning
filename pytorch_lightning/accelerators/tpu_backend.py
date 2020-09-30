@@ -296,7 +296,8 @@ class TPUBackend(Accelerator):
         return loaded_model
 
     def transfer_distrib_spawn_state_on_fit_end(self, model, mp_queue, results):
-        if self.trainer.distributed_backend not in (BackendType.DDP_SPAWN, BackendType.DDP_CPU, BackendType.TPU):
+        if (self.trainer.distributed_backend not in (BackendType.DDP_SPAWN, BackendType.DDP_CPU) and
+                self.trainer.os_device != DeviceType.TPU):
             return
 
         # track the best model path
