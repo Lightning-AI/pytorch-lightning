@@ -700,8 +700,8 @@ class Trainer(
         # --------------------
         self.verbose_test = verbose
 
-        # if self.global_rank != 0 and not self.distributed_backend == 'ddp':
-        #     return
+        if self.global_rank != 0 and not self.distributed_backend == 'ddp':
+            return
 
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
         if test_dataloaders and datamodule:
@@ -711,6 +711,8 @@ class Trainer(
 
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
         self.data_connector.attach_datamodule(model or self.get_model(), datamodule, 'test')
+
+        print('-' * 100, f'\n {self.accelerator_backend.task_idx} TEST-DM \n', '-' * 100)
 
         if model is not None:
             results = self.__test_given_model(model, test_dataloaders)
