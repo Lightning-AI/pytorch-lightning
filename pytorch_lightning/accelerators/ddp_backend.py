@@ -99,7 +99,7 @@ class DDPBackend(DDPBase):
         # but forward the GPUs selected via environment variables
         # set the flag for ddp scripts
         import pdb; pdb.set_trace()
-        os.environ['PL_TRAINER_GPUS'] = ','.join(self.trainer.data_parallel_device_ids)
+        os.environ['PL_TRAINER_GPUS'] = ','.join([str(i) for i in self.trainer.data_parallel_device_ids])
 
         gpu_ids = os.environ.get('CUDA_VISIBLE_DEVICES', '')
         if len(gpu_ids) == 1:
