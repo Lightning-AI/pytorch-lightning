@@ -117,7 +117,6 @@ def cli_main():
     # ------------
     # testing
     # ------------
-    print('-' * 100, f'\n {trainer.accelerator_backend.task_idx} TEST \n', '-' * 100)
     trainer.test(test_dataloaders=test_loader)
 
 
