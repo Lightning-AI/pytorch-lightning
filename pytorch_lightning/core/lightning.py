@@ -186,6 +186,8 @@ class LightningModule(
 
             self.log('train_loss', loss)
 
+        These are the defaults used when .log is called from each of these LightningModule hooks.
+
         .. list-table:: Argument defaults by LightningModule hook
             :widths: 50 25 25 25 25
             :header-rows: 1
