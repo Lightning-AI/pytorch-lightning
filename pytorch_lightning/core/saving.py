@@ -190,7 +190,7 @@ class ModelIO(object):
         if len(cls_spec.args) <= 1 and not cls_spec.kwonlyargs:
             _cls_args_new, _cls_kwargs_new = [], {}
         else:
-            _cls_args_new, _cls_kwargs_new = cls_kwargs_new, cls_kwargs_extra
+            _cls_args_new, _cls_kwargs_new = cls_args_new, cls_kwargs_new
 
         model = cls(*_cls_args_new, **_cls_kwargs_new)
 
