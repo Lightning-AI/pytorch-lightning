@@ -293,7 +293,7 @@ class AcceleratorConnector:
                 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_str
 
         # don't make this debug... this is good UX
-        log.info(f'CUDA_VISIBLE_DEVICES: [{os.environ["CUDA_VISIBLE_DEVICES"]}]')
+        log.info(f'LOCAL_RANK: {self.trainer.local_rank} - CUDA_VISIBLE_DEVICES: [{os.environ["CUDA_VISIBLE_DEVICES"]}]')
 
     def determine_local_rank(self):
         if self.trainer.is_slurm_managing_tasks:
