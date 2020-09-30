@@ -188,7 +188,7 @@ class LightningModule(
 
         These are the defaults used when .log is called from each of these LightningModule hooks.
 
-        .. list-table:: Argument defaults by LightningModule hook
+        .. list-table:: *same for test loop
             :widths: 50 25 25 25 25
             :header-rows: 1
 
@@ -212,23 +212,21 @@ class LightningModule(
               - T
               - F
               - T
-            * - validation_step``*``
+            * - validation_step\*
               - F
               - T
               - F
               - T
-            * - validation_step_end``*``
+            * - validation_step_end\*
               - F
               - T
               - F
               - T
-            * - validation_epoch_end``*``
+            * - validation_epoch_end\*
               - F
               - T
               - F
               - T
-
-            * same for the test loop
 
         Args:
             name: key name
