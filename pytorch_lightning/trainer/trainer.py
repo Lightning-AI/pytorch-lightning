@@ -701,20 +701,13 @@ class Trainer(
         # --------------------
         self.verbose_test = verbose
 
-        print('-' * 100, f'\n {self.accelerator_backend.task_idx} TEST CHECK \n', '-' * 100)
-        if self.distributed_backend != BackendType.DDP and self.global_rank != 0:
-            print('-' * 100, f'\n {self.accelerator_backend.task_idx} RETURN TEST \n', '-' * 100)
-            return
-
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
         if test_dataloaders and datamodule:
             raise MisconfigurationException(
                 'You cannot pass test_dataloaders to trainer.test if you supply a datamodule'
             )
-        print('-' * 100, f'\n {self.accelerator_backend.task_idx} IN TEST \n', '-' * 100)
 
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
-        print('-' * 100, f'\n {self.accelerator_backend.task_idx} TEST-DM \n', '-' * 100)
         self.data_connector.attach_datamodule(model or self.get_model(), datamodule, 'test')
 
         if model is not None:
@@ -749,6 +742,10 @@ class Trainer(
                     f'specify a path for a checkpoint .test(ckpt_path=PATH)'
                 )
                 return {}
+
+            print('LOADING: ', ckpt_path)
+            if self.accelerator_backend is not None:
+                self.accelerator_backend.barrier()
 
             ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt['state_dict'])
