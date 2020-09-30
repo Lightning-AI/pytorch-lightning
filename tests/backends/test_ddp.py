@@ -11,7 +11,9 @@ from tests.utilities.dist import call_training_script
 # @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model_ddp_fit_only(tmpdir, cli_args):
     # call the script
-    call_training_script(ddp_model, cli_args, 'fit', tmpdir, timeout=120)
+    std, err = call_training_script(ddp_model, cli_args, 'fit', tmpdir, timeout=120)
+    print(std)
+    print(err)
 
     # load the results of the script
     result_path = os.path.join(tmpdir, 'ddp.result')
