@@ -376,7 +376,12 @@ If you prefer to do it manually, here's the equivalent
 *********
 Data flow
 *********
-Each loop (train, val, step) has three hooks you can implement (x_step, x_step_end, x_epoch_end).
+Each loop (training, validation, test) has three hooks you can implement:
+- x_step
+- x_step_end
+- x_epoch_end
+
+To illustrate how data flows, we'll use the training loop (ie: x=training)
 
 .. code-block:: python
 
