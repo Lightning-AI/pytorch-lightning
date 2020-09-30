@@ -216,6 +216,25 @@ def test_train_val_loop_only(tmpdir):
     assert trainer.logger_connector.callback_metrics['loss'] < 0.6
 
 
+def test_dm_checkpoint_save(tmpdir):
+    reset_seed()
+
+    dm = TrialMNISTDataModule(tmpdir)
+
+    model = EvalModelTemplate()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        weights_summary=None,
+    )
+
+    # fit model
+    result = trainer.fit(model, dm)
+    checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
+    checkpoint = torch.load(checkpoint_path)
+    assert dm.__class__.__name__ in checkpoint
+    assert checkpoint[dm.__class__.__name__] == dm.__class__.__name__
+
 def test_test_loop_only(tmpdir):
     reset_seed()
 
