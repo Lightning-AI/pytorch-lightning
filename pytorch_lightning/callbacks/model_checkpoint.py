@@ -289,7 +289,6 @@ class ModelCheckpoint(Callback):
         if trainer.is_global_zero:
             self._fs.makedirs(os.path.dirname(filepath), exist_ok=True)
 
-
         # delegate the saving to the trainer
         if self.save_function is not None:
             self.save_function(filepath, self.save_weights_only)
