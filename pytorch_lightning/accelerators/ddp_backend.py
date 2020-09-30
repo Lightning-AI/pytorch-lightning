@@ -275,5 +275,3 @@ class DDPBackend(Accelerator):
 
     def on_train_end(self):
         pass
-        # if self.trainer.global_rank != 0:
-        #     exit()
