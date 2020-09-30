@@ -56,9 +56,6 @@ def test_multi_gpu_model_ddp_fit_test_only(tmpdir, cli_args):
     for out in model_outs:
         assert out['test_acc'] > 0.90
 
-
-
-
 #
 #
 # @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
