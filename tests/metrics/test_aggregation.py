@@ -61,13 +61,13 @@ from skimage.metrics import (
 TestCase = namedtuple('example', ['name', 'lightning_metric', 'comparing_metric', 'test_input'])
 
 # setup some standard testcases
-N_samples = 200
-multiclass_example = [(torch.randint(10, (N_samples,)), torch.randint(10, (N_samples,)))]
-binary_example = [(torch.randint(2, (N_samples,)), torch.randint(2, (N_samples,)))]
+NB_SAMPLES = 200
+multiclass_example = [(torch.randint(10, (NB_SAMPLES,)), torch.randint(10, (NB_SAMPLES,)))]
+binary_example = [(torch.randint(2, (NB_SAMPLES,)), torch.randint(2, (NB_SAMPLES,)))]
 multiclass_and_binary_example = [*multiclass_example, *binary_example]
-binary_example_logits = (torch.randint(2, (N_samples,)), torch.randint(5, (N_samples,)))
-multiclass_example_probs = (torch.randint(10, (N_samples,)), torch.randn((N_samples, 10)).softmax(-1))
-regression_example = [(torch.rand((N_samples,)), torch.rand((N_samples,)))]
+binary_example_logits = (torch.randint(2, (NB_SAMPLES,)), torch.randint(5, (NB_SAMPLES,)))
+multiclass_example_probs = (torch.randint(10, (NB_SAMPLES,)), torch.randn((NB_SAMPLES, 10)).softmax(-1))
+regression_example = [(torch.rand((NB_SAMPLES,)), torch.rand((NB_SAMPLES,)))]
 
 
 # construct additional test functions
