@@ -443,15 +443,15 @@ class TrainLoop:
 
     def on_before_backward(self, batch_idx, optimizer):
         # track gradient norms
-        grad_norm_dic = self._track_gradient_norm(batch_idx)
+        grad_norm_dic = self._track_gradient_norm()
 
         # clip gradients
         self.trainer.accelerator_backend.clip_gradients(optimizer)
         return grad_norm_dic
 
-    def _track_gradient_norm(self, batch_idx):
+    def _track_gradient_norm(self):
         grad_norm_dict = {}
-        if (batch_idx + 1) % self.trainer.row_log_interval == 0:
+        if (self.trainer.global_step + 1) % self.trainer.row_log_interval == 0:
             if float(self.trainer.track_grad_norm) > 0:
                 model = self.trainer.get_model()
                 grad_norm_dict = model.grad_norm(self.trainer.track_grad_norm)
@@ -543,12 +543,12 @@ class TrainLoop:
             # -----------------------------------------
             # SAVE METRICS TO LOGGERS
             # -----------------------------------------
-            self.trainer.logger_connector.save_train_loop_metrics_to_loggers(batch_idx, batch_output)
+            self.trainer.logger_connector.log_train_step_metrics(batch_output)
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
             # -----------------------------------------
-            self.save_loggers_on_train_batch_end(batch_idx)
+            self.save_loggers_on_train_batch_end()
 
             # update LR schedulers
             monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
@@ -574,13 +574,16 @@ class TrainLoop:
             # progress global step according to grads progress
             self.increment_accumulated_grad_global_step()
 
-        # process epoch outputs
-        self.trainer.logger_connector.on_train_epoch_end(
+        # log epoch metrics
+        self.trainer.logger_connector.log_train_epoch_end_metrics(
             epoch_output,
             self.checkpoint_accumulator,
             self.early_stopping_accumulator,
             self.num_optimizers
         )
+
+        # hook
+        self.trainer.logger_connector.on_train_epoch_end(epoch_output)
 
         # when no val loop is present or fast-dev-run still need to call checkpoints
         self.check_checkpoint_callback(not (should_check_val or is_overridden('validation_step', model)))
@@ -705,6 +708,7 @@ class TrainLoop:
         batch_log_metrics = {k: v for d in batch_log_metrics for k, v in d.items()}
 
         # track all metrics for callbacks
+        # TODO: is this needed?
         self.trainer.logger_connector.callback_metrics.update(
             {k: v for d in batch_callback_metrics for k, v in d.items() if v is not None}
         )
@@ -783,9 +787,11 @@ class TrainLoop:
 
         return args
 
-    def save_loggers_on_train_batch_end(self, batch_idx):
+    def save_loggers_on_train_batch_end(self):
         # when loggers should save to disk
-        should_save_log = (batch_idx + 1) % self.trainer.log_save_interval == 0 or self.trainer.should_stop
+        should_save_log = (
+            (self.trainer.global_step + 1) % self.trainer.log_save_interval == 0 or self.trainer.should_stop
+        )
         if should_save_log or self.trainer.fast_dev_run:
             if self.trainer.is_global_zero and self.trainer.logger is not None:
                 self.trainer.logger.save()

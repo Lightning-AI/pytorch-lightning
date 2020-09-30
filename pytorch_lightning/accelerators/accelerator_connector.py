@@ -163,8 +163,13 @@ class AcceleratorConnector:
         elif self.trainer.use_tpu:
             accelerator_backend = accelerators.TPUBackend(self.trainer)
 
-        else:
+        elif self.trainer.distributed_backend is None:
             accelerator_backend = accelerators.CPUBackend(self.trainer)
+        else:
+            raise MisconfigurationException(
+                f'Trainer(distributed_backend={self.trainer.distributed_backend} '
+                f'is not a supported backend'
+            )
 
         return accelerator_backend
 

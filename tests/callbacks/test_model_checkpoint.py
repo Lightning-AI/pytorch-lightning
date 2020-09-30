@@ -181,13 +181,13 @@ def test_model_checkpoint_save_last(tmpdir):
         early_stop_callback=False,
         checkpoint_callback=model_checkpoint,
         max_epochs=epochs,
+        logger=False,
     )
     trainer.fit(model)
     last_filename = model_checkpoint._format_checkpoint_name(ModelCheckpoint.CHECKPOINT_NAME_LAST, epochs - 1, {})
     last_filename = last_filename + '.ckpt'
     assert str(tmpdir / last_filename) == model_checkpoint.last_model_path
-    assert set(os.listdir(tmpdir)) == \
-           set([f'epoch={i}.ckpt' for i in range(epochs)] + [last_filename, 'lightning_logs'])
+    assert set(os.listdir(tmpdir)) == set([f'epoch={i}.ckpt' for i in range(epochs)] + [last_filename])
     ModelCheckpoint.CHECKPOINT_NAME_LAST = 'last'
 
 
@@ -261,6 +261,7 @@ def test_model_checkpoint_none_monitor(tmpdir):
         early_stop_callback=False,
         checkpoint_callback=checkpoint_callback,
         max_epochs=epochs,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -272,8 +273,28 @@ def test_model_checkpoint_none_monitor(tmpdir):
     assert checkpoint_callback.kth_best_model_path == ''
 
     # check that the correct ckpts were created
-    expected = ['lightning_logs']
-    expected.extend(f'epoch={e}.ckpt' for e in range(epochs))
+    expected = [f'epoch={e}.ckpt' for e in range(epochs)]
+    assert set(os.listdir(tmpdir)) == set(expected)
+
+
+@pytest.mark.parametrize("period", list(range(4)))
+def test_model_checkpoint_period(tmpdir, period):
+    model = EvalModelTemplate()
+    epochs = 5
+    checkpoint_callback = ModelCheckpoint(filepath=tmpdir, save_top_k=-1, period=period)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        early_stop_callback=False,
+        checkpoint_callback=checkpoint_callback,
+        max_epochs=epochs,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+        logger=False,
+    )
+    trainer.fit(model)
+
+    # check that the correct ckpts were created
+    expected = [f'epoch={e}.ckpt' for e in range(epochs) if not (e + 1) % period] if period > 0 else []
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
@@ -296,7 +317,7 @@ def test_model_checkpoint_topk_zero(tmpdir):
     assert checkpoint_callback.best_k_models == {}
     assert checkpoint_callback.kth_best_model_path == ''
     # check that no ckpts were created
-    assert len(set(os.listdir(tmpdir))) == 0
+    assert len(os.listdir(tmpdir)) == 0
 
 
 def test_ckpt_metric_names(tmpdir):
