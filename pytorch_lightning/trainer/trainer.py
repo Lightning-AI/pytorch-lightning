@@ -708,8 +708,10 @@ class Trainer(
             raise MisconfigurationException(
                 'You cannot pass test_dataloaders to trainer.test if you supply a datamodule'
             )
+        print('-' * 100, f'\n {self.accelerator_backend.task_idx} IN TEST \n', '-' * 100)
 
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
+        print('-' * 100, f'\n {self.accelerator_backend.task_idx} TEST-DM \n', '-' * 100)
         self.data_connector.attach_datamodule(model or self.get_model(), datamodule, 'test')
 
         if model is not None:
@@ -724,7 +726,7 @@ class Trainer(
     def __test_using_best_weights(self, ckpt_path, test_dataloaders):
         model = self.get_model()
 
-        print('-' * 100, f'\n {self.accelerator_backend.task_idx} TEST-DM \n', '-' * 100)
+        print('-' * 100, f'\n {self.accelerator_backend.task_idx} TEST-BEST-WEIGHTS \n', '-' * 100)
 
         # if user requests the best checkpoint but we don't have it, error
         if ckpt_path == 'best' and not self.checkpoint_callback.best_model_path:
