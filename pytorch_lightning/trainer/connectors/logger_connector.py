@@ -45,6 +45,8 @@ class LoggerConnector:
             if version is not None:
                 version = f'version_{version}'
 
+            print('DIRRRRRRRRRRR', self.trainer.default_root_dir)
+
             # default logger
             self.trainer.logger = TensorBoardLogger(
                 save_dir=self.trainer.default_root_dir,
