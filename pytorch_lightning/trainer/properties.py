@@ -82,6 +82,7 @@ class TrainerProperties(ABC):
 
         except Exception:
             job_id = None
+        print(' SLURM JOB ID', job_id)
         return job_id
 
     @classmethod
