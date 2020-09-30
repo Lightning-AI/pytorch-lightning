@@ -28,12 +28,11 @@ from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
-from pytorch_lightning.core.step_result import EvalResult, TrainResult
+from pytorch_lightning.core.step_result import EvalResult, Result, TrainResult
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities.parsing import (
     AttributeDict,
     collect_init_args,
@@ -51,6 +50,12 @@ except ImportError:
     XLA_AVAILABLE = False
 else:
     XLA_AVAILABLE = True
+
+
+try:
+    from omegaconf import OmegaConf
+except ImportError:
+    OmegaConf = None
 
 
 class LightningModule(
@@ -244,7 +249,7 @@ class LightningModule(
                 enable_graph,
                 sync_dist,
                 sync_dist_op,
-                sync_dist_group
+                sync_dist_group,
             )
 
     def log_dict(
@@ -1635,9 +1640,13 @@ class LightningModule(
             self._set_hparams(hp)
 
     def _set_hparams(self, hp: Union[dict, Namespace, str]) -> None:
+        if OmegaConf is not None and OmegaConf.is_config(hp):
+            self.hparams = OmegaConf.merge(self.hparams, hp)
+            return
+
         if isinstance(hp, Namespace):
             hp = vars(hp)
-        if isinstance(hp, dict):
+        elif isinstance(hp, dict):
             hp = AttributeDict(hp)
         elif isinstance(hp, PRIMITIVE_TYPES):
             raise ValueError(f"Primitives {PRIMITIVE_TYPES} are not allowed.")
