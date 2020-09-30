@@ -196,25 +196,24 @@ class DDPBackend(DDPBase):
 
         # MODEL
         # copy model to each gpu
-        print('-' * 100, '\na\n', '-' * 100)
         self.model_to_device(model, process_idx, is_master)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        print('-' * 100, '\nb\n', '-' * 100)
         self.setup_optimizers(model)
 
         # set model properties before going into wrapper
-        print('-' * 100, '\nc\n', '-' * 100)
         self.trainer.model_connector.copy_trainer_model_properties(model)
 
         # AMP - run through amp wrapper before going to distributed DP
+        print('-' * 100, f'\n {self.task_idx} APEX_CONFIG \n', '-' * 100)
         model = self.trainer.precision_connector.connect(model)
 
         # DDP uses all GPUs on the machine
         device_ids = self.get_device_ids()
 
         # allow user to configure ddp
+        print('-' * 100, f'\n {self.task_idx} DDP_CONFIG \n', '-' * 100)
         model = model.configure_ddp(model, device_ids)
 
         # set up training routine
