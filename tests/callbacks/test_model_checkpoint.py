@@ -1,5 +1,5 @@
 import os
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 
 import yaml
 import pickle
@@ -98,7 +98,7 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
         self.on_save_checkpoint_count = 0
 
     def on_train_start(self, trainer, pl_module):
-        torch.save = MagicMock()
+        torch.save = Mock(wraps=torch.save)
 
     def on_save_checkpoint(self, trainer, pl_module):
         # expect all ranks to run but only rank 0 will actually write the checkpoint file
