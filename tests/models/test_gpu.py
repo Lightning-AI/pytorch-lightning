@@ -78,7 +78,6 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
     )
 
     model = EvalModelTemplate()
-    import pdb; pdb.set_trace()
     tpipes.run_model_test(trainer_options, model)
 
 
