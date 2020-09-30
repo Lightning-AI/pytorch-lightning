@@ -7,6 +7,7 @@
 
 ARG CUDNN_VERSION=7
 ARG CUDA_VERSION=10.1
+ARG CUDA_DALI_VERSION=100
 
 FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel
 # FROM nvidia/cuda:${CUDA_VERSION}-devel
@@ -94,6 +95,7 @@ RUN \
     MAKEFLAGS="-j$(nproc)" ; pip install -r requirements-extra.txt && \
     pip install -r requirements-tests.txt --upgrade-strategy only-if-needed --no-cache-dir && \
     pip install -r requirements-examples.txt --upgrade-strategy only-if-needed --no-cache-dir && \
+    pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda-${CUDA_DALI_VERSION} \
     rm requirements* && \
     # Show what we have
     pip --version && \
