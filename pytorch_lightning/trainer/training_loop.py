@@ -185,8 +185,8 @@ class TrainLoop:
         self.trainer.accelerator_backend.on_train_end()
 
         # clean up dist group
-        if self.trainer.use_ddp or self.trainer.use_ddp2 and self.trainer.global_rank > 0:
-            torch_distrib.destroy_process_group()
+        # if self.trainer.use_ddp or self.trainer.use_ddp2 and self.trainer.global_rank > 0:
+            # torch_distrib.destroy_process_group()
 
         # clear mem
         if self.trainer.on_gpu:

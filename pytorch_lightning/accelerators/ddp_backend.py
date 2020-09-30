@@ -65,6 +65,10 @@ class DDPBackend(DDPBase):
         self.task_idx = int(os.environ['LOCAL_RANK'])
 
     def __ddp_script_mode_setup(self):
+        # do nothing when already in a ddp subprocess
+        if os.environ.get('PL_IN_DDP_SUBPROCESS', '0') == '1':
+            return
+
         assert self.trainer.global_rank == 0
         self._check_can_spawn_children()
         self._has_spawned_children = True
@@ -98,8 +102,9 @@ class DDPBackend(DDPBase):
         # code reaches this point. so, to call the scripts, we need to leave cuda visible devices alone
         # but forward the GPUs selected via environment variables
         # set the flag for ddp scripts
-        os.environ['PL_TRAINER_GPUS'] = ','.join([str(i) for i in self.trainer.data_parallel_device_ids])
 
+        os.environ['PL_TRAINER_GPUS'] = ','.join([str(i) for i in self.trainer.data_parallel_device_ids])
+        os.environ['PL_IN_DDP_SUBPROCESS'] = '1'
         gpu_ids = os.environ.get('CUDA_VISIBLE_DEVICES', '')
         if len(gpu_ids) == 1:
             gpu_ids = f'{gpu_ids},'
