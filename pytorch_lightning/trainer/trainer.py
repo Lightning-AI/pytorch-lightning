@@ -700,7 +700,9 @@ class Trainer(
         # --------------------
         self.verbose_test = verbose
 
+        print('-' * 100, f'\n {self.accelerator_backend.task_idx} TEST CHECK \n', '-' * 100)
         if self.global_rank != 0 and not self.distributed_backend == 'ddp':
+            print('-' * 100, f'\n {self.accelerator_backend.task_idx} RETURN TEST \n', '-' * 100)
             return
 
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
