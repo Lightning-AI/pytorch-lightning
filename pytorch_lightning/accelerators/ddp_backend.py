@@ -62,6 +62,7 @@ class DDPBackend(DDPBase):
         self.task_idx = int(os.environ['SLURM_LOCALID'])
 
     def __torchelastic_setup(self):
+        print('in TORCHELASTIc', self.task_idx)
         self.task_idx = int(os.environ['LOCAL_RANK'])
 
     def __ddp_script_mode_setup(self):
