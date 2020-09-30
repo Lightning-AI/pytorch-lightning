@@ -28,7 +28,6 @@ from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
-from pytorch_lightning.core.step_result import EvalResult, TrainResult
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
@@ -117,7 +116,7 @@ class LightningModule(
         # optionally can be set by user
         self._example_input_array = None
         self._datamodule = None
-        self._results = None
+        self._results: Result = None
         self._current_fx_name = ''
 
     @property
@@ -392,10 +391,7 @@ class LightningModule(
                 :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0.
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.TrainResult`
-
-            .. note:: :class:`~pytorch_lightning.core.step_result.TrainResult` is simply a Dict with convenient
-                functions for logging, distributed sync and error checking.
+            roch.Tensor or a dictionary with anything you want (must include the keyword 'loss')
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
         You can also do fancier things like multiple forward passes or something model specific.
@@ -404,31 +400,9 @@ class LightningModule(
 
             def training_step(self, batch, batch_idx):
                 x, y, z = batch
-
-                # implement your own
-                out = self(x)
+                out = self.encoder(x)
                 loss = self.loss(out, x)
-
-                # TrainResult auto-detaches the loss after the optimization steps are complete
-                result = pl.TrainResult(minimize=loss)
-
-        The return object :class:`~pytorch_lightning.core.step_result.TrainResult` controls where to log,
-        when to log (step or epoch) and syncing with multiple GPUs.
-
-        .. code-block:: python
-
-            # log to progress bar and logger
-            result.log('train_loss', loss, prog_bar=True, logger=True)
-
-            # sync metric value across GPUs in distributed training
-            result.log('train_loss_2', loss, sync_dist=True)
-
-            # log to progress bar as well
-            result.log('train_loss_2', loss, prog_bar=True)
-
-            # assign arbitrary values
-            result.predictions = predictions
-            result.some_value = 'some_value'
+                return loss
 
         If you define multiple optimizers, this step will be called with an additional
         ``optimizer_idx`` parameter.
@@ -454,10 +428,7 @@ class LightningModule(
                 ...
                 out, hiddens = self.lstm(data, hiddens)
                 ...
-
-                # TrainResult auto-detaches hiddens
-                result = pl.TrainResult(minimize=loss, hiddens=hiddens)
-                return result
+                return {'loss': loss, 'hiddens': hiddens}
 
         Notes:
             The loss value shown in the progress bar is smoothed (averaged) over the last values,
@@ -488,10 +459,7 @@ class LightningModule(
             batch_parts_outputs: What you return in `training_step` for each batch part.
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.TrainResult`
-
-            .. note:: :class:`~pytorch_lightning.core.step_result.TrainResult` is simply a Dict with convenient
-                functions for logging, distributed sync and error checking.
+            Anything
 
         When using dp/ddp2 distributed backends, only a portion of the batch is inside the training_step:
 
@@ -506,7 +474,7 @@ class LightningModule(
                 # softmax uses only a portion of the batch in the denomintaor
                 loss = self.softmax(out)
                 loss = nce_loss(loss)
-                return pl.TrainResult(loss)
+                return loss
 
         If you wish to do something with all the parts of the batch, then use this method to do it:
 
@@ -516,24 +484,23 @@ class LightningModule(
                 # batch is 1/num_gpus big
                 x, y = batch
 
-                out = self(x)
-                result = pl.TrainResult()
-                result.out = out
+                out = self.encoder(x)
+                return {'pred': out}
 
             def training_step_end(self, training_step_outputs):
-                # this out is now the full size of the batch
-                all_outs = training_step_outputs.out
+                gpu_0_pred = training_step_outputs[0]['pred']
+                gpu_1_pred = training_step_outputs[1]['pred']
+                gpu_n_pred = training_step_outputs[n]['pred']
 
                 # this softmax now uses the full batch
-                loss = nce_loss(all_outs)
-                result = pl.TrainResult(loss)
-                return result
+                loss = nce_loss([gpu_0_pred, gpu_1_pred, gpu_n_pred])
+                return loss
 
         See Also:
             See the :ref:`multi_gpu` guide for more details.
         """
 
-    def training_epoch_end(self, outputs: Union[TrainResult, List[TrainResult]]):
+    def training_epoch_end(self, outputs: List[Any]):
         """
         Called at the end of the training epoch with the outputs of all training steps.
         Use this in case you need to do something with all the outputs for every training_step.
@@ -552,10 +519,7 @@ class LightningModule(
                 multiple dataloaders, a list containing a list of outputs for each dataloader.
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.TrainResult`
-
-        .. note:: :class:`~pytorch_lightning.core.step_result.TrainResult` is simply a Dict with convenient
-            functions for logging, distributed sync and error checking.
+            None
 
         Note:
             If this method is not overridden, this won't be called.
@@ -572,15 +536,12 @@ class LightningModule(
 
         .. code-block:: python
 
-            def training_epoch_end(self, outputs):
-                epoch_result = pl.TrainResult()
-                for train_result in outputs:
-                    all_losses = train_result.minimize
-                    # do something with all losses
-                return results
+            def training_epoch_end(self, training_step_outputs):
+                for out in training_step_outputs:
+                    # do something here
         """
 
-    def validation_step(self, *args, **kwargs) -> EvalResult:
+    def validation_step(self, *args, **kwargs):
         r"""
         Operates on a single batch of data from the validation set.
         In this step you'd might generate examples or calculate anything of interest like accuracy.
@@ -602,7 +563,7 @@ class LightningModule(
                 (only if multiple val datasets used)
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.EvalResult`
+            None or whatever you want
 
         .. code-block:: python
 
@@ -643,9 +604,7 @@ class LightningModule(
                     val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
 
                     # log the outputs!
-                    result = pl.EvalResult(checkpoint_on=loss)
-                    result.log_dict({'val_loss': loss, 'val_acc': val_acc})
-                    return result
+                    self.log_dict({'val_loss': loss, 'val_acc': val_acc})
 
             If you pass in multiple val datasets, validation_step will have an additional argument.
 
@@ -664,7 +623,7 @@ class LightningModule(
             the model goes back to training mode and gradients are enabled.
         """
 
-    def validation_step_end(self, *args, **kwargs) -> EvalResult:
+    def validation_step_end(self, *args, **kwargs):
         """
         Use this when validating with dp or ddp2 because :meth:`validation_step`
         will operate on only part of the batch. However, this is still optional
@@ -686,7 +645,7 @@ class LightningModule(
                 for each batch part.
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.EvalResult`
+            None or anything
 
         .. code-block:: python
 
@@ -696,12 +655,10 @@ class LightningModule(
                 # batch is 1/num_gpus big
                 x, y = batch
 
-                out = self(x)
+                out = self.encoder(x)
                 loss = self.softmax(out)
                 loss = nce_loss(loss)
-                result = pl.EvalResult()
-                result.log('val_loss', loss)
-                return result
+                self.log('val_loss', loss)
 
             # --------------
             # with validation_step_end to do softmax over the full batch
@@ -710,18 +667,11 @@ class LightningModule(
                 x, y = batch
 
                 out = self(x)
-                result = pl.EvalResult()
-                result.out = out
-                return result
+                return out
 
-            def validation_epoch_end(self, output_results):
-                # this out is now the full size of the batch
-                all_val_step_outs = output_results.out
-                loss = nce_loss(all_val_step_outs)
-
-                result = pl.EvalResult(checkpoint_on=loss)
-                result.log('val_loss', loss)
-                return result
+            def validation_epoch_end(self, val_step_outputs):
+                for out in val_step_outputs:
+                    # do something with these
 
         See Also:
             See the :ref:`multi_gpu` guide for more details.
@@ -735,8 +685,8 @@ class LightningModule(
         """
 
     def validation_epoch_end(
-        self, outputs: Union[EvalResult, List[EvalResult]]
-    ) -> EvalResult:
+        self, outputs: List[Any]
+    ):
         """
         Called at the end of the validation epoch with the outputs of all validation steps.
 
@@ -754,13 +704,10 @@ class LightningModule(
                 are multiple dataloaders, a list containing a list of outputs for each dataloader.
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.EvalResult`
+            None
 
         Note:
             If you didn't define a :meth:`validation_step`, this won't be called.
-
-        - The outputs here are strictly for logging or progress bar.
-        - If you don't need to display anything, don't return anything.
 
         Examples:
             With a single dataloader:
@@ -768,11 +715,8 @@ class LightningModule(
             .. code-block:: python
 
                 def validation_epoch_end(self, val_step_outputs):
-                    # do something with the outputs of all val batches
-                    all_val_preds = val_step_outputs.predictions
-
-                    val_step_outputs.some_result = calc_all_results(all_val_preds)
-                    return val_step_outputs
+                    for out in val_step_outputs:
+                        # do something
 
             With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
             one entry per dataloader, while the inner list contains the individual outputs of
@@ -784,12 +728,10 @@ class LightningModule(
                     for dataloader_output_result in outputs:
                         dataloader_outs = dataloader_output_result.dataloader_i_outputs
 
-                    result = pl.EvalResult()
-                    result.log('final_metric', final_value)
-                    return result
+                    self.log('final_metric', final_value)
         """
 
-    def test_step(self, *args, **kwargs) -> EvalResult:
+    def test_step(self, *args, **kwargs):
         r"""
         Operates on a single batch of data from the test set.
         In this step you'd normally generate examples or calculate anything of interest
@@ -812,7 +754,7 @@ class LightningModule(
                 (only if multiple test datasets used).
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.EvalResult`
+            None or anything
 
         .. code-block:: python
 
@@ -844,9 +786,7 @@ class LightningModule(
                     test_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
 
                     # log the outputs!
-                    result = pl.EvalResult(checkpoint_on=loss)
-                    result.log_dict({'test_loss': loss, 'test_acc': test_acc})
-                    return resultt
+                    self.log_dict({'test_loss': loss, 'test_acc': test_acc})
 
             If you pass in multiple validation datasets, :meth:`test_step` will have an additional
             argument.
@@ -866,7 +806,7 @@ class LightningModule(
             to training mode and gradients are enabled.
         """
 
-    def test_step_end(self, *args, **kwargs) -> EvalResult:
+    def test_step_end(self, *args, **kwargs):
         """
         Use this when testing with dp or ddp2 because :meth:`test_step` will operate
         on only part of the batch. However, this is still optional
@@ -887,7 +827,7 @@ class LightningModule(
             batch_parts_outputs: What you return in :meth:`test_step` for each batch part.
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.EvalResult`
+            None or anything
 
         .. code-block:: python
 
@@ -899,10 +839,7 @@ class LightningModule(
 
                 out = self(x)
                 loss = self.softmax(out)
-                loss = nce_loss(loss)
-                result = pl.EvalResult()
                 result.log('test_loss', loss)
-                return result
 
             # --------------
             # with test_step_end to do softmax over the full batch
@@ -910,19 +847,14 @@ class LightningModule(
                 # batch is 1/num_gpus big
                 x, y = batch
 
-                out = self(x)
-                result = pl.EvalResult()
-                result.out = out
-                return result
+                out = self.encoder(x)
+                return out
 
             def test_epoch_end(self, output_results):
                 # this out is now the full size of the batch
                 all_test_step_outs = output_results.out
                 loss = nce_loss(all_test_step_outs)
-
-                result = pl.EvalResult(checkpoint_on=loss)
-                result.log('test_loss', loss)
-                return result
+                self.log('test_loss', loss)
 
         See Also:
             See the :ref:`multi_gpu` guide for more details.
@@ -936,8 +868,8 @@ class LightningModule(
         """
 
     def test_epoch_end(
-        self, outputs: Union[EvalResult, List[EvalResult]]
-    ) -> EvalResult:
+        self, outputs: List[Any]
+    ):
         """
         Called at the end of a test epoch with the output of all test steps.
 
@@ -955,13 +887,10 @@ class LightningModule(
                 are multiple dataloaders, a list containing a list of outputs for each dataloader
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.EvalResult`
+            None
 
         Note:
             If you didn't define a :meth:`test_step`, this won't be called.
-
-        - The outputs here are strictly for logging or progress bar.
-        - If you don't need to display anything, don't return anything.
 
         Examples:
             With a single dataloader:
@@ -972,8 +901,8 @@ class LightningModule(
                     # do something with the outputs of all test batches
                     all_test_preds = test_step_outputs.predictions
 
-                    test_step_outputs.some_result = calc_all_results(all_test_preds)
-                    return test_step_outputs
+                    some_result = calc_all_results(all_test_preds)
+                    self.log(some_result)
 
             With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
             one entry per dataloader, while the inner list contains the individual outputs of
@@ -982,12 +911,13 @@ class LightningModule(
             .. code-block:: python
 
                 def test_epoch_end(self, outputs):
-                    for dataloader_output_result in outputs:
-                        dataloader_outs = dataloader_output_result.dataloader_i_outputs
+                    final_value = 0
+                    for dataloader_outputs in outputs:
+                        for test_step_out in dataloader_outputs:
+                            # do something
+                            final_value += test_step_out
 
-                    result = pl.EvalResult()
-                    result.log('final_metric', final_value)
-                    return results
+                    self.log('final_metric', final_value)
         """
 
     def configure_ddp(
