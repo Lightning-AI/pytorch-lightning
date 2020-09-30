@@ -270,9 +270,6 @@ class DDPBackend(Accelerator):
         # this means that the master process needs to pull the 0th visible index as the device number
         a = os.environ['CUDA_VISIBLE_DEVICES'].split(',')
         b = self.trainer.local_rank
-        if is_master:
-            available_gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',')
-            gpu_idx = int(available_gpus[self.trainer.local_rank])
 
         print(a, b, gpu_idx)
         self.trainer.root_gpu = gpu_idx
