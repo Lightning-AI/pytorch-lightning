@@ -357,16 +357,19 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
         if OmegaConf.is_config(hparams):
             OmegaConf.save(hparams, config_yaml, resolve=True)
             return
-        for v in hparams.values():
-            if OmegaConf.is_config(v):
-                OmegaConf.save(OmegaConf.create(hparams), config_yaml, resolve=True)
-                return
 
     # convert Namespace or AD to dict
     if isinstance(hparams, Namespace):
         hparams = vars(hparams)
     elif isinstance(hparams, AttributeDict):
         hparams = dict(hparams)
+
+    # saving with OmegaConf objects
+    if OmegaConf is not None:
+        for v in hparams.values():
+            if OmegaConf.is_config(v):
+                OmegaConf.save(OmegaConf.create(hparams), config_yaml, resolve=True)
+                return
 
     # saving the standard way
     assert isinstance(hparams, dict)
