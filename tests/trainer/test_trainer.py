@@ -867,6 +867,7 @@ def test_gradient_clipping(tmpdir):
 
     trainer.fit(model)
 
+
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.skipif(not NATIVE_AMP_AVALAIBLE, reason="test requires native AMP.")
 def test_gradient_clipping_fp16(tmpdir):
