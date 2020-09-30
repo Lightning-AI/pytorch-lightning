@@ -409,7 +409,7 @@ use the x_step_end to manually aggregate (or don't implement it to let lightning
         batch_split = split_batch_per_gpu(batch, num_gpus)
         for model, batch_part in zip(model_copies, batch_split):
             # loop hook
-            gpu_out = training_step(batch_part)
+            gpu_out = model.training_step(batch_part)
             gpu_outs.append(gpu_out)
 
         # loop hook
