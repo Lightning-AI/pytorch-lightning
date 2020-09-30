@@ -158,6 +158,7 @@ class DDPBackend(DDPBase):
         Returns:
         """
         # offset the process id if requested
+        print(process_idx, proc_offset)
         process_idx = process_idx + proc_offset
 
         # show progressbar only on progress_rank 0
