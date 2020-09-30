@@ -57,8 +57,7 @@ class EmbeddingSimilarity(TensorMetric):
         assert reduction in ('none', 'sum', 'mean')
         self.reduction = reduction
 
-        rank_zero_warn('Please note that Metric `EmbeddingSimilarity` does not '
-                       'support aggregation.')
+        rank_zero_warn('Please note that Metric `EmbeddingSimilarity` does not support aggregation.')
 
     def forward(self, batch: torch.Tensor) -> torch.Tensor:
         """
