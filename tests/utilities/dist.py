@@ -21,4 +21,9 @@ def call_training_script(module_file, cli_args, method, tmpdir):
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
     std, err = p.communicate(timeout=60)
 
+    # bubble up the error to tests
+    if len(err) > 0:
+        err = str(err.decode("utf-8"))
+        raise Exception(err)
+
     return std, err
