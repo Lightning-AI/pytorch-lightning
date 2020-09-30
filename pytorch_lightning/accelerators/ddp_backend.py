@@ -226,6 +226,7 @@ class DDPBackend(DDPBase):
 
         # train or test
         print('-' * 100, '\nh\n', '-' * 100)
+        self.barrier('ddp_setup')
         results = self.train_or_test()
 
         # get original model
