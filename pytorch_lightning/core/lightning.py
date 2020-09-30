@@ -187,6 +187,7 @@ class LightningModule(
             self.log('train_loss', loss)
 
         These are the defaults used when .log is called from each of these LightningModule hooks.
+        (``*`` also applies to the test loop)
 
         .. csv-table::
             :header: "LightningModule Hook", "on_step", "on_epoch", "prog_bar", "logger"
@@ -198,8 +199,6 @@ class LightningModule(
            "validation_step*", "F", "T", "F", "T"
            "validation_step_end*", "F", "T", "F", "T"
            "validation_epoch_end*", "F", "T", "F", "T"
-
-        * same applies to the test loop
 
         Args:
             name: key name
