@@ -59,8 +59,9 @@ COPY environment.yml environment.yml
 RUN conda create -y --name $CONDA_ENV "python=$PYTHON_VERSION" "pytorch=$PYTORCH_VERSION" torchvision "cudatoolkit=$CUDA_VERSION" --channel=$PYTORCH_CHANNEL && \
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages
-    python -c "fname = 'environment.yml' ; req = open(fname).read().replace('pytorch', '${PYTORCH_CHANNEL}', 1) ; open(fname, 'w').write(req)" && \
-    python -c "fname = 'environment.yml' ; req = open(fname).readlines() ; open(fname, 'w').writelines([l for l in req if 'horovod' not in l])" && \
+    # replace channel to nigtly if neede, fix PT version and remove Horovod as it will be installe later
+    python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'torch>=[\d\.]+', 'torch=${PYTORCH_VERSION}', open(fname).read().replace('pytorch', '${PYTORCH_CHANNEL}', 1)) ; open(fname, 'w').writelines([l for l in req if 'horovod' not in l])" && \
+    cat environment.yml && \
     conda env update --file environment.yml && \
     conda clean -ya && \
     # conda config --set auto_activate_base true && \
