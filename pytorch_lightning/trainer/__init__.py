@@ -575,7 +575,7 @@ Options:
 .. note:: Might slow performance because it uses the output of nvidia-smi.
 
 flush_logs_every_n_steps
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 Writes logs to disk this often.
 
@@ -910,7 +910,7 @@ To resume training from a specific checkpoint pass in the path here.
     trainer = Trainer(resume_from_checkpoint='some/path/to/my_checkpoint.ckpt')
 
 log_every_n_steps
-^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
 
 How often to add logging rows (does not write to disk)
 
