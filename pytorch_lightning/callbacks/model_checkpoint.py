@@ -176,15 +176,15 @@ class ModelCheckpoint(Callback):
         self.best_model_score = checkpointed_state["best_model_score"]
         self.best_model_path = checkpointed_state["best_model_path"]
 
-    # @rank_zero_only
     def save_checkpoint(self, trainer, pl_module):
         """
-        Performs the main logic around saving a checkpoint
+        Performs the main logic around saving a checkpoint.
+        This method runs on all ranks, it is the responsibility of `self.save_function`
+        to handle correct behaviour in distributed training, i.e., saving only on rank 0.
         """
         epoch = trainer.current_epoch
 
         if (
-            # trainer.global_rank != 0  # only run on main process
             self.save_top_k == 0  # no models are saved
             or self.period < 1  # no models are saved
             or (epoch + 1) % self.period  # skip epoch

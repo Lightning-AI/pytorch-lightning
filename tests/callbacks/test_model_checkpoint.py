@@ -122,11 +122,10 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
     """Test to ensure that the model callback saves the checkpoints only once in distributed mode."""
     model = EvalModelTemplate()
     num_epochs = 4
-    num_processes = 2
     model_checkpoint = ModelCheckpointTestInvocations(monitor='val_loss', expected_count=num_epochs, save_top_k=-1)
     trainer = Trainer(
         distributed_backend="ddp_cpu",
-        num_processes=num_processes,
+        num_processes=2,
         default_root_dir=tmpdir,
         early_stop_callback=False,
         checkpoint_callback=model_checkpoint,
