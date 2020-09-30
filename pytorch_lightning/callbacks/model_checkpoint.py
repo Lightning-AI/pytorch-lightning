@@ -408,8 +408,7 @@ class ModelCheckpoint(Callback):
 
         self.dirpath = ckpt_path
 
-        if trainer.is_global_zero:
-            self._fs.makedirs(self.dirpath, exist_ok=True)
+        self._fs.makedirs(self.dirpath, exist_ok=True)
 
     def _add_backward_monitor_support(self, trainer):
         metrics = trainer.logger_connector.callback_metrics
