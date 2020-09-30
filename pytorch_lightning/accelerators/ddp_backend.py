@@ -121,6 +121,7 @@ class DDPBackend(Accelerator):
         for local_rank in range(1, self.trainer.num_processes):
             env_copy = os.environ.copy()
             env_copy['LOCAL_RANK'] = f'{local_rank}'
+            env_copy['PL_DDP_PID'] = str(self.trainer.data_parallel_device_ids[local_rank])
 
             # start process
             # if hydra is available and initialized, make sure to set the cwd correctly
@@ -262,16 +263,8 @@ class DDPBackend(Accelerator):
         self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
     def model_to_device(self, model, process_idx, is_master):
-        gpu_idx = process_idx
+        gpu_idx = int(os.environ.get('PL_DDP_PID', process_idx))
 
-        # when using ddp, the master process (proc 0) continues running as the main one
-        # this means that the local rank will always be 0
-        # (even if cuda visible devices has other visible gpus)
-        # this means that the master process needs to pull the 0th visible index as the device number
-        a = os.environ['CUDA_VISIBLE_DEVICES'].split(',')
-        b = self.trainer.local_rank
-
-        print(a, b, gpu_idx)
         self.trainer.root_gpu = gpu_idx
         torch.cuda.set_device(self.trainer.root_gpu)
         model.cuda(self.trainer.root_gpu)
