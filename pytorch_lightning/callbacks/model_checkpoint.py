@@ -212,9 +212,6 @@ class ModelCheckpoint(Callback):
 
         # Mode 2: save all checkpoints OR only the top k
         if self.save_top_k:
-            # if self.save_top_k == -1:
-            #     self._save_all_checkpoints(trainer, pl_module, epoch, filepath)
-            # else:
             self._save_top_k_checkpoints(monitor_candidates, trainer, pl_module, epoch, filepath)
 
     def __validate_init_configuration(self):
@@ -493,13 +490,6 @@ class ModelCheckpoint(Callback):
             log.info(
                 f"Epoch {epoch:d}: {self.monitor} was not in top {self.save_top_k}"
             )
-
-    def _save_all_checkpoints(self, trainer, pl_module, epoch, filepath):
-        if self.verbose:
-            log.info(f"Epoch {epoch:d}: saving model to {filepath}")
-
-        assert (trainer.global_rank == 0), "tried to make a checkpoint from non global_rank=0"
-        self._save_model(filepath, trainer, pl_module)
 
     def _is_valid_monitor_key(self, metrics):
         return self.monitor in metrics or len(metrics) == 0
