@@ -32,7 +32,7 @@ from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
-from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.accelerators.base_backend import Accelerator, DeviceType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
@@ -60,26 +60,27 @@ class CheckpointConnector:
         2. if no HPC weights restore checkpoint_path weights
         3. otherwise don't restore weights
         """
+        on_gpu = self.trainer.on_device == DeviceType.GPU
         # clear cache before restore
-        if self.trainer.on_gpu:
+        if on_gpu:
             torch.cuda.empty_cache()
 
         # if script called from hpc resubmit, load weights
         did_restore_hpc_weights = self.restore_hpc_weights_if_needed(model)
 
         # clear cache after restore
-        if self.trainer.on_gpu:
+        if on_gpu:
             torch.cuda.empty_cache()
 
         if not did_restore_hpc_weights:
             if self.trainer.resume_from_checkpoint is not None:
-                self.restore(self.trainer.resume_from_checkpoint, on_gpu=self.trainer.on_gpu)
+                self.restore(self.trainer.resume_from_checkpoint, on_gpu=on_gpu)
 
         # wait for all to catch up
         self.trainer.accelerator_backend.barrier('TrainerIOMixin.restore_weights')
 
         # clear cache after restore
-        if self.trainer.on_gpu:
+        if on_gpu:
             torch.cuda.empty_cache()
 
     def restore(self, checkpoint_path: str, on_gpu: bool):
@@ -198,8 +199,9 @@ class CheckpointConnector:
             hpc_weight_paths = [x for x in files if 'hpc_ckpt' in x]
 
             # if hpc weights exist restore model
+            on_gpu = self.trainer.on_device == DeviceType.GPU
             if len(hpc_weight_paths) > 0:
-                self.hpc_load(folderpath, self.trainer.on_gpu)
+                self.hpc_load(folderpath, on_gpu)
                 did_restore = True
         return did_restore
 
@@ -274,7 +276,9 @@ class CheckpointConnector:
             checkpoint['lr_schedulers'] = lr_schedulers
 
             # save native amp scaling
-            if self.trainer.amp_backend == AMPType.NATIVE and not self.trainer.use_tpu and self.trainer.scaler is not None:
+            if (self.trainer.amp_backend == AMPType.NATIVE and
+                    self.trainer.on_device != DeviceType.TPU and
+                    self.trainer.scaler is not None):
                 checkpoint['native_amp_scaling_state'] = self.trainer.scaler.state_dict()
             elif self.trainer.amp_backend == AMPType.APEX:
                 checkpoint['amp_scaling_state'] = amp.state_dict()

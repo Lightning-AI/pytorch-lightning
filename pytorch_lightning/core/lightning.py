@@ -24,6 +24,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 import torch
 import torch.distributed as torch_distrib
 from pytorch_lightning import _logger as log
+from pytorch_lightning.accelerators.base_backend import DeviceType
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
@@ -1015,7 +1016,7 @@ class LightningModule(
                 f"is not equal to the computed world size ({world_size}). Ignored."
             )
 
-        torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
+        torch_backend = "nccl" if self.trainer.on_device == DeviceType.GPU else "gloo"
 
         if not torch.distributed.is_initialized():
             log.info(

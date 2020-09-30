@@ -13,6 +13,8 @@
 # limitations under the License.
 import os
 import torch
+
+from pytorch_lightning.accelerators.base_backend import DeviceType
 from pytorch_lightning.core import memory
 from pytorch_lightning.loggers import TensorBoardLogger, LoggerCollection
 from pytorch_lightning.utilities import flatten_dict
@@ -68,7 +70,7 @@ class LoggerConnector:
             step (int): Step for which metrics should be logged. Default value corresponds to `self.global_step`
         """
         # add gpu memory
-        if self.trainer.on_gpu and self.trainer.log_gpu_memory:
+        if self.trainer.on_device == DeviceType.GPU and self.trainer.log_gpu_memory:
             mem_map = memory.get_memory_profile(self.trainer.log_gpu_memory)
             metrics.update(mem_map)
 

@@ -2,6 +2,8 @@ from abc import ABC
 
 import torch
 
+from pytorch_lightning.accelerators.base_backend import BackendType
+
 
 class TestEpochEndVariations(ABC):
 
@@ -20,13 +22,13 @@ class TestEpochEndVariations(ABC):
             test_loss = self.get_output_metric(output, 'test_loss')
 
             # reduce manually when using dp
-            if self.trainer.use_dp:
+            if self.trainer.distributed_backend == BackendType.DP:
                 test_loss = torch.mean(test_loss)
             test_loss_mean += test_loss
 
             # reduce manually when using dp
             test_acc = self.get_output_metric(output, 'test_acc')
-            if self.trainer.use_dp:
+            if self.trainer.distributed_backend == BackendType.DP:
                 test_acc = torch.mean(test_acc)
 
             test_acc_mean += test_acc
@@ -55,13 +57,13 @@ class TestEpochEndVariations(ABC):
                 test_loss = output['test_loss']
 
                 # reduce manually when using dp
-                if self.trainer.use_dp:
+                if self.trainer.distributed_backend == BackendType.DP:
                     test_loss = torch.mean(test_loss)
                 test_loss_mean += test_loss
 
                 # reduce manually when using dp
                 test_acc = output['test_acc']
-                if self.trainer.use_dp:
+                if self.trainer.distributed_backend == BackendType.DP:
                     test_acc = torch.mean(test_acc)
 
                 test_acc_mean += test_acc

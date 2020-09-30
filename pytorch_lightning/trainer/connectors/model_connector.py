@@ -41,8 +41,7 @@ class ModelConnector:
             m.distributed_backend = self.trainer.distributed_backend
             m.use_amp = self.trainer.amp_backend is not None
             m.testing = self.trainer.testing
-            m.use_single_gpu = self.trainer.use_single_gpu
-            m.use_tpu = self.trainer.use_tpu
+            m.on_device = self.trainer.on_device
             m.tpu_local_core_rank = self.trainer.tpu_local_core_rank
             m.tpu_global_core_rank = self.trainer.tpu_global_core_rank
             m.precision = self.trainer.precision

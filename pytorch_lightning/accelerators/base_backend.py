@@ -191,9 +191,11 @@ class BackendType(Enum):
     DDP = 'ddp'
     DDP2 = 'ddp2'
     DDP_SPAWN = 'ddp_spawn'
+    HOROVOD = 'horovod'
+    # TODO: decouple DDP & CPU
     DDP_CPU = 'ddp_cpu'
     TPU = 'tpu'
-    HOROVOD = 'horovod'
+
 
 class DeviceType(Enum):
     GPU = 'gpu'

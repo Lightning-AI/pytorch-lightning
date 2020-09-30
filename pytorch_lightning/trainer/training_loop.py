@@ -19,7 +19,7 @@ import numpy as np
 import torch
 import torch.distributed as torch_distrib
 
-from pytorch_lightning.accelerators.base_backend import BackendType
+from pytorch_lightning.accelerators.base_backend import BackendType, DeviceType
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
@@ -73,7 +73,7 @@ class TrainLoop:
 
     def on_train_start(self):
         # clear cache before training
-        if self.trainer.on_gpu and self.trainer.root_gpu is not None:
+        if self.trainer.on_device == DeviceType.GPU and self.trainer.root_gpu is not None:
             # use context because of:
             # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
             with torch.cuda.device(f'cuda:{self.trainer.root_gpu}'):
@@ -119,7 +119,9 @@ class TrainLoop:
         self.trainer.model_connector.copy_trainer_model_properties(ref_model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
-        if self.trainer.amp_backend == AMPType.NATIVE and self.trainer.precision == 16 and not self.trainer.use_tpu:
+        if (self.trainer.amp_backend == AMPType.NATIVE and
+                self.trainer.precision == 16 and
+                self.trainer.on_device != DeviceType.TPU):
             self.trainer.scaler = torch.cuda.amp.GradScaler()
 
         # log hyper-parameters
@@ -186,7 +188,7 @@ class TrainLoop:
         self.trainer.accelerator_backend.on_train_end()
 
         # clear mem
-        if self.trainer.on_gpu:
+        if self.trainer.on_device == DeviceType.GPU:
             model = self.trainer.get_model()
             model.cpu()
             torch.cuda.empty_cache()

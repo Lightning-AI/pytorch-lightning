@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 import os
+
+from pytorch_lightning.accelerators.base_backend import DeviceType
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_getattr, lightning_setattr
@@ -108,7 +110,8 @@ def scale_batch_size(trainer,
     log.info(f'Finished batch size finder, will continue with full run using batch size {new_size}')
 
     # Restore initial state of model
-    trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer.on_gpu)
+    on_gpu = trainer.on_device == DeviceType.GPU
+    trainer.checkpoint_connector.restore(str(save_path), on_gpu=on_gpu)
     os.remove(save_path)
 
     # Finish by resetting variables so trainer is ready to fit model

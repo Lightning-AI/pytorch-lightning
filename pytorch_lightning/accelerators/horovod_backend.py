@@ -16,7 +16,7 @@ from contextlib import ExitStack
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
-from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.accelerators.base_backend import Accelerator, DeviceType
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
@@ -38,7 +38,7 @@ class HorovodBackend(Accelerator):
         # call setup after the ddp process has connected
         self.trainer.call_setup_hook(model)
 
-        if torch.cuda.is_available() and self.trainer.on_gpu:
+        if torch.cuda.is_available() and self.trainer.on_device == DeviceType.GPU:
             # Horovod: pin GPU to local rank
             assert self.trainer.root_gpu == hvd.local_rank()
             torch.cuda.set_device(self.trainer.root_gpu)
@@ -109,7 +109,7 @@ class HorovodBackend(Accelerator):
         pass
 
     def training_step(self, args):
-        if self.trainer.on_gpu:
+        if self.trainer.on_device == DeviceType.GPU:
             batch = args[0]
             batch = self.batch_to_device(batch, hvd.local_rank())
             args[0] = batch
@@ -123,7 +123,7 @@ class HorovodBackend(Accelerator):
         return output
 
     def validation_step(self, args):
-        if self.trainer.on_gpu:
+        if self.trainer.on_device == DeviceType.GPU:
             batch = args[0]
             batch = self.batch_to_device(batch, hvd.local_rank())
             args[0] = batch
@@ -137,7 +137,7 @@ class HorovodBackend(Accelerator):
         return output
 
     def test_step(self, args):
-        if self.trainer.on_gpu:
+        if self.trainer.on_device == DeviceType.GPU:
             batch = args[0]
             batch = self.batch_to_device(batch, hvd.local_rank())
             args[0] = batch
@@ -154,7 +154,7 @@ class HorovodBackend(Accelerator):
         optimizer.synchronize()
 
     def on_train_epoch_end(self):
-        hvd.join(hvd.local_rank() if self.trainer.on_gpu else -1)
+        hvd.join(hvd.local_rank() if self.trainer.on_device == DeviceType.GPU else -1)
 
     def barrier(self, name: str = None):
         hvd.join()

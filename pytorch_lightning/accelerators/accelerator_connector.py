@@ -2,7 +2,7 @@ from pytorch_lightning import accelerators
 import os
 import torch
 
-from pytorch_lightning.accelerators.base_backend import BackendType
+from pytorch_lightning.accelerators.base_backend import BackendType, DeviceType
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
@@ -71,7 +71,8 @@ class AcceleratorConnector:
         self.trainer.sync_batchnorm = sync_batchnorm
 
         self.trainer.tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
-        self.trainer.on_tpu = self.trainer.tpu_cores is not None
+        if self.trainer.tpu_cores is not None:
+            self.trainer.on_device = DeviceType.TPU
 
         self.trainer.tpu_id = self.trainer.tpu_cores[0] if isinstance(self.trainer.tpu_cores, list) else None
 
@@ -91,20 +92,15 @@ class AcceleratorConnector:
         self.trainer.root_gpu = device_parser.determine_root_gpu_device(self.trainer.data_parallel_device_ids)
         self.trainer.root_device = torch.device("cpu")
 
-        self.trainer.on_gpu = True if (self.trainer.data_parallel_device_ids and torch.cuda.is_available()) else False
+        if self.trainer.data_parallel_device_ids and torch.cuda.is_available():
+            self.trainer.on_device = DeviceType.GPU
 
         # tpu state flags
-        self.trainer.use_tpu = False
         self.trainer.tpu_local_core_rank = None
         self.trainer.tpu_global_core_rank = None
 
         # distributed backend choice
         self.set_distributed_mode()
-
-        # override dist backend when using tpus
-        if self.trainer.on_tpu:
-            self.trainer.distributed_backend = BackendType.TPU
-            self.trainer.use_tpu = True
 
         # init flags for SLURM+DDP to work
         self.trainer.world_size = 1
@@ -158,16 +154,16 @@ class AcceleratorConnector:
         elif self.trainer.distributed_backend == BackendType.DDP:
             accelerator_backend = accelerators.DDPBackend(self.trainer, mode='ddp')
 
-        elif self.trainer.use_dp:
+        elif self.trainer.distributed_backend == BackendType.DP:
             accelerator_backend = accelerators.DataParallelBackend(self.trainer)
 
-        elif self.trainer.use_horovod:
+        elif self.trainer.distributed_backend == BackendType.HOROVOD:
             accelerator_backend = accelerators.HorovodBackend(self.trainer)
 
-        elif self.trainer.use_single_gpu:
+        elif self.trainer.on_device == DeviceType.GPU  and self.trainer.num_gpus == 1:
             accelerator_backend = accelerators.GPUBackend(self.trainer)
 
-        elif self.trainer.use_tpu:
+        elif self.trainer.on_device == DeviceType.TPU:
             accelerator_backend = accelerators.TPUBackend(self.trainer)
 
         elif self.trainer.distributed_backend is None:
@@ -179,37 +175,40 @@ class AcceleratorConnector:
 
         return accelerator_backend
 
+    def _set_distributed_default(self):
+        if self.has_horovodrun():
+            self._set_horovod_backend()
+        elif self.trainer.num_gpus == 0:
+            if self.trainer.num_nodes > 1 or self.trainer.num_processes > 1:
+                self.trainer.distributed_backend = BackendType.DDP  # ddp_cpu
+                self.trainer.on_device = DeviceType.CPU
+        elif self.trainer.num_gpus > 1:
+            rank_zero_warn(
+                'You requested multiple GPUs but did not specify a backend, e.g.'
+                f' Trainer(distributed_backend={str(BackendType.DP)}|'
+                f'{str(BackendType.DDP)}|{str(BackendType.DDP2)}).'
+                f' Setting distributed_backend={str(BackendType.DDP_SPAWN)} for you.'
+            )
+            self.trainer.distributed_backend = BackendType.DDP_SPAWN
+
     def set_distributed_mode(self):
-        self.trainer.use_single_gpu = False
+        self.trainer.on_device = None
 
         if self.trainer.distributed_backend is None:
-            if self.has_horovodrun():
-                self._set_horovod_backend()
-            elif self.trainer.num_gpus == 0:
-                if self.trainer.num_nodes > 1 or self.trainer.num_processes > 1:
-                    self.trainer.distributed_backend = BackendType.DDP_CPU  # ddp_cpu
-            elif self.trainer.num_gpus == 1:
-                self.trainer.use_single_gpu = True
-            elif self.trainer.num_gpus > 1:
-                rank_zero_warn(
-                    'You requested multiple GPUs but did not specify a backend, e.g.'
-                    f' Trainer(distributed_backend={str(BackendType.DP)}|'
-                    f'{str(BackendType.DDP)}|{str(BackendType.DDP2)}).'
-                    f' Setting distributed_backend={str(BackendType.DDP_SPAWN)} for you.'
-                )
-                self.trainer.distributed_backend = BackendType.DDP_SPAWN
+            self._set_distributed_default()
 
         if self.trainer.distributed_backend == BackendType.DP:
             # do nothing if num_gpus == 0
             if self.trainer.num_gpus == 1:
-                self.trainer.use_single_gpu = True
+                self.trainer.on_device = DeviceType.GPU
 
         elif self.trainer.distributed_backend in (BackendType.DDP, BackendType.DDP_SPAWN):
             if self.trainer.num_gpus == 0:
                 if self.trainer.num_nodes > 1 or self.trainer.num_processes > 1:
-                    self.trainer.distributed_backend = BackendType.DDP_CPU  # ddp_cpu
+                    self.trainer.distributed_backend = BackendType.DDP  # ddp_cpu
+                    self.trainer.on_device = DeviceType.CPU
             elif self.trainer.num_gpus == 1:
-                self.trainer.use_single_gpu = True
+                self.trainer.on_device = DeviceType.GPU
                 self.trainer.distributed_backend = BackendType.DDP
             elif self.trainer.num_gpus > 1:
                 self.trainer.distributed_backend = BackendType.DDP
@@ -235,24 +234,24 @@ class AcceleratorConnector:
                 'To silence this warning set distributed_backend=ddp or distributed_backend=ddp2'
             )
 
-        rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self.trainer.on_gpu}')
+        rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {str(self.trainer.on_device)}')
         num_cores = self.trainer.tpu_cores if self.trainer.tpu_cores is not None else 0
         rank_zero_info(f'TPU available: {XLA_AVAILABLE}, using: {num_cores} TPU cores')
 
-        if torch.cuda.is_available() and not self.trainer.on_gpu:
+        if torch.cuda.is_available() and self.trainer.on_device != DeviceType.GPU:
             rank_zero_warn('GPU available but not used. Set the --gpus flag when calling the script.')
 
     def _set_horovod_backend(self):
-        self.check_horovod()
+        self._check_horovod()
         self.trainer.distributed_backend = BackendType.HOROVOD
 
         # Initialize Horovod to get rank / size info
         hvd.init()
-        if self.trainer.on_gpu:
+        if self.trainer.on_device == DeviceType.GPU:
             # Horovod assigns one local GPU per process
             self.trainer.root_gpu = hvd.local_rank()
 
-    def check_horovod(self):
+    def _check_horovod(self):
         """Raises a `MisconfigurationException` if the Trainer is not configured correctly for Horovod."""
         if not HOROVOD_AVAILABLE:
             raise MisconfigurationException(

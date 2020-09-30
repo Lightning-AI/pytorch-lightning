@@ -29,7 +29,6 @@ class TrainerLoggingMixin(ABC):
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
     current_epoch: int
-    on_gpu: bool
     distributed_backend: BackendType
     log_gpu_memory: ...
     logger: Union[LightningLoggerBase, bool]

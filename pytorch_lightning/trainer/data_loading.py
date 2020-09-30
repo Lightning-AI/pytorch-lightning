@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.accelerators.base_backend import Accelerator
-from pytorch_lightning.accelerators.base_backend import BackendType
+from pytorch_lightning.accelerators.base_backend import BackendType, DeviceType
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
@@ -74,7 +74,7 @@ class TrainerDataLoadingMixin(ABC):
     accelerator_backend: Accelerator
     num_nodes: int
     num_processes: int
-    distributed_backend: Optional[str]
+    distributed_backend: Optional[BackendType]
     dev_debugger: InternalDebugger
 
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
@@ -140,9 +140,9 @@ class TrainerDataLoadingMixin(ABC):
         return dataloader
 
     def _get_distributed_sampler(self, dataloader, train):
-        if self.use_tpu:
+        if self.on_device == DeviceType.TPU:
             kwargs = dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
-        elif self.use_horovod:
+        elif self.distributed_backend == BackendType.HOROVOD:
             kwargs = dict(num_replicas=hvd.size(), rank=hvd.rank())
         else:
             world_size = {

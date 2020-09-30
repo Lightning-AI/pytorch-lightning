@@ -36,7 +36,6 @@ class TrainerTrainingTricksMixin(ABC):
     #  the proper values/initialisation should be done in child class
     default_root_dir: str
     progress_bar_callback: ...
-    on_gpu: bool
 
     @abstractmethod
     def get_model(self) -> LightningModule:
