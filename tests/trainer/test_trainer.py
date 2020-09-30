@@ -23,6 +23,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
 from tests.base import EvalModelTemplate
 
 
@@ -866,6 +867,35 @@ def test_gradient_clipping(tmpdir):
 
     trainer.fit(model)
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@pytest.mark.skipif(not NATIVE_AMP_AVALAIBLE, reason="test requires native AMP.")
+def test_gradient_clipping_fp16(tmpdir):
+    """
+    Test gradient clipping with fp16
+    """
+
+    model = EvalModelTemplate()
+
+    # test that gradient is clipped correctly
+    def _optimizer_step(*args, **kwargs):
+        parameters = model.parameters()
+        grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
+        assert (grad_norm - 1.0).abs() < 0.01, "Gradient norm != 1.0: {grad_norm}".format(grad_norm=grad_norm)
+
+    trainer = Trainer(
+        max_steps=1,
+        max_epochs=1,
+        precision=16,
+        gpus=1,
+        gradient_clip_val=1.0,
+        default_root_dir=tmpdir,
+    )
+
+    # for the test
+    model.optimizer_step = _optimizer_step
+    model.prev_called_batch_idx = 0
+
+    trainer.fit(model)
 
 def test_gpu_choice(tmpdir):
     trainer_options = dict(
