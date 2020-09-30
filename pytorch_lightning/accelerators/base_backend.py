@@ -184,5 +184,5 @@ class BackendType(Enum):
     DDP2 = 'ddp2'
     DDP_SPAWN = 'ddp_spawn'
     DDP_CPU = 'ddp_cpu'
-    TPU = 'TPU'
+    TPU = 'tpu'
     HOROVOD = 'horovod'
