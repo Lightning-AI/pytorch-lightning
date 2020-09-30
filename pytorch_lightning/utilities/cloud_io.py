@@ -58,10 +58,5 @@ def atomic_save(checkpoint, filepath: str):
         torch.save(checkpoint, bytesbuffer, _use_new_zipfile_serialization=False)
     else:
         torch.save(checkpoint, bytesbuffer)
-
-    assert checkpoint
-    assert bytesbuffer.getvalue()
     with fsspec.open(filepath, "wb") as f:
-        print(filepath)
-        print(bytesbuffer.getvalue())
         f.write(bytesbuffer.getvalue())
