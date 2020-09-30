@@ -141,7 +141,7 @@ class DDPBackend(DDPBase):
         model = self.trainer.model
         if self.mode == 'ddp':
             results = self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=model, is_master=True)
-            del os.environ['WORLD_SIZE']
+            # del os.environ['WORLD_SIZE']
             return results
         else:
             return self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=model)
