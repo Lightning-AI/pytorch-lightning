@@ -230,11 +230,11 @@ class DDPBackend(DDPBase):
 
         # get original model
         print('-' * 100, '\ni\n', '-' * 100)
-        model = self.trainer.get_model()
 
         # clean up memory
         torch.cuda.empty_cache()
 
+        print('-' * 100, '\nEND\n', '-' * 100)
         if self.trainer.global_rank == 0:
             return results
 
