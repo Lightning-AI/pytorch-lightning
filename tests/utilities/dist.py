@@ -7,7 +7,7 @@ from pathlib import Path
 import pytorch_lightning
 
 
-def call_training_script(module_file, cli_args, method, tmpdir):
+def call_training_script(module_file, cli_args, method, tmpdir, timeout=60):
     file = Path(module_file.__file__).absolute()
     cli_args = cli_args.split(' ') if cli_args else []
     cli_args += ['--tmpdir', str(tmpdir)]
@@ -22,7 +22,7 @@ def call_training_script(module_file, cli_args, method, tmpdir):
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
 
     try:
-        std, err = p.communicate(timeout=30)
+        std, err = p.communicate(timeout=timeout)
     except TimeoutExpired:
         p.kill()
         std = ''
