@@ -700,8 +700,8 @@ class Trainer(
         # --------------------
         self.verbose_test = verbose
 
-        if self.global_rank != 0 and not self.distributed_backend == 'ddp':
-            return
+        # if self.global_rank != 0 and not self.distributed_backend == 'ddp':
+        #     return
 
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
         if test_dataloaders and datamodule:
