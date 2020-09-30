@@ -46,6 +46,10 @@ To use multiple loggers, simply pass in a ``list`` or ``tuple`` of loggers ...
 
 Logging from a LightningModule
 ------------------------------
+Interact with loggers in two ways, automatically and/or manually.
+
+Automatic logging
+^^^^^^^^^^^^^^^^^
 Use the :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method to log from anywhere in a LightningModule.
 
 .. code-block:: python
@@ -76,7 +80,6 @@ Once your training starts, you can view the logs by using your favorite logger o
 
     tensorboard --logdir ./lightning_logs
 
-Read more about :ref:`loggers`.
 
 Manual logging
 ^^^^^^^^^^^^^^
