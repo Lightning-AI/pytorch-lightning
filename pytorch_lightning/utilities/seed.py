@@ -27,7 +27,7 @@ from pytorch_lightning import _logger as log
 def seed_everything(seed: Optional[int] = None) -> int:
     """
     Function that sets seed for pseudo-random number generators in:
-    pytorch, numpy, python.random and sets PYTHONHASHSEED environment variable.
+    pytorch, numpy, python.random
     In addition, sets the env variable `PL_GLOBAL_SEED` which will be passed to
     spawned subprocesses (e.g. ddp_spawn backend).
 
@@ -53,7 +53,6 @@ def seed_everything(seed: Optional[int] = None) -> int:
         )
         seed = _select_seed_randomly(min_seed_value, max_seed_value)
 
-    os.environ["PYTHONHASHSEED"] = str(seed)
     os.environ["PL_GLOBAL_SEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
