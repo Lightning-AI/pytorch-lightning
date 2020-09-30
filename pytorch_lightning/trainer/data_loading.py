@@ -336,5 +336,6 @@ class TrainerDataLoadingMixin(ABC):
             The dataloader
         """
         dataloader = dataloader_fx()
-        self.accelerator_backend.barrier('get_dataloaders')
+        if self.accelerator_backend is not None:
+            self.accelerator_backend.barrier('get_dataloaders')
         return dataloader
