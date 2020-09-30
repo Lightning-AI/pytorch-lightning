@@ -24,7 +24,13 @@ def main():
 
     result = {}
     if args.trainer_method == 'fit':
+        print('-' * 100)
+        print('FITTING')
+        print('-' * 100)
         trainer.fit(model)
+        print('-' * 100)
+        print('DONE FITTING')
+        print('-' * 100)
         result = {'status': 'complete', 'method': args.trainer_method, 'result': None}
     if args.trainer_method == 'test':
         result = trainer.test(model)
