@@ -209,33 +209,25 @@ class DDPBackend(DDPBase):
         self.trainer.model_connector.copy_trainer_model_properties(model)
 
         # AMP - run through amp wrapper before going to distributed DP
-        print('-' * 100, '\nd\n', '-' * 100)
         model = self.trainer.precision_connector.connect(model)
 
         # DDP uses all GPUs on the machine
-        print('-' * 100, '\ne\n', '-' * 100)
         device_ids = self.get_device_ids()
 
         # allow user to configure ddp
-        print('-' * 100, '\nf\n', '-' * 100)
         model = model.configure_ddp(model, device_ids)
 
         # set up training routine
-        print('-' * 100, '\ng\n', '-' * 100)
         self.trainer.train_loop.setup_training(model)
 
         # train or test
-        print('-' * 100, '\nh\n', '-' * 100)
         self.barrier('ddp_setup')
+        print('-' * 100, '\ng\n', '-' * 100)
         results = self.train_or_test()
-
-        # get original model
-        print('-' * 100, '\ni\n', '-' * 100)
 
         # clean up memory
         torch.cuda.empty_cache()
 
-        print('-' * 100, '\nEND\n', '-' * 100)
         return results
 
     def training_step(self, args):
