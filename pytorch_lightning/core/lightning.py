@@ -212,21 +212,23 @@ class LightningModule(
               - T
               - F
               - T
-            * - validation_step
+            * - validation_step``*``
               - F
               - T
               - F
               - T
-            * - validation_step_end
+            * - validation_step_end``*``
               - F
               - T
               - F
               - T
-            * - validation_epoch_end
+            * - validation_epoch_end``*``
               - F
               - T
               - F
               - T
+
+            * same for the test loop
 
         Args:
             name: key name
