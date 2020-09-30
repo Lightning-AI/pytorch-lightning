@@ -189,6 +189,7 @@ class LightningModule(
         .. list-table:: Argument defaults by LightningModule hook
             :widths: 50 25 25 25 25
             :header-rows: 1
+
             * - LightningModule Hook
               - on_step
               - on_epoch
