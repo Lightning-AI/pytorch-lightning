@@ -26,9 +26,6 @@ pathlike = Union[Path, str]
 
 def load(path_or_url: str, map_location=None):
     if urlparse(path_or_url).scheme == "" or Path(path_or_url).drive:  # no scheme or with a drive letter
-        print('*' * 100)
-        print(path_or_url)
-        print('*' * 100)
         return torch.load(path_or_url, map_location=map_location)
     return torch.hub.load_state_dict_from_url(path_or_url, map_location=map_location)
 
