@@ -1,4 +1,6 @@
 import os
+from unittest.mock import MagicMock
+
 import yaml
 import pickle
 import platform
@@ -91,29 +93,25 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
     # due to the way ddp process is launched
 
     def __init__(self, expected_count, *args, **kwargs):
-        os.environ['PL_DEV_DEBUG'] = '1'
-
         super().__init__(*args, **kwargs)
         self.expected_count = expected_count
         self.on_save_checkpoint_count = 0
 
+    def on_train_start(self, trainer, pl_module):
+        torch.save = MagicMock()
+
     def on_save_checkpoint(self, trainer, pl_module):
+        # expect all ranks to run but only rank 0 will actually write the checkpoint file
         super().on_save_checkpoint(trainer, pl_module)
         self.on_save_checkpoint_count += 1
-        print(self.on_save_checkpoint_count)
 
     def on_train_end(self, trainer, pl_module):
         super().on_train_end(trainer, pl_module)
-        # expect all ranks to run but only rank 0 will actually write
-        # the checkpoint file
-        # if trainer.is_global_zero:
-        #     logged_times = len(trainer.dev_debugger.checkpoint_callback_history)
-        # else:
-        #     logged_times = 1
-        #
-        # assert logged_times == self.expected_count
-        print(self.on_save_checkpoint_count)
         assert self.on_save_checkpoint_count == self.expected_count
+        if trainer.is_global_zero:
+            assert torch.save.call_count == self.expected_count
+        else:
+            assert torch.save.call_count == 0
 
 
 @pytest.mark.skipif(
