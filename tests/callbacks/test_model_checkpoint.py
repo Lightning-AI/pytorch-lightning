@@ -95,16 +95,23 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
 
         super().__init__(*args, **kwargs)
         self.expected_count = expected_count
+        self.on_save_checkpoint_count = 0
+
+    def on_save_checkpoint(self, trainer, pl_module):
+        super().on_save_checkpoint(trainer, pl_module)
+        self.on_save_checkpoint_count += 1
 
     def on_train_end(self, trainer, pl_module):
         super().on_train_end(trainer, pl_module)
-        if not trainer.is_global_zero:
-            self.expected_count = 0
-
         # expect all ranks to run but only rank 0 will actually write
         # the checkpoint file
-        logged_times = len(trainer.dev_debugger.checkpoint_callback_history)
-        assert logged_times == self.expected_count
+        # if trainer.is_global_zero:
+        #     logged_times = len(trainer.dev_debugger.checkpoint_callback_history)
+        # else:
+        #     logged_times = 1
+        #
+        # assert logged_times == self.expected_count
+        assert self.on_save_checkpoint == self.expected_count
 
 
 @pytest.mark.skipif(
@@ -115,10 +122,11 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
     """Test to ensure that the model callback saves the checkpoints only once in distributed mode."""
     model = EvalModelTemplate()
     num_epochs = 4
-    model_checkpoint = ModelCheckpointTestInvocations(monitor='val_loss', expected_count=num_epochs, save_top_k=-1)
+    num_processes = 2
+    model_checkpoint = ModelCheckpointTestInvocations(monitor='val_loss', expected_count=(num_processes * num_epochs), save_top_k=-1)
     trainer = Trainer(
         distributed_backend="ddp_cpu",
-        num_processes=2,
+        num_processes=num_processes,
         default_root_dir=tmpdir,
         early_stop_callback=False,
         checkpoint_callback=model_checkpoint,
