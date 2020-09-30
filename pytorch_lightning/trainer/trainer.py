@@ -718,8 +718,6 @@ class Trainer(
     def __test_using_best_weights(self, ckpt_path, test_dataloaders):
         model = self.get_model()
 
-        print('-' * 100, f'\n {self.accelerator_backend.task_idx} TEST-BEST-WEIGHTS \n', '-' * 100)
-
         # if user requests the best checkpoint but we don't have it, error
         if ckpt_path == 'best' and not self.checkpoint_callback.best_model_path:
             raise MisconfigurationException(
@@ -739,7 +737,6 @@ class Trainer(
                 )
                 return {}
 
-            print('LOADING: ', ckpt_path)
             if self.accelerator_backend is not None:
                 self.accelerator_backend.barrier()
 
