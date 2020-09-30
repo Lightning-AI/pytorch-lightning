@@ -8,7 +8,6 @@ from pytorch_lightning.core import memory
 from pytorch_lightning.trainer import Trainer
 
 
-
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
     """Make sure DDP works. with early stopping"""
