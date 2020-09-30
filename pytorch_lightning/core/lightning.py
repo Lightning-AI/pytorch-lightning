@@ -189,8 +189,8 @@ class LightningModule(
         These are the defaults used when .log is called from each of these LightningModule hooks.
 
         .. csv-table::
-           :header: "LightningModule Hook", "on_step", "on_epoch", "prog_bar", "logger"
-            :widths: 50 25 25 25 25
+            :header: "LightningModule Hook", "on_step", "on_epoch", "prog_bar", "logger"
+            :widths: 50, 25, 25, 25, 25
 
            "training_step", "T", "F", "F", "T"
            "training_step_end", "T", "F", "F", "T"
