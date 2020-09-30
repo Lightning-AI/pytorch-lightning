@@ -65,10 +65,11 @@ def load_long_description():
 extras = {
     # 'docs': load_requirements(file_name='docs.txt'),
     'examples': load_requirements(file_name='examples.txt'),
+    'loggers': load_requirements(file_name='loggers.txt'),
     'extra': load_requirements(file_name='extra.txt'),
     'test': load_requirements(file_name='test.txt')
 }
-extras['dev'] = extras['extra'] + extras['test']
+extras['dev'] = extras['extra'] + extras['loggers'] + extras['test']
 extras['all'] = extras['dev'] + extras['examples']  # + extras['docs']
 
 # https://packaging.python.org/discussions/install-requires-vs-requirements /

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from abc import ABC
+import inspect
 from typing import Union, Iterable
 
 import torch
@@ -20,6 +21,7 @@ import torch
 from pytorch_lightning.core import memory
 from pytorch_lightning.loggers import TensorBoardLogger, LightningLoggerBase, LoggerCollection
 from pytorch_lightning.utilities.memory import recursive_detach
+from pytorch_lightning.utilities.distributed import rank_zero_warn
 
 
 class TrainerLoggingMixin(ABC):
@@ -57,6 +59,23 @@ class TrainerLoggingMixin(ABC):
 
         Separates loss from logging and progress bar metrics
         """
+        # --------------------
+        # WARN DEPRECATED KEYS
+        # --------------------
+        # TODO: 1.0.0 remove
+        if isinstance(output, dict):
+            for k, v in output.items():
+                if k in ['log', 'progress_bar']:
+                    m = inspect.cleandoc(
+                        f"""The {{{k}:dict keyword}} was deprecated in 0.9.1 and will be removed in 1.0.0
+                        Please use self.log(...) inside the lightningModule instead.
+    
+                        # log on a step or aggregate epoch metric to the logger and/or progress bar
+                        # (inside LightningModule)
+                        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
+                    """)
+                    rank_zero_warn(m)
+
         # --------------------------
         # handle single scalar only
         # --------------------------
@@ -148,17 +167,6 @@ class TrainerLoggingMixin(ABC):
         callback_metrics = recursive_detach(callback_metrics)
         progress_bar_metrics = recursive_detach(progress_bar_metrics)
         log_metrics = recursive_detach(log_metrics)
-
-        # replace loss with checkpoint_on
-        if 'loss' in callback_metrics:
-            callback_metrics['checkpoint_on'] = callback_metrics['loss']
-            callback_metrics['early_stop_on'] = callback_metrics['loss']
-            del callback_metrics['loss']
-
-        if 'val_loss' in callback_metrics:
-            callback_metrics['checkpoint_on'] = callback_metrics['val_loss']
-            callback_metrics['early_stop_on'] = callback_metrics['val_loss']
-            del callback_metrics['val_loss']
 
         return loss, progress_bar_metrics, log_metrics, callback_metrics, hiddens
 

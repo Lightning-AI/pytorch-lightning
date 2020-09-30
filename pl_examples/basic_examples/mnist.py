@@ -17,7 +17,12 @@ import torch
 import pytorch_lightning as pl
 from torch.nn import functional as F
 from torch.utils.data import DataLoader, random_split
-from tests.base.datasets import MNIST
+
+try:
+    from torchvision.datasets.mnist import MNIST
+    from torchvision import transforms
+except Exception as e:
+    from tests.base.datasets import MNIST
 
 
 class LitClassifier(pl.LightningModule):
@@ -44,17 +49,13 @@ class LitClassifier(pl.LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
-        result = pl.EvalResult(checkpoint_on=loss)
-        result.log('valid_loss', loss)
-        return result
+        self.log('valid_loss', loss)
 
     def test_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
-        result = pl.EvalResult(checkpoint_on=loss)
-        result.log('test_loss', loss)
-        return result
+        self.log('test_loss', loss)
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
@@ -82,8 +83,8 @@ def cli_main():
     # ------------
     # data
     # ------------
-    dataset = MNIST('', train=True, download=True)
-    mnist_test = MNIST('', train=False, download=True)
+    dataset = MNIST('', train=True, download=True, transform=transforms.ToTensor())
+    mnist_test = MNIST('', train=False, download=True, transform=transforms.ToTensor())
     mnist_train, mnist_val = random_split(dataset, [55000, 5000])
 
     train_loader = DataLoader(mnist_train, batch_size=args.batch_size)

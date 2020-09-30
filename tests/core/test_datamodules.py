@@ -68,6 +68,22 @@ def test_can_prepare_data(tmpdir):
     assert trainer.data_connector.can_prepare_data()
 
 
+def test_hooks_no_recursion_error(tmpdir):
+    # hooks were appended in cascade every tine a new data module was instantiated leading to a recursion error.
+    # See https://github.com/PyTorchLightning/pytorch-lightning/issues/3652
+    class DummyDM(LightningDataModule):
+        def setup(self, *args, **kwargs):
+            pass
+
+        def prepare_data(self, *args, **kwargs):
+            pass
+
+    for i in range(1005):
+        dm = DummyDM()
+        dm.setup()
+        dm.prepare_data()
+
+
 def test_base_datamodule(tmpdir):
     dm = TrialMNISTDataModule()
     dm.prepare_data()
@@ -175,7 +191,7 @@ def test_train_loop_only(tmpdir):
     # fit model
     result = trainer.fit(model, dm)
     assert result == 1
-    assert trainer.logger_connector.callback_metrics['checkpoint_on'] < 0.6
+    assert trainer.logger_connector.callback_metrics['loss'] < 0.6
 
 
 def test_train_val_loop_only(tmpdir):
@@ -197,8 +213,27 @@ def test_train_val_loop_only(tmpdir):
     # fit model
     result = trainer.fit(model, dm)
     assert result == 1
-    assert trainer.logger_connector.callback_metrics['checkpoint_on'] < 0.6
+    assert trainer.logger_connector.callback_metrics['loss'] < 0.6
 
+
+def test_dm_checkpoint_save(tmpdir):
+    reset_seed()
+
+    dm = TrialMNISTDataModule(tmpdir)
+
+    model = EvalModelTemplate()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        weights_summary=None,
+    )
+
+    # fit model
+    result = trainer.fit(model, dm)
+    checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
+    checkpoint = torch.load(checkpoint_path)
+    assert dm.__class__.__name__ in checkpoint
+    assert checkpoint[dm.__class__.__name__] == dm.__class__.__name__
 
 def test_test_loop_only(tmpdir):
     reset_seed()
@@ -237,6 +272,31 @@ def test_full_loop(tmpdir):
     result = trainer.test(datamodule=dm)
     result = result[0]
     assert result['test_acc'] > 0.8
+
+
+def test_trainer_attached_to_dm(tmpdir):
+    reset_seed()
+
+    dm = TrialMNISTDataModule(tmpdir)
+
+    model = EvalModelTemplate()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        weights_summary=None,
+        deterministic=True,
+    )
+
+    # fit model
+    result = trainer.fit(model, dm)
+    assert result == 1
+    assert dm.trainer is not None
+
+    # test
+    result = trainer.test(datamodule=dm)
+    result = result[0]
+    assert dm.trainer is not None
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires multi-GPU machine")

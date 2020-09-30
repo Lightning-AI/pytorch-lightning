@@ -7,7 +7,7 @@ import types
 from argparse import Namespace
 from copy import deepcopy
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import patch, call, ANY
 
 import cloudpickle
 import pytest
@@ -400,7 +400,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, ex
     # simulated losses
     losses = [10, 9, 2.8, 5, 2.5]
 
-    checkpoint_callback = ModelCheckpoint(tmpdir, save_top_k=save_top_k, save_last=save_last,
+    checkpoint_callback = ModelCheckpoint(tmpdir, monitor='checkpoint_on', save_top_k=save_top_k, save_last=save_last,
                                           prefix=file_prefix, verbose=1)
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
@@ -507,7 +507,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         max_epochs=2,
         limit_train_batches=0.65,
         limit_val_batches=1,
-        checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
+        checkpoint_callback=ModelCheckpoint(tmpdir, monitor='val_loss', save_top_k=-1),
         default_root_dir=tmpdir,
         early_stop_callback=False,
         val_check_interval=1.,
@@ -664,12 +664,12 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
         max_epochs=2,
         progress_bar_refresh_rate=0,
         default_root_dir=tmpdir,
-        checkpoint_callback=ModelCheckpoint(save_top_k=save_top_k),
+        checkpoint_callback=ModelCheckpoint(monitor='val_loss', save_top_k=save_top_k),
     )
     trainer.fit(model)
     if ckpt_path == 'best':
         # ckpt_path is 'best', meaning we load the best weights
-        if save_top_k <= 0:
+        if save_top_k == 0:
             with pytest.raises(MisconfigurationException, match='.*is not configured to save the best.*'):
                 trainer.test(ckpt_path=ckpt_path)
         else:
@@ -1127,3 +1127,24 @@ def test_trainer_setup_call(tmpdir):
     trainer.test(ckpt_path=None)
     assert trainer.stage == 'test'
     assert trainer.get_model().stage == 'test'
+
+
+@pytest.mark.parametrize("train_batches, max_steps, log_interval", [
+    pytest.param(10, 10, 1),
+    pytest.param(3, 10, 1),
+    pytest.param(3, 10, 5),
+])
+@patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_metrics")
+def test_row_log_interval(log_metrics_mock, tmpdir, train_batches, max_steps, log_interval):
+    model = EvalModelTemplate()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        row_log_interval=log_interval,
+        log_save_interval=log_interval,
+        limit_train_batches=train_batches,
+        limit_val_batches=0,
+        max_steps=max_steps,
+    )
+    trainer.fit(model)
+    expected_calls = [call(metrics=ANY, step=s) for s in range(log_interval - 1, max_steps, log_interval)]
+    log_metrics_mock.assert_has_calls(expected_calls)

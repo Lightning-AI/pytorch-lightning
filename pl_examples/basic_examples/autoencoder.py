@@ -19,7 +19,12 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from torch.utils.data import random_split
-from tests.base.datasets import MNIST
+
+try:
+    from torchvision.datasets.mnist import MNIST
+    from torchvision import transforms
+except ModuleNotFoundError:
+    from tests.base.datasets import MNIST
 
 
 class LitAutoEncoder(pl.LightningModule):
@@ -48,7 +53,7 @@ class LitAutoEncoder(pl.LightningModule):
         z = self.encoder(x)
         x_hat = self.decoder(z)
         loss = F.mse_loss(x_hat, x)
-        return pl.TrainResult(loss, checkpoint_on=loss)
+        return loss
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
@@ -70,8 +75,8 @@ def cli_main():
     # ------------
     # data
     # ------------
-    dataset = MNIST('', train=True, download=True)
-    mnist_test = MNIST('', train=False, download=True)
+    dataset = MNIST('', train=True, download=True, transform=transforms.ToTensor())
+    mnist_test = MNIST('', train=False, download=True, transform=transforms.ToTensor())
     mnist_train, mnist_val = random_split(dataset, [55000, 5000])
 
     train_loader = DataLoader(mnist_train, batch_size=args.batch_size)
