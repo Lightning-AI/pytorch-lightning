@@ -56,6 +56,7 @@ from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer.properties import TrainerProperties
+from pytorch_lightning.accelerators.base_backend import BackendType
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -701,8 +702,7 @@ class Trainer(
         self.verbose_test = verbose
 
         print('-' * 100, f'\n {self.accelerator_backend.task_idx} TEST CHECK \n', '-' * 100)
-        print(self.distributed_backend)
-        if not self.distributed_backend == 'ddp' and self.global_rank != 0:
+        if self.distributed_backend != BackendType.DDP and self.global_rank != 0:
             print('-' * 100, f'\n {self.accelerator_backend.task_idx} RETURN TEST \n', '-' * 100)
             return
 
