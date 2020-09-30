@@ -505,7 +505,6 @@ class ModelCheckpoint(Callback):
         if self.verbose:
             rank_zero_info(f"Epoch {epoch:d}: saving model to {filepath}")
 
-        # assert (trainer.global_rank == 0), "tried to make a checkpoint from non global_rank=0"
         self._save_model(filepath, trainer, pl_module)
 
     def _is_valid_monitor_key(self, metrics):
