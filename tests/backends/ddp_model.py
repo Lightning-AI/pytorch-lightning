@@ -34,8 +34,9 @@ def main():
         result = trainer.test(model)
         result = {'status': 'complete', 'method': args.trainer_method, 'result': result}
 
-    file_path = os.path.join(args.tmpdir, 'ddp.result')
-    torch.save(result, file_path)
+    if len(result) > 0:
+        file_path = os.path.join(args.tmpdir, 'ddp.result')
+        torch.save(result, file_path)
 
 
 if __name__ == '__main__':
