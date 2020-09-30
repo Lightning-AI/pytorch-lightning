@@ -110,6 +110,8 @@ Step 1: Define LightningModule
             z = self.encoder(x)
             x_hat = self.decoder(z)
             loss = F.mse_loss(x_hat, x)
+            # Logging to TensorBoard by default
+            self.log('train_loss', loss)
             return loss
 
         def configure_optimizers(self):
@@ -371,26 +373,11 @@ If you prefer to do it manually, here's the equivalent
 Optional features
 *****************
 
-TrainResult/EvalResult
-======================
+Logging
+=======
 If you want to log to Tensorboard or your favorite logger, and/or the progress bar, use the
-:class:`~pytorch_lightning.core.step_result.TrainResult` object.
-
-.. code-block::
-
-    class LitModel(pl.LightningModule):
-
-        def training_step(self, batch, batch_idx):
-            ...
-            loss = F.mse_loss(x_hat, x)
-            return loss
-
-        # equivalent
-        def training_step(self, batch, batch_idx):
-            ...
-            loss = F.mse_loss(x_hat, x)
-            result = pl.TrainResult(minimize=loss)
-            return result
+:func:`~~pytorch_lightning.core.lightning.LightningModule.log` method. You can call :func:`~~pytorch_lightning.core.lightning.LightningModule.log` from any part of your code, and
+have full control on how the logs are aggregated and when.
 
 To enable logging in the training loop:
 
@@ -401,15 +388,30 @@ To enable logging in the training loop:
         def training_step(self, batch, batch_idx):
             ...
             loss = F.mse_loss(x_hat, x)
-            result = pl.TrainResult(minimize=loss)
 
             # .log sends to tensorboard/logger, prog_bar also sends to the progress bar
-            result.log('my_train_loss', loss, prog_bar=True)
-            return result
+            self.log('my_train_loss', loss, prog_bar=True)
+            return loss
 
-And for the validation loop use the :class:`~pytorch_lightning.core.step_result.EvalResult` object.
+Lightning can aggregate your logs for each epoch by specifying `on_epoch=True`.
 
-.. code-block:: python
+.. code-block::
+
+    class LitModel(pl.LightningModule):
+
+        def training_step(self, batch, batch_idx):
+            ...
+            loss = F.mse_loss(x_hat, x)
+
+            # Lightning will compute the mean of `my_train_loss` at the end of each epoch
+            self.log('my_train_loss', loss, on_epoch=True)
+            return loss
+
+
+Anything you log in the validation loop will by default be logged at the end of each epoch:
+
+
+.. code-block::
 
     class LitModel(pl.LightningModule):
 
@@ -417,24 +419,38 @@ And for the validation loop use the :class:`~pytorch_lightning.core.step_result.
             ...
             loss = F.mse_loss(x_hat, x)
 
-            # lightning monitors 'checkpoint_on' to know when to checkpoint (this is a tensor)
-            result = pl.EvalResult(checkpoint_on=loss)
-            result.log('val_loss', loss)
-            return result
+            # Lightning will compute the mean of `my_train_loss` across epoch
+            self.log('my_val_loss', loss)
+
+You can always override Lightning deafults to customize any behaviour. If you would like to aggregate manually, you can pass data from
+your :func:`~~pytorch_lightning.core.lightning.LightningModule.validation_step` to :func:`~~pytorch_lightning.core.lightning.LightningModule.validation_step_end` or :func:`~~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end` by returning a tensor or a dictionary, and you can manually decide what to log in :func:`~~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`:
 
 
-.. note:: A Result Object is just a dictionary (print it to verify for yourself!)
+.. code-block::
 
-The results objects:
+    class LitModel(pl.LightningModule):
 
-* Automatically reduce epoch metrics.
-* Can log at each step or epoch.
-* Can log to a visual logger, progress bar, or both.
-* Detaches everything except the loss.
-* Handle syncing across GPUs.
-* Handle writing predictions across GPUs.
+        def validation_step(self, batch, batch_idx):
+            ...
 
-Read more about result objects and :ref:`loggers`.
+	        loss = F.mse_loss(x_hat, x)
+	        self.log('val_loss', loss, on_step=False, on_epoch=False)
+            # anything you return will be available in validation_step_end and validation_epoch_end
+	        return {'a': gpu_idx}
+
+	    def validation_step_end(self, validation_step_output):
+	        # {'a': [0, 1, 2, 3]}
+	        gpu_0_se = validation_step_output[0]
+	        gpu_1_se = validation_step_output[1]
+	        gpu_2_se = validation_step_output[2]
+	        gpu_3_se = validation_step_output[3]
+            # anything you return will be available in validation_epoch_end
+	        return gpu_0_se + gpu_1_se + gpu_2_se + gpu_3_se
+
+	    def validation_epoch_end(self, validation_step_outputs):
+	        # you can compute your own reduction of metrics or compute anything on values from your validation liip
+
+Read more about :ref:`loggers`.
 
 
 Callbacks
