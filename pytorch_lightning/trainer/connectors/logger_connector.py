@@ -21,6 +21,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pprint import pprint
 from typing import Iterable
 from copy import deepcopy
+import os
 
 
 class LoggerConnector:
@@ -39,14 +40,13 @@ class LoggerConnector:
         self.trainer.row_log_interval = row_log_interval
 
     def configure_logger(self, logger):
-        print('&' * 100)
-        print(self.trainer.global_rank, self.trainer.slurm_job_id)
-        print('&' * 100)
         if logger is True:
+            version = os.environ.get('PL_EXP_VERSION', self.trainer.slurm_job_id)
+            print('VERSION: ', version)
             # default logger
             self.trainer.logger = TensorBoardLogger(
                 save_dir=self.trainer.default_root_dir,
-                version=self.trainer.slurm_job_id,
+                version=version,
                 name='lightning_logs'
             )
         elif logger is False:

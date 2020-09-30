@@ -107,10 +107,7 @@ class DDPBackend(Accelerator):
         os.environ['PL_IN_DDP_SUBPROCESS'] = '1'
 
         if self.trainer.logger is not None:
-            print('*' * 100)
-            print(self.trainer.logger.version)
-            print('*' * 100)
-            os.environ['SLURM_JOB_ID'] = str(self.trainer.logger.version)
+            os.environ['PL_EXP_VERSION'] = str(self.trainer.logger.version)
 
         gpu_ids = os.environ.get('CUDA_VISIBLE_DEVICES', '')
         if len(gpu_ids) == 1:
