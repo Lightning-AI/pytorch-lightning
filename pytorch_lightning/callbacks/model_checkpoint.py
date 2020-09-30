@@ -213,15 +213,15 @@ class ModelCheckpoint(Callback):
 
         # callback supports multiple simultaneous modes
         # here we call each mode sequentially
-        # Mode 1: save the last checkpoint
-        self._save_last_checkpoint(trainer, pl_module, epoch, monitor_candidates, filepath)
-
-        # Mode 2: save all checkpoints OR only the top k
+        # Mode 1: save all checkpoints OR only the top k
         if self.save_top_k:
             if self.save_top_k == -1:
                 self._save_all_checkpoints(trainer, pl_module, epoch, filepath)
             else:
                 self._save_top_k_checkpoints(monitor_candidates, trainer, pl_module, epoch, filepath)
+
+        # Mode 2: save the last checkpoint
+        self._save_last_checkpoint(trainer, pl_module, epoch, monitor_candidates, filepath)
 
     def __validate_init_configuration(self):
         if self.save_top_k is not None and self.save_top_k < -1:
@@ -558,7 +558,6 @@ class ModelCheckpoint(Callback):
                 f" saving model to {filepath} as top {self.save_top_k}"
             )
         self._save_model(filepath, trainer, pl_module)
-
 
         for cur_path in del_list:
             if cur_path != filepath:
