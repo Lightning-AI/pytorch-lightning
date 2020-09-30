@@ -188,45 +188,18 @@ class LightningModule(
 
         These are the defaults used when .log is called from each of these LightningModule hooks.
 
-        .. list-table:: *same for test loop
+        .. csv-table::
+           :header: "LightningModule Hook", "on_step", "on_epoch", "prog_bar", "logger"
             :widths: 50 25 25 25 25
-            :header-rows: 1
 
-            * - LightningModule Hook
-              - on_step
-              - on_epoch
-              - prog_bar
-              - logger
-            * - training_step
-              - T
-              - F
-              - F
-              - T
-            * - training_step_end
-              - T
-              - F
-              - F
-              - T
-            * - training_epoch_end
-              - F
-              - T
-              - F
-              - T
-            * - validation_step\*
-              - F
-              - T
-              - F
-              - T
-            * - validation_step_end\*
-              - F
-              - T
-              - F
-              - T
-            * - validation_epoch_end\*
-              - F
-              - T
-              - F
-              - T
+           "training_step", "T", "F", "F", "T"
+           "training_step_end", "T", "F", "F", "T"
+           "training_epoch_end", "F", "T", "F", "T"
+           "validation_step*", "F", "T", "F", "T"
+           "validation_step_end*", "F", "T", "F", "T"
+           "validation_epoch_end*", "F", "T", "F", "T"
+
+            * same applies to the test loop
 
         Args:
             name: key name
