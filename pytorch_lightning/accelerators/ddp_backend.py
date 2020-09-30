@@ -278,6 +278,7 @@ class DDPBackend(DDPBase):
         return device_ids
 
     def on_train_end(self):
-        pass
+        if self.trainer.global_rank != 0:
+            exit()
         # for proc in self.interactive_ddp_procs:
         #     subprocess.Popen.kill(proc)
