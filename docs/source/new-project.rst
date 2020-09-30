@@ -404,15 +404,16 @@ use the x_step_end to manually aggregate (or don't implement it to let lightning
 .. code-block:: python
 
     for batch in data:
-        gpu_outs = []
         model_copies = copy_model_per_gpu(model, num_gpus)
         batch_split = split_batch_per_gpu(batch, num_gpus)
+
+        gpu_outs = []
         for model, batch_part in zip(model_copies, batch_split):
-            # loop hook
+            # LightningModule hook
             gpu_out = model.training_step(batch_part)
             gpu_outs.append(gpu_out)
 
-        # loop hook
+        # LightningModule hook
         out = training_step_end(gpu_outs)
 
 The lightning equivalent is:
