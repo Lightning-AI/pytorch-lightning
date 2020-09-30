@@ -105,7 +105,7 @@ Here are the only required methods.
     ...         x, y = batch
     ...         y_hat = self(x)
     ...         loss = F.cross_entropy(y_hat, y)
-    ...         return pl.TrainResult(loss)
+    ...         return loss
     ...
     ...     def configure_optimizers(self):
     ...         return torch.optim.Adam(self.parameters(), lr=0.02)
@@ -162,7 +162,7 @@ A LightningModule is best used to define a complex system:
 
             # reconstruction
             reconstruction_loss = nn.functional.mse_loss(recons, x)
-            return pl.TrainResult(reconstruction_loss)
+            return reconstruction_loss
 
          def validation_step(self, batch, batch_idx):
             x, _ = batch
@@ -170,9 +170,7 @@ A LightningModule is best used to define a complex system:
             z = self.encoder(x)
             recons = self.decoder(z)
             reconstruction_loss = nn.functional.mse_loss(recons, x)
-
-            result = pl.EvalResult(checkpoint_on=reconstruction_loss)
-            return result
+            self.log('val_reconstruction', reconstruction_loss)
 
          def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=0.0002)
@@ -210,12 +208,12 @@ Note that in this case, the train loop and val loop are exactly the same. We can
 
          def training_step(self, batch, batch_idx):
             loss = self.shared_step(batch)
-            return pl.TrainResult(loss)
+            
+            return loss
 
          def validation_step(self, batch, batch_idx):
             loss = self.shared_step(batch)
-            result = pl.EvalResult(checkpoint_on=loss)
-            return result
+            self.log('val_loss', loss)
 
          def shared_step(self, batch):
             x, _ = batch
@@ -281,7 +279,7 @@ For cases like production, you might want to iterate different models inside a L
              x, y = batch
              y_hat = self.model(x)
              loss = F.cross_entropy(y_hat, y)
-             return pl.TrainResult(loss)
+             return loss
 
          def validation_step(self, batch, batch_idx):
             x, y = batch
@@ -290,14 +288,14 @@ For cases like production, you might want to iterate different models inside a L
             acc = FM.accuracy(y_hat, y)
 
             # loss is tensor. The Checkpoint Callback is monitoring 'checkpoint_on'
-            result = pl.EvalResult(checkpoint_on=loss)
-            result.log_dict({'val_acc': acc, 'val_loss': loss})
-            return result
+            metrics = {'val_acc': acc, 'val_loss': loss}
+            self.log_dict(metrics)
+            return metrics
 
          def test_step(self, batch, batch_idx):
-            result = self.validation_step(batch, batch_idx)
-            result.rename_keys({'val_acc': 'test_acc', 'val_loss': 'test_loss'})
-            return result
+            metrics = self.validation_step(batch, batch_idx)
+            metrics = {'test_acc': metrics['val_acc'], 'test_loss': metrics['val_loss']}
+            self.log_dict(metrics)
 
          def configure_optimizers(self):
              return torch.optim.Adam(self.model.parameters(), lr=0.02)
@@ -361,7 +359,7 @@ To add a training loop use the `training_step` method
              x, y = batch
              y_hat = self.model(x)
              loss = F.cross_entropy(y_hat, y)
-             return pl.TrainResult(loss)
+             return loss
 
 Under the hood, Lightning does the following (pseudocode):
 
@@ -385,7 +383,7 @@ Under the hood, Lightning does the following (pseudocode):
 
 Training epoch-level metrics
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you want to calculate epoch-level metrics and log them, use the `TrainResult.log` method
+If you want to calculate epoch-level metrics and log them, use the `.log` method
 
 .. code-block:: python
 
@@ -393,13 +391,12 @@ If you want to calculate epoch-level metrics and log them, use the `TrainResult.
          x, y = batch
          y_hat = self.model(x)
          loss = F.cross_entropy(y_hat, y)
-         result = pl.TrainResult(loss)
 
          # logs metrics for each training_step, and the average across the epoch, to the progress bar and logger
          result.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-         return result
+         return loss
 
-The `TrainResult.log` object automatically reduces the requested metrics across the full epoch.
+The `.log` object automatically reduces the requested metrics across the full epoch.
 Here's the pseudocode of what it does under the hood:
 
 .. code-block:: python
@@ -428,13 +425,12 @@ If you need to do something with all the outputs of each `training_step`, overri
          x, y = batch
          y_hat = self.model(x)
          loss = F.cross_entropy(y_hat, y)
-         result = pl.TrainResult(loss)
-         result.prediction = some_prediction
+         preds = ...
+         return {'loss': loss, 'other_stuff': preds}
 
      def training_epoch_end(self, training_step_outputs):
-        all_predictions = training_step_outputs.prediction
-        ...
-        return result
+        for pred in training_step_outputs:
+            # do something
 
 The matching pseudocode is:
 
@@ -467,20 +463,19 @@ In this case, implement the `training_step_end` method
          x, y = batch
          y_hat = self.model(x)
          loss = F.cross_entropy(y_hat, y)
-         result = pl.TrainResult(loss)
-         result.prediction = some_prediction
+         pred = ...
+         return {'loss': loss, 'pred': pred}
 
      def training_step_end(self, batch_parts):
-         gpu_0_prediction = batch_parts.prediction[0]
-         gpu_1_prediction = batch_parts.prediction[1]
+         gpu_0_prediction = batch_parts.pred[0]['pred']
+         gpu_1_prediction = batch_parts.pred[1]['pred']
 
          # do something with both outputs
-         return result
+         return (batch_parts[0]['loss'] + batch_parts[1]['loss']) / 2
 
      def training_epoch_end(self, training_step_outputs):
-        all_predictions = training_step_outputs.prediction
-        ...
-        return result
+        for out in training_step_outputs:
+            # do something with preds
 
 The full pseudocode that lighting does under the hood is:
 
@@ -516,8 +511,7 @@ To add a validation loop, override the `validation_step` method of the :class:`~
             x, y = batch
             y_hat = self.model(x)
             loss = F.cross_entropy(y_hat, y)
-            result = pl.EvalResult(checkpoint_on=loss)
-            return result
+            self.log('val_loss', loss)
 
 Under the hood, Lightning does the following:
 
@@ -553,13 +547,12 @@ If you need to do something with all the outputs of each `validation_step`, over
          x, y = batch
          y_hat = self.model(x)
          loss = F.cross_entropy(y_hat, y)
-         result = pl.EvalResult(loss)
-         result.prediction = some_prediction
+         pred =  ...
+         return pred
 
      def validation_epoch_end(self, validation_step_outputs):
-        all_predictions = validation_step_outputs.prediction
-        ...
-        return result
+        for pred in validation_step_outputs:
+            # do something with a pred
 
 Validating with DataParallel
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -574,20 +567,19 @@ In this case, implement the `validation_step_end` method
          x, y = batch
          y_hat = self.model(x)
          loss = F.cross_entropy(y_hat, y)
-         result = pl.EvalResult(loss)
-         result.prediction = some_prediction
+         pred = ...
+         return {'loss': loss, 'pred': pred}
 
      def validation_step_end(self, batch_parts):
-         gpu_0_prediction = batch_parts.prediction[0]
-         gpu_1_prediction = batch_parts.prediction[1]
+         gpu_0_prediction = batch_parts.pred[0]['pred']
+         gpu_1_prediction = batch_parts.pred[1]['pred']
 
          # do something with both outputs
-         return result
+         return (batch_parts[0]['loss'] + batch_parts[1]['loss']) / 2
 
      def validation_epoch_end(self, validation_step_outputs):
-        all_predictions = validation_step_outputs.prediction
-        ...
-        return result
+        for out in validation_step_outputs:
+            # do something with preds
 
 The full pseudocode that lighting does under the hood is:
 
@@ -747,6 +739,24 @@ save_hyperparameters
 ~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.save_hyperparameters
+    :noindex:
+
+------------
+
+Logging methods
+^^^^^^^^^^^^^^^
+Use these methods to interact with the loggers
+
+log
+~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.log
+    :noindex:
+
+log_dict
+~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.log_dict
     :noindex:
 
 ------------
