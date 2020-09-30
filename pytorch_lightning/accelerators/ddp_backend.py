@@ -121,6 +121,7 @@ class DDPBackend(Accelerator):
         for local_rank in range(1, self.trainer.num_processes):
             env_copy = os.environ.copy()
             env_copy['LOCAL_RANK'] = f'{local_rank}'
+            print('SETTING GPU IDX', str(self.trainer.data_parallel_device_ids[local_rank]))
             env_copy['PL_DDP_PID'] = str(self.trainer.data_parallel_device_ids[local_rank])
 
             # start process
