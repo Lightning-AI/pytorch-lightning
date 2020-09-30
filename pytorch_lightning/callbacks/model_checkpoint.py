@@ -294,8 +294,11 @@ class ModelCheckpoint(Callback):
             raise ValueError(".save_function() not set")
 
     def check_monitor_top_k(self, current) -> bool:
+        if self.save_top_k == -1:
+            return True
+
         less_than_k_models = len(self.best_k_models) < self.save_top_k
-        if less_than_k_models or self.save_top_k == -1:
+        if less_than_k_models:
             return True
 
         if not isinstance(current, torch.Tensor):
