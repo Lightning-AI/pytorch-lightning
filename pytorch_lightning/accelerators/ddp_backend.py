@@ -232,10 +232,6 @@ class DDPBackend(DDPBase):
         print('-' * 100, '\ni\n', '-' * 100)
         model = self.trainer.get_model()
 
-        # persist info in ddp_spawn
-        print('-' * 100, '\nj\n', '-' * 100)
-        self.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
-
         # clean up memory
         torch.cuda.empty_cache()
 

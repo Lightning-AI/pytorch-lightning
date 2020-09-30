@@ -104,6 +104,7 @@ class TrainLoop:
         # --------------------------
         # Setup??
         # --------------------------
+        print('-' * 100, '\nj\n', '-' * 100)
         ref_model = model
         if self.trainer.data_parallel:
             ref_model = model.module
@@ -115,13 +116,16 @@ class TrainLoop:
         ref_model.trainer = self.trainer
 
         # set local properties on the model
+        print('-' * 100, '\nk\n', '-' * 100)
         self.trainer.model_connector.copy_trainer_model_properties(ref_model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
+        print('-' * 100, '\nL\n', '-' * 100)
         if self.trainer.amp_backend == AMPType.NATIVE and self.trainer.precision == 16 and not self.trainer.use_tpu:
             self.trainer.scaler = torch.cuda.amp.GradScaler()
 
         # log hyper-parameters
+        print('-' * 100, '\nm\n', '-' * 100)
         if self.trainer.logger is not None:
             # save exp to get started
             self.trainer.logger.log_hyperparams(ref_model.hparams)
@@ -129,20 +133,24 @@ class TrainLoop:
             self.trainer.logger.save()
 
         # wait for all to join if on distributed
+        print('-' * 100, '\nn\n', '-' * 100)
         self.trainer.accelerator_backend.barrier('setup_training')
 
         # register auto-resubmit when on SLURM
+        print('-' * 100, '\nO\n', '-' * 100)
         self.trainer.slurm_connector.register_slurm_signal_handlers()
 
         # --------------------------
         # Pre-train
         # --------------------------
         # on pretrain routine start
+        print('-' * 100, '\np\n', '-' * 100)
         self.trainer.on_pretrain_routine_start(ref_model)
         if self.trainer.is_function_implemented('on_pretrain_routine_start'):
             ref_model.on_pretrain_routine_start()
 
         # print model summary
+        print('-' * 100, '\nq\n', '-' * 100)
         if self.trainer.is_global_zero and self.trainer.weights_summary is not None and not self.trainer.testing:
             if self.trainer.weights_summary in ModelSummary.MODES:
                 ref_model.summarize(mode=self.trainer.weights_summary)
@@ -154,9 +162,11 @@ class TrainLoop:
         self.trainer.model = model
 
         # restore training and model before hpc is called
+        print('-' * 100, '\nr\n', '-' * 100)
         self.trainer.checkpoint_connector.restore_weights(model)
 
         # on pretrain routine end
+        print('-' * 100, '\ns\n', '-' * 100)
         self.trainer.on_pretrain_routine_end(ref_model)
         if self.trainer.is_function_implemented('on_pretrain_routine_end'):
             ref_model.on_pretrain_routine_end()
