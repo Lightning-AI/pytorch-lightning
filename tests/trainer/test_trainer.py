@@ -669,7 +669,7 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
     trainer.fit(model)
     if ckpt_path == 'best':
         # ckpt_path is 'best', meaning we load the best weights
-        if save_top_k <= 0:
+        if save_top_k == 0:
             with pytest.raises(MisconfigurationException, match='.*is not configured to save the best.*'):
                 trainer.test(ckpt_path=ckpt_path)
         else:
