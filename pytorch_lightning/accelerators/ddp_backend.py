@@ -46,6 +46,7 @@ class DDPBackend(DDPBase):
         self.task_idx = None
         self._has_spawned_children = False
         self.mode = mode
+        self.interactive_ddp_procs = []
 
     def setup(self, model):
         if self.mode == 'ddp':
@@ -107,7 +108,7 @@ class DDPBackend(DDPBase):
 
         os.environ['WORLD_SIZE'] = f'{num_gpus * self.trainer.num_nodes}'
 
-        self.trainer.interactive_ddp_procs = []
+        self.interactive_ddp_procs = []
         for local_rank in range(1, self.trainer.num_processes):
             env_copy = os.environ.copy()
             env_copy['LOCAL_RANK'] = f'{local_rank}'
@@ -119,7 +120,7 @@ class DDPBackend(DDPBase):
                 if HydraConfig.initialized():
                     cwd = get_original_cwd()
             proc = subprocess.Popen(command, env=env_copy, cwd=cwd)
-            self.trainer.interactive_ddp_procs.append(proc)
+            self.interactive_ddp_procs.append(proc)
 
             # starting all processes at once can cause issues
             # with dataloaders delay between 1-10 seconds
@@ -127,6 +128,9 @@ class DDPBackend(DDPBase):
             sleep(delay)
 
         self.task_idx = 0
+
+        # wait for all the procs to start
+        sleep(2)
 
     def train(self):
         model = self.trainer.model
@@ -272,3 +276,8 @@ class DDPBackend(DDPBase):
     def get_device_ids(self):
         device_ids = [self.trainer.root_gpu]
         return device_ids
+
+    def on_train_end(self):
+        pass
+        # for proc in self.interactive_ddp_procs:
+        #     subprocess.Popen.kill(proc)

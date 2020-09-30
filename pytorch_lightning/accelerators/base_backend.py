@@ -170,6 +170,9 @@ class Accelerator(object):
     def on_train_epoch_end(self):
         pass
 
+    def on_train_end(self):
+        pass
+
     def early_stopping_should_stop(self, pl_module):
         return self.trainer.should_stop
 
