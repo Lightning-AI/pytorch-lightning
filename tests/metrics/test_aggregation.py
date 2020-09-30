@@ -80,6 +80,7 @@ def root_mean_squared_log_error(x, y):
 
 
 # Define testcases
+# TODO: update remaining metrics and uncomment the corresponding test cases
 TESTS = [
     TestCase('accuracy',
              Accuracy,
@@ -169,7 +170,7 @@ TESTS = [
 
 
 # Utility test functions
-def idsfn(test):
+def _idsfn(test):
     """ Return id for current example being tested """
     return test.name
 
@@ -210,7 +211,7 @@ def _test_ddp_single_batch(rank, worldsize, lightning_metric, comparing_metric, 
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
-@pytest.mark.parametrize("test", TESTS, ids=idsfn)
+@pytest.mark.parametrize("test", TESTS, ids=_idsfn)
 def test_ddp(test):
     """Make sure that metrics are correctly sync and reduced in DDP mode"""
     tutils.reset_seed()
@@ -225,7 +226,7 @@ def test_ddp(test):
              nprocs=worldsize)
 
 
-@pytest.mark.parametrize("test", TESTS, ids=idsfn)
+@pytest.mark.parametrize("test", TESTS, ids=_idsfn)
 def test_multi_batch(test):
     """ test that aggregation works for multiple batches """
     lightning_metric = test.lightning_metric()
@@ -242,7 +243,7 @@ def test_multi_batch(test):
         comparing_fn(lightning_val, comparing_val)
 
 
-@pytest.mark.parametrize("test", TESTS, ids=idsfn)
+@pytest.mark.parametrize("test", TESTS, ids=_idsfn)
 def test_multi_batch_unequal_sizes(test):
     """ test that aggregation works for multiple batches with uneven sizes """
     lightning_metric = test.lightning_metric()
@@ -281,7 +282,7 @@ def _test_ddp_multi_batch(rank, worldsize, lightning_metric, comparing_metric, t
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
-@pytest.mark.parametrize("test", TESTS, ids=idsfn)
+@pytest.mark.parametrize("test", TESTS, ids=_idsfn)
 def test_ddp_multi_batch(test):
     """ test that aggregation works fine with in DDP mode and multiple batches """
     tutils.reset_seed()

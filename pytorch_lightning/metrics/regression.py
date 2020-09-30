@@ -296,7 +296,7 @@ class PSNR(Metric):
             final metric value
 
         """
-        sse, n, data_range = output['squared_error'], output['n_observations'], output['data_range']
+        sse, n, data_range = output['sum_squared_error'], output['n_obs'], output['data_range']
         psnr_base_e = 2 * torch.log(data_range) - torch.log(sse / n)
         psnr = psnr_base_e * (10 / torch.log(torch.tensor(self.base)))
         return psnr

@@ -193,8 +193,8 @@ def psnr(
 
     if return_state:
         return {'data_range': data_range,
-                'squared_error': F.mse_loss(pred, target, reduction='none').sum(),
-                'n_observations': torch.tensor(target.numel())}
+                'sum_squared_error': F.mse_loss(pred, target, reduction='none').sum(),
+                'n_obs': torch.tensor(target.numel())}
 
     mse_score = mse(pred.view(-1), target.view(-1), reduction=reduction)
     psnr_base_e = 2 * torch.log(data_range) - torch.log(mse_score)

@@ -2,8 +2,6 @@ from abc import ABC
 
 import torch
 
-from pytorch_lightning import EvalResult
-
 
 class TestEpochEndVariations(ABC):
 
