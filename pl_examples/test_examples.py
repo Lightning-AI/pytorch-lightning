@@ -95,7 +95,7 @@ def test_examples_cpu(cli_args):
             cli_cmd()
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires GPU machine")
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.skipif(platform.system() != 'Linux', reason='Only applies to Linux platform.')
 @pytest.mark.parametrize('cli_args', [cpu_args])
 def test_examples_mnist_dali(cli_args):
