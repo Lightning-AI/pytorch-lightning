@@ -384,7 +384,7 @@ Each loop (train, val, step) has three hooks you can implement (x_step, x_step_e
     for batch in data:
         out = training_step(batch)
         outs.append(out)
-     training_epoch_end(outs)
+    training_epoch_end(outs)
 
 The equivalent in Lightning is:
 
