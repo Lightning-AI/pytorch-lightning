@@ -751,6 +751,24 @@ save_hyperparameters
 
 ------------
 
+Logging methods
+^^^^^^^^^^^^^^^
+Use these methods to interact with the loggers
+
+log
+~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.log
+    :noindex:
+
+log_dict
+~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.log_dict
+    :noindex:
+
+------------
+
 Inference methods
 ^^^^^^^^^^^^^^^^^
 Use these hooks for inference with a lightning module
