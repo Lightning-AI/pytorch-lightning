@@ -120,6 +120,7 @@ def test__training_step__epoch_end__log(tmpdir):
 
         def training_epoch_end(self, outputs):
             self.training_epoch_end_called = True
+            self.log('b1', outputs[0]['loss'])
             self.log('b', outputs[0]['loss'], on_epoch=True, prog_bar=True, logger=True)
 
         def backward(self, trainer, loss, optimizer, optimizer_idx):
@@ -151,6 +152,7 @@ def test__training_step__epoch_end__log(tmpdir):
         'step_a',
         'epoch_a',
         'b',
+        'b1',
         'a1',
         'a2'
     }

@@ -207,7 +207,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 m = f'on_step=True cannot be used on {self._current_fx_name} method'
                 raise MisconfigurationException(m)
 
-            if 'epoch_end' in self._current_fx_name and not on_epoch:
+            if 'epoch_end' in self._current_fx_name and on_epoch == False:
                 m = f'on_epoch cannot be False when called from the {self._current_fx_name} method'
                 raise MisconfigurationException(m)
 
