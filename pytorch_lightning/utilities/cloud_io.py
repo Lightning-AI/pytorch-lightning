@@ -50,10 +50,6 @@ def atomic_save(checkpoint, filepath: str):
         filepath: The path to which the checkpoint will be saved.
             This points to the file that the checkpoint will be stored in.
     """
-
-    print(checkpoint)
-
-
     bytesbuffer = io.BytesIO()
     # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
     # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
@@ -63,4 +59,6 @@ def atomic_save(checkpoint, filepath: str):
     else:
         torch.save(checkpoint, bytesbuffer)
     with fsspec.open(filepath, "wb") as f:
+        print(filepath)
+        print(bytesbuffer.getvalue())
         f.write(bytesbuffer.getvalue())
