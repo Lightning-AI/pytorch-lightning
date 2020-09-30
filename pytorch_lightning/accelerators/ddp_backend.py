@@ -106,6 +106,9 @@ class DDPBackend(Accelerator):
         os.environ['PL_TRAINER_GPUS'] = ','.join([str(i) for i in self.trainer.data_parallel_device_ids])
         os.environ['PL_IN_DDP_SUBPROCESS'] = '1'
 
+        print('*' * 100)
+        print(self.trainer.logger.version)
+        print('*' * 100)
         if self.trainer.logger is not None:
             os.environ['SLURM_JOB_ID'] = str(self.trainer.logger.version)
 
