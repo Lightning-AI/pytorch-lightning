@@ -159,6 +159,7 @@ class DDPBackend(DDPBase):
         """
         # offset the process id if requested
         process_idx = process_idx + proc_offset
+        print('-' * 100, f'\n {self.task_idx} DDP_TRAIN \n', '-' * 100)
 
         # show progressbar only on progress_rank 0
         if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:
