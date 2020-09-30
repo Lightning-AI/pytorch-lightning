@@ -235,8 +235,7 @@ class DDPBackend(DDPBase):
         torch.cuda.empty_cache()
 
         print('-' * 100, '\nEND\n', '-' * 100)
-        if self.trainer.global_rank == 0:
-            return results
+        return results
 
     def training_step(self, args):
         if self.trainer.amp_backend == AMPType.NATIVE:
