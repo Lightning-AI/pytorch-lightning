@@ -148,10 +148,10 @@ class TrainerDataLoadingMixin(ABC):
             kwargs = dict(num_replicas=hvd.size(), rank=hvd.rank())
         else:
             world_size = {
-                'ddp': self.num_nodes * self.num_processes,
-                'ddp_spawn': self.num_nodes * self.num_processes,
-                'ddp2': self.num_nodes,
-                'ddp_cpu': self.num_processes * self.num_nodes
+                BackendType.DDP: self.num_nodes * self.num_processes,
+                BackendType.DDP_SPAWN: self.num_nodes * self.num_processes,
+                BackendType.DDP2: self.num_nodes,
+                BackendType.DDP_CPU: self.num_processes * self.num_nodes
             }
             assert self.distributed_backend is not None
             kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.global_rank)
