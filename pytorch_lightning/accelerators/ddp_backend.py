@@ -135,7 +135,7 @@ class DDPBackend(DDPBase):
             del os.environ['WORLD_SIZE']
             return results
         else:
-            self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=model)
+            return self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=model)
 
     def ddp_train(self, process_idx, mp_queue, model, is_master=False, proc_offset=0):
         """

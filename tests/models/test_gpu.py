@@ -61,24 +61,6 @@ def test_multi_gpu_none_backend(tmpdir):
     model = EvalModelTemplate()
     tpipes.run_model_test(trainer_options, model)
 
-# @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-# def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
-#     """Make sure DDP works. with early stopping"""
-#     tutils.set_random_master_port()
-#
-#     trainer_options = dict(
-#         default_root_dir=tmpdir,
-#         early_stop_callback=True,
-#         max_epochs=50,
-#         limit_train_batches=10,
-#         limit_val_batches=10,
-#         gpus=[0, 1],
-#         distributed_backend='ddp_spawn',
-#     )
-#
-#     model = EvalModelTemplate()
-#     tpipes.run_model_test(trainer_options, model)
-
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model_dp(tmpdir):
@@ -100,34 +82,6 @@ def test_multi_gpu_model_dp(tmpdir):
 
     # test memory helper functions
     memory.get_memory_profile('min_max')
-
-
-@pytest.mark.parametrize('cli_args', [
-    pytest.param('--max_epochs 1 --gpus 2 --distributed_backend ddp'),
-])
-@pytest.mark.parametrize('variation', train_test_variations.get_variations())
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_multi_gpu_model_ddp(tmpdir, cli_args, variation):
-    """ Runs a basic training and test run with distributed_backend=ddp. """
-    file = Path(train_test_variations.__file__).absolute()
-    cli_args = cli_args.split(' ') if cli_args else []
-    cli_args += ['--default_root_dir', str(tmpdir)]
-    cli_args += ['--variation', variation]
-    command = [sys.executable, str(file)] + cli_args
-
-    # need to set the PYTHONPATH in case pytorch_lightning was not installed into the environment
-    env = os.environ.copy()
-    env['PYTHONPATH'] = f'{pytorch_lightning.__file__}:' + env.get('PYTHONPATH', '')
-
-    # for running in ddp mode, we need to lauch it's own process or pytest will get stuck
-    p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
-
-    std, err = p.communicate(timeout=60)
-    std = std.decode('utf-8').strip()
-    err = err.decode('utf-8').strip()
-    assert std, f"{variation} produced no output"
-    if p.returncode > 0:
-        pytest.fail(err)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
