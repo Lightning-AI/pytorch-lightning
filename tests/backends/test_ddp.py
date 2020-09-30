@@ -15,6 +15,7 @@ def test_multi_gpu_model_ddp_fit_only(tmpdir, cli_args):
     print(std)
     print(err)
 
+    import pdb; pdb.set_trace()
     # load the results of the script
     result_path = os.path.join(tmpdir, 'ddp.result')
     result = torch.load(result_path)
