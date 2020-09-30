@@ -46,90 +46,37 @@ To use multiple loggers, simply pass in a ``list`` or ``tuple`` of loggers ...
 
 Logging from a LightningModule
 ------------------------------
-Use the Result objects to log from any lightning module.
-
-Training loop logging
-^^^^^^^^^^^^^^^^^^^^^
-To log in the training loop use the :class:`TrainResult`.
+Use the :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method to log from anywhere in a LightningModule.
 
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        loss = ...
+        self.log('my_metric', x)
 
-        result = pl.TrainResult(minimize=loss)
-        result.log('train_loss', loss)
-        return result
+The :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method has a few options:
 
-The `Result` object is simply a dictionary that gives you added methods like `log` and `write`
-and automatically detaches tensors (except for the minimize value).
+- on_step (logs the metric at that step in training)
+- on_epoch (automatically accumulates and logs at the end of the epoch)
+- prog_bar (logs to the progress bar)
+- logger (logs to the logger like Tensorboard)
 
-.. code-block:: python
+Depending on where log is called from, Lightning auto-determines the correct mode for you. But of course
+you can override the default behavior by manually setting the flags
 
-    result = pl.TrainResult(minimize=loss)
-    result.log('train_loss', loss)
-    print(result)
-
-    {'train_loss': tensor([0.2262])}
-
-The `TrainResult` can log at two places in the training, on each step (`TrainResult(on_step=True)`) and
-the aggregate at the end of the epoch (`TrainResult(on_epoch=True)`).
+.. note:: Setting on_epoch=True will accumulate your logged values over the full training epoch.
 
 .. code-block:: python
 
-    for epoch in epochs:
-        epoch_outs = []
-        for batch in train_dataloader():
-            # ......
-            out = training_step(batch)
-            # < ----------- log (on_step=True)
-            epoch_outs.append(out)
+    def training_step(self, batch, batch_idx):
+        self.log('my_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
-        # < -------------- log (on_epoch=True)
-        auto_reduce_log(epoch_outs)
+Once your training starts, you can view the logs by using your favorite logger or booting up the Tensorboard logs:
 
-Validation loop logging
-^^^^^^^^^^^^^^^^^^^^^^^
-To log in the training loop use the :class:`EvalResult`.
+.. code-block:: bash
 
-.. code-block:: python
+    tensorboard --logdir ./lightning_logs
 
-    def validation_step(self, batch, batch_idx):
-        loss = ...
-
-        result = pl.EvalResult()
-        result.log('val_loss', loss)
-        return result
-
-The `EvalResult` object is simply a dictionary that gives you added methods like `log` and `write`
-and automatically detaches tensors (except for the minimize value).
-
-.. code-block:: python
-
-    result = pl.EvalResult()
-    result.log('val_loss', loss)
-    print(result)
-
-    {'val_loss': tensor([0.2262])}
-
-The `EvalResult` can log at two places in the validation loop, on each step (`EvalResult(on_step=True)`) and
-the aggregate at the end of the epoch (`EvalResult(on_epoch=True)`).
-
-.. code-block:: python
-
-    def run_val_loop():
-        epoch_outs = []
-        for batch in val_dataloader():
-            out = validation_step(batch)
-            # < ----------- log (on_step=True)
-            epoch_outs.append(out)
-
-        # < -------------- log (on_epoch=True)
-        auto_reduce_log(epoch_outs)
-
-Test loop logging
-^^^^^^^^^^^^^^^^^
-See the previous section.
+Read more about :ref:`loggers`.
 
 Manual logging
 ^^^^^^^^^^^^^^
@@ -144,14 +91,21 @@ For certain things like histograms, text, images, etc... you may need to use the
         tensorboard.add_histogram(...)
         tensorboard.add_figure(...)
 
-This also applies to Callbacks
-
-
 ----------
 
 Logging from a Callback
 -----------------------
-To log from a callback, access the logger object directly
+To log from a callback, the :func:`~~pytorch_lightning.core.lightning.LightningModule.log`
+method of the LightningModule.
+
+.. code-block:: python
+
+    class MyCallback(Callback):
+
+        def on_train_epoch_end(self, trainer, pl_module):
+            pl_module.log('something', x)
+
+or access the logger object directly
 
 .. code-block:: python
 
