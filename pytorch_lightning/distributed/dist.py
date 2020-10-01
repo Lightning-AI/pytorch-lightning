@@ -37,5 +37,5 @@ class LightningDistributed:
         print(tensor)
         chunks = [chr(x.cpu().numpy()) for x in tensor]
         text = ''.join(chunks)
-        print(text)
+        print(text, '|')
         return text
