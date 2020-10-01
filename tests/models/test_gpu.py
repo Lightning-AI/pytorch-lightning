@@ -63,25 +63,6 @@ def test_multi_gpu_none_backend(tmpdir):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
-    """Make sure DDP works. with early stopping"""
-    tutils.set_random_master_port()
-
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        early_stop_callback=True,
-        max_epochs=50,
-        limit_train_batches=10,
-        limit_val_batches=10,
-        gpus=[0, 1],
-        distributed_backend='ddp_spawn',
-    )
-
-    model = EvalModelTemplate()
-    tpipes.run_model_test(trainer_options, model)
-
-
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model_dp(tmpdir):
     tutils.set_random_master_port()
 
@@ -129,28 +110,6 @@ def test_multi_gpu_model_ddp(tmpdir, cli_args, variation):
     assert std, f"{variation} produced no output"
     if p.returncode > 0:
         pytest.fail(err)
-
-
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_multi_gpu_model_ddp_spawn(tmpdir):
-    tutils.set_random_master_port()
-
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=10,
-        limit_val_batches=10,
-        gpus=[0, 1],
-        distributed_backend='ddp_spawn',
-        progress_bar_refresh_rate=0
-    )
-
-    model = EvalModelTemplate()
-
-    tpipes.run_model_test(trainer_options, model)
-
-    # test memory helper functions
-    memory.get_memory_profile('min_max')
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
