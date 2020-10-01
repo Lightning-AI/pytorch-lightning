@@ -14,7 +14,7 @@ class LightningDistributed:
     def broadcast(self, x: Any):
         is_tensor = isinstance(x, torch.Tensor)
         if not is_tensor:
-            x = self._encode(x).to(self.device)
+            x = self._encode(x)
 
         if self.rank > 0:
             x = torch.rand(100).to(self.device).long()
@@ -30,6 +30,7 @@ class LightningDistributed:
         chunks = [torch.tensor(int(x)) for x in result]
         chunks = torch.stack(chunks).long()
         padding[:len(chunks)] = chunks
+        padding = padding.to(self.device)
         return padding
 
     def _decode(self, tensor):
