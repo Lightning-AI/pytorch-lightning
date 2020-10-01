@@ -158,3 +158,7 @@ class HorovodBackend(Accelerator):
 
     def barrier(self, name: str = None):
         hvd.join()
+
+    def broadcast(self, obj, src=0):
+        obj = hvd.broadcast_object(obj, src)
+        return obj

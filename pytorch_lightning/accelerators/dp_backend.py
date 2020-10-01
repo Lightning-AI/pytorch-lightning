@@ -16,7 +16,7 @@ import torch
 from torch import optim
 
 from pytorch_lightning.accelerators.base_backend import Accelerator
-from pytorch_lightning.core import LightningModule
+from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.overrides.data_parallel import LightningDataParallel
 from pytorch_lightning.utilities import AMPType
@@ -28,6 +28,7 @@ class DataParallelBackend(Accelerator):
     def __init__(self, trainer):
         super().__init__(trainer)
         self.model_autocast_original_forward = None
+        self.dist = LightningDistributed()
 
     def setup(self, model):
         # call setup after the ddp process has connected

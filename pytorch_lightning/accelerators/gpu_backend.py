@@ -16,6 +16,7 @@ import torch
 
 from pytorch_lightning.accelerators.base_backend import Accelerator
 from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.distributed.dist import LightningDistributed
 
 
 class GPUBackend(Accelerator):
@@ -23,6 +24,7 @@ class GPUBackend(Accelerator):
 
     def __init__(self, trainer):
         super().__init__(trainer)
+        self.dist = LightningDistributed()
 
     def setup(self, model):
 

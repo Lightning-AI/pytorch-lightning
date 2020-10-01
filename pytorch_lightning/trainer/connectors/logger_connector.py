@@ -157,6 +157,9 @@ class LoggerConnector:
             # track the final results for the dataloader
             self.eval_loop_results.append(deepcopy(self.callback_metrics))
 
+            # actually log
+            self.log_metrics(logger_metrics, {}, step=self.trainer.global_step)
+
     def __rename_keys_by_dataloader_idx(self, metrics, dataloader_idx, num_loaders):
         if num_loaders == 1:
             return metrics
