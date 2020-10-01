@@ -35,7 +35,7 @@ class LightningDistributed:
 
 
 def _encode(obj):
-    target = torch.zeros(1000) * -1
+    target = torch.zeros(100)
     data = pickle.dumps(obj)
     data = np.frombuffer(data, dtype=np.uint8)
     data = torch.from_numpy(data)
