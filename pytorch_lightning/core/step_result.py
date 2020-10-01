@@ -20,7 +20,7 @@ import torch
 from torch import Tensor
 import os
 
-from pytorch_lightning.utilities.distributed import sync_ddp_if_available
+from pytorch_lightning.utilities.distributed import sync_dist_if_available
 from pytorch_lightning.metrics import Metric
 
 class Result(Dict):
@@ -122,10 +122,9 @@ class Result(Dict):
         if not enable_graph and isinstance(value, torch.Tensor):
             value = value.detach()
 
-        # sync across ddp
+        # sync across workers when using distributed training
         if sync_dist and isinstance(value, (torch.Tensor, numbers.Number)):
-            value = sync_horovod_if_available(value, reduce_op=sync_dist_op)
-            # value = sync_ddp_if_available(value, group=sync_dist_group, reduce_op=sync_dist_op)
+            value = sync_dist_if_available(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
         if 'meta' not in self:
             self.__setitem__('meta', {})
@@ -277,7 +276,7 @@ class Result(Dict):
                     result[k] = self[k]
 
             if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
-                # compute metric on epoch anyway so state does not accumulate 
+                # compute metric on epoch anyway so state does not accumulate
                 self[k].compute()
 
         return result
@@ -300,7 +299,7 @@ class Result(Dict):
                     result[k] = self[k]
 
             if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
-                # compute metric on epoch anyway so state does not accumulate 
+                # compute metric on epoch anyway so state does not accumulate
                 self[k].compute()
 
         return result
