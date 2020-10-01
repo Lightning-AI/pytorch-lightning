@@ -173,7 +173,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
             elif isinstance(tensors[0], torch.Tensor):
                 return torch.stack(tensors).mean(0)
             else:
-                raise TypeError("unknown metric value format to aggregate") from e
+                raise TypeError("unknown metric value format to aggregate") from exp
 
     @staticmethod
     def compute(self, data: Any, output: Any):
