@@ -5,7 +5,7 @@ FROM pytorchlightning/pytorch_lightning:base-cuda-py${PYTHON_VERSION}-torch${PYT
 
 ARG LIGHTNING_VERSION=""
 
-COPY --chown=flash ./ ./pytorch-lightning/
+COPY ./ ./pytorch-lightning/
 
 # install dependencies
 RUN \
