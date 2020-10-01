@@ -181,8 +181,7 @@ class DDPCPUSpawnBackend(Accelerator):
         self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
     def model_to_device(self, model, process_idx):
-        # in ddp cpu we don't actually move models to a device
-        pass
+        model.cpu()
 
     def get_device_ids(self):
         device_ids = None
