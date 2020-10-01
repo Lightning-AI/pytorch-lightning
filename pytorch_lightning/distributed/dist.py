@@ -27,6 +27,7 @@ class LightningDistributed:
             # Fetch from the source
             length_tensor = torch.tensor([0]).long().to(self.device)
             print(length_tensor.size())
+            torch_distrib.barrier()
             length_tensor = torch_distrib.broadcast(length_tensor, src=0)
             print(length_tensor)
             data_tensor = torch.empty([length_tensor.item()], dtype=torch.uint8).to(self.device)
