@@ -56,7 +56,6 @@ from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer.properties import TrainerProperties
-from pytorch_lightning.accelerators.base_backend import BackendType
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -736,9 +735,6 @@ class Trainer(
                     f'specify a path for a checkpoint .test(ckpt_path=PATH)'
                 )
                 return {}
-            if self.accelerator_backend is not None:
-                self.accelerator_backend.barrier()
-
             if self.accelerator_backend is not None:
                 self.accelerator_backend.barrier()
 
