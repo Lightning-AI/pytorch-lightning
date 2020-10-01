@@ -42,6 +42,6 @@ def _encode(obj):
 
 def _decode(tensor):
     data = tensor.cpu().numpy().tobytes()
-    data = pickle.loads(data)
     torch_distrib.barrier()
+    data = pickle.loads(data)
     return data
