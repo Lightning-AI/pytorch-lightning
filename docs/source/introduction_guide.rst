@@ -395,46 +395,6 @@ in the LightningModule
 Again, this is the same PyTorch code except that it has been organized by the LightningModule.
 This code is not restricted which means it can be as complicated as a full seq-2-seq, RL loop, GAN, etc...
 
-TrainResult
-^^^^^^^^^^^
-Whenever you'd like to log, or sync values across GPUs use `TrainResult`.
-
-- log to Tensorboard or the other logger of your choice.
-- log to the progress-bar.
-- log on every step.
-- log aggregate epoch metrics.
-- average values across GPUs/TPU cores
-
-.. code-block:: python
-
-    def training_step(...):
-        return loss
-
-        # equivalent
-        return pl.TrainResult(loss)
-
-        # log a metric
-        result = pl.TrainResult(loss)
-        result.log('train_loss', loss)
-
-        # equivalent
-        result.log('train_loss', loss, on_step=True, on_epoch=False, prog_bar=False, logger=True, reduce_fx=torch.mean)
-
-When training across accelerators (GPUs/TPUs) you can sync a metric if needed.
-
-.. code-block:: python
-
-        # sync across GPUs / TPUs, etc...
-        result.log('train_loss', loss, sync_dist=True)
-
-If you are only using a training_loop (`training_step`) without a
-validation or test loop (`validation_step`, `test_step`), you can still use EarlyStopping or automatic checkpointing
-
-.. code-block:: python
-
-    result = pl.TrainResult(loss, checkpoint_on=loss, early_stop_on=loss)
-    return result
-
 ----------------
 
 The engineering
@@ -477,30 +437,52 @@ For clarity, we'll recall that the full LightningModule now looks like this.
             x, y = batch
             logits = self(x)
             loss = F.nll_loss(logits, y)
-
-            # using TrainResult to enable logging
-            result = pl.TrainResult(loss)
-            result.log('train_loss', loss)
-
-            return result
+            return loss
 
 Again, this is the same PyTorch code, except that it's organized by the LightningModule.
 
-Auto Logging
-^^^^^^^^^^^^
-When we added the `TrainResult` in the return dictionary it went into the built-in tensorboard logger.
-But you could have also logged by calling:
+Logging
+^^^^^^^
+To log to Tensorboard, your favorite logger, and/or the progress bar, use the
+:func:`~~pytorch_lightning.core.lightning.LightningModule.log` method which can be called from
+any method in the LightningModule.
 
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        # ...
-        loss = ...
-        self.logger.summary.scalar('loss', loss, step=self.global_step)
+        self.log('my_metric', x)
 
-        # equivalent
-        result = TrainResult()
-        result.log('loss', loss)
+The :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method has a few options:
+
+- on_step (logs the metric at that step in training)
+- on_epoch (automatically accumulates and logs at the end of the epoch)
+- prog_bar (logs to the progress bar)
+- logger (logs to the logger like Tensorboard)
+
+Depending on where log is called from, Lightning auto-determines the correct mode for you. But of course
+you can override the default behavior by manually setting the flags
+
+.. note:: Setting on_epoch=True will accumulate your logged values over the full training epoch.
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        self.log('my_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+
+You can also use any method of your logger directly:
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        tensorboard = self.logger.experiment
+        tensorboard.any_summary_writer_method_you_want())
+
+Once your training starts, you can view the logs by using your favorite logger or booting up the Tensorboard logs:
+
+.. code-block:: bash
+
+    tensorboard --logdir ./lightning_logs
+
 
 Which will generate automatic tensorboard logs.
 
@@ -678,20 +660,11 @@ split of the data reaches a minimum.
 Just like the `training_step`, we can define a `validation_step` to check whatever
 metrics we care about, generate samples or add more to our logs.
 
-Since the `validation_step` processes a single batch, use the `EvalResult` to log metrics for the full epoch.
-
 .. code-block:: python
 
     def validation_step(self, batch, batch_idx):
         loss = MSE_loss(...)
-
-        # loss is a tensor. The Checkpoint Callback is monitoring 'checkpoint_on'
-        result = pl.EvalResult(checkpoint_on=loss)
-        result.log('val_loss', loss)
-
-        # equivalent
-        result.log('val_loss', loss, prog_bar=False, logger=True, on_step=False, on_epoch=True, reduce_fx=torch.mean)
-        return result
+        self.log('val_loss', loss)
 
 Now we can train with a validation loop as well.
 
@@ -744,13 +717,12 @@ If you still need even more fine-grain control, define the other optional method
 .. code-block:: python
 
     def validation_step(self, batch, batch_idx):
-        result = pl.EvalResult()
-        result.prediction = some_prediction
-        return result
+        preds = ...
+        return preds
 
     def validation_epoch_end(self, val_step_outputs):
-        # do something with all the predictions from each validation_step
-        all_predictions = val_step_outputs.prediction
+        for pred in val_step_outputs:
+            # do something with all the predictions from each validation_step
 
 ----------------
 
@@ -768,9 +740,7 @@ Just like the validation loop, we define a test loop
             x, y = batch
             logits = self(x)
             loss = F.nll_loss(logits, y)
-            result = pl.EvalResult()
-            result.log('test_loss', loss)
-            return result
+            self.log('test_loss', loss)
 
 
 However, to make sure the test set isn't used inadvertently, Lightning has a separate API to run tests.

@@ -47,10 +47,14 @@ jobs:
             ${{ runner.os }}-pip-extras-
 
       - name: Install dependencies
+        env:
+          HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
+          HOROVOD_WITHOUT_MXNET: 1
+          HOROVOD_WITHOUT_TENSORFLOW: 1
         run: |
           # python -m pip install --upgrade --user pip
           pip install --requirement requirements/base.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
-          HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install --requirement ./requirements/devel.txt --quiet
+          pip install --requirement ./requirements/devel.txt --quiet
           # pip install tox coverage
           python --version ; pip --version ; pip list
         shell: bash

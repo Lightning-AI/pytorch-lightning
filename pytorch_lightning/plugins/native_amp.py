@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import torch
 
 
@@ -20,7 +21,6 @@ class NativeAMP:
         self.trainer = trainer
 
     def connect(self, model, optimizers):
-        self.trainer.optimizers = optimizers
         return model, optimizers
 
     def training_step(self, fx, args):

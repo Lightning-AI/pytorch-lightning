@@ -278,6 +278,19 @@ def test_val_step_epoch_step_metrics(tmpdir):
     )
     trainer.fit(model)
 
+    assert len(trainer.logger_connector.callback_metrics) == 11
+    expected_metrics = {
+        'early_stop_on',
+        'checkpoint_on',
+        'val_step_pbar_acc', 'epoch_val_step_pbar_acc',
+        'val_step_log_acc', 'epoch_val_step_log_acc',
+        'val_step_log_pbar_acc', 'epoch_val_step_log_pbar_acc',
+        'val_step_batch_idx', 'epoch_val_step_batch_idx'
+    }
+    expected_metrics.add('debug_epoch')
+    seen_metrics = set(trainer.logger_connector.callback_metrics)
+    assert expected_metrics == seen_metrics
+
     # make sure correct steps were called
     assert model.validation_step_called
     assert not model.validation_step_end_called
@@ -351,6 +364,8 @@ def test_val_step_epoch_end_result(tmpdir):
         weights_summary=None,
     )
     trainer.fit(model)
+
+    assert len(trainer.logger_connector.callback_metrics) == 6
 
     # make sure correct steps were called
     assert model.validation_step_called

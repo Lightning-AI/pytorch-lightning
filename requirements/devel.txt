@@ -6,3 +6,6 @@
 
 # extended list of dependencies dor development and run lint and tests
 -r ./test.txt
+
+# install all extra dependencies for running examples
+-r ./examples.txt

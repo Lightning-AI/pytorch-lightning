@@ -11,11 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import torch
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.core.step_result import Result, EvalResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.distributed import rank_zero_warn
+from pytorch_lightning.utilities.warning_utils import WarningCache
 
 
 class EvaluationLoop(object):
@@ -23,8 +25,10 @@ class EvaluationLoop(object):
         self.trainer = trainer
         self.testing = False
         self.outputs = []
+        self.step_metrics = []
         self.predictions = None
         self.max_batches = None
+        self.warning_cache = WarningCache()
 
     def on_trainer_init(self):
         self.trainer.num_val_batches = []
@@ -168,6 +172,12 @@ class EvaluationLoop(object):
 
         # call the model epoch end
         eval_results = self.__run_eval_epoch_end(num_dataloaders, using_eval_result)
+
+        # enable returning anything
+        for r in eval_results:
+            if not isinstance(r, (dict, Result, torch.Tensor)):
+                return []
+
         return eval_results
 
     def log_epoch_metrics(self, eval_results, test_mode):
@@ -192,6 +202,7 @@ class EvaluationLoop(object):
 
         if self.testing:
             if is_overridden('test_epoch_end', model=model):
+                model._current_fx_name = 'test_epoch_end'
                 if using_eval_result:
                     eval_results = self.__gather_epoch_end_eval_results(outputs)
 
@@ -200,11 +211,19 @@ class EvaluationLoop(object):
 
         else:
             if is_overridden('validation_epoch_end', model=model):
+                model._current_fx_name = 'validation_epoch_end'
                 if using_eval_result:
                     eval_results = self.__gather_epoch_end_eval_results(outputs)
 
                 eval_results = model.validation_epoch_end(eval_results)
                 user_reduced = True
+
+        # depre warning
+        if eval_results is not None:
+            step = 'testing_epoch_end' if self.testing else 'validation_epoch_end'
+            m = f'The {step} should not return anything as of 9.1.' \
+                f'to log, use self.log(...) or self.write(...) directly in the LightningModule'
+            self.warning_cache.warn(m)
 
         if using_eval_result and not user_reduced:
             eval_results = self.__auto_reduce_result_objs(outputs)
@@ -245,6 +264,11 @@ class EvaluationLoop(object):
         return eval_results
 
     def on_evaluation_batch_start(self, *args, **kwargs):
+        # reset the result of the PL module
+        model = self.trainer.get_model()
+        model._results = Result()
+        model._current_fx_name = 'evaluation_step'
+
         if self.testing:
             self.trainer.call_hook('on_test_batch_start', *args, **kwargs)
         else:
@@ -273,21 +297,35 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_epoch_end', *args, **kwargs)
 
-    def log_step_metrics(self, output, batch_idx):
+    def log_evaluation_step_metrics(self, batch, batch_idx):
+        results = self.trainer.get_model()._results
+        if len(results) == 1:
+            return None
+
+        results.track_batch_size(len(batch))
+        self.__log_result_step_metrics(results, batch_idx)
+
+        return results
+
+    # TODO: deprecate at 1.0
+    def log_evaluation_step_metrics_legacy(self, output, batch_idx):
         if self.trainer.running_sanity_check:
             return
 
         if isinstance(output, EvalResult):
-            step_log_metrics = output.batch_log_metrics
-            step_pbar_metrics = output.batch_pbar_metrics
+            self.__log_result_step_metrics(output, batch_idx)
 
-            if len(step_log_metrics) > 0:
-                # make the metrics appear as a different line in the same graph
-                metrics_by_epoch = {}
-                for k, v in step_log_metrics.items():
-                    metrics_by_epoch[f'{k}/epoch_{self.trainer.current_epoch}'] = v
+    def __log_result_step_metrics(self, output, batch_idx):
+        step_log_metrics = output.get_batch_log_metrics(include_forked_originals=False)
+        step_pbar_metrics = output.get_batch_pbar_metrics(include_forked_originals=False)
 
-                self.trainer.logger_connector.log_metrics(metrics_by_epoch, {}, step=batch_idx)
+        if len(step_log_metrics) > 0:
+            # make the metrics appear as a different line in the same graph
+            metrics_by_epoch = {}
+            for k, v in step_log_metrics.items():
+                metrics_by_epoch[f'{k}/epoch_{self.trainer.current_epoch}'] = v
 
-            if len(step_pbar_metrics) > 0:
-                self.trainer.logger_connector.add_progress_bar_metrics(step_pbar_metrics)
+            self.trainer.logger_connector.log_metrics(metrics_by_epoch, {}, step=batch_idx)
+
+        if len(step_pbar_metrics) > 0:
+            self.trainer.logger_connector.add_progress_bar_metrics(step_pbar_metrics)

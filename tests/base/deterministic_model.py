@@ -93,12 +93,10 @@ class DeterministicModel(LightningModule):
             # only saw 4 batches
             assert len(outputs) == 4
             for batch_out in outputs:
+                batch_out = batch_out['loss']
                 assert batch_out == 171
                 assert batch_out.grad_fn is None
                 assert isinstance(batch_out, torch.Tensor)
-
-        prototype_loss = outputs[0]
-        return prototype_loss
 
     def training_step_no_default_callbacks_for_train_loop(self, batch, batch_idx):
         """
@@ -187,6 +185,12 @@ class DeterministicModel(LightningModule):
         else:
             # only saw 4 batches
             assert isinstance(result, TrainResult)
+
+        result.step_epoch_log_acc2 = result.step_step_epoch_log_acc2.prod()
+        result.step_epoch_pbar_acc3 = result.step_step_epoch_pbar_acc3.prod()
+        result.step_epoch_log_and_pbar_acc1 = result.step_epoch_log_and_pbar_acc1.prod()
+        result.minimize = result.minimize.mean()
+        result.checkpoint_on = result.checkpoint_on.mean()
 
         result.step_step_epoch_log_and_pbar_acc1 = result.step_step_epoch_log_and_pbar_acc1.prod()
         result.epoch_step_epoch_log_and_pbar_acc1 = result.epoch_step_epoch_log_and_pbar_acc1.prod()

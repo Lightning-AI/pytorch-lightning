@@ -47,10 +47,13 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
         trainer_options.update(checkpoint_callback=True)
 
     trainer = Trainer(**trainer_options)
+    initial_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
     result = trainer.fit(model)
+    post_train_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
 
-    # correct result and ok accuracy
     assert result == 1, 'trainer failed'
+    # Check that the model is actually changed post-training
+    assert torch.norm(initial_values - post_train_values) > 0.1
 
     # test model loading
     pretrained_model = load_model_from_checkpoint(logger, trainer.checkpoint_callback.best_model_path)

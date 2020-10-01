@@ -39,8 +39,8 @@ def test_training_step_scalar(tmpdir):
     train_step_out = out.training_step_output_for_epoch_end
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out, torch.Tensor)
-    assert train_step_out.item() == 171
+    assert isinstance(train_step_out['minimize'], torch.Tensor)
+    assert train_step_out['minimize'].item() == 171
 
     # make sure the optimizer closure returns the correct things
     opt_closure_result = trainer.train_loop.training_step_and_backward(
@@ -125,8 +125,8 @@ def test_full_training_loop_scalar(tmpdir):
     train_step_out = out.training_step_output_for_epoch_end
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out, torch.Tensor)
-    assert train_step_out.item() == 171
+    assert isinstance(train_step_out['minimize'], torch.Tensor)
+    assert train_step_out['minimize'].item() == 171
 
     # make sure the optimizer closure returns the correct things
     opt_closure_result = trainer.train_loop.training_step_and_backward(
@@ -169,8 +169,8 @@ def test_train_step_epoch_end_scalar(tmpdir):
     train_step_out = out.training_step_output_for_epoch_end
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out, torch.Tensor)
-    assert train_step_out.item() == 171
+    assert isinstance(train_step_out['minimize'], torch.Tensor)
+    assert train_step_out['minimize'].item() == 171
 
     # make sure the optimizer closure returns the correct things
     opt_closure_result = trainer.train_loop.training_step_and_backward(

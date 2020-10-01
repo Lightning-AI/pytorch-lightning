@@ -292,11 +292,11 @@ We use DDP this way because `ddp_spawn` has a few limitations (due to Python and
 2. Dataloader(num_workers=N), where N is large, bottlenecks training with DDP... ie: it will be VERY slow or won't work at all. This is a PyTorch limitation.
 3. Forces everything to be picklable.
 
-There are cases in which it is not possible to use DDP. Examples are:
+There are cases in which it is NOT possible to use DDP. Examples are:
 
 - Jupyter Notebook, Google COLAB, Kaggle, etc.
 - You have a nested script without a root package
-- Your script needs to invoke `.fit` or `.test` multiple times
+- Your script needs to invoke both `.fit` and `.test`, or one of them multiple times
 
 In these situations you should use `dp` or `ddp_spawn` instead.
 

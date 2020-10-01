@@ -11,20 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import importlib
 import os
+from typing import List, Optional, Sequence, Union
+
+import numpy as np
 import torch
-from typing import Optional, Sequence, List, Union
+from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
+
+from pytorch_lightning import _logger as log
+from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from torch.optim.lr_scheduler import _LRScheduler
-import importlib
-from pytorch_lightning import _logger as log
-import numpy as np
-from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
-
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
@@ -71,6 +73,7 @@ def lr_find(
         num_training: int = 100,
         mode: str = 'exponential',
         early_stop_threshold: float = 4.0,
+        datamodule: Optional[LightningDataModule] = None,
 ):
     r"""
     lr_find enables the user to do a range test of good initial learning rates,
@@ -81,7 +84,7 @@ def lr_find(
 
         train_dataloader: A PyTorch
             DataLoader with training samples. If the model has
-            a predefined train_dataloader method this will be skipped.
+            a predefined train_dataloader method, this will be skipped.
 
         min_lr: minimum learning rate to investigate
 
@@ -97,6 +100,12 @@ def lr_find(
         early_stop_threshold: threshold for stopping the search. If the
             loss at any point is larger than early_stop_threshold*best_loss
             then the search is stopped. To disable, set to None.
+
+        datamodule: An optional `LightningDataModule` which holds the training
+            and validation dataloader(s). Note that the `train_dataloader` and
+            `val_dataloaders` parameters cannot be used at the same time as
+            this parameter, or a `MisconfigurationException` will be raised.
+
 
     Example::
 
@@ -167,7 +176,8 @@ def lr_find(
     # Fit, lr & loss logged in callback
     trainer.fit(model,
                 train_dataloader=train_dataloader,
-                val_dataloaders=val_dataloaders)
+                val_dataloaders=val_dataloaders,
+                datamodule=datamodule)
 
     # Prompt if we stopped early
     if trainer.global_step != num_training:
