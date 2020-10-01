@@ -32,7 +32,7 @@ class LightningDistributed:
             buffer = io.BytesIO(data_tensor.numpy())
             obj = torch.load(buffer)
 
-        print(obj)
+            print(obj)
         return obj
 
     def _encode(self, obj):
