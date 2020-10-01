@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Sequence
+from typing import Sequence, Any
 
 import torch
 
@@ -67,7 +67,12 @@ class MSE(Metric):
         Return:
             A Tensor with the mse loss.
         """
-        return mse(pred, target, self.reduction)
+        return mse(pred, target, return_state=True)
+
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+        sse, n = output['squared_error'], output['n_observations']
+        return sse / n
 
 
 class RMSE(Metric):
@@ -110,7 +115,13 @@ class RMSE(Metric):
         Return:
             A Tensor with the rmse loss.
         """
-        return rmse(pred, target, self.reduction)
+        return rmse(pred, target, reduction='none', return_state=True)
+
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+        """ Squaring needs to happend after ddp sync """
+        sse, n = output['squared_error'], output['n_observations']
+        return torch.sqrt(sse / n)
 
 
 class MAE(Metric):
@@ -153,7 +164,12 @@ class MAE(Metric):
         Return:
             A Tensor with the mae loss.
         """
-        return mae(pred, target, self.reduction)
+        return mae(pred, target, return_state=True)
+
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+        sae, n = output['absolute_error'], output['n_observations']
+        return sae / n
 
 
 class RMSLE(Metric):
@@ -196,7 +212,14 @@ class RMSLE(Metric):
         Return:
             A Tensor with the rmsle loss.
         """
-        return rmsle(pred, target, self.reduction)
+        return mse(torch.log(pred + 1), torch.log(target + 1),
+                   self.reduction, return_state=True)
+
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+        """ Squaring needs to happend after ddp sync """
+        sse, n = output['squared_error'], output['n_observations']
+        return torch.sqrt(sse / n)
 
 
 class PSNR(Metric):
@@ -245,7 +268,38 @@ class PSNR(Metric):
         Return:
             A Tensor with psnr score.
         """
-        return psnr(pred, target, self.data_range, self.base, self.reduction)
+        return psnr(pred, target, self.data_range, self.base, self.reduction, return_state=True)
+
+    def aggregate(self, *tensors: torch.Tensor) -> torch.Tensor:
+        """ Special aggregation function as the data range needs to be correctly synced """
+        if len(tensors) == 1:
+            tensors = tensors[0]
+            output = {'data_range': torch.stack([t for t in tensors['data_range']]).max()}
+            output.update({k: torch.stack([t for t in tensors[k]]).sum(0) for k in tensors.keys() if k != 'data_range'})
+            return output
+
+        output = {'data_range': torch.stack([tensor['data_range'] for tensor in tensors]).max()}
+        output.update({k: torch.stack([tensor[k] for tensor in tensors]).sum(0) for k in tensors[0].keys() if k != 'data_range'})
+        return output
+
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+        """
+        Compute final value based on the synced data_range, sum of squared errors
+        and number of samples.
+
+        Args:
+            data: input to forward method
+            output: output from the `aggregate` hook
+
+        Returns:
+            final metric value
+
+        """
+        sse, n, data_range = output['sum_squared_error'], output['n_obs'], output['data_range']
+        psnr_base_e = 2 * torch.log(data_range) - torch.log(sse / n)
+        psnr = psnr_base_e * (10 / torch.log(torch.tensor(self.base)))
+        return psnr
 
 
 class SSIM(Metric):
