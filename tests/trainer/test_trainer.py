@@ -981,39 +981,6 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
     assert trainer.num_sanity_val_steps == float('inf')
 
 
-@pytest.mark.parametrize(['limit_val_batches', 'expected'], [
-    pytest.param(0, 0),
-    pytest.param(5, 7),
-])
-def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches, expected):
-    """
-    Test val_progress_bar total with "num_sanity_val_steps" Trainer argument.
-    """
-    class CustomCallback(Callback):
-        def __init__(self):
-            self.val_progress_bar_total = 0
-
-        def on_validation_epoch_end(self, trainer, pl_module):
-            self.val_progress_bar_total += trainer.progress_bar_callback.val_progress_bar.total
-
-    model = EvalModelTemplate()
-    cb = CustomCallback()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        num_sanity_val_steps=2,
-        limit_train_batches=0,
-        limit_val_batches=limit_val_batches,
-        callbacks=[cb],
-        logger=False,
-        checkpoint_callback=False,
-        early_stop_callback=False,
-    )
-    trainer.fit(model)
-    assert cb.val_progress_bar_total == expected
-
-
 @pytest.mark.parametrize("trainer_kwargs,expected", [
     pytest.param(
         dict(distributed_backend=None, gpus=None),
