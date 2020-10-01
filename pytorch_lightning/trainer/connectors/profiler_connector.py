@@ -15,6 +15,7 @@
 from typing import Union
 
 from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler, SimpleProfiler, AdvancedProfiler
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 class ProfilerConnector:
@@ -23,6 +24,11 @@ class ProfilerConnector:
         self.trainer = trainer
 
     def on_trainer_init(self, profiler: Union[BaseProfiler, bool, str]):
+
+        if type(profiler) is bool:
+            rank_zero_warn("Passing a bool value as a `profiler` argument to Trainer is deprecated"
+                           " and will be removed in v0.11.0. Use str ('simple' or 'advanced') instead.",
+                           DeprecationWarning)
         # configure profiler
         if profiler is True or profiler == "simple":
             profiler = SimpleProfiler()
