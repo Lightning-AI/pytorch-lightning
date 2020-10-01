@@ -194,8 +194,12 @@ def test_multilabel_accuracy():
     assert torch.allclose(accuracy(y2, torch.logical_not(y2), class_reduction='none'), torch.tensor([0., 0.]))
     assert torch.allclose(accuracy(y1, torch.logical_not(y1), class_reduction='none'), torch.tensor([0., 0.]))
 
-    with pytest.raises(RuntimeError):
-        accuracy(y2, torch.zeros_like(y2), class_reduction='none')
+    # num_classes does not match extracted number from input we expect a warning
+    with pytest.warns(RuntimeWarning, match=
+                      r'You have set .* number of classes which is'
+                      r' different from predicted (.*) and'
+                      r' target (.*) number of classes'):
+        _ = accuracy(y2, torch.zeros_like(y2), num_classes=3)
 
 
 def test_accuracy():
