@@ -109,5 +109,5 @@ RUN \
     pip --version && \
     conda info && \
     pip list && \
-    python -c "import sys; assert sys.version[:3] == str($PYTHON_VERSION), sys.version" && \
-    python -c "import torch; assert torch.__version__[:3] == str($XLA_VERSION), torch.__version__"
+    python -c "import sys; assert sys.version[:3] == '$PYTHON_VERSION', sys.version" && \
+    python -c "import torch; ver = '$XLA_VERSION' ; ver = dict(nightly='1.7').get(ver, ver) ; assert torch.__version__[:3] == ver, torch.__version__"
