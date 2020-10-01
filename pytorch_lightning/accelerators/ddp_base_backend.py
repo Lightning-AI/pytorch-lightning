@@ -24,6 +24,7 @@ from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.seed import seed_everything
+from pytorch_lightning.distributed.dist import LightningDistributed
 
 try:
     from hydra.core.hydra_config import HydraConfig
@@ -38,6 +39,7 @@ class DDPBase(Accelerator):
 
     def __init__(self, trainer):
         super().__init__(trainer)
+        self.dist = LightningDistributed()
 
     def training_step(self, args):
         if self.trainer.amp_backend == AMPType.NATIVE:
@@ -176,6 +178,9 @@ class DDPBase(Accelerator):
 
         if self.trainer.global_rank == 0:
             return results
+
+    def broadcast(self, obj, src=0):
+        return self.dist.broadcast(obj)
 
     def set_world_ranks(self, process_idx):
         raise NotImplementedError('to create a ddp backend, please implement set_world_ranks')

@@ -108,6 +108,9 @@ class TrainLoop:
         if self.trainer.data_parallel:
             ref_model = model.module
 
+        self.trainer.accelerator_backend.dist.rank = self.trainer.global_rank
+        self.trainer.accelerator_backend.dist.device = ref_model.device
+
         # give model convenience properties
         ref_model.trainer = self.trainer
 
