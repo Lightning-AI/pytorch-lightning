@@ -6,11 +6,13 @@ import cloudpickle
 import pytest
 import torch
 from omegaconf import OmegaConf, Container
+from torch.nn import functional as F
+from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.core.saving import save_hparams_to_yaml, load_hparams_from_yaml
-from pytorch_lightning.utilities import AttributeDict
-from tests.base import EvalModelTemplate
+from pytorch_lightning.utilities import AttributeDict, is_picklable
+from tests.base import EvalModelTemplate, TrialMNIST
 
 
 class SaveHparamsModel(EvalModelTemplate):
@@ -103,16 +105,16 @@ def test_explicit_args_hparams(tmpdir):
     """
 
     # define model
-    class TestModel(EvalModelTemplate):
+    class LocalModel(EvalModelTemplate):
         def __init__(self, test_arg, test_arg2):
             super().__init__()
             self.save_hyperparameters('test_arg', 'test_arg2')
 
-    model = TestModel(test_arg=14, test_arg2=90)
+    model = LocalModel(test_arg=14, test_arg2=90)
 
     # run standard test suite
-    raw_checkpoint_path = _run_standard_hparams_test(tmpdir, model, TestModel)
-    model = TestModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=120)
+    raw_checkpoint_path = _run_standard_hparams_test(tmpdir, model, LocalModel)
+    model = LocalModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=120)
 
     # config specific tests
     assert model.hparams.test_arg2 == 120
@@ -124,16 +126,16 @@ def test_implicit_args_hparams(tmpdir):
     """
 
     # define model
-    class TestModel(EvalModelTemplate):
+    class LocalModel(EvalModelTemplate):
         def __init__(self, test_arg, test_arg2):
             super().__init__()
             self.save_hyperparameters()
 
-    model = TestModel(test_arg=14, test_arg2=90)
+    model = LocalModel(test_arg=14, test_arg2=90)
 
     # run standard test suite
-    raw_checkpoint_path = _run_standard_hparams_test(tmpdir, model, TestModel)
-    model = TestModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=120)
+    raw_checkpoint_path = _run_standard_hparams_test(tmpdir, model, LocalModel)
+    model = LocalModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=120)
 
     # config specific tests
     assert model.hparams.test_arg2 == 120
@@ -145,12 +147,12 @@ def test_explicit_missing_args_hparams(tmpdir):
     """
 
     # define model
-    class TestModel(EvalModelTemplate):
+    class LocalModel(EvalModelTemplate):
         def __init__(self, test_arg, test_arg2):
             super().__init__()
             self.save_hyperparameters('test_arg')
 
-    model = TestModel(test_arg=14, test_arg2=90)
+    model = LocalModel(test_arg=14, test_arg2=90)
 
     # test proper property assignments
     assert model.hparams.test_arg == 14
@@ -166,7 +168,7 @@ def test_explicit_missing_args_hparams(tmpdir):
     assert raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]['test_arg'] == 14
 
     # verify that model loads correctly
-    model = TestModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=123)
+    model = LocalModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=123)
     assert model.hparams.test_arg == 14
     assert 'test_arg2' not in model.hparams  # test_arg2 is not registered in class init
 
@@ -268,6 +270,7 @@ def test_collect_init_arguments(tmpdir, cls):
     # verify that the checkpoint saved the correct values
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_batches=0.5)
     trainer.fit(model)
+
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
 
     raw_checkpoint = torch.load(raw_checkpoint_path)
@@ -275,16 +278,15 @@ def test_collect_init_arguments(tmpdir, cls):
     assert raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]['batch_size'] == 179
 
     # verify that model loads correctly
-    # TODO: uncomment and get it pass
-    # model = cls.load_from_checkpoint(raw_checkpoint_path)
-    # assert model.hparams.batch_size == 179
-    #
-    # if isinstance(model, AggSubClassEvalModel):
-    #     assert isinstance(model.hparams.my_loss, torch.nn.CrossEntropyLoss)
-    #
-    # if isinstance(model, DictConfSubClassEvalModel):
-    #     assert isinstance(model.hparams.dict_conf, Container)
-    #     assert model.hparams.dict_conf == 'anything'
+    model = cls.load_from_checkpoint(raw_checkpoint_path)
+    assert model.hparams.batch_size == 179
+
+    if isinstance(model, AggSubClassEvalModel):
+        assert isinstance(model.hparams.my_loss, torch.nn.CosineEmbeddingLoss)
+
+    if isinstance(model, DictConfSubClassEvalModel):
+        assert isinstance(model.hparams.dict_conf, Container)
+        assert model.hparams.dict_conf['my_param'] == 'anything'
 
     # verify that we can overwrite whatever we want
     model = cls.load_from_checkpoint(raw_checkpoint_path, batch_size=99)
@@ -392,6 +394,7 @@ def test_load_past_checkpoint(tmpdir, past_key):
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
     raw_checkpoint = torch.load(raw_checkpoint_path)
     raw_checkpoint[past_key] = raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
+    raw_checkpoint['hparams_type'] = 'Namespace'
     raw_checkpoint[past_key]['batch_size'] = -17
     del raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
     # save back the checkpoint
@@ -410,6 +413,23 @@ def test_hparams_pickle(tmpdir):
     assert ad == pickle.loads(pkl)
 
 
+class UnpickleableArgsEvalModel(EvalModelTemplate):
+    """ A model that has an attribute that cannot be pickled. """
+
+    def __init__(self, foo='bar', pickle_me=(lambda x: x + 1), **kwargs):
+        super().__init__(**kwargs)
+        assert not is_picklable(pickle_me)
+        self.save_hyperparameters()
+
+
+def test_hparams_pickle_warning(tmpdir):
+    model = UnpickleableArgsEvalModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1)
+    with pytest.warns(UserWarning, match="attribute 'pickle_me' removed from hparams because it cannot be pickled"):
+        trainer.fit(model)
+    assert 'pickle_me' not in model.hparams
+
+
 def test_hparams_save_yaml(tmpdir):
     hparams = dict(batch_size=32, learning_rate=0.001, data_root='./any/path/here',
                    nasted=dict(any_num=123, anystr='abcd'))
@@ -426,3 +446,97 @@ def test_hparams_save_yaml(tmpdir):
 
     save_hparams_to_yaml(path_yaml, OmegaConf.create(hparams))
     assert load_hparams_from_yaml(path_yaml) == hparams
+
+
+class NoArgsSubClassEvalModel(EvalModelTemplate):
+    def __init__(self):
+        super().__init__()
+
+
+class SimpleNoArgsModel(LightningModule):
+    def __init__(self):
+        super().__init__()
+        self.l1 = torch.nn.Linear(28 * 28, 10)
+
+    def forward(self, x):
+        return torch.relu(self.l1(x.view(x.size(0), -1)))
+
+    def training_step(self, batch, batch_nb):
+        x, y = batch
+        loss = F.cross_entropy(self(x), y)
+        return {'loss': loss, 'log': {'train_loss': loss}}
+
+    def test_step(self, batch, batch_nb):
+        x, y = batch
+        loss = F.cross_entropy(self(x), y)
+        return {'loss': loss, 'log': {'train_loss': loss}}
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=0.02)
+
+
+@pytest.mark.parametrize("cls", [
+    SimpleNoArgsModel,
+    NoArgsSubClassEvalModel,
+])
+def test_model_nohparams_train_test(tmpdir, cls):
+    """Test models that do not tae any argument in init."""
+
+    model = cls()
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+    )
+
+    train_loader = DataLoader(TrialMNIST(os.getcwd(), train=True, download=True), batch_size=32)
+    trainer.fit(model, train_loader)
+
+    test_loader = DataLoader(TrialMNIST(os.getcwd(), train=False, download=True), batch_size=32)
+    trainer.test(test_dataloaders=test_loader)
+
+
+def test_model_ignores_non_exist_kwargument(tmpdir):
+    """Test that the model takes only valid class arguments."""
+
+    class LocalModel(EvalModelTemplate):
+        def __init__(self, batch_size=15):
+            super().__init__(batch_size=batch_size)
+            self.save_hyperparameters()
+
+    model = LocalModel()
+    assert model.hparams.batch_size == 15
+
+    # verify that the checkpoint saved the correct values
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer.fit(model)
+
+    # verify that we can overwrite whatever we want
+    raw_checkpoint_path = _raw_checkpoint_path(trainer)
+    model = LocalModel.load_from_checkpoint(raw_checkpoint_path, non_exist_kwarg=99)
+    assert 'non_exist_kwarg' not in model.hparams
+
+
+class SuperClassPositionalArgs(EvalModelTemplate):
+
+    def __init__(self, hparams):
+        super().__init__()
+        self._hparams = None  # pretend EvalModelTemplate did not call self.save_hyperparameters()
+        self.hparams = hparams
+
+
+class SubClassVarArgs(SuperClassPositionalArgs):
+    """ Loading this model should accept hparams and init in the super class """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+def test_args(tmpdir):
+    """ Test for inheritance: super class takes positional arg, subclass takes varargs. """
+    hparams = dict(test=1)
+    model = SubClassVarArgs(hparams)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer.fit(model)
+
+    raw_checkpoint_path = _raw_checkpoint_path(trainer)
+    model = SubClassVarArgs.load_from_checkpoint(raw_checkpoint_path)
+    assert model.hparams == hparams

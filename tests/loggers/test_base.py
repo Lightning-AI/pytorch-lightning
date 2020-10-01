@@ -1,4 +1,5 @@
 import pickle
+from typing import Optional
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -20,6 +21,16 @@ def test_logger_collection():
 
     assert logger.experiment[0] == mock1.experiment
     assert logger.experiment[1] == mock2.experiment
+
+    assert logger.save_dir is None
+
+    logger.update_agg_funcs({'test': np.mean}, np.sum)
+    mock1.update_agg_funcs.assert_called_once_with({'test': np.mean}, np.sum)
+    mock2.update_agg_funcs.assert_called_once_with({'test': np.mean}, np.sum)
+
+    logger.agg_and_log_metrics({'test': 2.0}, 4)
+    mock1.agg_and_log_metrics.assert_called_once_with({'test': 2.0}, 4)
+    mock2.agg_and_log_metrics.assert_called_once_with({'test': 2.0}, 4)
 
     logger.close()
     mock1.close.assert_called_once()
@@ -50,6 +61,14 @@ class CustomLogger(LightningLoggerBase):
         self.finalized_status = status
 
     @property
+    def save_dir(self) -> Optional[str]:
+        """
+        Return the root directory where experiment logs get saved, or `None` if the logger does not
+        save data locally.
+        """
+        return None
+
+    @property
     def name(self):
         return "name"
 
@@ -68,7 +87,7 @@ def test_custom_logger(tmpdir):
         max_epochs=1,
         limit_train_batches=0.05,
         logger=logger,
-        default_root_dir=tmpdir
+        default_root_dir=tmpdir,
     )
     result = trainer.fit(model)
     assert result == 1, "Training failed"
@@ -88,7 +107,7 @@ def test_multiple_loggers(tmpdir):
         max_epochs=1,
         limit_train_batches=0.05,
         logger=[logger1, logger2],
-        default_root_dir=tmpdir
+        default_root_dir=tmpdir,
     )
     result = trainer.fit(model)
     assert result == 1, "Training failed"
@@ -108,7 +127,11 @@ def test_multiple_loggers_pickle(tmpdir):
     logger1 = CustomLogger()
     logger2 = CustomLogger()
 
-    trainer = Trainer(max_epochs=1, logger=[logger1, logger2])
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        logger=[logger1, logger2],
+    )
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0}, 0)

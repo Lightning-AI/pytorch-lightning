@@ -1,40 +1,50 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # This is Conda environment file
 # Usage: `conda env update -f environment.yml`
+
+name:
+    lightning
 
 channels:
     - conda-forge
     - pytorch
 
 dependencies:
-    - python==3.7.6
-    - pip==20.0.2
-    - tqdm>=4.35.0
+    - python>=3.6
+    - pip
     - numpy>=1.16.4
     - pytorch>=1.3
-    - tensorboard>=1.14
     - future>=0.17.1
-    - pyyaml>=3.13
+    - PyYAML>=5.1
+    - tqdm>=4.41.0
+    - fsspec>=0.8.0
+    #- tensorboard>=2.2.0
 
-    # For dev and testing
-    - tox
-    - coverage
-    - codecov
-    - pytest>=3.0.5
-    - pytest-cov
-    - pytest-flake8
-    - flake8
-    - autopep8
-    - check-manifest
-    - twine==1.13.0
-    - pillow<7.0.0
-    - scipy>=0.13.3
+    # Optional
+    - nvidia-apex
     - scikit-learn>=0.20.0
-
+    - matplotlib>=3.1.1
+    - omegaconf>=2.0.0
+    - torchtext>=0.3.1
 
     - pip:
         - test-tube>=0.7.5
         - mlflow>=1.0.0
-        - comet_ml>=1.0.56
+        - comet_ml>=3.1.12
         - wandb>=0.8.21
-        - neptune-client>=0.4.4
-        - trains>=0.13.3
+        - neptune-client>=0.4.109
+        - horovod>=0.19.2
+        - onnxruntime>=1.3.0

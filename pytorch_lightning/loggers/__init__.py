@@ -1,12 +1,14 @@
 from os import environ
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, LoggerCollection
+from pytorch_lightning.loggers.csv_logs import CSVLogger
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 
 __all__ = [
     'LightningLoggerBase',
     'LoggerCollection',
     'TensorBoardLogger',
+    'CSVLogger',
 ]
 
 try:
@@ -46,10 +48,3 @@ except ImportError:  # pragma: no-cover
     pass  # pragma: no-cover
 else:
     __all__.append('WandbLogger')
-
-try:
-    from pytorch_lightning.loggers.trains import TrainsLogger
-except ImportError:  # pragma: no-cover
-    pass  # pragma: no-cover
-else:
-    __all__.append('TrainsLogger')

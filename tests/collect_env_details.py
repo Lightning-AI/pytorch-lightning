@@ -10,7 +10,6 @@ import re
 import sys
 
 import numpy
-import tensorboard
 import torch
 import tqdm
 
@@ -61,7 +60,6 @@ def info_packages():
         "pyTorch_version": torch.__version__,
         'pyTorch_debug': torch.version.debug,
         'pytorch-lightning': pytorch_lightning.__version__,
-        'tensorboard': tensorboard.__version__,
         'tqdm': tqdm.__version__,
     }
 

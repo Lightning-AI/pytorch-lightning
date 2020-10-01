@@ -1,12 +1,30 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import argparse
 import functools
 import operator
 from abc import ABC, abstractmethod
 from argparse import Namespace
-from typing import Union, Optional, Dict, Iterable, Any, Callable, List, Sequence, Mapping, Tuple, MutableMapping
+from functools import wraps
+from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
+
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.utilities import rank_zero_only
 
 
 class LightningLoggerBase(ABC):
@@ -32,7 +50,6 @@ class LightningLoggerBase(ABC):
             agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
             agg_default_func: Callable[[Sequence[float]], float] = np.mean
     ):
-        self._rank = 0
         self._prev_step: int = -1
         self._metrics_to_agg: List[Dict[str, float]] = []
         self._agg_key_funcs = agg_key_funcs if agg_key_funcs else {}
@@ -218,6 +235,16 @@ class LightningLoggerBase(ABC):
             params: :class:`~argparse.Namespace` containing the hyperparameters
         """
 
+    def log_graph(self, model: LightningModule, input_array=None) -> None:
+        """
+        Record model graph
+
+        Args:
+            model: lightning model
+            input_array: input passes to `model.forward`
+        """
+        pass
+
     def save(self) -> None:
         """Save log data."""
         self._finalize_agg_metrics()
@@ -234,6 +261,14 @@ class LightningLoggerBase(ABC):
     def close(self) -> None:
         """Do any cleanup that is necessary to close an experiment."""
         self.save()
+
+    @property
+    def save_dir(self) -> Optional[str]:
+        """
+        Return the root directory where experiment logs get saved, or `None` if the logger does not
+        save data locally.
+        """
+        return None
 
     @property
     @abstractmethod
@@ -262,24 +297,50 @@ class LoggerCollection(LightningLoggerBase):
     def __getitem__(self, index: int) -> LightningLoggerBase:
         return [logger for logger in self._logger_iterable][index]
 
+    def update_agg_funcs(
+            self,
+            agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+            agg_default_func: Callable[[Sequence[float]], float] = np.mean
+    ):
+        for logger in self._logger_iterable:
+            logger.update_agg_funcs(agg_key_funcs, agg_default_func)
+
     @property
     def experiment(self) -> List[Any]:
         return [logger.experiment for logger in self._logger_iterable]
 
+    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+        for logger in self._logger_iterable:
+            logger.agg_and_log_metrics(metrics, step)
+
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-        [logger.log_metrics(metrics, step) for logger in self._logger_iterable]
+        for logger in self._logger_iterable:
+            logger.log_metrics(metrics, step)
 
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
-        [logger.log_hyperparams(params) for logger in self._logger_iterable]
+        for logger in self._logger_iterable:
+            logger.log_hyperparams(params)
+
+    def log_graph(self, model: LightningModule, input_array=None) -> None:
+        for logger in self._logger_iterable:
+            logger.log_graph(model, input_array)
 
     def save(self) -> None:
-        [logger.save() for logger in self._logger_iterable]
+        for logger in self._logger_iterable:
+            logger.save()
 
     def finalize(self, status: str) -> None:
-        [logger.finalize(status) for logger in self._logger_iterable]
+        for logger in self._logger_iterable:
+            logger.finalize(status)
 
     def close(self) -> None:
-        [logger.close() for logger in self._logger_iterable]
+        for logger in self._logger_iterable:
+            logger.close()
+
+    @property
+    def save_dir(self) -> Optional[str]:
+        # Checkpoints should be saved to default / chosen location when using multiple loggers
+        return None
 
     @property
     def name(self) -> str:
@@ -377,3 +438,14 @@ def merge_dicts(
             d_out[k] = (fn or default_func)(values_to_agg)
 
     return d_out
+
+
+def rank_zero_experiment(fn: Callable) -> Callable:
+    """ Returns the real experiment on rank 0 and otherwise the DummyExperiment. """
+    @wraps(fn)
+    def experiment(self):
+        @rank_zero_only
+        def get_experiment():
+            return fn(self)
+        return get_experiment() or DummyExperiment()
+    return experiment

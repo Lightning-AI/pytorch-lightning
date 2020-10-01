@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from abc import ABC
 from typing import List, Tuple
 
@@ -111,15 +125,25 @@ class TrainerOptimizersMixin(ABC):
     def reinit_scheduler_properties(self, optimizers: list, schedulers: list):
         # Reinitialize optimizer.step properties added by schedulers
         for scheduler in schedulers:
+            scheduler = scheduler['scheduler']
+
             for optimizer in optimizers:
-                scheduler = scheduler['scheduler']
                 # check that we dont mix users optimizers and schedulers
                 if scheduler.optimizer == optimizer:
                     # Find the mro belonging to the base lr scheduler class
                     for i, mro in enumerate(scheduler.__class__.__mro__):
-                        if mro == optim.lr_scheduler._LRScheduler:
+                        if (
+                            mro == optim.lr_scheduler._LRScheduler
+                            or mro == optim.lr_scheduler.ReduceLROnPlateau
+                        ):
                             idx = i
-                    scheduler.__class__.__mro__[idx].__init__(scheduler, optimizer)
+                            state = scheduler.state_dict()
+                        else:
+                            state = None
+
+                scheduler.__class__.__mro__[idx].__init__(scheduler, optimizer)
+                if state is not None:
+                    scheduler.load_state_dict(state)
 
 
 class _MockOptimizer(Optimizer):

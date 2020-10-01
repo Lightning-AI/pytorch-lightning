@@ -94,9 +94,11 @@ extensions = [
     'recommonmark',
     'sphinx.ext.autosectionlabel',
     # 'm2r',
-    'nbsphinx',
+    # 'nbsphinx',  # it seems some sphinx issue
     'sphinx_autodoc_typehints',
+    'sphinx_copybutton',
     'sphinx_paramlinks',
+    'sphinx_togglebutton',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -138,10 +140,9 @@ language = None
 exclude_patterns = [
     'api/pytorch_lightning.rst',
     'api/pl_examples.*',
+    'api/pytorch_lightning.accelerators.*',
     'api/modules.rst',
-
-    # deprecated/renamed:
-    'api/pytorch_lightning.logging.*',  # TODO: remove in v0.9.0
+    'PULL_REQUEST_TEMPLATE.md',
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
@@ -303,12 +304,12 @@ def setup(app):
 
 
 # copy all notebooks to local folder
-path_nbs = os.path.join(PATH_HERE, 'notebooks')
-if not os.path.isdir(path_nbs):
-    os.mkdir(path_nbs)
-for path_ipynb in glob.glob(os.path.join(PATH_ROOT, 'notebooks', '*.ipynb')):
-    path_ipynb2 = os.path.join(path_nbs, os.path.basename(path_ipynb))
-    shutil.copy(path_ipynb, path_ipynb2)
+# path_nbs = os.path.join(PATH_HERE, 'notebooks')
+# if not os.path.isdir(path_nbs):
+#     os.mkdir(path_nbs)
+# for path_ipynb in glob.glob(os.path.join(PATH_ROOT, 'notebooks', '*.ipynb')):
+#     path_ipynb2 = os.path.join(path_nbs, os.path.basename(path_ipynb))
+#     shutil.copy(path_ipynb, path_ipynb2)
 
 
 # Ignoring Third-party packages
@@ -329,6 +330,7 @@ if SPHINX_MOCK_REQUIREMENTS:
     # mock also base packages when we are on RTD since we don't install them there
     MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements/base.txt'))
     MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements/extra.txt'))
+    MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements/loggers.txt'))
 
 MOCK_MANUAL_PACKAGES = [
     'torchvision',
@@ -416,7 +418,11 @@ import importlib
 import os
 import torch
 
-TORCHVISION_AVAILABLE = importlib.util.find_spec('torchvision')
+from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
+APEX_AVAILABLE = importlib.util.find_spec("apex") is not None
+XLA_AVAILABLE = importlib.util.find_spec("torch_xla") is not None
+TORCHVISION_AVAILABLE = importlib.util.find_spec("torchvision") is not None
+
 
 """
 coverage_skip_undoc_in_source = True

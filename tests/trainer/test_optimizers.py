@@ -17,7 +17,7 @@ def test_optimizer_with_scheduling(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_val_batches=0.1,
-        limit_train_batches=0.2
+        limit_train_batches=0.2,
     )
     results = trainer.fit(model)
     assert results == 1
@@ -48,7 +48,7 @@ def test_multi_optimizer_with_scheduling(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_val_batches=0.1,
-        limit_train_batches=0.2
+        limit_train_batches=0.2,
     )
     results = trainer.fit(model)
     assert results == 1
@@ -83,7 +83,7 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_val_batches=0.1,
-        limit_train_batches=0.2
+        limit_train_batches=0.2,
     )
     results = trainer.fit(model)
     assert results == 1
@@ -122,7 +122,7 @@ def test_reduce_lr_on_plateau_scheduling(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_val_batches=0.1,
-        limit_train_batches=0.2
+        limit_train_batches=0.2,
     )
     results = trainer.fit(model)
     assert results == 1
@@ -195,7 +195,7 @@ def test_none_optimizer_warning():
     trainer = Trainer()
 
     model = EvalModelTemplate()
-    model.configure_optimizers = lambda: None
+    model.configure_optimizers = model.configure_optimizers__empty
 
     with pytest.warns(UserWarning, match='will run with no optimizer'):
         _, __, ___ = trainer.init_optimizers(model)
@@ -212,7 +212,7 @@ def test_none_optimizer(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_val_batches=0.1,
-        limit_train_batches=0.2
+        limit_train_batches=0.2,
     )
     result = trainer.fit(model)
 
@@ -231,9 +231,45 @@ def test_configure_optimizer_from_dict(tmpdir):
             return config
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = CurrentModel(hparams)
+    model = CurrentModel(**hparams)
 
     # fit model
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+    )
     result = trainer.fit(model)
     assert result == 1
+
+
+def test_configure_optimizers_with_frequency(tmpdir):
+    """
+    Test that multiple optimizers work when corresponding frequency is set.
+    """
+    model = EvalModelTemplate()
+    model.configure_optimizers = model.configure_optimizers__multiple_optimizers_frequency
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1
+    )
+    result = trainer.fit(model)
+    assert result
+
+
+def test_init_optimizers_during_testing(tmpdir):
+    """
+    Test that optimizers is an empty list during testing.
+    """
+    model = EvalModelTemplate()
+    model.configure_optimizers = model.configure_optimizers__multiple_schedulers
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_test_batches=10
+    )
+    trainer.test(model, ckpt_path=None)
+
+    assert len(trainer.lr_schedulers) == 0
+    assert len(trainer.optimizers) == 0
+    assert len(trainer.optimizer_frequencies) == 0

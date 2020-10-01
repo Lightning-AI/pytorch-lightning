@@ -1,8 +1,30 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import importlib
 from abc import ABC
-from collections import Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from copy import copy
 from typing import Any, Callable, Union
 
 import torch
+
+TORCHTEXT_AVAILABLE = importlib.util.find_spec("torchtext") is not None
+if TORCHTEXT_AVAILABLE:
+    from torchtext.data import Batch
+else:
+    Batch = type(None)
 
 
 def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable, *args, **kwargs) -> Any:
@@ -84,6 +106,20 @@ def move_data_to_device(batch: Any, device: torch.device):
         - :meth:`torch.Tensor.to`
         - :class:`torch.device`
     """
-    def to(data):
-        return data.to(device, non_blocking=True)
-    return apply_to_collection(batch, dtype=TransferableDataType, function=to)
+
+    def batch_to(data):
+        # try to move torchtext data first
+        if TORCHTEXT_AVAILABLE and isinstance(data, Batch):
+
+            # Shallow copy because each Batch has a reference to Dataset which contains all examples
+            device_data = copy(data)
+            for field in data.fields:
+                device_field = move_data_to_device(getattr(data, field), device)
+                setattr(device_data, field, device_field)
+            return device_data
+
+        kwargs = dict(non_blocking=True) if isinstance(data, torch.Tensor) else {}
+        return data.to(device, **kwargs)
+
+    dtype = (TransferableDataType, Batch) if TORCHTEXT_AVAILABLE else TransferableDataType
+    return apply_to_collection(batch, dtype=dtype, function=batch_to)

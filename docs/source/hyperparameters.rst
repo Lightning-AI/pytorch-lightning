@@ -7,7 +7,6 @@
     import sys
     sys.argv = ['foo']
 
-
 Hyperparameters
 ---------------
 Lightning has utilities to interact seamlessly with the command line ArgumentParser
@@ -41,6 +40,8 @@ It is best practice to layer your arguments in three sections.
 1.  Trainer args (gpus, num_nodes, etc...)
 2.  Model specific arguments (layer_dim, num_layers, learning_rate, etc...)
 3.  Program arguments (data_path, cluster_email, etc...)
+
+|
 
 We can do this as follows. First, in your LightningModule, define the arguments
 specific to that module. Remember that data splits or data paths may also be specific to
@@ -126,7 +127,7 @@ makes those values available via `self.hparams`.
             self.save_hyperparameters()
 
             # equivalent
-            self.save_hyperparameters(['layer_1_dim', 'learning_rate'])
+            self.save_hyperparameters('layer_1_dim', 'learning_rate')
 
             # this now works
             self.hparams.layer_1_dim
@@ -145,7 +146,7 @@ In that case, choose only a few
             self.loss_fx = loss_fx
 
             # call this to save (layer_1_dim=128) to the checkpoint
-            self.save_hyperparameters(['layer_1_dim'])
+            self.save_hyperparameters('layer_1_dim')
 
     # to load specify the other args
     model = LitMNIST.load_from_checkpoint(PATH, loss_fx=torch.nn.SomeOtherLoss, generator_network=MyGenerator())
@@ -300,3 +301,4 @@ Here are some useful ones:
 
 - `Hydra <https://medium.com/pytorch/hydra-a-fresh-look-at-configuration-for-machine-learning-projects-50583186b710>`_
 - `Optuna <https://github.com/optuna/optuna/blob/master/examples/pytorch_lightning_simple.py>`_
+- `Ray Tune <https://docs.ray.io/en/master/tune/tutorials/tune-pytorch-lightning.html>`_

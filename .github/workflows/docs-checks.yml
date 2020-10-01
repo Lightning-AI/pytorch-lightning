@@ -1,0 +1,111 @@
+name: "Docs check"
+# https://github.com/marketplace/actions/sphinx-build
+
+on:  # Trigger the workflow on push or pull request, but only for the master branch
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  check-docs:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ammaraskar/sphinx-action@master
+      with:
+        # git is required to clone the docs theme
+        # before custom requirement are resolved https://github.com/ammaraskar/sphinx-action/issues/16
+        pre-build-command: "apt-get update -y && apt-get install -y git && pip install -r requirements/docs.txt"
+        docs-folder: "docs/"
+        repo-token: "${{ secrets.GITHUB_TOKEN }}"
+
+  test-docs:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      # Note: This uses an internal pip API and may not always work
+      # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
+      - name: Cache pip
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/base.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        env:
+          HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
+          HOROVOD_WITHOUT_MXNET: 1
+          HOROVOD_WITHOUT_TENSORFLOW: 1
+        run: |
+          # python -m pip install --upgrade --user pip
+          pip install --requirement requirements/base.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
+          pip install --requirement requirements/extra.txt
+          pip install --requirement requirements/docs.txt
+          python --version
+          pip --version
+          pip list
+        shell: bash
+
+      - name: Test Documentation
+        env:
+          SPHINX_MOCK_REQUIREMENTS: 0
+        run: |
+          # First run the same pipeline as Read-The-Docs
+          apt-get update && sudo apt-get install -y cmake
+          cd docs
+          make doctest
+          make coverage
+
+  make-docs:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      # Note: This uses an internal pip API and may not always work
+      # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
+      - name: Cache pip
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/base.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          pip install --requirement requirements/base.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
+          pip install --requirement requirements/docs.txt
+          # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
+          sudo apt-get update && sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
+          python --version
+          pip --version
+          pip list
+        shell: bash
+
+      - name: Make Documentation
+        run: |
+          # First run the same pipeline as Read-The-Docs
+          cd docs
+          make clean
+          make html --debug --jobs 2 SPHINXOPTS="-W"
+
+      - name: Upload built docs
+        uses: actions/upload-artifact@v2
+        with:
+          name: docs-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}
+          path: docs/build/html/
+        # Use always() to always run this step to publish test results when there are test failures
+        if: success()
+
