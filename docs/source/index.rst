@@ -141,3 +141,4 @@ Indices and tables
    api/pytorch_lightning.utilities
    api/pytorch_lightning.tuner
    api/pytorch_lightning.plugins
+   api/pytorch_lightning.distributed
