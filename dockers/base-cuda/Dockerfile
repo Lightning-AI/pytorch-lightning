@@ -109,5 +109,5 @@ RUN \
     pip --version && \
     conda info && \
     pip list && \
-    python -c "import sys; assert sys.version[:3] == str($PYTHON_VERSION), sys.version" && \
-    python -c "import torch; assert torch.__version__[:3] == str($PYTORCH_VERSION), torch.__version__"
+    python -c "import sys; assert sys.version[:3] == '$PYTHON_VERSION', sys.version" && \
+    python -c "import torch; assert torch.__version__[:3] == '$PYTORCH_VERSION', torch.__version__"

@@ -31,7 +31,7 @@ RUN \
         rm -rf pytorch-lightning ; \
     else \
         rm -rf pytorch-lightning ; \
-        pip install git+https://github.com/PyTorchLightning/pytorch-lightning.git@${LIGHTNING_VERSION} --upgrade-strategy only-if-needed ; \
+        pip install https://github.com/PyTorchLightning/pytorch-lightning/archive/${LIGHTNING_VERSION}.zip --upgrade-strategy only-if-needed ; \
     fi
 
 RUN python --version && \
