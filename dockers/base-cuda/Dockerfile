@@ -70,18 +70,17 @@ ENV CONDA_ENV=lightning
 COPY environment.yml environment.yml
 
 # conda init
-RUN conda create -y --name $CONDA_ENV "python=$PYTHON_VERSION" "pytorch=$PYTORCH_VERSION" torchvision "cudatoolkit=$CUDA_VERSION" --channel=$PYTORCH_CHANNEL && \
+RUN conda create -y --name $CONDA_ENV "cudatoolkit=$CUDA_VERSION" && \
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages
-    # replace channel to nigtly if neede, fix PT version and remove Horovod as it will be installe later
-    python -c "fname = 'environment.yml' ; req = open(fname).read().replace('pytorch', '${PYTORCH_CHANNEL}', 1) ; open(fname, 'w').writelines(req)" && \
-    python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'python>=[\d\.]+', 'python=${PYTHON_VERSION}', open(fname).read()) ; open(fname, 'w').writelines(req)" && \
-    python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'torch>=[\d\.]+', 'torch=${PYTORCH_VERSION}', open(fname).read()) ; open(fname, 'w').writelines(req)" && \
-    python -c "fname = 'environment.yml' ; req = open(fname).read() ; open(fname, 'w').writelines([l for l in req if 'horovod' not in l])" && \
+    # replace channel to nigtly if needed, fix PT version and remove Horovod as it will be installe later
+    python -c "fname = 'environment.yml' ; req = open(fname).read().replace('pytorch', '${PYTORCH_CHANNEL}', 1) ; open(fname, 'w').write(req)" && \
+    python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'python[>=]+[\d\.]+', 'python=${PYTHON_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
+    python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'torch[>=]+[\d\.]+', 'torch=${PYTORCH_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
+    python -c "fname = 'environment.yml' ; req = open(fname).readlines() ; open(fname, 'w').writelines([ln for ln in req if 'horovod' not in ln])" && \
     cat environment.yml && \
     conda env update --file environment.yml && \
     conda clean -ya && \
-    # conda config --set auto_activate_base true && \
     rm environment.yml
 
 ENV PATH /root/miniconda3/envs/${CONDA_ENV}/bin:$PATH
@@ -91,7 +90,6 @@ ENV CONDA_DEFAULT_ENV=${CONDA_ENV}
 
 COPY ./requirements/extra.txt requirements-extra.txt
 COPY ./requirements/test.txt requirements-tests.txt
-COPY ./requirements/examples.txt requirements-examples.txt
 
 RUN \
     # Disable cache
@@ -104,7 +102,6 @@ RUN \
     # Install all requirements
     MAKEFLAGS="-j$(nproc)" ; pip install -r requirements-extra.txt && \
     pip install -r requirements-tests.txt --upgrade-strategy only-if-needed && \
-    pip install -r requirements-examples.txt --upgrade-strategy only-if-needed && \
     rm requirements*
 
 RUN \
