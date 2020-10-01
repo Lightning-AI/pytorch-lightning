@@ -181,13 +181,8 @@ class TrainLoop:
         if self.trainer.global_rank == 0:
             self.trainer.profiler.describe()
 
-        if self.trainer.global_rank == 0:
-            for proc in self.trainer.interactive_ddp_procs:
-                subprocess.Popen.kill(proc)
-
-        # clean up dist group
-        if self.trainer.use_ddp or self.trainer.use_ddp2:
-            torch_distrib.destroy_process_group()
+        # give accelerators a chance to finish
+        self.trainer.accelerator_backend.on_train_end()
 
         # clear mem
         if self.trainer.on_gpu:
