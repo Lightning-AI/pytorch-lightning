@@ -7,6 +7,7 @@ import torch
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.parsing import AttributeDict
 
 try:
     from apex import amp
@@ -21,6 +22,7 @@ class Accelerator(object):
 
     def __init__(self, trainer):
         self.trainer = trainer
+        self.dist = AttributeDict(rank=0, device=None)
 
     def setup(self, model):
         pass

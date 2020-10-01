@@ -16,14 +16,12 @@ import torch
 from pytorch_lightning.accelerators.base_backend import Accelerator
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.parsing import AttributeDict
 
 
 class CPUBackend(Accelerator):
 
     def __init__(self, trainer):
         super().__init__(trainer)
-        self.dist = AttributeDict(rank=0, device=None)
 
     def setup(self, model):
         # run through amp wrapper
