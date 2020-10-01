@@ -3,6 +3,7 @@ from typing import Any
 import pickle
 import numpy as np
 import torch.distributed as torch_distrib
+import io
 
 
 class LightningDistributed:
@@ -11,18 +12,27 @@ class LightningDistributed:
         self.rank = rank
         self.device = device
 
-    def broadcast(self, x: Any):
-        is_tensor = isinstance(x, torch.Tensor)
-        if not is_tensor:
-            x = self._encode(x)
+    def broadcast(self, obj: Any):
+        if self.rank == 0:
+            # Emit data
+            buffer = io.BytesIO()
+            torch.save(obj, buffer)
+            data = bytearray(buffer.getbuffer())
+            length_tensor = torch.LongTensor([len(data)])
+            length_tensor = torch_distrib.broadcast(length_tensor, src=0)
+            data_tensor = torch.ByteTensor(data)
+            data_tensor = torch_distrib.broadcast(data_tensor, src=0)
+        else:
+            # Fetch from the source
+            length_tensor = torch.LongTensor([0])
+            length_tensor = torch_distrib.broadcast(length_tensor, src=0)
+            data_tensor = torch.empty([length_tensor.item()], dtype=torch.uint8)
+            data_tensor = torch_distrib.broadcast(data_tensor, src=0)
+            buffer = io.BytesIO(data_tensor.numpy())
+            obj = torch.load(buffer)
 
-        if self.rank > 0:
-            x = self._encode('s')
-        torch_distrib.broadcast(x, src=self.rank)
-
-        if not is_tensor:
-            x = self._decode(x)
-        return x
+        print(obj)
+        return obj
 
     def _encode(self, obj):
         padding = torch.zeros(100, device=self.device).long()
