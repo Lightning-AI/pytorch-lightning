@@ -101,8 +101,6 @@ class DDPBackend(Accelerator):
         # when the trainer script was called the device has already been scoped by the time
         # code reaches this point. so, to call the scripts, we need to leave cuda visible devices alone
         # but forward the GPUs selected via environment variables
-        # set the flag for ddp scripts
-
         os.environ['PL_TRAINER_GPUS'] = ','.join([str(i) for i in self.trainer.data_parallel_device_ids])
         os.environ['PL_IN_DDP_SUBPROCESS'] = '1'
 
@@ -264,6 +262,8 @@ class DDPBackend(Accelerator):
 
     def model_to_device(self, model, process_idx, is_master):
         gpu_idx = int(os.environ.get('PL_DDP_PID', process_idx))
+
+        gpu_idx = int(os.environ.get('PL_DDP_PID', gpu_idx))
 
         self.trainer.root_gpu = gpu_idx
         torch.cuda.set_device(self.trainer.root_gpu)

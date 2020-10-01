@@ -87,8 +87,10 @@ def get_num_classes(
     if num_classes is None:
         num_classes = num_all_classes
     elif num_classes != num_all_classes:
-        rank_zero_warn(f'You have set {num_classes} number of classes if different from'
-                       f' predicted ({num_pred_classes}) and target ({num_target_classes}) number of classes')
+        rank_zero_warn(f'You have set {num_classes} number of classes which is'
+                       f' different from predicted ({num_pred_classes}) and'
+                       f' target ({num_target_classes}) number of classes',
+                       RuntimeWarning)
     return num_classes
 
 
@@ -266,9 +268,6 @@ def accuracy(
         tensor(0.7500)
 
     """
-    if not (target > 0).any() and num_classes is None:
-        raise RuntimeError("cannot infer num_classes when target is all zero")
-
     tps, fps, tns, fns, sups = stat_scores_multiple_classes(
         pred=pred, target=target, num_classes=num_classes)
 

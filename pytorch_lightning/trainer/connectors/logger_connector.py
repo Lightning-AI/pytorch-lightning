@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import torch
 from pytorch_lightning.core import memory
 from pytorch_lightning.loggers import TensorBoardLogger, LoggerCollection
@@ -42,8 +43,6 @@ class LoggerConnector:
     def configure_logger(self, logger):
         if logger is True:
             version = os.environ.get('PL_EXP_VERSION', self.trainer.slurm_job_id)
-            if version is not None:
-                version = f'version_{version}'
 
             # default logger
             self.trainer.logger = TensorBoardLogger(
@@ -161,6 +160,9 @@ class LoggerConnector:
 
             # track the final results for the dataloader
             self.eval_loop_results.append(deepcopy(self.callback_metrics))
+
+            # actually log
+            self.log_metrics(logger_metrics, {}, step=self.trainer.global_step)
 
     def __rename_keys_by_dataloader_idx(self, metrics, dataloader_idx, num_loaders):
         if num_loaders == 1:

@@ -5,6 +5,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+from tests.base.datamodules import TrialMNISTDataModule
 
 
 def test_error_on_more_than_1_optimizer(tmpdir):
@@ -147,6 +148,30 @@ def test_call_to_trainer_method(tmpdir):
     after_lr = lrfinder.suggestion()
     model.learning_rate = after_lr
     trainer.tune(model)
+
+    assert before_lr != after_lr, \
+        'Learning rate was not altered after running learning rate finder'
+
+
+def test_datamodule_parameter(tmpdir):
+    """ Test that the datamodule parameter works """
+
+    # trial datamodule
+    dm = TrialMNISTDataModule(tmpdir)
+
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = EvalModelTemplate(**hparams)
+
+    before_lr = hparams.get('learning_rate')
+    # logger file to get meta
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+    )
+
+    lrfinder = trainer.tuner.lr_find(model, datamodule=dm)
+    after_lr = lrfinder.suggestion()
+    model.learning_rate = after_lr
 
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
