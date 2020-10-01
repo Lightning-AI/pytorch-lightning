@@ -124,7 +124,8 @@ class Result(Dict):
 
         # sync across ddp
         if sync_dist and isinstance(value, (torch.Tensor, numbers.Number)):
-            value = sync_ddp_if_available(value, group=sync_dist_group, reduce_op=sync_dist_op)
+            value = sync_horovod_if_available(value, reduce_op=sync_dist_op)
+            # value = sync_ddp_if_available(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
         if 'meta' not in self:
             self.__setitem__('meta', {})
