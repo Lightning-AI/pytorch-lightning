@@ -421,7 +421,7 @@ class ModelCheckpoint(Callback):
         if self.monitor is None and 'checkpoint_on' in metrics:
             self.monitor = 'checkpoint_on'
 
-        if self.save_top_k is None:
+        if self.save_top_k is None and self.monitor is not None:
             self.save_top_k = 1
 
     def _validate_monitor_key(self, trainer):
@@ -486,15 +486,7 @@ class ModelCheckpoint(Callback):
         if not isinstance(current, torch.Tensor) and current is not None:
             current = torch.tensor(current, device=pl_module.device)
 
-        if current is None:
-            m = f"Can save best model only with {self.monitor} available, skipping."
-            if self.monitor == 'checkpoint_on':
-                m = (
-                    'No checkpoint_on found. HINT: Did you set it in '
-                    'EvalResult(checkpoint_on=tensor) or TrainResult(checkpoint_on=tensor)?'
-                )
-            rank_zero_warn(m, RuntimeWarning)
-        elif self.check_monitor_top_k(current):
+        if self.check_monitor_top_k(current):
             self._update_best_and_save(filepath, current, epoch, trainer, pl_module)
         elif self.verbose:
             rank_zero_info(
