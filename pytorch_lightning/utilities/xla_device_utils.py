@@ -1,7 +1,8 @@
 import functools
 import importlib
-import torch
 from multiprocessing import Process, Queue
+
+import torch
 
 TORCHXLA_AVAILABLE = importlib.util.find_spec("torch_xla") is not None
 if TORCHXLA_AVAILABLE:
@@ -15,6 +16,7 @@ def inner_f(queue, func, **kwargs):  # pragma: no cover
         queue.put(func(**kwargs))
     except Exception as _e:
         import traceback
+
         traceback.print_exc()
         queue.put(None)
 
