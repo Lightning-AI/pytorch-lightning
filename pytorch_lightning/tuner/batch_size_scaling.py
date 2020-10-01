@@ -13,7 +13,7 @@
 # limitations under the License
 import os
 
-from pytorch_lightning.accelerators.base_backend import DeviceType
+from pytorch_lightning.accelerators.types import DeviceType
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_getattr, lightning_setattr

@@ -26,7 +26,7 @@ import subprocess
 import time
 from typing import List, Tuple, Dict
 
-from pytorch_lightning.accelerators.base_backend import DeviceType
+from pytorch_lightning.accelerators.types import DeviceType
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException

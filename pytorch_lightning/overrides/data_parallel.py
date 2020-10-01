@@ -23,7 +23,7 @@ from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 from torch.nn.parallel._functions import Gather
 
-from pytorch_lightning.accelerators.base_backend import BackendType
+from pytorch_lightning.accelerators.types import BackendType
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities.warning_utils import WarningCache
 

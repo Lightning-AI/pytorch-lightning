@@ -19,7 +19,7 @@ import numpy as np
 import torch
 import torch.distributed as torch_distrib
 
-from pytorch_lightning.accelerators.base_backend import BackendType, DeviceType
+from pytorch_lightning.accelerators.types import BackendType, DeviceType
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary

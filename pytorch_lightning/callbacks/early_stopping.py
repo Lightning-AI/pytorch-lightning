@@ -23,7 +23,7 @@ import numpy as np
 import torch
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.base_backend import DeviceType
+from pytorch_lightning.accelerators.types import DeviceType
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
 import os

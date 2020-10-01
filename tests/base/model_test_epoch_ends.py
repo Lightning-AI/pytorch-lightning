@@ -2,7 +2,7 @@ from abc import ABC
 
 import torch
 
-from pytorch_lightning.accelerators.base_backend import BackendType
+from pytorch_lightning.accelerators.types import BackendType
 
 
 class TestEpochEndVariations(ABC):

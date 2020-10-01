@@ -1,7 +1,7 @@
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.base_backend import BackendType
+from pytorch_lightning.accelerators.types import BackendType
 from tests.base.develop_utils import load_model_from_checkpoint, get_default_logger, \
     reset_seed
 

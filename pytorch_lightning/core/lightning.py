@@ -24,7 +24,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 import torch
 import torch.distributed as torch_distrib
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.base_backend import DeviceType
+from pytorch_lightning.accelerators.types import DeviceType
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary

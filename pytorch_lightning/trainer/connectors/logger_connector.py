@@ -14,7 +14,7 @@
 import os
 import torch
 
-from pytorch_lightning.accelerators.base_backend import DeviceType
+from pytorch_lightning.accelerators.types import DeviceType
 from pytorch_lightning.core import memory
 from pytorch_lightning.loggers import TensorBoardLogger, LoggerCollection
 from pytorch_lightning.utilities import flatten_dict

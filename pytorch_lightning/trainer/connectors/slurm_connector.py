@@ -3,7 +3,7 @@ import re
 import signal
 from subprocess import call
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.base_backend import BackendType
+from pytorch_lightning.accelerators.types import BackendType
 from pytorch_lightning.utilities.distributed import rank_zero_info
 
 

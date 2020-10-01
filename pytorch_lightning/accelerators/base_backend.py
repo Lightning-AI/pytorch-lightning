@@ -1,5 +1,4 @@
 import math
-from enum import Enum
 from typing import Any
 
 import torch
@@ -184,19 +183,3 @@ class Accelerator(object):
         self.trainer.optimizers = optimizers
         self.trainer.lr_schedulers = lr_schedulers
         self.trainer.optimizer_frequencies = optimizer_frequencies
-
-
-class BackendType(Enum):
-    DP = 'dp'
-    DDP = 'ddp'
-    DDP2 = 'ddp2'
-    DDP_SPAWN = 'ddp_spawn'
-    HOROVOD = 'horovod'
-    # TODO: decouple DDP & CPU
-    DDP_CPU = 'ddp_cpu'
-
-
-class DeviceType(Enum):
-    GPU = 'gpu'
-    CPU = 'cpu'
-    TPU = 'tpu'

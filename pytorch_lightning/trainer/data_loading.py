@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.accelerators.base_backend import Accelerator
-from pytorch_lightning.accelerators.base_backend import BackendType, DeviceType
+from pytorch_lightning.accelerators.types import BackendType, DeviceType
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len

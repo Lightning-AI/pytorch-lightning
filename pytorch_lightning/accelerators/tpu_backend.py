@@ -19,7 +19,8 @@ import torch
 import torch.multiprocessing as mp
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.base_backend import Accelerator, BackendType
+from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.accelerators.types import BackendType
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import AMPType, rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save

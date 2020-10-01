@@ -18,7 +18,7 @@ from typing import Union
 
 import torch
 
-from pytorch_lightning.accelerators.base_backend import BackendType
+from pytorch_lightning.accelerators.types import BackendType
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.distributed import rank_zero_warn

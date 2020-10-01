@@ -16,7 +16,8 @@ from contextlib import ExitStack
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
-from pytorch_lightning.accelerators.base_backend import Accelerator, DeviceType
+from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.accelerators.types import DeviceType
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
 

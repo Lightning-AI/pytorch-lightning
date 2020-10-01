@@ -2,7 +2,7 @@ from pytorch_lightning import accelerators
 import os
 import torch
 
-from pytorch_lightning.accelerators.base_backend import BackendType, DeviceType
+from pytorch_lightning.accelerators.types import BackendType, DeviceType
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
