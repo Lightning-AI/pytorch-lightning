@@ -18,16 +18,7 @@ class LightningDistributed:
 
         if self.rank > 0:
             x = torch.rand(1000).to(self.device)
-        print('-' * 100)
-        print(x)
-        print(self.rank)
-        print('-' * 100)
         torch_distrib.broadcast(x, src=self.rank)
-
-        print('-' * 100)
-        print(x)
-        print(self.rank)
-        print('-' * 100)
 
         if not is_tensor:
             x = self._decode(x)
@@ -42,6 +33,8 @@ class LightningDistributed:
         return padding
 
     def _decode(self, tensor):
-        chunks = [chr(x.numpy()) for x in tensor]
+        tensor = tensor.long()
+        print(tensor)
+        chunks = [chr(x.cpu().numpy()) for x in tensor]
         text = ''.join(chunks)
         return text
