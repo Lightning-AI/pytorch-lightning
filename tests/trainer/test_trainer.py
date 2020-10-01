@@ -1411,15 +1411,15 @@ def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, l
     log_metrics_mock.assert_has_calls(expected_calls)
 
     
-@pytest.mark.parametrize(['input', 'expected'], [
+@pytest.mark.parametrize(['input_arg', 'expected'], [
     (None, PassThroughProfiler),
     (SimpleProfiler(), SimpleProfiler),
     (AdvancedProfiler(), AdvancedProfiler),
     ('simple', SimpleProfiler),
     ('advanced', AdvancedProfiler),
 ])
-def test_trainer_profiler_correct_args(input, expected):
-    kwargs = {'profiler': input} if input is not None else {}
+def test_trainer_profiler_correct_args(input_arg, expected):
+    kwargs = {'profiler': input_arg} if input_arg is not None else {}
     trainer = Trainer(**kwargs)
     assert isinstance(trainer.profiler, expected)
 
