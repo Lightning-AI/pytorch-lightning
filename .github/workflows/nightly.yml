@@ -5,6 +5,8 @@ on:
   schedule:
     # At the end of every day
     - cron: "0 0 * * *"
+  pull_request:
+    branches: [ master ]
 
 
 # based on https://github.com/pypa/gh-action-pypi-publish
