@@ -17,7 +17,7 @@ class LightningDistributed:
             x = _encode(x).to(self.device)
 
         if self.rank > 0:
-            x = torch.rand(2).to(self.device)
+            x = torch.rand(1000).to(self.device)
         print('-' * 100)
         print(x)
         print(self.rank)
