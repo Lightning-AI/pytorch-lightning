@@ -1413,8 +1413,6 @@ def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, l
     
 @pytest.mark.parametrize(['input', 'expected'], [
     (None, PassThroughProfiler),
-    (False, PassThroughProfiler),
-    (True, SimpleProfiler),
     (SimpleProfiler(), SimpleProfiler),
     (AdvancedProfiler(), AdvancedProfiler),
     ('simple', SimpleProfiler),

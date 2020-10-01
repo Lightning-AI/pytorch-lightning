@@ -7,7 +7,9 @@ import torch
 from tests.base import EvalModelTemplate
 from pytorch_lightning.metrics.functional.classification import auc
 
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.profiler.profilers import PassThroughProfiler, SimpleProfiler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -20,6 +22,16 @@ def test_tbd_remove_in_v1_2_0():
 
     with pytest.raises(MisconfigurationException, match='inputs which are not feasible'):
         checkpoint_cb = ModelCheckpoint(filepath='.', dirpath='.')
+
+
+@pytest.mark.parametrize(['input', 'expected'], [
+    (True, SimpleProfiler),
+    (False, PassThroughProfiler),
+])
+def test_trainer_profiler_remove_in_v1_2_0_trainer(input, expected):
+    with pytest.deprecated_call(match='will be removed in v1.2.0'):
+        trainer = Trainer(profiler=input)
+        assert isinstance(trainer.profiler, expected)
 
 
 def _soft_unimport_module(str_module):
