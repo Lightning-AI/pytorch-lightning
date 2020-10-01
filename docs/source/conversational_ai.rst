@@ -44,7 +44,19 @@ across multiple domains. NeMo models are also fully compatible with the PyTorch 
 Installing NeMo
 ^^^^^^^^^^^^^^^
 
-Installing the latest NeMo release is a simple pip install.
+Before installing NeMo, please install Cython first.
+
+.. code-block:: bash
+
+    pip install Cython
+
+For ASR and TTS models, also install these linux utilities.
+
+.. code-block:: bash
+
+    apt-get update && apt-get install -y libsndfile1 ffmpeg
+
+Then installing the latest NeMo release is a simple pip install.
 
 .. code-block:: bash
 
@@ -63,13 +75,11 @@ To install from a local clone of NeMo:
     ./reinstall.sh # from cloned NeMo's git root
 
 For Docker users, the NeMo container is available on 
-`NGC <https://ngc.nvidia.com/catalog/containers/nvidia:nemo>`_:
+`NGC <https://ngc.nvidia.com/catalog/containers/nvidia:nemo>`_.
 
 .. code-block:: bash
 
-    # TODO: update container tag when available
     docker pull nvcr.io/nvidia/nemo:1.0.0b1
-
 
 .. code-block:: bash
 
