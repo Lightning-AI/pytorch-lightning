@@ -18,8 +18,7 @@ class LightningDistributed:
             self._emit(obj)
         else:
             obj = self._receive()
-            print(f'receiving at: {self.rank}')
-            print('obj')
+            print(f'received at: {self.rank} -- {obj}')
         return obj
 
     def _emit(self, obj):
