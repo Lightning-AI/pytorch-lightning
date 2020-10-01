@@ -1,1 +1,1 @@
-from pytorch_lightning.distributed.dist import broadcast
+from pytorch_lightning.distributed.dist import LightningDistributed

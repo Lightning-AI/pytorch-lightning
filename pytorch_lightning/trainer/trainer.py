@@ -56,6 +56,7 @@ from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer.properties import TrainerProperties
+from pytorch_lightning.distributed.dist import LightningDistributed
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -276,6 +277,7 @@ class Trainer(
         self.accelerator_backend = None
         self.evaluation_loop = EvaluationLoop(self)
         self.train_loop = TrainLoop(self)
+        self.dist = LightningDistributed()
 
         # training state
         self.weights_summary = weights_summary

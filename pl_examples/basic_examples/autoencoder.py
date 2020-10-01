@@ -60,8 +60,7 @@ class LitAutoEncoder(pl.LightningModule):
         return optimizer
 
     def on_train_epoch_end(self) -> None:
-        import pytorch_lightning.distributed as pl_distrib
-        pl_distrib.broadcast('teddy world', self.trainer.global_rank)
+        self.trainer.dist.broadcast('teddy world', self.trainer.global_rank)
 
 
 def cli_main():
