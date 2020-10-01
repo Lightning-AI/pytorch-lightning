@@ -31,6 +31,9 @@ class Accelerator(object):
     def barrier(self, name: str = None):
         pass
 
+    def broadcast(self, obj, src):
+        return obj
+
     def train_or_test(self):
         if self.trainer.testing:
             results = self.trainer.run_test()

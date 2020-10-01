@@ -177,6 +177,9 @@ class DDPBase(Accelerator):
         if self.trainer.global_rank == 0:
             return results
 
+    def broadcast(self, obj, src):
+        torch_distrib.broadcast(obj, src=src)
+
     def set_world_ranks(self, process_idx):
         raise NotImplementedError('to create a ddp backend, please implement set_world_ranks')
 

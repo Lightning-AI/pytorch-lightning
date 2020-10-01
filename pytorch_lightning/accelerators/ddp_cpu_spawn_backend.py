@@ -174,6 +174,9 @@ class DDPCPUSpawnBackend(Accelerator):
     def barrier(self, name: str = None):
         torch_distrib.barrier()
 
+    def broadcast(self, obj, src):
+        torch_distrib.broadcast(obj, src=src)
+
     def early_stopping_should_stop(self, pl_module):
         stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device)
         dist.all_reduce(stop, op=dist.reduce_op.SUM)

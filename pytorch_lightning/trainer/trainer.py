@@ -277,7 +277,7 @@ class Trainer(
         self.accelerator_backend = None
         self.evaluation_loop = EvaluationLoop(self)
         self.train_loop = TrainLoop(self)
-        self.dist = LightningDistributed()
+        self.dist = LightningDistributed(self)
 
         # training state
         self.weights_summary = weights_summary
