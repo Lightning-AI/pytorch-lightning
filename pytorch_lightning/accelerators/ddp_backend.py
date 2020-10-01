@@ -91,14 +91,17 @@ class DDPBackend(DDPBase):
         # when the trainer script was called the device has already been scoped by the time
         # code reaches this point. so, to call the scripts, we need to leave cuda visible devices alone
         # but forward the GPUs selected via environment variables
+        os.environ['PL_TRAINER_GPUS'] = ','.join([str(i) for i in self.trainer.data_parallel_device_ids])
+        os.environ['PL_IN_DDP_SUBPROCESS'] = '1'
+
+        if self.trainer.logger is not None:
+            os.environ['PL_EXP_VERSION'] = str(self.trainer.logger.version)
+
         gpu_ids = os.environ.get('CUDA_VISIBLE_DEVICES', '')
         if len(gpu_ids) == 1:
             gpu_ids = f'{gpu_ids},'
 
         num_gpus = max(1, len(gpu_ids.split(',')))
-
-        # set the flag for ddp scripts
-        os.environ['PL_TRAINER_GPUS'] = gpu_ids
 
         os.environ['WORLD_SIZE'] = f'{num_gpus * self.trainer.num_nodes}'
 
@@ -106,6 +109,7 @@ class DDPBackend(DDPBase):
         for local_rank in range(1, self.trainer.num_processes):
             env_copy = os.environ.copy()
             env_copy['LOCAL_RANK'] = f'{local_rank}'
+            env_copy['PL_DDP_PID'] = str(self.trainer.data_parallel_device_ids[local_rank])
 
             # start process
             # if hydra is available and initialized, make sure to set the cwd correctly
@@ -154,6 +158,8 @@ class DDPBackend(DDPBase):
         if is_master:
             available_gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',')
             gpu_idx = int(available_gpus[self.trainer.local_rank])
+
+        gpu_idx = int(os.environ.get('PL_DDP_PID', gpu_idx))
 
         self.trainer.root_gpu = gpu_idx
         torch.cuda.set_device(self.trainer.root_gpu)

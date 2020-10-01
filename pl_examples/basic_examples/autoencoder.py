@@ -97,7 +97,8 @@ def cli_main():
     # ------------
     # testing
     # ------------
-    trainer.test(test_dataloaders=test_loader)
+    result = trainer.test(test_dataloaders=test_loader)
+    print(result)
 
 
 if __name__ == '__main__':
