@@ -296,6 +296,9 @@ class ModelCheckpoint(Callback):
             raise ValueError(".save_function() not set")
 
     def check_monitor_top_k(self, current) -> bool:
+        if current is None:
+            return False
+
         if self.save_top_k == -1:
             return True
 
