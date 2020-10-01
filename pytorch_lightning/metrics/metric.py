@@ -165,7 +165,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         """
         try:
             return torch.cat(tensors).mean(0)
-        except (ValueError, TypeError) as e:
+        except (ValueError, TypeError) as exp:
             if isinstance(tensors[0], Mapping):
                 return {k: torch.stack([tensor[k] for tensor in tensors]).mean(0) for k in tensors[0].keys()}
             elif isinstance(tensors[0], Sequence) and not isinstance(tensors[0], torch.Tensor):
