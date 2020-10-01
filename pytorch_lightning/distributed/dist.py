@@ -19,7 +19,7 @@ class LightningDistributed:
 
         print('-' * 100)
         print(x)
-        print(rank)
+        print(self.rank)
         print('-' * 100)
 
         if not is_tensor:
