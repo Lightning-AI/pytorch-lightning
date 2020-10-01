@@ -47,9 +47,9 @@ class DDP2Backend(DDPBase):
             # torchelastic or general non_slurm ddp2
             try:
                 self.task_idx = int(os.environ['LOCAL_RANK'])
-            except Exception as e:
+            except Exception as exp:
                 m = 'ddp2 only works in SLURM or via torchelastic with the WORLD_SIZE, LOCAL_RANK, GROUP_RANK flags'
-                raise MisconfigurationException(m)
+                raise MisconfigurationException(m) from exp
 
     def train(self):
         model = self.trainer.model
