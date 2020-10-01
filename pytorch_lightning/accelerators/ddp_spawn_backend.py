@@ -59,19 +59,6 @@ class DDPSpawnBackend(Accelerator):
         self.__recover_child_process_weights(model, best_path, last_path)
         return results
 
-    def __recover_child_process_weights(self, model, best_path, last_path):
-        # transfer back the best path to the trainer
-        if self.trainer.checkpoint_callback:
-            self.trainer.checkpoint_callback.best_model_path = best_path
-        # todo, pass also best score
-
-        # load last weights
-        if last_path is not None and not self.trainer.testing:
-            ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
-            model.load_state_dict(ckpt)
-
-        self.trainer.model = model
-
     def ddp_train(self, process_idx, mp_queue, model):
         """
         Entry point for ddp
@@ -186,6 +173,19 @@ class DDPSpawnBackend(Accelerator):
     def get_device_ids(self):
         device_ids = [self.trainer.root_gpu]
         return device_ids
+
+    def __recover_child_process_weights(self, model, best_path, last_path):
+        # transfer back the best path to the trainer
+        if self.trainer.checkpoint_callback:
+            self.trainer.checkpoint_callback.best_model_path = best_path
+        # todo, pass also best score
+
+        # load last weights
+        if last_path is not None and not self.trainer.testing:
+            ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
+            model.load_state_dict(ckpt)
+
+        self.trainer.model = model
 
     def transfer_distrib_spawn_state_on_fit_end(self, model, mp_queue, results):
         best_model_path = None
