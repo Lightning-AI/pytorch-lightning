@@ -437,7 +437,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     trainer.fit(model)
 
     path_last_epoch = str(tmpdir / f"epoch={num_epochs - 1}.ckpt")
-    path_last = str(tmpdir / f"last.ckpt")
+    path_last = str(tmpdir / "last.ckpt")
     assert path_last == model_checkpoint.last_model_path
 
     ckpt_last_epoch = torch.load(path_last_epoch)

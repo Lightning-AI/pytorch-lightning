@@ -296,6 +296,9 @@ class ModelCheckpoint(Callback):
             raise ValueError(".save_function() not set")
 
     def check_monitor_top_k(self, current) -> bool:
+        if current is None:
+            return False
+
         if self.save_top_k == -1:
             return True
 
@@ -366,7 +369,6 @@ class ModelCheckpoint(Callback):
         ckpt_name = f"{filename}.ckpt"
         return os.path.join(self.dirpath, ckpt_name) if self.dirpath else ckpt_name
 
-    @rank_zero_only
     def __resolve_ckpt_dir(self, trainer, pl_module):
         """
         Determines model checkpoint save directory at runtime. References attributes from the
@@ -398,8 +400,11 @@ class ModelCheckpoint(Callback):
                 if isinstance(trainer.logger.version, str)
                 else f"version_{trainer.logger.version}"
             )
+
+            version, name = trainer.accelerator_backend.broadcast((version, trainer.logger.name))
+
             ckpt_path = os.path.join(
-                save_dir, trainer.logger.name, version, "checkpoints"
+                save_dir, name, version, "checkpoints"
             )
         else:
             ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")
@@ -419,7 +424,7 @@ class ModelCheckpoint(Callback):
         if self.monitor is None and 'checkpoint_on' in metrics:
             self.monitor = 'checkpoint_on'
 
-        if self.save_top_k is None:
+        if self.save_top_k is None and self.monitor is not None:
             self.save_top_k = 1
 
     def _validate_monitor_key(self, trainer):
@@ -484,15 +489,7 @@ class ModelCheckpoint(Callback):
         if not isinstance(current, torch.Tensor) and current is not None:
             current = torch.tensor(current, device=pl_module.device)
 
-        if current is None:
-            m = f"Can save best model only with {self.monitor} available, skipping."
-            if self.monitor == 'checkpoint_on':
-                m = (
-                    'No checkpoint_on found. HINT: Did you set it in '
-                    'EvalResult(checkpoint_on=tensor) or TrainResult(checkpoint_on=tensor)?'
-                )
-            rank_zero_warn(m, RuntimeWarning)
-        elif self.check_monitor_top_k(current):
+        if self.check_monitor_top_k(current):
             self._update_best_and_save(filepath, current, epoch, trainer, pl_module)
         elif self.verbose:
             rank_zero_info(

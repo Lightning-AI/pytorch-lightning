@@ -7,6 +7,7 @@ import torch
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.parsing import AttributeDict
 
 try:
     from apex import amp
@@ -21,6 +22,7 @@ class Accelerator(object):
 
     def __init__(self, trainer):
         self.trainer = trainer
+        self.dist = AttributeDict(rank=0, device=None)
 
     def setup(self, model):
         pass
@@ -30,6 +32,9 @@ class Accelerator(object):
 
     def barrier(self, name: str = None):
         pass
+
+    def broadcast(self, obj, src=0):
+        return obj
 
     def train_or_test(self):
         if self.trainer.testing:
@@ -163,6 +168,9 @@ class Accelerator(object):
             p.grad.data.mul_(clip_coef.to(p.grad.data.device))
 
     def on_train_epoch_end(self):
+        pass
+
+    def on_train_end(self):
         pass
 
     def early_stopping_should_stop(self, pl_module):

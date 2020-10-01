@@ -235,6 +235,7 @@ def test_dm_checkpoint_save(tmpdir):
     assert dm.__class__.__name__ in checkpoint
     assert checkpoint[dm.__class__.__name__] == dm.__class__.__name__
 
+
 def test_test_loop_only(tmpdir):
     reset_seed()
 

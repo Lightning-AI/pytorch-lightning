@@ -696,9 +696,6 @@ class Trainer(
         # --------------------
         self.verbose_test = verbose
 
-        if self.global_rank != 0:
-            return
-
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
         if test_dataloaders and datamodule:
             raise MisconfigurationException(
@@ -738,6 +735,8 @@ class Trainer(
                     f'specify a path for a checkpoint .test(ckpt_path=PATH)'
                 )
                 return {}
+            if self.accelerator_backend is not None:
+                self.accelerator_backend.barrier()
 
             ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt['state_dict'])

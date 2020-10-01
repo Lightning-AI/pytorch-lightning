@@ -25,6 +25,7 @@ from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.distributed import find_free_network_port
+from pytorch_lightning.distributed.dist import LightningDistributed
 
 try:
     from hydra.core.hydra_config import HydraConfig
@@ -41,6 +42,7 @@ class DDPCPUSpawnBackend(Accelerator):
         super().__init__(trainer)
         self.mp_queue = None
         self.nprocs = nprocs
+        self.dist = LightningDistributed()
 
     def setup(self, model):
         os.environ['MASTER_PORT'] = os.environ.get('MASTER_PORT', str(find_free_network_port()))
@@ -66,19 +68,6 @@ class DDPCPUSpawnBackend(Accelerator):
         self.__recover_child_process_weights(model, best_path, last_path)
         return results
 
-    def __recover_child_process_weights(self, model, best_path, last_path):
-        # transfer back the best path to the trainer
-        if self.trainer.checkpoint_callback:
-            self.trainer.checkpoint_callback.best_model_path = best_path
-        # todo, pass also best score
-
-        # load last weights
-        if last_path is not None and not self.trainer.testing:
-            ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
-            model.load_state_dict(ckpt)
-
-        self.trainer.model = model
-
     def ddp_train(self, process_idx, mp_queue, model):
         """
         Entry point for ddp
@@ -93,9 +82,7 @@ class DDPCPUSpawnBackend(Accelerator):
             self.trainer.progress_bar_callback.disable()
 
         # determine which process we are and world size
-        self.trainer.local_rank = process_idx
-        self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
-        self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
+        self.set_world_ranks(process_idx)
 
         # set warning rank
         rank_zero_only.rank = self.trainer.global_rank
@@ -114,7 +101,7 @@ class DDPCPUSpawnBackend(Accelerator):
         self.trainer.call_setup_hook(model)
 
         # on world_size=0 let everyone know training is starting
-        if self.trainer.is_global_zero:
+        if self.trainer.is_global_zero and not torch.distributed.is_initialized():
             log.info('-' * 100)
             log.info(f'distributed_backend={self.trainer.distributed_backend}')
             log.info(f'All DDP processes registered. Starting ddp with {self.trainer.world_size} processes')
@@ -123,6 +110,9 @@ class DDPCPUSpawnBackend(Accelerator):
         # call sync_bn before .cuda(), configure_apex and configure_ddp
         if self.trainer.sync_batchnorm:
             model = model.configure_sync_batchnorm(model)
+
+        # move the model to the correct device
+        self.model_to_device(model, process_idx)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
@@ -135,7 +125,7 @@ class DDPCPUSpawnBackend(Accelerator):
         model = self.trainer.precision_connector.connect(model)
 
         # DDP spawn already spawned off each process... no need to do anything
-        device_ids = None
+        device_ids = self.get_device_ids()
 
         # allow user to configure ddp
         model = model.configure_ddp(model, device_ids)
@@ -172,7 +162,11 @@ class DDPCPUSpawnBackend(Accelerator):
         return output
 
     def barrier(self, name: str = None):
-        torch_distrib.barrier()
+        if torch_distrib.is_initialized():
+            torch_distrib.barrier()
+
+    def broadcast(self, obj, src=0):
+        return self.dist.broadcast(obj)
 
     def early_stopping_should_stop(self, pl_module):
         stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device)
@@ -180,6 +174,31 @@ class DDPCPUSpawnBackend(Accelerator):
         dist.barrier()
         should_stop = stop == self.trainer.world_size
         return should_stop
+
+    def set_world_ranks(self, process_idx):
+        self.trainer.local_rank = process_idx
+        self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
+        self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
+
+    def model_to_device(self, model, process_idx):
+        model.cpu()
+
+    def get_device_ids(self):
+        device_ids = None
+        return device_ids
+
+    def __recover_child_process_weights(self, model, best_path, last_path):
+        # transfer back the best path to the trainer
+        if self.trainer.checkpoint_callback:
+            self.trainer.checkpoint_callback.best_model_path = best_path
+        # todo, pass also best score
+
+        # load last weights
+        if last_path is not None and not self.trainer.testing:
+            ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
+            model.load_state_dict(ckpt)
+
+        self.trainer.model = model
 
     def transfer_distrib_spawn_state_on_fit_end(self, model, mp_queue, results):
         # track the best model path

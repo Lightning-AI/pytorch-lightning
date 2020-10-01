@@ -17,10 +17,10 @@ import platform
 from abc import ABC, abstractmethod
 from typing import Union, List, Tuple, Callable, Optional
 
-import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
+from pytorch_lightning.accelerators.base_backend import Accelerator
 from pytorch_lightning.accelerators.base_backend import BackendType
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
@@ -75,6 +75,7 @@ class TrainerDataLoadingMixin(ABC):
     limit_val_batches: Union[int, float]
     limit_test_batches: Union[int, float]
     replace_sampler_ddp: bool
+    accelerator_backend: Accelerator
     num_nodes: int
     num_processes: int
     distributed_backend: Optional[str]
@@ -337,18 +338,6 @@ class TrainerDataLoadingMixin(ABC):
         """
         dataloader = dataloader_fx()
 
-        # get the function we'll use to get data
-        if self.use_ddp or self.use_ddp2:
-            # all processes wait until data download has happened
-            torch_distrib.barrier()
-
-        # data download/load on TPU
-        elif self.use_tpu and XLA_AVAILABLE:
-            # all processes wait until data download has happened
-            torch_xla.core.xla_model.rendezvous('pl.TrainerDataLoadingMixin.get_dataloaders')
-
-        elif self.use_horovod:
-            # all processes wait until data download has happened
-            hvd.join()
-
+        if self.accelerator_backend is not None:
+            self.accelerator_backend.barrier('get_dataloaders')
         return dataloader

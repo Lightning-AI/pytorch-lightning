@@ -81,12 +81,11 @@ class AcceleratorConnector:
 
         # override with environment flag
         gpus = os.environ.get('PL_TRAINER_GPUS', gpus)
+        self.trainer.gpus = gpus
 
         # for gpus allow int, string and gpu list
         if auto_select_gpus and isinstance(gpus, int):
             self.trainer.gpus = self.trainer.tuner.pick_multiple_gpus(gpus)
-        else:
-            self.trainer.gpus = gpus
 
         self.trainer.data_parallel_device_ids = device_parser.parse_gpu_ids(self.trainer.gpus)
         self.trainer.root_gpu = device_parser.determine_root_gpu_device(self.trainer.data_parallel_device_ids)
@@ -126,6 +125,9 @@ class AcceleratorConnector:
         self.trainer.replace_sampler_ddp = replace_sampler_ddp
 
     def select_accelerator(self):
+        if self.trainer.accelerator_backend is not None:
+            return self.trainer.accelerator_backend
+
         # SLURM ddp
         use_slurm_ddp = self.trainer.use_ddp and self.trainer.is_slurm_managing_tasks
 
@@ -294,7 +296,8 @@ class AcceleratorConnector:
                 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_str
 
         # don't make this debug... this is good UX
-        rank_zero_info(f'CUDA_VISIBLE_DEVICES: [{os.environ["CUDA_VISIBLE_DEVICES"]}]')
+        devices = os.environ["CUDA_VISIBLE_DEVICES"]
+        log.info(f'LOCAL_RANK: {self.trainer.local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]')
 
     def determine_local_rank(self):
         if self.trainer.is_slurm_managing_tasks:
