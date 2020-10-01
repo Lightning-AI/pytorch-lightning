@@ -398,7 +398,7 @@ class ModelCheckpoint(Callback):
                 else f"version_{trainer.logger.version}"
             )
 
-            version, name = trainer.dist.broadcast((version, trainer.logger.name))
+            version, name = trainer.accelerator_backend.broadcast((version, trainer.logger.name))
 
             ckpt_path = os.path.join(
                 save_dir, name, version, "checkpoints"

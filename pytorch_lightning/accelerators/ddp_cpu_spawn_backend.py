@@ -25,6 +25,7 @@ from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.distributed import find_free_network_port
+from pytorch_lightning.distributed.dist import LightningDistributed
 
 try:
     from hydra.core.hydra_config import HydraConfig
@@ -41,6 +42,7 @@ class DDPCPUSpawnBackend(Accelerator):
         super().__init__(trainer)
         self.mp_queue = None
         self.nprocs = nprocs
+        self.dist = LightningDistributed()
 
     def setup(self, model):
         os.environ['MASTER_PORT'] = os.environ.get('MASTER_PORT', str(find_free_network_port()))
@@ -174,8 +176,8 @@ class DDPCPUSpawnBackend(Accelerator):
     def barrier(self, name: str = None):
         torch_distrib.barrier()
 
-    def broadcast(self, obj, src):
-        torch_distrib.broadcast(obj, src=src)
+    def broadcast(self, obj, src=0):
+        return self.dist.broadcast(obj)
 
     def early_stopping_should_stop(self, pl_module):
         stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device)
