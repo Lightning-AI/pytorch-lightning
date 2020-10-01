@@ -24,6 +24,7 @@ from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.distributed import find_free_network_port
+from pytorch_lightning.distributed.dist import LightningDistributed
 
 
 class DDPSpawnBackend(Accelerator):
@@ -32,6 +33,7 @@ class DDPSpawnBackend(Accelerator):
         super().__init__(trainer)
         self.mp_queue = None
         self.nprocs = nprocs
+        self.dist = LightningDistributed()
 
     def setup(self, model):
         os.environ['MASTER_PORT'] = os.environ.get('MASTER_PORT', str(find_free_network_port()))
@@ -166,6 +168,9 @@ class DDPSpawnBackend(Accelerator):
     def barrier(self, name: str = None):
         if torch_distrib.is_initialized():
             torch_distrib.barrier()
+
+    def broadcast(self, obj, src=0):
+        return self.dist.broadcast(obj)
 
     def set_world_ranks(self, process_idx):
         self.trainer.local_rank = process_idx
