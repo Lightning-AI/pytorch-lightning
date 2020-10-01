@@ -59,9 +59,6 @@ class LitAutoEncoder(pl.LightningModule):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
         return optimizer
 
-    def on_train_epoch_end(self) -> None:
-        self.trainer.dist.broadcast('teddy world')
-
 
 def cli_main():
     pl.seed_everything(1234)

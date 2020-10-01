@@ -1,9 +1,7 @@
+import io
 import torch
 from typing import Any
-import pickle
-import numpy as np
 import torch.distributed as torch_distrib
-import io
 
 
 class LightningDistributed:
@@ -14,11 +12,9 @@ class LightningDistributed:
 
     def broadcast(self, obj: Any):
         if self.rank == 0:
-            print(f'sending from: {self.rank}')
             self._emit(obj)
         else:
             obj = self._receive()
-            print(f'received at: {self.rank} -- {obj}')
         return obj
 
     def _emit(self, obj):
