@@ -72,6 +72,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
 
         self.reduce_group = reduce_group
 
+        # Buffer for holding aggregated state after each batch
         self._step_vals = []
 
         # Register hooks
@@ -131,9 +132,6 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
 
         """
         gathered_tensors = apply_to_collection(tensor, torch.Tensor, gather_all_tensors_if_available, self.reduce_group)
-
-        self._step_vals.append(gathered_tensors)
-
         return gathered_tensors
 
     @staticmethod
@@ -150,7 +148,9 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
 
         """
         synced = self.ddp_sync(output)
-        return self.aggregate(synced)
+        agg_val = self.aggregate(synced)
+        self._step_vals.append(agg_val)
+        return agg_val
 
     def aggregate(self, *tensors: torch.Tensor) -> torch.Tensor:
         """
@@ -163,17 +163,27 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
             aggregated values
 
         """
-        try:
-            return torch.cat(tensors).mean(0)
-        except (ValueError, TypeError) as exp:
-            if isinstance(tensors[0], Mapping):
-                return {k: torch.stack([tensor[k] for tensor in tensors]).mean(0) for k in tensors[0].keys()}
-            elif isinstance(tensors[0], Sequence) and not isinstance(tensors[0], torch.Tensor):
-                return tuple([torch.stack(tmp).mean(0) for tmp in zip(*tensors)])
-            elif isinstance(tensors[0], torch.Tensor):
-                return torch.stack(tensors).mean(0)
-            else:
-                raise TypeError("unknown metric value format to aggregate") from exp
+        # single tensor
+        if len(tensors) == 1:
+            tensors = tensors[0]
+            if isinstance(tensors, Mapping):
+                return {k: _stack_and_agg(tensors[k]) for k in tensors.keys()}
+            if isinstance(tensors, list):
+                return _stack_and_agg(tensors)
+            if isinstance(tensors, tuple):
+                return tensors
+            if isinstance(tensors, torch.Tensor):
+                return _stack_and_agg(tensors)
+
+        # multiple tensors (from aggregation over batches)
+        if isinstance(tensors[0], Mapping):
+            return {k: torch.stack([tensor[k] for tensor in tensors]).sum(0) for k in tensors[0].keys()}
+        if isinstance(tensors[0], Sequence):
+            return tuple([torch.stack(tmp).sum(0) for tmp in zip(*tensors)])
+        if isinstance(tensors[0], torch.Tensor):
+            return torch.stack(tensors).sum(0)
+
+        raise TypeError("unknown metric value format to aggregate")
 
     @staticmethod
     def compute(self, data: Any, output: Any):
@@ -192,12 +202,19 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
 
     @property
     def aggregated(self) -> torch.Tensor:
-        aggr = self.aggregate(*self._step_vals)
+        aggr = self.aggregate(*self._step_vals if len(self._step_vals) > 1 else self._step_vals)
         self.reset()
         return self.compute(self, None, aggr)
 
     def reset(self):
         self._step_vals = []
+
+
+def _stack_and_agg(tensors):
+    """ Utility function for stacking and aggregating tensors """
+    if isinstance(tensors, list):
+        return torch.sum(torch.stack([t for t in tensors]), 0)
+    return tensors.squeeze() if tensors.numel() == 1 else tensors
 
 
 class TensorMetric(Metric):

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import torch
 from pytorch_lightning.core import memory
 from pytorch_lightning.loggers import TensorBoardLogger, LoggerCollection
@@ -40,10 +41,12 @@ class LoggerConnector:
 
     def configure_logger(self, logger):
         if logger is True:
+            version = os.environ.get('PL_EXP_VERSION', self.trainer.slurm_job_id)
+
             # default logger
             self.trainer.logger = TensorBoardLogger(
                 save_dir=self.trainer.default_root_dir,
-                version=self.trainer.slurm_job_id,
+                version=version,
                 name='lightning_logs'
             )
         elif logger is False:

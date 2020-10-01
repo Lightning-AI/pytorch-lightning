@@ -21,17 +21,18 @@ from pytorch_lightning.metrics.functional.classification import (
     auroc,
     average_precision,
     confusion_matrix,
+    _confmat_normalize,
     dice_score,
     f1_score,
     fbeta_score,
     iou,
     multiclass_precision_recall_curve,
     multiclass_roc,
-    precision,
     precision_recall_curve,
-    recall,
     roc,
+    precision_recall
 )
+from pytorch_lightning.metrics.functional.reduction import class_reduce
 from pytorch_lightning.metrics.metric import TensorMetric
 
 
@@ -44,8 +45,8 @@ class Accuracy(TensorMetric):
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 2, 2])
         >>> metric = Accuracy()
-        >>> metric(pred, target).item()
-        0.75
+        >>> metric(pred, target)
+        tensor(0.7500)
 
     """
 
@@ -84,7 +85,14 @@ class Accuracy(TensorMetric):
             A Tensor with the classification score.
         """
         return accuracy(pred=pred, target=target,
-                        num_classes=self.num_classes, class_reduction=self.class_reduction)
+                        num_classes=self.num_classes,
+                        class_reduction='none',
+                        return_state=True)
+
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+        tps, sups = output['tps'], output['sups']
+        return class_reduce(tps, sups, sups, class_reduction=self.class_reduction)
 
 
 class ConfusionMatrix(TensorMetric):
@@ -135,16 +143,16 @@ class ConfusionMatrix(TensorMetric):
             A Tensor with the confusion matrix.
         """
         return confusion_matrix(pred=pred, target=target,
-                                normalize=self.normalize,
+                                normalize=False,  # we normalize after ddp sync
                                 num_classes=self.num_classes)
 
-    def aggregate(self, *tensors: torch.Tensor) -> torch.Tensor:
-        """Aggregates results by stacking them instead of concatenating before averaging.
-
-        Returns:
-            the aggregated results
-        """
-        return torch.stack(tensors).mean(0)
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+        """ Confusion matrix normalization needs to happen after ddp sync """
+        confmat = output
+        if self.normalize:
+            confmat = _confmat_normalize(confmat)
+        return confmat
 
 
 class PrecisionRecallCurve(TensorMetric):
@@ -202,7 +210,8 @@ class PrecisionRecallCurve(TensorMetric):
             - recall values
             - threshold values
         """
-        return precision_recall_curve(pred=pred, target=target, sample_weight=sample_weight, pos_label=self.pos_label)
+        return precision_recall_curve(pred=pred, target=target,
+                                      sample_weight=sample_weight, pos_label=self.pos_label)
 
 
 class Precision(TensorMetric):
@@ -256,9 +265,15 @@ class Precision(TensorMetric):
         Return:
             A Tensor with the classification score.
         """
-        return precision(pred=pred, target=target,
-                         num_classes=self.num_classes,
-                         class_reduction=self.class_reduction)
+        return precision_recall(pred=pred, target=target,
+                                num_classes=self.num_classes,
+                                class_reduction='none',
+                                return_state=True)
+
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+        tps, fps, sups = output['tps'], output['fps'], output['sups']
+        return class_reduce(tps, tps + fps, sups, class_reduction=self.class_reduction)
 
 
 class Recall(TensorMetric):
@@ -313,10 +328,15 @@ class Recall(TensorMetric):
         Return:
             A Tensor with the classification score.
         """
-        return recall(pred=pred,
-                      target=target,
-                      num_classes=self.num_classes,
-                      class_reduction=self.class_reduction)
+        return precision_recall(pred=pred, target=target,
+                                num_classes=self.num_classes,
+                                class_reduction='none',
+                                return_state=True)
+
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+        tps, fns, sups = output['tps'], output['fns'], output['sups']
+        return class_reduce(tps, tps + fns, sups, class_reduction=self.class_reduction)
 
 
 class AveragePrecision(TensorMetric):
@@ -470,12 +490,28 @@ class FBeta(TensorMetric):
         Return:
             torch.Tensor: classification score
         """
-        return fbeta_score(pred=pred, target=target,
-                           beta=self.beta, num_classes=self.num_classes,
-                           class_reduction=self.class_reduction)
+        return precision_recall(pred=pred, target=target,
+                                num_classes=self.num_classes,
+                                class_reduction='none',
+                                return_state=True)
+
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+        """ tps, fps, fns, sups needs to be synced before we do any calculations """
+        tps, fps, fns, sups = output['tps'], output['fps'], output['fns'], output['sups']
+
+        intermidiate_reduction = 'none' if self.class_reduction != "micro" else 'micro'
+        precision = class_reduce(tps, tps + fps, sups, class_reduction=intermidiate_reduction)
+        recall = class_reduce(tps, tps + fns, sups, class_reduction=intermidiate_reduction)
+
+        num = (1 + self.beta ** 2) * precision * recall
+        denom = ((self.beta ** 2) * precision + recall)
+        if intermidiate_reduction == 'micro':
+            return torch.sum(num) / torch.sum(denom)
+        return class_reduce(num, denom, sups, class_reduction=self.class_reduction)
 
 
-class F1(TensorMetric):
+class F1(FBeta):
     """
     Computes the F1 score, which is the harmonic mean of the precision and recall.
     It ranges between 1 and 0, where 1 is perfect and the worst value is 0.
@@ -507,29 +543,11 @@ class F1(TensorMetric):
 
             reduce_group: the process group to reduce metric results from DDP
         """
-        super().__init__(
-            name="f1",
-            reduce_group=reduce_group,
-        )
-
-        self.num_classes = num_classes
-        assert class_reduction in ('micro', 'macro', 'weighted', 'none')
-        self.class_reduction = class_reduction
-
-    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        """
-        Actual metric computation
-
-        Args:
-            pred: predicted labels
-            target: groundtruth labels
-
-        Return:
-            torch.Tensor: classification score
-        """
-        return f1_score(pred=pred, target=target,
-                        num_classes=self.num_classes,
-                        class_reduction=self.class_reduction)
+        super().__init__(beta=1.0,
+                         num_classes=num_classes,
+                         class_reduction=class_reduction,
+                         reduce_group=reduce_group)
+        self.name = "f1"
 
 
 class ROC(TensorMetric):
