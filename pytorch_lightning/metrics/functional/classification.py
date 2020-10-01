@@ -1,25 +1,23 @@
-from collections import Sequence
 from functools import wraps
-from typing import Optional, Tuple, Callable
+from typing import Callable, Optional, Sequence, Tuple
 
 import torch
 from torch.nn import functional as F
 
-from pytorch_lightning.metrics.functional.reduction import reduce
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.metrics.functional.reduction import class_reduce, reduce
+from pytorch_lightning.utilities import FLOAT16_EPSILON, rank_zero_warn
 
 
 def to_onehot(
         tensor: torch.Tensor,
-        n_classes: Optional[int] = None,
+        num_classes: Optional[int] = None,
 ) -> torch.Tensor:
     """
     Converts a dense label tensor to one-hot format
 
     Args:
         tensor: dense label tensor, with shape [N, d1, d2, ...]
-
-        n_classes: number of classes C
+        num_classes: number of classes C
 
     Output:
         A sparse label tensor with shape [N, C, d1, d2, ...]
@@ -33,22 +31,25 @@ def to_onehot(
                 [0, 0, 0, 1]])
 
     """
-    if n_classes is None:
-        n_classes = int(tensor.max().detach().item() + 1)
+    if num_classes is None:
+        num_classes = int(tensor.max().detach().item() + 1)
     dtype, device, shape = tensor.dtype, tensor.device, tensor.shape
-    tensor_onehot = torch.zeros(shape[0], n_classes, *shape[1:],
+    tensor_onehot = torch.zeros(shape[0], num_classes, *shape[1:],
                                 dtype=dtype, device=device)
     index = tensor.long().unsqueeze(1).expand_as(tensor_onehot)
     return tensor_onehot.scatter_(1, index, 1.0)
 
 
-def to_categorical(tensor: torch.Tensor, argmax_dim: int = 1) -> torch.Tensor:
+def to_categorical(
+        tensor: torch.Tensor,
+        argmax_dim: int = 1
+) -> torch.Tensor:
     """
     Converts a tensor of probabilities to a dense label tensor
 
     Args:
         tensor: probabilities to get the categorical label [N, d1, d2, ...]
-        argmax_dim: dimension to apply (default: 1)
+        argmax_dim: dimension to apply
 
     Return:
         A tensor with categorical labels [N, d2, ...]
@@ -66,15 +67,15 @@ def to_categorical(tensor: torch.Tensor, argmax_dim: int = 1) -> torch.Tensor:
 def get_num_classes(
         pred: torch.Tensor,
         target: torch.Tensor,
-        num_classes: Optional[int],
+        num_classes: Optional[int] = None,
 ) -> int:
     """
-    Returns the number of classes for a given prediction and target tensor.
+    Calculates the number of classes for a given prediction and target tensor.
 
         Args:
             pred: predicted values
             target: true labels
-            num_classes: number of classes if known (default: None)
+            num_classes: number of classes if known
 
         Return:
             An integer that represents the number of classes.
@@ -86,8 +87,10 @@ def get_num_classes(
     if num_classes is None:
         num_classes = num_all_classes
     elif num_classes != num_all_classes:
-        rank_zero_warn(f'You have set {num_classes} number of classes if different from'
-                       f' predicted ({num_pred_classes}) and target ({num_target_classes}) number of classes')
+        rank_zero_warn(f'You have set {num_classes} number of classes which is'
+                       f' different from predicted ({num_pred_classes}) and'
+                       f' target ({num_target_classes}) number of classes',
+                       RuntimeWarning)
     return num_classes
 
 
@@ -108,7 +111,7 @@ def stat_scores(
             axis the argmax transformation will be applied over
 
     Return:
-        True Positive, False Positive, True Negative, False Negative
+        True Positive, False Positive, True Negative, False Negative, Support
 
     Example:
 
@@ -136,21 +139,27 @@ def stat_scores_multiple_classes(
         target: torch.Tensor,
         num_classes: Optional[int] = None,
         argmax_dim: int = 1,
+        reduction: str = 'none',
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
-    Calls the stat_scores function iteratively for all classes, thus
-    calculating the number of true postive, false postive, true negative
+    Calculates the number of true positive, false positive, true negative
     and false negative for each class
 
     Args:
         pred: prediction tensor
         target: target tensor
-        class_index: class to calculate over
+        num_classes: number of classes if known
         argmax_dim: if pred is a tensor of probabilities, this indicates the
             axis the argmax transformation will be applied over
+        reduction: a method to reduce metric score over labels (default: none)
+            Available reduction methods:
+
+            - elementwise_mean: takes the mean
+            - none: pass array
+            - sum: add elements
 
     Return:
-        True Positive, False Positive, True Negative, False Negative
+        True Positive, False Positive, True Negative, False Negative, Support
 
     Example:
 
@@ -167,29 +176,73 @@ def stat_scores_multiple_classes(
         tensor([1., 0., 0., 0.])
         >>> sups
         tensor([1., 0., 1., 1.])
-    """
-    num_classes = get_num_classes(pred=pred, target=target,
-                                  num_classes=num_classes)
 
+    """
     if pred.ndim == target.ndim + 1:
         pred = to_categorical(pred, argmax_dim=argmax_dim)
 
-    tps = torch.zeros((num_classes,), device=pred.device)
-    fps = torch.zeros((num_classes,), device=pred.device)
-    tns = torch.zeros((num_classes,), device=pred.device)
-    fns = torch.zeros((num_classes,), device=pred.device)
-    sups = torch.zeros((num_classes,), device=pred.device)
-    for c in range(num_classes):
-        tps[c], fps[c], tns[c], fns[c], sups[c] = stat_scores(pred=pred, target=target, class_index=c)
+    num_classes = get_num_classes(pred=pred, target=target, num_classes=num_classes)
 
-    return tps, fps, tns, fns, sups
+    if pred.dtype != torch.bool:
+        pred = pred.clamp_max(max=num_classes)
+    if target.dtype != torch.bool:
+        target = target.clamp_max(max=num_classes)
+
+    possible_reductions = ('none', 'sum', 'elementwise_mean')
+    if reduction not in possible_reductions:
+        raise ValueError("reduction type %s not supported" % reduction)
+
+    if reduction == 'none':
+        pred = pred.view((-1, )).long()
+        target = target.view((-1, )).long()
+
+        tps = torch.zeros((num_classes + 1,), device=pred.device)
+        fps = torch.zeros((num_classes + 1,), device=pred.device)
+        tns = torch.zeros((num_classes + 1,), device=pred.device)
+        fns = torch.zeros((num_classes + 1,), device=pred.device)
+        sups = torch.zeros((num_classes + 1,), device=pred.device)
+
+        match_true = (pred == target).float()
+        match_false = 1 - match_true
+
+        tps.scatter_add_(0, pred, match_true)
+        fps.scatter_add_(0, pred, match_false)
+        fns.scatter_add_(0, target, match_false)
+        tns = pred.size(0) - (tps + fps + fns)
+        sups.scatter_add_(0, target, torch.ones_like(match_true))
+
+        tps = tps[:num_classes]
+        fps = fps[:num_classes]
+        tns = tns[:num_classes]
+        fns = fns[:num_classes]
+        sups = sups[:num_classes]
+
+    elif reduction == 'sum' or reduction == 'elementwise_mean':
+        count_match_true = (pred == target).sum().float()
+        oob_tp, oob_fp, oob_tn, oob_fn, oob_sup = stat_scores(pred, target, num_classes, argmax_dim)
+
+        tps = count_match_true - oob_tp
+        fps = pred.nelement() - count_match_true - oob_fp
+        fns = pred.nelement() - count_match_true - oob_fn
+        tns = pred.nelement() * (num_classes + 1) - (tps + fps + fns + oob_tn)
+        sups = pred.nelement() - oob_sup.float()
+
+        if reduction == 'elementwise_mean':
+            tps /= num_classes
+            fps /= num_classes
+            fns /= num_classes
+            tns /= num_classes
+            sups /= num_classes
+
+    return tps.float(), fps.float(), tns.float(), fns.float(), sups.float()
 
 
 def accuracy(
         pred: torch.Tensor,
         target: torch.Tensor,
         num_classes: Optional[int] = None,
-        reduction='elementwise_mean',
+        class_reduction: str = 'micro',
+        return_state: bool = False
 ) -> torch.Tensor:
     """
     Computes the accuracy classification score
@@ -198,15 +251,16 @@ def accuracy(
         pred: predicted labels
         target: ground truth labels
         num_classes: number of classes
-        reduction: a method for reducing accuracies over labels (default: takes the mean)
-           Available reduction methods:
+        class_reduction: method to reduce metric score over labels
 
-           - elementwise_mean: takes the mean
-           - none: pass array
-           - sum: add elements
-
+            - ``'micro'``: calculate metrics globally (default)
+            - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
+            - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
+            - ``'none'``: returns calculated metric per class
+        return_state: returns a internal state that can be ddp reduced
+            before doing the final calculation
     Return:
-         A Tensor with the classification score.
+         A Tensor with the accuracy score.
 
     Example:
 
@@ -218,20 +272,26 @@ def accuracy(
     """
     tps, fps, tns, fns, sups = stat_scores_multiple_classes(
         pred=pred, target=target, num_classes=num_classes)
+    if return_state:
+        return {'tps': tps, 'sups': sups}
+    return class_reduce(tps, sups, sups, class_reduction=class_reduction)
 
-    if not (target > 0).any() and num_classes is None:
-        raise RuntimeError("cannot infer num_classes when target is all zero")
 
-    if reduction in ('elementwise_mean', 'sum'):
-        return reduce(sum(tps) / sum(sups), reduction=reduction)
-    if reduction == 'none':
-        return reduce(tps / sups, reduction=reduction)
+def _confmat_normalize(cm):
+    """ Normalization function for confusion matrix """
+    cm = cm / cm.sum(-1, keepdim=True)
+    nan_elements = cm[torch.isnan(cm)].nelement()
+    if nan_elements != 0:
+        cm[torch.isnan(cm)] = 0
+        rank_zero_warn(f'{nan_elements} nan values found in confusion matrix have been replaced with zeros.')
+    return cm
 
 
 def confusion_matrix(
         pred: torch.Tensor,
         target: torch.Tensor,
         normalize: bool = False,
+        num_classes: Optional[int] = None
 ) -> torch.Tensor:
     """
     Computes the confusion matrix C where each entry C_{i,j} is the number of observations
@@ -241,6 +301,7 @@ def confusion_matrix(
         pred: estimated targets
         target: ground truth labels
         normalize: normalizes confusion matrix
+        num_classes: number of classes
 
     Return:
         Tensor, confusion matrix C [num_classes, num_classes ]
@@ -255,15 +316,15 @@ def confusion_matrix(
                 [0., 0., 1., 0.],
                 [0., 0., 0., 1.]])
     """
-    num_classes = get_num_classes(pred, target, None)
+    num_classes = get_num_classes(pred, target, num_classes)
 
-    unique_labels = target.view(-1) * num_classes + pred.view(-1)
+    unique_labels = (target.view(-1) * num_classes + pred.view(-1)).to(torch.int)
 
     bins = torch.bincount(unique_labels, minlength=num_classes ** 2)
     cm = bins.reshape(num_classes, num_classes).squeeze().float()
 
     if normalize:
-        cm = cm / cm.sum(-1)
+        cm = _confmat_normalize(cm)
 
     return cm
 
@@ -272,7 +333,9 @@ def precision_recall(
         pred: torch.Tensor,
         target: torch.Tensor,
         num_classes: Optional[int] = None,
-        reduction: str = 'elementwise_mean',
+        class_reduction: str = 'micro',
+        return_support: bool = False,
+        return_state: bool = False
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Computes precision and recall for different thresholds
@@ -281,12 +344,16 @@ def precision_recall(
         pred: estimated probabilities
         target: ground-truth labels
         num_classes: number of classes
-        reduction: method for reducing precision-recall values (default: takes the mean)
-           Available reduction methods:
+        class_reduction: method to reduce metric score over labels
 
-           - elementwise_mean: takes the mean
-           - none: pass array
-           - sum: add elements
+            - ``'micro'``: calculate metrics globally (default)
+            - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
+            - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
+            - ``'none'``: returns calculated metric per class
+
+        return_support: returns the support for each class, need for fbeta/f1 calculations
+        return_state: returns a internal state that can be ddp reduced
+            before doing the final calculation
 
     Return:
         Tensor with precision and recall
@@ -294,26 +361,19 @@ def precision_recall(
     Example:
 
         >>> x = torch.tensor([0, 1, 2, 3])
-        >>> y = torch.tensor([0, 1, 2, 2])
-        >>> precision_recall(x, y)
-        (tensor(0.7500), tensor(0.6250))
+        >>> y = torch.tensor([0, 2, 2, 2])
+        >>> precision_recall(x, y, class_reduction='macro')
+        (tensor(0.5000), tensor(0.3333))
 
     """
     tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred=pred, target=target, num_classes=num_classes)
 
-    tps = tps.to(torch.float)
-    fps = fps.to(torch.float)
-    fns = fns.to(torch.float)
-
-    precision = tps / (tps + fps)
-    recall = tps / (tps + fns)
-
-    # solution by justus, see https://discuss.pytorch.org/t/how-to-set-nan-in-tensor-to-0/3918/9
-    precision[precision != precision] = 0
-    recall[recall != recall] = 0
-
-    precision = reduce(precision, reduction=reduction)
-    recall = reduce(recall, reduction=reduction)
+    precision = class_reduce(tps, tps + fps, sups, class_reduction=class_reduction)
+    recall = class_reduce(tps, tps + fns, sups, class_reduction=class_reduction)
+    if return_state:
+        return {'tps': tps, 'fps': fps, 'fns': fns, 'sups': sups}
+    if return_support:
+        return precision, recall, sups
     return precision, recall
 
 
@@ -321,7 +381,7 @@ def precision(
         pred: torch.Tensor,
         target: torch.Tensor,
         num_classes: Optional[int] = None,
-        reduction: str = 'elementwise_mean',
+        class_reduction: str = 'micro',
 ) -> torch.Tensor:
     """
     Computes precision score.
@@ -330,12 +390,12 @@ def precision(
         pred: estimated probabilities
         target: ground-truth labels
         num_classes: number of classes
-        reduction: method for reducing precision values (default: takes the mean)
-           Available reduction methods:
+        class_reduction: method to reduce metric score over labels
 
-           - elementwise_mean: takes the mean
-           - none: pass array
-           - sum: add elements
+            - ``'micro'``: calculate metrics globally (default)
+            - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
+            - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
+            - ``'none'``: returns calculated metric per class
 
     Return:
         Tensor with precision.
@@ -349,14 +409,14 @@ def precision(
 
     """
     return precision_recall(pred=pred, target=target,
-                            num_classes=num_classes, reduction=reduction)[0]
+                            num_classes=num_classes, class_reduction=class_reduction)[0]
 
 
 def recall(
         pred: torch.Tensor,
         target: torch.Tensor,
         num_classes: Optional[int] = None,
-        reduction: str = 'elementwise_mean',
+        class_reduction: str = 'micro',
 ) -> torch.Tensor:
     """
     Computes recall score.
@@ -365,12 +425,12 @@ def recall(
         pred: estimated probabilities
         target: ground-truth labels
         num_classes: number of classes
-        reduction: method for reducing recall values (default: takes the mean)
-           Available reduction methods:
+        class_reduction: method to reduce metric score over labels
 
-           - elementwise_mean: takes the mean
-           - none: pass array
-           - sum: add elements
+            - ``'micro'``: calculate metrics globally (default)
+            - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
+            - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
+            - ``'none'``: returns calculated metric per class
 
     Return:
         Tensor with recall.
@@ -380,10 +440,10 @@ def recall(
         >>> x = torch.tensor([0, 1, 2, 3])
         >>> y = torch.tensor([0, 1, 2, 2])
         >>> recall(x, y)
-        tensor(0.6250)
+        tensor(0.7500)
     """
     return precision_recall(pred=pred, target=target,
-                            num_classes=num_classes, reduction=reduction)[1]
+                            num_classes=num_classes, class_reduction=class_reduction)[1]
 
 
 def fbeta_score(
@@ -391,7 +451,7 @@ def fbeta_score(
         target: torch.Tensor,
         beta: float,
         num_classes: Optional[int] = None,
-        reduction: str = 'elementwise_mean',
+        class_reduction: str = 'micro',
 ) -> torch.Tensor:
     """
     Computes the F-beta score which is a weighted harmonic mean of precision and recall.
@@ -406,12 +466,12 @@ def fbeta_score(
             beta = 0: only precision
             beta -> inf: only recall
         num_classes: number of classes
-        reduction: method for reducing F-score (default: takes the mean)
-           Available reduction methods:
+        class_reduction: method to reduce metric score over labels
 
-           - elementwise_mean: takes the mean
-           - none: pass array
-           - sum: add elements.
+            - ``'micro'``: calculate metrics globally (default)
+            - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
+            - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
+            - ``'none'``: returns calculated metric per class
 
     Return:
         Tensor with the value of F-score. It is a value between 0-1.
@@ -421,27 +481,27 @@ def fbeta_score(
         >>> x = torch.tensor([0, 1, 2, 3])
         >>> y = torch.tensor([0, 1, 2, 2])
         >>> fbeta_score(x, y, 0.2)
-        tensor(0.7407)
+        tensor(0.7500)
     """
-    prec, rec = precision_recall(pred=pred, target=target,
-                                 num_classes=num_classes,
-                                 reduction='none')
+    # We need to differentiate at which point to do class reduction
+    intermidiate_reduction = 'none' if class_reduction != "micro" else 'micro'
 
-    nom = (1 + beta ** 2) * prec * rec
+    prec, rec, sups = precision_recall(pred=pred, target=target,
+                                       num_classes=num_classes,
+                                       class_reduction=intermidiate_reduction,
+                                       return_support=True)
+    num = (1 + beta ** 2) * prec * rec
     denom = ((beta ** 2) * prec + rec)
-    fbeta = nom / denom
-
-    # drop NaN after zero division
-    fbeta[fbeta != fbeta] = 0
-
-    return reduce(fbeta, reduction=reduction)
+    if intermidiate_reduction == 'micro':
+        return torch.sum(num) / torch.sum(denom)
+    return class_reduce(num, denom, sups, class_reduction=class_reduction)
 
 
 def f1_score(
         pred: torch.Tensor,
         target: torch.Tensor,
         num_classes: Optional[int] = None,
-        reduction='elementwise_mean',
+        class_reduction: str = 'micro',
 ) -> torch.Tensor:
     """
     Computes the F1-score (a.k.a F-measure), which is the harmonic mean of the precision and recall.
@@ -451,12 +511,12 @@ def f1_score(
         pred: estimated probabilities
         target: ground-truth labels
         num_classes: number of classes
-        reduction: method for reducing F1-score (default: takes the mean)
-           Available reduction methods:
+        class_reduction: method to reduce metric score over labels
 
-           - elementwise_mean: takes the mean
-           - none: pass array
-           - sum: add elements.
+            - ``'micro'``: calculate metrics globally (default)
+            - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
+            - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
+            - ``'none'``: returns calculated metric per class
 
     Return:
          Tensor containing F1-score
@@ -466,10 +526,10 @@ def f1_score(
         >>> x = torch.tensor([0, 1, 2, 3])
         >>> y = torch.tensor([0, 1, 2, 2])
         >>> f1_score(x, y)
-        tensor(0.6667)
+        tensor(0.7500)
     """
     return fbeta_score(pred=pred, target=target, beta=1.,
-                       num_classes=num_classes, reduction=reduction)
+                       num_classes=num_classes, class_reduction=class_reduction)
 
 
 def _binary_clf_curve(
@@ -510,7 +570,6 @@ def _binary_clf_curve(
         # express fps as a cumsum to ensure fps is increasing even in
         # the presence of floating point errors
         fps = torch.cumsum((1 - target) * weight, dim=0)[threshold_idxs]
-
     else:
         fps = 1 + threshold_idxs - tps
 
@@ -530,7 +589,7 @@ def roc(
         pred: estimated probabilities
         target: ground-truth labels
         sample_weight: sample weights
-        pos_label: the label for the positive class (default: 1)
+        pos_label: the label for the positive class
 
     Return:
         false-positive rate (fpr), true-positive rate (tpr), thresholds
@@ -538,12 +597,12 @@ def roc(
     Example:
 
         >>> x = torch.tensor([0, 1, 2, 3])
-        >>> y = torch.tensor([0, 1, 2, 2])
+        >>> y = torch.tensor([0, 1, 1, 1])
         >>> fpr, tpr, thresholds = roc(x, y)
         >>> fpr
-        tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000])
+        tensor([0., 0., 0., 0., 1.])
         >>> tpr
-        tensor([0., 0., 0., 1., 1.])
+        tensor([0.0000, 0.3333, 0.6667, 1.0000, 1.0000])
         >>> thresholds
         tensor([4, 3, 2, 1, 0])
 
@@ -628,7 +687,7 @@ def precision_recall_curve(
         pred: estimated probabilities
         target: ground-truth labels
         sample_weight: sample weights
-        pos_label: the label for the positive class (default: 1.)
+        pos_label: the label for the positive class
 
     Return:
          precision, recall, thresholds
@@ -636,12 +695,12 @@ def precision_recall_curve(
     Example:
 
         >>> pred = torch.tensor([0, 1, 2, 3])
-        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> target = torch.tensor([0, 1, 1, 0])
         >>> precision, recall, thresholds = precision_recall_curve(pred, target)
         >>> precision
-        tensor([0.3333, 0.0000, 0.0000, 1.0000])
+        tensor([0.6667, 0.5000, 0.0000, 1.0000])
         >>> recall
-        tensor([1., 0., 0., 0.])
+        tensor([1.0000, 0.5000, 0.0000, 0.0000])
         >>> thresholds
         tensor([1, 2, 3])
 
@@ -722,14 +781,18 @@ def multiclass_precision_recall_curve(
     return tuple(class_pr_vals)
 
 
-def auc(x: torch.Tensor, y: torch.Tensor, reorder: bool = True) -> torch.Tensor:
+def auc(
+        x: torch.Tensor,
+        y: torch.Tensor,
+        reorder: bool = True
+) -> torch.Tensor:
     """
     Computes Area Under the Curve (AUC) using the trapezoidal rule
 
     Args:
         x: x-coordinates
         y: y-coordinates
-        reorder: reorder coordinates, so they are increasing.
+        reorder: reorder coordinates, so they are increasing
 
     Return:
         Tensor containing AUC score (float)
@@ -800,15 +863,22 @@ def auroc(
         pred: estimated probabilities
         target: ground-truth labels
         sample_weight: sample weights
-        pos_label: the label for the positive class (default: 1.)
+        pos_label: the label for the positive class
+
+    Return:
+        Tensor containing ROCAUC score
 
     Example:
 
         >>> x = torch.tensor([0, 1, 2, 3])
-        >>> y = torch.tensor([0, 1, 2, 2])
+        >>> y = torch.tensor([0, 1, 1, 0])
         >>> auroc(x, y)
-        tensor(0.3333)
+        tensor(0.5000)
     """
+    if any(target > 1):
+        raise ValueError('AUROC metric is meant for binary classification, but'
+                         ' target tensor contains value different from 0 and 1.'
+                         ' Multiclass is currently not supported.')
 
     @auc_decorator(reorder=True)
     def _auroc(pred, target, sample_weight, pos_label):
@@ -824,12 +894,16 @@ def average_precision(
         pos_label: int = 1.,
 ) -> torch.Tensor:
     """
+    Compute average precision from prediction scores
 
     Args:
         pred: estimated probabilities
         target: ground-truth labels
         sample_weight: sample weights
-        pos_label: the label for the positive class (default: 1.)
+        pos_label: the label for the positive class
+
+    Return:
+        Tensor containing average precision score
 
     Example:
 
@@ -856,18 +930,22 @@ def dice_score(
         reduction: str = 'elementwise_mean',
 ) -> torch.Tensor:
     """
+    Compute dice score from prediction scores
+
     Args:
         pred: estimated probabilities
         target: ground-truth labels
         bg: whether to also compute dice for the background
-        nan_score: score to return, if a NaN occurs during computation (denom zero)
+        nan_score: score to return, if a NaN occurs during computation
         no_fg_score: score to return, if no foreground pixel was found in target
-        reduction: a method for reducing accuracies over labels (default: takes the mean)
-            Available reduction methods:
+        reduction: a method to reduce metric score over labels.
 
-            - elementwise_mean: takes the mean
-            - none: pass array
-            - sum: add elements
+            - ``'elementwise_mean'``: takes the mean (default)
+            - ``'sum'``: takes the sum
+            - ``'none'``: no reduction will be applied
+
+    Return:
+        Tensor containing dice score
 
     Example:
 
@@ -876,58 +954,58 @@ def dice_score(
         ...                      [0.05, 0.05, 0.85, 0.05],
         ...                      [0.05, 0.05, 0.05, 0.85]])
         >>> target = torch.tensor([0, 1, 3, 2])
-        >>> average_precision(pred, target)
-        tensor(0.2500)
+        >>> dice_score(pred, target)
+        tensor(0.3333)
 
     """
-    n_classes = pred.shape[1]
+    num_classes = pred.shape[1]
     bg = (1 - int(bool(bg)))
-    scores = torch.zeros(n_classes - bg, device=pred.device, dtype=torch.float32)
-    for i in range(bg, n_classes):
+    scores = torch.zeros(num_classes - bg, device=pred.device, dtype=torch.float32)
+    for i in range(bg, num_classes):
         if not (target == i).any():
             # no foreground class
             scores[i - bg] += no_fg_score
             continue
 
         tp, fp, tn, fn, sup = stat_scores(pred=pred, target=target, class_index=i)
-
         denom = (2 * tp + fp + fn).to(torch.float)
-
-        if torch.isclose(denom, torch.zeros_like(denom)).any():
-            # nan result
-            score_cls = nan_score
-        else:
-            score_cls = (2 * tp).to(torch.float) / denom
+        # nan result
+        score_cls = (2 * tp).to(torch.float) / denom if torch.is_nonzero(denom) else nan_score
 
         scores[i - bg] += score_cls
     return reduce(scores, reduction=reduction)
 
 
-def iou(pred: torch.Tensor, target: torch.Tensor,
-        num_classes: Optional[int] = None, remove_bg: bool = False,
-        reduction: str = 'elementwise_mean'):
+def iou(
+        pred: torch.Tensor,
+        target: torch.Tensor,
+        ignore_index: Optional[int] = None,
+        absent_score: float = 0.0,
+        num_classes: Optional[int] = None,
+        reduction: str = 'elementwise_mean',
+) -> torch.Tensor:
     """
     Intersection over union, or Jaccard index calculation.
 
     Args:
         pred: Tensor containing predictions
-
         target: Tensor containing targets
-
+        ignore_index: optional int specifying a target class to ignore. If given, this class index does not contribute
+            to the returned score, regardless of reduction method. Has no effect if given an int that is not in the
+            range [0, num_classes-1], where num_classes is either given or derived from pred and target. By default, no
+            index is ignored, and all classes are used.
+        absent_score: score to use for an individual class, if no instances of the class index were present in
+            `pred` AND no instances of the class index were present in `target`. For example, if we have 3 classes,
+            [0, 0] for `pred`, and [0, 2] for `target`, then class 1 would be assigned the `absent_score`. Default is
+            0.0.
         num_classes: Optionally specify the number of classes
+        reduction: a method to reduce metric score over labels.
 
-        remove_bg: Flag to state whether a background class has been included
-            within input parameters. If true, will remove background class. If
-            false, return IoU over all classes.
-            Assumes that background is '0' class in input tensor
+            - ``'elementwise_mean'``: takes the mean (default)
+            - ``'sum'``: takes the sum
+            - ``'none'``: no reduction will be applied
 
-        reduction: a method for reducing IoU over labels (default: takes the mean)
-            Available reduction methods:
-            - elementwise_mean: takes the mean
-            - none: pass array
-            - sum: add elements
-
-    Returns:
+    Return:
         IoU score : Tensor containing single value if reduction is
         'elementwise_mean', or number of classes if reduction is 'none'
 
@@ -940,10 +1018,39 @@ def iou(pred: torch.Tensor, target: torch.Tensor,
         tensor(0.4914)
 
     """
+    num_classes = get_num_classes(pred=pred, target=target, num_classes=num_classes)
+
     tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred, target, num_classes)
-    if remove_bg:
-        tps = tps[1:]
-        fps = fps[1:]
-        fns = fns[1:]
-    iou = tps / (fps + fns + tps)
-    return reduce(iou, reduction=reduction)
+
+    scores = torch.zeros(num_classes, device=pred.device, dtype=torch.float32)
+
+    for class_idx in range(num_classes):
+        if class_idx == ignore_index:
+            continue
+
+        tp = tps[class_idx]
+        fp = fps[class_idx]
+        fn = fns[class_idx]
+        sup = sups[class_idx]
+
+        # If this class is absent in the target (no support) AND absent in the pred (no true or false
+        # positives), then use the absent_score for this class.
+        if sup + tp + fp == 0:
+            scores[class_idx] = absent_score
+            continue
+
+        denom = tp + fp + fn
+        # Note that we do not need to worry about division-by-zero here since we know (sup + tp + fp != 0) from above,
+        # which means ((tp+fn) + tp + fp != 0), which means (2tp + fp + fn != 0). Since all vars are non-negative, we
+        # can conclude (tp + fp + fn > 0), meaning the denominator is non-zero for each class.
+        score = tp.to(torch.float) / denom
+        scores[class_idx] = score
+
+    # Remove the ignored class index from the scores.
+    if ignore_index is not None and ignore_index >= 0 and ignore_index < num_classes:
+        scores = torch.cat([
+            scores[:ignore_index],
+            scores[ignore_index + 1:],
+        ])
+
+    return reduce(scores, reduction=reduction)

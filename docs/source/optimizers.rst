@@ -1,3 +1,5 @@
+.. _optimizers:
+
 Optimization
 ===============
 
@@ -83,12 +85,14 @@ For example, here step optimizer A every 2 batches and optimizer B every 4 batch
 
 .. testcode::
 
-    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i, second_order_closure=None):
+    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, second_order_closure=None, on_tpu=False, using_native_amp=False, using_lbfgs=False):
         optimizer.step()
-        optimizer.zero_grad()
+
+    def optimizer_zero_grad(self, current_epoch, batch_idx, optimizer, opt_idx):
+      optimizer.zero_grad()
 
     # Alternating schedule for optimizer steps (ie: GANs)
-    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i, second_order_closure=None):
+    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, second_order_closure=None, on_tpu=False, using_native_amp=False, using_lbfgs=False):
         # update generator opt every 2 steps
         if optimizer_i == 0:
             if batch_nb % 2 == 0 :
@@ -109,7 +113,7 @@ Here we add a learning-rate warm up
 .. testcode::
 
     # learning rate warm-up
-    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i, second_order_closure=None):
+    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, second_order_closure=None, on_tpu=False, using_native_amp=False, using_lbfgs=False):
         # warm up lr
         if self.trainer.global_step < 500:
             lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
@@ -119,3 +123,29 @@ Here we add a learning-rate warm up
         # update params
         optimizer.step()
         optimizer.zero_grad()
+
+----------
+
+Using the closure functions for optimization
+--------------------------------------------
+
+When using optimization schemes such as LBFGS, the `second_order_closure` needs to be enabled. By default, this function is defined by wrapping the `training_step` and the backward steps as follows
+
+.. testcode::
+
+    def second_order_closure(pl_module, split_batch, batch_idx, opt_idx, optimizer, hidden):
+        # Model training step on a given batch
+        result = pl_module.training_step(split_batch, batch_idx, opt_idx, hidden)
+
+        # Model backward pass
+        pl_module.backward(result, optimizer, opt_idx)
+
+        # on_after_backward callback
+        pl_module.on_after_backward(result.training_step_output, batch_idx, result.loss)
+
+        return result
+
+    # This default `second_order_closure` function can be enabled by passing it directly into the `optimizer.step`
+    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, second_order_closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
+        # update params
+        optimizer.step(second_order_closure)

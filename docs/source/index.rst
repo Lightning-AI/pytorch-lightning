@@ -9,50 +9,65 @@ PyTorch Lightning Documentation
 .. toctree::
    :maxdepth: 1
    :name: start
-   :caption: Start Here
+   :caption: Getting started
 
    new-project
+   converting
+
+.. toctree::
+   :maxdepth: 1
+   :name: advanced
+   :caption: Advanced use
+
    introduction_guide
    performance
 
 .. toctree::
    :maxdepth: 2
-   :name: docs
-   :caption: Python API
+   :name: pl_docs
+   :caption: Lightning API
 
-   callbacks
-   lightning-module
-   loggers
-   metrics
-   hooks
+   lightning_module
    trainer
 
 .. toctree::
-   :maxdepth: 1
-   :name: Community Examples
-   :caption: Community Examples
+   :maxdepth: 2
+   :name: docs
+   :caption: Optional extensions
 
-   Contextual Emotion Detection (DoubleDistilBert) <https://github.com/PyTorchLightning/emotion_transformer>
-   Cotatron: Transcription-Guided Speech Encoder <https://github.com/mindslab-ai/cotatron>
-   FasterRCNN object detection + Hydra <https://github.com/PyTorchLightning/wheat>
-   Generative Adversarial Network <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=TyYOdg8g77P0>
-   Hyperparameter optimization with Optuna <https://github.com/optuna/optuna/blob/master/examples/pytorch_lightning_simple.py>
-   Image Inpainting using Partial Convolutions <https://github.com/ryanwongsa/Image-Inpainting>
-   MNIST on TPU <https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3#scrollTo=BHBz1_AnamN_>
-   NER (transformers, TPU) <https://colab.research.google.com/drive/1dBN-wwYUngLYVt985wGs_OKPlK_ANB9D>
-   NeuralTexture (CVPR) <https://github.com/PyTorchLightning/neuraltexture>
-   Recurrent Attentive Neural Process <https://github.com/PyTorchLightning/attentive-neural-processes>
-   Siamese Nets for One-shot Image Recognition <https://github.com/PyTorchLightning/Siamese-Neural-Networks>
-   Speech Transformers <https://github.com/PyTorchLightning/speech-transformer-pytorch_lightning>
-   Transformers transfer learning (Huggingface) <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=yr7eaxkF-djf>
-   Transformers text classification <https://github.com/ricardorei/lightning-text-classification>
-   VAE Library of over 18+ VAE flavors <https://github.com/AntixK/PyTorch-VAE>
+   callbacks
+   datamodules
+   loggers
+   metrics
+
+.. toctree::
+   :maxdepth: 1
+   :name: Bolts
+   :caption: Bolts
+
+   bolts
+
+.. toctree::
+   :maxdepth: 1
+   :name: Examples
+   :caption: Examples
+
+   community_examples
+   Autoencoder <https://pytorch-lightning-bolts.readthedocs.io/en/latest/autoencoders.html#autoencoders>
+   BYOL <https://pytorch-lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#byol>
+   DQN <https://pytorch-lightning-bolts.readthedocs.io/en/latest/reinforce_learn.html#deep-q-network-dqn>
+   GAN <https://pytorch-lightning-bolts.readthedocs.io/en/latest/gans.html#basic-gan>
+   GPT-2 <https://pytorch-lightning-bolts.readthedocs.io/en/latest/convolutional.html#gpt-2>
+   Image-GPT <https://pytorch-lightning-bolts.readthedocs.io/en/latest/convolutional.html#image-gpt>
+   SimCLR <https://pytorch-lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#simclr>
+   VAE <https://pytorch-lightning-bolts.readthedocs.io/en/latest/autoencoders.html#basic-vae>
 
 .. toctree::
    :maxdepth: 1
    :name: Tutorials
    :caption: Tutorials
 
+   PyTorch Lightning 101 class <https://www.youtube.com/playlist?list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2>
    From PyTorch to PyTorch Lightning <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
    Video on how to refactor PyTorch into PyTorch Lightning <https://www.youtube.com/watch?v=QHww1JH7IDU>
 
@@ -68,7 +83,7 @@ PyTorch Lightning Documentation
    :name: Common Use Cases
    :caption: Common Use Cases
 
-   apex
+   amp
    slurm
    child_modules
    debugging
@@ -90,6 +105,7 @@ PyTorch Lightning Documentation
    transfer_learning
    tpu
    test_set
+   production_inference
 
 .. toctree::
    :maxdepth: 1
@@ -100,7 +116,6 @@ PyTorch Lightning Documentation
    CODE_OF_CONDUCT.md
    CONTRIBUTING.md
    BECOMING_A_CORE_CONTRIBUTOR.md
-   PULL_REQUEST_TEMPLATE.md
    governance.md
 
 Indices and tables
@@ -124,3 +139,6 @@ Indices and tables
    api/pytorch_lightning.profiler
    api/pytorch_lightning.trainer
    api/pytorch_lightning.utilities
+   api/pytorch_lightning.tuner
+   api/pytorch_lightning.plugins
+   api/pytorch_lightning.distributed

@@ -4,11 +4,12 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.accelerators.gpu_backend import GPUBackend
 from tests.base import EvalModelTemplate
 
 
 @pytest.mark.parametrize('max_steps', [1, 2, 3])
-def test_on_before_zero_grad_called(max_steps):
+def test_on_before_zero_grad_called(tmpdir, max_steps):
 
     class CurrentTestModel(EvalModelTemplate):
         on_before_zero_grad_called = 0
@@ -19,7 +20,9 @@ def test_on_before_zero_grad_called(max_steps):
     model = CurrentTestModel()
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_steps=max_steps,
+        max_epochs=2,
         num_sanity_val_steps=5,
     )
     assert 0 == model.on_before_zero_grad_called
@@ -97,10 +100,11 @@ def test_transfer_batch_hook():
     model = CurrentTestModel()
     batch = CustomBatch((torch.zeros(5, 28), torch.ones(5, 1, dtype=torch.long)))
 
-    trainer = Trainer()
+    trainer = Trainer(gpus=1)
+    trainer.accelerator_backend = GPUBackend(trainer)
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
     trainer.get_model = MagicMock(return_value=model)
-    batch_gpu = trainer.transfer_batch_to_gpu(batch, 0)
+    batch_gpu = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
     expected = torch.device('cuda', 0)
     assert model.hook_called
     assert batch_gpu.samples.device == batch_gpu.targets.device == expected

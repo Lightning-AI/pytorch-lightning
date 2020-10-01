@@ -6,10 +6,12 @@
 
 .. role:: hidden
     :class: hidden-section
+    
+.. _loggers:
 
 Loggers
 ===========
-Lightning supports the most popular logging frameworks (TensorBoard, Comet, Weights and Biases, etc...).
+Lightning supports the most popular logging frameworks (TensorBoard, Comet, etc...).
 To use a logger, simply pass it into the :class:`~pytorch_lightning.trainer.trainer.Trainer`.
 Lightning uses TensorBoard by default.
 
@@ -35,14 +37,92 @@ To use multiple loggers, simply pass in a ``list`` or ``tuple`` of loggers ...
     comet_logger = pl_loggers.CometLogger(save_dir='logs/')
     trainer = Trainer(logger=[tb_logger, comet_logger])
 
-Note:
-    All loggers log by default to ``os.getcwd()``. To change the path without creating a logger set
-    ``Trainer(default_root_dir='/your/path/to/save/checkpoints')``
+.. note::
+
+    All loggers log by default to `os.getcwd()`. To change the path without creating a logger set
+    `Trainer(default_root_dir='/your/path/to/save/checkpoints')`
 
 ----------
 
-Custom Logger
--------------
+Logging from a LightningModule
+------------------------------
+Interact with loggers in two ways, automatically and/or manually.
+
+Automatic logging
+^^^^^^^^^^^^^^^^^
+Use the :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method to log from anywhere in a LightningModule.
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        self.log('my_metric', x)
+
+The :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method has a few options:
+
+- on_step (logs the metric at that step in training)
+- on_epoch (automatically accumulates and logs at the end of the epoch)
+- prog_bar (logs to the progress bar)
+- logger (logs to the logger like Tensorboard)
+
+Depending on where log is called from, Lightning auto-determines the correct mode for you. But of course
+you can override the default behavior by manually setting the flags
+
+.. note:: Setting on_epoch=True will accumulate your logged values over the full training epoch.
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        self.log('my_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+
+Once your training starts, you can view the logs by using your favorite logger or booting up the Tensorboard logs:
+
+.. code-block:: bash
+
+    tensorboard --logdir ./lightning_logs
+
+
+Manual logging
+^^^^^^^^^^^^^^
+For certain things like histograms, text, images, etc... you may need to use the logger object directly.
+
+.. code-block:: python
+
+    def training_step(...):
+        ...
+        # the logger you used (in this case tensorboard)
+        tensorboard = self.logger.experiment
+        tensorboard.add_histogram(...)
+        tensorboard.add_figure(...)
+
+----------
+
+Logging from a Callback
+-----------------------
+To log from a callback, the :func:`~~pytorch_lightning.core.lightning.LightningModule.log`
+method of the LightningModule.
+
+.. code-block:: python
+
+    class MyCallback(Callback):
+
+        def on_train_epoch_end(self, trainer, pl_module):
+            pl_module.log('something', x)
+
+or access the logger object directly
+
+.. code-block:: python
+
+    class MyCallback(Callback):
+
+        def on_train_epoch_end(self, trainer, pl_module):
+            tensorboard = pl_module.logger.experiment
+            tensorboard.add_histogram(...)
+            tensorboard.add_figure(...)
+
+----------
+
+Make a Custom Logger
+--------------------
 
 You can implement your own logger by writing a class that inherits from
 :class:`LightningLoggerBase`. Use the :func:`~pytorch_lightning.loggers.base.rank_zero_only`
@@ -69,7 +149,9 @@ decorator to make sure that only the first process in DDP training logs data.
 
         def save(self):
             # Optional. Any code necessary to save logger data goes here
-            pass
+            # If you implement this, remember to call `super().save()`
+            # at the start of the method (important for aggregation of metrics)
+            super().save()
 
         @rank_zero_only
         def finalize(self, status):
@@ -78,33 +160,9 @@ decorator to make sure that only the first process in DDP training logs data.
             pass
 
 If you write a logger that may be useful to others, please send
-a pull request to add it to Lighting!
+a pull request to add it to Lightning!
 
 ----------
-
-Using loggers
--------------
-
-Call the logger anywhere except ``__init__`` in your
-:class:`~pytorch_lightning.core.lightning.LightningModule` by doing:
-
-.. testcode::
-
-    class LitModel(LightningModule):
-        def training_step(self, batch, batch_idx):
-            # example
-            self.logger.experiment.whatever_method_summary_writer_supports(...)
-
-            # example if logger is a tensorboard logger
-            self.logger.experiment.add_image('images', grid, 0)
-            self.logger.experiment.add_graph(model, images)
-
-        def any_lightning_module_function_or_hook(self):
-            self.logger.experiment.add_histogram(...)
-
-Read more in the `Experiment Logging use case <./experiment_logging.html>`_.
-
-------
 
 Supported Loggers
 -----------------
@@ -114,6 +172,12 @@ Comet
 ^^^^^
 
 .. autoclass:: pytorch_lightning.loggers.comet.CometLogger
+    :noindex:
+
+CSVLogger
+^^^^^^^^^
+
+.. autoclass:: pytorch_lightning.loggers.csv_logs.CSVLogger
     :noindex:
 
 MLFlow
@@ -140,8 +204,8 @@ Test-tube
 .. autoclass:: pytorch_lightning.loggers.test_tube.TestTubeLogger
     :noindex:
 
-Trains
-^^^^^^
+Weights and Biases
+^^^^^^^^^^^^^^^^^^
 
-.. autoclass:: pytorch_lightning.loggers.trains.TrainsLogger
+.. autoclass:: pytorch_lightning.loggers.wandb.WandbLogger
     :noindex:

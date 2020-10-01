@@ -1,24 +1,39 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from typing import Any, Optional, Sequence, Tuple
 
 import torch
 
 from pytorch_lightning.metrics.functional.classification import (
     accuracy,
-    confusion_matrix,
-    precision_recall_curve,
-    precision,
-    recall,
-    average_precision,
     auroc,
-    fbeta_score,
-    f1_score,
-    roc,
-    multiclass_roc,
-    multiclass_precision_recall_curve,
+    average_precision,
+    confusion_matrix,
+    _confmat_normalize,
     dice_score,
+    f1_score,
+    fbeta_score,
     iou,
+    multiclass_precision_recall_curve,
+    multiclass_roc,
+    precision_recall_curve,
+    roc,
+    precision_recall
 )
-from pytorch_lightning.metrics.metric import TensorMetric, TensorCollectionMetric
+from pytorch_lightning.metrics.functional.reduction import class_reduce
+from pytorch_lightning.metrics.metric import TensorMetric
 
 
 class Accuracy(TensorMetric):
@@ -36,28 +51,27 @@ class Accuracy(TensorMetric):
     """
 
     def __init__(
-            self,
-            num_classes: Optional[int] = None,
-            reduction: str = 'elementwise_mean',
-            reduce_group: Any = None,
-            reduce_op: Any = None,
+        self,
+        num_classes: Optional[int] = None,
+        class_reduction: str = 'micro',
+        reduce_group: Any = None,
     ):
         """
         Args:
             num_classes: number of classes
-            reduction: a method for reducing accuracies over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
+            class_reduction: method to reduce metric score over labels
+
+                - ``'micro'``: calculate metrics globally (default)
+                - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
+                - ``'none'``: returns calculated metric per class
+
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
         """
-        super().__init__(name='accuracy',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op)
+        super().__init__(name="accuracy", reduce_group=reduce_group)
         self.num_classes = num_classes
-        self.reduction = reduction
+        assert class_reduction in ('micro', 'macro', 'weighted', 'none')
+        self.class_reduction = class_reduction
 
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
@@ -71,7 +85,14 @@ class Accuracy(TensorMetric):
             A Tensor with the classification score.
         """
         return accuracy(pred=pred, target=target,
-                        num_classes=self.num_classes, reduction=self.reduction)
+                        num_classes=self.num_classes,
+                        class_reduction='none',
+                        return_state=True)
+
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+        tps, sups = output['tps'], output['sups']
+        return class_reduce(tps, sups, sups, class_reduction=self.class_reduction)
 
 
 class ConfusionMatrix(TensorMetric):
@@ -92,21 +113,23 @@ class ConfusionMatrix(TensorMetric):
     """
 
     def __init__(
-            self,
-            normalize: bool = False,
-            reduce_group: Any = None,
-            reduce_op: Any = None,
+        self,
+        num_classes: Optional[int] = None,
+        normalize: bool = False,
+        reduce_group: Any = None,
     ):
         """
         Args:
+            num_classes: number of classes
             normalize: whether to compute a normalized confusion matrix
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
         """
-        super().__init__(name='confusion_matrix',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op)
+        super().__init__(
+            name="confusion_matrix",
+            reduce_group=reduce_group,
+        )
         self.normalize = normalize
+        self.num_classes = num_classes
 
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
@@ -120,10 +143,19 @@ class ConfusionMatrix(TensorMetric):
             A Tensor with the confusion matrix.
         """
         return confusion_matrix(pred=pred, target=target,
-                                normalize=self.normalize)
+                                normalize=False,  # we normalize after ddp sync
+                                num_classes=self.num_classes)
+
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+        """ Confusion matrix normalization needs to happen after ddp sync """
+        confmat = output
+        if self.normalize:
+            confmat = _confmat_normalize(confmat)
+        return confmat
 
 
-class PrecisionRecall(TensorCollectionMetric):
+class PrecisionRecallCurve(TensorMetric):
     """
     Computes the precision recall curve
 
@@ -131,7 +163,7 @@ class PrecisionRecall(TensorCollectionMetric):
 
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 2, 2])
-        >>> metric = PrecisionRecall()
+        >>> metric = PrecisionRecallCurve()
         >>> prec, recall, thr = metric(pred, target)
         >>> prec
         tensor([0.3333, 0.0000, 0.0000, 1.0000])
@@ -143,28 +175,27 @@ class PrecisionRecall(TensorCollectionMetric):
     """
 
     def __init__(
-            self,
-            pos_label: int = 1,
-            reduce_group: Any = None,
-            reduce_op: Any = None,
+        self,
+        pos_label: int = 1,
+        reduce_group: Any = None,
     ):
         """
         Args:
             pos_label: positive label indicator
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
         """
-        super().__init__(name='precision_recall_curve',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op)
+        super().__init__(
+            name="precision_recall_curve",
+            reduce_group=reduce_group,
+        )
 
         self.pos_label = pos_label
 
     def forward(
-            self,
-            pred: torch.Tensor,
-            target: torch.Tensor,
-            sample_weight: Optional[Sequence] = None,
+        self,
+        pred: torch.Tensor,
+        target: torch.Tensor,
+        sample_weight: Optional[Sequence] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Actual metric computation
@@ -180,8 +211,7 @@ class PrecisionRecall(TensorCollectionMetric):
             - threshold values
         """
         return precision_recall_curve(pred=pred, target=target,
-                                      sample_weight=sample_weight,
-                                      pos_label=self.pos_label)
+                                      sample_weight=sample_weight, pos_label=self.pos_label)
 
 
 class Precision(TensorMetric):
@@ -192,35 +222,37 @@ class Precision(TensorMetric):
 
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 2, 2])
-        >>> metric = Precision(num_classes=4)
+        >>> metric = Precision(num_classes=4, class_reduction='macro')
         >>> metric(pred, target)
         tensor(0.7500)
 
     """
 
     def __init__(
-            self,
-            num_classes: Optional[int] = None,
-            reduction: str = 'elementwise_mean',
-            reduce_group: Any = None,
-            reduce_op: Any = None,
+        self,
+        num_classes: Optional[int] = None,
+        class_reduction: str = 'micro',
+        reduce_group: Any = None,
     ):
         """
         Args:
             num_classes: number of classes
-            reduction: a method for reducing accuracies over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
+            class_reduction: method to reduce metric score over labels
+
+                - ``'micro'``: calculate metrics globally (default)
+                - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
+                - ``'none'``: returns calculated metric per class
+
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
         """
-        super().__init__(name='precision',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op)
+        super().__init__(
+            name="precision",
+            reduce_group=reduce_group,
+        )
         self.num_classes = num_classes
-        self.reduction = reduction
+        assert class_reduction in ('micro', 'macro', 'weighted', 'none')
+        self.class_reduction = class_reduction
 
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
@@ -233,9 +265,15 @@ class Precision(TensorMetric):
         Return:
             A Tensor with the classification score.
         """
-        return precision(pred=pred, target=target,
-                         num_classes=self.num_classes,
-                         reduction=self.reduction)
+        return precision_recall(pred=pred, target=target,
+                                num_classes=self.num_classes,
+                                class_reduction='none',
+                                return_state=True)
+
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+        tps, fps, sups = output['tps'], output['fps'], output['sups']
+        return class_reduce(tps, tps + fps, sups, class_reduction=self.class_reduction)
 
 
 class Recall(TensorMetric):
@@ -248,34 +286,36 @@ class Recall(TensorMetric):
         >>> target = torch.tensor([0, 1, 2, 2])
         >>> metric = Recall()
         >>> metric(pred, target)
-        tensor(0.6250)
+        tensor(0.7500)
 
     """
 
     def __init__(
-            self,
-            num_classes: Optional[int] = None,
-            reduction: str = 'elementwise_mean',
-            reduce_group: Any = None,
-            reduce_op: Any = None,
+        self,
+        num_classes: Optional[int] = None,
+        class_reduction: str = 'micro',
+        reduce_group: Any = None,
     ):
         """
         Args:
             num_classes: number of classes
-            reduction: a method for reducing accuracies over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
+            class_reduction: method to reduce metric score over labels
+
+                - ``'micro'``: calculate metrics globally (default)
+                - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
+                - ``'none'``: returns calculated metric per class
+
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
         """
-        super().__init__(name='recall',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op)
+        super().__init__(
+            name="recall",
+            reduce_group=reduce_group,
+        )
 
         self.num_classes = num_classes
-        self.reduction = reduction
+        assert class_reduction in ('micro', 'macro', 'weighted', 'none')
+        self.class_reduction = class_reduction
 
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
@@ -288,10 +328,15 @@ class Recall(TensorMetric):
         Return:
             A Tensor with the classification score.
         """
-        return recall(pred=pred,
-                      target=target,
-                      num_classes=self.num_classes,
-                      reduction=self.reduction)
+        return precision_recall(pred=pred, target=target,
+                                num_classes=self.num_classes,
+                                class_reduction='none',
+                                return_state=True)
+
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+        tps, fns, sups = output['tps'], output['fns'], output['sups']
+        return class_reduce(tps, tps + fns, sups, class_reduction=self.class_reduction)
 
 
 class AveragePrecision(TensorMetric):
@@ -309,28 +354,24 @@ class AveragePrecision(TensorMetric):
     """
 
     def __init__(
-            self,
-            pos_label: int = 1,
-            reduce_group: Any = None,
-            reduce_op: Any = None,
+        self,
+        pos_label: int = 1,
+        reduce_group: Any = None,
     ):
         """
         Args:
             pos_label: positive label indicator
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
         """
-        super().__init__(name='AP',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op)
+        super().__init__(
+            name="AP",
+            reduce_group=reduce_group,
+        )
 
         self.pos_label = pos_label
 
     def forward(
-            self,
-            pred: torch.Tensor,
-            target: torch.Tensor,
-            sample_weight: Optional[Sequence] = None
+        self, pred: torch.Tensor, target: torch.Tensor, sample_weight: Optional[Sequence] = None
     ) -> torch.Tensor:
         """
         Actual metric computation
@@ -343,9 +384,7 @@ class AveragePrecision(TensorMetric):
         Return:
             torch.Tensor: classification score
         """
-        return average_precision(pred=pred, target=target,
-                                 sample_weight=sample_weight,
-                                 pos_label=self.pos_label)
+        return average_precision(pred=pred, target=target, sample_weight=sample_weight, pos_label=self.pos_label)
 
 
 class AUROC(TensorMetric):
@@ -355,36 +394,32 @@ class AUROC(TensorMetric):
     Example:
 
         >>> pred = torch.tensor([0, 1, 2, 3])
-        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> target = torch.tensor([0, 1, 1, 0])
         >>> metric = AUROC()
         >>> metric(pred, target)
-        tensor(0.3333)
+        tensor(0.5000)
 
     """
 
     def __init__(
-            self,
-            pos_label: int = 1,
-            reduce_group: Any = None,
-            reduce_op: Any = None,
+        self,
+        pos_label: int = 1,
+        reduce_group: Any = None,
     ):
         """
         Args:
             pos_label: positive label indicator
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
         """
-        super().__init__(name='auroc',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op)
+        super().__init__(
+            name="auroc",
+            reduce_group=reduce_group,
+        )
 
         self.pos_label = pos_label
 
     def forward(
-            self,
-            pred: torch.Tensor,
-            target: torch.Tensor,
-            sample_weight: Optional[Sequence] = None
+        self, pred: torch.Tensor, target: torch.Tensor, sample_weight: Optional[Sequence] = None
     ) -> torch.Tensor:
         """
         Actual metric computation
@@ -397,9 +432,7 @@ class AUROC(TensorMetric):
         Return:
             torch.Tensor: classification score
         """
-        return auroc(pred=pred, target=target,
-                     sample_weight=sample_weight,
-                     pos_label=self.pos_label)
+        return auroc(pred=pred, target=target, sample_weight=sample_weight, pos_label=self.pos_label)
 
 
 class FBeta(TensorMetric):
@@ -411,38 +444,40 @@ class FBeta(TensorMetric):
 
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 2, 2])
-        >>> metric = FBeta(0.25)
+        >>> metric = FBeta(0.25, class_reduction='macro')
         >>> metric(pred, target)
         tensor(0.7361)
     """
 
     def __init__(
-            self,
-            beta: float,
-            num_classes: Optional[int] = None,
-            reduction: str = 'elementwise_mean',
-            reduce_group: Any = None,
-            reduce_op: Any = None,
+        self,
+        beta: float,
+        num_classes: Optional[int] = None,
+        class_reduction: str = 'micro',
+        reduce_group: Any = None,
     ):
         """
         Args:
             beta: determines the weight of recall in the combined score.
             num_classes: number of classes
-            reduction: a method for reducing accuracies over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
+            class_reduction: method to reduce metric score over labels
+
+                - ``'micro'``: calculate metrics globally (default)
+                - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
+                - ``'none'``: returns calculated metric per class
+
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for DDP reduction
         """
-        super().__init__(name='fbeta',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op)
+        super().__init__(
+            name="fbeta",
+            reduce_group=reduce_group,
+        )
 
         self.beta = beta
         self.num_classes = num_classes
-        self.reduction = reduction
+        assert class_reduction in ('micro', 'macro', 'weighted', 'none')
+        self.class_reduction = class_reduction
 
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
@@ -455,12 +490,28 @@ class FBeta(TensorMetric):
         Return:
             torch.Tensor: classification score
         """
-        return fbeta_score(pred=pred, target=target,
-                           beta=self.beta, num_classes=self.num_classes,
-                           reduction=self.reduction)
+        return precision_recall(pred=pred, target=target,
+                                num_classes=self.num_classes,
+                                class_reduction='none',
+                                return_state=True)
+
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+        """ tps, fps, fns, sups needs to be synced before we do any calculations """
+        tps, fps, fns, sups = output['tps'], output['fps'], output['fns'], output['sups']
+
+        intermidiate_reduction = 'none' if self.class_reduction != "micro" else 'micro'
+        precision = class_reduce(tps, tps + fps, sups, class_reduction=intermidiate_reduction)
+        recall = class_reduce(tps, tps + fns, sups, class_reduction=intermidiate_reduction)
+
+        num = (1 + self.beta ** 2) * precision * recall
+        denom = ((self.beta ** 2) * precision + recall)
+        if intermidiate_reduction == 'micro':
+            return torch.sum(num) / torch.sum(denom)
+        return class_reduce(num, denom, sups, class_reduction=self.class_reduction)
 
 
-class F1(TensorMetric):
+class F1(FBeta):
     """
     Computes the F1 score, which is the harmonic mean of the precision and recall.
     It ranges between 1 and 0, where 1 is perfect and the worst value is 0.
@@ -469,53 +520,37 @@ class F1(TensorMetric):
 
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 2, 2])
-        >>> metric = F1()
+        >>> metric = F1(class_reduction='macro')
         >>> metric(pred, target)
         tensor(0.6667)
     """
 
     def __init__(
-            self,
-            num_classes: Optional[int] = None,
-            reduction: str = 'elementwise_mean',
-            reduce_group: Any = None,
-            reduce_op: Any = None,
+        self,
+        num_classes: Optional[int] = None,
+        class_reduction: str = 'micro',
+        reduce_group: Any = None,
     ):
         """
         Args:
             num_classes: number of classes
-            reduction: a method for reducing accuracies over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
+            class_reduction: method to reduce metric score over labels
+
+                - ``'micro'``: calculate metrics globally (default)
+                - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
+                - ``'none'``: returns calculated metric per class
+
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
         """
-        super().__init__(name='f1',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op)
-
-        self.num_classes = num_classes
-        self.reduction = reduction
-
-    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        """
-        Actual metric computation
-
-        Args:
-            pred: predicted labels
-            target: groundtruth labels
-
-        Return:
-            torch.Tensor: classification score
-        """
-        return f1_score(pred=pred, target=target,
-                        num_classes=self.num_classes,
-                        reduction=self.reduction)
+        super().__init__(beta=1.0,
+                         num_classes=num_classes,
+                         class_reduction=class_reduction,
+                         reduce_group=reduce_group)
+        self.name = "f1"
 
 
-class ROC(TensorCollectionMetric):
+class ROC(TensorMetric):
     """
     Computes the Receiver Operator Characteristic (ROC)
 
@@ -524,39 +559,32 @@ class ROC(TensorCollectionMetric):
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 2, 2])
         >>> metric = ROC()
-        >>> fps, tps, thresholds = metric(pred, target)
-        >>> fps
-        tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000])
-        >>> tps
-        tensor([0., 0., 0., 1., 1.])
-        >>> thresholds
-        tensor([4., 3., 2., 1., 0.])
+        >>> metric(pred, target)   # doctest: +NORMALIZE_WHITESPACE
+        (tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000]),
+         tensor([0., 0., 0., 1., 1.]),
+         tensor([4., 3., 2., 1., 0.]))
 
     """
 
     def __init__(
-            self,
-            pos_label: int = 1,
-            reduce_group: Any = None,
-            reduce_op: Any = None,
+        self,
+        pos_label: int = 1,
+        reduce_group: Any = None,
     ):
         """
         Args:
             pos_label: positive label indicator
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
         """
-        super().__init__(name='roc',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op)
+        super().__init__(
+            name="roc",
+            reduce_group=reduce_group,
+        )
 
         self.pos_label = pos_label
 
     def forward(
-            self,
-            pred: torch.Tensor,
-            target: torch.Tensor,
-            sample_weight: Optional[Sequence] = None
+        self, pred: torch.Tensor, target: torch.Tensor, sample_weight: Optional[Sequence] = None
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Actual metric computation
@@ -571,12 +599,10 @@ class ROC(TensorCollectionMetric):
             - true positive rate
             - thresholds
         """
-        return roc(pred=pred, target=target,
-                   sample_weight=sample_weight,
-                   pos_label=self.pos_label)
+        return roc(pred=pred, target=target, sample_weight=sample_weight, pos_label=self.pos_label)
 
 
-class MulticlassROC(TensorCollectionMetric):
+class MulticlassROC(TensorMetric):
     """
     Computes the multiclass ROC
 
@@ -597,32 +623,27 @@ class MulticlassROC(TensorCollectionMetric):
     """
 
     def __init__(
-            self,
-            num_classes: Optional[int] = None,
-            reduce_group: Any = None,
-            reduce_op: Any = None,
+        self,
+        num_classes: Optional[int] = None,
+        reduce_group: Any = None,
     ):
         """
         Args:
             num_classes: number of classes
-            reduction: a method for reducing accuracies over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
         """
-        super().__init__(name='multiclass_roc',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op)
+        super().__init__(
+            name="multiclass_roc",
+            reduce_group=reduce_group,
+        )
 
         self.num_classes = num_classes
 
     def forward(
-            self, pred: torch.Tensor,
-            target: torch.Tensor,
-            sample_weight: Optional[Sequence] = None,
+        self,
+        pred: torch.Tensor,
+        target: torch.Tensor,
+        sample_weight: Optional[Sequence] = None,
     ) -> Tuple[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
         """
         Actual metric computation
@@ -636,13 +657,19 @@ class MulticlassROC(TensorCollectionMetric):
             tuple: A tuple consisting of one tuple per class, holding false positive rate, true positive rate and thresholds
 
         """
-        return multiclass_roc(pred=pred,
-                              target=target,
-                              sample_weight=sample_weight,
-                              num_classes=self.num_classes)
+        return multiclass_roc(pred=pred, target=target, sample_weight=sample_weight, num_classes=self.num_classes)
+
+    def aggregate(self, *tensors: torch.Tensor) -> Tuple[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
+        """Aggregates results by stacking them instead of concatenating before averaging.
+
+        Returns:
+            the aggregated results
+        """
+
+        return tuple([tuple([torch.stack(tmps).mean(0) for tmps in zip(*_tensors)]) for _tensors in zip(*tensors)])
 
 
-class MulticlassPrecisionRecall(TensorCollectionMetric):
+class MulticlassPrecisionRecallCurve(TensorMetric):
     """Computes the multiclass PR Curve
 
     Example:
@@ -652,7 +679,7 @@ class MulticlassPrecisionRecall(TensorCollectionMetric):
         ...                     [0.05, 0.05, 0.85, 0.05],
         ...                     [0.05, 0.05, 0.05, 0.85]])
         >>> target = torch.tensor([0, 1, 3, 2])
-        >>> metric = MulticlassPrecisionRecall()
+        >>> metric = MulticlassPrecisionRecallCurve()
         >>> metric(pred, target)   # doctest: +NORMALIZE_WHITESPACE
         ((tensor([1., 1.]), tensor([1., 0.]), tensor([0.8500])),
          (tensor([1., 1.]), tensor([1., 0.]), tensor([0.8500])),
@@ -661,34 +688,28 @@ class MulticlassPrecisionRecall(TensorCollectionMetric):
     """
 
     def __init__(
-            self,
-            num_classes: Optional[int] = None,
-            reduce_group: Any = None,
-            reduce_op: Any = None,
+        self,
+        num_classes: Optional[int] = None,
+        reduce_group: Any = None,
     ):
         """
         Args:
             num_classes: number of classes
-            reduction: a method for reducing accuracies over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
 
         """
-        super().__init__(name='multiclass_precision_recall_curve',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op)
+        super().__init__(
+            name="multiclass_precision_recall_curve",
+            reduce_group=reduce_group,
+        )
 
         self.num_classes = num_classes
 
     def forward(
-            self,
-            pred: torch.Tensor,
-            target: torch.Tensor,
-            sample_weight: Optional[Sequence] = None,
+        self,
+        pred: torch.Tensor,
+        target: torch.Tensor,
+        sample_weight: Optional[Sequence] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Actual metric computation
@@ -702,10 +723,18 @@ class MulticlassPrecisionRecall(TensorCollectionMetric):
             tuple: A tuple consisting of one tuple per class, holding precision, recall and thresholds
 
         """
-        return multiclass_precision_recall_curve(pred=pred,
-                                                 target=target,
-                                                 sample_weight=sample_weight,
-                                                 num_classes=self.num_classes)
+        return multiclass_precision_recall_curve(
+            pred=pred, target=target, sample_weight=sample_weight, num_classes=self.num_classes
+        )
+
+    def aggregate(self, *tensors: torch.Tensor) -> Tuple[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
+        """Aggregates results by stacking them instead of concatenating before averaging.
+
+        Returns:
+            the aggregated results
+        """
+
+        return tuple([tuple([torch.stack(tmps).mean(0) for tmps in zip(*_tensors)]) for _tensors in zip(*tensors)])
 
 
 class DiceCoefficient(TensorMetric):
@@ -725,29 +754,29 @@ class DiceCoefficient(TensorMetric):
     """
 
     def __init__(
-            self,
-            include_background: bool = False,
-            nan_score: float = 0.0, no_fg_score: float = 0.0,
-            reduction: str = 'elementwise_mean',
-            reduce_group: Any = None,
-            reduce_op: Any = None,
+        self,
+        include_background: bool = False,
+        nan_score: float = 0.0,
+        no_fg_score: float = 0.0,
+        reduction: str = "elementwise_mean",
+        reduce_group: Any = None,
     ):
         """
         Args:
             include_background: whether to also compute dice for the background
             nan_score: score to return, if a NaN occurs during computation (denom zero)
             no_fg_score: score to return, if no foreground pixel was found in target
-            reduction: a method for reducing accuracies over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
+            reduction: a method to reduce metric score over labels.
+
+                - ``'elementwise_mean'``: takes the mean (default)
+                - ``'sum'``: takes the sum
+                - ``'none'``: no reduction will be applied
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
         """
-        super().__init__(name='dice',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op)
+        super().__init__(
+            name="dice",
+            reduce_group=reduce_group,
+        )
 
         self.include_background = include_background
         self.nan_score = nan_score
@@ -765,12 +794,14 @@ class DiceCoefficient(TensorMetric):
         Return:
             torch.Tensor: the calculated dice coefficient
         """
-        return dice_score(pred=pred,
-                          target=target,
-                          bg=self.include_background,
-                          nan_score=self.nan_score,
-                          no_fg_score=self.no_fg_score,
-                          reduction=self.reduction)
+        return dice_score(
+            pred=pred,
+            target=target,
+            bg=self.include_background,
+            nan_score=self.nan_score,
+            no_fg_score=self.no_fg_score,
+            reduction=self.reduction,
+        )
 
 
 class IoU(TensorMetric):
@@ -790,29 +821,46 @@ class IoU(TensorMetric):
         tensor(0.7045)
 
     """
-    def __init__(self,
-                 remove_bg: bool = False,
-                 reduction: str = 'elementwise_mean'):
+
+    def __init__(
+            self,
+            ignore_index: Optional[int] = None,
+            absent_score: float = 0.0,
+            num_classes: Optional[int] = None,
+            reduction: str = "elementwise_mean",
+    ):
         """
         Args:
-            remove_bg: Flag to state whether a background class has been included
-                within input parameters. If true, will remove background class. If
-                false, return IoU over all classes.
-                Assumes that background is '0' class in input tensor
-            reduction: a method for reducing IoU over labels (default: takes the mean)
-                Available reduction methods:
+            ignore_index: optional int specifying a target class to ignore. If given, this class index does not
+                contribute to the returned score, regardless of reduction method. Has no effect if given an int that is
+                not in the range [0, num_classes-1], where num_classes is either given or derived from pred and target.
+                By default, no index is ignored, and all classes are used.
+            absent_score: score to use for an individual class, if no instances of the class index were present in
+                `y_pred` AND no instances of the class index were present in `y_true`. For example, if we have 3
+                classes, [0, 0] for `y_pred`, and [0, 2] for `y_true`, then class 1 would be assigned the
+                `absent_score`. Default is 0.0.
+            num_classes: Optionally specify the number of classes
+            reduction: a method to reduce metric score over labels.
 
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
+                - ``'elementwise_mean'``: takes the mean (default)
+                - ``'sum'``: takes the sum
+                - ``'none'``: no reduction will be applied
         """
-        super().__init__(name='iou')
-        self.remove_bg = remove_bg
+        super().__init__(name="iou")
+        self.ignore_index = ignore_index
+        self.absent_score = absent_score
+        self.num_classes = num_classes
         self.reduction = reduction
 
-    def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor,
-                sample_weight: Optional[torch.Tensor] = None):
+    def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor, sample_weight: Optional[torch.Tensor] = None):
         """
         Actual metric calculation.
         """
-        return iou(y_pred, y_true, remove_bg=self.remove_bg, reduction=self.reduction)
+        return iou(
+            pred=y_pred,
+            target=y_true,
+            ignore_index=self.ignore_index,
+            absent_score=self.absent_score,
+            num_classes=self.num_classes,
+            reduction=self.reduction,
+        )

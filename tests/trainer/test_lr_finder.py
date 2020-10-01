@@ -1,9 +1,11 @@
+from copy import deepcopy
 import pytest
 import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+from tests.base.datamodules import TrialMNISTDataModule
 
 
 def test_error_on_more_than_1_optimizer(tmpdir):
@@ -15,11 +17,11 @@ def test_error_on_more_than_1_optimizer(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1
+        max_epochs=1,
     )
 
     with pytest.raises(MisconfigurationException):
-        trainer.lr_find(model)
+        trainer.tuner.lr_find(model)
 
 
 def test_model_reset_correctly(tmpdir):
@@ -30,12 +32,12 @@ def test_model_reset_correctly(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1
+        max_epochs=1,
     )
 
-    before_state_dict = model.state_dict()
+    before_state_dict = deepcopy(model.state_dict())
 
-    _ = trainer.lr_find(model, num_training=5)
+    _ = trainer.tuner.lr_find(model, num_training=5)
 
     after_state_dict = model.state_dict()
 
@@ -52,17 +54,17 @@ def test_trainer_reset_correctly(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1
+        max_epochs=1,
     )
 
     changed_attributes = ['callbacks', 'logger', 'max_steps', 'auto_lr_find',
                           'early_stop_callback', 'accumulate_grad_batches',
-                          'enable_early_stop', 'checkpoint_callback']
+                          'checkpoint_callback']
     attributes_before = {}
     for ca in changed_attributes:
         attributes_before[ca] = getattr(trainer, ca)
 
-    _ = trainer.lr_find(model, num_training=5)
+    _ = trainer.tuner.lr_find(model, num_training=5)
 
     attributes_after = {}
     for ca in changed_attributes:
@@ -73,40 +75,58 @@ def test_trainer_reset_correctly(tmpdir):
             f'Attribute {key} was not reset correctly after learning rate finder'
 
 
-def test_trainer_arg_bool(tmpdir):
+@pytest.mark.parametrize('use_hparams', [False, True])
+def test_trainer_arg_bool(tmpdir, use_hparams):
     """ Test that setting trainer arg to bool works """
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
     before_lr = hparams.get('learning_rate')
+    if use_hparams:
+        del model.learning_rate
+        model.configure_optimizers = model.configure_optimizers__lr_from_hparams
 
     # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        auto_lr_find=True
+        auto_lr_find=True,
     )
 
-    trainer.fit(model)
-    after_lr = model.learning_rate
+    trainer.tune(model)
+    if use_hparams:
+        after_lr = model.hparams.learning_rate
+    else:
+        after_lr = model.learning_rate
+
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
 
 
-def test_trainer_arg_str(tmpdir):
+@pytest.mark.parametrize('use_hparams', [False, True])
+def test_trainer_arg_str(tmpdir, use_hparams):
     """ Test that setting trainer arg to string works """
-    model = EvalModelTemplate()
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = EvalModelTemplate(**hparams)
     model.my_fancy_lr = 1.0  # update with non-standard field
-
+    model.hparams['my_fancy_lr'] = 1.0
     before_lr = model.my_fancy_lr
+    if use_hparams:
+        del model.my_fancy_lr
+        model.configure_optimizers = model.configure_optimizers__lr_from_hparams
+
     # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        auto_lr_find='my_fancy_lr'
+        auto_lr_find='my_fancy_lr',
     )
 
-    trainer.fit(model)
-    after_lr = model.my_fancy_lr
+    trainer.tune(model)
+    if use_hparams:
+        after_lr = model.hparams.my_fancy_lr
+    else:
+        after_lr = model.my_fancy_lr
+
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
 
@@ -124,16 +144,39 @@ def test_call_to_trainer_method(tmpdir):
         max_epochs=2,
     )
 
-    lrfinder = trainer.lr_find(model, mode='linear')
+    lrfinder = trainer.tuner.lr_find(model, mode='linear')
     after_lr = lrfinder.suggestion()
     model.learning_rate = after_lr
-    trainer.fit(model)
+    trainer.tune(model)
 
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
 
 
-@pytest.mark.skip('TODO: speed up this test')
+def test_datamodule_parameter(tmpdir):
+    """ Test that the datamodule parameter works """
+
+    # trial datamodule
+    dm = TrialMNISTDataModule(tmpdir)
+
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = EvalModelTemplate(**hparams)
+
+    before_lr = hparams.get('learning_rate')
+    # logger file to get meta
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+    )
+
+    lrfinder = trainer.tuner.lr_find(model, datamodule=dm)
+    after_lr = lrfinder.suggestion()
+    model.learning_rate = after_lr
+
+    assert before_lr != after_lr, \
+        'Learning rate was not altered after running learning rate finder'
+
+
 def test_accumulation_and_early_stopping(tmpdir):
     """ Test that early stopping of learning rate finder works, and that
         accumulation also works for this feature """
@@ -148,14 +191,14 @@ def test_accumulation_and_early_stopping(tmpdir):
         accumulate_grad_batches=2,
     )
 
-    lrfinder = trainer.lr_find(model, early_stop_threshold=None)
+    lrfinder = trainer.tuner.lr_find(model, early_stop_threshold=None)
     after_lr = lrfinder.suggestion()
 
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
-    assert len(lrfinder.results['lr']) == 100, \
+    assert len(lrfinder.results['lr']) == 99, \
         'Early stopping for learning rate finder did not work'
-    assert lrfinder._total_batch_idx == 100 * 2, \
+    assert lrfinder._total_batch_idx == 99 * 2, \
         'Accumulation parameter did not work'
 
 
@@ -171,7 +214,7 @@ def test_suggestion_parameters_work(tmpdir):
         max_epochs=3,
     )
 
-    lrfinder = trainer.lr_find(model)
+    lrfinder = trainer.tuner.lr_find(model)
     lr1 = lrfinder.suggestion(skip_begin=10)  # default
     lr2 = lrfinder.suggestion(skip_begin=80)  # way too high, should have an impact
 
@@ -183,15 +226,15 @@ def test_suggestion_with_non_finite_values(tmpdir):
     """ Test that non-finite values does not alter results """
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
 
     # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=3
+        max_epochs=3,
     )
 
-    lrfinder = trainer.lr_find(model)
+    lrfinder = trainer.tuner.lr_find(model)
     before_lr = lrfinder.suggestion()
     lrfinder.results['loss'][-1] = float('nan')
     after_lr = lrfinder.suggestion()

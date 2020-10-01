@@ -1,67 +1,19 @@
 # Examples   
-This folder has 3 sections:   
-
-## Basic Examples   
-Use these examples to test how lightning works.   
-
-#### Test on CPU  
-```bash
-python cpu_template.py
-```
-
----   
-#### Train on a single GPU
-```bash
-python gpu_template.py --gpus 1
-```   
-
----    
-#### DataParallel (dp)   
-Train on multiple GPUs using DataParallel.
-
-```bash
-python gpu_template.py --gpus 2 --distributed_backend dp
-```   
+Our most robust examples showing all sorts of implementations
+can be found in our sister library [PyTorch-Lightning-Bolts](https://pytorch-lightning-bolts.readthedocs.io/en/latest/convolutional.html#gpt-2).
 
 ---
-#### DistributedDataParallel (ddp)    
 
-Train on multiple GPUs using DistributedDataParallel   
-```bash
-python gpu_template.py --gpus 2 --distributed_backend ddp
-```
+## Basic examples
+In this folder we add 3 simple examples:
+
+* [Image Classifier](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/image_classifier.py) (trains arbitrary datasets with arbitrary backbones).
+* [MNIST classifier](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist.py) (defined the model inside the lightningModule).
+* [Autoencoder](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/autoencoder.py) (shows how the LightningModule is meant to be used as a system)
 
 ---
-#### DistributedDataParallel+DP (ddp2)    
 
-Train on multiple GPUs using DistributedDataParallel + dataparallel.
-On a single node, uses all GPUs for 1 model. Then shares gradient information
-across nodes.   
-```bash
-python gpu_template.py --gpus 2 --distributed_backend ddp2
-```
-
-## Multi-node example   
-
-This demo launches a job using 2 GPUs on 2 different nodes (4 GPUs total).
-To run this demo do the following:
-
-1. Log into the jumphost node of your SLURM-managed cluster.  
-2. Create a conda environment with Lightning and a GPU PyTorch version.   
-3. Choose a script to submit    
-
-### DDP  
-Submit this job to run with DistributedDataParallel (2 nodes, 2 gpus each)
-```bash
-sbatch ddp_job_submit.sh YourEnv
-```
-
-### DDP2  
-Submit this job to run with a different implementation of DistributedDataParallel.
-In this version, each node acts like DataParallel but syncs across nodes like DDP.
-```bash
-sbatch ddp2_job_submit.sh YourEnv
-```
-
-## Domain templates   
-These are templates to show common approaches such as GANs and RL.
+## Domain examples
+This folder contains older examples. You should instead use the examples 
+in [PyTorch-Lightning-Bolts](https://pytorch-lightning-bolts.readthedocs.io/en/latest/convolutional.html#gpt-2) 
+for advanced use cases.

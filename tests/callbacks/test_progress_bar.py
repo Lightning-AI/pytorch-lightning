@@ -13,10 +13,11 @@ from tests.base import EvalModelTemplate
     ([ProgressBar(refresh_rate=2)], 0),
     ([ProgressBar(refresh_rate=2)], 1),
 ])
-def test_progress_bar_on(callbacks, refresh_rate):
+def test_progress_bar_on(tmpdir, callbacks, refresh_rate):
     """Test different ways the progress bar can be turned on."""
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         callbacks=callbacks,
         progress_bar_refresh_rate=refresh_rate,
         max_epochs=1,
@@ -34,10 +35,11 @@ def test_progress_bar_on(callbacks, refresh_rate):
     ([], False),
     ([ModelCheckpoint('../trainer')], 0),
 ])
-def test_progress_bar_off(callbacks, refresh_rate):
+def test_progress_bar_off(tmpdir, callbacks, refresh_rate):
     """Test different ways the progress bar can be turned off."""
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         callbacks=callbacks,
         progress_bar_refresh_rate=refresh_rate,
     )
@@ -54,12 +56,13 @@ def test_progress_bar_misconfiguration():
         Trainer(callbacks=callbacks)
 
 
-def test_progress_bar_totals():
+def test_progress_bar_totals(tmpdir):
     """Test that the progress finishes with the correct total steps processed."""
 
     model = EvalModelTemplate()
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         progress_bar_refresh_rate=1,
         limit_val_batches=1.0,
         max_epochs=1,
@@ -105,12 +108,15 @@ def test_progress_bar_totals():
     assert bar.test_batch_idx == k
 
 
-def test_progress_bar_fast_dev_run():
+def test_progress_bar_fast_dev_run(tmpdir):
     model = EvalModelTemplate()
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         fast_dev_run=True,
     )
+
+    trainer.fit(model)
 
     progress_bar = trainer.progress_bar_callback
     assert 1 == progress_bar.total_train_batches
@@ -136,7 +142,7 @@ def test_progress_bar_fast_dev_run():
 
 
 @pytest.mark.parametrize('refresh_rate', [0, 1, 50])
-def test_progress_bar_progress_refresh(refresh_rate):
+def test_progress_bar_progress_refresh(tmpdir, refresh_rate):
     """Test that the three progress bars get correctly updated when using different refresh rates."""
 
     model = EvalModelTemplate()
@@ -147,31 +153,32 @@ def test_progress_bar_progress_refresh(refresh_rate):
         val_batches_seen = 0
         test_batches_seen = 0
 
-        def on_batch_start(self, trainer, pl_module):
-            super().on_batch_start(trainer, pl_module)
+        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+            super().on_train_batch_start(trainer, pl_module, batch, batch_idx, dataloader_idx)
             assert self.train_batch_idx == trainer.batch_idx
 
-        def on_batch_end(self, trainer, pl_module):
-            super().on_batch_end(trainer, pl_module)
+        def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+            super().on_train_batch_end(trainer, pl_module, batch, batch_idx, dataloader_idx)
             assert self.train_batch_idx == trainer.batch_idx + 1
             if not self.is_disabled and self.train_batch_idx % self.refresh_rate == 0:
                 assert self.main_progress_bar.n == self.train_batch_idx
             self.train_batches_seen += 1
 
-        def on_validation_batch_end(self, trainer, pl_module):
-            super().on_validation_batch_end(trainer, pl_module)
+        def on_validation_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+            super().on_validation_batch_end(trainer, pl_module, batch, batch_idx, dataloader_idx)
             if not self.is_disabled and self.val_batch_idx % self.refresh_rate == 0:
                 assert self.val_progress_bar.n == self.val_batch_idx
             self.val_batches_seen += 1
 
-        def on_test_batch_end(self, trainer, pl_module):
-            super().on_test_batch_end(trainer, pl_module)
+        def on_test_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+            super().on_test_batch_end(trainer, pl_module, batch, batch_idx, dataloader_idx)
             if not self.is_disabled and self.test_batch_idx % self.refresh_rate == 0:
                 assert self.test_progress_bar.n == self.test_batch_idx
             self.test_batches_seen += 1
 
     progress_bar = CurrentProgressBar(refresh_rate=refresh_rate)
     trainer = Trainer(
+        default_root_dir=tmpdir,
         callbacks=[progress_bar],
         progress_bar_refresh_rate=101,  # should not matter if custom callback provided
         limit_train_batches=1.0,

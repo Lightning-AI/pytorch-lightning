@@ -2,6 +2,7 @@
 
     from pytorch_lightning.trainer.trainer import Trainer
 
+.. _training_tricks:
 
 Training Tricks
 ================
@@ -56,6 +57,9 @@ longer training time. Inspired by https://github.com/BlackHC/toma.
     # Autoscale batch size 
     trainer = Trainer(auto_scale_batch_size=None|'power'|'binsearch')
 
+    # find the batch size
+    trainer.tune(model)
+
 Currently, this feature supports two modes `'power'` scaling and `'binsearch'`
 scaling. In `'power'` scaling, starting from a batch size of 1 keeps doubling 
 the batch size until an out-of-memory (OOM) error is encountered. Setting the 
@@ -86,9 +90,10 @@ invoking the trainer method `.scale_batch_size` themself (see description below)
 
     # Use default in trainer construction
     trainer = Trainer()
+    tuner = Tuner(trainer)
 
     # Invoke method
-    new_batch_size = trainer.scale_batch_size(model, ...)
+    new_batch_size = tuner.scale_batch_size(model, ...)
 
     # Override old batch size
     model.hparams.batch_size = new_batch_size

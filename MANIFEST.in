@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # Manifest syntax https://docs.python.org/2/distutils/sourcedist.html
 graft wheelhouse
 
@@ -14,6 +28,9 @@ exclude *.toml
 exclude *.svg
 recursive-include pytorch_lightning *.py
 
+# Include marker file for PEP 561
+include pytorch_lightning/py.typed
+
 # include examples
 recursive-include pl_examples *.py *.md *.sh *.txt
 
@@ -26,7 +43,7 @@ exclude tests
 recursive-exclude docs *
 exclude docs
 recursive-include docs/source/_images/logos/ *
-recursive-include docs/source/_images/general/ pl_overview* tf_* tutorial_*
+recursive-include docs/source/_images/general/ pl_overview* tf_* tutorial_* PTL101_*
 
 # Include the Requirements
 recursive-include requirements *.txt

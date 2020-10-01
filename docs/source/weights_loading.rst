@@ -4,6 +4,7 @@
     from pytorch_lightning.trainer.trainer import Trainer
     from pytorch_lightning.core.lightning import LightningModule
 
+.. _weights_loading:
 
 Saving and loading weights
 ==========================
@@ -29,7 +30,7 @@ Automatic saving
 Checkpointing is enabled by default to the current working directory.
 To change the checkpoint path pass in:
 
-.. testcode::
+.. code-block:: python
 
     trainer = Trainer(default_root_dir='/your/path/to/save/checkpoints')
 
@@ -42,9 +43,9 @@ To modify the behavior of checkpointing pass in your own callback.
     # DEFAULTS used by the Trainer
     checkpoint_callback = ModelCheckpoint(
         filepath=os.getcwd(),
-        save_top_k=True,
+        save_top_k=1,
         verbose=True,
-        monitor='val_loss',
+        monitor='checkpoint_on',
         mode='min',
         prefix=''
     )
@@ -108,9 +109,8 @@ But if you don't want to use the values saved in the checkpoint, pass in your ow
 
         def __init__(self, in_dim, out_dim):
             super().__init__()
-            self.in_dim = in_dim
-            self.out_dim = out_dim
-            self.l1 = nn.Linear(self.in_dim, self.out_dim)
+            self.save_hyperparameters()
+            self.l1 = nn.Linear(self.hparams.in_dim, self.hparams.out_dim)
 
 you can restore the model like this
 

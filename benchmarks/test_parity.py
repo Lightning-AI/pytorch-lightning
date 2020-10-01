@@ -4,14 +4,14 @@ import numpy as np
 import pytest
 import torch
 
-import tests.base.utils as tutils
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer, seed_everything
 from tests.base.models import ParityModuleRNN, ParityModuleMNIST
 
 
 @pytest.mark.parametrize('cls_model,max_diff', [
     (ParityModuleRNN, 0.05),
-    (ParityModuleMNIST, 0.5)
+    (ParityModuleMNIST, 0.55)
 ])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_pytorch_parity(tmpdir, cls_model, max_diff):
@@ -107,7 +107,7 @@ def lightning_loop(cls_model, num_runs=10, num_epochs=10):
         )
         trainer.fit(model)
 
-        final_loss = trainer.running_loss.last().item()
+        final_loss = trainer.train_loop.running_loss.last().item()
         errors.append(final_loss)
 
         time_end = time.perf_counter()

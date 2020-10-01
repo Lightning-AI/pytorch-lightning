@@ -4,7 +4,6 @@ from tests.base.datasets import TrialMNIST
 
 
 class ModelTemplateData:
-    hparams: ...
 
     def dataloader(self, train: bool, num_samples: int = 100):
         dataset = TrialMNIST(root=self.data_root, train=train, num_samples=num_samples, download=True)
@@ -12,7 +11,7 @@ class ModelTemplateData:
         loader = DataLoader(
             dataset=dataset,
             batch_size=self.batch_size,
-            num_workers=3,
+            num_workers=0,
             shuffle=train,
         )
         return loader
