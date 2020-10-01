@@ -184,10 +184,6 @@ class TrainLoop:
         # give accelerators a chance to finish
         self.trainer.accelerator_backend.on_train_end()
 
-        # clean up dist group
-        # if self.trainer.use_ddp or self.trainer.use_ddp2:
-        #     torch_distrib.destroy_process_group()
-
         # clear mem
         if self.trainer.on_gpu:
             model = self.trainer.get_model()

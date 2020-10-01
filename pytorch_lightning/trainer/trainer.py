@@ -736,6 +736,8 @@ class Trainer(
                     f'specify a path for a checkpoint .test(ckpt_path=PATH)'
                 )
                 return {}
+            if self.accelerator_backend is not None:
+                self.accelerator_backend.barrier()
 
             if self.accelerator_backend is not None:
                 self.accelerator_backend.barrier()
