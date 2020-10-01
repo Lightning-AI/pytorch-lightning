@@ -17,7 +17,7 @@ class LightningDistributed:
             x = self._encode(x).to(self.device)
 
         if self.rank > 0:
-            x = torch.rand(1000).to(self.device)
+            x = torch.rand(100).to(self.device)
         torch_distrib.broadcast(x, src=self.rank)
 
         if not is_tensor:
