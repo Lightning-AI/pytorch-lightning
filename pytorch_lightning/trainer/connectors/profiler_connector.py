@@ -25,7 +25,7 @@ class ProfilerConnector:
 
     def on_trainer_init(self, profiler: Union[BaseProfiler, bool, str]):
 
-        if type(profiler) is bool:
+        if isinstance(profiler, bool):
             rank_zero_warn("Passing a bool value as a `profiler` argument to Trainer is deprecated"
                            " and will be removed in v1.2. Use str ('simple' or 'advanced') instead.",
                            DeprecationWarning)
