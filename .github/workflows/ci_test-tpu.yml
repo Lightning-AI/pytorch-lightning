@@ -4,9 +4,9 @@ on:
   push:
     branches: [master]
 # TODO: temporal disable TPU testing until we find way how to pass credentials to forked PRs
-  pull_request:
-    branches:
-      - master
+#  pull_request:
+#    branches:
+#      - master
 
 env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}
@@ -30,8 +30,6 @@ jobs:
     steps:
     - name: Set IMAGETAG
       run: echo "IMAGETAG=$(date +%s)_${{ matrix.python-version }}" >> $GITHUB_ENV
-    - name: temp IMAGETAG check
-      run: echo $IMAGETAG && exit 1
     - name: Install Go
       uses: actions/setup-go@v2
       with:
