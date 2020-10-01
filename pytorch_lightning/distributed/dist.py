@@ -41,5 +41,5 @@ def _encode(obj):
 
 
 def _decode(tensor):
-    data = tensor.numpy().cpu().tobytes()
+    data = tensor.cpu().numpy().tobytes()
     return pickle.loads(data)
