@@ -40,12 +40,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         self.exp_save_path = None
 
-        #: The current epoch
-        self.current_epoch = 0
-
-        #: Total training batches seen across all epochs
-        self.global_step = 0
-
         self.loaded_optimizer_states_dict = {}
 
         #: Pointer to the trainer object
@@ -81,6 +75,14 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
     @property
     def example_input_array(self) -> Any:
         return self._example_input_array
+
+    @property
+    def current_epoch(self):
+        return self.trainer.current_epoch if self.trainer else 0
+
+    @property
+    def global_step(self):
+        return self.trainer.global_step if self.trainer else 0
 
     @example_input_array.setter
     def example_input_array(self, example: Any) -> None:
