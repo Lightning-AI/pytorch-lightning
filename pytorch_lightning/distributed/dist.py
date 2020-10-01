@@ -15,6 +15,10 @@ class LightningDistributed:
         is_tensor = isinstance(x, torch.Tensor)
         if not is_tensor:
             x = _encode(x).to(self.device)
+            print('-' * 100)
+            print(x)
+            print(self.rank)
+            print('-' * 100)
         torch_distrib.broadcast(x, src=self.rank)
 
         print('-' * 100)
