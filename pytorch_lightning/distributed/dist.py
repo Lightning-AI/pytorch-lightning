@@ -5,10 +5,10 @@ import numpy as np
 import torch.distributed as torch_distrib
 
 
-def broadcast(self, x: Any, rank: int):
+def broadcast(x: Any, rank: int):
     is_tensor = isinstance(x, torch.Tensor)
     if not is_tensor:
-        x = self._encode(x)
+        x = _encode(x)
     torch_distrib.broadcast(x, src=rank)
     
     print('-' * 100)
