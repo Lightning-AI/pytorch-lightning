@@ -14,7 +14,7 @@ class LightningDistributed:
     def broadcast(self, x: Any):
         is_tensor = isinstance(x, torch.Tensor)
         if not is_tensor:
-            x = _encode(x).to(self.device)
+            x = self._encode(x).to(self.device)
 
         if self.rank > 0:
             x = torch.rand(1000).to(self.device)
@@ -30,21 +30,18 @@ class LightningDistributed:
         print('-' * 100)
 
         if not is_tensor:
-            x = _decode(x)
+            x = self._decode(x)
         return x
 
+    def _encode(self, obj):
+        padding = torch.zeros(100, device=self.device).long()
+        result = [str(ord(c)) for c in obj]
+        chunks = [torch.tensor(int(x)) for x in result]
+        chunks = torch.stack(chunks).long()
+        padding[:len(chunks)] = chunks
+        return padding
 
-def _encode(obj):
-    target = torch.zeros(100)
-    data = pickle.dumps(obj)
-    data = np.frombuffer(data, dtype=np.uint8)
-    data = torch.from_numpy(data)
-    target[:len(data)] = data
-    return target
-
-
-def _decode(tensor):
-    data = tensor.cpu().numpy().tobytes()
-    torch_distrib.barrier()
-    data = pickle.loads(data)
-    return data
+    def _decode(self, tensor):
+        chunks = [chr(x.numpy()) for x in tensor]
+        text = ''.join(chunks)
+        return text
