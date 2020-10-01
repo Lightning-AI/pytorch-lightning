@@ -24,7 +24,7 @@ channels:
 
 dependencies:
     - python>=3.6
-    - pip
+    - pip>20.1
     - numpy>=1.16.4
     - pytorch>=1.3
     - future>=0.17.1
