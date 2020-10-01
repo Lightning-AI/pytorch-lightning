@@ -366,7 +366,6 @@ class ModelCheckpoint(Callback):
         ckpt_name = f"{filename}.ckpt"
         return os.path.join(self.dirpath, ckpt_name) if self.dirpath else ckpt_name
 
-    @rank_zero_only
     def __resolve_ckpt_dir(self, trainer, pl_module):
         """
         Determines model checkpoint save directory at runtime. References attributes from the
