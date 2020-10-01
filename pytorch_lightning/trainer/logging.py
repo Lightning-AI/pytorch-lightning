@@ -141,13 +141,13 @@ class TrainerLoggingMixin(ABC):
         if train:
             try:
                 loss = output['loss']
-            except Exception as e:
+            except Exception as exp:
                 if isinstance(output, torch.Tensor):
                     loss = output
                 else:
                     raise RuntimeError(
                         'No `loss` value in the dictionary returned from `model.training_step()`.'
-                    ) from e
+                    ) from exp
 
             # when using dp need to reduce the loss
             if self.use_dp or self.use_ddp2:
