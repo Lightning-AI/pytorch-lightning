@@ -60,7 +60,7 @@ class LitAutoEncoder(pl.LightningModule):
         return optimizer
 
     def on_train_epoch_end(self) -> None:
-        self.trainer.dist.broadcast('teddy world', self.trainer.global_rank)
+        self.trainer.dist.broadcast('teddy world')
 
 
 def cli_main():
