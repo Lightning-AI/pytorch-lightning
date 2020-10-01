@@ -273,26 +273,3 @@ def test_result_obj_on_tpu(tmpdir):
     )
 
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
-
-
-@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-@pl_multi_process_test
-def test_model_without_checkpoint_callback(tmpdir):
-    """Make sure model trains on TPU with checkpoint_callback set to False."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
-        max_epochs=1,
-        distributed_backend='tpu',
-        tpu_cores=8,
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
-        checkpoint_callback=False
-    )
-
-    model = EvalModelTemplate()
-    # 8 cores needs a big dataset
-    model.train_dataloader = _serial_train_loader
-    model.val_dataloader = _serial_train_loader
-
-    tpipes.run_m
