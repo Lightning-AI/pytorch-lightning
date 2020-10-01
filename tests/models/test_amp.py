@@ -1,46 +1,15 @@
 import os
-from unittest.mock import MagicMock
 
 import pytest
 import torch
-import wandb
 
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-
-
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_multi_gpu_wandb_ddp_spawn(tmpdir):
-    """
-    Test ddp + wb
-    """
-    from pytorch_lightning.loggers import WandbLogger
-    tutils.set_random_master_port()
-
-    model = EvalModelTemplate()
-
-    wandb.run = MagicMock()
-    wandb.init(name='name', project='project')
-
-    logger = WandbLogger(name='name', offline=True)
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        gpus=2,
-        distributed_backend='ddp_spawn',
-        precision=16,
-        logger=logger,
-
-    )
-    # tutils.run_model_test(trainer_options, model)
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-    assert result
-    trainer.test(model)
 
 
 @pytest.mark.skip(reason='dp + amp not supported currently')  # TODO
@@ -155,10 +124,10 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test root model address
-    assert trainer.resolve_root_node_address('abc') == 'abc'
-    assert trainer.resolve_root_node_address('abc[23]') == 'abc23'
-    assert trainer.resolve_root_node_address('abc[23-24]') == 'abc23'
-    assert trainer.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
+    assert trainer.slurm_connector.resolve_root_node_address('abc') == 'abc'
+    assert trainer.slurm_connector.resolve_root_node_address('abc[23]') == 'abc23'
+    assert trainer.slurm_connector.resolve_root_node_address('abc[23-24]') == 'abc23'
+    assert trainer.slurm_connector.resolve_root_node_address('abc[23-24, 45-40, 40]') == 'abc23'
 
 
 def test_cpu_model_with_amp(tmpdir):
@@ -179,7 +148,7 @@ def test_cpu_model_with_amp(tmpdir):
 
 
 def test_amp_without_apex(tmpdir):
-    """Check that even with apex amp type without requesting percussion=16 the amp backend is void."""
+    """Check that even with apex amp type without requesting precision=16 the amp backend is void."""
     os.environ['PL_DEV_DEBUG'] = '1'
     model = EvalModelTemplate()
 

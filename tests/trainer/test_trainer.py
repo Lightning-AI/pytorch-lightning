@@ -7,7 +7,7 @@ import types
 from argparse import Namespace
 from copy import deepcopy
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import patch, call, ANY
 
 import cloudpickle
 import pytest
@@ -380,7 +380,7 @@ def test_dp_output_reduce():
 @pytest.mark.parametrize(["save_top_k", "save_last", "file_prefix", "expected_files"], [
     pytest.param(-1, False, '', {'epoch=4.ckpt', 'epoch=3.ckpt', 'epoch=2.ckpt', 'epoch=1.ckpt', 'epoch=0.ckpt'},
                  id="CASE K=-1  (all)"),
-    pytest.param(1, False, 'test_prefix_', {'test_prefix_epoch=4.ckpt'},
+    pytest.param(1, False, 'test_prefix', {'test_prefix-epoch=4.ckpt'},
                  id="CASE K=1 (2.5, epoch 4)"),
     pytest.param(2, False, '', {'epoch=4.ckpt', 'epoch=2.ckpt'},
                  id="CASE K=2 (2.5 epoch 4, 2.8 epoch 2)"),
@@ -400,7 +400,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, ex
     # simulated losses
     losses = [10, 9, 2.8, 5, 2.5]
 
-    checkpoint_callback = ModelCheckpoint(tmpdir, save_top_k=save_top_k, save_last=save_last,
+    checkpoint_callback = ModelCheckpoint(tmpdir, monitor='checkpoint_on', save_top_k=save_top_k, save_last=save_last,
                                           prefix=file_prefix, verbose=1)
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
@@ -408,13 +408,14 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, ex
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
         trainer.current_epoch = i
-        trainer.logger_connector.callback_metrics = {'val_loss': torch.tensor(loss)}
+        trainer.logger_connector.callback_metrics = {'checkpoint_on': torch.tensor(loss)}
         checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
     file_lists = set(os.listdir(tmpdir))
 
-    assert len(file_lists) == len(expected_files), \
-        "Should save %i models when save_top_k=%i" % (len(expected_files), save_top_k)
+    assert len(file_lists) == len(expected_files), (
+        f"Should save {len(expected_files)} models when save_top_k={save_top_k} but found={file_lists}"
+    )
 
     # verify correct naming
     for fname in expected_files:
@@ -457,7 +458,7 @@ def test_model_checkpoint_only_weights(tmpdir):
 
     # assert restoring train state fails
     with pytest.raises(KeyError, match='checkpoint contains only the model'):
-        trainer.restore_training_state(checkpoint)
+        trainer.checkpoint_connector.restore_training_state(checkpoint)
 
 
 def test_model_freeze_unfreeze():
@@ -506,7 +507,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         max_epochs=2,
         limit_train_batches=0.65,
         limit_val_batches=1,
-        checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
+        checkpoint_callback=ModelCheckpoint(tmpdir, monitor='val_loss', save_top_k=-1),
         default_root_dir=tmpdir,
         early_stop_callback=False,
         val_check_interval=1.,
@@ -598,7 +599,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     # define callback for stopping the model and default epochs
     trainer_options.update(
         default_root_dir=tmpdir,
-        early_stop_callback=EarlyStopping(monitor='val_loss', min_delta=1.0),
+        early_stop_callback=EarlyStopping(monitor='early_stop_on', min_delta=1.0),
         val_check_interval=2,
         min_epochs=1,
         max_epochs=7,
@@ -663,12 +664,12 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
         max_epochs=2,
         progress_bar_refresh_rate=0,
         default_root_dir=tmpdir,
-        checkpoint_callback=ModelCheckpoint(save_top_k=save_top_k),
+        checkpoint_callback=ModelCheckpoint(monitor='val_loss', save_top_k=save_top_k),
     )
     trainer.fit(model)
     if ckpt_path == 'best':
         # ckpt_path is 'best', meaning we load the best weights
-        if save_top_k <= 0:
+        if save_top_k == 0:
             with pytest.raises(MisconfigurationException, match='.*is not configured to save the best.*'):
                 trainer.test(ckpt_path=ckpt_path)
         else:
@@ -1126,3 +1127,24 @@ def test_trainer_setup_call(tmpdir):
     trainer.test(ckpt_path=None)
     assert trainer.stage == 'test'
     assert trainer.get_model().stage == 'test'
+
+
+@pytest.mark.parametrize("train_batches, max_steps, log_interval", [
+    pytest.param(10, 10, 1),
+    pytest.param(3, 10, 1),
+    pytest.param(3, 10, 5),
+])
+@patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_metrics")
+def test_row_log_interval(log_metrics_mock, tmpdir, train_batches, max_steps, log_interval):
+    model = EvalModelTemplate()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        row_log_interval=log_interval,
+        log_save_interval=log_interval,
+        limit_train_batches=train_batches,
+        limit_val_batches=0,
+        max_steps=max_steps,
+    )
+    trainer.fit(model)
+    expected_calls = [call(metrics=ANY, step=s) for s in range(log_interval - 1, max_steps, log_interval)]
+    log_metrics_mock.assert_has_calls(expected_calls)

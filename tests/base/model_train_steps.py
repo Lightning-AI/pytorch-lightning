@@ -15,6 +15,8 @@ class TrainingStepVariations(ABC):
     test_step_inf_loss = float('inf')
 
     def training_step(self, batch, batch_idx, optimizer_idx=None):
+        self.training_step_called = True
+
         """Lightning calls this inside the training loop"""
         # forward pass
         x, y = batch
@@ -135,6 +137,7 @@ class TrainingStepVariations(ABC):
         result.log(f'{eval_name}_step_metric', loss_val + 1, on_step=True)
 
         setattr(self, f'{eval_name}_step_called', True)
+
         return result
 
     def eval_step_end_full_loop_result_obj_dp(self, result):
@@ -148,10 +151,14 @@ class TrainingStepVariations(ABC):
         reduced = getattr(result, f'epoch_{eval_name}_step_metric').mean()
         setattr(result, f'epoch_{eval_name}_step_metric', reduced)
 
+        reduced = getattr(result, f'{eval_name}_step_metric').mean()
+        setattr(result, f'{eval_name}_step_metric', reduced)
+
         result.checkpoint_on = result.checkpoint_on.mean()
         result.early_stop_on = result.early_stop_on.mean()
         result.log(f'{eval_name}_step_end_metric', torch.tensor(1).type_as(result.checkpoint_on))
         setattr(self, f'{eval_name}_step_end_called', True)
+
         return result
 
     def eval_epoch_end_full_loop_result_obj_dp(self, result):
@@ -173,6 +180,9 @@ class TrainingStepVariations(ABC):
 
         reduced = getattr(result, f'{eval_name}_step_end_metric').mean()
         setattr(result, f'{eval_name}_step_end_metric', reduced)
+
+        reduced = getattr(result, f'{eval_name}_step_metric').mean()
+        setattr(result, f'{eval_name}_step_metric', reduced)
 
         return result
 

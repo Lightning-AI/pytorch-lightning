@@ -15,16 +15,12 @@
 import torch
 from torch import optim
 
+from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.core import LightningModule
+from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.overrides.data_parallel import LightningDataParallel
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.accelerators.base_backend import Accelerator
-
-try:
-    from apex import amp
-except ImportError:
-    amp = None
 
 
 class DataParallelBackend(Accelerator):
@@ -42,10 +38,7 @@ class DataParallelBackend(Accelerator):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
-        self.trainer.optimizers = optimizers
-        self.trainer.lr_schedulers = lr_schedulers
-        self.trainer.optimizer_frequencies = optimizer_frequencies
+        self.setup_optimizers(model)
 
         # init torch data parallel
         model = self.__init_torch_data_parallel(model)
@@ -89,8 +82,7 @@ class DataParallelBackend(Accelerator):
                 f' See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.'
                 f' We recommend you switch to ddp if you want to use amp')
         else:
-            model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
-            self.reinit_scheduler_properties(optimizers, self.trainer.lr_schedulers)
+            model = self.trainer.precision_connector.connect(model)
 
         return model
 
@@ -127,16 +119,22 @@ class DataParallelBackend(Accelerator):
     def training_step_end(self, output):
         if isinstance(output, Result):
             output.dp_reduce()
+        elif isinstance(output, torch.Tensor):
+            output = output.mean()
         return output
 
     def validation_step_end(self, output):
         if isinstance(output, Result):
             output.dp_reduce()
+        elif isinstance(output, torch.Tensor):
+            output = output.mean()
         return output
 
     def test_step_end(self, output):
         if isinstance(output, Result):
             output.dp_reduce()
+        elif isinstance(output, torch.Tensor):
+            output = output.mean()
         return output
 
     def reinit_scheduler_properties(self, optimizers: list, schedulers: list):

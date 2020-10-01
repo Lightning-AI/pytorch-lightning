@@ -21,6 +21,7 @@ import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
+from pytorch_lightning.accelerators.base_backend import BackendType
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
@@ -84,7 +85,7 @@ class TrainerDataLoadingMixin(ABC):
 
         # ddp_spawn + num_workers > 0 don't mix! tell the user
         is_dataloader = isinstance(dataloader, DataLoader)
-        using_spawn = self.distributed_backend == 'ddp_spawn'
+        using_spawn = self.distributed_backend == BackendType.DDP_SPAWN
         if is_dataloader and not on_windows:
             if dataloader.num_workers > 0 and using_spawn:
                 rank_zero_warn('Dataloader(num_workers>0) and ddp_spawn do not mix well!'
@@ -147,15 +148,15 @@ class TrainerDataLoadingMixin(ABC):
             kwargs = dict(num_replicas=hvd.size(), rank=hvd.rank())
         else:
             world_size = {
-                'ddp': self.num_nodes * self.num_processes,
-                'ddp_spawn': self.num_nodes * self.num_processes,
-                'ddp2': self.num_nodes,
-                'ddp_cpu': self.num_processes * self.num_nodes
+                BackendType.DDP: self.num_nodes * self.num_processes,
+                BackendType.DDP_SPAWN: self.num_nodes * self.num_processes,
+                BackendType.DDP2: self.num_nodes,
+                BackendType.DDP_CPU: self.num_processes * self.num_nodes
             }
             assert self.distributed_backend is not None
             kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.global_rank)
 
-        kwargs['shuffle'] = train
+        kwargs['shuffle'] = train and not self.overfit_batches
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler
 
@@ -167,6 +168,12 @@ class TrainerDataLoadingMixin(ABC):
             model: The current `LightningModule`
         """
         self.train_dataloader = self.request_dataloader(model.train_dataloader)
+        if (self.overfit_batches > 0):
+            if hasattr(self.train_dataloader, 'sampler') and isinstance(self.train_dataloader.sampler, RandomSampler):
+                rank_zero_warn('You requested to overfit but enabled training dataloader shuffling.'
+                               ' We are turning it off for you.')
+                self.train_dataloader = self.replace_sampler(
+                    self.train_dataloader, SequentialSampler(self.train_dataloader.dataset))
 
         # debugging
         self.dev_debugger.track_load_dataloader_call('train_dataloader', dataloaders=[self.train_dataloader])
@@ -247,7 +254,7 @@ class TrainerDataLoadingMixin(ABC):
 
                 # when overfitting, the dataloader should not have sampler
                 if self.overfit_batches > 0:
-                    rank_zero_warn('You requested to overfit but enabled training dataloader shuffling.'
+                    rank_zero_warn('You requested to overfit but enabled test/val dataloader shuffling.'
                                    ' We are turning it off for you.')
                     dataloaders[loader_i] = self.replace_sampler(loader, SequentialSampler(loader.dataset))
 
@@ -288,7 +295,7 @@ class TrainerDataLoadingMixin(ABC):
                     min_pct = 1.0 / len(dataloader)
                     raise MisconfigurationException(
                         f'you requested to check {limit_eval_batches} of the {mode} dataloader but'
-                        f' {limit_eval_batches}*{num_batches} = 0. Please increase the limit_{mode}_batches.'
+                        f' {limit_eval_batches}*{num_batches} < 1. Please increase the limit_{mode}_batches.'
                         f' Try at least limit_{mode}_batches={min_pct}'
                     )
 

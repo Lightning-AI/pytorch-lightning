@@ -261,7 +261,7 @@ Example::
     trainer = Trainer(auto_lr_find='my_lr_arg')
 
 .. note::
-    See the `learning rate finder guide <lr_finder.rst>`_
+    See the :ref:`learning rate finder guide <lr_finder>`.
 
 benchmark
 ^^^^^^^^^
@@ -350,7 +350,7 @@ Example::
         filepath=os.getcwd(),
         save_top_k=True,
         verbose=True,
-        monitor='val_loss',
+        monitor='checkpoint_on',
         mode='min',
         prefix=''
     )
@@ -402,8 +402,8 @@ Example::
 .. note:: this option does not apply to TPU. TPUs use ```ddp``` by default (over each core)
 
 See Also:
-    - `Multi-GPU training guide <multi_gpu.rst>`_
-    - `Multi-node (SLURM) guide <slurm.rst>`_
+    - :ref:`Multi-GPU training guide <multi_gpu>`.
+    - :ref:`Multi-node (SLURM) guide <slurm>`.
 
 early_stop_callback
 ^^^^^^^^^^^^^^^^^^^
@@ -411,11 +411,14 @@ early_stop_callback
 Callback for early stopping.
 early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
 
-- ``True``: A default callback monitoring ``'val_loss'`` is created.
-   Will raise an error if ``'val_loss'`` is not found.
+- ``True``: A default callback monitoring ``'early_stop_on'`` (if dict is returned in validation loop) or
+  ``early_stopping_on`` (if :class:`~pytorch_lightning.core.step_result.Result` is returned) is created.
+  Will raise an error if a dictionary is returned and ``'early_stop_on'`` is not found.
+  Will raise an error if a :class:`~pytorch_lightning.core.step_result.Result` is returned
+  and ``early_stopping_on`` was not specified.
 - ``False``: Early stopping will be disabled.
-- ``None``: The default callback monitoring ``'val_loss'`` is created.
-- Default: ``None``.
+- ``None``: Equivalent to ``True``.
+- Default: ``False``.
 
 .. testcode::
 
@@ -423,7 +426,7 @@ early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
 
     # default used by the Trainer
     early_stop = EarlyStopping(
-        monitor='val_loss',
+        monitor='early_stop_on',
         patience=3,
         strict=False,
         verbose=False,
@@ -431,7 +434,7 @@ early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
     )
     trainer = Trainer(early_stop_callback=early_stop)
 
-.. note:: If ``'val_loss'`` is not found will work as if early stopping is disabled.
+.. note:: If ``'early_stop_on'`` is not found will work as if early stopping is disabled.
 
 fast_dev_run
 ^^^^^^^^^^^^
@@ -499,7 +502,7 @@ Example::
     trainer = Trainer(gpus=[1, 4], num_nodes=4)
 
 See Also:
-    - `Multi-GPU training guide <multi_gpu.rst>`_
+    - :ref:`Multi-GPU training guide <multi_gpu>`.
 
 gradient_clip_val
 ^^^^^^^^^^^^^^^^^
@@ -581,10 +584,13 @@ Writes logs to disk this often.
     # default used by the Trainer
     trainer = Trainer(log_save_interval=100)
 
+See Also:
+    - :ref:`Experiment Reporting <experiment_reporting>`
+
 logger
 ^^^^^^
 
-`Logger <loggers.rst>`_ (or iterable collection of loggers) for experiment tracking.
+:ref:`Logger <loggers>` (or iterable collection of loggers) for experiment tracking.
 
 .. testcode::
 
@@ -820,7 +826,7 @@ profiler
 ^^^^^^^^
 To profile individual steps during training and assist in identifying bottlenecks.
 
-See the `profiler documentation <profiler.rst>`_. for more details.
+See the :ref:`profiler documentation <profiler>`. for more details.
 
 .. testcode::
 
@@ -913,6 +919,10 @@ How often to add logging rows (does not write to disk)
     # default used by the Trainer
     trainer = Trainer(row_log_interval=50)
 
+See Also:
+    - :ref:`Experiment Reporting <experiment_reporting>`
+
+
 sync_batchnorm
 ^^^^^^^^^^^^^^
 
@@ -921,21 +931,6 @@ Enable synchronization between batchnorm layers across all GPUs.
 .. testcode::
 
     trainer = Trainer(sync_batchnorm=True)
-
-val_percent_check
-^^^^^^^^^^^^^^^^^
-
-.. warning:: deprecated in v0.8.0 please use `limit_val_batches`. Will remove in 0.10.0
-
-test_percent_check
-^^^^^^^^^^^^^^^^^^
-
-.. warning:: deprecated in v0.8.0 please use `limit_test_batches`. Will remove in 0.10.0
-
-train_percent_check
-^^^^^^^^^^^^^^^^^^^
-
-.. warning:: deprecated in v0.8.0 please use `limit_train_batches`. Will remove in 0.10.0
 
 track_grad_norm
 ^^^^^^^^^^^^^^^
@@ -1099,4 +1094,4 @@ Trainer class API
 from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities.seed import seed_everything
 
-__all__ = ['Trainer', 'seed_everything']
+__all__ = ["Trainer", "seed_everything"]

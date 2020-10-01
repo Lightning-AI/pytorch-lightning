@@ -10,7 +10,7 @@ from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 
 import pytorch_lightning as pl
-from pl_examples.models.unet import UNet
+from pl_examples.domain_templates.unet import UNet
 from pytorch_lightning.loggers import WandbLogger
 
 DEFAULT_VOID_LABELS = (0, 1, 2, 3, 4, 5, 6, 9, 10, 14, 15, 16, 18, 29, 30, -1)

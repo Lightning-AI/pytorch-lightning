@@ -6,6 +6,7 @@ import pytest
 import torch
 import yaml
 from omegaconf import OmegaConf
+from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -34,17 +35,23 @@ def test_tensorboard_hparams_reload(tmpdir):
 
     # verify artifacts
     assert len(os.listdir(os.path.join(folder_path, "checkpoints"))) == 1
-    #
-    # # verify tb logs
-    # event_acc = EventAccumulator(folder_path)
-    # event_acc.Reload()
-    #
-    # hparams_data = b'\x12\x84\x01"\x0b\n\tdrop_prob"\x0c\n\nbatch_size"\r\n\x0bin_features"' \
-    #                b'\x0f\n\rlearning_rate"\x10\n\x0eoptimizer_name"\x0b\n\tdata_root"\x0e\n' \
-    #                b'\x0cout_features"\x0c\n\nhidden_dim"\x04\n\x02b1"\x04\n\x02b2'
-    #
-    # assert event_acc.summary_metadata['_hparams_/experiment'].plugin_data.plugin_name == 'hparams'
-    # assert event_acc.summary_metadata['_hparams_/experiment'].plugin_data.content == hparams_data
+
+    # verify tb logs
+    event_acc = EventAccumulator(folder_path)
+    event_acc.Reload()
+
+    data_pt_1_5 = b'\x12\x93\x01"\x0b\n\tdrop_prob"\x0c\n\nbatch_size"\r\n\x0bin_features"\x0f\n\rlearning_rate"' \
+                  b'\x10\n\x0eoptimizer_name"\x0b\n\tdata_root"\x0e\n\x0cout_features"\x0c\n\nhidden_dim"' \
+                  b'\x04\n\x02b1"\x04\n\x02b2*\r\n\x0b\x12\thp_metric'
+    data_pt_1_6 = b'\x12\xa7\x01"\r\n\tdrop_prob \x03"\x0e\n\nbatch_size \x03"\x0f\n\x0bin_features \x03"' \
+                  b'\x11\n\rlearning_rate \x03"\x12\n\x0eoptimizer_name \x01"\r\n\tdata_root \x01"' \
+                  b'\x10\n\x0cout_features \x03"\x0e\n\nhidden_dim \x03"\x06\n\x02b1 \x03"' \
+                  b'\x06\n\x02b2 \x03*\r\n\x0b\x12\thp_metric'
+
+    hparams_data = data_pt_1_6 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0") else data_pt_1_5
+
+    assert event_acc.summary_metadata['_hparams_/experiment'].plugin_data.plugin_name == 'hparams'
+    assert event_acc.summary_metadata['_hparams_/experiment'].plugin_data.content == hparams_data
 
 
 def test_tensorboard_automatic_versioning(tmpdir):

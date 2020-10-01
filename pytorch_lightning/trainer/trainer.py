@@ -14,10 +14,9 @@
 
 import os
 import warnings
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Union
 
 import torch
-import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
@@ -26,77 +25,58 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import EvalResult
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler, SimpleProfiler
+from pytorch_lightning.profiler import BaseProfiler
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_10
-from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import TrainerState, trainer_state
-from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
-from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only, rank_zero_warn, AMPType
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
-from pytorch_lightning.trainer.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.optimizer_connector import OptimizerConnector
-from pytorch_lightning.trainer.training_trick_connector import TrainingTricksConnector
-from pytorch_lightning.trainer.callback_connector import CallbackConnector
-from pytorch_lightning.trainer.model_connector import ModelConnector
-from pytorch_lightning.trainer.debugging_connector import DebuggingConnector
+from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
+from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
+from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
+from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
+from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
+from pytorch_lightning.trainer.connectors.debugging_connector import DebuggingConnector
+from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
+from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
 from pytorch_lightning import _logger as log
 from pytorch_lightning.tuner.tuning import Tuner
-from pytorch_lightning.trainer.precision_connector import PrecisionConnector
-from pytorch_lightning.trainer.profiler_connector import ProfilerConnector
-from pytorch_lightning.trainer.data_connector import DataConnector
+from pytorch_lightning.trainer.connectors.precision_connector import PrecisionConnector
+from pytorch_lightning.trainer.connectors.profiler_connector import ProfilerConnector
+from pytorch_lightning.trainer.connectors.data_connector import DataConnector
+from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.model_utils import is_overridden
-from pytorch_lightning.trainer import docstrings
 from pytorch_lightning.trainer.properties import TrainerProperties
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
     'ignore', message='torch.distributed.reduce_op is deprecated, ' 'please use torch.distributed.ReduceOp instead'
 )
+os.environ['PYTHONWARNINGS'] = 'ignore:semaphore_tracker:UserWarning'
 
 try:
     from apex import amp
 except ImportError:
     amp = None
 
-try:
-    import torch_xla
-    import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
-
-try:
-    import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
-
 
 class Trainer(
     TrainerProperties,
-    TrainerIOMixin,
     TrainerCallbackHookMixin,
     TrainerModelHooksMixin,
     TrainerOptimizersMixin,
-    TrainerDDPMixin,
     TrainerLoggingMixin,
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
-    TrainerDeprecatedAPITillVer0_10,
 ):
     def __init__(
         self,
@@ -148,11 +128,133 @@ class Trainer(
         prepare_data_per_node: bool = True,
         amp_backend: str = 'native',
         amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
-        val_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
-        test_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
-        train_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
         overfit_pct: float = None,  # backward compatible, todo: remove in v1.0.0
     ):
+        r"""
+        Customize every aspect of training via flags
+
+        Args:
+
+            accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
+
+            amp_backend: The mixed precision backend to use ("native" or "apex")
+
+            amp_level: The optimization level to use (O1, O2, etc...).
+
+            auto_lr_find: If set to True, will `initially` run a learning rate finder,
+                trying to optimize initial learning for faster convergence. Sets learning
+                rate in self.lr or self.learning_rate in the LightningModule.
+                To use a different key, set a string instead of True with the key name.
+
+            auto_scale_batch_size: If set to True, will `initially` run a batch size
+                finder trying to find the largest batch size that fits into memory.
+                The result will be stored in self.batch_size in the LightningModule.
+                Additionally, can be set to either `power` that estimates the batch size through
+                a power search or `binsearch` that estimates the batch size through a binary search.
+
+            auto_select_gpus: If enabled and `gpus` is an integer, pick available
+                gpus automatically. This is especially useful when
+                GPUs are configured to be in "exclusive mode", such
+                that only one process at a time can access them.
+
+            benchmark: If true enables cudnn.benchmark.
+
+            callbacks: Add a list of callbacks.
+
+            checkpoint_callback: Callback for checkpointing.
+
+            check_val_every_n_epoch: Check val every n train epochs.
+
+            default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
+                Default: ``os.getcwd()``.
+                Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
+
+            deterministic: If true enables cudnn.deterministic.
+
+            distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn, ddp_cpu)
+
+            early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
+
+            fast_dev_run: runs 1 batch of train, test and val to find any bugs (ie: a sort of unit test).
+
+            gpus: number of gpus to train on (int) or which GPUs to train on (list or str) applied per node
+
+            gradient_clip_val: 0 means don't clip.
+
+            limit_train_batches: How much of training dataset to check (floats = percent, int = num_batches)
+
+            limit_val_batches: How much of validation dataset to check (floats = percent, int = num_batches)
+
+            limit_test_batches: How much of test dataset to check (floats = percent, int = num_batches)
+
+            logger: Logger (or iterable collection of loggers) for experiment tracking.
+
+            log_gpu_memory: None, 'min_max', 'all'. Might slow performance
+
+            log_save_interval: Writes logs to disk this often
+
+            prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
+                Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
+
+            process_position: orders the progress bar when running multiple models on same machine.
+
+            progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
+                Ignored when a custom callback is passed to :paramref:`~Trainer.callbacks`.
+
+            profiler:  To profile individual steps during training and assist in identifying bottlenecks.
+
+            overfit_batches: Overfit a percent of training data (float) or a set number of batches (int). Default: 0.0
+
+            precision: Full precision (32), half precision (16). Can be used on CPU, GPU or TPUs.
+
+            max_epochs: Stop training once this number of epochs is reached.
+
+            min_epochs: Force training for at least these many epochs
+
+            max_steps: Stop training after this number of steps. Disabled by default (None).
+
+            min_steps: Force training for at least these number of steps. Disabled by default (None).
+
+            num_nodes: number of GPU nodes for distributed training.
+
+            num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
+                Set it to `-1` to run all batches in all validation dataloaders. Default: 2
+
+            reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch.
+
+            replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this
+                will toggled automatically when DDP is used. By default it will add ``shuffle=True`` for
+                train sampler and ``shuffle=False`` for val/test sampler. If you want to customize it,
+                you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
+
+            resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.
+                This can be a URL.
+
+            row_log_interval: How often to add logging rows (does not write to disk)
+
+            sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
+
+            terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
+                end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
+
+            tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on [1]
+
+            track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm.
+
+            truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of much longer
+                sequence.
+
+            val_check_interval: How often to check the validation set. Use float to check within a training epoch,
+                use int to check every n steps (batches).
+
+            weights_summary: Prints a summary of the weights when training begins.
+
+            weights_save_path: Where to save weights if specified. Will override default_root_dir
+                    for checkpoints only. Use this if for whatever reason you need the checkpoints
+                    stored in a different place than the logs written in `default_root_dir`.
+                    Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
+                    Defaults to `default_root_dir`.
+        """
         super().__init__()
 
         # init connectors
@@ -168,6 +270,8 @@ class Trainer(
         self.debugging_connector = DebuggingConnector(self)
         self.training_tricks_connector = TrainingTricksConnector(self)
         self.profile_connector = ProfilerConnector(self)
+        self.checkpoint_connector = CheckpointConnector(self)
+        self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
         self.accelerator_backend = None
         self.evaluation_loop = EvaluationLoop(self)
@@ -243,9 +347,6 @@ class Trainer(
         # init debugging flags
         self.debugging_connector.on_init_start(
             overfit_pct,
-            val_percent_check,
-            test_percent_check,
-            train_percent_check,
             limit_train_batches,
             limit_val_batches,
             limit_test_batches,
@@ -296,7 +397,6 @@ class Trainer(
     # -----------------------------
     # MODEL TRAINING
     # -----------------------------
-    @trainer_state(entering=TrainerState.RUNNING, exiting=TrainerState.FINISHED)
     def fit(
         self,
         model: LightningModule,
@@ -304,11 +404,25 @@ class Trainer(
         val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         datamodule: Optional[LightningDataModule] = None,
     ):
+        r"""
+        Runs the full optimization routine.
+
+        Args:
+            datamodule: A instance of :class:`LightningDataModule`.
+
+            model: Model to fit.
+
+            train_dataloader: A Pytorch DataLoader with training samples. If the model has
+                a predefined train_dataloader method this will be skipped.
+
+            val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
+                If the model has a predefined val_dataloaders method this will be skipped
+
+        """
+        self._state = TrainerState.RUNNING
+
         # setup data, etc...
         self.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
-
-        # hook
-        self.call_hook('on_fit_start', model)
 
         # hook
         self.data_connector.prepare_data(model)
@@ -321,6 +435,10 @@ class Trainer(
         # -------------------------
         self.accelerator_backend = self.accelerator_connector.select_accelerator()
         self.accelerator_backend.setup(model)
+
+        # hook
+        self.call_hook('on_fit_start')
+
         results = self.accelerator_backend.train()
         self.accelerator_backend.teardown()
 
@@ -337,6 +455,9 @@ class Trainer(
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
+
+        if self._state != TrainerState.INTERRUPTED:
+            self._state = TrainerState.FINISHED
         return results or 1
 
     def train(self):
@@ -431,6 +552,7 @@ class Trainer(
         for dataloader_idx, dataloader in enumerate(dataloaders):
             # bookkeeping
             dl_outputs = []
+            dl_step_metrics = []
             dataloader = self.accelerator_backend.process_dataloader(dataloader)
             dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
 
@@ -454,13 +576,22 @@ class Trainer(
 
                 # clean up
                 self.evaluation_loop.evaluation_batch_end_cleanup(output, batch_idx, dataloader_idx)
-                self.evaluation_loop.log_step_metrics(output, batch_idx)
 
-                # track epoch level metrics
+                # TODO: deprecate 1.0
+                self.evaluation_loop.log_evaluation_step_metrics_legacy(output, batch_idx)
+
+                # log step metrics
+                step_metrics = self.evaluation_loop.log_evaluation_step_metrics(batch, batch_idx)
+
+                if step_metrics is not None:
+                    dl_step_metrics.append(step_metrics)
+
+                # track epoch level outputs
                 if output is not None:
                     dl_outputs.append(output)
 
             self.evaluation_loop.outputs.append(dl_outputs)
+            self.evaluation_loop.step_metrics.append(dl_step_metrics)
 
         # lightning module method
         eval_results = self.evaluation_loop.evaluation_epoch_end(num_dataloaders=len(dataloaders))
@@ -526,13 +657,12 @@ class Trainer(
                 if isinstance(eval_results, EvalResult):
                     callback_metrics = eval_results.callback_metrics
                 else:
-                    _, _, _, callback_metrics, _ = self.process_output(eval_results)
+                    _, _, _, callback_metrics, _ = self.process_dict_result(eval_results)
                 self.logger_connector.callback_metrics = callback_metrics
 
             self.on_sanity_check_end()
             self.running_sanity_check = False
 
-    @trainer_state(entering=TrainerState.RUNNING, exiting=TrainerState.FINISHED)
     def test(
         self,
         model: Optional[LightningModule] = None,
@@ -541,6 +671,26 @@ class Trainer(
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ):
+        r"""
+
+        Separates from fit to make sure you never run on your test set until you want to.
+
+        Args:
+            ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
+                If ``None``, use the weights from the last epoch to test. Default to ``best``.
+
+            datamodule: A instance of :class:`LightningDataModule`.
+
+            model: The model to test.
+
+            test_dataloaders: Either a single
+                Pytorch Dataloader or a list of them, specifying validation samples.
+
+            verbose: If True, prints the test results
+
+        Returns:
+            The final test result dictionary. If no test_epoch_end is defined returns a list of dictionaries
+        """
         # --------------------
         # SETUP HOOK
         # --------------------
@@ -571,7 +721,7 @@ class Trainer(
         model = self.get_model()
 
         # if user requests the best checkpoint but we don't have it, error
-        if ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
+        if ckpt_path == 'best' and not self.checkpoint_callback.best_model_path:
             raise MisconfigurationException(
                 'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.'
             )
@@ -589,7 +739,7 @@ class Trainer(
                 )
                 return {}
 
-            ckpt = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
+            ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt['state_dict'])
 
         # attach dataloaders
@@ -664,9 +814,3 @@ class Trainer(
                 output = accelerator_hook(*args, **kwargs)
 
             return output
-
-
-# add docstrings
-Trainer.__init__.__doc__ = docstrings.trainer.init
-Trainer.fit.__doc__ = docstrings.trainer.fit
-Trainer.test.__doc__ = docstrings.trainer.test

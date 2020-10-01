@@ -11,6 +11,7 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.step_result import TrainResult
 from tests.base import EvalModelTemplate
 from tests.base.deterministic_model import DeterministicModel
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 # test with train_step_end
@@ -57,6 +58,7 @@ def test_training_step_result_log_step_only(tmpdir):
         assert len(logged_metrics) == 4
 
     # make sure we are using the correct metrics for callbacks
+    assert len(trainer.logger_connector.callback_metrics) == 11
     assert trainer.logger_connector.callback_metrics['checkpoint_on'] == 171
 
     # make sure pbar metrics are correct ang log metrics did not leak
@@ -121,6 +123,8 @@ def test_training_step_result_log_epoch_only(tmpdir):
     assert model.training_step_called
     assert not model.training_step_end_called
     assert not model.training_epoch_end_called
+
+    assert len(trainer.logger_connector.callback_metrics) == 11
 
     # make sure correct metrics are logged (one per batch step as requested)
     assert len(trainer.dev_debugger.logged_metrics) == epochs
@@ -197,6 +201,8 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
     assert not model.training_step_end_called
     assert not model.training_epoch_end_called
 
+    assert len(trainer.logger_connector.callback_metrics) == 11
+
     # make sure correct metrics are logged (one per batch step as requested)
     assert len(trainer.dev_debugger.logged_metrics) == (epochs * batches) + epochs
     epoch_metrics = trainer.dev_debugger.logged_metrics
@@ -221,7 +227,7 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
             assert logged_metrics['step_step_epoch_log_and_pbar_acc1'] == expected_val_1
             assert logged_metrics['step_step_epoch_log_acc2'] == expected_val_2
             assert 'step_epoch_pbar_acc3' not in logged_metrics
-            assert len(logged_metrics) == 4
+            assert len(logged_metrics) == 6
 
         # make sure the metrics for the epoch end are actual means (the default reduce fx) or all the batches
         epoch_end_metrics = epoch_outputs[-1]
@@ -230,7 +236,7 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
         assert epoch_end_metrics['epoch_step_epoch_log_and_pbar_acc1'] == eval_1
         assert epoch_end_metrics['epoch_step_epoch_log_acc2'] == eval_2
         assert 'step_epoch_pbar_acc3' not in epoch_end_metrics
-        assert len(logged_metrics) == 4
+        assert len(logged_metrics) == 6
 
     # make sure we are using the correct metrics for callbacks
     assert trainer.logger_connector.callback_metrics['checkpoint_on'] == 171
@@ -262,7 +268,7 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
             assert logged_metrics['step_step_epoch_log_and_pbar_acc1'] == expected_val_1
             assert logged_metrics['step_step_epoch_pbar_acc3'] == expected_val_2
             assert 'step_epoch_log_acc2' not in logged_metrics
-            assert len(logged_metrics) == 3
+            assert len(logged_metrics) == 5
 
         # make sure the metrics for the epoch end are actual means (the default reduce fx) or all the batches
         epoch_end_metrics = epoch_outputs[-1]
@@ -271,7 +277,7 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
         assert epoch_end_metrics['epoch_step_epoch_log_and_pbar_acc1'] == eval_1
         assert epoch_end_metrics['epoch_step_epoch_pbar_acc3'] == eval_2
         assert 'step_epoch_log_acc2' not in epoch_end_metrics
-        assert len(logged_metrics) == 3
+        assert len(logged_metrics) == 5
 
     # -----------------------------------------
     # make sure training outputs what is expected
@@ -281,7 +287,7 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
 
     out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
-    assert len(out.batch_log_metrics) == 2
+    assert len(out.batch_log_metrics) == 4
 
     train_step_out = out.training_step_output_for_epoch_end
     assert len(train_step_out) == 1
@@ -322,6 +328,8 @@ def test_training_step_epoch_end_result(tmpdir):
     )
     trainer.fit(model)
 
+    assert len(trainer.logger_connector.callback_metrics) == 17
+
     # make sure correct steps were called
     assert model.training_step_called
     assert not model.training_step_end_called
@@ -361,7 +369,7 @@ def test_training_step_epoch_end_result(tmpdir):
 
     out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
-    assert len(out.batch_log_metrics) == 2
+    assert len(out.batch_log_metrics) == 4
 
     train_step_out = out.training_step_output_for_epoch_end
     assert len(train_step_out) == 1
@@ -402,6 +410,8 @@ def test_no_auto_callbacks_with_train_loop_only(tmpdir):
     )
     trainer.fit(model)
 
+    assert len(trainer.logger_connector.callback_metrics) == 1
+
     all_losses = trainer.dev_debugger.saved_train_losses
     assert len(all_losses) == batches * epochs
 
@@ -418,7 +428,7 @@ def test_no_auto_callbacks_with_train_loop_only(tmpdir):
     )
     trainer.fit(model)
 
-    assert trainer.early_stop_callback.monitor == 'val_loss'
+    assert trainer.early_stop_callback.monitor == 'early_stop_on'
 
 
 def test_no_callbacks_with_train_loop_only(tmpdir):
@@ -448,7 +458,7 @@ def test_no_callbacks_with_train_loop_only(tmpdir):
 
     assert trainer.early_stop_callback is None
 
-    assert len(trainer.dev_debugger.checkpoint_callback_history) == 0
+    assert len(trainer.dev_debugger.checkpoint_callback_history) == 3
     assert len(trainer.dev_debugger.early_stopping_history) == 0
 
 
@@ -606,10 +616,11 @@ def test_result_monitor_warnings(tmpdir):
         row_log_interval=2,
         limit_train_batches=2,
         weights_summary=None,
-        checkpoint_callback=ModelCheckpoint(monitor='not_val_loss')
+        checkpoint_callback=ModelCheckpoint(monitor='not_checkpoint_on')
     )
 
-    with pytest.warns(UserWarning, match='key of ModelCheckpoint has no effect'):
+    # warn that the key was changed but metric was not found
+    with pytest.raises(MisconfigurationException, match="not found in the returned metrics"):
         trainer.fit(model)
 
     trainer = Trainer(
@@ -621,5 +632,29 @@ def test_result_monitor_warnings(tmpdir):
         early_stop_callback=EarlyStopping(monitor='not_val_loss')
     )
 
-    with pytest.warns(UserWarning, match='key of EarlyStopping has no effect'):
+    with pytest.raises(RuntimeError, match=r'.*Early stopping conditioned on metric `not_val_loss` which is not*'):
         trainer.fit(model)
+
+
+def test_eval_loop_return_none(tmpdir):
+    """
+    Tests that we warn when the monitor key is changed and we use Results obj
+    """
+    model = EvalModelTemplate()
+    model.test_step = None
+    model.training_step = model.training_step_result_obj
+    model.training_step_end = None
+    model.training_epoch_end = None
+    model.validation_step = model.validation_step_result_obj
+    model.validation_step_end = None
+    model.validation_epoch_end = model.validation_epoch_end_return_none
+    model.test_dataloader = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        row_log_interval=2,
+        limit_train_batches=2,
+        weights_summary=None,
+    )
+    trainer.fit(model)

@@ -13,21 +13,23 @@
 # limitations under the License.
 
 import os
+import re
 
 import torch
 import torch.multiprocessing as mp
 
 from pytorch_lightning import _logger as log
+from pytorch_lightning.accelerators.base_backend import Accelerator, BackendType
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn, AMPType
+from pytorch_lightning.utilities import AMPType, rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.accelerators.base_backend import Accelerator
 
 try:
     import torch_xla
     import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
     import torch_xla.distributed.parallel_loader as xla_pl
+    import torch_xla.distributed.xla_multiprocessing as xmp
 except ImportError:
     XLA_AVAILABLE = False
 else:
@@ -98,7 +100,7 @@ class TPUBackend(Accelerator):
 
         # load weights if not interrupted
         if self.trainer.on_colab_kaggle and not self.trainer.testing:
-            self.trainer.load_spawn_weights(model)
+            self.load_spawn_weights(model)
 
         self.trainer.model = model
 
@@ -124,7 +126,7 @@ class TPUBackend(Accelerator):
         self.__save_end_of_training_weights(model, trainer)
 
         # persist info in spawn
-        trainer.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
+        self.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
 
     def training_step(self, args):
         batch = args[0]
@@ -180,7 +182,7 @@ class TPUBackend(Accelerator):
         # when training ends on these platforms dump weights to get out of the main process
         if trainer.on_colab_kaggle:
             rank_zero_warn('cleaning up... please do not interrupt')
-            trainer.save_spawn_weights(model)
+            self.save_spawn_weights(model)
 
     def __setup_tpu_training(self, model: LightningModule, trainer):
         # use the default device from the process
@@ -208,10 +210,7 @@ class TPUBackend(Accelerator):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        optimizers, lr_schedulers, optimizer_frequencies = trainer.init_optimizers(model)
-        trainer.optimizers = optimizers
-        trainer.lr_schedulers = lr_schedulers
-        trainer.optimizer_frequencies = optimizer_frequencies
+        self.setup_optimizers(model)
 
         # init 16 bit for TPU
         if trainer.precision == 16:
@@ -253,3 +252,66 @@ class TPUBackend(Accelerator):
 
     def barrier(self, name: str = None):
         torch_xla.core.xla_model.rendezvous(f"pl.Trainer.{name}")
+
+    def early_stopping_should_stop(self, pl_module):
+        stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device, dtype=torch.int32)
+        stop = xm.mesh_reduce("stop_signal", stop, sum)
+        torch_xla.core.xla_model.rendezvous("pl.EarlyStoppingCallback.stop_distributed_training_check")
+        should_stop = int(stop.item()) == self.trainer.world_size
+        return should_stop
+
+    def save_spawn_weights(self, model):
+        """
+        Dump a temporary checkpoint after ddp ends to get weights out of the process
+        :param model:
+        :return:
+        """
+        if self.trainer.is_global_zero:
+            path = os.path.join(self.trainer.default_root_dir, '__temp_weight_distributed_end.ckpt')
+            self.trainer.save_checkpoint(path)
+            return path
+
+    def load_spawn_weights(self, original_model):
+        """
+        Load the temp weights saved in the process
+        To recover the trained model from the ddp process we load the saved weights
+        :param model:
+        :return:
+        """
+
+        loaded_model = original_model
+
+        if self.trainer.is_global_zero:
+            # load weights saved in ddp
+            path = os.path.join(self.trainer.default_root_dir, '__temp_weight_distributed_end.ckpt')
+            loaded_model = original_model.__class__.load_from_checkpoint(path)
+
+            # copy loaded weights to old model
+            original_model.load_state_dict(loaded_model.state_dict())
+
+            # remove ddp weights
+            os.remove(path)
+
+        return loaded_model
+
+    def transfer_distrib_spawn_state_on_fit_end(self, model, mp_queue, results):
+        if self.trainer.distributed_backend not in (BackendType.DDP_SPAWN, BackendType.DDP_CPU, BackendType.TPU):
+            return
+
+        # track the best model path
+        best_model_path = None
+        if self.trainer.checkpoint_callback is not None:
+            best_model_path = self.trainer.checkpoint_callback.best_model_path
+
+        if self.trainer.global_rank == 0 and mp_queue is not None:
+            rank_zero_warn('cleaning up ddp environment...')
+            # todo, pass complete checkpoint as state dictionary
+            mp_queue.put(best_model_path)
+            mp_queue.put(results)
+
+            # save the last weights
+            last_path = None
+            if not self.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
+                last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
+                atomic_save(model.state_dict(), last_path)
+            mp_queue.put(last_path)

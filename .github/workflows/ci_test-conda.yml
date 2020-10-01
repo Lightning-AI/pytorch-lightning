@@ -3,13 +3,9 @@ name: PyTorch & Conda
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches:
-      - master
+    branches: [master]
   pull_request:
-    branches:
-      - master
-# Trigger the workflow on push or pull request
-# on: [push, pull_request]
+    branches: [master]
 
 jobs:
   conda:
@@ -20,20 +16,23 @@ jobs:
       matrix:
         os: [ubuntu-20.04]
         python-version: [3.7]
-        # todo: add nightly versions
-        pytorch-version: [1.3, 1.4, 1.5, 1.6]  # , 1.7
+        pytorch-version: [1.3, 1.4, 1.5, 1.6, 1.7]
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 35
     steps:
     - uses: actions/checkout@v2
 
-    - name: Setup pyTorch
+    - name: Setup PyTorch nightly channel
+      if: matrix.pytorch-version >= 1.7
+      run: |
+        # NOTE: this requires that the channel is presented in the yaml before packages
+        python -c "fname = 'environment.yml' ; req = open(fname).read().replace('pytorch', 'pytorch-nightly', 1) ; open(fname, 'w').write(req)"
+
+    - name: Setup PyTorch version
       run: |
         python -c "fname = 'environment.yml' ; req = open(fname).read().replace('torch>=1.3', 'torch=${{ matrix.pytorch-version }}') ; open(fname, 'w').write(req)"
         cat environment.yml
-
-    # TODO: set source for nightly
 
     - name: Cache conda
       uses: actions/cache@v2
@@ -56,6 +55,10 @@ jobs:
     # https://gist.github.com/mwouts/9842452d020c08faf9e84a3bba38a66f
     - name: Setup Miniconda
       uses: goanpeca/setup-miniconda@v1.6.0
+      env:
+        # MAKEFLAGS: "-j2"
+        HOROVOD_WITHOUT_MXNET: 1
+        HOROVOD_WITHOUT_TENSORFLOW: 1
       with:
           # auto-update-conda: true
           auto-activate-base: false
@@ -68,11 +71,13 @@ jobs:
 
     - name: Reinstall Horovod if necessary
       if: runner.os != 'windows'
+      env:
+        HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
       run: |
         HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')" || true)
         if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
           pip uninstall -y horovod
-          HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install --no-cache-dir $(grep "horovod" requirements/extra.txt)
+          pip install --no-cache-dir $(grep "horovod" requirements/extra.txt)
         fi
         horovodrun --check-build
       shell: bash -l {0}

@@ -47,11 +47,11 @@ class MSE(Metric):
     ):
         """
         Args:
-            reduction: a method to reduce metric score over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
+            reduction: a method to reduce metric score over labels.
+
+                - ``'elementwise_mean'``: takes the mean (default)
+                - ``'sum'``: takes the sum
+                - ``'none'``: no reduction will be applied
         """
         super().__init__(name='mse')
         self.reduction = reduction
@@ -90,11 +90,11 @@ class RMSE(Metric):
     ):
         """
         Args:
-            reduction: a method to reduce metric score over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
+            reduction: a method to reduce metric score over labels.
+
+                - ``'elementwise_mean'``: takes the mean (default)
+                - ``'sum'``: takes the sum
+                - ``'none'``: no reduction will be applied
         """
         super().__init__(name='rmse')
         self.reduction = reduction
@@ -133,11 +133,11 @@ class MAE(Metric):
     ):
         """
         Args:
-            reduction: a method to reduce metric score over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
+            reduction: a method to reduce metric score over labels.
+
+                - ``'elementwise_mean'``: takes the mean (default)
+                - ``'sum'``: takes the sum
+                - ``'none'``: no reduction will be applied
         """
         super().__init__(name='mae')
         self.reduction = reduction
@@ -176,11 +176,11 @@ class RMSLE(Metric):
     ):
         """
         Args:
-            reduction: a method to reduce metric score over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
+            reduction: a method to reduce metric score over labels.
+
+                - ``'elementwise_mean'``: takes the mean (default)
+                - ``'sum'``: takes the sum
+                - ``'none'``: no reduction will be applied
         """
         super().__init__(name='rmsle')
         self.reduction = reduction
@@ -223,11 +223,11 @@ class PSNR(Metric):
         Args:
             data_range: the range of the data. If None, it is determined from the data (max - min)
             base: a base of a logarithm to use (default: 10)
-            reduction: a method to reduce metric score over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
+            reduction: a method to reduce metric score over labels.
+
+                - ``'elementwise_mean'``: takes the mean (default)
+                - ``'sum'``: takes the sum
+                - ``'none'``: no reduction will be applied
         """
         super().__init__(name='psnr')
         self.data_range = data_range
@@ -275,11 +275,11 @@ class SSIM(Metric):
         Args:
             kernel_size: Size of the gaussian kernel (default: (11, 11))
             sigma: Standard deviation of the gaussian kernel (default: (1.5, 1.5))
-            reduction: a method to reduce metric score over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass away
-                - sum: add elements
+            reduction: a method to reduce metric score over labels.
+
+                - ``'elementwise_mean'``: takes the mean (default)
+                - ``'sum'``: takes the sum
+                - ``'none'``: no reduction will be applied
 
             data_range: Range of the image. If ``None``, it is determined from the image (max - min)
             k1: Parameter of SSIM. Default: 0.01
