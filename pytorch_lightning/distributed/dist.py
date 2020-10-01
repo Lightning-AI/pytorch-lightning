@@ -13,13 +13,13 @@ class LightningDistributed:
         self.device = device
 
     def broadcast(self, obj: Any):
-        torch_distrib.barrier()
         if self.rank == 0:
             # Emit data
             buffer = io.BytesIO()
             torch.save(obj, buffer)
             data = bytearray(buffer.getbuffer())
             length_tensor = torch.tensor([len(data)]).long().to(self.device)
+            torch_distrib.barrier()
             length_tensor = torch_distrib.broadcast(length_tensor, src=0)
             data_tensor = torch.ByteTensor(data).to(self.device)
             data_tensor = torch_distrib.broadcast(data_tensor, src=0)
