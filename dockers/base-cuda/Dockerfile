@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # Existing images:
 # --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.7 --build-arg PYTORCH_CHANNEL=pytorch-nightly --build-arg CUDA_VERSION=10.1
 # --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.6 --build-arg PYTORCH_CHANNEL=pytorch --build-arg CUDA_VERSION=10.1
@@ -60,7 +74,10 @@ RUN conda create -y --name $CONDA_ENV "python=$PYTHON_VERSION" "pytorch=$PYTORCH
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages
     # replace channel to nigtly if neede, fix PT version and remove Horovod as it will be installe later
-    python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'torch>=[\d\.]+', 'torch=${PYTORCH_VERSION}', open(fname).read().replace('pytorch', '${PYTORCH_CHANNEL}', 1)) ; open(fname, 'w').writelines([l for l in req if 'horovod' not in l])" && \
+    python -c "fname = 'environment.yml' ; req = open(fname).read().replace('pytorch', '${PYTORCH_CHANNEL}', 1) ; open(fname, 'w').writelines(req)" && \
+    python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'python>=[\d\.]+', 'python=${PYTHON_VERSION}', open(fname).read()) ; open(fname, 'w').writelines(req)" && \
+    python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'torch>=[\d\.]+', 'torch=${PYTORCH_VERSION}', open(fname).read()) ; open(fname, 'w').writelines(req)" && \
+    python -c "fname = 'environment.yml' ; req = open(fname).read() ; open(fname, 'w').writelines([l for l in req if 'horovod' not in l])" && \
     cat environment.yml && \
     conda env update --file environment.yml && \
     conda clean -ya && \
@@ -94,6 +111,6 @@ RUN \
     # Show what we have
     pip --version && \
     conda info && \
-    conda list && \
     pip list && \
-    python -c "import torch; print(torch.__version__)"
+    python -c "import sys; assert sys.version[:3] == str($PYTHON_VERSION), sys.version" && \
+    python -c "import torch; assert torch.__version__[:3] == str($PYTORCH_VERSION), torch.__version__"
