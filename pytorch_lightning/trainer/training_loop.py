@@ -108,6 +108,9 @@ class TrainLoop:
         if self.trainer.data_parallel:
             ref_model = model.module
 
+        self.trainer.dist.rank = self.trainer.global_rank
+        self.trainer.dist.device = ref_model.device
+
         # give model convenience properties
         ref_model.trainer = self.trainer
 
@@ -153,14 +156,10 @@ class TrainLoop:
         # restore training and model before hpc is called
         self.trainer.checkpoint_connector.restore_weights(model)
 
-        self.trainer.dist.rank = ref_model.global_rank
-        self.trainer.dist.device = ref_model.device
-
         # on pretrain routine end
         self.trainer.on_pretrain_routine_end(ref_model)
         if self.trainer.is_function_implemented('on_pretrain_routine_end'):
             ref_model.on_pretrain_routine_end()
-
 
     def on_train_end(self):
         if self._teardown_already_run:
