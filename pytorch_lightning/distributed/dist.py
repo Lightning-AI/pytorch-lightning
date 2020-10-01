@@ -31,6 +31,7 @@ class LightningDistributed:
 
         if not is_tensor:
             x = _decode(x)
+        torch_distrib.barrier()
         return x
 
 
@@ -42,5 +43,4 @@ def _encode(obj):
 
 def _decode(tensor):
     data = tensor.cpu().numpy().tobytes()
-    torch_distrib.barrier()
     return pickle.loads(data)
