@@ -42,8 +42,6 @@ class LoggerConnector:
     def configure_logger(self, logger):
         if logger is True:
             version = os.environ.get('PL_EXP_VERSION', self.trainer.slurm_job_id)
-            if version is not None:
-                version = f'version_{version}'
 
             # default logger
             self.trainer.logger = TensorBoardLogger(
