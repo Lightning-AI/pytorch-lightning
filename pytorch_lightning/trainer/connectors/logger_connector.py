@@ -22,7 +22,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pprint import pprint
 from typing import Iterable
 from copy import deepcopy
-import os
 
 
 class LoggerConnector:
