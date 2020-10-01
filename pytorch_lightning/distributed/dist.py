@@ -10,7 +10,11 @@ def broadcast(self, x: Any, rank: int):
     if not is_tensor:
         x = self._encode(x)
     torch_distrib.broadcast(x, src=rank)
+    
+    print('-' * 100)
     print(x)
+    print(rank)
+    print('-' * 100)
 
     if not is_tensor:
         x = _decode(x)
