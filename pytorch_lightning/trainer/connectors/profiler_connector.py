@@ -35,6 +35,6 @@ class ProfilerConnector:
         elif profiler == "advanced":
             profiler = AdvancedProfiler()
         elif isinstance(profiler, str):
-            raise ValueError('when passing string value for the `profiler` parameter of'
-                             ' `Trainer`, it can only be `simple` or `advanced`')
+            raise ValueError("When passing string value for the `profiler` parameter of"
+                             " `Trainer`, it can only be 'simple' or 'advanced'")
         self.trainer.profiler = profiler or PassThroughProfiler()

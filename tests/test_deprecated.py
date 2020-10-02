@@ -24,13 +24,13 @@ def test_tbd_remove_in_v1_2_0():
         checkpoint_cb = ModelCheckpoint(filepath='.', dirpath='.')
 
 
-@pytest.mark.parametrize(['input_arg', 'expected'], [
+@pytest.mark.parametrize(['profiler', 'expected'], [
     (True, SimpleProfiler),
     (False, PassThroughProfiler),
 ])
-def test_trainer_profiler_remove_in_v1_2_0_trainer(input_arg, expected):
+def test_trainer_profiler_remove_in_v1_2_0(profiler, expected):
     with pytest.deprecated_call(match='will be removed in v1.2.0'):
-        trainer = Trainer(profiler=input_arg)
+        trainer = Trainer(profiler=profiler)
         assert isinstance(trainer.profiler, expected)
 
 
