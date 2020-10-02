@@ -508,7 +508,6 @@ class ModelCheckpoint(Callback):
         trainer,
         pl_module,
     ):
-
         k = epoch + 1 if self.save_top_k == -1 else self.save_top_k
 
         del_list = []
@@ -536,9 +535,8 @@ class ModelCheckpoint(Callback):
 
         if self.verbose:
             rank_zero_info(
-                f"Epoch {epoch:d}: {self.monitor} reached"
-                f" {current:0.5f} (best {self.best_model_score:0.5f}),"
-                f" saving model to {filepath} as top {k}"
+                f"Epoch {epoch:d}: {self.monitor} reached {current:0.5f} (best {self.best_model_score:0.5f}),"
+                f' saving model to "{filepath}" as top {k}'
             )
         self._save_model(filepath, trainer, pl_module)
 
