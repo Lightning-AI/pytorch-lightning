@@ -200,7 +200,7 @@ class DDPBackend(Accelerator):
 
         # MODEL
         # copy model to each gpu
-        self.model_to_device(model, process_idx, is_master)
+        self.model_to_device(model, process_idx)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
@@ -260,10 +260,8 @@ class DDPBackend(Accelerator):
         self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
         self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
-    def model_to_device(self, model, process_idx, is_master):
+    def model_to_device(self, model, process_idx):
         gpu_idx = int(os.environ.get('PL_DDP_PID', process_idx))
-
-        gpu_idx = int(os.environ.get('PL_DDP_PID', gpu_idx))
 
         self.trainer.root_gpu = gpu_idx
         torch.cuda.set_device(self.trainer.root_gpu)
