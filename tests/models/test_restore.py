@@ -17,7 +17,7 @@ from tests.base import EvalModelTemplate, GenericEvalModelTemplate
 
 class ModelTrainerPropertyParity(Callback):
 
-    def check_properties(self, trainer, pl_module):
+    def _check_properties(self, trainer, pl_module):
         assert trainer.global_step == pl_module.global_step
         assert trainer.current_epoch == pl_module.current_epoch
 
