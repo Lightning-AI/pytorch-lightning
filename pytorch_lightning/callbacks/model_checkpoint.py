@@ -204,7 +204,7 @@ class ModelCheckpoint(Callback):
         monitor_candidates = self._monitor_candidates(trainer)
 
         # ie: path/val_loss=0.5.ckpt
-        filepath = self._get_metric_interpolated_filepath_name(epoch, monitor_candidates)
+        filepath = self._get_metric_interpolated_filepath_name(epoch, global_step, monitor_candidates)
 
         # callback supports multiple simultaneous modes
         # here we call each mode sequentially
@@ -213,7 +213,7 @@ class ModelCheckpoint(Callback):
             self._save_top_k_checkpoints(monitor_candidates, trainer, pl_module, epoch, global_step, filepath)
 
         # Mode 2: save the last checkpoint
-        self._save_last_checkpoint(trainer, pl_module, epoch, global_step, monitor_candidates, filepath)
+        self._save_last_checkpoint(trainer, pl_module, monitor_candidates, filepath)
 
     def __validate_init_configuration(self):
         if self.save_top_k is not None and self.save_top_k < -1:
@@ -323,6 +323,7 @@ class ModelCheckpoint(Callback):
         cls,
         filename: Optional[str],
         epoch: int,
+        step: int,
         metrics: Dict[str, Any],
         prefix: str = "",
     ) -> str:
@@ -332,7 +333,7 @@ class ModelCheckpoint(Callback):
         # check and parse user passed keys in the string
         groups = re.findall(r"(\{.*?)[:\}]", filename)
         if len(groups) >= 0:
-            metrics["epoch"] = epoch
+            metrics.update({"epoch": epoch, 'step': step})
             for group in groups:
                 name = group[1:]
                 filename = filename.replace(group, name + "={" + name)
@@ -342,7 +343,7 @@ class ModelCheckpoint(Callback):
         return cls.CHECKPOINT_JOIN_CHAR.join([txt for txt in (prefix, filename) if txt])
 
     def format_checkpoint_name(
-        self, epoch: int, metrics: Dict[str, Any], ver: Optional[int] = None
+        self, epoch: int, step: int, metrics: Dict[str, Any], ver: Optional[int] = None
     ) -> str:
         """Generate a filename according to the defined template.
 
@@ -350,20 +351,20 @@ class ModelCheckpoint(Callback):
 
             >>> tmpdir = os.path.dirname(__file__)
             >>> ckpt = ModelCheckpoint(os.path.join(tmpdir, '{epoch}'))
-            >>> os.path.basename(ckpt.format_checkpoint_name(0, {}))
+            >>> os.path.basename(ckpt.format_checkpoint_name(0, 1, metrics={}))
             'epoch=0.ckpt'
             >>> ckpt = ModelCheckpoint(os.path.join(tmpdir, '{epoch:03d}'))
-            >>> os.path.basename(ckpt.format_checkpoint_name(5, {}))
+            >>> os.path.basename(ckpt.format_checkpoint_name(5, 2, metrics={}))
             'epoch=005.ckpt'
             >>> ckpt = ModelCheckpoint(os.path.join(tmpdir, '{epoch}-{val_loss:.2f}'))
-            >>> os.path.basename(ckpt.format_checkpoint_name(2, dict(val_loss=0.123456)))
+            >>> os.path.basename(ckpt.format_checkpoint_name(2, 3, metrics=dict(val_loss=0.123456)))
             'epoch=2-val_loss=0.12.ckpt'
             >>> ckpt = ModelCheckpoint(os.path.join(tmpdir, '{missing:d}'))
-            >>> os.path.basename(ckpt.format_checkpoint_name(0, {}))
+            >>> os.path.basename(ckpt.format_checkpoint_name(0, 4, metrics={}))
             'missing=0.ckpt'
         """
         filename = self._format_checkpoint_name(
-            self.filename, epoch, metrics, prefix=self.prefix
+            self.filename, epoch, step, metrics, prefix=self.prefix
         )
         if ver is not None:
             filename = self.CHECKPOINT_JOIN_CHAR.join((filename, f"v{ver}"))
@@ -440,12 +441,12 @@ class ModelCheckpoint(Callback):
             )
             raise MisconfigurationException(m)
 
-    def _get_metric_interpolated_filepath_name(self, epoch, ckpt_name_metrics):
-        filepath = self.format_checkpoint_name(epoch, ckpt_name_metrics)
+    def _get_metric_interpolated_filepath_name(self, epoch: int, step: int, ckpt_name_metrics: Dict[str, Any]):
+        filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics)
         version_cnt = 0
         while self._fs.exists(filepath):
             filepath = self.format_checkpoint_name(
-                epoch, ckpt_name_metrics, ver=version_cnt
+                epoch, step, ckpt_name_metrics, ver=version_cnt
             )
             # this epoch called before
             version_cnt += 1
@@ -457,7 +458,7 @@ class ModelCheckpoint(Callback):
         ckpt_name_metrics.update(trainer.logger_connector.progress_bar_metrics)
         return ckpt_name_metrics
 
-    def _save_last_checkpoint(self, trainer, pl_module, epoch, ckpt_name_metrics, filepath):
+    def _save_last_checkpoint(self, trainer, pl_module, ckpt_name_metrics, filepath):
         should_save_last = self.monitor is None or self.save_last
         if not should_save_last:
             return
@@ -467,7 +468,11 @@ class ModelCheckpoint(Callback):
         # when user ALSO asked for the 'last.ckpt' change the name
         if self.save_last:
             last_filepath = self._format_checkpoint_name(
-                self.CHECKPOINT_NAME_LAST, epoch, ckpt_name_metrics, prefix=self.prefix
+                self.CHECKPOINT_NAME_LAST,
+                trainer.current_epoch,
+                trainer.global_step,
+                ckpt_name_metrics,
+                prefix=self.prefix
             )
             last_filepath = os.path.join(self.dirpath, f"{last_filepath}.ckpt")
 
