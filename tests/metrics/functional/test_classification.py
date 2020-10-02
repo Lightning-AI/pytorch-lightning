@@ -330,15 +330,15 @@ def test_roc_curve(pred, target, expected_tpr, expected_fpr):
     assert torch.allclose(tpr, torch.tensor(expected_tpr).to(tpr))
 
 
-@pytest.mark.parametrize(['pred', 'target', 'expected'], [
-    pytest.param([0, 1, 0, 1], [0, 1, 0, 1], 1.),
-    pytest.param([1, 1, 0, 0], [0, 0, 1, 1], 0.),
-    pytest.param([1, 1, 1, 1], [1, 1, 0, 0], 0.5),
-    pytest.param([1, 1, 0, 0], [1, 1, 0, 0], 1.),
-    pytest.param([0.5, 0.5, 0.5, 0.5], [1, 1, 0, 0], 0.5),
+@pytest.mark.parametrize(['pred', 'target', 'max_fpr', 'expected'], [
+    pytest.param([0, 1, 0, 1], [0, 1, 0, 1], None, 1.),
+    pytest.param([1, 1, 0, 0], [0, 0, 1, 1], None, 0.),
+    pytest.param([1, 1, 1, 1], [1, 1, 0, 0], 0.8, 0.5),
+    pytest.param([1, 1, 0, 0], [1, 1, 0, 0], 0.5, 1.),
+    pytest.param([0.5, 0.5, 0.5, 0.5], [1, 1, 0, 0], 0.2, 0.5),
 ])
-def test_auroc(pred, target, expected):
-    score = auroc(torch.tensor(pred), torch.tensor(target)).item()
+def test_auroc(pred, target, max_fpr, expected):
+    score = auroc(torch.tensor(pred), torch.tensor(target), max_fpr=max_fpr).item()
     assert score == expected
 
 
