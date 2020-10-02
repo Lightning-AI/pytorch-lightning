@@ -10,9 +10,9 @@ from tests.base.datasets import TrialMNIST, AverageDataset, MNIST
 
 try:
     from test_tube import HyperOptArgumentParser
-except ImportError:
+except ImportError as exp:
     # TODO: this should be discussed and moved out of this package
-    raise ImportError('Missing test-tube package.')
+    raise ImportError('Missing test-tube package.') from exp
 
 from pytorch_lightning.core.lightning import LightningModule
 
