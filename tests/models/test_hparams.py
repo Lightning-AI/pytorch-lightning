@@ -1,3 +1,4 @@
+import copy
 import os
 import pickle
 from argparse import Namespace
@@ -13,6 +14,7 @@ from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.core.saving import save_hparams_to_yaml, load_hparams_from_yaml
 from pytorch_lightning.utilities import AttributeDict, is_picklable
 from tests.base import EvalModelTemplate, TrialMNIST
+from tests.base.datamodules import TrialMNISTDataModule
 
 
 class SaveHparamsModel(EvalModelTemplate):
@@ -540,3 +542,88 @@ def test_args(tmpdir):
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
     model = SubClassVarArgs.load_from_checkpoint(raw_checkpoint_path)
     assert model.hparams == hparams
+
+
+def test_extending_existing_hparams(tmpdir):
+    """Test that the new hparams are added to the existing ones."""
+    hparams = {'arg1': 'abc'}
+    model = EvalModelTemplate()
+    old_hparams = copy.deepcopy(model.hparams)
+    model.extend_hparams(hparams)
+
+    old_hparams.update(hparams)
+    assert old_hparams == model.hparams
+
+
+def test_extending_non_existing_hparams(tmpdir):
+    """Test that hparams are created if they do not exist yet when we try to extend them."""
+    class DummyModel(LightningModule):
+        pass
+
+    hparams = {'arg1': 'abc'}
+    model = DummyModel()
+    model.extend_hparams(hparams)
+
+    assert hparams == model.hparams
+
+
+def test_extending_with_namespace(tmpdir):
+    """Test that we can extend hparams with a namespace."""
+    hparams = Namespace(arg1='abc')
+    model = EvalModelTemplate()
+    old_hparams = copy.deepcopy(model.hparams)
+    model.extend_hparams(hparams)
+
+    old_hparams.update(vars(hparams))
+    assert old_hparams == model.hparams
+
+
+def test_extend_with_unsupported_hparams(tmpdir):
+    """Test that usupported hparams structures raise an error when extending."""
+    hparams = ('arg1', 'abc')
+    model = EvalModelTemplate()
+
+    with pytest.raises(ValueError):
+        model.extend_hparams(hparams)
+
+
+def test_extend_with_primitive_hparams(tmpdir):
+    """Test that primitives raise an error when extending."""
+    hparams = 5
+    model = EvalModelTemplate()
+
+    with pytest.raises(ValueError):
+        model.extend_hparams(hparams)
+
+
+def test_extend_with_collision(tmp_path):
+    """Test that new hparams cannot collide with existing hparams."""
+    model = EvalModelTemplate()
+    with pytest.raises(ValueError):
+        model.extend_hparams({'batch_size': 5})
+
+
+def test_adding_datamodule_hparams(tmpdir):
+    """Test that hparams from datamodule are added to the checkpoint."""
+    model = SaveHparamsModel({'arg1': 5, 'arg2': 'abc'})
+    data = TrialMNISTDataModule()
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer.fit(model, datamodule=data)
+
+    hparams = model.hparams
+    hparams.update(data.hparams)
+    raw_checkpoint_path = _raw_checkpoint_path(trainer)
+    model = SaveHparamsModel.load_from_checkpoint(raw_checkpoint_path)
+    assert model.hparams == hparams
+
+
+def test_colliding_datamodule_hparams(tmpdir):
+    """Test that colliding hparams from the datamodule are caught."""
+    model = SaveHparamsModel({'data_dir': 'abc', 'arg2': 'abc'})
+    data = TrialMNISTDataModule()
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+
+    with pytest.raises(ValueError, match='Error while adding data module hparams to model:'):
+        trainer.fit(model, datamodule=data)
