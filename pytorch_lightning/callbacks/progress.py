@@ -220,7 +220,6 @@ class ProgressBar(ProgressBarBase):
         self._refresh_rate = refresh_rate
         self._process_position = process_position
         self._enabled = True
-        self._sanity_check_completed = True
         self.main_progress_bar = None
         self.val_progress_bar = None
         self.test_progress_bar = None
@@ -306,7 +305,6 @@ class ProgressBar(ProgressBarBase):
         return bar
 
     def on_sanity_check_start(self, trainer, pl_module):
-        self._sanity_check_completed = False
         super().on_sanity_check_start(trainer, pl_module)
         self.val_progress_bar = self.init_sanity_tqdm()
         self.val_progress_bar.total = convert_inf(sum(trainer.num_sanity_val_batches))
@@ -316,7 +314,6 @@ class ProgressBar(ProgressBarBase):
         super().on_sanity_check_end(trainer, pl_module)
         self.main_progress_bar.close()
         self.val_progress_bar.close()
-        self._sanity_check_completed = True
 
     def on_train_start(self, trainer, pl_module):
         super().on_train_start(trainer, pl_module)
@@ -343,7 +340,7 @@ class ProgressBar(ProgressBarBase):
 
     def on_validation_start(self, trainer, pl_module):
         super().on_validation_start(trainer, pl_module)
-        if self._sanity_check_completed is True:
+        if not trainer.running_sanity_check:
             self.val_progress_bar = self.init_validation_tqdm()
             self.val_progress_bar.total = convert_inf(self.total_val_batches)
 
