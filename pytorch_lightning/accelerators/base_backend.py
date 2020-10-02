@@ -186,6 +186,7 @@ class Accelerator(object):
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
 
+# TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...
 # class BackendType(Enum):
 #     DP = 'dp'
 #     DDP = 'ddp'
