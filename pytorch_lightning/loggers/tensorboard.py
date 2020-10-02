@@ -23,8 +23,8 @@ from typing import Any, Dict, Optional, Union
 from warnings import warn
 
 import torch
-from pkg_resources import parse_version
 from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard.summary import hparams
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
@@ -158,28 +158,19 @@ class TensorBoardLogger(LightningLoggerBase):
         params = self._flatten_dict(params)
         params = self._sanitize_params(params)
 
-        if parse_version(torch.__version__) < parse_version("1.3.0"):
-            warn(
-                f"Hyperparameter logging is not available for Torch version {torch.__version__}."
-                " Skipping log_hyperparams. Upgrade to Torch 1.3.0 or above to enable"
-                " hyperparameter logging."
-            )
-        else:
-            from torch.utils.tensorboard.summary import hparams
+        if metrics is None:
+            if self._default_hp_metric:
+                metrics = {"hp_metric": -1}
+        elif not isinstance(metrics, dict):
+            metrics = {"hp_metric": metrics}
 
-            if metrics is None:
-                if self._default_hp_metric:
-                    metrics = {"hp_metric": -1}
-            elif not isinstance(metrics, dict):
-                metrics = {"hp_metric": metrics}
-
-            if metrics:
-                self.log_metrics(metrics, 0)
-                exp, ssi, sei = hparams(params, metrics)
-                writer = self.experiment._get_file_writer()
-                writer.add_summary(exp)
-                writer.add_summary(ssi)
-                writer.add_summary(sei)
+        if metrics:
+            self.log_metrics(metrics, 0)
+            exp, ssi, sei = hparams(params, metrics)
+            writer = self.experiment._get_file_writer()
+            writer.add_summary(exp)
+            writer.add_summary(ssi)
+            writer.add_summary(sei)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
