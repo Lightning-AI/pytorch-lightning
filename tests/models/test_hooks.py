@@ -111,12 +111,8 @@ def test_transfer_batch_hook():
 
 
 @pytest.mark.parametrize(
-    ['max_epochs', 'batch_idx_'],
-    [
-        pytest.param(2, 5),
-        pytest.param(3, 8),
-        pytest.param(4, 12)
-    ]
+    'max_epochs,batch_idx_',
+    [(2, 5), (3, 8), (4, 12)]
 )
 def test_on_train_batch_start_hook(max_epochs, batch_idx_):
     class CurrentModel(EvalModelTemplate):
