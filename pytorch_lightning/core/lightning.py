@@ -117,7 +117,7 @@ class LightningModule(
         return self._example_input_array
 
     @property
-    def current_epoch(self):
+    def current_epoch(self) -> int:
         return self.trainer.current_epoch if self.trainer else 0
 
     @property
