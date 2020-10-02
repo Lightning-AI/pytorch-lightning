@@ -206,26 +206,16 @@ class LightningDistributedDataParallel(DistributedDataParallel):
                 self.reducer.prepare_for_backward([])
 
         if output is None:
-            warn_missing_output(fx_called)
-
-            m = f'{fx_called} returned None. Did you forget to re'
+            warn_missing_output(f'{fx_called} returned None. Did you forget to re')
         return output
 
 
 def warn_missing_output(fx_called):
     if fx_called == 'training_step':
-        m = """
-            Your training_step returned None. You should instead do:
-            return loss
-            or
-            return TrainResult
-        """
+        warning_cache.warn("Your training_step returned None. You should instead do:\n"
+                           "`return loss`\n or\n `return TrainResult`")
     elif fx_called in ['validation_step', 'test_step']:
-        m = f"""
-            Your {fx_called} returned None. You should instead do:
-            return EvalResult
-        """
-    warning_cache.warn(m)
+        warning_cache.warn(f"Your {fx_called} returned None. You should instead do:\n `return EvalResult")
 
 
 def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: no-cover
