@@ -47,6 +47,7 @@ class PrecisionConnector:
 
         amp_type = amp_type.lower()
         assert amp_type in ('native', 'apex'), f'Unsupported amp type {amp_type}'
+        import pdb; pdb.set_trace()
         if amp_type == 'native':
             if not NATIVE_AMP_AVALAIBLE:
                 rank_zero_warn('You have asked for native AMP but your PyTorch version does not support it.'
@@ -68,7 +69,6 @@ class PrecisionConnector:
                 self.backend = ApexPlugin(self.trainer)
 
         if not self.trainer.amp_backend:
-            import pdb; pdb.set_trace()
             raise ModuleNotFoundError(
                 f'You have asked for AMP support {amp_type}, but there is no support on your side yet.'
                 f' Consider installing torch >= 1.6 or NVIDIA Apex.'
