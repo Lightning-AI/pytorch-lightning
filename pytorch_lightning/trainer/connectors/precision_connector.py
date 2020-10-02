@@ -47,7 +47,6 @@ class PrecisionConnector:
 
         amp_type = amp_type.lower()
         assert amp_type in ('native', 'apex'), f'Unsupported amp type {amp_type}'
-        import pdb; pdb.set_trace()
         if amp_type == 'native':
             if not NATIVE_AMP_AVALAIBLE:
                 rank_zero_warn('You have asked for native AMP but your PyTorch version does not support it.'
