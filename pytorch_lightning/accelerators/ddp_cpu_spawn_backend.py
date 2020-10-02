@@ -22,7 +22,7 @@ import torch.multiprocessing as mp
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.base_backend import Accelerator
 from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities.cloud_io import atomic_save
+from pytorch_lightning.utilities.cloud_io import atomic_save, load as pl_load
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.distributed import find_free_network_port
 from pytorch_lightning.distributed.dist import LightningDistributed
@@ -195,7 +195,7 @@ class DDPCPUSpawnBackend(Accelerator):
 
         # load last weights
         if last_path is not None and not self.trainer.testing:
-            ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
+            ckpt = pl_load(last_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt)
 
         self.trainer.model = model
