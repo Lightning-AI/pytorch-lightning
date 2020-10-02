@@ -90,7 +90,6 @@ ENV CONDA_DEFAULT_ENV=${CONDA_ENV}
 
 COPY ./requirements/extra.txt requirements-extra.txt
 COPY ./requirements/test.txt requirements-tests.txt
-COPY ./requirements/install_AMP.sh install_AMP.sh
 
 RUN \
     # Disable cache
@@ -98,8 +97,10 @@ RUN \
     #echo ". ${WORKDIR}/miniconda/etc/profile.d/conda.sh" >> ~/.bashrc && \
     #echo "conda activate ${CONDA_ENV}" >> ~/.bashrc && \
     #source ~/.bashrc && \
-    bash install_AMP.sh && \
-    rm install_AMP.sh && \
+    # install NVIDIA AMP
+    git clone https://github.com/NVIDIA/apex
+    pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" apex
+    rm -rf apex && \
     # filter only Horovod
     python -c "fname = 'requirements-extra.txt' ; req = open(fname).readlines() ; open(fname, 'w').writelines([l for l in req if 'horovod' in l])" && \
     # Install all requirements
