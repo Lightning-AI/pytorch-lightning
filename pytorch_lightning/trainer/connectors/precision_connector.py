@@ -68,6 +68,7 @@ class PrecisionConnector:
                 self.backend = ApexPlugin(self.trainer)
 
         if not self.trainer.amp_backend:
+            import pdb; pdb.set_trace()
             raise ModuleNotFoundError(
                 f'You have asked for AMP support {amp_type}, but there is no support on your side yet.'
                 f' Consider installing torch >= 1.6 or NVIDIA Apex.'
