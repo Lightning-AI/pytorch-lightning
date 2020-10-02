@@ -24,6 +24,7 @@ def test_tbd_remove_in_v1_2_0():
         checkpoint_cb = ModelCheckpoint(filepath='.', dirpath='.')
 
 
+# TODO: remove bool from Trainer.profiler param in v0.11.0, update profiler_connector.py
 @pytest.mark.parametrize(['profiler', 'expected'], [
     (True, SimpleProfiler),
     (False, PassThroughProfiler),
