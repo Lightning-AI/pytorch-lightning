@@ -34,7 +34,7 @@ class HyperparametersMixin:
              or string names or argumenst from class `__init__`
 
         >>> from collections import OrderedDict
-        >>> class ManuallyArgsModel(LightningModule):
+        >>> class ManuallyArgsModel(HyperparametersMixin):
         ...     def __init__(self, arg1, arg2, arg3):
         ...         super().__init__()
         ...         # manually assign arguments
@@ -46,7 +46,7 @@ class HyperparametersMixin:
         "arg1": 1
         "arg3": 3.14
 
-        >>> class AutomaticArgsModel(LightningModule):
+        >>> class AutomaticArgsModel(HyperparametersMixin):
         ...     def __init__(self, arg1, arg2, arg3):
         ...         super().__init__()
         ...         # equivalent automatic
@@ -59,7 +59,7 @@ class HyperparametersMixin:
         "arg2": abc
         "arg3": 3.14
 
-        >>> class SingleArgModel(LightningModule):
+        >>> class SingleArgModel(HyperparametersMixin):
         ...     def __init__(self, params):
         ...         super().__init__()
         ...         # manually assign single argument
