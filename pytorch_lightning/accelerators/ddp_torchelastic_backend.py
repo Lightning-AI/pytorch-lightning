@@ -38,7 +38,7 @@ else:
 # TEMP CLASS WHILE WE DECOUPLE SLURM FROM DDP
 # !!!!!!!!!!!!!! NOTE !!!!!!!!!!!!!!!!!!!!!!
 # -------------------------------------------
-class DDPSLURMBackend(Accelerator):
+class DDPTorchElasticBackend(Accelerator):
 
     def __init__(self, trainer):
         super().__init__(trainer)
