@@ -468,6 +468,10 @@ you can override the default behavior by manually setting the flags
     def training_step(self, batch, batch_idx):
         self.log('my_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
+.. note::
+    The loss value shown in the progress bar is smoothed (averaged) over the last values,
+    so it differs from the actual loss returned in train/validation step.
+
 You can also use any method of your logger directly:
 
 .. code-block:: python
