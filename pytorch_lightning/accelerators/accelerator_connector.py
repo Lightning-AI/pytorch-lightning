@@ -142,7 +142,7 @@ class AcceleratorConnector:
             accelerator_backend = accelerators.DDP2Backend(self.trainer)
 
         elif use_slurm_ddp:
-            accelerator_backend = accelerators.DDPBackend(self.trainer, mode='slurm_ddp')
+            accelerator_backend = accelerators.DDPSLURMBackend(self.trainer)
 
         elif use_torchelastic_ddp:
             accelerator_backend = accelerators.DDPBackend(self.trainer, mode='torchelastic_ddp')
