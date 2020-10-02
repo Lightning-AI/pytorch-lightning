@@ -98,8 +98,8 @@ RUN \
     #echo "conda activate ${CONDA_ENV}" >> ~/.bashrc && \
     #source ~/.bashrc && \
     # install NVIDIA AMP
-    git clone https://github.com/NVIDIA/apex
-    pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" apex
+    git clone https://github.com/NVIDIA/apex && \
+    pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./apex && \
     rm -rf apex && \
     # filter only Horovod
     python -c "fname = 'requirements-extra.txt' ; req = open(fname).readlines() ; open(fname, 'w').writelines([l for l in req if 'horovod' in l])" && \
