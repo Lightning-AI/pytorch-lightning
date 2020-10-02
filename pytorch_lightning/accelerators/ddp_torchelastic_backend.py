@@ -47,6 +47,7 @@ class DDPTorchElasticBackend(Accelerator):
         self.dist = LightningDistributed()
 
     def setup(self, model):
+        self.trainer.model = model
         self.task_idx = int(os.environ['LOCAL_RANK'])
 
     def train(self):
