@@ -50,7 +50,6 @@ class EvalModelTemplate(
             hidden_dim: int = 1000,
             b1: float = 0.5,
             b2: float = 0.999,
-            save_hparams=True,
     ):
         # init superclass
         super().__init__()
@@ -66,7 +65,6 @@ class EvalModelTemplate(
         self.hidden_dim = hidden_dim
         self.b1 = b1
         self.b2 = b2
-        self.save_hparams = save_hparams
         self.training_step_called = False
         self.training_step_end_called = False
         self.training_epoch_end_called = False
@@ -124,7 +122,6 @@ class EvalModelTemplate(
             hidden_dim=1000,
             b1=0.5,
             b2=0.999,
-            save_hparams=True,
         )
 
         if continue_training:
