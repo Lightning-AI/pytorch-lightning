@@ -370,6 +370,7 @@ class NeptuneLogger(LightningLoggerBase):
 
         if self.experiment_id is None:
             exp = project.create_experiment(name=self.experiment_name, **self._kwargs)
+            self.experiment_id = exp.id
         else:
             exp = project.get_experiments(id=self.experiment_id)[0]
             self.experiment_name = exp.get_system_properties()['name']
@@ -377,5 +378,4 @@ class NeptuneLogger(LightningLoggerBase):
             self.properties = exp.get_properties()
             self.tags = exp.get_tags()
 
-        self.experiment_id = exp.id
         return exp
