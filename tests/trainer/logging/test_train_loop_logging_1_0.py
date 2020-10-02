@@ -1,12 +1,13 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
-from pytorch_lightning import Trainer
-from tests.base.deterministic_model import DeterministicModel
 from tests.base.boring_model import BoringModel
 import os
 import torch
 import pytest
+
+from pytorch_lightning import Trainer
+from tests.base.deterministic_model import DeterministicModel
 
 
 def test__training_step__log(tmpdir):
@@ -242,3 +243,51 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
 
     # assert the loggers received the expected number
     assert len(trainer.dev_debugger.logged_metrics) == ((batches / log_interval) * max_epochs) + max_epochs
+
+
+@pytest.mark.parametrize(
+    ["dtype", "expected"],
+    [
+        (torch.float, float),
+        (torch.int, int),
+        (torch.long, int),
+    ],
+)
+def test__training_step__log_max_reduce_fx(tmpdir, dtype, expected):
+    """
+    Tests that log works correctly with different tensor types
+    """
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    class TestModel(DeterministicModel):
+        def training_step(self, batch, batch_idx):
+            acc = self.step(batch, batch_idx)
+            self.log('foo', torch.tensor(batch_idx, dtype=dtype), on_step=False, on_epoch=True, reduce_fx=max)
+            return acc
+
+        def validation_step(self, batch, batch_idx):
+            self.log('bar', torch.tensor(batch_idx, dtype=dtype), on_step=False, on_epoch=True, reduce_fx=max)
+
+        def validation_step_end(self, val_step_output):
+            pass
+
+        def validation_epoch_end(self, outputs):
+            pass
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=2,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    # make sure types are correct
+    # TODO: why is one a value and the other a tensor?
+    # TODO: shouldn't both be the same type?
+    assert type(trainer.logged_metrics['foo']) == expected
+    assert trainer.logged_metrics['bar'].dtype == dtype
+    # make sure all the metrics are available for callbacks
+    assert set(trainer.logged_metrics.keys()) == {'epoch', 'foo', 'bar'}
