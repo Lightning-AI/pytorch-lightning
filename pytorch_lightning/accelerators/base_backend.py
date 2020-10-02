@@ -186,11 +186,11 @@ class Accelerator(object):
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
 
-class BackendType(Enum):
-    DP = 'dp'
-    DDP = 'ddp'
-    DDP2 = 'ddp2'
-    DDP_SPAWN = 'ddp_spawn'
-    DDP_CPU = 'ddp_cpu'
-    TPU = 'tpu'
-    HOROVOD = 'horovod'
+# class BackendType(Enum):
+#     DP = 'dp'
+#     DDP = 'ddp'
+#     DDP2 = 'ddp2'
+#     DDP_SPAWN = 'ddp_spawn'
+#     DDP_CPU = 'ddp_cpu'
+#     TPU = 'tpu'
+#     HOROVOD = 'horovod'
