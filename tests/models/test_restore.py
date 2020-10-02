@@ -403,49 +403,6 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
         )
 
 
-class LitCNN(torch.nn.Module):
-    def __init__(self, h_dim):
-        super().__init__()
-        self.l1 = torch.nn.Linear(28 * 28, h_dim)
-        self.l2 = torch.nn.Linear(h_dim, 10)
-
-    def forward(self, x):
-        x = torch.relu(self.l1(x.view(x.size(0), -1)))
-        x = torch.relu(self.l2(x.view(x.size(0), -1)))
-        return x
-
-
-class ModelPosArgsOnly(LightningModule):
-
-    def __init__(self, net, h_dim):
-        super().__init__()
-        # self.save_hyperparameters()
-        if net == 'cnn':
-          self.net = LitCNN(h_dim)
-
-    def forward(self, x):
-        return self.net(x)
-
-    def training_step(self, batch, batch_nb):
-        x, y = batch
-        loss = F.cross_entropy(self(x), y)
-        tensorboard_logs = {'train_loss': loss}
-        return {'loss': loss, 'log': tensorboard_logs}
-
-    def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=0.02)
-
-
-def test_load_model_with_position_args_only(tmpdir):
-    train_loader = DataLoader(TrialMNIST(), batch_size=32)
-    mnist_model = ModelPosArgsOnly('cnn', h_dim=50)
-    trainer = Trainer(max_epochs=3, default_root_dir=tmpdir)
-    trainer.fit(mnist_model, train_loader)
-
-    trainer.save_checkpoint(os.path.join(tmpdir, 'mnist.ckpt'))
-    ModelPosArgsOnly.load_from_checkpoint(os.path.join(tmpdir, 'mnist.ckpt'))
-
-
 def test_model_pickle(tmpdir):
     model = EvalModelTemplate()
     pickle.dumps(model)
