@@ -47,6 +47,7 @@ class DDPSLURMBackend(Accelerator):
         self.dist = LightningDistributed()
 
     def setup(self, model):
+        self.trainer.model = model
         self.task_idx = int(os.environ['SLURM_LOCALID'])
 
     def train(self):
