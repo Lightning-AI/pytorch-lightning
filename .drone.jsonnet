@@ -30,8 +30,7 @@ local pipeline(name, image) = {
           from_secret: "codecov_token"
         },
         "MKL_THREADING_LAYER": "GNU",
-        "HOROVOD_GPU_ALLREDUCE": "NCCL",
-        "HOROVOD_GPU_BROADCAST": "NCCL",
+        "HOROVOD_GPU_OPERATIONS": "NCCL",
         "HOROVOD_WITH_PYTORCH": 1,
         "HOROVOD_WITHOUT_TENSORFLOW": 1,
         "HOROVOD_WITHOUT_MXNET": 1,
