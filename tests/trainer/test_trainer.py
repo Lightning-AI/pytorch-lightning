@@ -1431,7 +1431,7 @@ def test_trainer_profiler_incorrect_str_arg():
 
 
 @pytest.mark.parametrize('profiler', (
-    42, [42], {"a":42}, torch.tensor(42), Trainer(),
+    42, [42], {"a": 42}, torch.tensor(42), Trainer(),
 ))
 def test_trainer_profiler_incorrect_arg_type(profiler):
     with pytest.raises(MisconfigurationException,
