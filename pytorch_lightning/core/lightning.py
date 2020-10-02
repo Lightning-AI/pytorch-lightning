@@ -121,7 +121,7 @@ class LightningModule(
         return self.trainer.current_epoch if self.trainer else 0
 
     @property
-    def global_step(self):
+    def global_step(self) -> int:
         return self.trainer.global_step if self.trainer else 0
 
     @example_input_array.setter
