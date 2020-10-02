@@ -19,26 +19,26 @@ type: docker
 name: torch-GPU
 
 steps:
-  - name: testing
-    image: pytorchlightning/pytorch_lightning:cuda-extras-py3.7-torch1.5
+- name: testing
+  image: pytorchlightning/pytorch_lightning:cuda-extras-py3.7-torch1.5
 
-    environment:
-      SLURM_LOCALID: 0
-      CODECOV_TOKEN:
-        from_secret: codecov_token
-      MKL_THREADING_LAYER: GNU
-      HOROVOD_GPU_ALLREDUCE: NCCL
-      HOROVOD_GPU_BROADCAST: NCCL
-      HOROVOD_WITH_PYTORCH: 1
-      HOROVOD_WITHOUT_TENSORFLOW: 1
-      HOROVOD_WITHOUT_MXNET: 1
-      HOROVOD_WITH_GLOO: 1
-      HOROVOD_WITHOUT_MPI: 1
+  environment:
+    SLURM_LOCALID: 0
+    CODECOV_TOKEN:
+      from_secret: codecov_token
+    MKL_THREADING_LAYER: GNU
+    HOROVOD_GPU_ALLREDUCE: NCCL
+    HOROVOD_GPU_BROADCAST: NCCL
+    HOROVOD_WITH_PYTORCH: 1
+    HOROVOD_WITHOUT_TENSORFLOW: 1
+    HOROVOD_WITHOUT_MXNET: 1
+    HOROVOD_WITH_GLOO: 1
+    HOROVOD_WITHOUT_MPI: 1
 
-    #volumes:
-    #  # Mount pip cache from host
-    #  - name: pip_cache
-    #    path: /opt/conda/lib/python3.7/site-packages
+  #volumes:
+  #  # Mount pip cache from host
+  #  - name: pip_cache
+  #    path: /opt/conda/lib/python3.7/site-packages
 
   commands:
     - export PATH="$PATH:/root/.local/bin"
@@ -69,8 +69,8 @@ trigger:
     - master
   event:
     include:
-      - push
-      - pull_request
+    - push
+    - pull_request
 
 #volumes:
 #  - name: pip_cache
