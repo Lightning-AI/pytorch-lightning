@@ -1410,8 +1410,8 @@ def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, l
     expected_calls = [call(metrics=ANY, step=s) for s in range(log_interval - 1, max_steps, log_interval)]
     log_metrics_mock.assert_has_calls(expected_calls)
 
-    
-@pytest.mark.parametrize(['input_arg', 'expected'], [
+
+@pytest.mark.parametrize(['profiler', 'expected'], [
     (None, PassThroughProfiler),
     (SimpleProfiler(), SimpleProfiler),
     (AdvancedProfiler(), AdvancedProfiler),
@@ -1419,7 +1419,7 @@ def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, l
     ('advanced', AdvancedProfiler),
 ])
 def test_trainer_profiler_correct_args(input_arg, expected):
-    kwargs = {'profiler': input_arg} if input_arg is not None else {}
+    kwargs = {'profiler': profiler} if profiler is not None else {}
     trainer = Trainer(**kwargs)
     assert isinstance(trainer.profiler, expected)
 
