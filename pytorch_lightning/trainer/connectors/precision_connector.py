@@ -41,6 +41,7 @@ class PrecisionConnector:
         self._setup_amp_backend(amp_type)
 
     def _setup_amp_backend(self, amp_type: str):
+        import pdb; pdb.set_trace()
         if self.trainer.precision != 16:
             # no AMP requested, so we can leave now
             return
