@@ -368,7 +368,7 @@ class NeptuneLogger(LightningLoggerBase):
             session = neptune.Session.with_default_backend(api_token=self.api_key)
             project = session.get_project(self.project_name)
 
-        if self._experiment_id is None:
+        if self.experiment_id is None:
             exp = project.create_experiment(name=self.experiment_name, **self._kwargs)
         else:
             exp = project.get_experiments(id=self.experiment_id)[0]
