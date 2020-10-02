@@ -24,21 +24,24 @@ channels:
 
 dependencies:
     - python>=3.6
-    - pip
+    - pip>20.1
     - numpy>=1.16.4
     - pytorch>=1.3
     - future>=0.17.1
     - PyYAML>=5.1
     - tqdm>=4.41.0
     - fsspec>=0.8.0
-    #- tensorboard>=2.2.0
+    #- tensorboard>=2.2.0  # not needed, already included in pytorch
 
     # Optional
-    - nvidia-apex
+    #- nvidia-apex  # missing for py3.8
     - scikit-learn>=0.20.0
     - matplotlib>=3.1.1
     - omegaconf>=2.0.0
     - torchtext>=0.3.1
+
+    # Examples
+    - torchvision>=0.4.1
 
     - pip:
         - test-tube>=0.7.5
@@ -48,3 +51,4 @@ dependencies:
         - neptune-client>=0.4.109
         - horovod>=0.19.2
         - onnxruntime>=1.3.0
+        - gym>=0.17.0

@@ -23,7 +23,7 @@ jobs:
         python -m pip install --user --upgrade setuptools wheel
     - name: Build
       run: |
-        python prepare-nightly_version.py
+        python .github/prepare-nightly_version.py
         python setup.py sdist bdist_wheel
         ls -lh dist/
 
@@ -47,7 +47,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Publish Master to Docker
+      - name: Publish XLA to Docker Hub
         # publish master
         uses: docker/build-push-action@v1.1.0
         with:
@@ -83,7 +83,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Publish Master to Docker
+      - name: Publish CUDA to Docker Hub
         # publish master
         uses: docker/build-push-action@v1.1.0
         with:
@@ -95,32 +95,7 @@ jobs:
           tags: "base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}"
         timeout-minutes: 55
 
-
-  docker-Conda:
-    runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: false
-      matrix:
-        python_version: [ 3.6, 3.7, 3.8 ]
-        pytorch_version: [ 1.3, 1.4, 1.5, 1.6, 1.7 ]
-        pytorch_channel: [ "pytorch", "pytorch-nightly" ]
-        # https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#example-including-new-combinations
-        exclude:
-          - pytorch_version: 1.7
-            pytorch_channel: pytorch
-          - pytorch_version: 1.3
-            pytorch_channel: pytorch-nightly
-          - pytorch_version: 1.4
-            pytorch_channel: pytorch-nightly
-          - pytorch_version: 1.5
-            pytorch_channel: pytorch-nightly
-          - pytorch_version: 1.6
-            pytorch_channel: pytorch-nightly
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Publish Master to Docker
+      - name: Publish Conda to Docker Hub
         # publish master
         uses: docker/build-push-action@v1.1.0
         with:
