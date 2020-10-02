@@ -58,6 +58,9 @@ jobs:
           - python_version: 3.7
             pytorch_version: 1.7
             pytorch_channel: pytorch-nightly
+          - python_version: 3.8
+            pytorch_version: 1.6
+            pytorch_channel: pytorch
           - python_version: 3.6
             pytorch_version: 1.5
             pytorch_channel: pytorch

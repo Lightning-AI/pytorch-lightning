@@ -34,7 +34,7 @@ dependencies:
     #- tensorboard>=2.2.0  # not needed, already included in pytorch
 
     # Optional
-    - nvidia-apex
+    #- nvidia-apex  # missing for py3.8
     - scikit-learn>=0.20.0
     - matplotlib>=3.1.1
     - omegaconf>=2.0.0
