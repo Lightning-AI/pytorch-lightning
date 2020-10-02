@@ -120,7 +120,7 @@ class Trainer(
         num_sanity_val_steps: int = 2,
         truncated_bptt_steps: Optional[int] = None,
         resume_from_checkpoint: Optional[str] = None,
-        profiler: Optional[Union[BaseProfiler, bool, str]] = None,
+        profiler: Optional[Union[BaseProfiler, bool, str]] = None,  # TODO: remove bool in v0.11.0
         benchmark: bool = False,
         deterministic: bool = False,
         reload_dataloaders_every_epoch: bool = False,
@@ -212,7 +212,8 @@ class Trainer(
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
                 Ignored when a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
-            profiler:  To profile individual steps during training and assist in identifying bottlenecks.
+            profiler:  To profile individual steps during training and assist in identifying bottlenecks. Passing bool
+                value is deprecated and will be removed in 0.11.0.
 
             overfit_batches: Overfit a percent of training data (float) or a set number of batches (int). Default: 0.0
 
