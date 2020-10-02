@@ -16,6 +16,7 @@ from typing import Union
 
 from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler, SimpleProfiler, AdvancedProfiler
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class ProfilerConnector:
@@ -25,16 +26,23 @@ class ProfilerConnector:
 
     def on_trainer_init(self, profiler: Union[BaseProfiler, bool, str]):
 
+        if profiler and not isinstance(profiler, (bool, str, BaseProfiler)):
+            raise MisconfigurationException("Only None, bool, str and subclasses of `BaseProfiler` "
+                                            "are valid values for `Trainer`'s `profiler` parameter.")
+
         if isinstance(profiler, bool):
-            rank_zero_warn("Passing a bool value as a `profiler` argument to Trainer is deprecated"
+            rank_zero_warn("Passing a bool value as a `profiler` argument to `Trainer` is deprecated"
                            " and will be removed in v1.2. Use str ('simple' or 'advanced') instead.",
                            DeprecationWarning)
-        # configure profiler
-        if profiler is True or profiler == "simple":
-            profiler = SimpleProfiler()
-        elif profiler == "advanced":
-            profiler = AdvancedProfiler()
+            if profiler:
+                profiler = SimpleProfiler()
         elif isinstance(profiler, str):
-            raise ValueError("When passing string value for the `profiler` parameter of"
-                             " `Trainer`, it can only be 'simple' or 'advanced'")
+            profiler = profiler.lower()
+            if profiler == "simple":
+                profiler = SimpleProfiler()
+            elif profiler == "advanced":
+                profiler = AdvancedProfiler()
+            else:
+                raise ValueError("When passing string value for the `profiler` parameter of"
+                                 " `Trainer`, it can only be 'simple' or 'advanced'")
         self.trainer.profiler = profiler or PassThroughProfiler()

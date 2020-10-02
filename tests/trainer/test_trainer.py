@@ -1416,6 +1416,7 @@ def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, l
     (SimpleProfiler(), SimpleProfiler),
     (AdvancedProfiler(), AdvancedProfiler),
     ('simple', SimpleProfiler),
+    ('Simple', SimpleProfiler),
     ('advanced', AdvancedProfiler),
 ])
 def test_trainer_profiler_correct_args(profiler, expected):
