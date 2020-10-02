@@ -87,6 +87,7 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
 
     model = EvalModelTemplate()
     # tutils.run_model_test(trainer_options, model)
+    import pdb; pdb.set_trace()
     result = trainer.fit(model)
 
     assert result == 1
