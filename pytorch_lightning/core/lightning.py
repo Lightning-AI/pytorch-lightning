@@ -118,10 +118,12 @@ class LightningModule(
 
     @property
     def current_epoch(self) -> int:
+        """The current epoch"""
         return self.trainer.current_epoch if self.trainer else 0
 
     @property
     def global_step(self) -> int:
+        """Total training batches seen across all epochs"""
         return self.trainer.global_step if self.trainer else 0
 
     @example_input_array.setter
