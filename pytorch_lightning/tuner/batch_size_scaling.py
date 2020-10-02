@@ -139,6 +139,7 @@ def __scale_batch_dump_params(trainer):
 def __scale_batch_reset_params(trainer, model, steps_per_trial):
     trainer.auto_scale_batch_size = None  # prevent recursion
     trainer.auto_lr_find = False  # avoid lr find being called multiple times
+    trainer.current_epoch = 0
     trainer.max_steps = steps_per_trial  # take few steps
     trainer.weights_summary = None  # not needed before full run
     trainer.logger = DummyLogger()
