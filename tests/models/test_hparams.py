@@ -539,5 +539,5 @@ def test_args(tmpdir):
 
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
     with pytest.raises(TypeError, match="__init__\(\) got an unexpected keyword argument 'test'"):
-        model = SubClassVarArgs.load_from_checkpoint(raw_checkpoint_path)
+        SubClassVarArgs.load_from_checkpoint(raw_checkpoint_path)
 

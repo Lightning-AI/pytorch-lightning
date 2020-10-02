@@ -2,17 +2,18 @@ import glob
 import logging as log
 import os
 import pickle
-import functools
 
 import cloudpickle
 import pytest
 import torch
+from torch.nn import functional as F
+from torch.utils.data import DataLoader
 
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.callbacks import ModelCheckpoint
-from tests.base import EvalModelTemplate, GenericEvalModelTemplate
+from tests.base import EvalModelTemplate, GenericEvalModelTemplate, TrialMNIST
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -402,34 +403,47 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
         )
 
 
-def test_load_model_from_checkpoint_extra_args(tmpdir):
-    """Check that model args can be passed/changed when `load_from_checkpoint` is called."""
+class LitCNN(torch.nn.Module):
+    def __init__(self, h_dim):
+        super().__init__()
+        self.l1 = torch.nn.Linear(28 * 28, h_dim)
+        self.l2 = torch.nn.Linear(h_dim, 10)
 
-    model = EvalModelTemplate()
+    def forward(self, x):
+        x = torch.relu(self.l1(x.view(x.size(0), -1)))
+        x = torch.relu(self.l2(x.view(x.size(0), -1)))
+        return x
 
-    trainer_options = dict(
-        progress_bar_refresh_rate=0,
-        max_epochs=2,
-        limit_train_batches=0.4,
-        limit_val_batches=0.2,
-        checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
-        default_root_dir=tmpdir,
-    )
 
-    # Fit model
-    trainer = Trainer(**trainer_options)
-    trainer.fit(model)
+class ModelPosArgsOnly(LightningModule):
 
-    # Load last checkpoint
-    last_checkpoint = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, "*.ckpt")))[-1]
-    pretrained_model = EvalModelTemplate.load_from_checkpoint(last_checkpoint, b1=0.5, b2=0.888)
+    def __init__(self, net, h_dim):
+        super().__init__()
+        # self.save_hyperparameters()
+        if net == 'cnn':
+          self.net = LitCNN(h_dim)
 
-    # Assert that model args were changed accordingly
-    # Assert that model weights did not change
-    assert pretrained_model.b1 == 0.5  # `b1` arg did not change
-    assert pretrained_model.b2 == 0.888  # `b2` arg changed
-    for (old_name, old_p), (new_name, new_p) in zip(model.named_parameters(), pretrained_model.named_parameters()):
-        assert torch.all(torch.eq(old_p, new_p)), 'loaded weights are not the same as the saved weights'
+    def forward(self, x):
+        return self.net(x)
+
+    def training_step(self, batch, batch_nb):
+        x, y = batch
+        loss = F.cross_entropy(self(x), y)
+        tensorboard_logs = {'train_loss': loss}
+        return {'loss': loss, 'log': tensorboard_logs}
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=0.02)
+
+
+def test_load_model_with_position_args_only(tmpdir):
+    train_loader = DataLoader(TrialMNIST(), batch_size=32)
+    mnist_model = ModelPosArgsOnly('cnn', h_dim=50)
+    trainer = Trainer(max_epochs=3, default_root_dir=tmpdir)
+    trainer.fit(mnist_model, train_loader)
+
+    trainer.save_checkpoint(os.path.join(tmpdir, 'mnist.ckpt'))
+    ModelPosArgsOnly.load_from_checkpoint(os.path.join(tmpdir, 'mnist.ckpt'))
 
 
 def test_model_pickle(tmpdir):
