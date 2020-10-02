@@ -93,7 +93,26 @@ class HyperparametersMixin:
         if hp:
             self._set_hparams(hp)
 
+    def extend_hparams(self, hparams):
+        hparams = self._to_hparams_dict(hparams)
+        if not hasattr(self, '_hparams'):
+            self._hparams_name = 'extended'
+            self._hparams = hparams
+        else:
+            colliding_keys = [key for key in hparams.keys() if key in self.hparams]
+            if colliding_keys:
+                raise ValueError(f'The keys {colliding_keys} are already present in the hparams.')
+            self.hparams.update(hparams)
+
     def _set_hparams(self, hp: Union[dict, Namespace, str]) -> None:
+        hp = self._to_hparams_dict(hp)
+
+        if isinstance(hp, dict) and isinstance(self.hparams, dict):
+            self.hparams.update(hp)
+        else:
+            self._hparams = hp
+
+    def _to_hparams_dict(self, hp):
         if isinstance(hp, Namespace):
             hp = vars(hp)
         if isinstance(hp, dict):
@@ -102,11 +121,7 @@ class HyperparametersMixin:
             raise ValueError(f"Primitives {PRIMITIVE_TYPES} are not allowed.")
         elif not isinstance(hp, ALLOWED_CONFIG_TYPES):
             raise ValueError(f"Unsupported config type of {type(hp)}.")
-
-        if isinstance(hp, dict) and isinstance(self.hparams, dict):
-            self.hparams.update(hp)
-        else:
-            self._hparams = hp
+        return hp
 
     @property
     def hparams(self) -> Union[AttributeDict, str]:
