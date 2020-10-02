@@ -868,26 +868,26 @@ def auroc(
                          ' target tensor contains value different from 0 and 1.'
                          ' Multiclass is currently not supported.')
 
-    #@auc_decorator(reorder=True)
+    # @auc_decorator(reorder=True)
     def _auroc(pred, target, sample_weight, pos_label, max_fpr):
         if max_fpr is None or max_fpr == 1:
             fpr, tpr, _ = roc(pred, target, sample_weight, pos_label)
             return auc(fpr, tpr, reorder=True)
-        if max_fpr <=0 or max_fpr > 1:
+        if max_fpr <= 0 or max_fpr > 1:
             raise ValueError("Expected max_fpr in range (0, 1], got: %r" % max_fpr)
 
         fpr, tpr, _ = roc(pred, target, sample_weight, pos_label)
         max_fpr = torch.tensor(max_fpr, device=fpr.device)
-        #torch.bucketize is slightly more performant than torch.searchsorted
-        #for 1-D arrays
+        # torch.bucketize is slightly more performant than torch.searchsorted
+        # for 1-D arrays
         # Add a single point at max_fpr and interpolate its tpr value
         stop = torch.bucketize(max_fpr, fpr, out_int32=True, right=True)
-        weight = (max_fpr - fpr[stop-1]) / (fpr[stop] - fpr[stop-1])
-        interp_tpr = torch.lerp(tpr[stop-1], tpr[stop], weight)
+        weight = (max_fpr - fpr[stop - 1]) / (fpr[stop] - fpr[stop - 1])
+        interp_tpr = torch.lerp(tpr[stop - 1], tpr[stop], weight)
         tpr = torch.cat([tpr[:stop], interp_tpr.view(1)])
         fpr = torch.cat([fpr[:stop], max_fpr.view(1)])
-        #Compute partial AUC
-        #Do i need to reorder?
+        # Compute partial AUC
+        # Do i need to reorder?
         partial_auc = auc(fpr, tpr, reorder=True)
 
         # McClish correction: standardize result to be 0.5 if non-discriminant
@@ -895,7 +895,6 @@ def auroc(
         min_area = 0.5 * max_fpr**2
         max_area = max_fpr
         return 0.5 * (1 + (partial_auc - min_area) / (max_area - min_area))
-        
 
     return _auroc(pred=pred, target=target, sample_weight=sample_weight, pos_label=pos_label, max_fpr=max_fpr)
 
