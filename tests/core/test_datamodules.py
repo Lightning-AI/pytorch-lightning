@@ -6,6 +6,7 @@ import pytest
 import torch
 
 from pytorch_lightning import LightningDataModule, Trainer, seed_everything
+from pytorch_lightning.utilities import AttributeDict
 from tests.base import EvalModelTemplate
 from tests.base.datamodules import TrialMNISTDataModule
 from tests.base.develop_utils import reset_seed
@@ -419,3 +420,8 @@ def test_dm_transfer_batch_to_device(tmpdir):
     expected = torch.device('cuda', 0)
     assert dm.hook_called
     assert batch_gpu.samples.device == batch_gpu.targets.device == expected
+
+
+def test_simple_hyperparameters_saving():
+    data = TrialMNISTDataModule()
+    assert data.hparams == AttributeDict({'data_dir': data.data_dir})

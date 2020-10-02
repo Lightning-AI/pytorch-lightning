@@ -14,6 +14,8 @@ class TrialMNISTDataModule(LightningDataModule):
         self.non_picklable = None
         self.checkpoint_state: Optional[str] = None
 
+        self.save_hyperparameters()
+
     def prepare_data(self):
         TrialMNIST(self.data_dir, train=True, download=True)
         TrialMNIST(self.data_dir, train=False, download=True)
