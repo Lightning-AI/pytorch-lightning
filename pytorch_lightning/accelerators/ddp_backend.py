@@ -54,12 +54,13 @@ class DDPBackend(Accelerator):
     def setup(self, model):
         # first track model
         self.trainer.model = model
-        print('-' * 50, '\n', f'DDP BE: B', '\n', '-' * 50)
 
         # start the other scripts
         if os.environ.get('PL_IN_DDP_SUBPROCESS', '0') != '1':
-            print('-' * 50, '\n', f'DDP BE: C', '\n', '-' * 50)
             self._call_children_scripts()
+
+        # set the task idx
+        self.task_idx = int(os.environ['PL_DDP_PID'])
 
     def _call_children_scripts(self):
         assert self.trainer.global_rank == 0
@@ -131,10 +132,6 @@ class DDPBackend(Accelerator):
             sleep(delay)
 
         os.environ['PL_DDP_PID'] = str(0)
-        self.task_idx = 0
-
-        # wait for all the procs to start
-        sleep(2)
 
     def train(self):
         model = self.trainer.model
@@ -178,9 +175,7 @@ class DDPBackend(Accelerator):
         self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
     def model_to_device(self, model, process_idx):
-        gpu_idx = int(os.environ.get('PL_DDP_PID', process_idx))
-
-        self.trainer.root_gpu = gpu_idx
+        self.trainer.root_gpu = process_idx
         torch.cuda.set_device(self.trainer.root_gpu)
         model.cuda(self.trainer.root_gpu)
 
@@ -213,7 +208,7 @@ class DDPBackend(Accelerator):
         Returns:
 
         """
-        print('-' * 50, '\n', f'DDP BE: E', '\n', '-' * 50)
+        print('-' * 50, '\n', f'DDP BE: E {process_idx}', '\n', '-' * 50)
         seed = os.environ.get("PL_GLOBAL_SEED", None)
         if seed is not None:
             seed_everything(int(seed))
