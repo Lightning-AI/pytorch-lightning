@@ -87,9 +87,10 @@ class LoggerConnector:
             step = step if step is not None else self.trainer.global_step
 
         # log actual metrics
-        if self.trainer.is_global_zero and self.trainer.logger is not None:
-            self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
-            self.trainer.logger.save()
+        if self.trainer.logger is not None:
+            if self.trainer.is_global_zero:
+                self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
+                self.trainer.logger.save()
 
             # track the logged metrics
             self.logged_metrics.update(scalar_metrics)
