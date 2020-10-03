@@ -50,6 +50,14 @@ class DDPBackend(Accelerator):
         self.dist = LightningDistributed()
 
     def setup(self, model):
+        # first track model
+        self.trainer.model = model
+
+        # start the other scripts
+        self._call_children_scripts()
+
+    def _call_children_scripts(self):
+
         assert self.trainer.global_rank == 0
         self._check_can_spawn_children()
         self._has_spawned_children = True
