@@ -197,12 +197,13 @@ class TrainLoop:
 
     def check_checkpoint_callback(self, should_save, is_last=False):
         # TODO bake this logic into the checkpoint callback
-        if should_save:
-            checkpoint_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
-            if is_last and any(c.save_last for c in checkpoint_callbacks):
-                rank_zero_info('Saving latest checkpoint...')
-            model = self.trainer.get_model()
-            [c.on_validation_end(self.trainer, model) for c in checkpoint_callbacks]
+        if not should_save:
+            return
+        checkpoint_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
+        if is_last and any(c.save_last for c in checkpoint_callbacks):
+            rank_zero_info('Saving latest checkpoint...')
+        model = self.trainer.get_model()
+        [c.on_validation_end(self.trainer, model) for c in checkpoint_callbacks]
 
     def on_train_epoch_start(self, epoch):
         model = self.trainer.get_model()
@@ -599,8 +600,7 @@ class TrainLoop:
         # epoch end hook
         self.run_on_epoch_end_hook()
 
-        # increment the global step once
-        # progress global step according to grads progress
+        # increment the global step once progress global step according to grads progress
         self.increment_accumulated_grad_global_step()
 
     def run_training_batch(self, batch, batch_idx, dataloader_idx):
