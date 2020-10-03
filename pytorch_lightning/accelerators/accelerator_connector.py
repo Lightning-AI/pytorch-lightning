@@ -154,7 +154,7 @@ class AcceleratorConnector:
             accelerator_backend = accelerators.DDPCPUSpawnBackend(self.trainer, nprocs=self.trainer.num_processes)
 
         elif self.trainer.distributed_backend == "ddp":
-            accelerator_backend = accelerators.DDPBackend(self.trainer, mode='ddp')
+            accelerator_backend = accelerators.DDPBackend(self.trainer)
 
         elif self.trainer.use_dp:
             accelerator_backend = accelerators.DataParallelBackend(self.trainer)
