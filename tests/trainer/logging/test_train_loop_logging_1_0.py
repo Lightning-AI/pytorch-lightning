@@ -3,8 +3,10 @@ Tests to ensure that the training loop works with a dict (1.0)
 """
 from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
+from tests.base.boring_model import BoringModel
 import os
 import torch
+import pytest
 
 
 def test__training_step__log(tmpdir):
@@ -173,19 +175,19 @@ def test__training_step__epoch_end__log(tmpdir):
     assert callback_metrics == expected_callback_metrics
 
 
-def test__training_step__step_end__epoch_end__log(tmpdir):
+@pytest.mark.parametrize(['batches', 'max_epochs'], [(1, 1), (1.0, 2)])
+def test__training_step__step_end__epoch_end__log(tmpdir, batches, max_epochs):
     """
     Tests that only training_step can be used
     """
     os.environ['PL_DEV_DEBUG'] = '1'
 
-    class TestModel(DeterministicModel):
+    class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             self.training_step_called = True
-            acc = self.step(batch, batch_idx)
-            acc = acc + batch_idx
-            self.log('a', acc, on_step=True, on_epoch=True)
-            return acc
+            loss = self.step(batch[0])
+            self.log('a', loss, on_step=True, on_epoch=True)
+            return loss
 
         def training_step_end(self, out):
             self.training_step_end_called = True
@@ -196,17 +198,14 @@ def test__training_step__step_end__epoch_end__log(tmpdir):
             self.training_epoch_end_called = True
             self.log('c', outputs[0]['loss'], on_epoch=True, prog_bar=True, logger=True)
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
-            loss.backward()
-
     model = TestModel()
     model.val_dataloader = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=2,
+        limit_train_batches=batches,
+        limit_val_batches=batches,
+        max_epochs=max_epochs,
         row_log_interval=1,
         weights_summary=None,
     )
@@ -220,14 +219,10 @@ def test__training_step__step_end__epoch_end__log(tmpdir):
     # make sure all the metrics are available for callbacks
     logged_metrics = set(trainer.logged_metrics.keys())
     expected_logged_metrics = {
-        'a',
-        'step_a',
-        'epoch_a',
-        'b',
-        'step_b',
-        'epoch_b',
+        'a', 'step_a', 'epoch_a',
+        'b', 'step_b', 'epoch_b',
         'c',
-        'epoch',
+        'epoch'
     }
     assert logged_metrics == expected_logged_metrics
 
