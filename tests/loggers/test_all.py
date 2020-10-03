@@ -82,15 +82,21 @@ def test_loggers_fit_test(wandb, tmpdir, monkeypatch, logger_class):
 
     log_metric_names = [(s, sorted(m.keys())) for s, m in logger.history]
     if logger_class == TensorBoardLogger:
-        assert log_metric_names == [(0, ['hp_metric']),
-                                    (0, ['epoch', 'val_acc', 'val_loss']),
-                                    (0, ['epoch', 'train_some_val']),
-                                    (0, ['hp_metric']),
-                                    (1, ['epoch', 'test_acc', 'test_loss'])]
+        expected = [
+            (0, ['hp_metric']),
+            (0, ['epoch', 'train_some_val']),
+            (0, ['epoch', 'val_acc', 'val_loss']),
+            (0, ['hp_metric']),
+            (1, ['epoch', 'test_acc', 'test_loss'])
+        ]
+        assert log_metric_names == expected
     else:
-        assert log_metric_names == [(0, ['epoch', 'val_acc', 'val_loss']),
-                                    (0, ['epoch', 'train_some_val']),
-                                    (1, ['epoch', 'test_acc', 'test_loss'])]
+        expected = [
+            (0, ['epoch', 'train_some_val']),
+            (0, ['epoch', 'val_acc', 'val_loss']),
+            (1, ['epoch', 'test_acc', 'test_loss'])
+        ]
+        assert log_metric_names == expected
 
 
 @pytest.mark.parametrize("logger_class", [
