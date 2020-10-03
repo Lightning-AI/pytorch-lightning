@@ -138,7 +138,7 @@ class AcceleratorConnector:
         use_ddp_cpu_spawn = self.trainer.use_ddp and self.trainer.distributed_backend == "ddp_cpu"
 
         print('-' * 50, '\n', f'DDP BE: O', '\n', '-' * 50)
-
+        print(use_slurm_ddp, te_flags_passed, use_torchelastic_ddp, use_ddp_spawn, use_ddp_cpu_spawn)
         # choose the appropriate accelerator backend
         if self.trainer.use_ddp2:
             accelerator_backend = accelerators.DDP2Backend(self.trainer)
