@@ -532,16 +532,16 @@ class TrainLoop:
             self.on_train_batch_end(epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx)
 
             # -----------------------------------------
+            # SAVE METRICS TO LOGGERS
+            # -----------------------------------------
+            self.trainer.logger_connector.log_train_step_metrics(batch_output)
+
+            # -----------------------------------------
             # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
             # -----------------------------------------
             should_check_val = self.should_check_val_fx(batch_idx, is_last_batch)
             if should_check_val:
                 self.trainer.run_evaluation(test_mode=False)
-
-            # -----------------------------------------
-            # SAVE METRICS TO LOGGERS
-            # -----------------------------------------
-            self.trainer.logger_connector.log_train_step_metrics(batch_output)
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
