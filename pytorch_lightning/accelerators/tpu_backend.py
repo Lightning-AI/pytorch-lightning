@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import io
 import os
 import re
 
@@ -320,4 +320,11 @@ class TPUBackend(Accelerator):
             mp_queue.put(last_path)
 
     def broadcast(self, obj, src=0):
-        self.dist.broadcast(obj, on_tpu=True)
+        buffer = io.BytesIO()
+        torch.save(obj, buffer)
+        data = bytearray(buffer.getbuffer())
+        data_tensor = torch.ByteTensor(data).to(xm.xla_device())
+        data_list = torch_xla.core.xla_model.all_gather(data_tensor)
+        buffer = io.BytesIO(xm._maybe_convert_to_cpu(data_list[0]).numpy())
+        obj = torch.load(buffer)
+        return obj
