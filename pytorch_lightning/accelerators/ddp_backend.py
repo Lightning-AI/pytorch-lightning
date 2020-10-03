@@ -113,7 +113,7 @@ class DDPBackend(Accelerator):
             env_copy = os.environ.copy()
             env_copy['LOCAL_RANK'] = f'{local_rank}'
             env_copy['PL_DDP_PID'] = str(self.trainer.data_parallel_device_ids[local_rank])
-            env_copy['PL_GLOBAL_SEED'] = os.environ.get('PL_GLOBAL_SEED', None)
+            env_copy['PL_GLOBAL_SEED'] = os.environ.get('PL_GLOBAL_SEED')
 
             # start process
             # if hydra is available and initialized, make sure to set the cwd correctly
