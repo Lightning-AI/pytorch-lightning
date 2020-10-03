@@ -204,7 +204,7 @@ class DDPBackend(Accelerator):
         Returns:
 
         """
-        seed = os.environ.get("PL_GLOBAL_SEED", None)
+        seed = os.environ.get("PL_GLOBAL_SEED")
         if seed is not None:
             seed_everything(int(seed))
 
