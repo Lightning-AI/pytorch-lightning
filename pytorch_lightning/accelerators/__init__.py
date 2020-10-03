@@ -8,3 +8,4 @@ from pytorch_lightning.accelerators.gpu_backend import GPUBackend
 from pytorch_lightning.accelerators.tpu_backend import TPUBackend
 from pytorch_lightning.accelerators.horovod_backend import HorovodBackend
 from pytorch_lightning.accelerators.ddp_slurm_backend import DDPSLURMBackend
+from pytorch_lightning.accelerators.ddp_torchelastic_backend import DDPTorchElasticBackend
