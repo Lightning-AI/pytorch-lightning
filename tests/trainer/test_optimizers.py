@@ -193,7 +193,7 @@ def test_optimizer_return_options():
     assert len(optim) == 1 and len(lr_sched) == 1 and len(freq) == 0
     assert optim[0] == opt_a
     assert lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch',
-                               frequency=1, reduce_on_plateau=False, monitor='early_stop_on')
+                               frequency=1, reduce_on_plateau=False)
 
     # opt single dictionary
     model.configure_optimizers = lambda: {"optimizer": opt_a, "lr_scheduler": scheduler_a}
@@ -201,7 +201,7 @@ def test_optimizer_return_options():
     assert len(optim) == 1 and len(lr_sched) == 1 and len(freq) == 0
     assert optim[0] == opt_a
     assert lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch',
-                               frequency=1, reduce_on_plateau=False, monitor='early_stop_on')
+                               frequency=1, reduce_on_plateau=False)
 
     # opt multiple dictionaries with frequencies
     model.configure_optimizers = lambda: (
@@ -212,7 +212,7 @@ def test_optimizer_return_options():
     assert len(optim) == 2 and len(lr_sched) == 2 and len(freq) == 2
     assert optim[0] == opt_a
     assert lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch',
-                               frequency=1, reduce_on_plateau=False, monitor='early_stop_on')
+                               frequency=1, reduce_on_plateau=False)
     assert freq == [1, 5]
 
 
