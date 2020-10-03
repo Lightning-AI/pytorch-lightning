@@ -34,7 +34,7 @@ class ProfilerConnector:
 
         if isinstance(profiler, bool):
             rank_zero_warn("Passing a bool value as a `profiler` argument to `Trainer` is deprecated"
-                           " and will be removed in v1.2. Use str ('simple' or 'advanced') instead.",
+                           " and will be removed in v1.2.0. Use str ('simple' or 'advanced') instead.",
                            DeprecationWarning)
             if profiler:
                 profiler = SimpleProfiler()
