@@ -239,4 +239,4 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     assert callback_metrics == expected_callback_metrics
 
     # assert the loggers received the expected number
-    assert len(trainer.dev_debugger.logged_metrics) == ((batches/log_interval) * max_epochs) + max_epochs
+    assert len(trainer.dev_debugger.logged_metrics) == ((batches / log_interval) * max_epochs) + max_epochs
