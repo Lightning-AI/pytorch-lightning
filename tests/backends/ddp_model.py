@@ -22,6 +22,7 @@ def main():
     model = EvalModelTemplate()
     trainer = Trainer.from_argparse_args(args)
 
+    print('-' * 50, '\n', 'FIT', '\n', '-'*50)
     result = {}
     if args.trainer_method == 'fit':
         trainer.fit(model)
