@@ -56,6 +56,7 @@ class DDPBackend(Accelerator):
 
         # start the other scripts
         if os.environ.get('PL_IN_DDP_SUBPROCESS', '0') != '1':
+            print('-' * 50, '\n', 'SCRIPT CALL START', '\n', '-' * 50)
             self._call_children_scripts()
 
     def _call_children_scripts(self):
@@ -107,6 +108,7 @@ class DDPBackend(Accelerator):
 
         self.interactive_ddp_procs = []
         for local_rank in range(1, self.trainer.num_processes):
+            print('-' * 50, '\n', f'SCRIPT CALL: {local_rank}', '\n', '-' * 50)
             env_copy = os.environ.copy()
             env_copy['LOCAL_RANK'] = f'{local_rank}'
             env_copy['PL_DDP_PID'] = str(self.trainer.data_parallel_device_ids[local_rank])
@@ -206,6 +208,7 @@ class DDPBackend(Accelerator):
         Returns:
 
         """
+        print('-' * 50, '\n', f'DDP TRAIN: {process_idx}', '\n', '-' * 50)
         seed = os.environ.get("PL_GLOBAL_SEED", None)
         if seed is not None:
             seed_everything(int(seed))
@@ -216,6 +219,7 @@ class DDPBackend(Accelerator):
 
         # determine which process we are and world size
         self.set_world_ranks(process_idx)
+        print('-' * 50, '\n', f'DDP TRAIN: GLOBAL RANK {self.trainer.global_rank}', '\n', '-' * 50)
 
         # set warning rank
         rank_zero_only.rank = self.trainer.global_rank
