@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 import os
-import torch.distributed as dist
 import torch
 import torch.distributed as torch_distrib
 import subprocess
@@ -185,8 +184,8 @@ class DDPBackend(Accelerator):
 
     def early_stopping_should_stop(self, pl_module):
         stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device)
-        dist.all_reduce(stop, op=dist.reduce_op.SUM)
-        dist.barrier()
+        torch_distrib.all_reduce(stop, op=torch_distrib.reduce_op.SUM)
+        torch_distrib.barrier()
         should_stop = stop == self.trainer.world_size
         return should_stop
 
