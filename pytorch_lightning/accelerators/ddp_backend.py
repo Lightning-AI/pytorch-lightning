@@ -135,6 +135,8 @@ class DDPBackend(Accelerator):
 
     def train(self):
         model = self.trainer.model
+        print('-' * 50, '\n', f'DDP BE: TRAIN', '\n', '-' * 50)
+
         results = self.ddp_train(process_idx=self.task_idx, model=model)
         if 'WORLD_SIZE' in os.environ:
             del os.environ['WORLD_SIZE']
