@@ -175,7 +175,7 @@ def test__training_step__epoch_end__log(tmpdir):
     assert callback_metrics == expected_callback_metrics
 
 
-@pytest.mark.parametrize(['batches', 'max_epochs'], [(1, 1), (1.0, 2)])
+@pytest.mark.parametrize(['batches', 'max_epochs'], [(1, 1), (64, 2)])
 def test__training_step__step_end__epoch_end__log(tmpdir, batches, max_epochs):
     """
     Tests that only training_step can be used
@@ -237,3 +237,6 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, max_epochs):
     expected_callback_metrics = expected_callback_metrics.union(pbar_metrics)
     expected_callback_metrics.remove('epoch')
     assert callback_metrics == expected_callback_metrics
+
+    # assert the loggers received the expected number
+    assert len(trainer.dev_debugger.logged_metrics) == (batches * max_epochs) + max_epochs
