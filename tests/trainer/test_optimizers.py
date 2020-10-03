@@ -128,7 +128,7 @@ def test_reduce_lr_on_plateau_scheduling(tmpdir):
     assert results == 1
 
     assert trainer.lr_schedulers[0] == \
-        dict(scheduler=trainer.lr_schedulers[0]['scheduler'], monitor='val_loss',
+        dict(scheduler=trainer.lr_schedulers[0]['scheduler'], monitor='early_stop_on',
              interval='epoch', frequency=1, reduce_on_plateau=True), \
         'lr schduler was not correctly converted to dict'
 
@@ -167,7 +167,7 @@ def test_optimizer_return_options():
     assert len(optim) == 1 and len(lr_sched) == 1 and len(freq) == 0
     assert optim[0] == opt_a
     assert lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch',
-                               frequency=1, reduce_on_plateau=False, monitor='val_loss')
+                               frequency=1, reduce_on_plateau=False, monitor='early_stop_on')
 
     # opt single dictionary
     model.configure_optimizers = lambda: {"optimizer": opt_a, "lr_scheduler": scheduler_a}
@@ -175,7 +175,7 @@ def test_optimizer_return_options():
     assert len(optim) == 1 and len(lr_sched) == 1 and len(freq) == 0
     assert optim[0] == opt_a
     assert lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch',
-                               frequency=1, reduce_on_plateau=False, monitor='val_loss')
+                               frequency=1, reduce_on_plateau=False, monitor='early_stop_on')
 
     # opt multiple dictionaries with frequencies
     model.configure_optimizers = lambda: (
@@ -186,7 +186,7 @@ def test_optimizer_return_options():
     assert len(optim) == 2 and len(lr_sched) == 2 and len(freq) == 2
     assert optim[0] == opt_a
     assert lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch',
-                               frequency=1, reduce_on_plateau=False, monitor='val_loss')
+                               frequency=1, reduce_on_plateau=False, monitor='early_stop_on')
     assert freq == [1, 5]
 
 
