@@ -327,4 +327,3 @@ class TPUBackend(Accelerator):
         buffer = io.BytesIO(data.cpu().byte().numpy())
         obj = torch.load(buffer)
         return obj
-
