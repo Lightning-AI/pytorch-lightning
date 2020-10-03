@@ -317,7 +317,7 @@ class LoggerConnector:
         # --------------------------
         # add the metrics to the loggers and callbacks
         if epoch_log_metrics and len(epoch_log_metrics) > 0:
-            self.log_metrics(epoch_log_metrics, {})
+            self.log_metrics(epoch_log_metrics, {}, self.trainer.current_epoch)
             self.callback_metrics.update(epoch_log_metrics)
 
         # add metrics to callbacks
