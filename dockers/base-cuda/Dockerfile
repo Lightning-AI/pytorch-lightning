@@ -22,7 +22,7 @@
 ARG CUDNN_VERSION=7
 ARG CUDA_VERSION=10.1
 
-FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel
+FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel-ubuntu18.04
 # FROM nvidia/cuda:${CUDA_VERSION}-devel
 
 ARG PYTHON_VERSION=3.7
@@ -34,7 +34,7 @@ SHELL ["/bin/bash", "-c"]
 
 ENV PATH="$PATH:/root/.local/bin"
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get clean && apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
         git \
