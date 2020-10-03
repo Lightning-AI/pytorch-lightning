@@ -78,7 +78,7 @@ extras['all'] = extras['dev'] + extras['examples']  # + extras['docs']
 # the goal of the project is simplicity for researchers, don't want to add too much
 # engineer specific practices
 setup(
-    name="pytorch-lightning-nightly",
+    name="pytorch-lightning",
     version=pytorch_lightning.__version__,
     description=pytorch_lightning.__docs__,
     author=pytorch_lightning.__author__,
