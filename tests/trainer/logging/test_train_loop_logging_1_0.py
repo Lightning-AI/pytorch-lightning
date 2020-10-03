@@ -197,6 +197,7 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
         def training_epoch_end(self, outputs):
             self.training_epoch_end_called = True
             self.log('c', outputs[0]['loss'], on_epoch=True, prog_bar=True, logger=True)
+            self.log('d', outputs[0]['loss'])
 
     model = TestModel()
     model.val_dataloader = None
@@ -222,6 +223,7 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
         'a', 'step_a', 'epoch_a',
         'b', 'step_b', 'epoch_b',
         'c',
+        'd',
         'epoch'
     }
     assert logged_metrics == expected_logged_metrics
