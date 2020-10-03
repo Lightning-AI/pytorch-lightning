@@ -274,7 +274,7 @@ Using DataModules allows easier sharing of full dataset definitions.
     model = LitModel(num_classes=imagenet_dm.num_classes)
     trainer.fit(model, imagenet_dm)
 
-.. note:: ``prepare_data()`` is called only one 1 GPU in distributed training (automatically)
+.. note:: ``prepare_data()`` is called on only one GPU in distributed training (automatically)
 .. note:: ``setup()`` is called on every GPU (automatically)
 
 Models defined by data
@@ -381,8 +381,8 @@ In the case of MNIST we do the following
             optimizer.step()
             optimizer.zero_grad()
 
-In Lightning, everything that is in the training step gets organized under the ``training_step`` function
-in the LightningModule
+In Lightning, everything that is in the training step gets organized under the
+:func:`~pytorch_lightning.core.LightningModule.training_step` function in the LightningModule.
 
 .. testcode::
 

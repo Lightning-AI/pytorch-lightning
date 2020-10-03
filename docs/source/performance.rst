@@ -8,7 +8,7 @@ Here are some best practices to increase your performance.
 
 Dataloaders
 -----------
-When building your Dataloader set ``num_workers > 0`` and ``pin_memory=True`` (only for GPUs).
+When building your DataLoader set ``num_workers > 0`` and ``pin_memory=True`` (only for GPUs).
 
 .. code-block:: python
 
@@ -42,7 +42,7 @@ use ``distributed_backend=ddp`` so you can increase the ``num_workers``, however
 
 .item(), .numpy(), .cpu()
 -------------------------
-Don't call ``.item()`` anywhere on your code. Use ``.detach()`` instead to remove the connected graph calls. Lightning
+Don't call ``.item()`` anywhere in your code. Use ``.detach()`` instead to remove the connected graph calls. Lightning
 takes a great deal of care to be optimized for this.
 
 ----------
@@ -95,7 +95,7 @@ Whereas DDP only performs 1 transfer to sync gradients. Because of this, DDP is 
 
 16-bit precision
 ----------------
-Use 16-bit to decrease the memory (and thus increase your batch size). On certain GPUs (V100s, 2080tis), 16-bit calculations are also faster.
+Use 16-bit to decrease the memory consumption (and thus increase your batch size). On certain GPUs (V100s, 2080tis), 16-bit calculations are also faster.
 However, know that 16-bit and multi-processing (any DDP) can have issues. Here are some common problems.
 
 1. `CUDA error: an illegal memory access was encountered <https://github.com/pytorch/pytorch/issues/21819>`_.

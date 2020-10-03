@@ -34,7 +34,7 @@ Move the model architecture and forward pass to your :class:`~pytorch_lightning.
 
 2. Move the optimizer(s) and schedulers
 =======================================
-Move your optimizers to :func:`~pytorch_lightning.core.LightningModule.configure_optimizers` hook. Make sure to use the hook parameters (self in this case).
+Move your optimizers to the :func:`~pytorch_lightning.core.LightningModule.configure_optimizers` hook.
 
 .. testcode::
 
@@ -46,7 +46,8 @@ Move your optimizers to :func:`~pytorch_lightning.core.LightningModule.configure
 
 3. Find the train loop "meat"
 =============================
-Lightning automates most of the training for you, the epoch and batch iterations, all you need to keep is the training step logic. This should go into :func:`~pytorch_lightning.core.LightningModule.training_step` hook (make sure to use the hook parameters, self in this case):
+Lightning automates most of the training for you, the epoch and batch iterations, all you need to keep is the training step logic.
+This should go into the :func:`~pytorch_lightning.core.LightningModule.training_step` hook (make sure to use the hook parameters, ``batch`` and ``batch_idx`` in this case):
 
 .. testcode::
 
@@ -60,7 +61,8 @@ Lightning automates most of the training for you, the epoch and batch iterations
 
 4. Find the val loop "meat"
 ===========================
-To add an (optional) validation loop add logic to :func:`~pytorch_lightning.core.LightningModule.validation_step` hook (make sure to use the hook parameters, self in this case).
+To add an (optional) validation loop add logic to the
+:func:`~pytorch_lightning.core.LightningModule.validation_step` hook (make sure to use the hook parameters, ``batch`` and ``batch_idx`` in this case).
 
 .. testcode::
 
@@ -76,7 +78,8 @@ To add an (optional) validation loop add logic to :func:`~pytorch_lightning.core
 
 5. Find the test loop "meat"
 ============================
-To add an (optional) test loop add logic to :func:`~pytorch_lightning.core.LightningModule.test_step` hook (make sure to use the hook parameters, self in this case).
+To add an (optional) test loop add logic to the
+:func:`~pytorch_lightning.core.LightningModule.test_step` hook (make sure to use the hook parameters, ``batch`` and ``batch_idx`` in this case).
 
 .. testcode::
 
