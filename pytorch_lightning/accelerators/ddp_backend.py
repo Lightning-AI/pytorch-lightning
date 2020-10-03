@@ -49,14 +49,16 @@ class DDPBackend(Accelerator):
         self._has_spawned_children = False
         self.interactive_ddp_procs = []
         self.dist = LightningDistributed()
+        print('-' * 50, '\n', f'DDP BE: A', '\n', '-' * 50)
 
     def setup(self, model):
         # first track model
         self.trainer.model = model
+        print('-' * 50, '\n', f'DDP BE: B', '\n', '-' * 50)
 
         # start the other scripts
         if os.environ.get('PL_IN_DDP_SUBPROCESS', '0') != '1':
-            print('-' * 50, '\n', 'SCRIPT CALL START', '\n', '-' * 50)
+            print('-' * 50, '\n', f'DDP BE: C', '\n', '-' * 50)
             self._call_children_scripts()
 
     def _call_children_scripts(self):
@@ -135,7 +137,7 @@ class DDPBackend(Accelerator):
 
     def train(self):
         model = self.trainer.model
-        print('-' * 50, '\n', f'DDP BE: TRAIN', '\n', '-' * 50)
+        print('-' * 50, '\n', f'DDP BE: D', '\n', '-' * 50)
 
         results = self.ddp_train(process_idx=self.task_idx, model=model)
         if 'WORLD_SIZE' in os.environ:
@@ -210,7 +212,7 @@ class DDPBackend(Accelerator):
         Returns:
 
         """
-        print('-' * 50, '\n', f'DDP TRAIN: {process_idx}', '\n', '-' * 50)
+        print('-' * 50, '\n', f'DDP BE: E', '\n', '-' * 50)
         seed = os.environ.get("PL_GLOBAL_SEED", None)
         if seed is not None:
             seed_everything(int(seed))
