@@ -3,6 +3,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def test_optimizer_with_scheduling(tmpdir):
@@ -111,11 +112,36 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
         'lr for optimizer 2 not adjusted correctly'
 
 
-def test_reduce_lr_on_plateau_scheduling(tmpdir):
+def test_reduce_lr_on_plateau_scheduling_missing_monitor(tmpdir):
 
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
     model.configure_optimizers = model.configure_optimizers__reduce_lr_on_plateau
+
+    # fit model
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_val_batches=0.1,
+        limit_train_batches=0.2,
+    )
+
+    m = '.*ReduceLROnPlateau requires returning a dict from configure_optimizers.*'
+    with pytest.raises(MisconfigurationException, match=m):
+        trainer.fit(model)
+
+
+def test_reduce_lr_on_plateau_scheduling(tmpdir):
+
+    hparams = EvalModelTemplate.get_default_hparams()
+    class TestModel(EvalModelTemplate):
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+            lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+            return {'optimizer': optimizer, 'lr_scheduler': lr_scheduler, 'monitor': 'early_stop_on'}
+
+    model = TestModel(**hparams)
 
     # fit model
     trainer = Trainer(
