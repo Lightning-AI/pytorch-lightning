@@ -665,7 +665,7 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
         max_epochs=2,
         progress_bar_refresh_rate=0,
         default_root_dir=tmpdir,
-        checkpoint_callback=ModelCheckpoint(monitor='val_loss', save_top_k=save_top_k),
+        checkpoint_callback=ModelCheckpoint(monitor='early_stop_on', save_top_k=save_top_k),
     )
     trainer.fit(model)
     if ckpt_path == 'best':
