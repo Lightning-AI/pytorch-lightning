@@ -137,6 +137,11 @@ class AcceleratorConnector:
         use_ddp_spawn = self.trainer.use_ddp and self.trainer.distributed_backend == "ddp_spawn"
         use_ddp_cpu_spawn = self.trainer.use_ddp and self.trainer.distributed_backend == "ddp_cpu"
 
+        # ddp script mode uses the same flags as TE
+        # TODO: decouple from TE
+        if os.environ.get('PL_DDP_PID', False):
+            use_torchelastic_ddp = False
+
         print('-' * 50, '\n', f'DDP BE: O', '\n', '-' * 50)
         print(use_slurm_ddp, te_flags_passed, use_torchelastic_ddp, use_ddp_spawn, use_ddp_cpu_spawn)
         # choose the appropriate accelerator backend

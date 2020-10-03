@@ -130,6 +130,7 @@ class DDPBackend(Accelerator):
             delay = np.random.uniform(1, 5, 1)[0]
             sleep(delay)
 
+        os.environ['PL_DDP_PID'] = str(0)
         self.task_idx = 0
 
         # wait for all the procs to start
