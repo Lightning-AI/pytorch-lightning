@@ -107,8 +107,8 @@ class Trainer(
         limit_val_batches: Union[int, float] = 1.0,
         limit_test_batches: Union[int, float] = 1.0,
         val_check_interval: Union[int, float] = 1.0,
-        log_save_interval: Optional[int] = None,  # backward compatible, todo: remove
-        row_log_interval: Optional[int] = None,  # backward compatible, todo: remove
+        log_save_interval: Optional[int] = None,  # backward compatible, todo: remove in 1.1
+        row_log_interval: Optional[int] = None,  # backward compatible, todo: remove in 1.1
         flush_logs_every_n_steps: int = 100,
         log_every_n_steps: int = 50,
         distributed_backend: Optional[str] = None,
