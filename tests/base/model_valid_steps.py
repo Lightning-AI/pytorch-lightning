@@ -34,6 +34,21 @@ class ValidationStepVariations(ABC):
         })
         return output
 
+    def validation_step__decreasing(self, batch, batch_idx, *args, **kwargs):
+        if not hasattr(self, 'running_loss'):
+            self.running_loss = 1
+        if not hasattr(self, 'running_acc'):
+            self.running_acc = 0
+
+        self.running_loss -= 1e-2
+        self.running_acc += 1e-2
+
+        output = OrderedDict({
+            'val_loss': torch.tensor(self.running_loss),
+            'val_acc': torch.tensor(self.running_acc),
+        })
+        return output
+
     def validation_step_no_monitor(self, batch, batch_idx, *args, **kwargs):
         """
         Lightning calls this inside the validation loop
