@@ -12,22 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 import os
+import torch.distributed as dist
+import torch
+import torch.distributed as torch_distrib
 import subprocess
 import sys
 from os.path import abspath
 from time import sleep
 from typing import Optional
-
 import numpy as np
-import torch
-import torch.distributed as torch_distrib
-import torch.distributed as dist
 
+
+from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities.distributed import find_free_network_port
 from pytorch_lightning.accelerators.base_backend import Accelerator
-from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning.distributed.dist import LightningDistributed
 
@@ -47,6 +47,7 @@ class DDPBackend(Accelerator):
         super().__init__(trainer)
         self.task_idx = None
         self._has_spawned_children = False
+        self.interactive_ddp_procs = []
         self.dist = LightningDistributed()
 
     def setup(self, model):
@@ -57,7 +58,6 @@ class DDPBackend(Accelerator):
         self._call_children_scripts()
 
     def _call_children_scripts(self):
-
         assert self.trainer.global_rank == 0
         self._check_can_spawn_children()
         self._has_spawned_children = True
@@ -104,11 +104,12 @@ class DDPBackend(Accelerator):
 
         os.environ['WORLD_SIZE'] = f'{num_gpus * self.trainer.num_nodes}'
 
-        self.trainer.interactive_ddp_procs = []
+        self.interactive_ddp_procs = []
         for local_rank in range(1, self.trainer.num_processes):
             env_copy = os.environ.copy()
             env_copy['LOCAL_RANK'] = f'{local_rank}'
             env_copy['PL_DDP_PID'] = str(self.trainer.data_parallel_device_ids[local_rank])
+            env_copy['PL_GLOBAL_SEED'] = os.environ.get('PL_GLOBAL_SEED', None)
 
             # start process
             # if hydra is available and initialized, make sure to set the cwd correctly
@@ -117,7 +118,7 @@ class DDPBackend(Accelerator):
                 if HydraConfig.initialized():
                     cwd = get_original_cwd()
             proc = subprocess.Popen(command, env=env_copy, cwd=cwd)
-            self.trainer.interactive_ddp_procs.append(proc)
+            self.interactive_ddp_procs.append(proc)
 
             # starting all processes at once can cause issues
             # with dataloaders delay between 1-10 seconds
@@ -126,44 +127,15 @@ class DDPBackend(Accelerator):
 
         self.task_idx = 0
 
+        # wait for all the procs to start
+        sleep(2)
+
     def train(self):
         model = self.trainer.model
-        results = self.ddp_train(process_idx=self.task_idx, model=model, is_master=True)
-        del os.environ['WORLD_SIZE']
+        results = self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=model, is_master=True)
+        if 'WORLD_SIZE' in os.environ:
+            del os.environ['WORLD_SIZE']
         return results
-
-    def _check_can_spawn_children(self):
-        if self._has_spawned_children:
-            raise RuntimeError(
-                "You tried to run `.fit` or `.test` multiple times in the same script."
-                " This is not supported in DDP mode, switch to `distributed_backend='ddp_spawn'` instead."
-            )
-
-    def set_world_ranks(self, process_idx):
-        self.trainer.local_rank = process_idx
-        self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
-        self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
-
-    def model_to_device(self, model, process_idx, is_master):
-        gpu_idx = process_idx
-
-        # when using ddp, the master process (proc 0) continues running as the main one
-        # this means that the local rank will always be 0
-        # (even if cuda visible devices has other visible gpus)
-        # this means that the master process needs to pull the 0th visible index as the device number
-        if is_master:
-            available_gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',')
-            gpu_idx = int(available_gpus[self.trainer.local_rank])
-
-        gpu_idx = int(os.environ.get('PL_DDP_PID', gpu_idx))
-
-        self.trainer.root_gpu = gpu_idx
-        torch.cuda.set_device(self.trainer.root_gpu)
-        model.cuda(self.trainer.root_gpu)
-
-    def get_device_ids(self):
-        device_ids = [self.trainer.root_gpu]
-        return device_ids
 
     def training_step(self, args):
         if self.trainer.amp_backend == AMPType.NATIVE:
@@ -184,6 +156,32 @@ class DDPBackend(Accelerator):
     def barrier(self, name: str = None):
         if torch_distrib.is_initialized():
             torch_distrib.barrier()
+
+    def _check_can_spawn_children(self):
+        if self._has_spawned_children:
+            raise RuntimeError(
+                "You tried to run `.fit` or `.test` multiple times in the same script."
+                " This is not supported in DDP mode, switch to `distributed_backend='ddp_spawn'` instead."
+            )
+
+    def set_world_ranks(self, process_idx):
+        self.trainer.local_rank = process_idx
+        self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
+        self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
+
+    def model_to_device(self, model, process_idx, is_master):
+        gpu_idx = int(os.environ.get('PL_DDP_PID', process_idx))
+
+        self.trainer.root_gpu = gpu_idx
+        torch.cuda.set_device(self.trainer.root_gpu)
+        model.cuda(self.trainer.root_gpu)
+
+    def get_device_ids(self):
+        device_ids = [self.trainer.root_gpu]
+        return device_ids
+
+    def on_train_end(self):
+        pass
 
     def early_stopping_should_stop(self, pl_module):
         stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device)
@@ -207,7 +205,7 @@ class DDPBackend(Accelerator):
         Returns:
 
         """
-        seed = os.environ.get("PL_GLOBAL_SEED")
+        seed = os.environ.get("PL_GLOBAL_SEED", None)
         if seed is not None:
             seed_everything(int(seed))
 
@@ -268,6 +266,7 @@ class DDPBackend(Accelerator):
         model = model.configure_ddp(model, device_ids)
 
         # set up training routine
+        self.barrier('ddp_setup')
         self.trainer.train_loop.setup_training(model)
 
         # train or test
