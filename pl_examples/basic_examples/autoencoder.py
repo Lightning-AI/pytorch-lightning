@@ -92,6 +92,8 @@ def cli_main():
     # training
     # ------------
     trainer = pl.Trainer.from_argparse_args(args)
+
+    print('-' * 50, '\n', f'Autoencoder called', '\n', '-' * 50)
     trainer.fit(model, train_loader, val_loader)
 
     # ------------
