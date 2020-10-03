@@ -22,6 +22,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pprint import pprint
 from typing import Iterable
 from copy import deepcopy
+import os
 
 
 class LoggerConnector:
@@ -171,10 +172,7 @@ class LoggerConnector:
         return result
 
     def _track_callback_metrics(self, eval_results, using_eval_result):
-        if (
-                len(eval_results) > 0
-                and (eval_results[0] is None or not isinstance(eval_results, Result))
-        ):
+        if len(eval_results) > 0 and eval_results[0] is None:
             return
 
         if using_eval_result:
