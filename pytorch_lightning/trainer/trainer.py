@@ -608,10 +608,7 @@ class Trainer(
         torch.set_grad_enabled(True)
 
         # hook
-        try:
-            self.evaluation_loop.on_evaluation_end()
-        except Exception as e:
-            print(e)
+        self.evaluation_loop.on_evaluation_end()
 
         return eval_loop_results, eval_results
 
