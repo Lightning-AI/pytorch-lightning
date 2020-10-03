@@ -161,7 +161,11 @@ class LoggerConnector:
             self.eval_loop_results.append(deepcopy(self.callback_metrics))
 
             # actually log
-            self.log_metrics(logger_metrics, {}, step=self.trainer.current_epoch)
+            self.log_metrics(
+                logger_metrics,
+                {},
+                # step=self.trainer.current_epoch
+            )
 
     def __rename_keys_by_dataloader_idx(self, metrics, dataloader_idx, num_loaders):
         if num_loaders == 1:
@@ -317,7 +321,11 @@ class LoggerConnector:
         # --------------------------
         # add the metrics to the loggers and callbacks
         if epoch_log_metrics and len(epoch_log_metrics) > 0:
-            self.log_metrics(epoch_log_metrics, {}, step=self.trainer.current_epoch)
+            self.log_metrics(
+                epoch_log_metrics,
+                {},
+                # step=self.trainer.current_epoch
+            )
             self.callback_metrics.update(epoch_log_metrics)
 
         # add metrics to callbacks
