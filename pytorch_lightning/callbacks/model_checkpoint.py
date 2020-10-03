@@ -549,5 +549,5 @@ class ModelCheckpoint(Callback):
         best_k = {k: v.item() for k, v in self.best_k_models.items()}
         if filepath is None:
             filepath = os.path.join(self.dirpath, "best_k_models.yaml")
-        with open(filepath, "w") as fp:
+        with self._fs.open(filepath, "w") as fp:
             yaml.dump(best_k, fp)

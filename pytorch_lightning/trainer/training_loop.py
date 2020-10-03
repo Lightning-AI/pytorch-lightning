@@ -515,6 +515,10 @@ class TrainLoop:
             # ------------------------------------
             batch_output = self.run_training_batch(batch, batch_idx, dataloader_idx)
 
+            # when returning -1 from train_step, we end epoch early
+            if batch_output.signal == -1:
+                break
+
             # only track outputs when user implements training_epoch_end
             # otherwise we will build up unnecessary memory
             epoch_end_outputs = self.process_train_step_outputs(
@@ -526,9 +530,6 @@ class TrainLoop:
             # hook
             # TODO: add outputs to batches
             self.on_train_batch_end(epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx)
-
-            # when returning -1 from train_step, we end epoch early
-            self.trainer.should_stop = batch_output.signal == -1
 
             # -----------------------------------------
             # VALIDATE IF NEEDED + CHECKPOINT CALLBACK

@@ -12,34 +12,61 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 import os
-import re
-
 import torch
 import torch.distributed as torch_distrib
 import torch.distributed as dist
 
+from pytorch_lightning.accelerators.base_backend import Accelerator
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.base_backend import Accelerator, BackendType
 from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities.cloud_io import atomic_save
-from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning.distributed.dist import LightningDistributed
 
+
 try:
+    from hydra.utils import to_absolute_path, get_original_cwd
     from hydra.core.hydra_config import HydraConfig
-    from hydra.utils import get_original_cwd, to_absolute_path
 except ImportError:
     HYDRA_AVAILABLE = False
 else:
     HYDRA_AVAILABLE = True
 
 
-class DDPBase(Accelerator):
+# -------------------------------------------
+# !!!!!!!!!!!!!! NOTE !!!!!!!!!!!!!!!!!!!!!!
+# TEMP CLASS WHILE WE DECOUPLE SLURM FROM DDP
+# !!!!!!!!!!!!!! NOTE !!!!!!!!!!!!!!!!!!!!!!
+# -------------------------------------------
+class DDPSLURMBackend(Accelerator):
 
     def __init__(self, trainer):
         super().__init__(trainer)
+        self.task_idx = None
+        self._has_spawned_children = False
         self.dist = LightningDistributed()
+
+    def setup(self, model):
+        self.trainer.model = model
+        self.task_idx = int(os.environ['SLURM_LOCALID'])
+
+    def train(self):
+        model = self.trainer.model
+        self.ddp_train(process_idx=self.task_idx, model=model)
+
+    def set_world_ranks(self, process_idx):
+        self.trainer.local_rank = process_idx
+        self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
+        self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
+
+    def model_to_device(self, model, process_idx):
+        self.trainer.root_gpu = process_idx
+        torch.cuda.set_device(self.trainer.root_gpu)
+        model.cuda(self.trainer.root_gpu)
+
+    def get_device_ids(self):
+        device_ids = [self.trainer.root_gpu]
+        return device_ids
 
     def training_step(self, args):
         if self.trainer.amp_backend == AMPType.NATIVE:
@@ -68,29 +95,10 @@ class DDPBase(Accelerator):
         should_stop = stop == self.trainer.world_size
         return should_stop
 
-    def transfer_distrib_spawn_state_on_fit_end(self, model, mp_queue, results):
-        if self.trainer.distributed_backend not in (BackendType.DDP_SPAWN, BackendType.DDP_CPU, BackendType.TPU):
-            return
+    def broadcast(self, obj, src=0):
+        return self.dist.broadcast(obj)
 
-        # track the best model path
-        best_model_path = None
-        if self.trainer.checkpoint_callback is not None:
-            best_model_path = self.trainer.checkpoint_callback.best_model_path
-
-        if self.trainer.global_rank == 0 and mp_queue is not None:
-            rank_zero_warn('cleaning up ddp environment...')
-            # todo, pass complete checkpoint as state dictionary
-            mp_queue.put(best_model_path)
-            mp_queue.put(results)
-
-            # save the last weights
-            last_path = None
-            if not self.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
-                last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
-                atomic_save(model.state_dict(), last_path)
-            mp_queue.put(last_path)
-
-    def ddp_train_tmp(self, process_idx, mp_queue, model, is_master=False, proc_offset=0):
+    def ddp_train(self, process_idx, model):
         """
         Entry point for ddp
 
@@ -106,15 +114,12 @@ class DDPBase(Accelerator):
         if seed is not None:
             seed_everything(int(seed))
 
-        # offset the process id if requested
-        process_idx = process_idx + proc_offset
-
-        # show progressbar only on progress_rank 0
-        if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:
-            self.trainer.progress_bar_callback.disable()
-
         # determine which process we are and world size
         self.set_world_ranks(process_idx)
+
+        # toggle prog bar
+        if self.trainer.global_rank == 0 and self.trainer.progress_bar_callback is not None:
+            self.trainer.progress_bar_callback.disable()
 
         # set warning rank
         rank_zero_only.rank = self.trainer.global_rank
@@ -135,7 +140,7 @@ class DDPBase(Accelerator):
         # on world_size=0 let everyone know training is starting
         if self.trainer.is_global_zero and not torch.distributed.is_initialized():
             log.info('-' * 100)
-            log.info(f'distributed_backend={self.trainer.distributed_backend}')
+            log.info(f'distributed_backend={self.trainer.distributed_backend} (on SLURM)')
             log.info(f'All DDP processes registered. Starting ddp with {self.trainer.world_size} processes')
             log.info('-' * 100)
 
@@ -144,7 +149,7 @@ class DDPBase(Accelerator):
             model = model.configure_sync_batchnorm(model)
 
         # move the model to the correct device
-        self.model_to_device(model, process_idx, is_master)
+        self.model_to_device(model, process_idx)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
@@ -168,26 +173,7 @@ class DDPBase(Accelerator):
         # train or test
         results = self.train_or_test()
 
-        # get original model
-        model = self.trainer.get_model()
-
-        # persist info in ddp_spawn
-        self.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
-
         # clean up memory
         torch.cuda.empty_cache()
 
-        if self.trainer.global_rank == 0:
-            return results
-
-    def broadcast(self, obj, src=0):
-        return self.dist.broadcast(obj)
-
-    def set_world_ranks(self, process_idx):
-        raise NotImplementedError('to create a ddp backend, please implement set_world_ranks')
-
-    def model_to_device(self, model, process_idx, is_master):
-        raise NotImplementedError('to create a ddp backend, please implement model_to_device')
-
-    def get_device_ids(self):
-        raise NotImplementedError('to create a ddp backend, please implement get_device_ids')
+        return results
