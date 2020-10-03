@@ -232,7 +232,8 @@ class TensorBoardLogger(LightningLoggerBase):
             return 0
 
         existing_versions = []
-        for d in self._fs.ls(root_dir):
+        for listing in self._fs.listdir(root_dir):
+            d = listing["name"]
             bn = os.path.basename(d)
             if self._fs.isdir(d) and bn.startswith("version_"):
                 dir_ver = bn.split("_")[1].replace('/', '')
