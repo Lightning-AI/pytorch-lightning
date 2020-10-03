@@ -43,30 +43,13 @@ else:
 
 class DDPBackend(Accelerator):
 
-    def __init__(self, trainer, mode: str = 'ddp'):
+    def __init__(self, trainer):
         super().__init__(trainer)
         self.task_idx = None
         self._has_spawned_children = False
-        self.mode = mode
         self.dist = LightningDistributed()
 
     def setup(self, model):
-        if self.mode == 'ddp':
-            self.__ddp_script_mode_setup()
-        elif self.mode == 'slurm_ddp':
-            self.__slurm_setup()
-        elif self.mode == 'torchelastic_ddp':
-            self.__torchelastic_setup()
-
-        self.trainer.model = model
-
-    def __slurm_setup(self):
-        self.task_idx = int(os.environ['SLURM_LOCALID'])
-
-    def __torchelastic_setup(self):
-        self.task_idx = int(os.environ['LOCAL_RANK'])
-
-    def __ddp_script_mode_setup(self):
         assert self.trainer.global_rank == 0
         self._check_can_spawn_children()
         self._has_spawned_children = True
@@ -137,12 +120,9 @@ class DDPBackend(Accelerator):
 
     def train(self):
         model = self.trainer.model
-        if self.mode == 'ddp':
-            results = self.ddp_train(process_idx=self.task_idx, model=model, is_master=True)
-            del os.environ['WORLD_SIZE']
-            return results
-        else:
-            self.ddp_train(process_idx=self.task_idx, model=model)
+        results = self.ddp_train(process_idx=self.task_idx, model=model, is_master=True)
+        del os.environ['WORLD_SIZE']
+        return results
 
     def _check_can_spawn_children(self):
         if self._has_spawned_children:
@@ -288,5 +268,4 @@ class DDPBackend(Accelerator):
         # clean up memory
         torch.cuda.empty_cache()
 
-        if self.trainer.global_rank == 0:
-            return results
+        return results
