@@ -2,7 +2,9 @@
 Tests to ensure that the training loop works with a dict (1.0)
 """
 from pytorch_lightning import Trainer
+from pytorch_lightning import callbacks
 from tests.base.deterministic_model import DeterministicModel
+from tests.base import SimpleModule
 import os
 import torch
 
@@ -141,5 +143,18 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
 
     # we don't want to enable val metrics during steps because it is not something that users should do
     callback_metrics = set(trainer.callback_metrics.keys())
+    callback_metrics.remove('debug_epoch')
     expected_cb_metrics = {'a', 'b', 'c', 'd', 'e', 'epoch_b', 'epoch_d', 'epoch_f', 'f', 'g', 'step_b'}
     assert expected_cb_metrics == callback_metrics
+
+
+def test_monitor_val_epoch_end(tmpdir):
+    epoch_min_loss_override = 0
+    model = SimpleModule()
+    checkpoint_callback = callbacks.ModelCheckpoint(save_top_k=1, monitor="avg_val_loss")
+    trainer = Trainer(
+        max_epochs=epoch_min_loss_override + 2,
+        logger=False,
+        checkpoint_callback=checkpoint_callback,
+    )
+    trainer.fit(model)

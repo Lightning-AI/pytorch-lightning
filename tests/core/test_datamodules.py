@@ -11,6 +11,7 @@ from tests.base.datamodules import TrialMNISTDataModule
 from tests.base.develop_utils import reset_seed
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.accelerators.gpu_backend import GPUBackend
+from pytorch_lightning.callbacks import ModelCheckpoint
 
 
 def test_can_prepare_data(tmpdir):
@@ -226,6 +227,7 @@ def test_dm_checkpoint_save(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=3,
         weights_summary=None,
+        checkpoint_callback=ModelCheckpoint(monitor='early_stop_on')
     )
 
     # fit model

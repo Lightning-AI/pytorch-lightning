@@ -2,7 +2,6 @@ from pytorch_lightning import accelerators
 import os
 import torch
 
-from pytorch_lightning.accelerators.base_backend import BackendType
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
@@ -51,7 +50,7 @@ class AcceleratorConnector:
             os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
 
         # distributed backend choice
-        self.trainer.distributed_backend = BackendType(distributed_backend.lower()) if distributed_backend else None
+        self.trainer.distributed_backend = distributed_backend.lower() if distributed_backend else None
 
         # init the default rank if exists
         # we need to call this here or NVIDIA flags and other messaging in init will show on all ranks
@@ -75,7 +74,7 @@ class AcceleratorConnector:
 
         self.trainer.tpu_id = self.trainer.tpu_cores[0] if isinstance(self.trainer.tpu_cores, list) else None
 
-        if num_processes != 1 and distributed_backend != BackendType.DDP_CPU:
+        if num_processes != 1 and distributed_backend != "ddp_cpu":
             rank_zero_warn("num_processes is only used for distributed_backend=\"ddp_cpu\". Ignoring it.")
         self.trainer.num_processes = num_processes
 
@@ -103,7 +102,7 @@ class AcceleratorConnector:
 
         # override dist backend when using tpus
         if self.trainer.on_tpu:
-            self.trainer.distributed_backend = BackendType.TPU
+            self.trainer.distributed_backend = "tpu"
             self.trainer.use_tpu = True
 
         # init flags for SLURM+DDP to work
@@ -135,18 +134,23 @@ class AcceleratorConnector:
         te_flags_passed = 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ)
         use_torchelastic_ddp = self.trainer.use_ddp and te_flags_passed
 
-        use_ddp_spawn = self.trainer.use_ddp and self.trainer.distributed_backend == BackendType.DDP_SPAWN
-        use_ddp_cpu_spawn = self.trainer.use_ddp and self.trainer.distributed_backend == BackendType.DDP_CPU
+        use_ddp_spawn = self.trainer.use_ddp and self.trainer.distributed_backend == "ddp_spawn"
+        use_ddp_cpu_spawn = self.trainer.use_ddp and self.trainer.distributed_backend == "ddp_cpu"
+
+        # ddp script mode uses the same flags as TE
+        # TODO: decouple from TE
+        if os.environ.get('PL_DDP_PID', False):
+            use_torchelastic_ddp = False
 
         # choose the appropriate accelerator backend
         if self.trainer.use_ddp2:
             accelerator_backend = accelerators.DDP2Backend(self.trainer)
 
         elif use_slurm_ddp:
-            accelerator_backend = accelerators.DDPBackend(self.trainer, mode='slurm_ddp')
+            accelerator_backend = accelerators.DDPSLURMBackend(self.trainer)
 
         elif use_torchelastic_ddp:
-            accelerator_backend = accelerators.DDPBackend(self.trainer, mode='torchelastic_ddp')
+            accelerator_backend = accelerators.DDPTorchElasticBackend(self.trainer)
 
         elif use_ddp_spawn:
             accelerator_backend = accelerators.DDPSpawnBackend(self.trainer, nprocs=self.trainer.num_processes)
@@ -154,8 +158,8 @@ class AcceleratorConnector:
         elif use_ddp_cpu_spawn:
             accelerator_backend = accelerators.DDPCPUSpawnBackend(self.trainer, nprocs=self.trainer.num_processes)
 
-        elif self.trainer.distributed_backend == BackendType.DDP:
-            accelerator_backend = accelerators.DDPBackend(self.trainer, mode='ddp')
+        elif self.trainer.distributed_backend == "ddp":
+            accelerator_backend = accelerators.DDPBackend(self.trainer)
 
         elif self.trainer.use_dp:
             accelerator_backend = accelerators.DataParallelBackend(self.trainer)
@@ -196,13 +200,12 @@ class AcceleratorConnector:
             elif self.trainer.num_gpus > 1:
                 rank_zero_warn(
                     'You requested multiple GPUs but did not specify a backend, e.g.'
-                    f' Trainer(distributed_backend={str(BackendType.DP)}|'
-                    f'{str(BackendType.DDP)}|{str(BackendType.DDP2)}).'
-                    f' Setting distributed_backend={str(BackendType.DDP_SPAWN)} for you.'
+                    ' Trainer(distributed_backend="dp"|"ddp"|"ddp2").'
+                    ' Setting distributed_backend="ddp_spawn" for you.'
                 )
-                self.trainer.distributed_backend = BackendType.DDP_SPAWN
+                self.trainer.distributed_backend = "ddp_spawn"
 
-        if self.trainer.distributed_backend == BackendType.DP:
+        if self.trainer.distributed_backend == "dp":
             # do nothing if num_gpus == 0
             if self.trainer.num_gpus == 1:
                 self.trainer.use_single_gpu = True
@@ -210,7 +213,7 @@ class AcceleratorConnector:
             elif self.trainer.num_gpus > 1:
                 self.trainer.use_dp = True
 
-        elif self.trainer.distributed_backend in (BackendType.DDP, BackendType.DDP_SPAWN):
+        elif self.trainer.distributed_backend in ("ddp", "ddp_spawn"):
             if self.trainer.num_gpus == 0:
                 if self.trainer.num_nodes > 1 or self.trainer.num_processes > 1:
                     self.trainer.use_ddp = True  # ddp_cpu
@@ -221,11 +224,11 @@ class AcceleratorConnector:
                 self.trainer.use_ddp = True
                 self.trainer.num_processes = self.trainer.num_gpus
 
-        elif self.trainer.distributed_backend == BackendType.DDP2:
+        elif self.trainer.distributed_backend == "ddp2":
             # do nothing if num_gpus == 0
             if self.trainer.num_gpus >= 1:
                 self.trainer.use_ddp2 = True
-        elif self.trainer.distributed_backend == BackendType.DDP_CPU:
+        elif self.trainer.distributed_backend == "ddp_cpu":
             if self.trainer.num_gpus > 0:
                 rank_zero_warn(
                     'You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs.'
@@ -233,7 +236,7 @@ class AcceleratorConnector:
             self.trainer.use_ddp = True
             self.trainer.data_parallel_device_ids = None
             self.trainer.on_gpu = False
-        elif self.trainer.distributed_backend == BackendType.HOROVOD:
+        elif self.trainer.distributed_backend == "horovod":
             self._set_horovod_backend()
 
         # throw error to force user ddp or ddp2 choice

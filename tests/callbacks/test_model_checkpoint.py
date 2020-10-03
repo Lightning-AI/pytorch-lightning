@@ -25,7 +25,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
     tutils.reset_seed()
     model = EvalModelTemplate()
 
-    checkpoint = ModelCheckpoint(monitor='val_loss', filepath=None, save_top_k=save_top_k)
+    checkpoint = ModelCheckpoint(monitor='early_stop_on', filepath=None, save_top_k=save_top_k)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -45,7 +45,7 @@ def test_model_checkpoint_to_yaml(tmpdir, save_top_k):
     tutils.reset_seed()
     model = EvalModelTemplate()
 
-    checkpoint = ModelCheckpoint(filepath=tmpdir, monitor='val_loss', save_top_k=save_top_k)
+    checkpoint = ModelCheckpoint(filepath=tmpdir, monitor='early_stop_on', save_top_k=save_top_k)
 
     trainer = Trainer(default_root_dir=tmpdir, checkpoint_callback=checkpoint, overfit_batches=0.20, max_epochs=2)
     trainer.fit(model)
@@ -124,7 +124,7 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
     """Test to ensure that the model callback saves the checkpoints only once in distributed mode."""
     model = EvalModelTemplate()
     num_epochs = 4
-    model_checkpoint = ModelCheckpointTestInvocations(monitor='val_loss', expected_count=num_epochs, save_top_k=-1)
+    model_checkpoint = ModelCheckpointTestInvocations(monitor='early_stop_on', expected_count=num_epochs, save_top_k=-1)
     trainer = Trainer(
         distributed_backend="ddp_cpu",
         num_processes=2,
@@ -156,23 +156,23 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     assert ckpt_name == 'test@epoch=3,acc=0.03000'
     ModelCheckpoint.CHECKPOINT_JOIN_CHAR = char_org
     # no filepath set
-    ckpt_name = ModelCheckpoint(monitor='val_loss', filepath=None).format_checkpoint_name(3, {})
+    ckpt_name = ModelCheckpoint(monitor='early_stop_on', filepath=None).format_checkpoint_name(3, {})
     assert ckpt_name == 'epoch=3.ckpt'
-    ckpt_name = ModelCheckpoint(monitor='val_loss', filepath='').format_checkpoint_name(5, {})
+    ckpt_name = ModelCheckpoint(monitor='early_stop_on', filepath='').format_checkpoint_name(5, {})
     assert ckpt_name == 'epoch=5.ckpt'
     # CWD
-    ckpt_name = ModelCheckpoint(monitor='val_loss', filepath='.').format_checkpoint_name(3, {})
+    ckpt_name = ModelCheckpoint(monitor='early_stop_on', filepath='.').format_checkpoint_name(3, {})
     assert Path(ckpt_name) == Path('.') / 'epoch=3.ckpt'
     # dir does not exist so it is used as filename
     filepath = tmpdir / 'dir'
-    ckpt_name = ModelCheckpoint(monitor='val_loss', filepath=filepath, prefix='test').format_checkpoint_name(3, {})
+    ckpt_name = ModelCheckpoint(monitor='early_stop_on', filepath=filepath, prefix='test').format_checkpoint_name(3, {})
     assert ckpt_name == tmpdir / 'test-dir.ckpt'
     # now, dir exists
     os.mkdir(filepath)
-    ckpt_name = ModelCheckpoint(monitor='val_loss', filepath=filepath, prefix='test').format_checkpoint_name(3, {})
+    ckpt_name = ModelCheckpoint(monitor='early_stop_on', filepath=filepath, prefix='test').format_checkpoint_name(3, {})
     assert ckpt_name == filepath / 'test-epoch=3.ckpt'
     # with ver
-    ckpt_name = ModelCheckpoint(monitor='val_loss',
+    ckpt_name = ModelCheckpoint(monitor='early_stop_on',
                                 filepath=tmpdir / 'name', prefix='test').format_checkpoint_name(3, {}, ver=3)
     assert ckpt_name == tmpdir / 'test-name-v3.ckpt'
 
@@ -182,7 +182,7 @@ def test_model_checkpoint_save_last(tmpdir):
     model = EvalModelTemplate()
     epochs = 3
     ModelCheckpoint.CHECKPOINT_NAME_LAST = 'last-{epoch}'
-    model_checkpoint = ModelCheckpoint(monitor='val_loss', filepath=tmpdir, save_top_k=-1, save_last=True)
+    model_checkpoint = ModelCheckpoint(monitor='early_stop_on', filepath=tmpdir, save_top_k=-1, save_last=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         early_stop_callback=False,
@@ -304,7 +304,7 @@ def test_model_checkpoint_topk_all(tmpdir):
     seed_everything(1000)
     epochs = 2
     model = EvalModelTemplate()
-    checkpoint_callback = ModelCheckpoint(filepath=tmpdir, monitor="val_loss", save_top_k=-1)
+    checkpoint_callback = ModelCheckpoint(filepath=tmpdir, monitor="early_stop_on", save_top_k=-1)
     trainer = Trainer(
         default_root_dir=tmpdir,
         early_stop_callback=False,
@@ -330,7 +330,7 @@ def test_ckpt_metric_names(tmpdir):
         progress_bar_refresh_rate=0,
         limit_train_batches=0.01,
         limit_val_batches=0.01,
-        checkpoint_callback=ModelCheckpoint(monitor='val_loss', filepath=tmpdir + "/{val_loss:.2f}"),
+        checkpoint_callback=ModelCheckpoint(monitor='early_stop_on', filepath=tmpdir + "/{val_loss:.2f}"),
     )
 
     trainer.fit(model)
@@ -390,7 +390,7 @@ def test_ckpt_metric_names_results(tmpdir):
         progress_bar_refresh_rate=0,
         limit_train_batches=0.01,
         limit_val_batches=0.01,
-        checkpoint_callback=ModelCheckpoint(monitor='val_loss', filepath=tmpdir + "/{val_loss:.2f}"),
+        checkpoint_callback=ModelCheckpoint(monitor='early_stop_on', filepath=tmpdir + "/{val_loss:.2f}"),
     )
 
     trainer.fit(model)
@@ -413,7 +413,7 @@ def test_model_checkpoint_save_last_warning(tmpdir, caplog, max_epochs, should_v
         model.validation_step = None
     trainer = Trainer(
         default_root_dir=tmpdir,
-        checkpoint_callback=ModelCheckpoint(monitor='val_loss', filepath=tmpdir, save_top_k=0, save_last=save_last),
+        checkpoint_callback=ModelCheckpoint(monitor='early_stop_on', filepath=tmpdir, save_top_k=0, save_last=save_last),
         max_epochs=max_epochs,
     )
     trainer.fit(model)
@@ -426,7 +426,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     model = EvalModelTemplate()
     num_epochs = 3
     model_checkpoint = ModelCheckpoint(
-        monitor='val_loss', filepath=tmpdir, save_top_k=num_epochs, save_last=True
+        monitor='early_stop_on', filepath=tmpdir, save_top_k=num_epochs, save_last=True
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
