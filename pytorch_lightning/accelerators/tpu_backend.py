@@ -21,6 +21,7 @@ import torch.multiprocessing as mp
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.base_backend import Accelerator
 from pytorch_lightning.core import LightningModule
+from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.utilities import AMPType, rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -42,6 +43,7 @@ class TPUBackend(Accelerator):
         super().__init__(trainer)
         self.start_method = None
         self.mp_queue = None
+        self.dist = LightningDistributed()
 
     def setup(self, model):
         rank_zero_info(f'training on {self.trainer.tpu_cores} TPU cores')
@@ -316,3 +318,6 @@ class TPUBackend(Accelerator):
                 last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
                 atomic_save(model.state_dict(), last_path)
             mp_queue.put(last_path)
+
+    def broadcast(self, obj, src=0):
+        self.dist.broadcast(obj, on_tpu=True)
