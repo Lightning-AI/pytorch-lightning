@@ -107,7 +107,6 @@ class TrainerOptimizersMixin(ABC):
         if monitor is not None:
             default_config['monitor'] = monitor
 
-
         for scheduler in schedulers:
             if isinstance(scheduler, dict):
                 if 'scheduler' not in scheduler:

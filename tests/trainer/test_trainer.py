@@ -898,6 +898,7 @@ def test_gradient_clipping_fp16(tmpdir):
 
     trainer.fit(model)
 
+
 def test_gpu_choice(tmpdir):
     trainer_options = dict(
         default_root_dir=tmpdir,

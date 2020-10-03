@@ -1,7 +1,7 @@
 import torch
 from pytorch_lightning import LightningModule
 from torch.utils.data import Dataset
-from typing import *
+from typing import Optional
 
 
 class RandomDataset(Dataset):
