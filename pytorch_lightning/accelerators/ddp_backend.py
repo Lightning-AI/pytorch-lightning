@@ -55,7 +55,8 @@ class DDPBackend(Accelerator):
         self.trainer.model = model
 
         # start the other scripts
-        self._call_children_scripts()
+        if os.environ.get('PL_IN_DDP_SUBPROCESS', '0') != '1':
+            self._call_children_scripts()
 
     def _call_children_scripts(self):
         assert self.trainer.global_rank == 0
@@ -132,7 +133,7 @@ class DDPBackend(Accelerator):
 
     def train(self):
         model = self.trainer.model
-        results = self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=model, is_master=True)
+        results = self.ddp_train(process_idx=self.task_idx, model=model)
         if 'WORLD_SIZE' in os.environ:
             del os.environ['WORLD_SIZE']
         return results
@@ -169,7 +170,7 @@ class DDPBackend(Accelerator):
         self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
         self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
-    def model_to_device(self, model, process_idx, is_master):
+    def model_to_device(self, model, process_idx):
         gpu_idx = int(os.environ.get('PL_DDP_PID', process_idx))
 
         self.trainer.root_gpu = gpu_idx
@@ -193,7 +194,7 @@ class DDPBackend(Accelerator):
     def broadcast(self, obj, src=0):
         return self.dist.broadcast(obj)
 
-    def ddp_train(self, process_idx, model, is_master=False, proc_offset=0):
+    def ddp_train(self, process_idx, model):
         """
         Entry point for ddp
 
@@ -208,9 +209,6 @@ class DDPBackend(Accelerator):
         seed = os.environ.get("PL_GLOBAL_SEED", None)
         if seed is not None:
             seed_everything(int(seed))
-
-        # offset the process id if requested
-        process_idx = process_idx + proc_offset
 
         # show progressbar only on progress_rank 0
         if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:
@@ -247,7 +245,7 @@ class DDPBackend(Accelerator):
             model = model.configure_sync_batchnorm(model)
 
         # move the model to the correct device
-        self.model_to_device(model, process_idx, is_master)
+        self.model_to_device(model, process_idx)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
