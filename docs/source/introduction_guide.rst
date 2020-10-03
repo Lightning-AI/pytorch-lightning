@@ -1144,4 +1144,4 @@ the data to build your models.
 
 In Lightning this code is organized inside a :ref:`datamodules`.
 
-.. tip:: DataModules are optional but encouraged, otherwise you can use standard DataModules
+.. tip:: DataModules are optional but encouraged, otherwise you can use standard DataLoaders
