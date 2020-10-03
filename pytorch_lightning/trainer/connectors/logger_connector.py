@@ -171,7 +171,10 @@ class LoggerConnector:
         return result
 
     def _track_callback_metrics(self, eval_results, using_eval_result):
-        if len(eval_results) > 0 and eval_results[0] is None:
+        if (
+                len(eval_results) > 0 and
+                (eval_results[0] is None or not isinstance(eval_results[0], Result))
+        ):
             return
 
         if using_eval_result:

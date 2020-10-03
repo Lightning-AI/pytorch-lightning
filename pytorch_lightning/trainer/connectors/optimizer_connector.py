@@ -43,7 +43,13 @@ class OptimizerConnector:
             if lr_scheduler['interval'] == interval and current_idx % lr_scheduler['frequency'] == 0:
                 # If instance of ReduceLROnPlateau, we need to pass validation loss
                 if lr_scheduler['reduce_on_plateau']:
-                    monitor_key = lr_scheduler['monitor']
+                    try:
+                        monitor_key = lr_scheduler['monitor']
+                    except KeyError as e:
+                        m = "ReduceLROnPlateau requires returning a dict from configure_optimizers with the keyword " \
+                            "monitor=. For example:" \
+                            "return {'optimizer': optimizer, 'lr_scheduler': scheduler, 'monitor': 'your_loss'}"
+                        raise MisconfigurationException(m)
 
                     if monitor_metrics is not None:
                         monitor_val = monitor_metrics.get(monitor_key)
@@ -54,7 +60,7 @@ class OptimizerConnector:
                         avail_metrics = ','.join(list(self.trainer.logger_connector.callback_metrics.keys()))
                         raise MisconfigurationException(
                             f'ReduceLROnPlateau conditioned on metric {monitor_key}'
-                            f' which is not available. Available metrics are: {avail_metrics}.'
+                            f' which is not available. Available metrics are: [{avail_metrics}].'
                             ' Condition can be set using `monitor` key in lr scheduler dict'
                         )
                     # update LR
