@@ -411,6 +411,10 @@ early_stop_callback
 Callback for early stopping.
 early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
 
+.. deprecated:
+    Deprecated since v0.10.0 and will be removed in v1.0. Configure the EarlyStopping callback class
+    and add it to the list of callbacks: ``Trainer(callbacks=[EarlyStopping(...)])``
+
 - ``True``: A default callback monitoring ``'early_stop_on'`` (if dict is returned in validation loop) or
   ``early_stopping_on`` (if :class:`~pytorch_lightning.core.step_result.Result` is returned) is created.
   Will raise an error if a dictionary is returned and ``'early_stop_on'`` is not found.

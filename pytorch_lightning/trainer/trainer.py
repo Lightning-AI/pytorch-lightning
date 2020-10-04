@@ -82,7 +82,7 @@ class Trainer(
         self,
         logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
         checkpoint_callback: Union[ModelCheckpoint, bool] = True,
-        early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,
+        early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,  # todo: remove in v1.0.0
         callbacks: Optional[List[Callback]] = None,
         default_root_dir: Optional[str] = None,
         gradient_clip_val: float = 0,
@@ -173,7 +173,8 @@ class Trainer(
 
             distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn, ddp_cpu)
 
-            early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
+            early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`).
+                Deprecated since v0.10.0 and will be removed in v1.0.
 
             fast_dev_run: runs 1 batch of train, test and val to find any bugs (ie: a sort of unit test).
 
