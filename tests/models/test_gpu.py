@@ -25,7 +25,7 @@ def test_multi_gpu_early_stop_dp(tmpdir):
 
     trainer_options = dict(
         default_root_dir=tmpdir,
-        early_stop_callback=True,
+        callbacks=[EarlyStopping()],
         max_epochs=50,
         limit_train_batches=10,
         limit_val_batches=10,

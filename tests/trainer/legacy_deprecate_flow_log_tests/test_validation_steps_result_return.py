@@ -39,7 +39,7 @@ def test_val_step_result_callbacks(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=epochs,
-        early_stop_callback=True,
+        callbacks=[EarlyStopping()],
         row_log_interval=1,
         limit_train_batches=batches,
         weights_summary=None,
@@ -87,7 +87,7 @@ def test_val_step_using_train_callbacks(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=epochs,
-        early_stop_callback=True,
+        callbacks=[EarlyStopping()],
         row_log_interval=1,
         limit_train_batches=batches,
         weights_summary=None,
@@ -420,7 +420,7 @@ def test_val_step_full_loop_result_dp(tmpdir):
         distributed_backend='dp',
         gpus=[0, 1],
         max_epochs=epochs,
-        early_stop_callback=True,
+        callbacks=[EarlyStopping()],
         row_log_interval=2,
         limit_train_batches=batches,
         weights_summary=None,
@@ -474,7 +474,7 @@ def test_full_loop_result_cpu(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=epochs,
-        early_stop_callback=True,
+        callbacks=[EarlyStopping()],
         row_log_interval=2,
         limit_train_batches=batches,
         weights_summary=None,
