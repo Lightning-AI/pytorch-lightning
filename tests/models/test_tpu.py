@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 import tests.base.develop_pipelines as tpipes
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.accelerators import TPUBackend
+from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.base.datasets import TrialMNIST
@@ -155,7 +156,7 @@ def test_model_tpu_early_stop(tmpdir):
     """Test if single TPU core training works"""
     model = EvalModelTemplate()
     trainer = Trainer(
-        early_stop_callback=True,
+        callbacks=[EarlyStopping()],
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=50,
@@ -261,7 +262,7 @@ def test_result_obj_on_tpu(tmpdir):
     trainer_options = dict(
         default_root_dir=tmpdir,
         max_epochs=epochs,
-        early_stop_callback=True,
+        callbacks=[EarlyStopping()],
         row_log_interval=2,
         limit_train_batches=batches,
         weights_summary=None,
