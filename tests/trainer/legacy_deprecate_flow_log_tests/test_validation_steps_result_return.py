@@ -40,7 +40,7 @@ def test_val_step_result_callbacks(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=epochs,
-        callbacks=[EarlyStopping()],
+        early_stop_callback=True,
         row_log_interval=1,
         limit_train_batches=batches,
         weights_summary=None,
@@ -88,7 +88,7 @@ def test_val_step_using_train_callbacks(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=epochs,
-        callbacks=[EarlyStopping()],
+        early_stop_callback=True,
         row_log_interval=1,
         limit_train_batches=batches,
         weights_summary=None,
