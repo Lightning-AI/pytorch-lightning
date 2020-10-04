@@ -105,12 +105,12 @@ class LoggerConnector:
 
         self.trainer.dev_debugger.track_pbar_metrics_history(metrics)
 
-    def on_evaluation_epoch_end(self, eval_results, using_eval_result, test_mode):
-        self._track_callback_metrics(eval_results, using_eval_result)
+    def on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, using_eval_result, test_mode):
+        self._track_callback_metrics(deprecated_eval_results, using_eval_result)
         self._log_on_evaluation_epoch_end_metrics()
 
         # TODO: deprecate parts of this for 1.0 (when removing results)
-        self.__process_eval_epoch_end_results_and_log_legacy(eval_results, test_mode)
+        self.__process_eval_epoch_end_results_and_log_legacy(deprecated_eval_results, test_mode)
 
         # get the final loop results
         eval_loop_results = self._get_evaluate_epoch_results(test_mode)

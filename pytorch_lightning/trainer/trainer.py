@@ -602,10 +602,12 @@ class Trainer(
             self.evaluation_loop.step_metrics.append(dl_step_metrics)
 
         # lightning module method
-        eval_results = self.evaluation_loop.evaluation_epoch_end(num_dataloaders=len(dataloaders))
+        deprecated_eval_results, epoch_logs = self.evaluation_loop.evaluation_epoch_end(
+            num_dataloaders=len(dataloaders)
+        )
 
         # bookkeeping
-        eval_loop_results = self.evaluation_loop.log_epoch_metrics(eval_results, test_mode)
+        eval_loop_results = self.evaluation_loop.log_epoch_metrics(deprecated_eval_results, epoch_logs, test_mode)
         self.evaluation_loop.predictions.to_disk()
 
         # hook
