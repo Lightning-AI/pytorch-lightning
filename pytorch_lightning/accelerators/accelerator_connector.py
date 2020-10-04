@@ -158,6 +158,9 @@ class AcceleratorConnector:
         use_ddp_spawn = self.trainer.use_ddp and self.trainer.distributed_backend == "ddp_spawn"
         use_ddp_cpu_spawn = self.trainer.use_ddp and self.trainer.distributed_backend == "ddp_cpu"
 
+        use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and self._is_using_torchelastic()
+        use_ddp_cpu_slurm = use_ddp_cpu_spawn and self.trainer.is_slurm_managing_tasks
+
         # ddp script mode uses the same flags as TE
         # TODO: decouple from TE
         if os.environ.get('PL_DDP_PID', False):
@@ -167,8 +170,14 @@ class AcceleratorConnector:
         if self.trainer.use_ddp2:
             accelerator_backend = accelerators.DDP2Backend(self.trainer)
 
+        elif use_ddp_cpu_slurm:
+            accelerator_backend = accelerators.DDPCPUSLURMBackend(self.trainer)
+
         elif use_slurm_ddp:
             accelerator_backend = accelerators.DDPSLURMBackend(self.trainer)
+
+        elif use_ddp_cpu_torch_elastic:
+            accelerator_backend = accelerators.DDPCPUTorchElasticBackend(self.trainer)
 
         elif use_torchelastic_ddp:
             accelerator_backend = accelerators.DDPTorchElasticBackend(self.trainer)
