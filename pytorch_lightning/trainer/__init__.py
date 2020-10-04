@@ -45,7 +45,7 @@ This is the basic use of the trainer:
 
 --------
 
-Trainer in Python scrips
+Trainer in Python scripts
 ------------------------
 In Python scripts, it's recommended you use a main function to call the Trainer.
 
