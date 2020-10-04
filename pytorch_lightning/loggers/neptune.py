@@ -21,8 +21,10 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 
 try:
     import neptune
+    from neptune.experiments import Experiment
 except ImportError:  # pragma: no-cover
     neptune = None
+    Experiment = None
 
 import torch
 from torch import is_tensor
@@ -199,7 +201,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     @property
     @rank_zero_experiment
-    def experiment(self):
+    def experiment(self) -> Experiment:
         r"""
         Actual Neptune object. To use neptune features in your
         :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
