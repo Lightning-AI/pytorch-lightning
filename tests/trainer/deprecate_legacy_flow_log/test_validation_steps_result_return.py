@@ -56,7 +56,7 @@ def test_val_step_result_callbacks(tmpdir):
     assert len(trainer.dev_debugger.early_stopping_history) == 5
 
     # only 2 checkpoints expected
-    assert len(trainer.dev_debugger.checkpoint_callback_history) == 2
+    assert len(trainer.dev_debugger.checkpoint_callback_history) == 3
 
     # make sure the last known metric is correct
     assert trainer.logger_connector.callback_metrics['checkpoint_on'] == 171 + 15

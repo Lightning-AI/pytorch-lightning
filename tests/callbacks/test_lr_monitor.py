@@ -94,7 +94,7 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval):
         'Names of learning rates not set correctly'
 
     if logging_interval == 'step':
-        expected_number_logged = trainer.global_step
+        expected_number_logged = trainer.global_step + 1
     if logging_interval == 'epoch':
         expected_number_logged = trainer.max_epochs
 
