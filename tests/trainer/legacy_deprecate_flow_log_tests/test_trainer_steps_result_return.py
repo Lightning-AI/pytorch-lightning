@@ -531,7 +531,7 @@ def test_full_train_loop_with_results_obj_dp(tmpdir):
         distributed_backend='dp',
         gpus=[0, 1],
         max_epochs=epochs,
-        callbacks=[EarlyStopping()],
+        early_stop_callback=True,
         row_log_interval=2,
         limit_train_batches=batches,
         weights_summary=None,
@@ -612,7 +612,7 @@ def test_result_monitor_warnings(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        callbacks=[EarlyStopping()],
+        early_stop_callback=True,
         row_log_interval=2,
         limit_train_batches=2,
         weights_summary=None,

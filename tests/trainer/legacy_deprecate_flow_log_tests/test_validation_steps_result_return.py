@@ -7,7 +7,6 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import EarlyStopping
 from tests.base import EvalModelTemplate
 from tests.base.deterministic_model import DeterministicModel
 from pytorch_lightning import seed_everything
