@@ -273,7 +273,8 @@ def test_result_obj_on_tpu(tmpdir):
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
-def test_broadcast_on_tpu(tmpdir):
+def test_broadcast_on_tpu():
+    """ Checks if an object from the master process is broadcasted to other processes correctly"""
     def test_broadcast(rank):
         trainer = Trainer(tpu_cores=8)
         backend = TPUBackend(trainer)
