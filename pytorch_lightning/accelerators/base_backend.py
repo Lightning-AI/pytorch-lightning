@@ -191,6 +191,14 @@ class Accelerator(object):
     def init_ddp_connection(
         self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
     ) -> None:
+        if is_slurm_managing_tasks:
+            self.trainer.slurm_connector.connect_ddp()
+        else:
+            self.connect_torchelastic(global_rank, world_size)
+
+    def connect_torchelastic(
+        self, global_rank: int, world_size: int
+    ) -> None:
         """
         Override to define your custom way of setting up a distributed environment.
 
@@ -200,10 +208,7 @@ class Accelerator(object):
         Args:
             global_rank: The global process idx.
             world_size: Number of GPUs being use across all nodes. (num_nodes * num_gpus).
-            is_slurm_managing_tasks: is cluster managed by SLURM.
         """
-        if is_slurm_managing_tasks:
-            self.trainer.slurm_connector.connect_ddp()
 
         if "MASTER_ADDR" not in os.environ:
             rank_zero_warn(
