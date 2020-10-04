@@ -40,8 +40,8 @@ else:
 
 class DDPSpawnBackend(Accelerator):
 
-    def __init__(self, trainer, nprocs):
-        super().__init__(trainer)
+    def __init__(self, trainer, nprocs, cluster_environment=None):
+        super().__init__(trainer, cluster_environment)
         self.mp_queue = None
         self.nprocs = nprocs
         self.dist = LightningDistributed()

@@ -6,8 +6,8 @@ from pytorch_lightning.cluster_environments.cluster_environment import ClusterEn
 
 class TorchElasticEnvironment(ClusterEnvironment):
 
-    def __init__(self, world_size):
-        super().__init__(world_size)
+    def __init__(self):
+        super().__init__()
 
     def master_address(self):
         if "MASTER_ADDR" not in os.environ:

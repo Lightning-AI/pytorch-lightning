@@ -42,8 +42,8 @@ else:
 
 class DDPBackend(Accelerator):
 
-    def __init__(self, trainer):
-        super().__init__(trainer)
+    def __init__(self, trainer, cluster_environment=None):
+        super().__init__(trainer, cluster_environment)
         self.task_idx = None
         self._has_spawned_children = False
         self.interactive_ddp_procs = []
