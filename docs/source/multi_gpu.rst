@@ -260,7 +260,7 @@ Distributed Data Parallel
 
 3. Each process inits the model.
 
-.. note:: Make sure to set the random seed before the instantiation of a `Trainer()` so that each model initializes with the same weights.
+.. note:: Make sure to set the random seed before the instantiation of a ``Trainer()`` so that each model initializes with the same weights.
 
 4. Each process performs a full forward and backward pass in parallel.
 
