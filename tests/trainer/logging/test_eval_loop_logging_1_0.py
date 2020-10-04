@@ -4,9 +4,10 @@ Tests to ensure that the training loop works with a dict (1.0)
 from pytorch_lightning import Trainer
 from pytorch_lightning import callbacks
 from tests.base.deterministic_model import DeterministicModel
-from tests.base import SimpleModule
+from tests.base import SimpleModule, BoringModel
 import os
 import torch
+import pytest
 
 
 def test__validation_step__log(tmpdir):
@@ -146,6 +147,53 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
     callback_metrics.remove('debug_epoch')
     expected_cb_metrics = {'a', 'b', 'c', 'd', 'e', 'epoch_b', 'epoch_d', 'epoch_f', 'f', 'g', 'step_b'}
     assert expected_cb_metrics == callback_metrics
+
+
+@pytest.mark.parametrize(['batches', 'log_interval', 'max_epochs'], [(1, 1, 1), (64, 32, 2)])
+def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
+    """
+    Tests that only training_step can be used
+    """
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    class TestModel(BoringModel):
+        def validation_epoch_end(self, outputs):
+            self.log('c', torch.tensor(2), on_epoch=True, prog_bar=True, logger=True)
+            self.log('d/e/f', 2)
+
+    model = TestModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=batches,
+        limit_val_batches=batches,
+        max_epochs=max_epochs,
+        row_log_interval=log_interval,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    # make sure all the metrics are available for callbacks
+    logged_metrics = set(trainer.logged_metrics.keys())
+    expected_logged_metrics = {
+        'c',
+        'd/e/f',
+    }
+    assert logged_metrics == expected_logged_metrics
+
+    pbar_metrics = set(trainer.progress_bar_metrics.keys())
+    expected_pbar_metrics = {'c'}
+    assert pbar_metrics == expected_pbar_metrics
+
+    callback_metrics = set(trainer.callback_metrics.keys())
+    expected_callback_metrics = set()
+    expected_callback_metrics = expected_callback_metrics.union(logged_metrics)
+    expected_callback_metrics = expected_callback_metrics.union(pbar_metrics)
+    callback_metrics.remove('debug_epoch')
+    assert callback_metrics == expected_callback_metrics
+
+    # assert the loggers received the expected number
+    assert len(trainer.dev_debugger.logged_metrics) == max_epochs
 
 
 def test_monitor_val_epoch_end(tmpdir):

@@ -1,12 +1,13 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
-from pytorch_lightning import Trainer
-from tests.base.deterministic_model import DeterministicModel
 from tests.base.boring_model import BoringModel
 import os
 import torch
 import pytest
+
+from pytorch_lightning import Trainer
+from tests.base.deterministic_model import DeterministicModel
 
 
 def test__training_step__log(tmpdir):
@@ -233,3 +234,35 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
 
     # assert the loggers received the expected number
     assert len(trainer.dev_debugger.logged_metrics) == ((batches / log_interval) * max_epochs) + max_epochs
+
+
+@pytest.mark.parametrize(['batches', 'fx', 'result'], [(1, min, 0), (2, max, 1), (11, max, 10)])
+def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
+    """
+    Tests that log works correctly with different tensor types
+    """
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            acc = self.step(batch[0])
+            self.log('foo', torch.tensor(batch_idx).long(), on_step=False, on_epoch=True, reduce_fx=fx)
+            return acc
+
+        def validation_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log('bar', torch.tensor(batch_idx).float(), on_step=False, on_epoch=True, reduce_fx=fx)
+            return {"x": loss}
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=batches,
+        limit_val_batches=batches,
+        max_epochs=2,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    # make sure types are correct
+    assert trainer.logged_metrics['foo'] == result
+    assert trainer.logged_metrics['bar'] == result

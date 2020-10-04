@@ -22,6 +22,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pprint import pprint
 from typing import Iterable
 from copy import deepcopy
+from collections import ChainMap
 
 
 class LoggerConnector:
@@ -105,12 +106,12 @@ class LoggerConnector:
 
         self.trainer.dev_debugger.track_pbar_metrics_history(metrics)
 
-    def on_evaluation_epoch_end(self, eval_results, using_eval_result, test_mode):
-        self._track_callback_metrics(eval_results, using_eval_result)
-        self._log_on_evaluation_epoch_end_metrics()
+    def on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, using_eval_result, test_mode):
+        self._track_callback_metrics(deprecated_eval_results, using_eval_result)
+        self._log_on_evaluation_epoch_end_metrics(epoch_logs)
 
         # TODO: deprecate parts of this for 1.0 (when removing results)
-        self.__process_eval_epoch_end_results_and_log_legacy(eval_results, test_mode)
+        self.__process_eval_epoch_end_results_and_log_legacy(deprecated_eval_results, test_mode)
 
         # get the final loop results
         eval_loop_results = self._get_evaluate_epoch_results(test_mode)
@@ -131,15 +132,43 @@ class LoggerConnector:
         self.eval_loop_results = []
         return results
 
-    def _log_on_evaluation_epoch_end_metrics(self):
+    def _log_on_evaluation_epoch_end_metrics(self, epoch_logs):
         step_metrics = self.trainer.evaluation_loop.step_metrics
+
+        num_loaders = len(step_metrics)
 
         # clear mem
         self.trainer.evaluation_loop.step_metrics = []
 
-        num_loaders = len(step_metrics)
+        if self.trainer.running_sanity_check:
+            return
 
-        # process metrics per dataloader
+        # track all metrics we want to log
+        metrics_to_log = []
+
+        # ---------------------------
+        # UPDATE EPOCH LOGGED METRICS
+        # ---------------------------
+        # (ie: in methods at the val_epoch_end level)
+        # union the epoch logs with whatever was returned from loaders and reduced
+        epoch_logger_metrics = epoch_logs.get_epoch_log_metrics()
+        epoch_pbar_metrics = epoch_logs.get_epoch_pbar_metrics()
+
+        self.logged_metrics.update(epoch_logger_metrics)
+        self.progress_bar_metrics.update(epoch_pbar_metrics)
+
+        # enable the metrics to be monitored
+        self.callback_metrics.update(epoch_logger_metrics)
+        self.callback_metrics.update(epoch_pbar_metrics)
+
+        if len(epoch_logger_metrics) > 0:
+            metrics_to_log.append(epoch_logger_metrics)
+
+        # --------------------------------
+        # UPDATE  METRICS PER DATALOADER
+        # --------------------------------
+        # each dataloader aggregated metrics
+        # now we log all of them
         for dl_idx, dl_metrics in enumerate(step_metrics):
             if len(dl_metrics) == 0:
                 continue
@@ -162,7 +191,13 @@ class LoggerConnector:
             self.eval_loop_results.append(deepcopy(self.callback_metrics))
 
             # actually log
-            self.log_metrics(logger_metrics, {}, step=self.trainer.global_step)
+            if len(epoch_logger_metrics) > 0:
+                metrics_to_log.append(epoch_logger_metrics)
+
+        # log all the metrics as a s single dict
+        metrics_to_log = dict(ChainMap(*metrics_to_log))
+        if len(metrics_to_log) > 0:
+            self.log_metrics(metrics_to_log, {}, step=self.trainer.global_step)
 
     def __rename_keys_by_dataloader_idx(self, metrics, dataloader_idx, num_loaders):
         if num_loaders == 1:
@@ -240,7 +275,8 @@ class LoggerConnector:
                 self.trainer.logger_connector.add_progress_bar_metrics(prog_bar_metrics)
 
                 # log metrics
-                self.trainer.logger_connector.log_metrics(log_metrics, {})
+                if len(log_metrics) > 0:
+                    self.trainer.logger_connector.log_metrics(log_metrics, {})
 
                 # track metrics for callbacks (all prog bar, logged and callback metrics)
                 self.trainer.logger_connector.callback_metrics.update(callback_metrics)

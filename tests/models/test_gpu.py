@@ -8,6 +8,7 @@ from torchtext.data import Batch, Dataset, Example, Field, LabelField
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.core import memory
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -25,7 +26,7 @@ def test_multi_gpu_early_stop_dp(tmpdir):
 
     trainer_options = dict(
         default_root_dir=tmpdir,
-        early_stop_callback=True,
+        callbacks=[EarlyStopping()],
         max_epochs=50,
         limit_train_batches=10,
         limit_val_batches=10,

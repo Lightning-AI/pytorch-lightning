@@ -83,7 +83,7 @@ class Trainer(
         self,
         logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
         checkpoint_callback: Union[ModelCheckpoint, bool] = True,
-        early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,
+        early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,  # todo: remove in v1.0.0
         callbacks: Optional[List[Callback]] = None,
         default_root_dir: Optional[str] = None,
         gradient_clip_val: float = 0,
@@ -179,7 +179,8 @@ class Trainer(
 
             distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn, ddp_cpu)
 
-            early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
+            early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`).
+                Deprecated since v0.10.0 and will be removed in v1.0.
 
             fast_dev_run: runs 1 batch of train, test and val to find any bugs (ie: a sort of unit test).
 
@@ -612,10 +613,12 @@ class Trainer(
             self.evaluation_loop.step_metrics.append(dl_step_metrics)
 
         # lightning module method
-        eval_results = self.evaluation_loop.evaluation_epoch_end(num_dataloaders=len(dataloaders))
+        deprecated_eval_results, epoch_logs = self.evaluation_loop.evaluation_epoch_end(
+            num_dataloaders=len(dataloaders)
+        )
 
         # bookkeeping
-        eval_loop_results = self.evaluation_loop.log_epoch_metrics(eval_results, test_mode)
+        eval_loop_results = self.evaluation_loop.log_epoch_metrics(deprecated_eval_results, epoch_logs, test_mode)
         self.evaluation_loop.predictions.to_disk()
 
         # hook
@@ -628,7 +631,7 @@ class Trainer(
         # hook
         self.evaluation_loop.on_evaluation_end()
 
-        return eval_loop_results, eval_results
+        return eval_loop_results, deprecated_eval_results
 
     def run_test(self):
         # only load test dataloader for testing

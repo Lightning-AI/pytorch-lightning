@@ -3,6 +3,7 @@ import torch
 
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
+from pytorch_lightning.callbacks import EarlyStopping
 from tests.base import EvalModelTemplate
 from pytorch_lightning.core import memory
 from pytorch_lightning.trainer import Trainer
@@ -15,7 +16,7 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
 
     trainer_options = dict(
         default_root_dir=tmpdir,
-        early_stop_callback=True,
+        callbacks=[EarlyStopping()],
         max_epochs=50,
         limit_train_batches=10,
         limit_val_batches=10,
