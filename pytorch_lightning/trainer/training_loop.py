@@ -138,7 +138,7 @@ class TrainLoop:
         # Pre-train
         # --------------------------
         # on pretrain routine start
-        self.trainer.on_pretrain_routine_start(ref_model)
+        self.trainer.callback_system.on_pretrain_routine_start(ref_model)
         if self.trainer.is_function_implemented('on_pretrain_routine_start'):
             ref_model.on_pretrain_routine_start()
 
@@ -157,7 +157,7 @@ class TrainLoop:
         self.trainer.checkpoint_connector.restore_weights(model)
 
         # on pretrain routine end
-        self.trainer.on_pretrain_routine_end(ref_model)
+        self.trainer.callback_system.on_pretrain_routine_end(ref_model)
         if self.trainer.is_function_implemented('on_pretrain_routine_end'):
             ref_model.on_pretrain_routine_end()
 

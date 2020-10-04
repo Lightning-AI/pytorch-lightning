@@ -144,7 +144,7 @@ class CheckpointConnector:
             )
 
         # load callback states
-        self.trainer.on_load_checkpoint(checkpoint)
+        self.trainer.callback_system.on_load_checkpoint(checkpoint)
 
         self.trainer.global_step = checkpoint['global_step']
         self.trainer.current_epoch = checkpoint['epoch']
@@ -258,7 +258,7 @@ class CheckpointConnector:
         if not weights_only:
 
             # save callbacks
-            callback_states = self.trainer.on_save_checkpoint()
+            callback_states = self.trainer.callback_system.on_save_checkpoint()
             checkpoint['callbacks'] = callback_states
 
             # save optimizers

@@ -26,7 +26,6 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import EvalResult
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import BaseProfiler
-from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
@@ -56,6 +55,7 @@ from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer.properties import TrainerProperties
+from pytorch_lightning.trainer.connectors.callback_system_connector import CallbackSystemConnector
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -71,7 +71,6 @@ except ImportError:
 
 class Trainer(
     TrainerProperties,
-    TrainerCallbackHookMixin,
     TrainerModelHooksMixin,
     TrainerOptimizersMixin,
     TrainerLoggingMixin,
@@ -276,6 +275,7 @@ class Trainer(
         self.accelerator_backend = None
         self.evaluation_loop = EvaluationLoop(self)
         self.train_loop = TrainLoop(self)
+        self.callback_system = CallbackSystemConnector(self)
 
         # training state
         self.weights_summary = weights_summary
@@ -294,8 +294,10 @@ class Trainer(
             resume_from_checkpoint
         )
 
+        self.callback_system.on_trainer_init()
+
         # hook
-        self.on_init_start()
+        self.callback_system.on_init_start()
 
         # init optimizer + lr scheduler related flags
         self.optimizer_connector.on_trainer_init()
@@ -359,7 +361,7 @@ class Trainer(
         self.precision_connector.on_trainer_init(precision, amp_level, amp_backend)
 
         # Callback system
-        self.on_init_end()
+        self.callback_system.on_init_end()
 
     def tune(
         self,
@@ -449,7 +451,7 @@ class Trainer(
         self.call_hook('on_fit_end')
 
         # hook
-        self.teardown('fit')
+        self.callback_system.teardown('fit')
         if self.is_function_implemented('teardown'):
             model.teardown('fit')
 
@@ -520,7 +522,7 @@ class Trainer(
             if not self.interrupted:
                 self.interrupted = True
                 self._state = TrainerState.INTERRUPTED
-                self.on_keyboard_interrupt()
+                self.callback_system.on_keyboard_interrupt()
 
                 # hook
                 self.train_loop.on_train_end()
@@ -643,7 +645,7 @@ class Trainer(
 
             # hook and callback
             self.running_sanity_check = True
-            self.on_sanity_check_start()
+            self.callback_system.on_sanity_check_start()
 
             # run eval step
             _, eval_results = self.run_evaluation(test_mode=False, max_batches=self.num_sanity_val_batches)
@@ -660,7 +662,7 @@ class Trainer(
                     _, _, _, callback_metrics, _ = self.process_dict_result(eval_results)
                 self.logger_connector.callback_metrics = callback_metrics
 
-            self.on_sanity_check_end()
+            self.callback_system.on_sanity_check_end()
             self.running_sanity_check = False
 
     def test(
@@ -710,7 +712,7 @@ class Trainer(
         else:
             results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
 
-        self.teardown('test')
+        self.callback_system.teardown('test')
 
         return results
 
@@ -787,7 +789,7 @@ class Trainer(
             called = self.datamodule.has_setup_test if self.testing else self.datamodule.has_setup_fit
             if not called:
                 self.datamodule.setup(stage_name)
-        self.setup(stage_name)
+        self.callback_system.setup(stage_name)
         model.setup(stage_name)
 
     def call_hook(self, hook_name, *args, **kwargs):
@@ -795,8 +797,8 @@ class Trainer(
         with self.profiler.profile(hook_name):
 
             # first call trainer hook
-            if hasattr(self, hook_name):
-                trainer_hook = getattr(self, hook_name)
+            if hasattr(self.callback_system, hook_name):
+                trainer_hook = getattr(self.callback_system, hook_name)
                 trainer_hook(*args, **kwargs)
 
             # next call hook in lightningModule
