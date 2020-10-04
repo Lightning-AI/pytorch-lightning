@@ -125,7 +125,7 @@ def test_on_train_batch_start_hook(max_epochs, batch_idx_):
     trainer.fit(model)
     if batch_idx_ > len(model.val_dataloader()) - 1:
         assert trainer.batch_idx == len(model.val_dataloader()) - 1
-        assert trainer.global_step == len(model.val_dataloader()) * max_epochs
+        assert trainer.global_step == len(model.val_dataloader()) * max_epochs - 1
     else:
         assert trainer.batch_idx == batch_idx_
-        assert trainer.global_step == (batch_idx_ + 1) * max_epochs
+        assert trainer.global_step == (batch_idx_ + 1) * max_epochs - 1
