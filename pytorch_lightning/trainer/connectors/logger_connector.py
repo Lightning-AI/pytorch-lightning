@@ -196,7 +196,8 @@ class LoggerConnector:
 
         # log all the metrics as a s single dict
         metrics_to_log = dict(ChainMap(*metrics_to_log))
-        self.log_metrics(metrics_to_log, {}, step=self.trainer.global_step)
+        if len(metrics_to_log) > 0:
+            self.log_metrics(metrics_to_log, {}, step=self.trainer.global_step)
 
     def __rename_keys_by_dataloader_idx(self, metrics, dataloader_idx, num_loaders):
         if num_loaders == 1:
