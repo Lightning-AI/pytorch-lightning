@@ -190,7 +190,9 @@ def test_saving_pickable(tmpdir, metric: Metric):
     assert results_before_save == results_after_load
 
 
-def check_call_order():
+def test_correct_call_order():
+    """ Check that hooks are called in the expected order """
+
     class DummyMetric(Metric):
         def __init__(self):
             super().__init__("dummy")
@@ -249,6 +251,7 @@ def check_call_order():
         "ddp_reduce",
         "ddp_sync",
         "aggregate",
+        "compute"
     ]
     aggr = metric.aggregated
     assert metric.call_history == [
@@ -259,9 +262,11 @@ def check_call_order():
         "ddp_reduce",
         "ddp_sync",
         "aggregate",
+        "compute",
         "aggregated",
         "aggregate",
         "reset",
+        "compute"
     ]
     assert torch.allclose(aggr, result)
     _ = metric(torch.tensor(2.0), torch.tensor(1.0))
@@ -273,15 +278,18 @@ def check_call_order():
         "ddp_reduce",
         "ddp_sync",
         "aggregate",
+        "compute",
         "aggregated",
         "aggregate",
         "reset",
+        "compute",
         "input_convert",
         "forward",
         "output_convert",
         "ddp_reduce",
         "ddp_sync",
         "aggregate",
+        "compute"
     ]
 
     metric = DummyMetric()
@@ -290,7 +298,7 @@ def check_call_order():
 
     aggregated = metric.aggregated
 
-    assert torch.allclose(aggregated, torch.tensor(2.0))
+    assert torch.allclose(aggregated, torch.tensor(4.0))
 
     assert metric.call_history == [
         "init",
@@ -300,13 +308,16 @@ def check_call_order():
         "ddp_reduce",
         "ddp_sync",
         "aggregate",
+        "compute",
         "input_convert",
         "forward",
         "output_convert",
         "ddp_reduce",
         "ddp_sync",
         "aggregate",
+        "compute",
         "aggregated",
         "aggregate",
         "reset",
+        "compute",
     ]

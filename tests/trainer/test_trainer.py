@@ -23,6 +23,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
 from tests.base import EvalModelTemplate
 
 
@@ -431,7 +432,7 @@ def test_model_checkpoint_only_weights(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        checkpoint_callback=ModelCheckpoint(tmpdir, save_weights_only=True),
+        checkpoint_callback=ModelCheckpoint(tmpdir, monitor='early_stop_on', save_weights_only=True),
     )
     # fit model
     result = trainer.fit(model)
@@ -507,7 +508,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         max_epochs=2,
         limit_train_batches=0.65,
         limit_val_batches=1,
-        checkpoint_callback=ModelCheckpoint(tmpdir, monitor='val_loss', save_top_k=-1),
+        checkpoint_callback=ModelCheckpoint(tmpdir, monitor='early_stop_on', save_top_k=-1),
         default_root_dir=tmpdir,
         early_stop_callback=False,
         val_check_interval=1.,
@@ -664,7 +665,7 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
         max_epochs=2,
         progress_bar_refresh_rate=0,
         default_root_dir=tmpdir,
-        checkpoint_callback=ModelCheckpoint(monitor='val_loss', save_top_k=save_top_k),
+        checkpoint_callback=ModelCheckpoint(monitor='early_stop_on', save_top_k=save_top_k),
     )
     trainer.fit(model)
     if ckpt_path == 'best':
@@ -867,6 +868,37 @@ def test_gradient_clipping(tmpdir):
     trainer.fit(model)
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@pytest.mark.skipif(not NATIVE_AMP_AVALAIBLE, reason="test requires native AMP.")
+def test_gradient_clipping_fp16(tmpdir):
+    """
+    Test gradient clipping with fp16
+    """
+
+    model = EvalModelTemplate()
+
+    # test that gradient is clipped correctly
+    def _optimizer_step(*args, **kwargs):
+        parameters = model.parameters()
+        grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
+        assert (grad_norm - 1.0).abs() < 0.01, "Gradient norm != 1.0: {grad_norm}".format(grad_norm=grad_norm)
+
+    trainer = Trainer(
+        max_steps=1,
+        max_epochs=1,
+        precision=16,
+        gpus=1,
+        gradient_clip_val=1.0,
+        default_root_dir=tmpdir,
+    )
+
+    # for the test
+    model.optimizer_step = _optimizer_step
+    model.prev_called_batch_idx = 0
+
+    trainer.fit(model)
+
+
 def test_gpu_choice(tmpdir):
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -925,7 +957,6 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
         max_steps=1,
     )
     assert trainer.num_sanity_val_steps == num_sanity_val_steps
-    val_dataloaders = model.val_dataloader__multiple_mixed_length()
 
 
 @pytest.mark.parametrize(['limit_val_batches'], [
@@ -949,7 +980,6 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
         max_steps=1,
     )
     assert trainer.num_sanity_val_steps == float('inf')
-    val_dataloaders = model.val_dataloader__multiple()
 
 
 @pytest.mark.parametrize("trainer_kwargs,expected", [

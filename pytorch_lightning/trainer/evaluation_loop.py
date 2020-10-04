@@ -228,6 +228,10 @@ class EvaluationLoop(object):
         if using_eval_result and not user_reduced:
             eval_results = self.__auto_reduce_result_objs(outputs)
 
+        result = model._results
+        if len(result) > 0 and eval_results is None:
+            eval_results = result.get_epoch_log_metrics()
+
         if not isinstance(eval_results, list):
             eval_results = [eval_results]
 

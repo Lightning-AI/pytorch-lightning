@@ -56,6 +56,7 @@ from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer.properties import TrainerProperties
+from pytorch_lightning.cluster_environments.cluster_environment import ClusterEnvironment
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -126,6 +127,7 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
+        cluster_environment: ClusterEnvironment = None,
         amp_backend: str = 'native',
         amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
         overfit_pct: float = None,  # backward compatible, todo: remove in v1.0.0
@@ -164,6 +166,8 @@ class Trainer(
             checkpoint_callback: Callback for checkpointing.
 
             check_val_every_n_epoch: Check val every n train epochs.
+
+            cluster_environment: Environment config to link up arbitrary clusters
 
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
                 Default: ``os.getcwd()``.
@@ -283,6 +287,9 @@ class Trainer(
         self.shown_warnings = set()
 
         # init callbacks
+        # Declare attributes to be set in callback_connector on_trainer_init
+        self.checkpoint_callback: Union[ModelCheckpoint, bool] = checkpoint_callback
+        self.early_stop_callback: Optional[Union[EarlyStopping, bool]] = early_stop_callback
         self.callback_connector.on_trainer_init(
             callbacks,
             early_stop_callback,
@@ -328,7 +335,8 @@ class Trainer(
             sync_batchnorm,
             benchmark,
             replace_sampler_ddp,
-            deterministic
+            deterministic,
+            cluster_environment
         )
 
         # init train loop related flags
@@ -696,9 +704,6 @@ class Trainer(
         # --------------------
         self.verbose_test = verbose
 
-        if self.global_rank != 0:
-            return
-
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
         if test_dataloaders and datamodule:
             raise MisconfigurationException(
@@ -738,6 +743,8 @@ class Trainer(
                     f'specify a path for a checkpoint .test(ckpt_path=PATH)'
                 )
                 return {}
+            if self.accelerator_backend is not None:
+                self.accelerator_backend.barrier()
 
             ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt['state_dict'])

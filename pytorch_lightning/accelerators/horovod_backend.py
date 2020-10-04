@@ -31,8 +31,8 @@ else:
 class HorovodBackend(Accelerator):
     amp_backend: AMPType
 
-    def __init__(self, trainer):
-        super().__init__(trainer)
+    def __init__(self, trainer, cluster_environment=None):
+        super().__init__(trainer, cluster_environment)
 
     def setup(self, model):
         # call setup after the ddp process has connected
@@ -158,3 +158,7 @@ class HorovodBackend(Accelerator):
 
     def barrier(self, name: str = None):
         hvd.join()
+
+    def broadcast(self, obj, src=0):
+        obj = hvd.broadcast_object(obj, src)
+        return obj

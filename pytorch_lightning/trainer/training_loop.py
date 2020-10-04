@@ -108,6 +108,9 @@ class TrainLoop:
         if self.trainer.data_parallel:
             ref_model = model.module
 
+        self.trainer.accelerator_backend.dist.rank = self.trainer.global_rank
+        self.trainer.accelerator_backend.dist.device = ref_model.device
+
         # give model convenience properties
         ref_model.trainer = self.trainer
 
@@ -178,13 +181,8 @@ class TrainLoop:
         if self.trainer.global_rank == 0:
             self.trainer.profiler.describe()
 
-        if self.trainer.global_rank == 0:
-            for proc in self.trainer.interactive_ddp_procs:
-                subprocess.Popen.kill(proc)
-
-        # clean up dist group
-        if self.trainer.use_ddp or self.trainer.use_ddp2:
-            torch_distrib.destroy_process_group()
+        # give accelerators a chance to finish
+        self.trainer.accelerator_backend.on_train_end()
 
         # clear mem
         if self.trainer.on_gpu:
@@ -517,6 +515,10 @@ class TrainLoop:
             # ------------------------------------
             batch_output = self.run_training_batch(batch, batch_idx, dataloader_idx)
 
+            # when returning -1 from train_step, we end epoch early
+            if batch_output.signal == -1:
+                break
+
             # only track outputs when user implements training_epoch_end
             # otherwise we will build up unnecessary memory
             epoch_end_outputs = self.process_train_step_outputs(
@@ -529,8 +531,10 @@ class TrainLoop:
             # TODO: add outputs to batches
             self.on_train_batch_end(epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx)
 
-            # when returning -1 from train_step, we end epoch early
-            self.trainer.should_stop = batch_output.signal == -1
+            # -----------------------------------------
+            # SAVE METRICS TO LOGGERS
+            # -----------------------------------------
+            self.trainer.logger_connector.log_train_step_metrics(batch_output)
 
             # -----------------------------------------
             # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
@@ -538,11 +542,6 @@ class TrainLoop:
             should_check_val = self.should_check_val_fx(batch_idx, is_last_batch)
             if should_check_val:
                 self.trainer.run_evaluation(test_mode=False)
-
-            # -----------------------------------------
-            # SAVE METRICS TO LOGGERS
-            # -----------------------------------------
-            self.trainer.logger_connector.log_train_step_metrics(batch_output)
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)

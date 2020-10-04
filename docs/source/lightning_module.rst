@@ -393,7 +393,7 @@ If you want to calculate epoch-level metrics and log them, use the `.log` method
          loss = F.cross_entropy(y_hat, y)
 
          # logs metrics for each training_step, and the average across the epoch, to the progress bar and logger
-         result.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
          return loss
 
 The `.log` object automatically reduces the requested metrics across the full epoch.
@@ -1046,12 +1046,6 @@ get_progress_bar_dict
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.get_progress_bar_dict
-    :noindex:
-
-init_ddp_connection
-~~~~~~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.init_ddp_connection
     :noindex:
 
 tbptt_split_batch

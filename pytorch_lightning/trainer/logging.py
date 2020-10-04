@@ -69,7 +69,7 @@ class TrainerLoggingMixin(ABC):
                     m = inspect.cleandoc(
                         f"""The {{{k}:dict keyword}} was deprecated in 0.9.1 and will be removed in 1.0.0
                         Please use self.log(...) inside the lightningModule instead.
-    
+
                         # log on a step or aggregate epoch metric to the logger and/or progress bar
                         # (inside LightningModule)
                         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
@@ -141,13 +141,13 @@ class TrainerLoggingMixin(ABC):
         if train:
             try:
                 loss = output['loss']
-            except Exception:
+            except Exception as exp:
                 if isinstance(output, torch.Tensor):
                     loss = output
                 else:
                     raise RuntimeError(
                         'No `loss` value in the dictionary returned from `model.training_step()`.'
-                    )
+                    ) from exp
 
             # when using dp need to reduce the loss
             if self.use_dp or self.use_ddp2:

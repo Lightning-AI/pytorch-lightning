@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 import tests.base.develop_pipelines as tpipes
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.accelerators.base_backend import BackendType
+from pytorch_lightning.accelerators import TPUBackend
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 from tests.base import EvalModelTemplate
@@ -17,6 +18,9 @@ TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 
 if TPU_AVAILABLE:
     import torch_xla
+    import torch_xla.core.xla_model as xm
+    import torch_xla.distributed.xla_multiprocessing as xmp
+    SERIAL_EXEC = xmp.MpSerialExecutor()
 
 
 _LARGER_DATASET = TrialMNIST(download=True, num_samples=2000, digits=(0, 1, 2, 5, 8))
@@ -231,7 +235,7 @@ def test_exception_when_no_tpu_found(tmpdir):
 @pytest.mark.parametrize('tpu_cores', [1, 8, [1]])
 def test_distributed_backend_set_when_using_tpu(tmpdir, tpu_cores):
     """Test if distributed_backend is set to `tpu` when tpu_cores is not None"""
-    assert Trainer(tpu_cores=tpu_cores).distributed_backend == BackendType.TPU
+    assert Trainer(tpu_cores=tpu_cores).distributed_backend == "tpu"
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
@@ -265,3 +269,17 @@ def test_result_obj_on_tpu(tmpdir):
     )
 
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+
+
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pl_multi_process_test
+def test_broadcast_on_tpu():
+    """ Checks if an object from the master process is broadcasted to other processes correctly"""
+    def test_broadcast(rank):
+        trainer = Trainer(tpu_cores=8)
+        backend = TPUBackend(trainer)
+        obj = ("ver_0.5", "logger_name", rank)
+        result = backend.broadcast(obj)
+        assert result == ("ver_0.5", "logger_name", 0)
+
+    xmp.spawn(test_broadcast, nprocs=8, start_method='fork')

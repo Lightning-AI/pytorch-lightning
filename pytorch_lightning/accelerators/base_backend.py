@@ -1,3 +1,4 @@
+import os
 import math
 from enum import Enum
 from typing import Any
@@ -7,6 +8,9 @@ import torch
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.parsing import AttributeDict
+import torch.distributed as torch_distrib
+from pytorch_lightning import _logger as log
 
 try:
     from apex import amp
@@ -19,8 +23,10 @@ EPSILON_FP16 = 1e-5
 
 class Accelerator(object):
 
-    def __init__(self, trainer):
+    def __init__(self, trainer, cluster_environment=None):
         self.trainer = trainer
+        self.cluster_environment = cluster_environment
+        self.dist = AttributeDict(rank=0, device=None)
 
     def setup(self, model):
         pass
@@ -30,6 +36,9 @@ class Accelerator(object):
 
     def barrier(self, name: str = None):
         pass
+
+    def broadcast(self, obj, src=0):
+        return obj
 
     def train_or_test(self):
         if self.trainer.testing:
@@ -165,6 +174,9 @@ class Accelerator(object):
     def on_train_epoch_end(self):
         pass
 
+    def on_train_end(self):
+        pass
+
     def early_stopping_should_stop(self, pl_module):
         return self.trainer.should_stop
 
@@ -177,12 +189,67 @@ class Accelerator(object):
         self.trainer.lr_schedulers = lr_schedulers
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
+    def init_ddp_connection(
+        self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
+    ) -> None:
+        if is_slurm_managing_tasks:
+            self.trainer.slurm_connector.connect_ddp(global_rank, world_size)
+        else:
+            self.connect_torchelastic(global_rank, world_size)
 
+    def connect_torchelastic(
+        self, global_rank: int, world_size: int
+    ) -> None:
+        """
+        Override to define your custom way of setting up a distributed environment.
+
+        Lightning's implementation uses env:// init by default and sets the first node as root
+        for SLURM managed cluster.
+
+        Args:
+            global_rank: The global process idx.
+            world_size: Number of GPUs being use across all nodes. (num_nodes * num_gpus).
+        """
+
+        if "MASTER_ADDR" not in os.environ:
+            rank_zero_warn(
+                "MASTER_ADDR environment variable is not defined. Set as localhost"
+            )
+            os.environ["MASTER_ADDR"] = "127.0.0.1"
+        log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
+
+        if "MASTER_PORT" not in os.environ:
+            rank_zero_warn(
+                "MASTER_PORT environment variable is not defined. Set as 12910"
+            )
+            os.environ["MASTER_PORT"] = "12910"
+        log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
+
+        if "WORLD_SIZE" in os.environ and int(os.environ["WORLD_SIZE"]) != world_size:
+            rank_zero_warn(
+                f"WORLD_SIZE environment variable ({os.environ['WORLD_SIZE']}) "
+                f"is not equal to the computed world size ({world_size}). Ignored."
+            )
+
+        torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
+
+        if not torch.distributed.is_initialized():
+            log.info(
+                f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}"
+            )
+            torch_distrib.init_process_group(
+                torch_backend, rank=global_rank, world_size=world_size
+            )
+
+
+# TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...
 class BackendType(Enum):
     DP = 'dp'
     DDP = 'ddp'
     DDP2 = 'ddp2'
     DDP_SPAWN = 'ddp_spawn'
+    # decuple distrib and device
     DDP_CPU = 'ddp_cpu'
-    TPU = 'tpu'
     HOROVOD = 'horovod'
+    # this is rather device
+    TPU = 'tpu'

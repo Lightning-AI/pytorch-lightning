@@ -91,6 +91,7 @@ Get started with our [3 steps guide](https://pytorch-lightning.readthedocs.io/en
 - _\* `torch>=1.4` is the minimal pytorch version for Python 3.8_
 - _\** tests run on two NVIDIA K80_
 - _\*** tests run on Google GKE TPUv2/3_
+- _TPU w/ py3.6/py3.7 means we support Colab and Kaggle env._
 
 </center>
 

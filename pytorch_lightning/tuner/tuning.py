@@ -15,6 +15,7 @@ from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.tuner.lr_finder import _run_lr_finder_internally, lr_find
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.datamodule import LightningDataModule
 from typing import Optional, List, Union
 from torch.utils.data import DataLoader
 
@@ -50,6 +51,7 @@ class Tuner:
             num_training: int = 100,
             mode: str = 'exponential',
             early_stop_threshold: float = 4.0,
+            datamodule: Optional[LightningDataModule] = None
     ):
         return lr_find(
             self.trainer,
@@ -60,7 +62,8 @@ class Tuner:
             max_lr,
             num_training,
             mode,
-            early_stop_threshold
+            early_stop_threshold,
+            datamodule,
         )
 
     def internal_find_lr(self, trainer, model: LightningModule):

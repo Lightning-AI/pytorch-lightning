@@ -20,10 +20,16 @@ jobs:
   setup-build-publish-deploy:
     name: tpu-testing-job
     runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.6, 3.7]
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 50
 
     steps:
+    - name: Set IMAGETAG
+      run: echo "IMAGETAG=$(date +%s)_${{ matrix.python-version }}" >> $GITHUB_ENV
     - name: Install Go
       uses: actions/setup-go@v2
       with:
@@ -61,9 +67,9 @@ jobs:
       shell: bash
     - name: Build and Push Docker Image
       run: |
-        cd dockers/tpu-tests
-        docker build --tag "$IMAGE:$GITHUB_RUN_ID" -f Dockerfile --build-arg "GITHUB_REF=$GITHUB_REF" --build-arg "TEST_IMAGE=1" .
-        docker push "$IMAGE:$GITHUB_RUN_ID"
+        #cd dockers/tpu-tests
+        docker build --tag "$IMAGE:$IMAGETAG" -f ./dockers/tpu-tests/Dockerfile --build-arg "PYTHON_VERSION=${{ matrix.python-version }}" .
+        docker push "$IMAGE:$IMAGETAG"
       shell: bash
 
     - name: Install jsonnet
@@ -78,7 +84,7 @@ jobs:
 
     - name: Deploy the job on the kubernetes cluster
       run: |-
-        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet --ext-str image=$IMAGE --ext-str image-tag=$GITHUB_RUN_ID | kubectl create -f -) && \
+        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet --ext-str image=$IMAGE --ext-str image-tag=$IMAGETAG | kubectl create -f -) && \
         job_name=${job_name#job.batch/} && \
         job_name=${job_name% created} && \
         echo "Waiting on kubernetes job: $job_name in cluster: $GKE_CLUSTER" && \
@@ -99,7 +105,7 @@ jobs:
         # First portion is the test logs. Print these to Github Action stdout.
         cat xx00 && \
         echo "Done with log retrieval attempt." && \
-        gcloud container images delete "$IMAGE:$GITHUB_RUN_ID" --force-delete-tags && \
+        gcloud container images delete "$IMAGE:$IMAGETAG" --force-delete-tags && \
         exit $status_code
       shell: bash
 
