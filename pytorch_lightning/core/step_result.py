@@ -420,7 +420,7 @@ class Result(Dict):
                 tbptt_reduce_fx = torch.mean
             else:
                 tbptt_reduce_fx = meta[k]['tbptt_reduce_fx']
-            result[k] = tbptt_reduce_fx(value)
+            result[k] = tbptt_reduce_fx(value.float())
 
         result['meta'] = meta
         return result
