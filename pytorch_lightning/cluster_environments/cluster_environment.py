@@ -11,4 +11,3 @@ class ClusterEnvironment:
 
     def world_size(self):
         return self._world_size
-
