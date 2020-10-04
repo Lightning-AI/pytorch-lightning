@@ -27,9 +27,8 @@ else:
 
 class AcceleratorConnector:
 
-    def __init__(self, trainer, cluster_environment=None):
+    def __init__(self, trainer):
         self.trainer = trainer
-        self.cluster_environment = cluster_environment
 
     def on_trainer_init(
             self,
