@@ -401,14 +401,16 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, ex
     # simulated losses
     losses = [10, 9, 2.8, 5, 2.5]
 
-    checkpoint_callback = ModelCheckpoint(tmpdir, monitor='checkpoint_on', save_top_k=save_top_k, save_last=save_last,
-                                          prefix=file_prefix, verbose=1)
+    checkpoint_callback = ModelCheckpoint(
+        tmpdir, monitor='checkpoint_on', save_top_k=save_top_k, save_last=save_last, prefix=file_prefix, verbose=1
+    )
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
 
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
         trainer.current_epoch = i
+        trainer.global_step = i
         trainer.logger_connector.callback_metrics = {'checkpoint_on': torch.tensor(loss)}
         checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
@@ -589,7 +591,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     assert result == 1, "Training did not complete"
 
     # check training stopped at max_epochs
-    assert trainer.global_step == num_train_samples * trainer.max_epochs
+    assert trainer.global_step == num_train_samples * trainer.max_epochs - 1
     assert trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
 
 
