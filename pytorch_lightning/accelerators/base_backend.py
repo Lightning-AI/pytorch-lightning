@@ -192,7 +192,7 @@ class Accelerator(object):
         self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
     ) -> None:
         if is_slurm_managing_tasks:
-            self.trainer.slurm_connector.connect_ddp()
+            self.trainer.slurm_connector.connect_ddp(global_rank, world_size)
         else:
             self.connect_torchelastic(global_rank, world_size)
 
