@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 
 import tests.base.develop_pipelines as tpipes
 from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning.accelerators import TPUBackend
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.base.datasets import TrialMNIST
@@ -12,13 +13,9 @@ from tests.base.develop_utils import pl_multi_process_test
 
 try:
     import torch_xla
+    import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp
-
     SERIAL_EXEC = xmp.MpSerialExecutor()
-    # TODO: The tests are aborted if the following lines are uncommented. Must be resolved with XLA team
-    # device = torch_xla.core.xla_model.xla_device()
-    # device_type = torch_xla.core.xla_model.xla_device_hw(device)
-    # TPU_AVAILABLE = device_type == 'TPU'
 except ImportError:
     TPU_AVAILABLE = False
 else:
@@ -272,3 +269,17 @@ def test_result_obj_on_tpu(tmpdir):
     )
 
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+
+
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pl_multi_process_test
+def test_broadcast_on_tpu():
+    """ Checks if an object from the master process is broadcasted to other processes correctly"""
+    def test_broadcast(rank):
+        trainer = Trainer(tpu_cores=8)
+        backend = TPUBackend(trainer)
+        obj = ("ver_0.5", "logger_name", rank)
+        result = backend.broadcast(obj)
+        assert result == ("ver_0.5", "logger_name", 0)
+
+    xmp.spawn(test_broadcast, nprocs=8, start_method='fork')

@@ -7,6 +7,8 @@ from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning import _logger as log
+from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment
+from pytorch_lightning.cluster_environments.torchelastic_environment import TorchElasticEnvironment
 
 try:
     import torch_xla
@@ -40,9 +42,12 @@ class AcceleratorConnector:
             sync_batchnorm,
             benchmark,
             replace_sampler_ddp,
-            deterministic
+            deterministic,
+            cluster_environment
     ):
         self.trainer.deterministic = deterministic
+        self.cluster_environment = cluster_environment
+
         torch.backends.cudnn.deterministic = self.trainer.deterministic
         if self.trainer.deterministic:
             # fixing non-deterministic part of horovod
@@ -123,6 +128,22 @@ class AcceleratorConnector:
 
         self.trainer.replace_sampler_ddp = replace_sampler_ddp
 
+    def _select_environment(self):
+        env = None
+
+        # in priority: user environment, torchelastic (which is a generic environment), slurm
+        if self.cluster_environment is not None:
+            env = self.cluster_environment
+        elif self._is_using_torchelastic():
+            env = TorchElasticEnvironment()
+        elif self.trainer.is_slurm_managing_tasks:
+            env = SLURMEnvironment()
+        return env
+
+    def _is_using_torchelastic(self):
+        te_flags_passed = 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ)
+        return te_flags_passed
+
     def select_accelerator(self):
         if self.trainer.accelerator_backend is not None:
             return self.trainer.accelerator_backend
@@ -136,6 +157,11 @@ class AcceleratorConnector:
 
         use_ddp_spawn = self.trainer.use_ddp and self.trainer.distributed_backend == "ddp_spawn"
         use_ddp_cpu_spawn = self.trainer.use_ddp and self.trainer.distributed_backend == "ddp_cpu"
+
+        # ddp script mode uses the same flags as TE
+        # TODO: decouple from TE
+        if os.environ.get('PL_DDP_PID', False):
+            use_torchelastic_ddp = False
 
         # choose the appropriate accelerator backend
         if self.trainer.use_ddp2:
@@ -154,7 +180,7 @@ class AcceleratorConnector:
             accelerator_backend = accelerators.DDPCPUSpawnBackend(self.trainer, nprocs=self.trainer.num_processes)
 
         elif self.trainer.distributed_backend == "ddp":
-            accelerator_backend = accelerators.DDPBackend(self.trainer, mode='ddp')
+            accelerator_backend = accelerators.DDPBackend(self.trainer)
 
         elif self.trainer.use_dp:
             accelerator_backend = accelerators.DataParallelBackend(self.trainer)

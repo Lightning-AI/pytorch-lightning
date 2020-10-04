@@ -98,8 +98,8 @@ Let's first start with the model. In this case we'll design a 3-layer neural net
         x = F.log_softmax(x, dim=1)
         return x
 
-Notice this is a :class:`~pytorch_lightning.core.LightningModule` instead of a `torch.nn.Module`. A LightningModule is
-equivalent to a pure PyTorch Module except it has added functionality. However, you can use it EXACTLY the same as you would a PyTorch Module.
+Notice this is a :class:`~pytorch_lightning.core.LightningModule` instead of a ``torch.nn.Module``. A LightningModule is
+equivalent to a pure PyTorch Module except it has added functionality. However, you can use it **EXACTLY** the same as you would a PyTorch Module.
 
 .. testcode::
 
@@ -274,8 +274,8 @@ Using DataModules allows easier sharing of full dataset definitions.
     model = LitModel(num_classes=imagenet_dm.num_classes)
     trainer.fit(model, imagenet_dm)
 
-.. note:: `prepare_data` is called only one 1 GPU in distributed training (automatically)
-.. note:: `setup` is called on every GPU (automatically)
+.. note:: ``prepare_data()`` is called on only one GPU in distributed training (automatically)
+.. note:: ``setup()`` is called on every GPU (automatically)
 
 Models defined by data
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -292,10 +292,12 @@ When your models need to know about the data, it's best to process the data befo
     trainer.fit(model, dm)
 
 
-1. use `prepare_data` to download and process the dataset.
-2. use `setup` to do splits, and build your model internals
+1. use ``prepare_data()`` to download and process the dataset.
+2. use ``setup()`` to do splits, and build your model internals
 
-An alternative to using a DataModule is to defer initialization of the models modules to the `setup` method of your LightningModule as follows:
+|
+
+An alternative to using a DataModule is to defer initialization of the models modules to the ``setup`` method of your LightningModule as follows:
 
 .. testcode::
 
@@ -326,7 +328,7 @@ In PyTorch we do it as follows:
     optimizer = Adam(LitMNIST().parameters(), lr=1e-3)
 
 
-In Lightning we do the same but organize it under the configure_optimizers method.
+In Lightning we do the same but organize it under the :func:`~pytorch_lightning.core.LightningModule.configure_optimizers` method.
 
 .. testcode::
 
@@ -379,8 +381,8 @@ In the case of MNIST we do the following
             optimizer.step()
             optimizer.zero_grad()
 
-In Lightning, everything that is in the training step gets organized under the `training_step` function
-in the LightningModule
+In Lightning, everything that is in the training step gets organized under the
+:func:`~pytorch_lightning.core.LightningModule.training_step` function in the LightningModule.
 
 .. testcode::
 
@@ -546,7 +548,7 @@ Or multiple nodes
 
 Refer to the :ref:`distributed computing guide for more details <multi_gpu>`.
 
-train on TPUs
+Train on TPUs
 ^^^^^^^^^^^^^
 Did you know you can use PyTorch on TPUs? It's very hard to do, but we've
 worked with the xla team to use their awesome library to get this to work
@@ -578,11 +580,11 @@ In distributed training (multiple GPUs and multiple TPU cores) each GPU or TPU c
 of this program. This means that without taking any care you will download the dataset N times which
 will cause all sorts of issues.
 
-To solve this problem, make sure your download code is in the `prepare_data` method in the DataModule.
+To solve this problem, make sure your download code is in the ``prepare_data`` method in the DataModule.
 In this method we do all the preparation we need to do once (instead of on every gpu).
 
-`prepare_data` can be called in two ways, once per node or only on the root node
-(`Trainer(prepare_data_per_node=False)`).
+``prepare_data`` can be called in two ways, once per node or only on the root node
+(``Trainer(prepare_data_per_node=False)``).
 
 .. code-block:: python
 
@@ -619,7 +621,7 @@ In this method we do all the preparation we need to do once (instead of on every
         def test_dataloader(self):
             return DataLoader(self.test_dataset, batch_size=self.batch_size)
 
-The `prepare_data` method is also a good place to do any data processing that needs to be done only
+The ``prepare_data`` method is also a good place to do any data processing that needs to be done only
 once (ie: download or tokenize, etc...).
 
 .. note:: Lightning inserts the correct DistributedSampler for distributed training. No need to add yourself!
@@ -657,7 +659,7 @@ Validating
 For most cases, we stop training the model when the performance on a validation
 split of the data reaches a minimum.
 
-Just like the `training_step`, we can define a `validation_step` to check whatever
+Just like the ``training_step``, we can define a ``validation_step`` to check whatever
 metrics we care about, generate samples or add more to our logs.
 
 .. code-block:: python
@@ -676,7 +678,7 @@ Now we can train with a validation loop as well.
     trainer = Trainer(tpu_cores=8)
     trainer.fit(model, train_loader, val_loader)
 
-You may have noticed the words `Validation sanity check` logged. This is because Lightning runs 2 batches
+You may have noticed the words **Validation sanity check** logged. This is because Lightning runs 2 batches
 of validation before starting to train. This is a kind of unit test to make sure that if you have a bug
 in the validation loop, you won't need to potentially wait a full epoch to find out.
 
@@ -744,7 +746,7 @@ Just like the validation loop, we define a test loop
 
 
 However, to make sure the test set isn't used inadvertently, Lightning has a separate API to run tests.
-Once you train your model simply call `.test()`.
+Once you train your model simply call ``.test()``.
 
 .. code-block:: python
 
@@ -794,8 +796,8 @@ and use it for prediction.
     x = torch.randn(1, 1, 28, 28)
     out = model(x)
 
-On the surface, it looks like `forward` and `training_step` are similar. Generally, we want to make sure that
-what we want the model to do is what happens in the `forward`. whereas the `training_step` likely calls forward from
+On the surface, it looks like ``forward`` and ``training_step`` are similar. Generally, we want to make sure that
+what we want the model to do is what happens in the ``forward``. whereas the ``training_step`` likely calls forward from
 within it.
 
 .. testcode::
@@ -879,7 +881,7 @@ Or maybe we have a model that we use to do generation
     z = sample_noise()
     generated_imgs = model(z)
 
-How you split up what goes in `forward` vs `training_step` depends on how you want to use this model for
+How you split up what goes in ``forward`` vs ``training_step`` depends on how you want to use this model for
 prediction.
 
 ----------------
@@ -977,7 +979,7 @@ And pass the callbacks into the trainer
     Starting to init trainer!
     Trainer is init now
 
-.. note::
+.. tip::
     See full list of 12+ hooks in the :ref:`callbacks`.
 
 ----------------
@@ -1142,4 +1144,4 @@ the data to build your models.
 
 In Lightning this code is organized inside a :ref:`datamodules`.
 
-.. note:: DataModules are optional but encouraged, otherwise you can use standard DataModules
+.. tip:: DataModules are optional but encouraged, otherwise you can use standard DataLoaders

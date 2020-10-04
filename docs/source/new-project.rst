@@ -286,7 +286,7 @@ a forward method or trace only the sub-models you need.
 ********************
 Using CPUs/GPUs/TPUs
 ********************
-It's trivial to use CPUs, GPUs or TPUs in Lightning. There's NO NEED to change your code, simply change the :class:`~pytorch_lightning.trainer.Trainer` options.
+It's trivial to use CPUs, GPUs or TPUs in Lightning. There's **NO NEED** to change your code, simply change the :class:`~pytorch_lightning.trainer.Trainer` options.
 
 .. code-block:: python
 
@@ -377,6 +377,7 @@ If you prefer to do it manually, here's the equivalent
 Data flow
 *********
 Each loop (training, validation, test) has three hooks you can implement:
+
 - x_step
 - x_step_end
 - x_epoch_end
@@ -434,7 +435,7 @@ The lightning equivalent is:
         gpu_1_loss = losses[1]
         return (gpu_0_loss + gpu_1_loss) * 1/2
 
-The validation and test loops have the same structure.
+.. tip:: The validation and test loops have the same structure.
 
 -----------------
 
@@ -467,6 +468,10 @@ you can override the default behavior by manually setting the flags
     def training_step(self, batch, batch_idx):
         self.log('my_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
+.. note::
+    The loss value shown in the progress bar is smoothed (averaged) over the last values,
+    so it differs from the actual loss returned in train/validation step.
+
 You can also use any method of your logger directly:
 
 .. code-block:: python
@@ -480,6 +485,10 @@ Once your training starts, you can view the logs by using your favorite logger o
 .. code-block:: bash
 
     tensorboard --logdir ./lightning_logs
+
+.. note::
+    Lightning automatically shows the loss value returned from ``training_step`` in the progress bar.
+    So, no need to explicitly log like this ``self.log('loss', loss, prog_bar=True)``.
 
 Read more about :ref:`loggers`.
 
@@ -668,8 +677,9 @@ Or read our :ref:`introduction_guide` to learn more!
 **********
 Community
 **********
-Out community of core maintainers and thousands of expert researchers is active on our Slack and Forum. Drop by to
-hang out, ask Lightning questions or even discuss research!
+Our community of core maintainers and thousands of expert researchers is active on our
+`Slack <https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A>`_
+and `Forum <https://forums.pytorchlightning.ai/>`_. Drop by to hang out, ask Lightning questions or even discuss research!
 
 Masterclass
 ===========
