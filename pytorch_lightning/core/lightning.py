@@ -22,7 +22,6 @@ from argparse import Namespace
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
-import torch.distributed as torch_distrib
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
@@ -956,87 +955,6 @@ class LightningModule(
         )
         return model
 
-    def _init_slurm_connection(self) -> None:
-        """"""
-        """
-        Sets up environment variables necessary for pytorch distributed communications
-        based on slurm environment.
-        """
-        # use slurm job id for the port number
-        # guarantees unique ports across jobs from same grid search
-        try:
-            # use the last 4 numbers in the job id as the id
-            default_port = os.environ["SLURM_JOB_ID"]
-            default_port = default_port[-4:]
-
-            # all ports should be in the 10k+ range
-            default_port = int(default_port) + 15000
-
-        except Exception:
-            default_port = 12910
-
-        # if user gave a port number, use that one instead
-        try:
-            default_port = os.environ["MASTER_PORT"]
-        except Exception:
-            os.environ["MASTER_PORT"] = str(default_port)
-
-        # figure out the root node addr
-        try:
-            root_node = os.environ["SLURM_NODELIST"].split(" ")[0]
-        except Exception:
-            root_node = "127.0.0.1"
-
-        root_node = self.trainer.slurm_connector.resolve_root_node_address(root_node)
-        os.environ["MASTER_ADDR"] = root_node
-
-    def init_ddp_connection(
-        self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
-    ) -> None:
-        """
-        Override to define your custom way of setting up a distributed environment.
-
-        Lightning's implementation uses env:// init by default and sets the first node as root
-        for SLURM managed cluster.
-
-        Args:
-            global_rank: The global process idx.
-            world_size: Number of GPUs being use across all nodes. (num_nodes * num_gpus).
-            is_slurm_managing_tasks: is cluster managed by SLURM.
-        """
-        if is_slurm_managing_tasks:
-            self._init_slurm_connection()
-
-        if "MASTER_ADDR" not in os.environ:
-            rank_zero_warn(
-                "MASTER_ADDR environment variable is not defined. Set as localhost"
-            )
-            os.environ["MASTER_ADDR"] = "127.0.0.1"
-        log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
-
-        if "MASTER_PORT" not in os.environ:
-            rank_zero_warn(
-                "MASTER_PORT environment variable is not defined. Set as 12910"
-            )
-            os.environ["MASTER_PORT"] = "12910"
-        log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
-
-        if "WORLD_SIZE" in os.environ and int(os.environ["WORLD_SIZE"]) != world_size:
-            rank_zero_warn(
-                f"WORLD_SIZE environment variable ({os.environ['WORLD_SIZE']}) "
-                f"is not equal to the computed world size ({world_size}). Ignored."
-            )
-
-        torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
-
-        if not torch.distributed.is_initialized():
-            log.info(
-                f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}"
-            )
-            torch_distrib.init_process_group(
-                torch_backend, rank=global_rank, world_size=world_size
-            )
-
     def configure_sync_batchnorm(self, model: "LightningModule") -> "LightningModule":
         """
         Add global batchnorm for a model spread across multiple GPUs and nodes.
@@ -1089,10 +1007,8 @@ class LightningModule(
         return model, optimizers
 
     def configure_optimizers(
-        self,
-    ) -> Optional[
-        Union[Optimizer, Sequence[Optimizer], Dict, Sequence[Dict], Tuple[List, List]]
-    ]:
+            self,
+    ):
         r"""
         Choose what optimizers and learning-rate schedulers to use in your optimization.
         Normally you'd need one. But in the case of GANs or similar you might have multiple.

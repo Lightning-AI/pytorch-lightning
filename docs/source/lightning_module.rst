@@ -1048,12 +1048,6 @@ get_progress_bar_dict
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.get_progress_bar_dict
     :noindex:
 
-init_ddp_connection
-~~~~~~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.init_ddp_connection
-    :noindex:
-
 tbptt_split_batch
 ~~~~~~~~~~~~~~~~~
 
