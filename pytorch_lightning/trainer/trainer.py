@@ -56,6 +56,7 @@ from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer.properties import TrainerProperties
+from pytorch_lightning.cluster_environments.cluster_environment import ClusterEnvironment
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -127,6 +128,7 @@ class Trainer(
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
         amp_backend: str = 'native',
+        cluster_environment: ClusterEnvironment = None,
         amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
         overfit_pct: float = None,  # backward compatible, todo: remove in v1.0.0
     ):
@@ -331,7 +333,8 @@ class Trainer(
             sync_batchnorm,
             benchmark,
             replace_sampler_ddp,
-            deterministic
+            deterministic,
+            cluster_environment
         )
 
         # init train loop related flags

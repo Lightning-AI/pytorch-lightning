@@ -23,8 +23,9 @@ EPSILON_FP16 = 1e-5
 
 class Accelerator(object):
 
-    def __init__(self, trainer):
+    def __init__(self, trainer, cluster_environment=None):
         self.trainer = trainer
+        self.cluster_environment = cluster_environment
         self.dist = AttributeDict(rank=0, device=None)
 
     def setup(self, model):

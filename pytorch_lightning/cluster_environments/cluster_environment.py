@@ -1,7 +1,7 @@
 class ClusterEnvironment:
 
-    def __init__(self, world_size):
-        self._world_size = world_size
+    def __init__(self):
+        self._world_size = None
 
     def master_address(self):
         pass
