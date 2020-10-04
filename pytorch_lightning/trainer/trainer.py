@@ -127,8 +127,8 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
-        amp_backend: str = 'native',
         cluster_environment: ClusterEnvironment = None,
+        amp_backend: str = 'native',
         amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
         overfit_pct: float = None,  # backward compatible, todo: remove in v1.0.0
     ):
@@ -166,6 +166,8 @@ class Trainer(
             checkpoint_callback: Callback for checkpointing.
 
             check_val_every_n_epoch: Check val every n train epochs.
+
+            cluster_environment: Environment config to link up arbitrary clusters
 
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
                 Default: ``os.getcwd()``.
