@@ -183,10 +183,13 @@ class ModelCheckpoint(Callback):
         This method runs on all ranks, it is the responsibility of `self.save_function`
         to handle correct behaviour in distributed training, i.e., saving only on rank 0.
         """
+        # todo: use `trainer.current_epoch` so it is clear that the epoch does not change during the flow
+        epoch = trainer.current_epoch
+
         if (
             self.save_top_k == 0  # no models are saved
             or self.period < 1  # no models are saved
-            or (trainer.current_epoch + 1) % self.period  # skip epoch
+            or (epoch + 1) % self.period  # skip epoch
             or trainer.running_sanity_check  # don't save anything during sanity check
             or self.step_last_check == trainer.global_step  # already saved
         ):
@@ -196,23 +199,23 @@ class ModelCheckpoint(Callback):
         self._validate_monitor_key(trainer)
 
         # track epoch when ckpt was last checked
-        self.epoch_last_check = trainer.current_epoch
+        self.epoch_last_check = epoch
         self.step_last_check = trainer.global_step
 
         # what can be monitored
         monitor_candidates = self._monitor_candidates(trainer)
 
         # ie: path/val_loss=0.5.ckpt
-        filepath = self._get_metric_interpolated_filepath_name(trainer.current_epoch, monitor_candidates)
+        filepath = self._get_metric_interpolated_filepath_name(epoch, monitor_candidates)
 
         # callback supports multiple simultaneous modes
         # here we call each mode sequentially
         # Mode 1: save all checkpoints OR only the top k
         if self.save_top_k:
-            self._save_top_k_checkpoints(monitor_candidates, trainer, pl_module, trainer.current_epoch, filepath)
+            self._save_top_k_checkpoints(monitor_candidates, trainer, pl_module, epoch, filepath)
 
         # Mode 2: save the last checkpoint
-        self._save_last_checkpoint(trainer, pl_module, trainer.current_epoch, monitor_candidates, filepath)
+        self._save_last_checkpoint(trainer, pl_module, epoch, monitor_candidates, filepath)
 
     def __validate_init_configuration(self):
         if self.save_top_k is not None and self.save_top_k < -1:
