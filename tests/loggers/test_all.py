@@ -244,7 +244,7 @@ class RankZeroLoggerCheck(Callback):
 @pytest.mark.parametrize("logger_class", [
     TensorBoardLogger,
     MLFlowLogger,
-    NeptuneLogger,
+    # NeptuneLogger,  # TODO: fix: https://github.com/PyTorchLightning/pytorch-lightning/pull/3256
     TestTubeLogger,
 ])
 @mock.patch('pytorch_lightning.loggers.neptune.neptune')
