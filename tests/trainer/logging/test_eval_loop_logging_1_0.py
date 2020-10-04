@@ -186,9 +186,10 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     assert pbar_metrics == expected_pbar_metrics
 
     callback_metrics = set(trainer.callback_metrics.keys())
-    expected_callback_metrics = {'early_stop_on', 'checkpoint_on'}
+    expected_callback_metrics = set()
     expected_callback_metrics = expected_callback_metrics.union(logged_metrics)
     expected_callback_metrics = expected_callback_metrics.union(pbar_metrics)
+    callback_metrics.remove('debug_epoch')
     assert callback_metrics == expected_callback_metrics
 
     # assert the loggers received the expected number

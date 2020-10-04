@@ -620,7 +620,7 @@ class Trainer(
         # hook
         self.evaluation_loop.on_evaluation_end()
 
-        return eval_loop_results, eval_results
+        return eval_loop_results, deprecated_eval_results
 
     def run_test(self):
         # only load test dataloader for testing
