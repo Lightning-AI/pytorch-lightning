@@ -223,7 +223,7 @@ class EvaluationLoop(object):
                 user_reduced = True
 
         # depre warning
-        if eval_results is not None:
+        if eval_results is not None and user_reduced:
             step = 'testing_epoch_end' if self.testing else 'validation_epoch_end'
             m = f'The {step} should not return anything as of 9.1.' \
                 f'to log, use self.log(...) or self.write(...) directly in the LightningModule'
