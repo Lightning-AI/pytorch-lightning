@@ -46,7 +46,7 @@ This is the basic use of the trainer:
 --------
 
 Trainer in Python scripts
-------------------------
+-------------------------
 In Python scripts, it's recommended you use a main function to call the Trainer.
 
 .. code-block:: python
