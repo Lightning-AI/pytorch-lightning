@@ -130,10 +130,14 @@ class AcceleratorConnector:
 
     def _select_environment(self):
         env = None
-        if self.trainer.is_slurm_managing_tasks:
-            env = SLURMEnvironment()
+
+        # in priority: user environment, torchelastic (which is a generic environment), slurm
+        if self.cluster_environment is not None:
+            env = self.cluster_environment
         elif self._is_using_torchelastic():
             env = TorchElasticEnvironment()
+        elif self.trainer.is_slurm_managing_tasks:
+            env = SLURMEnvironment()
         return env
 
     def _is_using_torchelastic(self):
