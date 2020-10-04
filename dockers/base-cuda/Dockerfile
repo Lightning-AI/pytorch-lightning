@@ -22,7 +22,7 @@
 ARG CUDNN_VERSION=8
 ARG CUDA_VERSION=11.1
 
-FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu20.04
+FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
 # FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel-ubuntu18.04
 # FROM nvidia/cuda:${CUDA_VERSION}-devel
 
