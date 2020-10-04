@@ -957,7 +957,6 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
         max_steps=1,
     )
     assert trainer.num_sanity_val_steps == num_sanity_val_steps
-    val_dataloaders = model.val_dataloader__multiple_mixed_length()
 
 
 @pytest.mark.parametrize(['limit_val_batches'], [
@@ -981,7 +980,6 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
         max_steps=1,
     )
     assert trainer.num_sanity_val_steps == float('inf')
-    val_dataloaders = model.val_dataloader__multiple()
 
 
 @pytest.mark.parametrize("trainer_kwargs,expected", [

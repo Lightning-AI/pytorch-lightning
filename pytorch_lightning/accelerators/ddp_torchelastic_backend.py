@@ -40,8 +40,8 @@ else:
 # -------------------------------------------
 class DDPTorchElasticBackend(Accelerator):
 
-    def __init__(self, trainer):
-        super().__init__(trainer)
+    def __init__(self, trainer, cluster_environment=None):
+        super().__init__(trainer, cluster_environment)
         self.task_idx = None
         self._has_spawned_children = False
         self.dist = LightningDistributed()
@@ -124,7 +124,7 @@ class DDPTorchElasticBackend(Accelerator):
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
         model.trainer = self.trainer
-        model.init_ddp_connection(
+        self.init_ddp_connection(
             self.trainer.global_rank,
             self.trainer.world_size,
             self.trainer.is_slurm_managing_tasks
