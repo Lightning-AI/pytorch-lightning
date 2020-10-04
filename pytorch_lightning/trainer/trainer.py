@@ -283,6 +283,9 @@ class Trainer(
         self.shown_warnings = set()
 
         # init callbacks
+        # Declare attributes to be set in callback_connector on_trainer_init
+        self.checkpoint_callback: Union[ModelCheckpoint, bool] = checkpoint_callback
+        self.early_stop_callback: Optional[Union[EarlyStopping, bool]] = early_stop_callback
         self.callback_connector.on_trainer_init(
             callbacks,
             early_stop_callback,
