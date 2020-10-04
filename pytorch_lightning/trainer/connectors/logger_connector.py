@@ -107,7 +107,7 @@ class LoggerConnector:
 
     def on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, using_eval_result, test_mode):
         self._track_callback_metrics(deprecated_eval_results, using_eval_result)
-        self._log_on_evaluation_epoch_end_metrics()
+        self._log_on_evaluation_epoch_end_metrics(epoch_logs)
 
         # TODO: deprecate parts of this for 1.0 (when removing results)
         self.__process_eval_epoch_end_results_and_log_legacy(deprecated_eval_results, test_mode)
@@ -131,13 +131,15 @@ class LoggerConnector:
         self.eval_loop_results = []
         return results
 
-    def _log_on_evaluation_epoch_end_metrics(self):
+    def _log_on_evaluation_epoch_end_metrics(self, epoch_logs):
         step_metrics = self.trainer.evaluation_loop.step_metrics
 
         # clear mem
         self.trainer.evaluation_loop.step_metrics = []
 
         num_loaders = len(step_metrics)
+
+        epoch_metrics = epoch_logs.
 
         # process metrics per dataloader
         for dl_idx, dl_metrics in enumerate(step_metrics):
