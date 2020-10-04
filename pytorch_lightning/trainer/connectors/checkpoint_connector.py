@@ -104,6 +104,9 @@ class CheckpointConnector:
         # load the state_dict on the model automatically
         model.load_state_dict(checkpoint['state_dict'])
 
+        # give the datamodule a chance to load something
+        if self.trainer.datamodule is not None:
+            self.trainer.datamodule.on_load_checkpoint(checkpoint)
         # give model a chance to load something
         model.on_load_checkpoint(checkpoint)
 
@@ -191,7 +194,7 @@ class CheckpointConnector:
         folderpath = str(self.trainer.weights_save_path)
         fs = get_filesystem(folderpath)
         if fs.exists(folderpath):
-            files = [os.path.basename(f) for f in fs.ls(folderpath)]
+            files = [os.path.basename(f['name']) for f in fs.listdir(folderpath)]
             hpc_weight_paths = [x for x in files if 'hpc_ckpt' in x]
 
             # if hpc weights exist restore model
@@ -294,6 +297,8 @@ class CheckpointConnector:
 
         # give the model a chance to add a few things
         model.on_save_checkpoint(checkpoint)
+        if self.trainer.datamodule is not None:
+            self.trainer.datamodule.on_save_checkpoint(checkpoint)
 
         return checkpoint
 
@@ -328,7 +333,7 @@ class CheckpointConnector:
 
     def max_ckpt_in_folder(self, path, name_key='ckpt_'):
         fs = get_filesystem(path)
-        files = [os.path.basename(f) for f in fs.ls(path)]
+        files = [os.path.basename(f["name"]) for f in fs.listdir(path)]
         files = [x for x in files if name_key in x]
         if len(files) == 0:
             return 0

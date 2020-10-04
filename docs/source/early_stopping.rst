@@ -10,18 +10,9 @@ Early stopping
 
 Stopping an epoch early
 -----------------------
-You can stop an epoch early by overriding :meth:`~pytorch_lightning.core.lightning.LightningModule.on_batch_start` to return ``-1`` when some condition is met.
+You can stop an epoch early by overriding :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_train_batch_start` to return ``-1`` when some condition is met.
 
 If you do this repeatedly, for every epoch you had originally requested, then this will stop your entire run.
-
-----------
-
-Default Epoch End Callback Behavior
------------------------------------
-By default early stopping will be enabled if the `early_stop_on` key in the EvalResult object is used
-in either the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` method or
-the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end` method.
-
 
 ----------
 
@@ -31,24 +22,17 @@ The
 :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`
 callback can be used to monitor a validation metric and stop the training when no improvement is observed.
 
-There are two ways to enable the EarlyStopping callback:
+To enable it:
 
--   Set `early_stop_callback=True`.
-    If a dict is returned by
-    :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`,
-    the callback will look for `val_loss` in the dict
-    and display a warning if `val_loss` is not present.
-    Otherwise, if a :class:`~pytorch_lightning.core.step_result.Result` is returned by
-    :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`,
-    :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` or
-    :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`,
-    the `early_stop_on` metric, specified in the initialization of the
-    :class:`~pytorch_lightning.core.step_result.Result` object is used
-    and display a warning if it was not specified.
+- Set `early_stop_callback=True`.
+- Set `monitor` to the logged metric of your choice
 
-    .. testcode::
+    .. code-block:: python
 
-        trainer = Trainer(early_stop_callback=True)
+        def validation_step(...):
+            self.log('val_loss', loss)
+
+        trainer = Trainer(early_stop_callback=EarlyStopping(monitor='val_loss'))
 
 -   Create the callback object and pass it to the trainer.
     This allows for further customization.

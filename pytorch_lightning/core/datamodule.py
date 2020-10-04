@@ -19,7 +19,7 @@ from argparse import ArgumentParser, Namespace
 from typing import Any, List, Optional, Tuple, Union
 
 import torch
-from pytorch_lightning.core.hooks import DataHooks
+from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
 from pytorch_lightning.utilities import parsing, rank_zero_only
 from torch.utils.data import DataLoader
 
@@ -92,7 +92,7 @@ def track_data_hook_calls(fn):
     return wrapped_fn
 
 
-class LightningDataModule(DataHooks, metaclass=_DataModuleWrapper):
+class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapper):
     """
     A DataModule standardizes the training, val, test splits, data preparation and transforms.
     The main advantage is consistent data splits, data preparation and transforms across models.
@@ -146,6 +146,9 @@ class LightningDataModule(DataHooks, metaclass=_DataModuleWrapper):
         self._val_transforms = val_transforms
         self._test_transforms = test_transforms
         self._dims = dims if dims is not None else ()
+
+        # Pointer to the trainer object
+        self.trainer = None
 
         # Private attrs to keep track of whether or not data hooks have been called yet
         self._has_prepared_data = False

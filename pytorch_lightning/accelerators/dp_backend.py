@@ -15,18 +15,20 @@
 import torch
 from torch import optim
 
+from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.distributed import LightningDistributed
+from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.overrides.data_parallel import LightningDataParallel
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.accelerators.base_backend import Accelerator
 
 
 class DataParallelBackend(Accelerator):
 
-    def __init__(self, trainer):
-        super().__init__(trainer)
+    def __init__(self, trainer, cluster_environment=None):
+        super().__init__(trainer, cluster_environment)
         self.model_autocast_original_forward = None
+        self.dist = LightningDistributed()
 
     def setup(self, model):
         # call setup after the ddp process has connected
@@ -37,10 +39,7 @@ class DataParallelBackend(Accelerator):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
-        self.trainer.optimizers = optimizers
-        self.trainer.lr_schedulers = lr_schedulers
-        self.trainer.optimizer_frequencies = optimizer_frequencies
+        self.setup_optimizers(model)
 
         # init torch data parallel
         model = self.__init_torch_data_parallel(model)
@@ -84,7 +83,7 @@ class DataParallelBackend(Accelerator):
                 f' See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.'
                 f' We recommend you switch to ddp if you want to use amp')
         else:
-            model, optimizers = self.trainer.precision_connector.connect(model, self.trainer.optimizers)
+            model = self.trainer.precision_connector.connect(model)
 
         return model
 

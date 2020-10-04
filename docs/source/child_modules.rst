@@ -50,27 +50,25 @@ The only things that change in the `Autoencoder` model are the init, forward, tr
         def training_step(self, batch, batch_idx):
             x, _ = batch
 
-            representation = self(x)
+            representation = self.encoder(x)
             x_hat = self.decoder(representation)
 
             loss = self.metric(x, x_hat)
             return loss
 
         def validation_step(self, batch, batch_idx):
-            return self._shared_eval(batch, batch_idx, 'val')
+            self._shared_eval(batch, batch_idx, 'val')
 
         def test_step(self, batch, batch_idx):
-            return self._shared_eval(batch, batch_idx, 'test')
+            self._shared_eval(batch, batch_idx, 'test')
 
         def _shared_eval(self, batch, batch_idx, prefix):
             x, _ = batch
-            representation = self(x)
+            representation = self.encoder(x)
             x_hat = self.decoder(representation)
 
             loss = self.metric(x, x_hat)
-            result = pl.EvalResult()
-            result.log(f'{prefix}_loss', loss)
-            return result
+            self.log(f'{prefix}_loss', loss)
 
 
 and we can train this using the same trainer

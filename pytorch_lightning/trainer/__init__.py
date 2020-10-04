@@ -355,6 +355,29 @@ Example::
         prefix=''
     )
 
+cluster_environment
+^^^^^^^^^^^^^^^^^^^
+Environment to connect arbitrary cluster backends. Lightning automatically handles:
+- SLURM
+- TorchElastic
+
+For any other non-supported cluster environment, define your own class and pass it in.
+
+.. code-block:: python
+
+    from pytorch_lightning.cluster_environments import ClusterEnvironment
+
+    class MyCluster(ClusterEnvironment):
+
+        def master_address(self):
+            return your_master_address
+
+        def master_port(self):
+            return your_master_port
+
+        def world_size(self):
+            return the_world_size
+
 default_root_dir
 ^^^^^^^^^^^^^^^^
 
@@ -1095,4 +1118,3 @@ from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities.seed import seed_everything
 
 __all__ = ["Trainer", "seed_everything"]
-

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import io
 import os
 import re
 
@@ -19,17 +19,18 @@ import torch
 import torch.multiprocessing as mp
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.core import LightningModule
-from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn, AMPType
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.core import LightningModule
+from pytorch_lightning.distributed import LightningDistributed
+from pytorch_lightning.utilities import AMPType, rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
     import torch_xla
     import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
     import torch_xla.distributed.parallel_loader as xla_pl
+    import torch_xla.distributed.xla_multiprocessing as xmp
 except ImportError:
     XLA_AVAILABLE = False
 else:
@@ -38,8 +39,8 @@ else:
 
 class TPUBackend(Accelerator):
 
-    def __init__(self, trainer):
-        super().__init__(trainer)
+    def __init__(self, trainer, cluster_environment=None):
+        super().__init__(trainer, cluster_environment)
         self.start_method = None
         self.mp_queue = None
 
@@ -67,7 +68,8 @@ class TPUBackend(Accelerator):
         last_path = self.mp_queue.get()
 
         # transfer back the best path to the trainer
-        self.trainer.checkpoint_callback.best_model_path = best_path
+        if self.trainer.checkpoint_callback is not None:
+            self.trainer.checkpoint_callback.best_model_path = best_path
         # todo, pass also bets score
 
         # load last weights
@@ -210,10 +212,7 @@ class TPUBackend(Accelerator):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        optimizers, lr_schedulers, optimizer_frequencies = trainer.init_optimizers(model)
-        trainer.optimizers = optimizers
-        trainer.lr_schedulers = lr_schedulers
-        trainer.optimizer_frequencies = optimizer_frequencies
+        self.setup_optimizers(model)
 
         # init 16 bit for TPU
         if trainer.precision == 16:
@@ -298,7 +297,7 @@ class TPUBackend(Accelerator):
         return loaded_model
 
     def transfer_distrib_spawn_state_on_fit_end(self, model, mp_queue, results):
-        if self.trainer.distributed_backend.lower() not in ['ddp_spawn', 'ddp_cpu', 'tpu']:
+        if self.trainer.distributed_backend not in ("ddp_spawn", "ddp_cpu", "tpu"):
             return
 
         # track the best model path
@@ -318,3 +317,13 @@ class TPUBackend(Accelerator):
                 last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
                 atomic_save(model.state_dict(), last_path)
             mp_queue.put(last_path)
+
+    def broadcast(self, obj, src=0):
+        buffer = io.BytesIO()
+        torch.save(obj, buffer)
+        data = bytearray(buffer.getbuffer())
+        data_tensor = torch.tensor(data).to(xm.xla_device(), dtype=torch.float)
+        data = xm.all_gather(data_tensor)
+        buffer = io.BytesIO(data.cpu().byte().numpy())
+        obj = torch.load(buffer)
+        return obj

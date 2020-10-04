@@ -53,7 +53,7 @@ class LitAutoEncoder(pl.LightningModule):
         z = self.encoder(x)
         x_hat = self.decoder(z)
         loss = F.mse_loss(x_hat, x)
-        return pl.TrainResult(loss, checkpoint_on=loss)
+        return loss
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
@@ -97,7 +97,8 @@ def cli_main():
     # ------------
     # testing
     # ------------
-    trainer.test(test_dataloaders=test_loader)
+    result = trainer.test(test_dataloaders=test_loader)
+    print(result)
 
 
 if __name__ == '__main__':

@@ -5,6 +5,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+from tests.base.datamodules import TrialMNISTDataModule
 
 
 def test_error_on_more_than_1_optimizer(tmpdir):
@@ -152,6 +153,30 @@ def test_call_to_trainer_method(tmpdir):
         'Learning rate was not altered after running learning rate finder'
 
 
+def test_datamodule_parameter(tmpdir):
+    """ Test that the datamodule parameter works """
+
+    # trial datamodule
+    dm = TrialMNISTDataModule(tmpdir)
+
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = EvalModelTemplate(**hparams)
+
+    before_lr = hparams.get('learning_rate')
+    # logger file to get meta
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+    )
+
+    lrfinder = trainer.tuner.lr_find(model, datamodule=dm)
+    after_lr = lrfinder.suggestion()
+    model.learning_rate = after_lr
+
+    assert before_lr != after_lr, \
+        'Learning rate was not altered after running learning rate finder'
+
+
 def test_accumulation_and_early_stopping(tmpdir):
     """ Test that early stopping of learning rate finder works, and that
         accumulation also works for this feature """
@@ -171,9 +196,9 @@ def test_accumulation_and_early_stopping(tmpdir):
 
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
-    assert len(lrfinder.results['lr']) == 100, \
+    assert len(lrfinder.results['lr']) == 99, \
         'Early stopping for learning rate finder did not work'
-    assert lrfinder._total_batch_idx == 100 * 2, \
+    assert lrfinder._total_batch_idx == 99 * 2, \
         'Accumulation parameter did not work'
 
 

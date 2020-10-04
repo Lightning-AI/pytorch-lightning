@@ -17,10 +17,10 @@ import platform
 from abc import ABC, abstractmethod
 from typing import Union, List, Tuple, Callable, Optional
 
-import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
+from pytorch_lightning.accelerators.base_backend import Accelerator
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
@@ -74,6 +74,7 @@ class TrainerDataLoadingMixin(ABC):
     limit_val_batches: Union[int, float]
     limit_test_batches: Union[int, float]
     replace_sampler_ddp: bool
+    accelerator_backend: Accelerator
     num_nodes: int
     num_processes: int
     distributed_backend: Optional[str]
@@ -84,7 +85,7 @@ class TrainerDataLoadingMixin(ABC):
 
         # ddp_spawn + num_workers > 0 don't mix! tell the user
         is_dataloader = isinstance(dataloader, DataLoader)
-        using_spawn = self.distributed_backend == 'ddp_spawn'
+        using_spawn = self.distributed_backend == "ddp_spawn"
         if is_dataloader and not on_windows:
             if dataloader.num_workers > 0 and using_spawn:
                 rank_zero_warn('Dataloader(num_workers>0) and ddp_spawn do not mix well!'
@@ -147,10 +148,10 @@ class TrainerDataLoadingMixin(ABC):
             kwargs = dict(num_replicas=hvd.size(), rank=hvd.rank())
         else:
             world_size = {
-                'ddp': self.num_nodes * self.num_processes,
-                'ddp_spawn': self.num_nodes * self.num_processes,
-                'ddp2': self.num_nodes,
-                'ddp_cpu': self.num_processes * self.num_nodes
+                "ddp": self.num_nodes * self.num_processes,
+                "ddp_spawn": self.num_nodes * self.num_processes,
+                "ddp2": self.num_nodes,
+                "ddp_cpu": self.num_processes * self.num_nodes
             }
             assert self.distributed_backend is not None
             kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.global_rank)
@@ -336,18 +337,6 @@ class TrainerDataLoadingMixin(ABC):
         """
         dataloader = dataloader_fx()
 
-        # get the function we'll use to get data
-        if self.use_ddp or self.use_ddp2:
-            # all processes wait until data download has happened
-            torch_distrib.barrier()
-
-        # data download/load on TPU
-        elif self.use_tpu and XLA_AVAILABLE:
-            # all processes wait until data download has happened
-            torch_xla.core.xla_model.rendezvous('pl.TrainerDataLoadingMixin.get_dataloaders')
-
-        elif self.use_horovod:
-            # all processes wait until data download has happened
-            hvd.join()
-
+        if self.accelerator_backend is not None:
+            self.accelerator_backend.barrier('get_dataloaders')
         return dataloader

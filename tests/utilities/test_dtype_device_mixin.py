@@ -81,7 +81,7 @@ def test_submodules_multi_gpu_ddp_spawn(tmpdir):
     model = TopModule()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        distributed_backend='dpp_spawn',
+        distributed_backend='ddp_spawn',
         gpus=2,
         callbacks=[DeviceAssertCallback()],
         max_steps=1,

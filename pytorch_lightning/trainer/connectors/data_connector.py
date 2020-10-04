@@ -14,7 +14,7 @@
 
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from typing import List, Union
+from typing import List, Optional, Union
 from torch.utils.data import DataLoader
 from pytorch_lightning.utilities.model_utils import is_overridden
 
@@ -101,7 +101,7 @@ class DataConnector(object):
         if test_dataloaders is not None:
             model.test_dataloader = _PatchDataLoader(test_dataloaders)
 
-    def attach_datamodule(self, model, datamodule, stage):
+    def attach_datamodule(self, model, datamodule: Optional[LightningDataModule], stage: str) -> None:
 
         # We use datamodule if it's been provided on .fit or .test, otherwise we check model for it
         datamodule = datamodule or getattr(model, 'datamodule', None)
@@ -122,6 +122,7 @@ class DataConnector(object):
                 model.transfer_batch_to_device = datamodule.transfer_batch_to_device
 
             self.trainer.datamodule = datamodule
+            datamodule.trainer = self.trainer
 
 
 class _PatchDataLoader(object):
