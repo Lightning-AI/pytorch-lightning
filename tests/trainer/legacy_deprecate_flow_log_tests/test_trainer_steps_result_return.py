@@ -420,7 +420,7 @@ def test_no_auto_callbacks_with_train_loop_only(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        callbacks=[EarlyStopping()],
+        early_stop_callback=True,
         max_epochs=epochs,
         row_log_interval=1,
         limit_train_batches=batches,
