@@ -29,6 +29,10 @@ class SLURMConnector:
                 self.trainer.num_slurm_tasks = int(os.environ['SLURM_NTASKS'])
                 self.trainer.is_slurm_managing_tasks = self.trainer.num_slurm_tasks == self.trainer.num_requested_gpus
 
+                # enable slurm cpu
+                if self.trainer.num_requested_gpus == 0:
+                    self.trainer.is_slurm_managing_tasks = self.trainer.num_slurm_tasks == self.trainer.num_processes
+
                 # in interactive mode we don't manage tasks
                 job_name = os.environ['SLURM_JOB_NAME']
                 if job_name == 'bash':
