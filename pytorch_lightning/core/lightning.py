@@ -304,6 +304,13 @@ class LightningModule(
                 tbptt_reduce_fx=tbptt_reduce_fx,
             )
 
+    def write_prediction(self, name, value, filename='predictions.pt'):
+        self.trainer.evaluation_loop.predictions._add_prediction(name, value, filename)
+
+    def write_prediction_dict(self, predictions_dict, filename='predictions.pt'):
+        for k, v in predictions_dict.items():
+            self.write_prediction(k, v, filename)
+
     def __auto_choose_log_on_step(self, on_step):
         if on_step is None:
             if self._current_fx_name in {'training_step', 'training_step_end'}:
