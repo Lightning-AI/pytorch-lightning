@@ -6,6 +6,7 @@ NUM_PROCESSES = 2
 NUM_BATCHES = 10
 BATCH_SIZE = 16
 
+
 def setup_ddp(rank, world_size):
     os.environ["MASTER_ADDR"] = 'localhost'
     os.environ['MASTER_PORT'] = '8088'
@@ -44,7 +45,8 @@ def _compute_batch(rank, preds, target, metric_class, sk_metric, ddp_sync_on_ste
         assert np.allclose(result.numpy(), sk_result)
     else:
         assert True
-        #assert result is None
+        # assert result is None
+
 
 def compute_batch(preds, target, metric_class, sk_metric, ddp_sync_on_step, ddp=False, metric_args={}):
     if ddp:

@@ -50,7 +50,7 @@ def _binary_sk_metric(preds, target):
     sk_preds = preds.view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
-    return  accuracy_score(y_true=sk_target, y_pred=sk_preds)
+    return accuracy_score(y_true=sk_target, y_pred=sk_preds)
 
 
 _multilabel_prob_inputs = Input(

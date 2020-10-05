@@ -41,5 +41,3 @@ def _test_ddp_sum_cat(rank, worldsize):
 @pytest.mark.parametrize("process", [_test_ddp_cat, _test_ddp_sum, _test_ddp_sum_cat])
 def test_ddp(process):
     torch.multiprocessing.spawn(process, args=(2,), nprocs=2)
-
-

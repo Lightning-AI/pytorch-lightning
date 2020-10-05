@@ -8,6 +8,7 @@ torch.manual_seed(42)
 
 class Dummy(Metric):
     name = "Dummy"
+
     def __init__(self):
         super().__init__()
         self.add_state("x", 0, reduction=False)
