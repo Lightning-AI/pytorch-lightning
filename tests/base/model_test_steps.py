@@ -185,4 +185,7 @@ class TestStepVariations(ABC):
             self.write_prediction('idxs', lazy_ids, prediction_file)
             self.write_prediction('vals', lst_of_dict, prediction_file)
 
+        elif option == 7:
+            self.write_prediction_dict({'idxs': lazy_ids, 'preds': labels_hat}, prediction_file)
+
         return result
