@@ -36,18 +36,15 @@ def _compute_batch(rank, preds, target, metric_class, sk_metric, ddp_sync_on_ste
             sk_batch_result = sk_metric(preds[i], target[i])
             assert np.allclose(batch_result.numpy(), sk_batch_result)
 
+    # check on all batches on all ranks
     result = metric.compute()
-    if rank == 0:
-        assert isinstance(result, torch.Tensor)
+    assert isinstance(result, torch.Tensor)
 
-        total_preds = torch.stack([preds[i] for i in range(NUM_BATCHES)])
-        total_target = torch.stack([target[i] for i in range(NUM_BATCHES)])
-        sk_result = sk_metric(total_preds, total_target)
+    total_preds = torch.stack([preds[i] for i in range(NUM_BATCHES)])
+    total_target = torch.stack([target[i] for i in range(NUM_BATCHES)])
+    sk_result = sk_metric(total_preds, total_target)
 
-        assert np.allclose(result.numpy(), sk_result)
-    else:
-        assert True
-        # assert result is None
+    assert np.allclose(result.numpy(), sk_result)
 
 
 def compute_batch(preds, target, metric_class, sk_metric, ddp_sync_on_step, ddp=False, metric_args={}):

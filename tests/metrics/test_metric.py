@@ -42,10 +42,13 @@ def test_update():
 
     a = A()
     assert a.x == 0
+    assert a._computed is None
     a.update(1)
+    assert a._computed is None
     assert a.x == 1
     a.update(2)
     assert a.x == 3
+    assert a._computed is None
 
 
 def test_compute():
@@ -57,8 +60,13 @@ def test_compute():
             return self.x
 
     a = A()
-    assert a.x == a.compute()
+    assert 0 == a.compute()
+    assert 0 == a.x
     a.update(1)
-    assert a.x == a.compute()
+    assert a._computed is None
+    assert a.compute() == 1
+    assert a._computed == 1
     a.update(2)
-    assert a.x == a.compute()
+    assert a._computed is None
+    assert a.compute() == 2
+    assert a._computed == 2

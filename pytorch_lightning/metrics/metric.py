@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from collections import namedtuple
 from copy import deepcopy
 
+import os
 import torch
 from torch import nn
 
@@ -26,7 +27,9 @@ class Metric(nn.Module, ABC):
         self.process_group = process_group
         self._to_sync = True
 
-        self.compute = self.wrap_sync(self.compute)
+        self.update = self.wrap_update(self.update)
+        self.compute = self.wrap_compute(self.compute)
+        self._computed = None
 
         # initialize state
         self._reductions = {}
@@ -60,6 +63,7 @@ class Metric(nn.Module, ABC):
             for attr, val in self._cache.items():
                 setattr(self, attr, val)
             self._to_sync = True
+            self._computed = None
 
             return result
 
@@ -76,18 +80,33 @@ class Metric(nn.Module, ABC):
             # agregate lists of tensors
             reduced = reduction_fn(output_dict[attr]) if reduction_fn is not None else output_dict[attr]
             setattr(self, attr, reduced)
-
-    def wrap_sync(self, func):
-        @functools.wraps(func)
+        
+    def wrap_update(self, update):
+        @functools.wraps(update)
         def wrapped_func(*args, **kwargs):
+            self._computed = None
+            return update(*args, **kwargs)
+        return wrapped_func
+
+    def wrap_compute(self, compute):
+        @functools.wraps(compute)
+        def wrapped_func(*args, **kwargs):
+            # return cached value
+            if self._computed is not None:
+                return self._computed
+
             if self._to_sync and torch.distributed.is_available() and torch.distributed.is_initialized():
                 self.sync()
-            return func(*args, **kwargs)
 
+            self._computed = compute(*args, **kwargs)
+            self.reset()
+
+            return self._computed
+            
         return wrapped_func
 
     @abstractmethod
-    def update(self):
+    def update(self) -> None:  # pylint: disable=E0202
         pass
 
     @abstractmethod
