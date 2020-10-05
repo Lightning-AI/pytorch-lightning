@@ -19,7 +19,7 @@ import re
 import tempfile
 from abc import ABC
 from argparse import Namespace
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from pytorch_lightning import _logger as log
@@ -375,7 +375,7 @@ class LightningModule(
         """
         return super().forward(*args, **kwargs)
 
-    def training_step(self, *args, **kwargs):
+    def training_step(self, *args, **kwargs) -> Optional[Union[torch.Tensor, Dict[Any, Any]]]:
         r"""
         Here you compute and return the training loss and some additional metrics for e.g.
         the progress bar or logger.
@@ -543,7 +543,7 @@ class LightningModule(
                     # do something here
         """
 
-    def validation_step(self, *args, **kwargs):
+    def validation_step(self, *args, **kwargs) -> Optional[Any]:
         r"""
         Operates on a single batch of data from the validation set.
         In this step you'd might generate examples or calculate anything of interest like accuracy.
@@ -736,7 +736,7 @@ class LightningModule(
                     self.log('final_metric', final_value)
         """
 
-    def test_step(self, *args, **kwargs):
+    def test_step(self, *args, **kwargs) -> Optional[Any]:
         r"""
         Operates on a single batch of data from the test set.
         In this step you'd normally generate examples or calculate anything of interest
