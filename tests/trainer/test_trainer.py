@@ -409,6 +409,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, ex
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
         trainer.current_epoch = i
+        trainer.global_step = i
         trainer.logger_connector.callback_metrics = {'checkpoint_on': torch.tensor(loss)}
         checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
@@ -432,7 +433,7 @@ def test_model_checkpoint_only_weights(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        checkpoint_callback=ModelCheckpoint(tmpdir, save_weights_only=True),
+        checkpoint_callback=ModelCheckpoint(tmpdir, monitor='early_stop_on', save_weights_only=True),
     )
     # fit model
     result = trainer.fit(model)
@@ -508,7 +509,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         max_epochs=2,
         limit_train_batches=0.65,
         limit_val_batches=1,
-        checkpoint_callback=ModelCheckpoint(tmpdir, monitor='val_loss', save_top_k=-1),
+        checkpoint_callback=ModelCheckpoint(tmpdir, monitor='early_stop_on', save_top_k=-1),
         default_root_dir=tmpdir,
         early_stop_callback=False,
         val_check_interval=1.,
@@ -665,7 +666,7 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
         max_epochs=2,
         progress_bar_refresh_rate=0,
         default_root_dir=tmpdir,
-        checkpoint_callback=ModelCheckpoint(monitor='val_loss', save_top_k=save_top_k),
+        checkpoint_callback=ModelCheckpoint(monitor='early_stop_on', save_top_k=save_top_k),
     )
     trainer.fit(model)
     if ckpt_path == 'best':
@@ -898,6 +899,7 @@ def test_gradient_clipping_fp16(tmpdir):
 
     trainer.fit(model)
 
+
 def test_gpu_choice(tmpdir):
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -943,7 +945,9 @@ def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
     pytest.param(5),
 ])
 def test_num_sanity_val_steps(tmpdir, limit_val_batches):
-    """ Test that the number of sanity check batches is clipped to limit_val_batches. """
+    """
+    Test that the number of sanity check batches is clipped to `limit_val_batches`.
+    """
     model = EvalModelTemplate()
     model.validation_step = model.validation_step__multiple_dataloaders
     model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
@@ -956,7 +960,16 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
         max_steps=1,
     )
     assert trainer.num_sanity_val_steps == num_sanity_val_steps
-    val_dataloaders = model.val_dataloader__multiple_mixed_length()
+
+    with patch.object(
+        trainer.evaluation_loop, 'evaluation_step', wraps=trainer.evaluation_loop.evaluation_step
+    ) as mocked:
+        val_dataloaders = model.val_dataloader__multiple_mixed_length()
+        trainer.fit(model, val_dataloaders=val_dataloaders)
+
+        assert mocked.call_count == sum(
+            min(num_sanity_val_steps, num_batches) for num_batches in trainer.num_val_batches
+        )
 
 
 @pytest.mark.parametrize(['limit_val_batches'], [
@@ -967,8 +980,8 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
 ])
 def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
     """
-    Test that num_sanity_val_steps=-1 runs through all validation data once, and as many batches as
-    limited by "limit_val_batches" Trainer argument.
+    Test that `num_sanity_val_steps=-1` runs through all validation data once, and as many batches as
+    limited by `limit_val_batches` Trainer argument.
     """
     model = EvalModelTemplate()
     model.validation_step = model.validation_step__multiple_dataloaders
@@ -980,7 +993,14 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
         max_steps=1,
     )
     assert trainer.num_sanity_val_steps == float('inf')
-    val_dataloaders = model.val_dataloader__multiple()
+
+    with patch.object(
+        trainer.evaluation_loop, 'evaluation_step', wraps=trainer.evaluation_loop.evaluation_step
+    ) as mocked:
+        val_dataloaders = model.val_dataloader__multiple()
+        trainer.fit(model, val_dataloaders=val_dataloaders)
+
+        assert mocked.call_count == sum(trainer.num_val_batches)
 
 
 @pytest.mark.parametrize("trainer_kwargs,expected", [

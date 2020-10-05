@@ -543,7 +543,10 @@ def test_args(tmpdir):
     model = SubClassVarArgs.load_from_checkpoint(raw_checkpoint_path)
     assert model.hparams == hparams
 
+    with pytest.raises(TypeError, match="__init__\(\) got an unexpected keyword argument 'test'"):
+        SubClassVarArgs.load_from_checkpoint(raw_checkpoint_path)
 
+       
 def test_extending_existing_hparams(tmpdir):
     """Test that the new hparams are added to the existing ones."""
     hparams = {'arg1': 'abc'}

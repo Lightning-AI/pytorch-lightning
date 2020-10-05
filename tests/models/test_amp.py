@@ -10,6 +10,7 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+from pytorch_lightning.utilities import APEX_AVAILABLE
 
 
 @pytest.mark.skip(reason='dp + amp not supported currently')  # TODO
@@ -170,6 +171,7 @@ def test_amp_without_apex(tmpdir):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@pytest.mark.skipif(not APEX_AVAILABLE, reason="test requires apex")
 def test_amp_with_apex(tmpdir):
     """Check calling apex scaling in training."""
     os.environ['PL_DEV_DEBUG'] = '1'

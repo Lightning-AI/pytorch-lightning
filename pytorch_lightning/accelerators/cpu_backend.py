@@ -20,8 +20,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 class CPUBackend(Accelerator):
 
-    def __init__(self, trainer):
-        super().__init__(trainer)
+    def __init__(self, trainer, cluster_environment=None):
+        super().__init__(trainer, cluster_environment)
 
     def setup(self, model):
         # run through amp wrapper

@@ -22,7 +22,7 @@ import torch.multiprocessing as mp
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.base_backend import Accelerator
 from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities.cloud_io import atomic_save
+from pytorch_lightning.utilities.cloud_io import atomic_save, load as pl_load
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.distributed import find_free_network_port
 from pytorch_lightning.distributed.dist import LightningDistributed
@@ -38,8 +38,8 @@ else:
 
 class DDPCPUSpawnBackend(Accelerator):
 
-    def __init__(self, trainer, nprocs):
-        super().__init__(trainer)
+    def __init__(self, trainer, nprocs, cluster_environment=None):
+        super().__init__(trainer, cluster_environment)
         self.mp_queue = None
         self.nprocs = nprocs
         self.dist = LightningDistributed()
@@ -62,10 +62,9 @@ class DDPCPUSpawnBackend(Accelerator):
         # restore main state with best weights
         best_path = self.mp_queue.get()
         results = self.mp_queue.get()
-        last_path = self.mp_queue.get()
 
         # recover the weights of the processes trained in the children
-        self.__recover_child_process_weights(model, best_path, last_path)
+        self.__recover_child_process_weights(model, best_path)
         return results
 
     def ddp_train(self, process_idx, mp_queue, model):
@@ -91,7 +90,7 @@ class DDPCPUSpawnBackend(Accelerator):
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
         model.trainer = self.trainer
-        model.init_ddp_connection(
+        self.init_ddp_connection(
             self.trainer.global_rank,
             self.trainer.world_size,
             self.trainer.is_slurm_managing_tasks
@@ -187,16 +186,10 @@ class DDPCPUSpawnBackend(Accelerator):
         device_ids = None
         return device_ids
 
-    def __recover_child_process_weights(self, model, best_path, last_path):
+    def __recover_child_process_weights(self, model, best_path):
         # transfer back the best path to the trainer
         if self.trainer.checkpoint_callback:
             self.trainer.checkpoint_callback.best_model_path = best_path
-        # todo, pass also best score
-
-        # load last weights
-        if last_path is not None and not self.trainer.testing:
-            ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
-            model.load_state_dict(ckpt)
 
         self.trainer.model = model
 
@@ -211,10 +204,3 @@ class DDPCPUSpawnBackend(Accelerator):
             # todo, pass complete checkpoint as state dictionary
             mp_queue.put(best_model_path)
             mp_queue.put(results)
-
-            # save the last weights
-            last_path = None
-            if not self.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
-                last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
-                atomic_save(model.state_dict(), last_path)
-            mp_queue.put(last_path)

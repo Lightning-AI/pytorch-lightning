@@ -52,7 +52,6 @@ class ModelIO(object):
     def load_from_checkpoint(
         cls,
         checkpoint_path: str,
-        *args,
         map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
         hparams_file: Optional[str] = None,
         strict: bool = True,
@@ -66,7 +65,6 @@ class ModelIO(object):
 
         Args:
             checkpoint_path: Path to checkpoint. This can also be a URL.
-            args: Any positional args needed to init the model.
             map_location:
                 If your checkpoint saved a GPU model and you now load on CPUs
                 or a different number of GPUs, use this to map to the new setup.
@@ -152,44 +150,48 @@ class ModelIO(object):
         # override the hparams with values that were passed in
         checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY].update(kwargs)
 
-        model = cls._load_model_state(checkpoint, *args, strict=strict, **kwargs)
+        model = cls._load_model_state(checkpoint, strict=strict, **kwargs)
         return model
 
     @classmethod
-    def _load_model_state(cls, checkpoint: Dict[str, Any], *cls_args, strict: bool = True, **cls_kwargs):
+    def _load_model_state(cls, checkpoint: Dict[str, Any], strict: bool = True, **cls_kwargs_new):
         cls_spec = inspect.getfullargspec(cls.__init__)
         cls_init_args_name = inspect.signature(cls.__init__).parameters.keys()
+
+        self_name = cls_spec.args[0]
+        drop_names = (self_name, cls_spec.varargs, cls_spec.varkw)
+        cls_init_args_name = list(filter(lambda n: n not in drop_names, cls_init_args_name))
+
+        cls_kwargs_loaded = {}
         # pass in the values we saved automatically
         if cls.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
-            model_args = {}
 
-            # add some back compatibility, the actual one shall be last
-            for hparam_key in CHECKPOINT_PAST_HPARAMS_KEYS + (cls.CHECKPOINT_HYPER_PARAMS_KEY,):
-                if hparam_key in checkpoint:
-                    model_args.update(checkpoint[hparam_key])
+            # 1. (backward compatibility) Try to restore model hparams from checkpoint using old/past keys
+            for _old_hparam_key in CHECKPOINT_PAST_HPARAMS_KEYS:
+                cls_kwargs_loaded.update(checkpoint.get(_old_hparam_key, {}))
 
-            model_args = _convert_loaded_hparams(model_args, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE))
+            # 2. Try to restore model hparams from checkpoint using the new key
+            _new_hparam_key = cls.CHECKPOINT_HYPER_PARAMS_KEY
+            cls_kwargs_loaded.update(checkpoint.get(_new_hparam_key))
 
+            # 3. Ensure that `cls_kwargs_old` has the right type, back compatibility between dict and Namespace
+            cls_kwargs_loaded = _convert_loaded_hparams(cls_kwargs_loaded, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE))
+
+            # 4. Update cls_kwargs_new with cls_kwargs_old, such that new has higher priority
             args_name = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_NAME)
+            if args_name and args_name in cls_init_args_name:
+                cls_kwargs_loaded = {args_name: cls_kwargs_loaded}
 
-            if args_name == 'kwargs':
-                # in case the class cannot take any extra argument filter only the possible
-                cls_kwargs.update(**model_args)
-            elif args_name:
-                if args_name in cls_init_args_name:
-                    cls_kwargs.update({args_name: model_args})
-            else:
-                cls_args = (model_args,) + cls_args
+        _cls_kwargs = {}
+        _cls_kwargs.update(cls_kwargs_loaded)
+        _cls_kwargs.update(cls_kwargs_new)
 
         if not cls_spec.varkw:
             # filter kwargs according to class init unless it allows any argument via kwargs
-            cls_kwargs = {k: v for k, v in cls_kwargs.items() if k in cls_init_args_name}
+            _cls_kwargs = {k: v for k, v in _cls_kwargs.items() if k in cls_init_args_name}
 
-        # prevent passing positional arguments if class does not accept any
-        if len(cls_spec.args) <= 1 and not cls_spec.varargs and not cls_spec.kwonlyargs:
-            cls_args, cls_kwargs = [], {}
+        model = cls(**_cls_kwargs)
 
-        model = cls(*cls_args, **cls_kwargs)
         # load the state_dict on the model automatically
         model.load_state_dict(checkpoint['state_dict'], strict=strict)
 
@@ -239,7 +241,7 @@ class ModelIO(object):
 
 
 def _convert_loaded_hparams(model_args: dict, hparams_type: Union[Callable, str] = None) -> object:
-    """Convert hparams according given type in callable or string (past) format"""
+    """Convert hparams according given type in callable or string (past) format."""
     # if not hparams type define
     if not hparams_type:
         return model_args
@@ -361,11 +363,13 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
     # saving with OmegaConf objects
     if OmegaConf is not None:
         if OmegaConf.is_config(hparams):
-            OmegaConf.save(hparams, config_yaml, resolve=True)
+            with fs.open(config_yaml, "w", encoding="utf-8") as fp:
+                OmegaConf.save(hparams, fp, resolve=True)
             return
         for v in hparams.values():
             if OmegaConf.is_config(v):
-                OmegaConf.save(OmegaConf.create(hparams), config_yaml, resolve=True)
+                with fs.open(config_yaml, "w", encoding="utf-8") as fp:
+                    OmegaConf.save(OmegaConf.create(hparams), fp, resolve=True)
                 return
 
     # saving the standard way
