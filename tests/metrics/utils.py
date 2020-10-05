@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import os
 import sys
+import pytest
 
 NUM_PROCESSES = 2
 NUM_BATCHES = 10
