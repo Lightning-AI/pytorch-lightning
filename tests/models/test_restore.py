@@ -2,17 +2,18 @@ import glob
 import logging as log
 import os
 import pickle
-import functools
 
 import cloudpickle
 import pytest
 import torch
+from torch.nn import functional as F
+from torch.utils.data import DataLoader
 
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
-from pytorch_lightning import Trainer, Callback
+from pytorch_lightning import Trainer, LightningModule, Callback
 from pytorch_lightning.callbacks import ModelCheckpoint
-from tests.base import EvalModelTemplate, GenericEvalModelTemplate
+from tests.base import EvalModelTemplate, GenericEvalModelTemplate, TrialMNIST
 
 
 class ModelTrainerPropertyParity(Callback):
@@ -217,6 +218,12 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
 
     # load last checkpoint
     last_checkpoint = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, "*.ckpt")))[-1]
+
+    # Since `EvalModelTemplate` has `_save_hparams = True` by default, check that ckpt has hparams
+    ckpt = torch.load(last_checkpoint)
+    assert model_template.CHECKPOINT_HYPER_PARAMS_KEY in ckpt.keys(), 'module_arguments missing from checkpoints'
+
+    # Ensure that model can be correctly restored from checkpoint
     pretrained_model = model_template.load_from_checkpoint(last_checkpoint)
 
     # test that hparams loaded correctly
@@ -227,6 +234,7 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
     for (old_name, old_p), (new_name, new_p) in zip(model.named_parameters(), pretrained_model.named_parameters()):
         assert torch.all(torch.eq(old_p, new_p)), 'loaded weights are not the same as the saved weights'
 
+    # Check `test` on pretrained model:
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
 
