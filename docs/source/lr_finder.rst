@@ -35,7 +35,7 @@ and then call ``trainer.tune(model)`` to run the LR finder. The suggested ``lear
 will be written to the console and will be automatically set to your :class:`~pytorch_lightning.core.LightningModule`,
 which can be accessed via ``self.learning_rate`` or ``self.lr``.
 
-.. testcode::
+.. code-block:: python
 
     class LitModel(LightningModule):
 
@@ -44,6 +44,8 @@ which can be accessed via ``self.learning_rate`` or ``self.lr``.
 
         def configure_optimizers(self):
             return Adam(self.parameters(), lr=(self.lr or self.learning_rate))
+            
+    model = LitModel()
 
     # finds learning rate automatically
     # sets hparams.lr or hparams.learning_rate to that learning rate
@@ -53,7 +55,9 @@ which can be accessed via ``self.learning_rate`` or ``self.lr``.
 
 If your model is using an arbitrary value instead of ``self.lr`` or ``self.learning_rate``, set that value as auto_lr_find
 
-.. testcode::
+.. code-block:: python
+
+    model = LitModel()
 
     # to set to your own hparams.my_value
     trainer = Trainer(auto_lr_find='my_value')
