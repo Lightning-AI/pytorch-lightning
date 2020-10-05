@@ -3,6 +3,8 @@ import os
 from unittest import mock
 from unittest.mock import MagicMock
 
+from mlflow.tracking import MlflowClient
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import MLFlowLogger
 from tests.base import EvalModelTemplate
@@ -61,14 +63,12 @@ def test_mlflow_logger_exists(client, mlflow, tmpdir):
     assert logger3.run_id == "run-id-3"
 
 
-@mock.patch('pytorch_lightning.loggers.mlflow.mlflow')
-@mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient')
-def test_mlflow_logger_dirs_creation(client, mlflow, tmpdir):
+def test_mlflow_logger_dirs_creation(tmpdir):
     """ Test that the logger creates the folders and files in the right place. """
     assert not os.listdir(tmpdir)
     logger = MLFlowLogger('test', save_dir=tmpdir)
     assert logger.save_dir == tmpdir
-    # assert set(os.listdir(tmpdir)) == {'.trash'}
+    assert set(os.listdir(tmpdir)) == {'.trash'}
     run_id = logger.run_id
     exp_id = logger.experiment_id
 
