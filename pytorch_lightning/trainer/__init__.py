@@ -358,6 +358,7 @@ Example::
 cluster_environment
 ^^^^^^^^^^^^^^^^^^^
 Environment to connect arbitrary cluster backends. Lightning automatically handles:
+
 - SLURM
 - TorchElastic
 
@@ -365,7 +366,7 @@ For any other non-supported cluster environment, define your own class and pass 
 
 .. code-block:: python
 
-    from pytorch_lightning.cluster_environments import ClusterEnvironment
+    from pytorch_lightning.cluster_environments import cluster_environment
 
     class MyCluster(ClusterEnvironment):
 
@@ -377,6 +378,8 @@ For any other non-supported cluster environment, define your own class and pass 
 
         def world_size(self):
             return the_world_size
+
+    trainer = Trainer(cluster_environment=cluster_environment())
 
 default_root_dir
 ^^^^^^^^^^^^^^^^
