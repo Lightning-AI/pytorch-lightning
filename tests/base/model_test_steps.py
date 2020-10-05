@@ -151,38 +151,38 @@ class TestStepVariations(ABC):
 
         # Base
         if option == 0:
-            result.write('idxs', lazy_ids, prediction_file)
-            result.write('preds', labels_hat, prediction_file)
+            self.write_prediction('idxs', lazy_ids, prediction_file)
+            self.write_prediction('preds', labels_hat, prediction_file)
 
         # Check mismatching tensor len
         elif option == 1:
-            result.write('idxs', torch.cat((lazy_ids, lazy_ids)), prediction_file)
-            result.write('preds', labels_hat, prediction_file)
+            self.write_prediction('idxs', torch.cat((lazy_ids, lazy_ids)), prediction_file)
+            self.write_prediction('preds', labels_hat, prediction_file)
 
         # write multi-dimension
         elif option == 2:
-            result.write('idxs', lazy_ids, prediction_file)
-            result.write('preds', labels_hat, prediction_file)
-            result.write('x', x, prediction_file)
+            self.write_prediction('idxs', lazy_ids, prediction_file)
+            self.write_prediction('preds', labels_hat, prediction_file)
+            self.write_prediction('x', x, prediction_file)
 
         # write str list
         elif option == 3:
-            result.write('idxs', lazy_ids, prediction_file)
-            result.write('vals', lst_of_str, prediction_file)
+            self.write_prediction('idxs', lazy_ids, prediction_file)
+            self.write_prediction('vals', lst_of_str, prediction_file)
 
         # write int list
         elif option == 4:
-            result.write('idxs', lazy_ids, prediction_file)
-            result.write('vals', lst_of_int, prediction_file)
+            self.write_prediction('idxs', lazy_ids, prediction_file)
+            self.write_prediction('vals', lst_of_int, prediction_file)
 
         # write nested list
         elif option == 5:
-            result.write('idxs', lazy_ids, prediction_file)
-            result.write('vals', lst_of_lst, prediction_file)
+            self.write_prediction('idxs', lazy_ids, prediction_file)
+            self.write_prediction('vals', lst_of_lst, prediction_file)
 
         # write dict list
         elif option == 6:
-            result.write('idxs', lazy_ids, prediction_file)
-            result.write('vals', lst_of_dict, prediction_file)
+            self.write_prediction('idxs', lazy_ids, prediction_file)
+            self.write_prediction('vals', lst_of_dict, prediction_file)
 
         return result
