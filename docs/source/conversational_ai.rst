@@ -79,7 +79,7 @@ For Docker users, the NeMo container is available on
 
 .. code-block:: bash
 
-    docker pull nvcr.io/nvidia/nemo:1.0.0b1
+    docker pull nvcr.io/nvidia/nemo:v1.0.0b1
 
 .. code-block:: bash
 
