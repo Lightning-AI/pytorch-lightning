@@ -14,7 +14,9 @@ from pytorch_lightning.metrics.utils import _flatten, gather_all_tensors_if_avai
 
 
 class Metric(nn.Module, ABC):
+    """
 
+    """
     def __init__(
         self,
         compute_on_step: bool = True,
@@ -28,15 +30,26 @@ class Metric(nn.Module, ABC):
         self.process_group = process_group
         self._to_sync = True
 
-        self.update = self.wrap_update(self.update)
-        self.compute = self.wrap_compute(self.compute)
+        self.update = self._wrap_update(self.update)
+        self.compute = self._wrap_compute(self.compute)
         self._computed = None
 
         # initialize state
         self._reductions = {}
         self._defaults = {}
 
-    def add_state(self, name, default, dist_reduce_fx: Optional[Union[str, Callable]] = None):
+    def add_state(self, name: str, default, dist_reduce_fx: Optional[Union[str, Callable]] = None):
+        """
+        Adds metric state variable. Only used by subclasses.
+
+        Args:
+            name: The name of the state variable. The variable will then be accessible at ``self.name``.
+            default: Default value of the state; can either be a tensor or an empty list. The state will be
+                reset to this value when ``self.reset()`` is called.
+            dist_reduce_fx (Optional): Function to reduce state accross mutliple GPUs. If value is ``"sum"``,
+                ``"mean"``, or ``"cat"``, we will use ``torch.sum``, ``torch.mean``, and ``torch.cat`` respectively,
+                each with argument ``dim=0``.
+        """
         if not isinstance(default, torch.Tensor) or (isinstance(default, list) and len(default) != 0):
             raise ValueError(
                 "state variable must be a tensor or any empty list (where you can append tensors)"
@@ -58,6 +71,8 @@ class Metric(nn.Module, ABC):
         self._reductions[name] = dist_reduce_fx
 
     def forward(self, *args, **kwargs):
+        """
+        """
         # add current step
         self.update(*args, **kwargs)
 
@@ -80,7 +95,11 @@ class Metric(nn.Module, ABC):
 
             return result
 
-    def sync_dist(self):
+    def _sync_dist(self):
+        """
+        Method to synchronize metric state variables across different processes
+        in distributed training.
+        """
         input_dict = {attr: getattr(self, attr) for attr in self._reductions.keys()}
         output_dict = apply_to_collection(
             input_dict,
@@ -100,22 +119,24 @@ class Metric(nn.Module, ABC):
             reduced = reduction_fn(output_dict[attr]) if reduction_fn is not None else output_dict[attr]
             setattr(self, attr, reduced)
 
-    def wrap_update(self, update):
+    def _wrap_update(self, update):
         @functools.wraps(update)
         def wrapped_func(*args, **kwargs):
             self._computed = None
             return update(*args, **kwargs)
         return wrapped_func
 
-    def wrap_compute(self, compute):
+    def _wrap_compute(self, compute):
         @functools.wraps(compute)
         def wrapped_func(*args, **kwargs):
             # return cached value
             if self._computed is not None:
                 return self._computed
 
-            if self._to_sync and torch.distributed.is_available() and torch.distributed.is_initialized():
-                self.sync_dist()
+            if self._to_sync \
+                and torch.distributed.is_available() \
+                and torch.distributed.is_initialized():
+                self._sync_dist()
 
             self._computed = compute(*args, **kwargs)
             self.reset()
@@ -126,12 +147,22 @@ class Metric(nn.Module, ABC):
 
     @abstractmethod
     def update(self) -> None:  # pylint: disable=E0202
+        """
+        Override this method to update the state variables of your metric class.
+        """
         pass
 
     @abstractmethod
     def compute(self):  # pylint: disable=E0202
+        """
+        Override this method to compute the final metric value from state variables
+        synchronized across the distributed backend.
+        """
         pass
 
     def reset(self):
+        """
+        This method automatically resets the metric state variables to their default value.
+        """
         for attr, default in self._defaults.items():
             setattr(self, attr, deepcopy(default))
