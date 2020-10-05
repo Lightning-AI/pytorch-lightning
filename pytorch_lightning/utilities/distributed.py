@@ -78,11 +78,13 @@ def sync_ddp_if_available(
 ) -> torch.Tensor:
     """
     Function to reduce the tensors from several ddp processes to one master process
+
     Args:
         result: the value to sync and reduce (typically tensor or number)
         group: the process group to gather results from. Defaults to all processes (world)
         reduce_op: the reduction operation. Defaults to sum.
             Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
+
     Return:
         reduced value
     """
