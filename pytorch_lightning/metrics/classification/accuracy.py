@@ -25,7 +25,7 @@ class Accuracy(Metric):
         super().__init__(**kwargs)
 
         # change to dist_reduce_fx
-        self.add_state("correct", torch.tensor(0),  reduction=sum)
+        self.add_state("correct", torch.tensor(0), reduction=sum)
         self.add_state("total", torch.tensor(0), reduction=sum)
 
         self.threshold = threshold
