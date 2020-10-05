@@ -21,7 +21,7 @@ class Accuracy(Metric):
         If preds are floating point we threshold at `threshold`
 
     """
-    def __init__(self, threshold=0.5, **kwargs):
+    def __init__(self, threshold: float = 0.5, **kwargs):
         super().__init__(**kwargs)
 
         self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
@@ -29,7 +29,7 @@ class Accuracy(Metric):
 
         self.threshold = threshold
 
-    def _input_format(self, preds, target):
+    def _input_format(self, preds: torch.Tensor, target: torch.Tensor):
         if not (len(preds.shape) == len(target.shape) or len(preds.shape) == len(target.shape) + 1):
             raise ValueError(
                 "preds and target must have same number of dimensions, or one additional dimension for preds"
@@ -45,7 +45,7 @@ class Accuracy(Metric):
 
         return preds, target
 
-    def update(self, preds, target):
+    def update(self, preds: torch.Tensor, target: torch.Tensor):
         preds, target = self._input_format(preds, target)
         assert preds.shape == target.shape
 

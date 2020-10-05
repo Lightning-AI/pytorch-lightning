@@ -80,7 +80,7 @@ class Metric(nn.Module, ABC):
 
             return result
 
-    def sync(self):
+    def sync_dist(self):
         input_dict = {attr: getattr(self, attr) for attr in self._reductions.keys()}
         output_dict = apply_to_collection(
             input_dict,
@@ -115,7 +115,7 @@ class Metric(nn.Module, ABC):
                 return self._computed
 
             if self._to_sync and torch.distributed.is_available() and torch.distributed.is_initialized():
-                self.sync()
+                self.sync_dist()
 
             self._computed = compute(*args, **kwargs)
             self.reset()
