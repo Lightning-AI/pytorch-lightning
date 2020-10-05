@@ -459,15 +459,16 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
         assert w0.eq(w1).all()
 
 
-# todo consider if we shall ignore also +/- inf
-@pytest.mark.parametrize('mode', ['min', 'max', 'auto'])
-def test_checkpointing_with_nan(tmpdir, mode):
-    losses = [8, 7, float('nan'), 5]
+@pytest.mark.parametrize('mode', ['min', 'max'])
+def test_checkpointing_with_nan_as_first(tmpdir, mode):
+    os.environ['PL_DEV_DEBUG'] = '1'
+    monitor = [float('nan')]
+    monitor += [5, 7, 8] if mode == 'max' else [8, 7, 5]
 
     class CurrentModel(BoringModel):
         def validation_epoch_end(self, outputs):
-            val_loss = losses[self.current_epoch]
-            self.log('abc', torch.tensor(val_loss))
+            val_loss = monitor[self.current_epoch]
+            self.log('abc', val_loss)
 
     model = CurrentModel()
 
@@ -475,6 +476,9 @@ def test_checkpointing_with_nan(tmpdir, mode):
         checkpoint_callback=ModelCheckpoint(monitor='abc', mode=mode, save_top_k=1, filepath=tmpdir),
         default_root_dir=tmpdir,
         val_check_interval=1.0,
-        max_epochs=len(losses),
+        max_epochs=len(monitor),
     )
     trainer.fit(model)
+
+    # check that last one is also the best one
+    assert trainer.dev_debugger.checkpoint_callback_history[-1]['epoch'] == len(monitor) - 1
