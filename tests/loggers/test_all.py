@@ -19,6 +19,7 @@ from pytorch_lightning.loggers import (
 )
 from pytorch_lightning.loggers.base import DummyExperiment
 from tests.base import EvalModelTemplate
+from tests.loggers.test_comet import _patch_comet_atexit
 
 
 def _get_logger_args(logger_class, save_dir):
@@ -45,11 +46,7 @@ def _get_logger_args(logger_class, save_dir):
 def test_loggers_fit_test(wandb, neptune, tmpdir, monkeypatch, logger_class):
     """Verify that basic functionality of all loggers."""
     os.environ['PL_DEV_DEBUG'] = '0'
-
-    if logger_class == CometLogger:
-        # prevent comet logger from trying to print at exit, since
-        # pytest's stdout/stderr redirection breaks it
-        monkeypatch.setattr(atexit, 'register', lambda _: None)
+    _patch_comet_atexit(monkeypatch)
 
     model = EvalModelTemplate()
 
@@ -110,10 +107,7 @@ def test_loggers_fit_test(wandb, neptune, tmpdir, monkeypatch, logger_class):
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
 def test_loggers_save_dir_and_weights_save_path(wandb, tmpdir, monkeypatch, logger_class):
     """ Test the combinations of save_dir, weights_save_path and default_root_dir.  """
-    if logger_class == CometLogger:
-        # prevent comet logger from trying to print at exit, since
-        # pytest's stdout/stderr redirection breaks it
-        monkeypatch.setattr(atexit, 'register', lambda _: None)
+    _patch_comet_atexit(monkeypatch)
 
     class TestLogger(logger_class):
         # for this test it does not matter what these attributes are
@@ -173,10 +167,7 @@ def test_loggers_save_dir_and_weights_save_path(wandb, tmpdir, monkeypatch, logg
 @mock.patch('pytorch_lightning.loggers.neptune.neptune')
 def test_loggers_pickle(neptune, tmpdir, monkeypatch, logger_class):
     """Verify that pickling trainer with logger works."""
-    if logger_class == CometLogger:
-        # prevent comet logger from trying to print at exit, since
-        # pytest's stdout/stderr redirection breaks it
-        monkeypatch.setattr(atexit, 'register', lambda _: None)
+    _patch_comet_atexit(monkeypatch)
 
     logger_args = _get_logger_args(logger_class, tmpdir)
     logger = logger_class(**logger_args)
@@ -250,10 +241,7 @@ class RankZeroLoggerCheck(Callback):
 @mock.patch('pytorch_lightning.loggers.neptune.neptune')
 def test_logger_created_on_rank_zero_only(neptune, tmpdir, monkeypatch, logger_class):
     """ Test that loggers get replaced by dummy loggers on global rank > 0"""
-    if logger_class == CometLogger:
-        # prevent comet logger from trying to print at exit, since
-        # pytest's stdout/stderr redirection breaks it
-        monkeypatch.setattr(atexit, 'register', lambda _: None)
+    _patch_comet_atexit(monkeypatch)
 
     logger_args = _get_logger_args(logger_class, tmpdir)
     logger = logger_class(**logger_args)
