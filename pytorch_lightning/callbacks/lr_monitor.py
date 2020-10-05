@@ -93,7 +93,7 @@ class LearningRateMonitor(Callback):
         # Initialize for storing values
         self.lrs = {name: [] for name in names}
 
-    def on_batch_start(self, trainer, pl_module):
+    def on_train_batch_start(self, trainer, pl_module, *_):
         if not self._should_log(trainer):
             return
 
@@ -104,7 +104,7 @@ class LearningRateMonitor(Callback):
             if trainer.logger is not None and latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
-    def on_epoch_start(self, trainer, pl_module):
+    def on_train_epoch_start(self, trainer, pl_module):
         if self.logging_interval != 'step':
             interval = 'epoch' if self.logging_interval is None else 'any'
             latest_stat = self._extract_lr(trainer, interval)

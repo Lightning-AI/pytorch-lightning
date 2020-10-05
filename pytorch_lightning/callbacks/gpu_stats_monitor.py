@@ -132,7 +132,6 @@ class GPUStatsMonitor(Callback):
             # First log at beginning of second step
             logs['batch_time/inter_step (ms)'] = (time.time() - self._snap_inter_step_time) * 1000
 
-
         trainer.logger.log_metrics(logs, step=trainer.global_step)
 
     @rank_zero_only

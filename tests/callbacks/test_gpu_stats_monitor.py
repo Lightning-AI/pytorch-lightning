@@ -1,6 +1,7 @@
 import os
 import pytest
 import torch
+import numpy as np
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import GPUStatsMonitor
@@ -16,7 +17,7 @@ def test_gpu_stats_monitor(tmpdir):
     Test GPU stats are logged using a logger.
     """
     model = EvalModelTemplate()
-    gpu_stats = GPUStatsMonitor()
+    gpu_stats = GPUStatsMonitor(intra_step_time=True)
     logger = CSVLogger(tmpdir)
     row_log_interval = 2
 
@@ -34,12 +35,11 @@ def test_gpu_stats_monitor(tmpdir):
     assert results
 
     path_csv = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
-    with open(path_csv, 'r') as fp:
-        lines = fp.readlines()
+    met_data = np.genfromtxt(path_csv, delimiter=',', names=True, deletechars='', replace_space=' ')
 
-    assert (len(lines) - 1) == trainer.global_step // row_log_interval
-
-    header = lines[0].split()
+    batch_time_data = met_data['batch_time/intra_step (ms)']
+    batch_time_data = batch_time_data[~np.isnan(batch_time_data)]
+    assert batch_time_data.shape[0] == trainer.global_step // row_log_interval
 
     fields = [
         'utilization.gpu',
@@ -49,7 +49,7 @@ def test_gpu_stats_monitor(tmpdir):
     ]
 
     for f in fields:
-        assert any([f in h for h in header])
+        assert any([f in h for h in met_data.dtype.names])
 
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="test requires CPU machine")
