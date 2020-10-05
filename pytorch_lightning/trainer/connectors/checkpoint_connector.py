@@ -280,7 +280,7 @@ class CheckpointConnector:
             if self.trainer.amp_backend == AMPType.NATIVE and not self.trainer.use_tpu and self.trainer.scaler is not None:
                 checkpoint['native_amp_scaling_state'] = self.trainer.scaler.state_dict()
             elif self.trainer.amp_backend == AMPType.APEX:
-                # todo: not sure if we need to spec gpu or general is enough...
+                # todo: not sure if we should init it or rather skip it it was not used...
                 amp.initialize(model.cuda().float())
                 checkpoint['amp_scaling_state'] = amp.state_dict()
 
