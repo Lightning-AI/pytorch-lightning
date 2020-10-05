@@ -443,13 +443,6 @@ class DeterministicModel(LightningModule):
     # --------------------------
     # None return
     # --------------------------
-    def training_step_no_return(self, batch, batch_idx):
-        self.training_step_called = True
-
-    def training_step_no_return_when_even(self, batch, batch_idx):
-        self.training_step_called = True
-        return self.step(batch, batch_idx) if batch_idx % 2 else None
-
     def validation_step_no_return(self, batch, batch_idx):
         self.validation_step_called = True
         self.step(batch, batch_idx)

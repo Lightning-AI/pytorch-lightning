@@ -31,7 +31,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
-from pytorch_lightning.utilities.warning_utils import WarningCache
 
 
 class TrainLoop:
@@ -41,7 +40,6 @@ class TrainLoop:
         self.early_stopping_accumulator = None
         self.checkpoint_accumulator = None
         self.accumulated_loss = None
-        self.warning_cache = WarningCache()
         self._teardown_already_run = False
         self.running_loss = TensorRunningAccum(window_length=20)
 
@@ -553,6 +551,11 @@ class TrainLoop:
                 # when returning -1 from train_step, we end epoch early
                 self.trainer.should_stop = batch_output.signal == -1
 
+                # -----------------------------------------
+                # SAVE METRICS TO LOGGERS
+                # -----------------------------------------
+                self.trainer.logger_connector.log_train_step_metrics(batch_output)
+
             # -----------------------------------------
             # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
             # -----------------------------------------
@@ -561,11 +564,6 @@ class TrainLoop:
                 self.trainer.run_evaluation(test_mode=False)
 
             if batch_output is not None:
-                # -----------------------------------------
-                # SAVE METRICS TO LOGGERS
-                # -----------------------------------------
-                self.trainer.logger_connector.log_train_step_metrics(batch_output)
-
                 # -----------------------------------------
                 # SAVE LOGGERS (ie: Tensorboard, etc...)
                 # -----------------------------------------
@@ -674,9 +672,6 @@ class TrainLoop:
                     self.trainer.hiddens
                 )
                 if opt_closure_result is None:
-                    return
-
-                if opt_closure_result is None:
                     continue
 
                 using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
@@ -755,10 +750,6 @@ class TrainLoop:
         result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
         if result is None:
             return
-
-        if result is None:
-            self.warning_cache.warn('training_step returned None if it was on purpose, ignore this warning...')
-            return None
 
         # backward pass
         self.backward(result, optimizer, opt_idx)
@@ -839,7 +830,7 @@ class TrainLoop:
         epoch_end_outputs = []
         for optimizer_idx_outputs in all_train_step_outputs:
             # extract one representative sample from each time step (1 if no tbptt) and 0th optimizer
-            if len(optimizer_idx_outputs) == 0:
+            if not optimizer_idx_outputs:
                 continue
 
             sample_output = optimizer_idx_outputs[-1]

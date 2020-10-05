@@ -1,7 +1,6 @@
 """
 Tests to ensure that the training loop works with a scalar
 """
-import pytest
 import torch
 
 from pytorch_lightning import Trainer
@@ -177,66 +176,3 @@ def test_train_step_epoch_end_scalar(tmpdir):
     opt_closure_result = trainer.train_loop.training_step_and_backward(
         batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
     assert opt_closure_result['loss'].item() == 171
-
-
-def test_training_step_no_return(tmpdir, caplog):
-    """
-    Tests that training_step can return Trainer.SKIP
-    """
-    model = DeterministicModel()
-    model.training_step = model.training_step_no_return
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=3,
-        max_epochs=2,
-        weights_summary=None,
-    )
-    with pytest.warns(RuntimeWarning, match=r'training_step returned None'):
-        trainer.fit(model)
-
-    # make sure correct steps were called
-    assert model.training_step_called
-    assert not model.training_step_end_called
-    assert not model.training_epoch_end_called
-
-
-def test_training_step_skip_return_when_even(tmpdir, caplog):
-    """
-    Tests correctness when some training steps have been skipped
-    """
-    model = DeterministicModel()
-    model.training_step = model.training_step_no_return_when_even
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=3,
-        max_epochs=4,
-        weights_summary=None,
-        logger=False,
-        checkpoint_callback=False,
-    )
-    with pytest.warns(RuntimeWarning, match=r'training_step returned None'):
-        trainer.fit(model)
-
-    # make sure correct steps were called
-    assert model.training_step_called
-    assert not model.training_step_end_called
-    assert not model.training_epoch_end_called
-
-    # manually check a few batches
-    for batch_idx, batch in enumerate(model.train_dataloader()):
-        out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
-        if not batch_idx % 2:
-            assert out is None
-            continue
-        assert out.signal == 0
-
-        train_step_out = out.training_step_output_for_epoch_end
-        assert len(train_step_out) == 1
-        train_step_out = train_step_out[0][0]
-        assert train_step_out['minimize'].item() == 171
-
-        # make sure the optimizer closure returns the correct things
-        opt_closure_result = trainer.train_loop.training_step_and_backward(
-            batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens
-        )
-        assert opt_closure_result['loss'].item() == 171
