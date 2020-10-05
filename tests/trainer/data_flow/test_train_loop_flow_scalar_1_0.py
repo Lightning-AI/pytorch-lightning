@@ -1,8 +1,10 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
+import pytest
 from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
+from tests.base.boring_model import BoringModel
 import os
 import torch
 
@@ -184,3 +186,32 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     assert model.training_step_called
     assert model.training_step_end_called
     assert model.training_epoch_end_called
+
+
+def test_train_step_no_return(tmpdir):
+    """
+    Tests that only training_step can be used
+    """
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            self.training_step_called = True
+            loss = self.step(batch[0])
+            self.log('a', loss, on_step=True, on_epoch=True)
+
+        def training_epoch_end(self, outputs) -> None:
+            assert len(outputs) == 0
+
+    model = TestModel()
+    model.val_dataloader = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
+        row_log_interval=1,
+        weights_summary=None,
+    )
+
+    with pytest.warns(UserWarning, match=r'.*training_step returned None.*'):
+        trainer.fit(model)
