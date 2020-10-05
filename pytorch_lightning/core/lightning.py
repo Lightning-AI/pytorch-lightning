@@ -68,6 +68,8 @@ class LightningModule(
         "example_input_array",
         "hparams",
         "on_gpu",
+        "current_epoch",
+        "global_step",
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
     def __init__(self, *args, **kwargs):
@@ -78,12 +80,6 @@ class LightningModule(
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
         self.exp_save_path = None
-
-        #: The current epoch
-        self.current_epoch = 0
-
-        #: Total training batches seen across all epochs
-        self.global_step = 0
 
         self.loaded_optimizer_states_dict = {}
 
@@ -120,6 +116,16 @@ class LightningModule(
     @property
     def example_input_array(self) -> Any:
         return self._example_input_array
+
+    @property
+    def current_epoch(self) -> int:
+        """The current epoch"""
+        return self.trainer.current_epoch if self.trainer else 0
+
+    @property
+    def global_step(self) -> int:
+        """Total training batches seen across all epochs"""
+        return self.trainer.global_step if self.trainer else 0
 
     @example_input_array.setter
     def example_input_array(self, example: Any) -> None:

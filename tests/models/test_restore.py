@@ -11,9 +11,50 @@ from torch.utils.data import DataLoader
 
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
-from pytorch_lightning import Trainer, LightningModule
+from pytorch_lightning import Trainer, LightningModule, Callback
 from pytorch_lightning.callbacks import ModelCheckpoint
 from tests.base import EvalModelTemplate, GenericEvalModelTemplate, TrialMNIST
+
+
+class ModelTrainerPropertyParity(Callback):
+
+    def _check_properties(self, trainer, pl_module):
+        assert trainer.global_step == pl_module.global_step
+        assert trainer.current_epoch == pl_module.current_epoch
+
+    def on_train_start(self, trainer, pl_module):
+        self._check_properties(trainer, pl_module)
+
+    def on_train_batch_start(self, trainer, pl_module, *args, **kwargs):
+        self._check_properties(trainer, pl_module)
+
+    def on_train_batch_end(self, trainer, pl_module, *args, **kwargs):
+        self._check_properties(trainer, pl_module)
+
+    def on_epoch_end(self, trainer, pl_module):
+        self._check_properties(trainer, pl_module)
+
+    def on_train_end(self, trainer, pl_module):
+        self._check_properties(trainer, pl_module)
+
+
+def test_resume_from_checkpoint(tmpdir):
+    """ Test that properties like `current_epoch` and `global_step`
+    in model and trainer are always the same. """
+    model = EvalModelTemplate()
+    checkpoint_callback = ModelCheckpoint(filepath=tmpdir, monitor="early_stop_on", save_last=True)
+    trainer_args = dict(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        logger=False,
+        early_stop_callback=False,
+        checkpoint_callback=checkpoint_callback,
+        callbacks=[ModelTrainerPropertyParity()]  # this performs the assertions
+    )
+    trainer = Trainer(**trainer_args)
+    trainer.fit(model)
+    trainer = Trainer(**trainer_args, resume_from_checkpoint=str(tmpdir / "last.ckpt"))
+    trainer.fit(model)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
