@@ -119,12 +119,11 @@ def test_lr_finder_with_amp(tmpdir, prec):
 
     lrfinder = trainer.tuner.lr_find(model, min_lr=1e-06, max_lr=1e-01, early_stop_threshold=None)
     after_lr = lrfinder.suggestion()
+    # model.hparams.learning_rate = lrfinder.suggestion()
+    # trainer.fit(model)
 
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
-
-    model.hparams.learning_rate = lrfinder.suggestion()
-    trainer.fit(model)
 
 
 @pytest.mark.parametrize('use_hparams', [False, True])
