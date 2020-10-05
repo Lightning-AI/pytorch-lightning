@@ -73,7 +73,8 @@ def test_neptune_additional_methods(neptune):
     created_experiment.append_tags.assert_called_once_with('two', 'tags')
 
 
-def test_neptune_leave_open_experiment_after_fit(tmpdir):
+@patch('pytorch_lightning.loggers.neptune.neptune')
+def test_neptune_leave_open_experiment_after_fit(neptune, tmpdir):
     """Verify that neptune experiment was closed after training"""
     model = EvalModelTemplate()
 

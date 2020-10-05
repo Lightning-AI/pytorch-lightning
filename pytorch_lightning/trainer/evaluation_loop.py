@@ -88,6 +88,20 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_start', *args, **kwargs)
 
+    def on_evaluation_model_eval(self, *args, **kwargs):
+        model_ref = self.trainer.get_model()
+        if self.testing:
+            model_ref.on_test_model_eval()
+        else:
+            model_ref.on_validation_model_eval()
+
+    def on_evaluation_model_train(self, *args, **kwargs):
+        model_ref = self.trainer.get_model()
+        if self.testing:
+            model_ref.on_test_model_train()
+        else:
+            model_ref.on_validation_model_train()
+
     def on_evaluation_end(self, *args, **kwargs):
         if self.testing:
             self.trainer.call_hook('on_test_end', *args, **kwargs)

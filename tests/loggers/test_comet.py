@@ -91,6 +91,7 @@ def test_comet_logger_experiment_name(comet):
 def test_comet_logger_dirs_creation(comet, comet_experiment, tmpdir, monkeypatch):
     """ Test that the logger creates the folders and files in the right place. """
     _patch_comet_atexit(monkeypatch)
+
     comet.config.get_api_key.return_value = None
     comet.generate_guid.return_value = "4321"
 

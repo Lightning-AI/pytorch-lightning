@@ -140,6 +140,22 @@ class ModelHooks:
         """
         # do something when the batch ends
 
+    def on_validation_model_eval(
+            self
+    ) -> None:
+        """
+        Sets the model to eval during the val loop
+        """
+        self.eval()
+
+    def on_validation_model_train(
+            self
+    ) -> None:
+        """
+        Sets the model to train during the val loop
+        """
+        self.train()
+
     def on_validation_batch_start(
         self, batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
@@ -191,6 +207,22 @@ class ModelHooks:
             dataloader_idx: the index of the dataloader
         """
         # do something when the batch ends
+
+    def on_test_model_eval(
+            self
+    ) -> None:
+        """
+        Sets the model to eval during the test loop
+        """
+        self.eval()
+
+    def on_test_model_train(
+            self
+    ) -> None:
+        """
+        Sets the model to train during the test loop
+        """
+        self.train()
 
     def on_batch_start(self, batch: Any) -> None:
         """

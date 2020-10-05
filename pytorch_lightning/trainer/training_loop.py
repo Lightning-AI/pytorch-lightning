@@ -167,8 +167,11 @@ class TrainLoop:
 
         self._teardown_already_run = True
 
-        # maybe save checkpoint
+        # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
+        # when a checkpoint was saved at the last step
+        self.trainer.global_step -= 1
         self.check_checkpoint_callback(should_save=True, is_last=True)
+        self.trainer.global_step += 1
 
         # hook
         self.trainer.call_hook('on_train_end')
@@ -706,7 +709,7 @@ class TrainLoop:
         batch_log_metrics = {k: v for d in batch_log_metrics for k, v in d.items()}
 
         # track all metrics for callbacks
-        # TODO: is this needed?
+        self.trainer.logger_connector.callback_metrics.update(batch_log_metrics)
         self.trainer.logger_connector.callback_metrics.update(
             {k: v for d in batch_callback_metrics for k, v in d.items() if v is not None}
         )

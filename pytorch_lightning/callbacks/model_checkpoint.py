@@ -137,7 +137,7 @@ class ModelCheckpoint(Callback):
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
         self.period = period
-        self.epoch_last_check = None
+        self.last_global_step_saved = -1
         self.prefix = prefix
         self.best_k_models = {}
         self.kth_best_model_path = ""
@@ -183,13 +183,14 @@ class ModelCheckpoint(Callback):
         to handle correct behaviour in distributed training, i.e., saving only on rank 0.
         """
         epoch = trainer.current_epoch
+        global_step = trainer.global_step
 
         if (
             self.save_top_k == 0  # no models are saved
             or self.period < 1  # no models are saved
             or (epoch + 1) % self.period  # skip epoch
             or trainer.running_sanity_check  # don't save anything during sanity check
-            or self.epoch_last_check == epoch  # already saved
+            or self.last_global_step_saved == global_step  # already saved at the last step
         ):
             return
 
@@ -197,7 +198,7 @@ class ModelCheckpoint(Callback):
         self._validate_monitor_key(trainer)
 
         # track epoch when ckpt was last checked
-        self.epoch_last_check = trainer.current_epoch
+        self.last_global_step_saved = global_step
 
         # what can be monitored
         monitor_candidates = self._monitor_candidates(trainer)
