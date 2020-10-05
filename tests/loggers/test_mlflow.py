@@ -1,7 +1,6 @@
 import os
 
 from unittest import mock
-from mlflow.tracking import MlflowClient
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import MLFlowLogger
@@ -44,11 +43,11 @@ def test_mlflow_logger_dirs_creation(tmpdir):
     assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0.ckpt'}
 
 
-def test_mlflow_experiment_id_retrieved_once(tmpdir):
+@mock.patch('pytorch_lightning.loggers.mlflow.mlflow')
+@mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient')
+def test_mlflow_experiment_id_retrieved_once(client, mlflow, tmpdir):
     logger = MLFlowLogger('test', save_dir=tmpdir)
-    get_experiment_name = logger._mlflow_client.get_experiment_by_name
-    with mock.patch.object(MlflowClient, 'get_experiment_by_name', wraps=get_experiment_name) as mocked:
-        _ = logger.experiment
-        _ = logger.experiment
-        _ = logger.experiment
-        assert mocked.call_count == 1
+    _ = logger.experiment
+    _ = logger.experiment
+    _ = logger.experiment
+    assert logger.experiment.get_experiment_by_name.call_count == 1
