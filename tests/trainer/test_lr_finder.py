@@ -102,6 +102,30 @@ def test_trainer_arg_bool(tmpdir, use_hparams):
         'Learning rate was not altered after running learning rate finder'
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@pytest.mark.parametrize('prec', [16, 32])
+def test_lr_finder_with_amp(tmpdir, prec):
+    """ Test that it runs with AMP """
+    model = EvalModelTemplate()
+    before_lr = model.hparams.get('learning_rate')
+
+    # logger file to get meta
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        auto_lr_find=True,
+        precision=prec,
+    )
+
+    trainer.tune(model)
+    after_lr = model.learning_rate
+
+    assert before_lr != after_lr, \
+        'Learning rate was not altered after running learning rate finder'
+
+    trainer.fit(model)
+
+
 @pytest.mark.parametrize('use_hparams', [False, True])
 def test_trainer_arg_str(tmpdir, use_hparams):
     """ Test that setting trainer arg to string works """

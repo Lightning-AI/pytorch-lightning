@@ -26,6 +26,8 @@ class Tuner:
         self.trainer = trainer
 
     def on_trainer_init(self, auto_lr_find, auto_scale_batch_size):
+        # todo: this is confusing for user and IDE as it is not defined in Trainer init
+        #  IDE like pyCharm cannot find it in static checking, consider init them with NOne or placeholders
         self.trainer.auto_lr_find = auto_lr_find
         self.trainer.auto_scale_batch_size = auto_scale_batch_size
 

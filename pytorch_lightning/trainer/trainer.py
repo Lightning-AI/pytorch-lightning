@@ -378,6 +378,7 @@ class Trainer(
         datamodule: Optional[LightningDataModule] = None,
     ):
         # TODO: temporary, need to decide if tune or separate object
+        #  it is quite confusing that Trainer has tune and tuner attributes/methods
 
         # setup data, etc...
         self.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
