@@ -103,8 +103,8 @@ def test_trainer_arg_bool(tmpdir, use_hparams):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@pytest.mark.parametrize('prec', [16, 32])
-def test_lr_finder_with_amp(tmpdir, prec):
+@pytest.mark.parametrize('amp', [None, "native", "apex"])
+def test_lr_finder_with_amp(tmpdir, amp):
     """ Test that it runs with AMP """
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
@@ -113,8 +113,9 @@ def test_lr_finder_with_amp(tmpdir, prec):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        precision=prec,
+        precision=16 if amp else 32,
         gpus=1,
+        amp_backend=amp,
     )
 
     lrfinder = trainer.tuner.lr_find(model, min_lr=1e-06, max_lr=1e-01, early_stop_threshold=None)
