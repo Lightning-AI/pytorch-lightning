@@ -161,7 +161,7 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     ckpt_name = ModelCheckpoint(monitor='early_stop_on', filepath='').format_checkpoint_name(5, {})
     assert ckpt_name == 'epoch=5.ckpt'
     # CWD
-    ckpt_name = ModelCheckpoint(monitor='early_stop_on', filepath='.').format_checkpoint_name(3, {})
+    ckpt_name = ModelCheckpoint(monitor='early_stop_on', filepath='../callbacks').format_checkpoint_name(3, {})
     assert Path(ckpt_name) == Path('.') / 'epoch=3.ckpt'
     # dir does not exist so it is used as filename
     filepath = tmpdir / 'dir'
