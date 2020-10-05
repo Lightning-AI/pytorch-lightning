@@ -157,15 +157,23 @@ def test_loggers_save_dir_and_weights_save_path(wandb, tmpdir, monkeypatch, logg
 
 
 @pytest.mark.parametrize("logger_class", [
-    TensorBoardLogger,
     CometLogger,
     MLFlowLogger,
     NeptuneLogger,
+    TensorBoardLogger,
     TestTubeLogger,
     # The WandbLogger gets tested for pickling in its own test.
 ])
-@mock.patch('pytorch_lightning.loggers.neptune.neptune')
-def test_loggers_pickle(neptune, tmpdir, monkeypatch, logger_class):
+def test_loggers_pickle_all(tmpdir, monkeypatch, logger_class):
+    """ Test that the logger objects can be pickled. This test only makes sense if the packages are installed. """
+    _patch_comet_atexit(monkeypatch)
+    try:
+        _test_loggers_pickle(tmpdir, monkeypatch, logger_class)
+    except (ImportError, ModuleNotFoundError):
+        pytest.xfail(f"pickle test requires {logger_class.__class__} dependencies to be installed.")
+
+
+def _test_loggers_pickle(tmpdir, monkeypatch, logger_class):
     """Verify that pickling trainer with logger works."""
     _patch_comet_atexit(monkeypatch)
 
