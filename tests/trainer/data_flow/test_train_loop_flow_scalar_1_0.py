@@ -201,8 +201,13 @@ def test_training_step_no_return(tmpdir):
         def training_epoch_end(self, outputs) -> None:
             assert len(outputs) == 0
 
+        def validation_step(self, batch, batch_idx):
+            self.validation_step_called = True
+
+        def validation_epoch_end(self, outputs):
+            assert len(outputs) == 0
+
     model = TestModel()
-    model.val_dataloader = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -216,9 +221,10 @@ def test_training_step_no_return(tmpdir):
         trainer.fit(model)
 
     assert model.training_step_called
+    assert model.validation_step_called
 
 
-def test_training_step_skip_return_when_even(tmpdir):
+def test_training_step_no_return_when_even(tmpdir):
     """
     Tests correctness when some training steps have been skipped
     """
@@ -233,7 +239,8 @@ def test_training_step_skip_return_when_even(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        limit_train_batches=3,
+        limit_train_batches=4,
+        limit_val_batches=1,
         max_epochs=4,
         weights_summary=None,
         logger=False,
@@ -242,12 +249,9 @@ def test_training_step_skip_return_when_even(tmpdir):
     with pytest.warns(RuntimeWarning, match=r'training_step returned None'):
         trainer.fit(model)
 
-    assert model.training_step_called
-
     # manually check a few batches
     for batch_idx, batch in enumerate(model.train_dataloader()):
         out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
         if not batch_idx % 2:
-            assert out is None
-            continue
+            assert out.training_step_output_for_epoch_end == [[]]
         assert out.signal == 0

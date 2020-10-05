@@ -477,8 +477,7 @@ class TrainLoop:
         batch_callback_metrics.append(callback_metrics)
 
         # decide which metrics to log (results vs dict return)
-        using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
-        if using_results_obj:
+        if isinstance(opt_closure_result.training_step_output, Result):
             metrics_to_log = opt_closure_result.training_step_output.batch_log_metrics
             step_pbar_metrics = opt_closure_result.training_step_output.batch_pbar_metrics
         else:
@@ -535,26 +534,25 @@ class TrainLoop:
             if batch_output.signal == -1:
                 break
 
-            if batch_output is not None:
-                # only track outputs when user implements training_epoch_end
-                # otherwise we will build up unnecessary memory
-                epoch_end_outputs = self.process_train_step_outputs(
-                    batch_output.training_step_output_for_epoch_end,
-                    self.early_stopping_accumulator,
-                    self.checkpoint_accumulator
-                )
+            # only track outputs when user implements training_epoch_end
+            # otherwise we will build up unnecessary memory
+            epoch_end_outputs = self.process_train_step_outputs(
+                batch_output.training_step_output_for_epoch_end,
+                self.early_stopping_accumulator,
+                self.checkpoint_accumulator
+            )
 
-                # hook
-                # TODO: add outputs to batches
-                self.on_train_batch_end(epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx)
+            # hook
+            # TODO: add outputs to batches
+            self.on_train_batch_end(epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx)
 
-                # when returning -1 from train_step, we end epoch early
-                self.trainer.should_stop = batch_output.signal == -1
+            # when returning -1 from train_step, we end epoch early
+            self.trainer.should_stop = batch_output.signal == -1
 
-                # -----------------------------------------
-                # SAVE METRICS TO LOGGERS
-                # -----------------------------------------
-                self.trainer.logger_connector.log_train_step_metrics(batch_output)
+            # -----------------------------------------
+            # SAVE METRICS TO LOGGERS
+            # -----------------------------------------
+            self.trainer.logger_connector.log_train_step_metrics(batch_output)
 
             # -----------------------------------------
             # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
@@ -563,16 +561,15 @@ class TrainLoop:
             if should_check_val:
                 self.trainer.run_evaluation(test_mode=False)
 
-            if batch_output is not None:
-                # -----------------------------------------
-                # SAVE LOGGERS (ie: Tensorboard, etc...)
-                # -----------------------------------------
-                self.save_loggers_on_train_batch_end()
+            # -----------------------------------------
+            # SAVE LOGGERS (ie: Tensorboard, etc...)
+            # -----------------------------------------
+            self.save_loggers_on_train_batch_end()
 
-                # update LR schedulers
-                monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
-                monitor_metrics.update(batch_output.batch_log_metrics)
-                self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
+            # update LR schedulers
+            monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
+            monitor_metrics.update(batch_output.batch_log_metrics)
+            self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
 
             # max steps reached, end training
             if self.trainer.max_steps is not None and self.trainer.max_steps == self.trainer.global_step + 1:
@@ -625,7 +622,6 @@ class TrainLoop:
         batch_log_metrics = []
 
         # bookkeeping
-        using_results_obj = False
         self.trainer.hiddens = None
 
         # track all outputs across time and num of optimizers
@@ -673,8 +669,6 @@ class TrainLoop:
                 )
                 if opt_closure_result is None:
                     continue
-
-                using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
 
                 # log metrics
                 self.log_training_step_metrics(opt_closure_result, batch_callback_metrics, batch_log_metrics)
