@@ -106,23 +106,24 @@ def test_trainer_arg_bool(tmpdir, use_hparams):
 @pytest.mark.parametrize('prec', [16, 32])
 def test_lr_finder_with_amp(tmpdir, prec):
     """ Test that it runs with AMP """
-    model = EvalModelTemplate()
-    before_lr = model.hparams.get('learning_rate')
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = EvalModelTemplate(**hparams)
+    before_lr = hparams.get('learning_rate')
 
-    # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        auto_lr_find=True,
         precision=prec,
+        gpus=1,
     )
 
-    trainer.tune(model)
-    after_lr = model.learning_rate
+    lrfinder = trainer.tuner.lr_find(model, min_lr=1e-06, max_lr=1e-01, early_stop_threshold=None)
+    after_lr = lrfinder.suggestion()
 
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
 
+    model.hparams.learning_rate = lrfinder.suggestion()
     trainer.fit(model)
 
 
