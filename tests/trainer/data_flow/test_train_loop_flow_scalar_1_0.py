@@ -215,4 +215,3 @@ def test_train_step_no_return(tmpdir):
 
     with pytest.warns(UserWarning, match=r'.*training_step returned None.*'):
         trainer.fit(model)
-
