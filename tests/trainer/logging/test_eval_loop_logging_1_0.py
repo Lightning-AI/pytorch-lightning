@@ -196,6 +196,40 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     assert len(trainer.dev_debugger.logged_metrics) == max_epochs
 
 
+def test_eval_float_logging(tmpdir):
+    """
+    Tests that only training_step can be used
+    """
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    class TestModel(BoringModel):
+
+        def validation_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log('a', 12.0)
+            return {"x": loss}
+
+    model = TestModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
+        row_log_interval=1,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    # make sure all the metrics are available for callbacks
+    logged_metrics = set(trainer.logged_metrics.keys())
+    expected_logged_metrics = {
+        'a',
+    }
+    assert logged_metrics == expected_logged_metrics
+
+
 def test_monitor_val_epoch_end(tmpdir):
     epoch_min_loss_override = 0
     model = SimpleModule()
