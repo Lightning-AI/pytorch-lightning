@@ -19,12 +19,12 @@
 # --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.4 --build-arg PYTORCH_CHANNEL=pytorch --build-arg CUDA_VERSION=10.1
 # --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.3 --build-arg PYTORCH_CHANNEL=pytorch --build-arg CUDA_VERSION=10.1
 
-ARG CUDNN_VERSION=8
-ARG CUDA_VERSION=11.1
+ARG CUDNN_VERSION=7
+ARG CUDA_VERSION=10.1
 
-FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu20.04
+# FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu20.04
 # FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel-ubuntu18.04
-# FROM nvidia/cuda:${CUDA_VERSION}-devel
+FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu-18.04
 
 ARG PYTHON_VERSION=3.7
 ARG PYTORCH_VERSION=1.6
