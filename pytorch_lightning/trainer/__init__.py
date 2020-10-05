@@ -45,8 +45,8 @@ This is the basic use of the trainer:
 
 --------
 
-Trainer in Python scrips
-------------------------
+Trainer in Python scripts
+-------------------------
 In Python scripts, it's recommended you use a main function to call the Trainer.
 
 .. code-block:: python
@@ -358,6 +358,7 @@ Example::
 cluster_environment
 ^^^^^^^^^^^^^^^^^^^
 Environment to connect arbitrary cluster backends. Lightning automatically handles:
+
 - SLURM
 - TorchElastic
 
@@ -365,7 +366,7 @@ For any other non-supported cluster environment, define your own class and pass 
 
 .. code-block:: python
 
-    from pytorch_lightning.cluster_environments import ClusterEnvironment
+    from pytorch_lightning.cluster_environments import cluster_environment
 
     class MyCluster(ClusterEnvironment):
 
@@ -377,6 +378,8 @@ For any other non-supported cluster environment, define your own class and pass 
 
         def world_size(self):
             return the_world_size
+
+    trainer = Trainer(cluster_environment=cluster_environment())
 
 default_root_dir
 ^^^^^^^^^^^^^^^^
@@ -433,6 +436,10 @@ early_stop_callback
 
 Callback for early stopping.
 early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
+
+.. deprecated:
+    Deprecated since v0.10.0 and will be removed in v1.0. Configure the EarlyStopping callback class
+    and add it to the list of callbacks: ``Trainer(callbacks=[EarlyStopping(...)])``
 
 - ``True``: A default callback monitoring ``'early_stop_on'`` (if dict is returned in validation loop) or
   ``early_stopping_on`` (if :class:`~pytorch_lightning.core.step_result.Result` is returned) is created.

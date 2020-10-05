@@ -88,6 +88,20 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_start', *args, **kwargs)
 
+    def on_evaluation_model_eval(self, *args, **kwargs):
+        model_ref = self.trainer.get_model()
+        if self.testing:
+            model_ref.on_test_model_eval()
+        else:
+            model_ref.on_validation_model_eval()
+
+    def on_evaluation_model_train(self, *args, **kwargs):
+        model_ref = self.trainer.get_model()
+        if self.testing:
+            model_ref.on_test_model_train()
+        else:
+            model_ref.on_validation_model_train()
+
     def on_evaluation_end(self, *args, **kwargs):
         if self.testing:
             self.trainer.call_hook('on_test_end', *args, **kwargs)
@@ -171,19 +185,23 @@ class EvaluationLoop(object):
         using_eval_result = self.is_using_eval_results()
 
         # call the model epoch end
-        eval_results = self.__run_eval_epoch_end(num_dataloaders, using_eval_result)
+        deprecated_results = self.__run_eval_epoch_end(num_dataloaders, using_eval_result)
+
+        # 1.0
+        epoch_logs = self.trainer.get_model()._results
 
         # enable returning anything
-        for r in eval_results:
+        for i, r in enumerate(deprecated_results):
             if not isinstance(r, (dict, Result, torch.Tensor)):
-                return []
+                deprecated_results[i] = []
 
-        return eval_results
+        return deprecated_results, epoch_logs
 
-    def log_epoch_metrics(self, eval_results, test_mode):
+    def log_epoch_metrics(self, deprecated_eval_results, epoch_logs, test_mode):
         using_eval_result = self.is_using_eval_results()
         eval_loop_results = self.trainer.logger_connector.on_evaluation_epoch_end(
-            eval_results,
+            deprecated_eval_results,
+            epoch_logs,
             using_eval_result,
             test_mode
         )
@@ -219,7 +237,7 @@ class EvaluationLoop(object):
                 user_reduced = True
 
         # depre warning
-        if eval_results is not None:
+        if eval_results is not None and user_reduced:
             step = 'testing_epoch_end' if self.testing else 'validation_epoch_end'
             m = f'The {step} should not return anything as of 9.1.' \
                 f'to log, use self.log(...) or self.write(...) directly in the LightningModule'
@@ -227,10 +245,6 @@ class EvaluationLoop(object):
 
         if using_eval_result and not user_reduced:
             eval_results = self.__auto_reduce_result_objs(outputs)
-
-        result = model._results
-        if len(result) > 0 and eval_results is None:
-            eval_results = result.get_epoch_log_metrics()
 
         if not isinstance(eval_results, list):
             eval_results = [eval_results]

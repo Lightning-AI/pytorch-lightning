@@ -9,6 +9,12 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
+def _patch_comet_atexit(monkeypatch):
+    """ Prevent comet logger from trying to print at exit, since pytest's stdout/stderr redirection breaks it. """
+    import atexit
+    monkeypatch.setattr(atexit, "register", lambda _: None)
+
+
 def test_comet_logger_online():
     """Test comet online with mocks."""
     # Test api_key given
@@ -76,11 +82,7 @@ def test_comet_logger_experiment_name():
 
 def test_comet_logger_dirs_creation(tmpdir, monkeypatch):
     """ Test that the logger creates the folders and files in the right place. """
-    # prevent comet logger from trying to print at exit, since
-    # pytest's stdout/stderr redirection breaks it
-    import atexit
-
-    monkeypatch.setattr(atexit, 'register', lambda _: None)
+    _patch_comet_atexit(monkeypatch)
 
     logger = CometLogger(project_name='test', save_dir=tmpdir)
     assert not os.listdir(tmpdir)
@@ -159,9 +161,7 @@ def test_comet_version_without_experiment():
 
 def test_comet_epoch_logging(tmpdir, monkeypatch):
     """ Test that CometLogger removes the epoch key from the metrics dict and passes it as argument. """
-    import atexit
-
-    monkeypatch.setattr(atexit, "register", lambda _: None)
+    _patch_comet_atexit(monkeypatch)
     with patch("pytorch_lightning.loggers.comet.CometOfflineExperiment.log_metrics") as log_metrics:
         logger = CometLogger(project_name="test", save_dir=tmpdir)
         logger.log_metrics({"test": 1, "epoch": 1}, step=123)

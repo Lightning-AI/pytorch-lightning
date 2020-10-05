@@ -63,7 +63,7 @@ def test_val_step_result_callbacks(tmpdir):
 
     # did not request any metrics to log (except the metrics saying which epoch we are on)
     assert len(trainer.logger_connector.progress_bar_metrics) == 0
-    assert len(trainer.dev_debugger.logged_metrics) == 5
+    assert len(trainer.dev_debugger.logged_metrics) == 0
 
 
 def test_val_step_using_train_callbacks(tmpdir):
@@ -112,7 +112,7 @@ def test_val_step_using_train_callbacks(tmpdir):
 
     # did not request any metrics to log (except the metrics saying which epoch we are on)
     assert len(trainer.logger_connector.progress_bar_metrics) == 0
-    assert len(trainer.dev_debugger.logged_metrics) == expected_epochs
+    assert len(trainer.dev_debugger.logged_metrics) == 0
 
 
 def test_val_step_only_epoch_metrics(tmpdir):
@@ -210,39 +210,8 @@ def test_val_step_only_step_metrics(tmpdir):
     assert len(trainer.dev_debugger.early_stopping_history) == 0
 
     # make sure we logged the exact number of metrics
-    assert len(trainer.dev_debugger.logged_metrics) == epochs * batches + (epochs)
+    assert len(trainer.dev_debugger.logged_metrics) == epochs * batches
     assert len(trainer.dev_debugger.pbar_added_metrics) == epochs * batches + (epochs)
-
-    # make sure we logged the correct epoch metrics
-    total_empty_epoch_metrics = 0
-    epoch = 0
-    for metric in trainer.dev_debugger.logged_metrics:
-        if 'epoch' in metric:
-            epoch += 1
-        if len(metric) > 2:
-            assert 'no_val_no_pbar' not in metric
-            assert 'val_step_pbar_acc' not in metric
-            assert metric[f'val_step_log_acc/epoch_{epoch}']
-            assert metric[f'val_step_log_pbar_acc/epoch_{epoch}']
-        else:
-            total_empty_epoch_metrics += 1
-
-    assert total_empty_epoch_metrics == 3
-
-    # make sure we logged the correct epoch pbar metrics
-    total_empty_epoch_metrics = 0
-    for metric in trainer.dev_debugger.pbar_added_metrics:
-        if 'epoch' in metric:
-            epoch += 1
-        if len(metric) > 2:
-            assert 'no_val_no_pbar' not in metric
-            assert 'val_step_log_acc' not in metric
-            assert metric['val_step_log_pbar_acc']
-            assert metric['val_step_pbar_acc']
-        else:
-            total_empty_epoch_metrics += 1
-
-    assert total_empty_epoch_metrics == 3
 
     # only 1 checkpoint expected since values didn't change after that
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 1

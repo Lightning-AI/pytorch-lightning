@@ -28,6 +28,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
+from copy import deepcopy
 
 TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 try:
@@ -229,13 +230,16 @@ class TrainerDataLoadingMixin(ABC):
         Returns:
             Tuple (num_batches, dataloaders)
         """
-        # use the training loader as val and test when overfitting
+        # always get the loaders first so we can count how many there are
         loader_name = f'{mode}_dataloader'
-        if self.overfit_batches > 0:
-            loader_name = 'train_dataloader'
-
-        # load loaders
         dataloaders = self.request_dataloader(getattr(model, loader_name))
+
+        # when overfitting use the training loader as val and test
+        # duplicate it the numb of times needed to match the train loaders
+        if self.overfit_batches > 0:
+            num_loaders = len(dataloaders)
+            train_dataloader = self.request_dataloader(getattr(model, 'train_dataloader'))
+            dataloaders = [deepcopy(train_dataloader) for _ in range(num_loaders)]
 
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]

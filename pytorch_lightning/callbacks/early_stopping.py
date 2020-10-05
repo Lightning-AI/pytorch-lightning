@@ -64,7 +64,7 @@ class EarlyStopping(Callback):
         >>> from pytorch_lightning import Trainer
         >>> from pytorch_lightning.callbacks import EarlyStopping
         >>> early_stopping = EarlyStopping('val_loss')
-        >>> trainer = Trainer(early_stop_callback=early_stopping)
+        >>> trainer = Trainer(callbacks=[early_stopping])
     """
     mode_dict = {
         'min': torch.lt,
@@ -180,7 +180,7 @@ class EarlyStopping(Callback):
         current = logs.get(self.monitor)
 
         # when in dev debugging
-        trainer.dev_debugger.track_early_stopping_history(current)
+        trainer.dev_debugger.track_early_stopping_history(self, current)
 
         if not isinstance(current, torch.Tensor):
             current = torch.tensor(current, device=pl_module.device)

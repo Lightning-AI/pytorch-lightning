@@ -29,6 +29,7 @@ from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 try:
@@ -93,6 +94,9 @@ class DDPBackend(Accelerator):
         # when the trainer script was called the device has already been scoped by the time
         # code reaches this point. so, to call the scripts, we need to leave cuda visible devices alone
         # but forward the GPUs selected via environment variables
+        if self.trainer.data_parallel_device_ids is None:
+            raise MisconfigurationException('you selected (distribute_backend = ddp) but did not set Trainer(gpus=?)')
+
         os.environ['PL_TRAINER_GPUS'] = ','.join([str(i) for i in self.trainer.data_parallel_device_ids])
         os.environ['PL_IN_DDP_SUBPROCESS'] = '1'
 
