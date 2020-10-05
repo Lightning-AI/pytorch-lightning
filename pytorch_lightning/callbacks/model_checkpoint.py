@@ -517,6 +517,10 @@ class ModelCheckpoint(Callback):
             self.best_k_models.pop(self.kth_best_model_path)
             del_list.append(delpath)
 
+        # do not save non, for replace then by +/- inf
+        if torch.isnan(current):
+            current = {"min": torch.tensor(float('inf')), "max": torch.tensor(-float('inf'))}[self.mode]
+
         self.best_k_models[filepath] = current
         if len(self.best_k_models) == k:
             # monitor dict has reached k elements
