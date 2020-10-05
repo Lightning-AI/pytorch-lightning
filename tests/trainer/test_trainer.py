@@ -409,6 +409,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, ex
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
         trainer.current_epoch = i
+        trainer.global_step = i
         trainer.logger_connector.callback_metrics = {'checkpoint_on': torch.tensor(loss)}
         checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
