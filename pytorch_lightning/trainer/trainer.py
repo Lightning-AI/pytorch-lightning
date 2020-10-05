@@ -543,8 +543,9 @@ class Trainer(
 
         # enable eval mode + no grads
         model = self.get_model()
+        self.evaluation_loop.on_evaluation_model_eval()
+
         model.zero_grad()
-        model.eval()
         torch.set_grad_enabled(False)
 
         # hook
@@ -615,7 +616,7 @@ class Trainer(
         self.evaluation_loop.on_evaluation_epoch_end()
 
         # enable train mode again
-        model.train()
+        self.evaluation_loop.on_evaluation_model_train()
         torch.set_grad_enabled(True)
 
         # hook
