@@ -894,6 +894,8 @@ class EvalResult(Result):
 
 
 def weighted_mean(result, weights):
+    if not isinstance(result, torch.Tensor):
+        result = torch.tensor(result)
     weights = weights.to(result.device)[:result.size(0)]
     numerator = torch.dot(result.float(), weights.transpose(-1, 0).float())
     result = numerator / weights.sum().float()
