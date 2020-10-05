@@ -137,7 +137,6 @@ class ModelCheckpoint(Callback):
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
         self.period = period
-        self.epoch_last_check = None
         self.last_global_step_saved = -1
         self.prefix = prefix
         self.best_k_models = {}
@@ -199,7 +198,6 @@ class ModelCheckpoint(Callback):
         self._validate_monitor_key(trainer)
 
         # track epoch when ckpt was last checked
-        self.epoch_last_check = trainer.current_epoch
         self.last_global_step_saved = global_step
 
         # what can be monitored
