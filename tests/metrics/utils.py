@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import os
+import sys
 
 NUM_PROCESSES = 2
 NUM_BATCHES = 10
@@ -50,6 +51,9 @@ def _compute_batch(rank, preds, target, metric_class, sk_metric, ddp_sync_on_ste
 
 def compute_batch(preds, target, metric_class, sk_metric, ddp_sync_on_step, ddp=False, metric_args={}):
     if ddp:
+        if sys.platform == "win32":
+            pytest.skip("DDP not supported on windows")
+
         torch.multiprocessing.spawn(
             _compute_batch, args=(preds, target, metric_class, sk_metric, ddp_sync_on_step, NUM_PROCESSES, metric_args),
             nprocs=NUM_PROCESSES
