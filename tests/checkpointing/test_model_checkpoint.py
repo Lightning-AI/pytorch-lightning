@@ -15,7 +15,7 @@ import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
-from tests.base import EvalModelTemplate
+from tests.base import EvalModelTemplate, BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -457,3 +457,24 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     )
     for w0, w1 in zip(model_last_epoch.parameters(), model_last.parameters()):
         assert w0.eq(w1).all()
+
+
+# todo consider if we shall ignore also +/- inf
+@pytest.mark.parametrize('mode', ['min', 'max', 'auto'])
+def test_checkpointing_with_nan(tmpdir, mode):
+    losses = [8, 7, float('nan'), 5]
+
+    class CurrentModel(BoringModel):
+        def validation_epoch_end(self, outputs):
+            val_loss = losses[self.current_epoch]
+            self.log('abc', torch.tensor(val_loss))
+
+    model = CurrentModel()
+
+    trainer = Trainer(
+        checkpoint_callback=ModelCheckpoint(monitor='abc', mode=mode, save_top_k=1, filepath=tmpdir),
+        default_root_dir=tmpdir,
+        val_check_interval=1.0,
+        max_epochs=len(losses),
+    )
+    trainer.fit(model)
