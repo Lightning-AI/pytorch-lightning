@@ -10,6 +10,7 @@ import torch
 from torch import nn
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.metrics.utils import _flatten, gather_all_tensors_if_available
 
 
 class Metric(nn.Module, ABC):
@@ -35,14 +36,26 @@ class Metric(nn.Module, ABC):
         self._reductions = {}
         self._defaults = {}
 
-    def add_state(self, name, default, reduction=None):
-        if reduction is None:
-            # TODO: implement default reduction
-            raise NotImplementedError("default reduction not implemented")
+    def add_state(self, name, default, dist_reduce_fx: Optional[Union[str, Callable]] = None):
+        if not isinstance(default, torch.Tensor) or (isinstance(default, list) and len(default) != 0):
+            raise ValueError(
+                "state variable must be a tensor or any empty list (where you can append tensors)"
+            )
+
+        if dist_reduce_fx == "sum":
+            dist_reduce_fx = lambda x: torch.sum(x, dim=0)
+        elif dist_reduce_fx == "mean":
+            dist_reduce_fx = lambda x: torch.mean(x, dim=0)
+        elif dist_reduce_fx == "cat":
+            dist_reduce_fx = lambda x: torch.cat(x, dim=0)
+        elif dist_reduce_fx is not None and not isinstance(dist_reduce_fx, Callable):
+            raise ValueError(
+                "`dist_reduce_fx` must be callable or one of ['mean', 'sum', 'cat', None]"
+            )
 
         setattr(self, name, default)
         self._defaults[name] = deepcopy(default)
-        self._reductions[name] = reduction
+        self._reductions[name] = dist_reduce_fx
 
     def forward(self, *args, **kwargs):
         # add current step
@@ -77,10 +90,16 @@ class Metric(nn.Module, ABC):
         )
 
         for attr, reduction_fn in self._reductions.items():
-            # agregate lists of tensors
+            # pre-processing ops (stack or flatten for inputs)
+            if isinstance(output_dict[attr][0], torch.Tensor):
+                output_dict[attr] = torch.stack(output_dict[attr])
+            elif isinstance(output_dict[attr][0], list):
+                output_dict[attr] = _flatten(output_dict[attr])
+
+            assert isinstance(reduction_fn, (Callable, None))
             reduced = reduction_fn(output_dict[attr]) if reduction_fn is not None else output_dict[attr]
             setattr(self, attr, reduced)
-        
+
     def wrap_update(self, update):
         @functools.wraps(update)
         def wrapped_func(*args, **kwargs):
@@ -102,7 +121,7 @@ class Metric(nn.Module, ABC):
             self.reset()
 
             return self._computed
-            
+
         return wrapped_func
 
     @abstractmethod
@@ -116,33 +135,3 @@ class Metric(nn.Module, ABC):
     def reset(self):
         for attr, default in self._defaults.items():
             setattr(self, attr, deepcopy(default))
-
-
-def gather_all_tensors_if_available(result: Union[torch.Tensor], group: Optional[Any] = None):
-    """
-    Function to gather all tensors from several ddp processes onto a list that
-    is broadcasted to all processes
-
-    Args:
-        result: the value to sync
-        group: the process group to gather results from. Defaults to all processes (world)
-
-    Return:
-        gathered_result: list with size equal to the process group where
-            gathered_result[i] corresponds to result tensor from process i
-
-    """
-    if torch.distributed.is_available() and torch.distributed.is_initialized():
-        if group is None:
-            group = torch.distributed.group.WORLD
-
-        world_size = torch.distributed.get_world_size(group)
-
-        gathered_result = [torch.zeros_like(result) for _ in range(world_size)]
-
-        # sync and broadcast all
-        torch.distributed.barrier(group=group)
-        torch.distributed.all_gather(gathered_result, result, group)
-
-        result = gathered_result
-    return result

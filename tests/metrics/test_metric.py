@@ -2,6 +2,7 @@ import pytest
 import torch
 from pytorch_lightning.metrics.metric import Metric
 import os
+import numpy as np
 
 torch.manual_seed(42)
 
@@ -11,7 +12,7 @@ class Dummy(Metric):
 
     def __init__(self):
         super().__init__()
-        self.add_state("x", 0, reduction=False)
+        self.add_state("x", torch.tensor(0), dist_reduce_fx=None)
 
     def update(self):
         pass
@@ -22,6 +23,37 @@ class Dummy(Metric):
 
 def test_inherit():
     a = Dummy()
+
+
+def test_add_state():
+    a = Dummy()
+
+    a.add_state("a", torch.tensor(0), "sum")
+    assert a._reductions["a"](torch.tensor([1, 1])) == 2
+
+    a.add_state("b", torch.tensor(0), "mean")
+    assert np.allclose(a._reductions["b"](torch.tensor([1.0, 2.0])).numpy(), 1.5)
+
+    a.add_state("c", torch.tensor(0), "cat")
+    assert a._reductions["c"]([torch.tensor([1]), torch.tensor([1])]).shape == (2,)
+
+    with pytest.raises(ValueError):
+        a.add_state("d1", torch.tensor(0), 'xyz')
+
+    with pytest.raises(ValueError):
+        a.add_state("d2", torch.tensor(0), 42)
+
+    with pytest.raises(ValueError):
+        a.add_state("d3", [torch.tensor(0)], 'sum')
+
+    with pytest.raises(ValueError):
+        a.add_state("d4", 42, 'sum')
+
+    def custom_fx(x):
+        return -1
+
+    a.add_state("e", torch.tensor(0), custom_fx)
+    assert a._reductions["e"](torch.tensor([1, 1])) == -1
 
 
 def test_reset():
@@ -70,3 +102,7 @@ def test_compute():
     assert a._computed is None
     assert a.compute() == 2
     assert a._computed == 2
+
+    # called without update, should return cached value
+    a._computed = 5
+    assert a.compute() == 5

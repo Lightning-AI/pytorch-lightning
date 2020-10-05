@@ -12,7 +12,7 @@ torch.manual_seed(42)
 def _test_ddp_sum(rank, worldsize):
     setup_ddp(rank, worldsize)
     dummy = Dummy()
-    dummy._reductions = {"foo": sum}
+    dummy._reductions = {"foo": torch.sum}
     dummy.foo = torch.tensor(1)
 
     dummy.sync()
@@ -23,7 +23,7 @@ def _test_ddp_cat(rank, worldsize):
     setup_ddp(rank, worldsize)
     dummy = Dummy()
     dummy._reductions = {"foo": torch.cat}
-    dummy.foo = torch.tensor([1])
+    dummy.foo = [torch.tensor([1])]
     dummy.sync()
     assert torch.all(torch.eq(dummy.foo, torch.tensor([1, 1])))
 
@@ -31,8 +31,8 @@ def _test_ddp_cat(rank, worldsize):
 def _test_ddp_sum_cat(rank, worldsize):
     setup_ddp(rank, worldsize)
     dummy = Dummy()
-    dummy._reductions = {"foo": torch.cat, "bar": sum}
-    dummy.foo = torch.tensor([1])
+    dummy._reductions = {"foo": torch.cat, "bar": torch.sum}
+    dummy.foo = [torch.tensor([1])]
     dummy.bar = torch.tensor(1)
     dummy.sync()
     assert torch.all(torch.eq(dummy.foo, torch.tensor([1, 1])))
