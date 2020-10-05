@@ -18,10 +18,13 @@ def test_gpu_stats_monitor(tmpdir):
     model = EvalModelTemplate()
     gpu_stats = GPUStatsMonitor()
     logger = CSVLogger(tmpdir)
+    row_log_interval = 2
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1,
+        max_epochs=2,
+        limit_train_batches=7,
+        row_log_interval=row_log_interval,
         gpus=1,
         callbacks=[gpu_stats],
         logger=logger
@@ -33,6 +36,8 @@ def test_gpu_stats_monitor(tmpdir):
     path_csv = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
     with open(path_csv, 'r') as fp:
         lines = fp.readlines()
+
+    assert (len(lines) - 1) == trainer.global_step // row_log_interval
 
     header = lines[0].split()
 

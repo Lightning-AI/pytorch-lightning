@@ -94,6 +94,9 @@ class LearningRateMonitor(Callback):
         self.lrs = {name: [] for name in names}
 
     def on_batch_start(self, trainer, pl_module):
+        if not self._should_log(trainer):
+            return
+
         if self.logging_interval != 'epoch':
             interval = 'step' if self.logging_interval is None else 'any'
             latest_stat = self._extract_lr(trainer, interval)
@@ -157,3 +160,12 @@ class LearningRateMonitor(Callback):
             self.lr_sch_names.append(name)
 
         return names
+
+    def _should_log(self, trainer) -> bool:
+        should_log = (
+            (trainer.global_step + 1) % trainer.row_log_interval == 0
+            or trainer.should_stop
+            or trainer.fast_dev_run
+        )
+
+        return should_log
