@@ -20,8 +20,7 @@ import torch
 from torch import Tensor
 import os
 
-from pytorch_lightning.metrics.converters import sync_ddp_if_available
-from typing import Iterable
+from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 
 
 class Result(Dict):
