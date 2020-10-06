@@ -7,7 +7,7 @@ from pytorch_lightning import Trainer, Callback
 from unittest import mock
 
 
-class TestModel(Callback):
+class TestModel(BoringModel):
 
     def on_pretrain_routine_end(self) -> None:
         with mock.patch('pytorch_lightning.loggers.base.LightningLoggerBase.agg_and_log_metrics') as m:
