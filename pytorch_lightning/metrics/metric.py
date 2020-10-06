@@ -31,7 +31,7 @@ class Metric(nn.Module, ABC):
     Note:
         Different metrics only override ``update()`` and not ``forward()``. A call to ``update()``
         is valid, but it won't return the metric value at the current step. A call to ``forward()``
-        calls ``update()`` behind the scenes and also return the metric value at the current step.
+        automatically calls ``update()`` and also return the metric value at the current step.
 
     Args:
         compute_on_step:
@@ -71,16 +71,27 @@ class Metric(nn.Module, ABC):
             name: The name of the state variable. The variable will then be accessible at ``self.name``.
             default: Default value of the state; can either be a ``torch.Tensor`` or an empty list. The state will be
                 reset to this value when ``self.reset()`` is called.
-            dist_reduce_fx (Optional): Function to reduce state accross mutliple GPUs. If value is ``"sum"``,
+            dist_reduce_fx (Optional): Function to reduce state accross mutliple processes in distributed mode. If value is ``"sum"``,
                 ``"mean"``, or ``"cat"``, we will use ``torch.sum``, ``torch.mean``, and ``torch.cat`` respectively,
-                each with argument ``dim=0``.
+                each with argument ``dim=0``. The user can also pass a custom function in this parameter.
 
         Note:
             Setting ``dist_reduce_fx`` to None will return the metric state synchronized across different processes.
-            It will be stacked ``torch.Tensor`` across the process dimension if the metric state was a ``torch.Tensor``.
+            However, there won't be any reduction function applied to the synchronized metric state.
 
-            For the list metric state, passing None to ``dist_reduce_fx`` will return a combined list ``torch.Tensor``
-            elements from across all processes.
+            The metric states would be synced as follows
+
+            - If the metric state is ``torch.Tensor``, the synced value will be a stacked ``torch.Tensor`` across
+              the process dimension if the metric state was a ``torch.Tensor``. The original ``torch.Tensor`` metric
+              state retains dimension and hence the synchronized output will be of shape ``(num_process, ...)``.
+
+            - If the metric state is a ``list``, the synced value will be a ``list`` containing the
+              combined elements from all processes.
+
+        Note:
+            When passing a custom function to ``dist_reduce_fx``, expect the synchronized metric state to follow
+            the format discussed in the above note.
+
         """
         if not isinstance(default, torch.Tensor) or (isinstance(default, list) and len(default) != 0):
             raise ValueError(

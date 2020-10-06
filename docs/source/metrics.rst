@@ -10,16 +10,25 @@
 Metrics
 =======
 
-Using a metric with with PyTorch Lightning:
-# TODO 1: write an intro for metrics, and lead the user into the lightning example
+``pytorch_lightning.metrics`` is a Metrics API created for easy metric development and usage in
+PyTorch and PyTorch Lightning. It is rigorously tested for all edge cases and includes a growing list of
+common metric implementations.
 
-# expand a bit on this
-These metrics work with DDP in PyTorch and PyTorch Lightning by default.
+The metrics API provides ``update()``, ``compute()``, ``reset()`` functions to the user. The metric base class inherits
+``nn.Module`` which allows us to call ``metric(...)`` directly. The ``forward()`` method of the base ``Metric`` class
+serves the dual purpose of calling ``update()`` on its input and simultanously returning the value of the metric over the
+provided input.
+
+These metrics work with DDP in PyTorch and PyTorch Lightning by default. When ``.compute()`` is called in
+distributed mode, the internal state of each metric is synced and reduced across each process, so that the
+logic present in ``.compute()`` is applied to state information from all processes.
+
+The example below shows how to use a metric in your ``LightningModule``:
 
 .. note::
 
     For v0.10.0 the user is expected to call ``.compute()`` on the metric at the end each epoch.
-    This has been shown in the example below. For v1.0 release after this, we will integrate metrics
+    This has been shown in the example below. For v1.0 release, we will integrate metrics
     with logging and ``.compute()`` will be called automatically by PyTorch Lightning.
 
 .. code-block:: python
@@ -40,7 +49,7 @@ These metrics work with DDP in PyTorch and PyTorch Lightning by default.
         self.log('train_acc_epoch', self.accuracy.compute())
 
 
-This metrics API is independent of PyTorch Lightning. If you please, they can be used with plain PyTorch like so:
+This metrics API is independent of PyTorch Lightning. Metrics can directly be used in PyTorch as shown in the example:
 
 .. code-block:: python
 
@@ -69,16 +78,17 @@ This metrics API is independent of PyTorch Lightning. If you please, they can be
 Implementing a Metric
 ---------------------
 
-# TODO 3: finalize this!, explain reduction in detail
-
-To implement a metric, subclass the ``Metric`` class and implement the following methods:
+To implement your custom metric, subclass the base ``Metric`` class and implement the following methods:
 
 - ``__init__()``: Each state variable should be called using ``self.add_state(...)``.
 - ``update()``: Any code needed to update the state given any inputs to the metric.
 - ``compute()``: Computes a final value from the state of the metric.
 
 All you need to do is call add_state correctly to implement a custom metric with DDP.
-``reset()`` is called on its own on variables added using ``add_state()``.
+``reset()`` is called on metric state variables added using ``add_state()``.
+
+To see how metric states are synchronized across distributed processes, refer to ``add_state()`` docs
+from the base ``Metric`` class.
 
 Example implementation:
 
