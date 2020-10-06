@@ -213,8 +213,7 @@ class TrainLoop:
         except Exception:
             pass
 
-        # update training progress in trainer and model
-        model.current_epoch = epoch
+        # update training progress in trainer
         self.trainer.current_epoch = epoch
 
         # changing gradient according accumulation_scheduler
@@ -520,7 +519,6 @@ class TrainLoop:
         should_check_val = False
         for batch_idx, (batch, is_last_batch) in train_dataloader:
             self.trainer.batch_idx = batch_idx
-            model.global_step = self.trainer.global_step
 
             # ------------------------------------
             # TRAINING_STEP + TRAINING_STEP_END

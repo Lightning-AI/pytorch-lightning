@@ -1,6 +1,8 @@
 import os
 
 from unittest import mock
+from unittest.mock import MagicMock
+
 from mlflow.tracking import MlflowClient
 
 from pytorch_lightning import Trainer
@@ -8,15 +10,57 @@ from pytorch_lightning.loggers import MLFlowLogger
 from tests.base import EvalModelTemplate
 
 
-def test_mlflow_logger_exists(tmpdir):
-    """ Test launching two independent loggers. """
+@mock.patch('pytorch_lightning.loggers.mlflow.mlflow')
+@mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient')
+def test_mlflow_logger_exists(client, mlflow, tmpdir):
+    """ Test launching three independent loggers with either same or different experiment name. """
+
+    run1 = MagicMock()
+    run1.info.run_id = "run-id-1"
+
+    run2 = MagicMock()
+    run2.info.run_id = "run-id-2"
+
+    run3 = MagicMock()
+    run3.info.run_id = "run-id-3"
+
+    # simulate non-existing experiment creation
+    client.return_value.get_experiment_by_name = MagicMock(return_value=None)
+    client.return_value.create_experiment = MagicMock(return_value="exp-id-1")  # experiment_id
+    client.return_value.create_run = MagicMock(return_value=run1)
+
     logger = MLFlowLogger('test', save_dir=tmpdir)
+    assert logger._experiment_id is None
+    assert logger._run_id is None
+    _ = logger.experiment
+    assert logger.experiment_id == "exp-id-1"
+    assert logger.run_id == "run-id-1"
+    assert logger.experiment.create_experiment.asset_called_once()
+    client.reset_mock(return_value=True)
+
+    # simulate existing experiment returns experiment id
+    exp1 = MagicMock()
+    exp1.experiment_id = "exp-id-1"
+    client.return_value.get_experiment_by_name = MagicMock(return_value=exp1)
+    client.return_value.create_run = MagicMock(return_value=run2)
+
     # same name leads to same experiment id, but different runs get recorded
     logger2 = MLFlowLogger('test', save_dir=tmpdir)
-    assert logger.experiment_id == logger2.experiment_id
-    assert logger.run_id != logger2.run_id
+    assert logger2.experiment_id == logger.experiment_id
+    assert logger2.run_id == "run-id-2"
+    assert logger2.experiment.create_experiment.call_count == 0
+    assert logger2.experiment.create_run.asset_called_once()
+    client.reset_mock(return_value=True)
+
+    # simulate a 3rd experiment with new name
+    client.return_value.get_experiment_by_name = MagicMock(return_value=None)
+    client.return_value.create_experiment = MagicMock(return_value="exp-id-3")
+    client.return_value.create_run = MagicMock(return_value=run3)
+
+    # logger with new experiment name causes new experiment id and new run id to be created
     logger3 = MLFlowLogger('new', save_dir=tmpdir)
-    assert logger3.experiment_id != logger.experiment_id
+    assert logger3.experiment_id == "exp-id-3" != logger.experiment_id
+    assert logger3.run_id == "run-id-3"
 
 
 def test_mlflow_logger_dirs_creation(tmpdir):
