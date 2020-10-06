@@ -375,7 +375,7 @@ class LightningModule(
         """
         return super().forward(*args, **kwargs)
 
-    def training_step(self, *args, **kwargs) -> Optional[Union[torch.Tensor, Dict[Any, Any]]]:
+    def training_step(self, *args, **kwargs:
         r"""
         Here you compute and return the training loss and some additional metrics for e.g.
         the progress bar or logger.
@@ -543,7 +543,7 @@ class LightningModule(
                     # do something here
         """
 
-    def validation_step(self, *args, **kwargs) -> Optional[Any]:
+    def validation_step(self, *args, **kwargs):
         r"""
         Operates on a single batch of data from the validation set.
         In this step you'd might generate examples or calculate anything of interest like accuracy.
@@ -736,7 +736,7 @@ class LightningModule(
                     self.log('final_metric', final_value)
         """
 
-    def test_step(self, *args, **kwargs) -> Optional[Any]:
+    def test_step(self, *args, **kwargs):
         r"""
         Operates on a single batch of data from the test set.
         In this step you'd normally generate examples or calculate anything of interest
@@ -965,7 +965,7 @@ class LightningModule(
         )
         return model
 
-    def configure_sync_batchnorm(self, model: "LightningModule") -> "LightningModule":
+    def configure_sync_batchnorm(self, model: "LightningModule"):
         """
         Add global batchnorm for a model spread across multiple GPUs and nodes.
 
@@ -988,7 +988,7 @@ class LightningModule(
         model: "LightningModule",
         optimizers: List[Optimizer],
         amp_level: str,
-    ) -> Tuple["LightningModule", List[Optimizer]]:
+    ) ->:
         r"""
         Override to init AMP your own way.
         Must return a model and list of optimizers.
