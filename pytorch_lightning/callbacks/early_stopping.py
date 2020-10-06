@@ -39,6 +39,7 @@ torch_inf = torch.tensor(np.Inf)
 
 class EarlyStopping(Callback):
     r"""
+    Monitor a validation metric and stop training when it stops improving.
 
     Args:
         monitor: quantity to be monitored. Default: ``'early_stop_on'``.
