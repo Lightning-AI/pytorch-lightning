@@ -16,6 +16,7 @@ from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.tuner.lr_finder import _run_lr_finder_internally, lr_find
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.datamodule import LightningDataModule
+from pytorch_lightning.utilities import rank_zero_warn
 from typing import Optional, List, Union
 from torch.utils.data import DataLoader
 
@@ -37,6 +38,9 @@ class Tuner:
                          max_trials: int = 25,
                          batch_arg_name: str = 'batch_size',
                          **fit_kwargs):
+        if self.trainer.fast_dev_run:
+            rank_zero_warn('Skipping batch size scaler `fast_dev_run=True`', UserWarning)
+            return
         return scale_batch_size(
             self.trainer, model, mode, steps_per_trial, init_val, max_trials, batch_arg_name, **fit_kwargs
         )
@@ -53,6 +57,11 @@ class Tuner:
             early_stop_threshold: float = 4.0,
             datamodule: Optional[LightningDataModule] = None
     ):
+        import pdb
+        pdb.set_trace()
+        if self.trainer.fast_dev_run:
+            rank_zero_warn('Skipping learning rate finder since `fast_dev_run=True`', UserWarning)
+            return
         return lr_find(
             self.trainer,
             model,

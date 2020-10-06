@@ -27,6 +27,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
+from pytorch_lightning.utilities import rank_zero_warn
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
@@ -38,6 +39,8 @@ else:
 
 def _run_lr_finder_internally(trainer, model: LightningModule):
     """ Call lr finder internally during Trainer.fit() """
+    if trainer.fast_dev_run:
+        rank_zero_warn('Skipping learning rate finder since `fast_dev_run=True`', UserWarning)
     lr_finder = lr_find(trainer, model)
     lr = lr_finder.suggestion()
 
