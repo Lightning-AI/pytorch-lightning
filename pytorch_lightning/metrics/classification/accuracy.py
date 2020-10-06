@@ -20,7 +20,17 @@ class Accuracy(Metric):
         If preds are integer values, we perform accuracy with those values
         If preds are floating point we threshold at `threshold`
 
+    Example:
+
+        >>> from pytorch_lightning.metrics import Accuracy
+        >>> target = torch.tensor([0, 1, 2, 3])
+        >>> preds = torch.tensor([0, 2, 1, 3])
+        >>> accuracy = Accuracy()
+        >>> accuracy(preds, target)
+        tensor(0.5)
+
     """
+
     def __init__(
         self,
         threshold: float = 0.5,
