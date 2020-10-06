@@ -62,7 +62,7 @@ def test_reset():
 
     a = A()
     assert a.x == 0
-    a.x = 5
+    a.x = torch.tensor(5)
     a.reset()
     assert a.x == 0
 

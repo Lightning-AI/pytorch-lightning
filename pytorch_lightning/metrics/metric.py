@@ -12,8 +12,10 @@ from torch import nn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.metrics.utils import _flatten, gather_all_tensors_if_available
 
+from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 
-class Metric(nn.Module, ABC):
+
+class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
     """
 
     """
@@ -66,7 +68,10 @@ class Metric(nn.Module, ABC):
                 "`dist_reduce_fx` must be callable or one of ['mean', 'sum', 'cat', None]"
             )
 
-        setattr(self, name, default)
+        if isinstance(default, torch.Tensor):
+            self.register_buffer(name, default)
+        else:
+            setattr(self, name, default)
         self._defaults[name] = deepcopy(default)
         self._reductions[name] = dist_reduce_fx
 
@@ -165,4 +170,8 @@ class Metric(nn.Module, ABC):
         This method automatically resets the metric state variables to their default value.
         """
         for attr, default in self._defaults.items():
-            setattr(self, attr, deepcopy(default))
+            current_val = getattr(self, attr)
+            if isinstance(current_val, torch.Tensor):
+                setattr(self, attr, deepcopy(default).to(current_val.device))
+            else:
+                setattr(self, attr, deepcopy(default))
