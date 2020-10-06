@@ -3,13 +3,24 @@
     from pytorch_lightning.trainer.trainer import Trainer
     from pytorch_lightning.core.lightning import LightningModule
 
-.. _experiment_logging:
+.. _loggers:
 
-Experiment Logging
-==================
+*******
+Loggers
+*******
+
+Lightning supports the most popular logging frameworks (TensorBoard, Comet, etc...). TensorBoard is used by default, 
+but you can pass to the :class:`~pytorch_lightning.trainer.trainer.Trainer` any combintation of the following loggers.
+
+.. note::
+
+    All loggers log by default to `os.getcwd()`. To change the path without creating a logger set
+    `Trainer(default_root_dir='/your/path/to/save/checkpoints')`
+
+Read more about :ref:`logging` options.
 
 Comet.ml
-^^^^^^^^
+========
 
 `Comet.ml <https://www.comet.ml/site/>`_ is a third-party logger.
 To use :class:`~pytorch_lightning.loggers.CometLogger` as your logger do the following.
@@ -51,7 +62,7 @@ The :class:`~pytorch_lightning.loggers.CometLogger` is available anywhere except
 ----------------
 
 MLflow
-^^^^^^
+======
 
 `MLflow <https://mlflow.org/>`_ is a third-party logger.
 To use :class:`~pytorch_lightning.loggers.MLFlowLogger` as your logger do the following.
@@ -78,7 +89,7 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
 ----------------
 
 Neptune.ai
-^^^^^^^^^^
+==========
 
 `Neptune.ai <https://neptune.ai/>`_ is a third-party logger.
 To use :class:`~pytorch_lightning.loggers.NeptuneLogger` as your logger do the following.
@@ -119,7 +130,7 @@ The :class:`~pytorch_lightning.loggers.NeptuneLogger` is available anywhere exce
 ----------------
 
 Tensorboard
-^^^^^^^^^^^
+===========
 
 To use `TensorBoard <https://pytorch.org/docs/stable/tensorboard.html>`_ as your logger do the following.
 
@@ -145,7 +156,7 @@ The :class:`~pytorch_lightning.loggers.TensorBoardLogger` is available anywhere 
 ----------------
 
 Test Tube
-^^^^^^^^^
+=========
 
 `Test Tube <https://github.com/williamFalcon/test-tube>`_ is a
 `TensorBoard <https://pytorch.org/docs/stable/tensorboard.html>`_  logger but with nicer file structure.
@@ -180,7 +191,7 @@ The :class:`~pytorch_lightning.loggers.TestTubeLogger` is available anywhere exc
 ----------------
 
 Weights and Biases
-^^^^^^^^^^^^^^^^^^
+==================
 
 `Weights and Biases <https://www.wandb.com/>`_ is a third-party logger.
 To use :class:`~pytorch_lightning.loggers.WandbLogger` as your logger do the following.
@@ -216,7 +227,7 @@ The :class:`~pytorch_lightning.loggers.WandbLogger` is available anywhere except
 ----------------
 
 Multiple Loggers
-^^^^^^^^^^^^^^^^
+================
 
 Lightning supports the use of multiple loggers, just pass a list to the
 :class:`~pytorch_lightning.trainer.trainer.Trainer`.

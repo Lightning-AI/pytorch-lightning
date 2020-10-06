@@ -37,7 +37,7 @@ PyTorch Lightning Documentation
 
    callbacks
    datamodules
-   loggers
+   logging
    metrics
 
 .. toctree::
@@ -87,8 +87,7 @@ PyTorch Lightning Documentation
    slurm
    child_modules
    debugging
-   experiment_logging
-   experiment_reporting
+   loggers
    early_stopping
    fast_training
    hooks
