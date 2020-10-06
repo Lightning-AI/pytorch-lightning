@@ -27,22 +27,18 @@ from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 from copy import deepcopy
 
-
+TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 try:
     from apex import amp
 except ImportError:
     amp = None
 
-try:
+if TPU_AVAILABLE:
     import torch_xla
     import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
 
 try:
     import horovod.torch as hvd
