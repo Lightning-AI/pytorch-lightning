@@ -15,7 +15,7 @@ import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
-from tests.base import EvalModelTemplate
+from tests.base import EvalModelTemplate, BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -457,3 +457,28 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     )
     for w0, w1 in zip(model_last_epoch.parameters(), model_last.parameters()):
         assert w0.eq(w1).all()
+
+
+@pytest.mark.parametrize('mode', ['min', 'max'])
+def test_checkpointing_with_nan_as_first(tmpdir, mode):
+    os.environ['PL_DEV_DEBUG'] = '1'
+    monitor = [float('nan')]
+    monitor += [5, 7, 8] if mode == 'max' else [8, 7, 5]
+
+    class CurrentModel(BoringModel):
+        def validation_epoch_end(self, outputs):
+            val_loss = monitor[self.current_epoch]
+            self.log('abc', val_loss)
+
+    model = CurrentModel()
+
+    trainer = Trainer(
+        checkpoint_callback=ModelCheckpoint(monitor='abc', mode=mode, save_top_k=1, filepath=tmpdir),
+        default_root_dir=tmpdir,
+        val_check_interval=1.0,
+        max_epochs=len(monitor),
+    )
+    trainer.fit(model)
+
+    # check that last one is also the best one
+    assert trainer.dev_debugger.checkpoint_callback_history[-1]['epoch'] == len(monitor) - 1

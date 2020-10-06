@@ -68,6 +68,8 @@ class LightningModule(
         "example_input_array",
         "hparams",
         "on_gpu",
+        "current_epoch",
+        "global_step",
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
     def __init__(self, *args, **kwargs):
@@ -116,11 +118,13 @@ class LightningModule(
         return self._example_input_array
 
     @property
-    def current_epoch(self):
+    def current_epoch(self) -> int:
+        """The current epoch"""
         return self.trainer.current_epoch if self.trainer else 0
 
     @property
-    def global_step(self):
+    def global_step(self) -> int:
+        """Total training batches seen across all epochs"""
         return self.trainer.global_step if self.trainer else 0
 
     @example_input_array.setter
@@ -299,6 +303,13 @@ class LightningModule(
                 tbptt_pad_token=tbptt_pad_token,
                 tbptt_reduce_fx=tbptt_reduce_fx,
             )
+
+    def write_prediction(self, name, value, filename='predictions.pt'):
+        self.trainer.evaluation_loop.predictions._add_prediction(name, value, filename)
+
+    def write_prediction_dict(self, predictions_dict, filename='predictions.pt'):
+        for k, v in predictions_dict.items():
+            self.write_prediction(k, v, filename)
 
     def __auto_choose_log_on_step(self, on_step):
         if on_step is None:

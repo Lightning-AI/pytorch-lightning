@@ -83,7 +83,7 @@ class Trainer(
         self,
         logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
         checkpoint_callback: Union[ModelCheckpoint, bool] = True,
-        early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,
+        early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,  # todo: remove in v1.0.0
         callbacks: Optional[List[Callback]] = None,
         default_root_dir: Optional[str] = None,
         gradient_clip_val: float = 0,
@@ -143,10 +143,10 @@ class Trainer(
 
             amp_level: The optimization level to use (O1, O2, etc...).
 
-            auto_lr_find: If set to True, will `initially` run a learning rate finder,
-                trying to optimize initial learning for faster convergence. Sets learning
-                rate in self.lr or self.learning_rate in the LightningModule.
-                To use a different key, set a string instead of True with the key name.
+            auto_lr_find: If set to True, will make trainer.tune() run a learning rate finder,
+                trying to optimize initial learning for faster convergence. trainer.tune() method will
+                set the suggested learning rate in self.lr or self.learning_rate in the LightningModule.
+                To use a different key set a string instead of True with the key name.
 
             auto_scale_batch_size: If set to True, will `initially` run a batch size
                 finder trying to find the largest batch size that fits into memory.
@@ -177,7 +177,8 @@ class Trainer(
 
             distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn, ddp_cpu)
 
-            early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
+            early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`).
+                Deprecated since v0.10.0 and will be removed in v1.0.
 
             fast_dev_run: runs 1 batch of train, test and val to find any bugs (ie: a sort of unit test).
 
@@ -376,8 +377,21 @@ class Trainer(
         val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         datamodule: Optional[LightningDataModule] = None,
     ):
-        # TODO: temporary, need to decide if tune or separate object
+        r"""
+        Runs routines to tune hyperparameters before training.
 
+        Args:
+            datamodule: A instance of :class:`LightningDataModule`.
+
+            model: Model to tune.
+
+            train_dataloader: A Pytorch DataLoader with training samples. If the model has
+                a predefined train_dataloader method this will be skipped.
+
+            val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
+                If the model has a predefined val_dataloaders method this will be skipped
+
+        """
         # setup data, etc...
         self.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
 
@@ -542,8 +556,9 @@ class Trainer(
 
         # enable eval mode + no grads
         model = self.get_model()
+        self.evaluation_loop.on_evaluation_model_eval()
+
         model.zero_grad()
-        model.eval()
         torch.set_grad_enabled(False)
 
         # hook
@@ -602,23 +617,25 @@ class Trainer(
             self.evaluation_loop.step_metrics.append(dl_step_metrics)
 
         # lightning module method
-        eval_results = self.evaluation_loop.evaluation_epoch_end(num_dataloaders=len(dataloaders))
+        deprecated_eval_results, epoch_logs = self.evaluation_loop.evaluation_epoch_end(
+            num_dataloaders=len(dataloaders)
+        )
 
         # bookkeeping
-        eval_loop_results = self.evaluation_loop.log_epoch_metrics(eval_results, test_mode)
+        eval_loop_results = self.evaluation_loop.log_epoch_metrics(deprecated_eval_results, epoch_logs, test_mode)
         self.evaluation_loop.predictions.to_disk()
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
 
         # enable train mode again
-        model.train()
+        self.evaluation_loop.on_evaluation_model_train()
         torch.set_grad_enabled(True)
 
         # hook
         self.evaluation_loop.on_evaluation_end()
 
-        return eval_loop_results, eval_results
+        return eval_loop_results, deprecated_eval_results
 
     def run_test(self):
         # only load test dataloader for testing
