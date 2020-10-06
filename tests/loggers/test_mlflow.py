@@ -2,7 +2,7 @@ import importlib.util
 import os
 
 from unittest import mock
-from mlflow.tracking import MlflowClient
+from unittest.mock import MagicMock
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import MLFlowLogger
@@ -20,10 +20,41 @@ def test_mlflow_logger_exists(tmpdir):
     assert logger3.experiment_id != logger.experiment_id
 
 
+@mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
+@mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
+def test_mlflow_log_dir(client, mlflow, tmpdir):
+    """ Test that the trainer saves checkpoints in the logger's save dir. """
+
+    # simulate experiment creation with mlflow client mock
+    run = MagicMock()
+    run.info.run_id = "run-id"
+    client.return_value.get_experiment_by_name = MagicMock(return_value=None)
+    client.return_value.create_experiment = MagicMock(return_value="exp-id")
+    client.return_value.create_run = MagicMock(return_value=run)
+
+    # test construction of default log dir path
+    logger = MLFlowLogger("test", save_dir=tmpdir)
+    assert logger.save_dir == tmpdir
+    assert logger.version == "run-id"
+    assert logger.name == "exp-id"
+
+    model = EvalModelTemplate()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=logger,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=3,
+    )
+    trainer.fit(model)
+    assert trainer.checkpoint_callback.dirpath == (tmpdir / "exp-id" / "run-id" / 'checkpoints')
+    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0.ckpt'}
+
+
 def test_mlflow_logger_dirs_creation(tmpdir):
     """ Test that the logger creates the folders and files in the right place. """
     if not importlib.util.find_spec('mlflow'):
-       pytest.xfail(f"test for explicit file creation requires mlflow dependency to be installed.")
+        pytest.xfail(f"test for explicit file creation requires mlflow dependency to be installed.")
 
     assert not os.listdir(tmpdir)
     logger = MLFlowLogger('test', save_dir=tmpdir)
