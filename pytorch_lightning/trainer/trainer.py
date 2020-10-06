@@ -410,17 +410,10 @@ class Trainer(
 
             train_dataloader: A Pytorch DataLoader with training samples. If the model has
                 a predefined train_dataloader method this will be skipped.
-<<<<<<< HEAD
 
             val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
                 If the model has a predefined val_dataloaders method this will be skipped
 
-=======
-
-            val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
-                If the model has a predefined val_dataloaders method this will be skipped
-
->>>>>>> a279ded19c80e57b7e6cf64f0a880617482f34f8
         """
         # setup data, etc...
         self.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
