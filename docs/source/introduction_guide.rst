@@ -494,7 +494,7 @@ Which will generate automatic tensorboard logs.
 
 |
 
-But you can also use any of the :ref:`number of other loggers <logging>` we support.
+But you can also use any of the :ref:`number of other loggers <loggers>` we support.
 
 
 Train on CPU
