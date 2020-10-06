@@ -3,6 +3,20 @@ from pytorch_lightning import LightningModule
 from torch.utils.data import Dataset
 
 
+class RandomDictDataset(Dataset):
+    def __init__(self, size, length):
+        self.len = length
+        self.data = torch.randn(length, size)
+
+    def __getitem__(self, index):
+        a = self.data[index]
+        b = a + 2
+        return {'a': a, 'b': b}
+
+    def __len__(self):
+        return self.len
+
+
 class RandomDataset(Dataset):
     def __init__(self, size, length):
         self.len = length
