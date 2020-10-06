@@ -21,7 +21,6 @@ import inspect
 # import m2r
 import builtins
 import pt_lightning_sphinx_theme
-from sphinx.ext import apidoc
 
 PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 PATH_ROOT = os.path.join(PATH_HERE, '..', '..')
@@ -138,10 +137,6 @@ language = None
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
-    'api/pytorch_lightning.rst',
-    'api/pl_examples.*',
-    'api/pytorch_lightning.accelerators.*',
-    'api/modules.rst',
     'PULL_REQUEST_TEMPLATE.md',
 ]
 
@@ -268,39 +263,11 @@ intersphinx_mapping = {
 todo_include_todos = True
 
 
-# packages for which sphinx-apidoc should generate the docs (.rst files)
-PACKAGES = [
-    pytorch_lightning.__name__,
-    'pl_examples',
-]
-
-apidoc_output_folder = os.path.join(PATH_HERE, 'api')
-
-
-def run_apidoc(_):
-    sys.path.insert(0, apidoc_output_folder)
-
-    # delete api-doc files before generating them
-    if os.path.exists(apidoc_output_folder):
-        shutil.rmtree(apidoc_output_folder)
-
-    for pkg in PACKAGES:
-        argv = ['-e',
-                '-o', apidoc_output_folder,
-                os.path.join(PATH_ROOT, pkg),
-                '**/test_*',
-                '--force',
-                '--private',
-                '--module-first']
-
-        apidoc.main(argv)
-
-
 def setup(app):
     # this is for hiding doctest decoration,
     # see: http://z4r.github.io/python/2011/12/02/hides-the-prompts-and-output/
     app.add_javascript('copybutton.js')
-    app.connect('builder-inited', run_apidoc)
+    app.add_css_file('main.css')
 
 
 # copy all notebooks to local folder
@@ -382,19 +349,18 @@ def linkcode_resolve(domain, info):
            % (github_user, github_repo, filename)
 
 
+autosummary_generate = True
 autodoc_member_order = 'groupwise'
 autoclass_content = 'both'
 # the options are fixed and will be soon in release,
 #  see https://github.com/sphinx-doc/sphinx/issues/5459
 autodoc_default_options = {
-    'members': None,
-    'methods': None,
-    # 'attributes': None,
+    'members': True,
+    'methods': True,
     'special-members': '__call__',
     'exclude-members': '_abc_impl',
     'show-inheritance': True,
     'private-members': True,
-    'noindex': True,
 }
 
 # Sphinx will add “permalinks” for each heading and description environment as paragraph signs that
