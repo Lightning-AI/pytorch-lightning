@@ -19,23 +19,22 @@ Early Stopping
 Monitor a validation metric and stop training when it stops improving.
 
 """
+import os
+
 import numpy as np
 import torch
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
-import os
+from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
+
+TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
+
 
 torch_inf = torch.tensor(np.Inf)
 
-try:
-    import torch_xla
-    import torch_xla.core.xla_model as xm
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
+
 
 
 class EarlyStopping(Callback):
@@ -186,7 +185,7 @@ class EarlyStopping(Callback):
         if not isinstance(current, torch.Tensor):
             current = torch.tensor(current, device=pl_module.device)
 
-        if trainer.use_tpu and XLA_AVAILABLE:
+        if trainer.use_tpu and TPU_AVAILABLE:
             current = current.cpu()
 
         if self.monitor_op(current - self.min_delta, self.best_score):

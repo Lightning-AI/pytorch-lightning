@@ -21,20 +21,19 @@ import torch.multiprocessing as mp
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.base_backend import Accelerator
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.distributed import LightningDistributed
-from pytorch_lightning.utilities import AMPType, rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 
-try:
+TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
+
+if TPU_AVAILABLE:
     import torch_xla
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.parallel_loader as xla_pl
     import torch_xla.distributed.xla_multiprocessing as xmp
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
+    import torch_xla.distributed.parallel_loader as xla_pl
 
 
 class TPUBackend(Accelerator):
@@ -47,7 +46,8 @@ class TPUBackend(Accelerator):
     def setup(self, model):
         rank_zero_info(f'training on {self.trainer.tpu_cores} TPU cores')
 
-        if not XLA_AVAILABLE:
+        # TODO: Move this check to Trainer __init__ or device parser
+        if not TPU_AVAILABLE:
             raise MisconfigurationException('PyTorch XLA not installed.')
 
         # see: https://discuss.pytorch.org/t/segfault-with-multiprocessing-queue/81292/2
@@ -171,7 +171,7 @@ class TPUBackend(Accelerator):
         See Also:
             - :func:`~pytorch_lightning.utilities.apply_func.move_data_to_device`
         """
-        if not XLA_AVAILABLE:
+        if not TPU_AVAILABLE:
             raise MisconfigurationException(
                 'Requested to transfer batch to TPU but XLA is not available.'
                 ' Are you sure this machine has TPUs?'

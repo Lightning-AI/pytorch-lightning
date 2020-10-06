@@ -30,6 +30,8 @@ from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES,
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
+from pytorch_lightning.core.step_result import TrainResult, EvalResult
+from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities.parsing import (
@@ -43,12 +45,10 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.optim.optimizer import Optimizer
 
 
-try:
+TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
+
+if TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
 
 
 class LightningModule(
