@@ -14,7 +14,7 @@
 
 import numbers
 from copy import copy
-from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any, List, Tuple
+from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any, List, Tuple, Iterable
 
 import torch
 from torch import Tensor
