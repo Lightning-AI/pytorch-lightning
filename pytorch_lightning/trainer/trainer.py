@@ -29,6 +29,7 @@ from pytorch_lightning.profiler import BaseProfiler
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
+from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_11
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
@@ -78,6 +79,7 @@ class Trainer(
     TrainerLoggingMixin,
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
+    TrainerDeprecatedAPITillVer0_11,
 ):
     def __init__(
         self,
