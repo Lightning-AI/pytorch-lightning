@@ -19,13 +19,13 @@ def test_gpu_stats_monitor(tmpdir):
     model = EvalModelTemplate()
     gpu_stats = GPUStatsMonitor(intra_step_time=True)
     logger = CSVLogger(tmpdir)
-    row_log_interval = 2
+    log_every_n_steps = 2
 
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
         limit_train_batches=7,
-        row_log_interval=row_log_interval,
+        log_every_n_steps=log_every_n_steps,
         gpus=1,
         callbacks=[gpu_stats],
         logger=logger
@@ -39,7 +39,7 @@ def test_gpu_stats_monitor(tmpdir):
 
     batch_time_data = met_data['batch_time/intra_step (ms)']
     batch_time_data = batch_time_data[~np.isnan(batch_time_data)]
-    assert batch_time_data.shape[0] == trainer.global_step // row_log_interval
+    assert batch_time_data.shape[0] == trainer.global_step // log_every_n_steps
 
     fields = [
         'utilization.gpu',

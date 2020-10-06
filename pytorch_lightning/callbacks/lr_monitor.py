@@ -163,7 +163,7 @@ class LearningRateMonitor(Callback):
 
     def _should_log(self, trainer) -> bool:
         should_log = (
-            (trainer.global_step + 1) % trainer.row_log_interval == 0
+            (trainer.global_step + 1) % trainer.log_every_n_steps == 0
             or trainer.should_stop
             or trainer.fast_dev_run
         )
