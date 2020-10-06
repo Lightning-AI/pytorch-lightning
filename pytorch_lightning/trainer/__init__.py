@@ -620,7 +620,7 @@ Writes logs to disk this often.
     trainer = Trainer(flush_logs_every_n_steps=100)
 
 See Also:
-    - :ref:`Experiment Reporting <experiment_reporting>`
+    - :ref:`logging`
 
 logger
 ^^^^^^
@@ -955,7 +955,7 @@ How often to add logging rows (does not write to disk)
     trainer = Trainer(log_every_n_steps=50)
 
 See Also:
-    - :ref:`Experiment Reporting <experiment_reporting>`
+    - :ref:`logging`
 
 
 sync_batchnorm
