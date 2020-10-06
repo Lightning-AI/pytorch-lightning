@@ -125,13 +125,13 @@ def sync_dist_if_available(
         reduced value
     """
     if torch.distributed.is_available() and torch.distributed.is_initialized():
-        return sync_ddp_if_available(result, group=group, reduce_op=reduce_op)
+        return sync_ddp(result, group=group, reduce_op=reduce_op)
     if HOROVOD_AVAILABLE and hvd.is_initialized():
-        return sync_horovod_if_available(result, group=group, reduce_op=reduce_op)
+        return sync_horovod(result, group=group, reduce_op=reduce_op)
     return result
 
 
-def sync_ddp_if_available(
+def sync_ddp(
     result: Union[torch.Tensor], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
 ) -> torch.Tensor:
     """
@@ -146,30 +146,26 @@ def sync_ddp_if_available(
     Return:
         reduced value
     """
+    divide_by_world_size = False
 
-    if torch.distributed.is_available() and torch.distributed.is_initialized():
-        divide_by_world_size = False
+    if group is None:
+        group = torch.distributed.group.WORLD
 
-        if group is None:
-            group = torch.distributed.group.WORLD
+    if reduce_op is None:
+        reduce_op = torch.distributed.ReduceOp.SUM
+    elif isinstance(reduce_op, str) and reduce_op in ("avg", "mean"):
+        reduce_op = torch.distributed.ReduceOp.SUM
+        divide_by_world_size = True
 
-        if reduce_op is None:
-            reduce_op = torch.distributed.ReduceOp.SUM
-        elif isinstance(reduce_op, str) and reduce_op in ("avg", "mean"):
-            reduce_op = torch.distributed.ReduceOp.SUM
-            divide_by_world_size = True
+    # sync all processes before reduction
+    torch.distributed.barrier(group=group)
+    torch.distributed.all_reduce(result, op=reduce_op, group=group, async_op=False)
 
-        # sync all processes before reduction
-        torch.distributed.barrier(group=group)
-        torch.distributed.all_reduce(result, op=reduce_op, group=group, async_op=False)
-
-        if divide_by_world_size:
-            result = result / torch.distributed.get_world_size(group)
-
-    return result
+    if divide_by_world_size:
+        result = result / torch.distributed.get_world_size(group)
 
 
-def sync_horovod_if_available(
+def sync_horovod(
     result: Union[torch.Tensor], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
 ) -> torch.Tensor:
     """
@@ -184,9 +180,6 @@ def sync_horovod_if_available(
     Return:
         reduced value
     """
-
-    if not (HOROVOD_AVAILABLE and hvd.is_initialized()):
-        return result
     if group is not None:
         raise ValueError(
             "Horovod does not support allreduce using a subcommunicator at this time. Unset `group`."
