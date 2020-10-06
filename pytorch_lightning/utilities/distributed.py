@@ -81,6 +81,11 @@ def find_free_network_port() -> int:
     return port
 
 
+def is_distributed():
+    return (torch.distributed.is_available() and torch.distributed.is_initialized()) or \
+           (HOROVOD_AVAILABLE and hvd.is_initialized())
+
+
 def gather_all_tensors_if_available(result: Union[torch.Tensor], group: Optional[Any] = None):
     """
     Function to gather all tensors from several distributed processes onto a list that
@@ -124,9 +129,15 @@ def gather_horovod(result: Union[torch.Tensor], group: Optional[Any] = None):
             "Unset `group`."
         )
 
+    if len(result.shape) == 0:
+        # Convert scalars to single dimension tensors
+        result = result.reshape(1)
+
     # sync and gather all
     hvd.join()
-    return hvd.allgather(result)
+    gathered = hvd.allgather(result)
+    gathered_result = list(gathered.split(1, dim=0))
+    return gathered_result
 
 
 def sync_dist_if_available(
@@ -181,6 +192,8 @@ def sync_ddp(
 
     if divide_by_world_size:
         result = result / torch.distributed.get_world_size(group)
+
+    return result
 
 
 def sync_horovod(

@@ -5,13 +5,17 @@ import shlex
 import subprocess
 import sys
 
+import numpy as np
 import pytest
 import torch
+
+from sklearn.metrics import accuracy_score
 
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.step_result import Result, TrainResult, EvalResult
+from pytorch_lightning.metrics.classification.accuracy import Accuracy
 from tests.base import EvalModelTemplate
 from tests.base.models import BasicGAN
 
@@ -198,6 +202,7 @@ def test_horovod_multi_optimizer(tmpdir):
 
 
 @pytest.mark.parametrize("result_cls", [Result, TrainResult, EvalResult])
+@pytest.mark.skipif(not HOROVOD_AVAILABLE, reason="Horovod is unavailable")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 def test_result_reduce_horovod(result_cls):
     """Make sure result logging works with Horovod."""
@@ -216,6 +221,48 @@ def test_result_reduce_horovod(result_cls):
             "Result-Log does not work properly with Horovod and Tensors"
 
     horovod.run(hvd_test_fn, np=2)
+
+
+def test_accuracy_metric_horovod():
+    num_batches = 10
+    batch_size = 16
+    threshold = 0.5
+
+    def sk_metric(preds, target):
+        sk_preds = (preds.view(-1).numpy() >= threshold).astype(np.uint8)
+        sk_target = target.view(-1).numpy()
+        return accuracy_score(y_true=sk_target, y_pred=sk_preds)
+
+    preds = torch.rand(num_batches, batch_size)
+    target = torch.randint(high=2, size=(num_batches, batch_size))
+
+    def _compute_batch():
+        import horovod.torch as hvd
+        hvd.init()
+
+        metric = Accuracy(compute_on_step=True,
+                          dist_sync_on_step=True,
+                          threshold=threshold)
+
+        for i in range(hvd.rank(), num_batches, hvd.size()):
+            batch_result = metric(preds[i], target[i])
+            if hvd.rank() == 0:
+                dist_preds = torch.stack([preds[i + r] for r in range(hvd.size())])
+                dist_target = torch.stack([target[i + r] for r in range(hvd.size())])
+                sk_batch_result = sk_metric(dist_preds, dist_target)
+                assert np.allclose(batch_result.numpy(), sk_batch_result)
+
+        # check on all batches on all ranks
+        result = metric.compute()
+        assert isinstance(result, torch.Tensor)
+
+        total_preds = torch.stack([preds[i] for i in range(num_batches)])
+        total_target = torch.stack([target[i] for i in range(num_batches)])
+        sk_result = sk_metric(total_preds, total_target)
+
+        assert np.allclose(result.numpy(), sk_result)
+
+    horovod.run(_compute_batch, np=2)
 
 # @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 # def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
