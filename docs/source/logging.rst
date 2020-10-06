@@ -205,12 +205,12 @@ Logging frequency
 =================
 
 It may slow training down to log every single batch. By default, Lightning logs every 50 rows, or 50 training steps.
-To change this behaviour, set the `row_log_interval` :class:`~pytorch_lightning.trainer.trainer.Trainer` flag.
+To change this behaviour, set the `log_every_n_steps` :class:`~pytorch_lightning.trainer.trainer.Trainer` flag.
 
 .. testcode::
 
    k = 10
-   trainer = Trainer(row_log_interval=k)
+   trainer = Trainer(log_every_n_steps=k)
 
 
 
@@ -218,14 +218,14 @@ Log writing frequency
 =====================
 
 Writing to a logger can be expensive, so by default Lightning write logs to disc or to the given logger every 100 training steps.
-To change this behaviour, set the interval at which you wish to flush logs to the filesystem using `row_log_interval` :class:`~pytorch_lightning.trainer.trainer.Trainer` flag.
+To change this behaviour, set the interval at which you wish to flush logs to the filesystem using `log_every_n_steps` :class:`~pytorch_lightning.trainer.trainer.Trainer` flag.
 
 .. testcode::
 
     k = 100
-    trainer = Trainer(log_save_interval=k)
+    trainer = Trainer(flush_logs_every_n_steps=k)
 
-Unlike the `row_log_interval`, this argument does not apply to all loggers.
+Unlike the `log_every_n_steps`, this argument does not apply to all loggers.
 The example shown here works with :class:`~pytorch_lightning.loggers.tensorboard.TensorBoardLogger`,
 which is the default logger in Lightning.
 
