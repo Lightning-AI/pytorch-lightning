@@ -6,10 +6,8 @@ from pytorch_lightning.metrics.metric import Metric
 
 class MeanSquaredError(Metric):
     """
-    Computes mean squared error. If ``num_targets`` is ``1``, ``compute()`` will return a single float,
-    otherwise it will return a tensor of length ``num_targets``.
+    Computes mean squared error.
     """
-
     def __init__(
         self,
         compute_on_step: bool = True,
