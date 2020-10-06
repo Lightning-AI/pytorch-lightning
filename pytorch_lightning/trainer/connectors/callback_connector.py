@@ -1,5 +1,6 @@
 import os
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, ProgressBarBase, ProgressBar
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -11,7 +12,7 @@ class CallbackConnector:
     def on_trainer_init(
             self,
             callbacks,
-            early_stop_callback,
+            early_stop_callback,  # TODO: Deprecated in v0.10.0. Remove in v1.0
             checkpoint_callback,
             progress_bar_refresh_rate,
             process_position,
@@ -30,6 +31,7 @@ class CallbackConnector:
 
         # configure early stop callback
         # creates a default one if none passed in
+        # TODO: Deprecated in v0.10.0. Remove early stopping default configuration in v1.0
         early_stop_callback = self.configure_early_stopping(early_stop_callback)
         if early_stop_callback:
             self.trainer.callbacks.append(early_stop_callback)
@@ -43,6 +45,8 @@ class CallbackConnector:
 
         # TODO refactor codebase (tests) to not directly reach into these callbacks
         self.trainer.checkpoint_callback = checkpoint_callback
+
+        # TODO: Deprecated in v0.10.0. Remove in v1.0
         self.trainer.early_stop_callback = early_stop_callback
 
         # init progress bar
@@ -60,8 +64,15 @@ class CallbackConnector:
 
         return checkpoint_callback
 
+    # TODO: Deprecated in v0.10.0. Remove this method in v1.0
     def configure_early_stopping(self, early_stop_callback):
         if early_stop_callback is True or None:
+            rank_zero_warn(
+                "Trainer(early_stop_callback=True) is deprecated since v0.10.0 and will be"
+                " removed in v1.0."
+                " Configure the EarlyStopping callback class and add it to the list of callbacks:"
+                " Trainer(callbacks=[EarlyStopping(...)])."
+            )
             early_stop_callback = EarlyStopping(
                 monitor='early_stop_on',
                 patience=3,

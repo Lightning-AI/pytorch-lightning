@@ -137,7 +137,7 @@ class ModelCheckpoint(Callback):
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
         self.period = period
-        self.epoch_last_check = None
+        self.last_global_step_saved = -1
         self.prefix = prefix
         self.best_k_models = {}
         self.kth_best_model_path = ""
@@ -183,21 +183,26 @@ class ModelCheckpoint(Callback):
         to handle correct behaviour in distributed training, i.e., saving only on rank 0.
         """
         epoch = trainer.current_epoch
+        global_step = trainer.global_step
 
         if (
             self.save_top_k == 0  # no models are saved
             or self.period < 1  # no models are saved
             or (epoch + 1) % self.period  # skip epoch
             or trainer.running_sanity_check  # don't save anything during sanity check
+<<<<<<< HEAD
             or self.epoch_last_check == epoch  # already saved
-        ):
+=======
             return
-
         self._add_backward_monitor_support(trainer)
         self._validate_monitor_key(trainer)
 
         # track epoch when ckpt was last checked
+<<<<<<< HEAD
         self.epoch_last_check = trainer.current_epoch
+=======
+        self.last_global_step_saved = global_step
+>>>>>>> upstream/master
 
         # what can be monitored
         monitor_candidates = self._monitor_candidates(trainer)
@@ -515,6 +520,10 @@ class ModelCheckpoint(Callback):
             delpath = self.kth_best_model_path
             self.best_k_models.pop(self.kth_best_model_path)
             del_list.append(delpath)
+
+        # do not save non, for replace then by +/- inf
+        if torch.isnan(current):
+            current = {"min": torch.tensor(float('inf')), "max": torch.tensor(-float('inf'))}[self.mode]
 
         self.best_k_models[filepath] = current
         if len(self.best_k_models) == k:

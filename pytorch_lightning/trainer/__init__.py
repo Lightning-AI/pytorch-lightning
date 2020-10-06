@@ -45,8 +45,8 @@ This is the basic use of the trainer:
 
 --------
 
-Trainer in Python scrips
-------------------------
+Trainer in Python scripts
+-------------------------
 In Python scripts, it's recommended you use a main function to call the Trainer.
 
 .. code-block:: python
@@ -249,16 +249,21 @@ before any training, to find optimal initial learning rate.
     # default used by the Trainer (no learning rate finder)
     trainer = Trainer(auto_lr_find=False)
 
-    # call tune to find the lr
-    trainer.tune(model)
-
 Example::
 
     # run learning rate finder, results override hparams.learning_rate
     trainer = Trainer(auto_lr_find=True)
 
+    # call tune to find the lr
+    trainer.tune(model)
+
+Example::
+
     # run learning rate finder, results override hparams.my_lr_arg
     trainer = Trainer(auto_lr_find='my_lr_arg')
+
+    # call tune to find the lr
+    trainer.tune(model)
 
 .. note::
     See the :ref:`learning rate finder guide <lr_finder>`.
@@ -365,7 +370,7 @@ For any other non-supported cluster environment, define your own class and pass 
 
 .. code-block:: python
 
-    from pytorch_lightning.cluster_environments import ClusterEnvironment
+    from pytorch_lightning.cluster_environments import cluster_environment
 
     class MyCluster(ClusterEnvironment):
 
@@ -377,6 +382,8 @@ For any other non-supported cluster environment, define your own class and pass 
 
         def world_size(self):
             return the_world_size
+
+    trainer = Trainer(cluster_environment=cluster_environment())
 
 default_root_dir
 ^^^^^^^^^^^^^^^^
@@ -433,6 +440,10 @@ early_stop_callback
 
 Callback for early stopping.
 early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
+
+.. deprecated:
+    Deprecated since v0.10.0 and will be removed in v1.0. Configure the EarlyStopping callback class
+    and add it to the list of callbacks: ``Trainer(callbacks=[EarlyStopping(...)])``
 
 - ``True``: A default callback monitoring ``'early_stop_on'`` (if dict is returned in validation loop) or
   ``early_stopping_on`` (if :class:`~pytorch_lightning.core.step_result.Result` is returned) is created.
@@ -597,15 +608,15 @@ Options:
 
 .. note:: Might slow performance because it uses the output of nvidia-smi.
 
-log_save_interval
-^^^^^^^^^^^^^^^^^
+flush_logs_every_n_steps
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 Writes logs to disk this often.
 
 .. testcode::
 
     # default used by the Trainer
-    trainer = Trainer(log_save_interval=100)
+    trainer = Trainer(flush_logs_every_n_steps=100)
 
 See Also:
     - :ref:`Experiment Reporting <experiment_reporting>`
@@ -932,15 +943,15 @@ To resume training from a specific checkpoint pass in the path here.
     # resume from a specific checkpoint
     trainer = Trainer(resume_from_checkpoint='some/path/to/my_checkpoint.ckpt')
 
-row_log_interval
-^^^^^^^^^^^^^^^^
+log_every_n_steps
+^^^^^^^^^^^^^^^^^
 
 How often to add logging rows (does not write to disk)
 
 .. testcode::
 
     # default used by the Trainer
-    trainer = Trainer(row_log_interval=50)
+    trainer = Trainer(log_every_n_steps=50)
 
 See Also:
     - :ref:`Experiment Reporting <experiment_reporting>`

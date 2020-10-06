@@ -77,7 +77,7 @@ def test_early_stopping_no_extraneous_invocations(tmpdir):
     expected_count = 4
     trainer = Trainer(
         default_root_dir=tmpdir,
-        early_stop_callback=True,
+        callbacks=[EarlyStopping()],
         val_check_interval=1.0,
         max_epochs=expected_count,
     )

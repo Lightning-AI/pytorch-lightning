@@ -1,20 +1,28 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# --------------------------------------------
+# --------------------------------------------
+# --------------------------------------------
+# USE THIS MODEL TO REPRODUCE A BUG YOU REPORT
+# --------------------------------------------
+# --------------------------------------------
+# --------------------------------------------
+import os
 import torch
-from pytorch_lightning import LightningModule
 from torch.utils.data import Dataset
-
-
-class RandomDictDataset(Dataset):
-    def __init__(self, size, length):
-        self.len = length
-        self.data = torch.randn(length, size)
-
-    def __getitem__(self, index):
-        a = self.data[index]
-        b = a + 2
-        return {'a': a, 'b': b}
-
-    def __len__(self):
-        return self.len
+from pytorch_lightning import Trainer, LightningModule
 
 
 class RandomDataset(Dataset):
@@ -96,11 +104,30 @@ class BoringModel(LightningModule):
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
         return [optimizer], [lr_scheduler]
 
-    def train_dataloader(self):
-        return torch.utils.data.DataLoader(RandomDataset(32, 64))
 
-    def val_dataloader(self):
-        return torch.utils.data.DataLoader(RandomDataset(32, 64))
+def run_test():
+    class TestModel(BoringModel):
 
-    def test_dataloader(self):
-        return torch.utils.data.DataLoader(RandomDataset(32, 64))
+        def on_train_epoch_start(self) -> None:
+            print('override any method to prove your bug')
+
+    # fake data
+    train_data = torch.utils.data.DataLoader(RandomDataset(32, 64))
+    val_data = torch.utils.data.DataLoader(RandomDataset(32, 64))
+    test_data = torch.utils.data.DataLoader(RandomDataset(32, 64))
+
+    # model
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=os.getcwd(),
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=1,
+        weights_summary=None,
+    )
+    trainer.fit(model, train_data, val_data)
+    trainer.test(test_dataloaders=test_data)
+
+
+if __name__ == '__main__':
+    run_test()

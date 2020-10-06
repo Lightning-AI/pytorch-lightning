@@ -29,6 +29,7 @@ from pytorch_lightning.profiler import BaseProfiler
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
+from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_11
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
@@ -78,12 +79,13 @@ class Trainer(
     TrainerLoggingMixin,
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
+    TrainerDeprecatedAPITillVer0_11,
 ):
     def __init__(
         self,
         logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
         checkpoint_callback: Union[ModelCheckpoint, bool] = True,
-        early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,
+        early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,  # todo: remove in v1.0.0
         callbacks: Optional[List[Callback]] = None,
         default_root_dir: Optional[str] = None,
         gradient_clip_val: float = 0,
@@ -108,8 +110,8 @@ class Trainer(
         limit_val_batches: Union[int, float] = 1.0,
         limit_test_batches: Union[int, float] = 1.0,
         val_check_interval: Union[int, float] = 1.0,
-        log_save_interval: int = 100,
-        row_log_interval: int = 50,
+        flush_logs_every_n_steps: int = 100,
+        log_every_n_steps: int = 50,
         distributed_backend: Optional[str] = None,
         sync_batchnorm: bool = False,
         precision: int = 32,
@@ -129,8 +131,10 @@ class Trainer(
         prepare_data_per_node: bool = True,
         cluster_environment: ClusterEnvironment = None,
         amp_backend: str = 'native',
-        amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
+        amp_level: str = 'O2',
         overfit_pct: float = None,  # backward compatible, todo: remove in v1.0.0
+        log_save_interval: Optional[int] = None,  # backward compatible, todo: remove in 0.11
+        row_log_interval: Optional[int] = None,  # backward compatible, todo: remove in 0.11
     ):
         r"""
         Customize every aspect of training via flags
@@ -143,10 +147,10 @@ class Trainer(
 
             amp_level: The optimization level to use (O1, O2, etc...).
 
-            auto_lr_find: If set to True, will `initially` run a learning rate finder,
-                trying to optimize initial learning for faster convergence. Sets learning
-                rate in self.lr or self.learning_rate in the LightningModule.
-                To use a different key, set a string instead of True with the key name.
+            auto_lr_find: If set to True, will make trainer.tune() run a learning rate finder,
+                trying to optimize initial learning for faster convergence. trainer.tune() method will
+                set the suggested learning rate in self.lr or self.learning_rate in the LightningModule.
+                To use a different key set a string instead of True with the key name.
 
             auto_scale_batch_size: If set to True, will `initially` run a batch size
                 finder trying to find the largest batch size that fits into memory.
@@ -177,9 +181,14 @@ class Trainer(
 
             distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn, ddp_cpu)
 
-            early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
+            early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`).
+                .. warning:: .. deprecated:: 0.10.0
+
+                    Will be removed in v1.0.
 
             fast_dev_run: runs 1 batch of train, test and val to find any bugs (ie: a sort of unit test).
+
+            flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
 
             gpus: number of gpus to train on (int) or which GPUs to train on (list or str) applied per node
 
@@ -195,7 +204,12 @@ class Trainer(
 
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance
 
-            log_save_interval: Writes logs to disk this often
+            log_every_n_steps: How often to log within steps (defaults to every 50 steps).
+
+            log_save_interval: How often to flush logs to disk.
+                .. warning:: .. deprecated:: 0.10.0
+
+                    Use `flush_logs_every_n_steps` instead. Will remove v0.11.0.
 
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
@@ -234,7 +248,10 @@ class Trainer(
             resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.
                 This can be a URL.
 
-            row_log_interval: How often to add logging rows (does not write to disk)
+            row_log_interval: How often to log within steps.
+                .. warning:: .. deprecated:: 0.10.0
+
+                    Use `log_every_n_steps` instead. Will remove v0.11.0.
 
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
 
@@ -260,6 +277,19 @@ class Trainer(
                     Defaults to `default_root_dir`.
         """
         super().__init__()
+
+        # deprecation warnings
+        if row_log_interval is not None:
+            warnings.warn("Argument `row_log_interval` is deprecated in v0.10, use `log_every_n_steps` instead."
+                          " It will be removed in v0.11.0.", DeprecationWarning)
+            log_every_n_steps = row_log_interval
+
+        if log_save_interval is not None:
+            warnings.warn(
+                "Argument `log_save_interval` is deprecated in v0.10, use `flush_logs_every_n_steps` instead."
+                " It will be removed in v0.11.0.", DeprecationWarning
+            )
+            flush_logs_every_n_steps = log_save_interval
 
         # init connectors
         self.dev_debugger = InternalDebugger(self)
@@ -298,7 +328,7 @@ class Trainer(
             process_position,
             default_root_dir,
             weights_save_path,
-            resume_from_checkpoint
+            resume_from_checkpoint,
         )
 
         # hook
@@ -309,18 +339,12 @@ class Trainer(
 
         # init data flags
         self.data_connector.on_trainer_init(
-            check_val_every_n_epoch,
-            reload_dataloaders_every_epoch,
-            prepare_data_per_node
+            check_val_every_n_epoch, reload_dataloaders_every_epoch, prepare_data_per_node
         )
 
         # init training tricks
         self.training_tricks_connector.on_trainer_init(
-            gradient_clip_val,
-            track_grad_norm,
-            accumulate_grad_batches,
-            truncated_bptt_steps,
-            terminate_on_nan
+            gradient_clip_val, track_grad_norm, accumulate_grad_batches, truncated_bptt_steps, terminate_on_nan
         )
 
         # init accelerator related flags
@@ -350,7 +374,7 @@ class Trainer(
         self.profile_connector.on_trainer_init(profiler)
 
         # init logger flags
-        self.logger_connector.on_trainer_init(logger, log_save_interval, row_log_interval)
+        self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps)
 
         # init debugging flags
         self.debugging_connector.on_init_start(
@@ -360,7 +384,7 @@ class Trainer(
             limit_test_batches,
             val_check_interval,
             overfit_batches,
-            fast_dev_run
+            fast_dev_run,
         )
 
         # set precision
@@ -376,8 +400,21 @@ class Trainer(
         val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         datamodule: Optional[LightningDataModule] = None,
     ):
-        # TODO: temporary, need to decide if tune or separate object
+        r"""
+        Runs routines to tune hyperparameters before training.
 
+        Args:
+            datamodule: A instance of :class:`LightningDataModule`.
+
+            model: Model to tune.
+
+            train_dataloader: A Pytorch DataLoader with training samples. If the model has
+                a predefined train_dataloader method this will be skipped.
+
+            val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
+                If the model has a predefined val_dataloaders method this will be skipped
+
+        """
         # setup data, etc...
         self.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
 
@@ -510,13 +547,15 @@ class Trainer(
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
                 if self.should_stop:
-                    if (met_min_epochs and met_min_steps):
+                    if met_min_epochs and met_min_steps:
                         self.train_loop.on_train_end()
                         return
                     else:
-                        log.info('Trainer was signaled to stop but required minimum epochs'
-                                 f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
-                                 ' not been met. Training will continue...')
+                        log.info(
+                            'Trainer was signaled to stop but required minimum epochs'
+                            f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
+                            ' not been met. Training will continue...'
+                        )
 
             # hook
             self.train_loop.on_train_end()
@@ -542,8 +581,9 @@ class Trainer(
 
         # enable eval mode + no grads
         model = self.get_model()
+        self.evaluation_loop.on_evaluation_model_eval()
+
         model.zero_grad()
-        model.eval()
         torch.set_grad_enabled(False)
 
         # hook
@@ -602,23 +642,25 @@ class Trainer(
             self.evaluation_loop.step_metrics.append(dl_step_metrics)
 
         # lightning module method
-        eval_results = self.evaluation_loop.evaluation_epoch_end(num_dataloaders=len(dataloaders))
+        deprecated_eval_results, epoch_logs = self.evaluation_loop.evaluation_epoch_end(
+            num_dataloaders=len(dataloaders)
+        )
 
         # bookkeeping
-        eval_loop_results = self.evaluation_loop.log_epoch_metrics(eval_results, test_mode)
+        eval_loop_results = self.evaluation_loop.log_epoch_metrics(deprecated_eval_results, epoch_logs, test_mode)
         self.evaluation_loop.predictions.to_disk()
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
 
         # enable train mode again
-        model.train()
+        self.evaluation_loop.on_evaluation_model_train()
         torch.set_grad_enabled(True)
 
         # hook
         self.evaluation_loop.on_evaluation_end()
 
-        return eval_loop_results, eval_results
+        return eval_loop_results, deprecated_eval_results
 
     def run_test(self):
         # only load test dataloader for testing

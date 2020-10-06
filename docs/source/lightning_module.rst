@@ -448,7 +448,7 @@ The matching pseudocode is:
         optimizer.step()
         optimizer.zero_grad()
 
-    epoch_out = training_epoch_end(outs)
+    training_epoch_end(outs)
 
 Training with DataParallel
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
