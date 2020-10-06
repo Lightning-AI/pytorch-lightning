@@ -205,6 +205,7 @@ class EarlyStopping(Callback):
 
     def on_train_end(self, trainer, pl_module):
         if self.stopped_epoch > 0 and self.verbose > 0:
+            # todo: remove this old warning
             rank_zero_warn('Displayed epoch numbers by `EarlyStopping` start from "1" until v0.6.x,'
                            ' but will start from "0" in v0.8.0.', DeprecationWarning)
             log.info(f'Epoch {self.stopped_epoch + 1:05d}: early stopping triggered.')
