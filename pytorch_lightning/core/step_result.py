@@ -520,7 +520,7 @@ def _recursive_fx_apply(input: dict, fx):
             input[k] = v
         else:
             _recursive_fx_apply(v, fx)
-            input[k] = v
+
 
 def collate_tensors(items: Union[List, Tuple]) -> Union[Tensor, List, Tuple]:
     if not items or not isinstance(items, (list, tuple)) or any(not isinstance(item, Tensor) for item in items):
