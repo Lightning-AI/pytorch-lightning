@@ -242,7 +242,7 @@ Example::
 auto_lr_find
 ^^^^^^^^^^^^
 Runs a learning rate finder algorithm (see this `paper <https://arxiv.org/abs/1506.01186>`_)
-before any training, to find optimal initial learning rate.
+when calling trainer.tune(), to find optimal initial learning rate.
 
 .. code-block:: python
 
@@ -620,7 +620,7 @@ Writes logs to disk this often.
     trainer = Trainer(log_save_interval=100)
 
 See Also:
-    - :ref:`Experiment Reporting <experiment_reporting>`
+    - :ref:`Logging <logging>`
 
 logger
 ^^^^^^
@@ -955,7 +955,7 @@ How often to add logging rows (does not write to disk)
     trainer = Trainer(row_log_interval=50)
 
 See Also:
-    - :ref:`Experiment Reporting <experiment_reporting>`
+    - :ref:`Logging <logging>`
 
 
 sync_batchnorm

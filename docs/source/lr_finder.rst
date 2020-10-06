@@ -46,7 +46,7 @@ which can be accessed via ``self.learning_rate`` or ``self.lr``.
             return Adam(self.parameters(), lr=(self.lr or self.learning_rate))
 
     # finds learning rate automatically
-    # sets hparams.lr or hparams.learning_rate to that learning rate
+    # sets self.lr or self.learning_rate to that learning rate
     trainer = Trainer(auto_lr_find=True)
 
     trainer.tune(model)
