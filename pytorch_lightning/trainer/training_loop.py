@@ -824,7 +824,7 @@ class TrainLoop:
         epoch_end_outputs = []
         for optimizer_idx_outputs in all_train_step_outputs:
             # extract one representative sample from each time step (1 if no tbptt) and 0th optimizer
-            if not optimizer_idx_outputs:
+            if not optimizer_idx_outputs or len(optimizer_idx_outputs) == 0:
                 continue
 
             sample_output = optimizer_idx_outputs[-1]
