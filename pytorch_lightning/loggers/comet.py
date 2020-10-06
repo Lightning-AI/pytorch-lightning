@@ -81,7 +81,8 @@ class CometLogger(LightningLoggerBase):
 
     **OFFLINE MODE**
 
-    Example:
+    .. code-block:: python
+
         from pytorch_lightning.loggers import CometLogger
         # arguments made to CometLogger are passed on to the comet_ml.Experiment class
         comet_logger = CometLogger(
