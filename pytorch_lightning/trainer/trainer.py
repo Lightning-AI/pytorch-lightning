@@ -108,8 +108,6 @@ class Trainer(
         limit_val_batches: Union[int, float] = 1.0,
         limit_test_batches: Union[int, float] = 1.0,
         val_check_interval: Union[int, float] = 1.0,
-        log_save_interval: Optional[int] = None,  # backward compatible, todo: remove in 0.11
-        row_log_interval: Optional[int] = None,  # backward compatible, todo: remove in 0.11
         flush_logs_every_n_steps: int = 100,
         log_every_n_steps: int = 50,
         distributed_backend: Optional[str] = None,
@@ -131,8 +129,10 @@ class Trainer(
         prepare_data_per_node: bool = True,
         cluster_environment: ClusterEnvironment = None,
         amp_backend: str = 'native',
-        amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
+        amp_level: str = 'O2',
         overfit_pct: float = None,  # backward compatible, todo: remove in v1.0.0
+        log_save_interval: Optional[int] = None,  # backward compatible, todo: remove in 0.11
+        row_log_interval: Optional[int] = None,  # backward compatible, todo: remove in 0.11
     ):
         r"""
         Customize every aspect of training via flags
@@ -180,7 +180,9 @@ class Trainer(
             distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn, ddp_cpu)
 
             early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`).
-                Deprecated since v0.10.0 and will be removed in v1.0.
+                .. warning:: .. deprecated:: 0.10.0
+
+                    Will be removed in v1.0.
 
             fast_dev_run: runs 1 batch of train, test and val to find any bugs (ie: a sort of unit test).
 
@@ -201,6 +203,11 @@ class Trainer(
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance
 
             log_every_n_steps: How often to log within steps (defaults to every 50 steps).
+
+            log_save_interval: How often to flush logs to disk.
+                .. warning:: .. deprecated:: 0.10.0
+
+                    Use `flush_logs_every_n_steps` instead. Will remove v0.11.0.
 
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
@@ -238,6 +245,11 @@ class Trainer(
 
             resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.
                 This can be a URL.
+
+            row_log_interval: How often to log within steps.
+                .. warning:: .. deprecated:: 0.10.0
+
+                    Use `log_every_n_steps` instead. Will remove v0.11.0.
 
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
 
