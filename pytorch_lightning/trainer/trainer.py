@@ -143,10 +143,10 @@ class Trainer(
 
             amp_level: The optimization level to use (O1, O2, etc...).
 
-            auto_lr_find: If set to True, will `initially` run a learning rate finder,
-                trying to optimize initial learning for faster convergence. Sets learning
-                rate in self.lr or self.learning_rate in the LightningModule.
-                To use a different key, set a string instead of True with the key name.
+            auto_lr_find: If set to True, will make trainer.tune() run a learning rate finder,
+                trying to optimize initial learning for faster convergence. trainer.tune() method will
+                set the suggested learning rate in self.lr or self.learning_rate in the LightningModule.
+                To use a different key set a string instead of True with the key name.
 
             auto_scale_batch_size: If set to True, will `initially` run a batch size
                 finder trying to find the largest batch size that fits into memory.
@@ -380,6 +380,21 @@ class Trainer(
         # TODO: temporary, need to decide if tune or separate object
         #  it is quite confusing that Trainer has tune and tuner attributes/methods
 
+        r"""
+        Runs routines to tune hyperparameters before training.
+
+        Args:
+            datamodule: A instance of :class:`LightningDataModule`.
+
+            model: Model to tune.
+
+            train_dataloader: A Pytorch DataLoader with training samples. If the model has
+                a predefined train_dataloader method this will be skipped.
+
+            val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
+                If the model has a predefined val_dataloaders method this will be skipped
+
+        """
         # setup data, etc...
         self.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
 
