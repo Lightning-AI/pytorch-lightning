@@ -101,3 +101,23 @@ Accuracy
 
 Regression Metrics
 ------------------
+
+MeanSquaredError
+^^^^^^^^^^^^^^^^
+
+.. autoclass:: pytorch_lightning.metrics.regression.MeanSquaredError
+    :noindex:
+
+
+MeanAbsoluteError
+^^^^^^^^^^^^^^^^
+
+.. autoclass:: pytorch_lightning.metrics.regression.MeanAbsoluteError
+    :noindex:
+
+
+MeanSquaredLogError
+^^^^^^^^^^^^^^^^
+
+.. autoclass:: pytorch_lightning.metrics.regression.MeanSquaredLogError
+    :noindex:

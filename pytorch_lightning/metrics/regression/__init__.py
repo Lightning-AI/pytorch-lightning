@@ -1,1 +1,1 @@
-from pytorch_lightning.metrics.regression.mean_squared_error import MeanSquaredError
+from pytorch_lightning.metrics.regression.mean_error import MeanSquaredError, MeanAbsoluteError, MeanSquaredLogError
