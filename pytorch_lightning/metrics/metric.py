@@ -12,10 +12,8 @@ from torch import nn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.metrics.utils import _flatten, gather_all_tensors_if_available
 
-from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 
-
-class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
+class Metric(nn.Module, ABC):
     """
 
     """
