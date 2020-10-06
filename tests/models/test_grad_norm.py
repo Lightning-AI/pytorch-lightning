@@ -59,7 +59,7 @@ def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
         default_root_dir=tmpdir,
         max_epochs=3,
         track_grad_norm=norm_type,
-        row_log_interval=1,  # request grad_norms every batch
+        log_every_n_steps=1,  # request grad_norms every batch
     )
     result = trainer.fit(model)
 
@@ -76,20 +76,20 @@ def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
         assert np.allclose(log, mod, rtol=rtol)
 
 
-@pytest.mark.parametrize("row_log_interval", [1, 2, 3])
-def test_grad_tracking_interval(tmpdir, row_log_interval):
+@pytest.mark.parametrize("log_every_n_steps", [1, 2, 3])
+def test_grad_tracking_interval(tmpdir, log_every_n_steps):
     """ Test that gradient norms get tracked in the right interval and that everytime the same keys get logged. """
     trainer = Trainer(
         default_root_dir=tmpdir,
         track_grad_norm=2,
-        row_log_interval=row_log_interval,
+        log_every_n_steps=log_every_n_steps,
         max_steps=10,
     )
 
     with patch.object(trainer.logger, "log_metrics") as mocked:
         model = EvalModelTemplate()
         trainer.fit(model)
-        expected = trainer.global_step // row_log_interval
+        expected = trainer.global_step // log_every_n_steps
         grad_norm_dicts = []
         for _, kwargs in mocked.call_args_list:
             metrics = kwargs.get("metrics", {})

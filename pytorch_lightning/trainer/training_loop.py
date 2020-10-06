@@ -460,7 +460,7 @@ class TrainLoop:
 
     def _track_gradient_norm(self):
         grad_norm_dict = {}
-        if (self.trainer.global_step + 1) % self.trainer.row_log_interval == 0:
+        if (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0:
             if float(self.trainer.track_grad_norm) > 0:
                 model = self.trainer.get_model()
                 grad_norm_dict = model.grad_norm(self.trainer.track_grad_norm)
@@ -805,7 +805,7 @@ class TrainLoop:
     def save_loggers_on_train_batch_end(self):
         # when loggers should save to disk
         should_save_log = (
-            (self.trainer.global_step + 1) % self.trainer.log_save_interval == 0 or self.trainer.should_stop
+            (self.trainer.global_step + 1) % self.trainer.flush_logs_every_n_steps == 0 or self.trainer.should_stop
         )
         if should_save_log or self.trainer.fast_dev_run:
             if self.trainer.is_global_zero and self.trainer.logger is not None:
