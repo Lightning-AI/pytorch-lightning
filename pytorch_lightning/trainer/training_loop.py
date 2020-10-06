@@ -477,7 +477,8 @@ class TrainLoop:
         batch_callback_metrics.append(callback_metrics)
 
         # decide which metrics to log (results vs dict return)
-        if isinstance(opt_closure_result.training_step_output, Result):
+        using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
+        if using_results_obj:
             metrics_to_log = opt_closure_result.training_step_output.batch_log_metrics
             step_pbar_metrics = opt_closure_result.training_step_output.batch_pbar_metrics
         else:
