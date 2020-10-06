@@ -42,7 +42,7 @@ def test__validation_step__log(tmpdir):
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=2,
-        row_log_interval=1,
+        log_every_n_steps=1,
         weights_summary=None,
     )
     trainer.fit(model)
@@ -111,7 +111,7 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=2,
-        row_log_interval=1,
+        log_every_n_steps=1,
         weights_summary=None,
     )
     trainer.fit(model)
@@ -168,7 +168,7 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
         limit_train_batches=batches,
         limit_val_batches=batches,
         max_epochs=max_epochs,
-        row_log_interval=log_interval,
+        log_every_n_steps=log_interval,
         weights_summary=None,
     )
     trainer.fit(model)
