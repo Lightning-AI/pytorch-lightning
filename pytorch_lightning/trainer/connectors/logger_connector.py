@@ -37,6 +37,8 @@ class LoggerConnector:
     def on_trainer_init(self, logger, flush_logs_every_n_steps, log_every_n_steps):
         # logging
         self.configure_logger(logger)
+        # todo: IDE is complaining, these shall be initialized in the Trainer init at leas as placeholders
+        #  and assign here the desired value
         self.trainer.flush_logs_every_n_steps = flush_logs_every_n_steps
         self.trainer.log_every_n_steps = log_every_n_steps
 
