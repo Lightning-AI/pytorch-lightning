@@ -30,16 +30,26 @@ class MeanAbsoluteError(Metric):
             ddp_sync_on_step=ddp_sync_on_step,
             process_group=process_group,
         )
+
         self.add_state("sum_abs_error", default=torch.tensor(0.0), dist_reduce_fx="sum")
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
+        """
+        Update state with predictions and targets.
+
+        Args:
+            preds: Predictions from model
+            target: Ground truth values
+        """
         assert preds.shape == target.shape
         abs_error = torch.abs(preds - target)
+
         self.sum_abs_error += torch.sum(abs_error)
         self.total += target.numel()
 
     def compute(self):
+        """
+        Computes mean absolute error over state.
+        """
         return self.sum_abs_error / self.total
-
-

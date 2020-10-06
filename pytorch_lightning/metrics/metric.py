@@ -15,7 +15,32 @@ from pytorch_lightning.metrics.utils import _flatten, gather_all_tensors_if_avai
 
 class Metric(nn.Module, ABC):
     """
+    Base class for all metrics present in the Metrics API.
 
+    Implements ``add_state()``, ``forward()``, ``reset()`` and a few other things to
+    handle distributed synchronization and per step metric computation.
+
+    Override ``update()`` and ``compute()`` functions to implement your own metric. Use
+    ``add_state()`` to register metric state variables which keep track of state on each
+    call of ``update()`` and are synchronized across processes when ``compute()`` is called.
+
+    Note:
+        Metric state variables can either be ``torch.Tensors`` or an empty list which can we used
+        to store `torch.Tensors``.
+
+    Note:
+        Different metrics only override ``update()`` and not ``forward()``. A call to ``update()``
+        is valid, but it won't return the metric value at the current step. A call to ``forward()``
+        calls ``update()`` behind the scenes and also return the metric value at the current step.
+
+    Args:
+        compute_on_step:
+            Forward only calls ``update()`` and return None if this is set to False. default: True
+        ddp_sync_on_step:
+            Synchronize metric state across processes at each ``forward()``
+            before returning the value at the step. default: False
+        process_group:
+            Specify the process group on which synchronization is called. default: None (which selects the entire world)
     """
     def __init__(
         self,
@@ -44,11 +69,18 @@ class Metric(nn.Module, ABC):
 
         Args:
             name: The name of the state variable. The variable will then be accessible at ``self.name``.
-            default: Default value of the state; can either be a tensor or an empty list. The state will be
+            default: Default value of the state; can either be a ``torch.Tensor`` or an empty list. The state will be
                 reset to this value when ``self.reset()`` is called.
             dist_reduce_fx (Optional): Function to reduce state accross mutliple GPUs. If value is ``"sum"``,
                 ``"mean"``, or ``"cat"``, we will use ``torch.sum``, ``torch.mean``, and ``torch.cat`` respectively,
                 each with argument ``dim=0``.
+
+        Note:
+            Setting ``dist_reduce_fx`` to None will return the metric state synchronized across different processes.
+            It will be stacked ``torch.Tensor`` across the process dimension if the metric state was a ``torch.Tensor``.
+
+            For the list metric state, passing None to ``dist_reduce_fx`` will return a combined list ``torch.Tensor``
+            elements from across all processes.
         """
         if not isinstance(default, torch.Tensor) or (isinstance(default, list) and len(default) != 0):
             raise ValueError(
@@ -70,11 +102,13 @@ class Metric(nn.Module, ABC):
             self.register_buffer(name, default)
         else:
             setattr(self, name, default)
+
         self._defaults[name] = deepcopy(default)
         self._reductions[name] = dist_reduce_fx
 
     def forward(self, *args, **kwargs):
         """
+        Automatically calls ``update()``. Returns the metric value over inputs if ``compute_on_step`` is True.
         """
         # add current step
         self.update(*args, **kwargs)
@@ -99,10 +133,6 @@ class Metric(nn.Module, ABC):
             return result
 
     def _sync_dist(self):
-        """
-        Method to synchronize metric state variables across different processes
-        in distributed training.
-        """
         input_dict = {attr: getattr(self, attr) for attr in self._reductions.keys()}
         output_dict = apply_to_collection(
             input_dict,

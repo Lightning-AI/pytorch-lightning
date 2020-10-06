@@ -30,14 +30,26 @@ class MeanSquaredLogError(Metric):
             ddp_sync_on_step=ddp_sync_on_step,
             process_group=process_group,
         )
+
         self.add_state("sum_squared_log_error", default=torch.tensor(0.0), dist_reduce_fx="sum")
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
+        """
+        Update state with predictions and targets.
+
+        Args:
+            preds: Predictions from model
+            target: Ground truth values
+        """
         assert preds.shape == target.shape
         squared_log_error = torch.pow(torch.log1p(preds) - torch.log1p(target), 2)
+
         self.sum_squared_log_error += torch.sum(squared_log_error)
         self.total += target.numel()
 
     def compute(self):
+        """
+        Compute mean squared logarithmic error over state.
+        """
         return self.sum_squared_log_error / self.total

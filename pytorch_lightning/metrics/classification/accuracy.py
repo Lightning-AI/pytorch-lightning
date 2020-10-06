@@ -13,12 +13,29 @@ from pytorch_lightning.metrics.metric import Metric
 class Accuracy(Metric):
     """
     Computes accuracy. Works with binary, multiclass, and multilabel data.
+    Accepts logits from a model output or integer class values in prediction.
+    Works with multi-dimensional preds and target.
 
-    preds and targets must be of shape (N, ...) and (N, ...) or (N, num_classes, ...) and (N, ...)
+    Forward accepts
 
-    If preds and targets are the same shape:
-        If preds are integer values, we perform accuracy with those values
-        If preds are floating point we threshold at `threshold`
+    - ``preds`` (float or long tensor): ``(N, ...)`` or ``(N, C, ...)`` where C is the number of classes
+    - ``target`` (long tensor): ``(N, ...)``
+
+    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument.
+    This is the case for binary and multi-label logits.
+
+    If preds has an extra dimension as in the case of multi-class scores we perform an argmax on ``dim=1``.
+
+    Args:
+        threshold:
+            Threshold value for binary or multi-label logits. default: 0.5
+        compute_on_step:
+            Forward only calls ``update()`` and return None if this is set to False. default: True
+        ddp_sync_on_step:
+            Synchronize metric state across processes at each ``forward()``
+            before returning the value at the step. default: False
+        process_group:
+            Specify the process group on which synchronization is called. default: None (which selects the entire world)
 
     Example:
 
@@ -66,6 +83,13 @@ class Accuracy(Metric):
         return preds, target
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
+        """
+        Update state with predictions and targets.
+
+        Args:
+            preds: Predictions from model
+            target: Ground truth values
+        """
         preds, target = self._input_format(preds, target)
         assert preds.shape == target.shape
 
@@ -73,4 +97,7 @@ class Accuracy(Metric):
         self.total += target.numel()
 
     def compute(self):
+        """
+        Computes accuracy over state.
+        """
         return self.correct.float() / self.total

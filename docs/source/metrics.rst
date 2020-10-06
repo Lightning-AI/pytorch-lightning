@@ -10,16 +10,44 @@
 Metrics
 =======
 
-This metrics API is independent of PytTorch Lightning.
+Using a metric with with PyTorch Lightning:
+# TODO 1: write an intro for metrics, and lead the user into the lightning example
 
-- mention when reset and compute are called, what forward does, how is it different from update
+# expand a bit on this
+These metrics work with DDP in PyTorch and PyTorch Lightning by default.
+
+.. note::
+
+    For v0.10.0 the user is expected to call ``.compute()`` on the metric at the end each epoch.
+    This has been shown in the example below. For v1.0 release after this, we will integrate metrics
+    with logging and ``.compute()`` will be called automatically by PyTorch Lightning.
+
+.. code-block:: python
+
+    def __init__(self):
+        ...
+        self.accuracy = pl.metrics.Accuracy()
+   
+    def training_step(self, batch, batch_idx):
+        logits = self(x)
+        ...
+        # log step metric
+        self.log('train_acc_step', self.accuracy(logits, y))
+        ...
+   
+    def training_epoch_end(self, outs):
+        # log epoch metric
+        self.log('train_acc_epoch', self.accuracy.compute())
+
+
+This metrics API is independent of PyTorch Lightning. If you please, they can be used with plain PyTorch like so:
 
 .. code-block:: python
 
     from pytorch_lightning import metrics
 
     train_accuracy = metrics.Accuracy()
-    valid_accuracy = metrics.Accuracy(compute_on_step)
+    valid_accuracy = metrics.Accuracy(compute_on_step=False)
 
     for epoch in range(epochs):
         for x, y in train_data:
@@ -38,25 +66,16 @@ This metrics API is independent of PytTorch Lightning.
     # total accuracy over all validation batches
     total_valid_accuracy = train_accuracy.compute()
 
-
-These metrics work with DDP in PyTorch and PyTorch Lightning by default.
-Lihgtning calls .compute() for you at epoch end on its own.
-
-Lightning code snippet to using the metrics API.
-
-.. code-block:: python
-
-    import pytorch_lightning as pl
-
-
 Implementing a Metric
 ---------------------
 
+# TODO 3: finalize this!, explain reduction in detail
+
 To implement a metric, subclass the ``Metric`` class and implement the following methods:
 
- - ``__init__()``: Each state variable should be called using ``self.add_state(...)``.
- - ``update()``: Any code needed to update the state given any inputs to the metric.
- - ``compute()``: Computes a final value from the state of the metric.
+- ``__init__()``: Each state variable should be called using ``self.add_state(...)``.
+- ``update()``: Any code needed to update the state given any inputs to the metric.
+- ``compute()``: Computes a final value from the state of the metric.
 
 All you need to do is call add_state correctly to implement a custom metric with DDP.
 ``reset()`` is called on its own on variables added using ``add_state()``.
@@ -110,14 +129,14 @@ MeanSquaredError
 
 
 MeanAbsoluteError
-^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
 
 .. autoclass:: pytorch_lightning.metrics.regression.MeanAbsoluteError
     :noindex:
 
 
 MeanSquaredLogError
-^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: pytorch_lightning.metrics.regression.MeanSquaredLogError
     :noindex:
