@@ -83,7 +83,7 @@ def find_free_network_port() -> int:
 
 def gather_all_tensors_if_available(result: Union[torch.Tensor], group: Optional[Any] = None):
     """
-    Function to gather all tensors from several ddp processes onto a list that
+    Function to gather all tensors from several distributed processes onto a list that
     is broadcasted to all processes
 
     Args:
@@ -96,19 +96,37 @@ def gather_all_tensors_if_available(result: Union[torch.Tensor], group: Optional
 
     """
     if torch.distributed.is_available() and torch.distributed.is_initialized():
-        if group is None:
-            group = torch.distributed.group.WORLD
-
-        world_size = torch.distributed.get_world_size(group)
-
-        gathered_result = [torch.zeros_like(result) for _ in range(world_size)]
-
-        # sync and broadcast all
-        torch.distributed.barrier(group=group)
-        torch.distributed.all_gather(gathered_result, result, group)
-
-        result = gathered_result
+        result = gather_ddp(result, group)
+    if HOROVOD_AVAILABLE and hvd.is_initialized():
+        return gather_horovod(result, group=group)
     return result
+
+
+def gather_ddp(result: Union[torch.Tensor], group: Optional[Any] = None):
+    if group is None:
+        group = torch.distributed.group.WORLD
+
+    world_size = torch.distributed.get_world_size(group)
+
+    gathered_result = [torch.zeros_like(result) for _ in range(world_size)]
+
+    # sync and broadcast all
+    torch.distributed.barrier(group=group)
+    torch.distributed.all_gather(gathered_result, result, group)
+
+    return gathered_result
+
+
+def gather_horovod(result: Union[torch.Tensor], group: Optional[Any] = None):
+    if group is not None:
+        raise ValueError(
+            "Horovod does not support allgather using a subcommunicator at this time. "
+            "Unset `group`."
+        )
+
+    # sync and gather all
+    hvd.join()
+    return hvd.allgather(result)
 
 
 def sync_dist_if_available(
@@ -182,7 +200,8 @@ def sync_horovod(
     """
     if group is not None:
         raise ValueError(
-            "Horovod does not support allreduce using a subcommunicator at this time. Unset `group`."
+            "Horovod does not support allreduce using a subcommunicator at this time. "
+            "Unset `group`."
         )
 
     if reduce_op is None or reduce_op == "sum":
