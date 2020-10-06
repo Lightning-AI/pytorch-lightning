@@ -38,7 +38,7 @@ def test_training_step_result_log_step_only(tmpdir):
         default_root_dir=tmpdir,
         limit_train_batches=batches,
         limit_val_batches=batches,
-        row_log_interval=1,
+        log_every_n_steps=1,
         max_epochs=1,
         weights_summary=None,
     )
@@ -113,7 +113,7 @@ def test_training_step_result_log_epoch_only(tmpdir):
         default_root_dir=tmpdir,
         limit_train_batches=batches,
         limit_val_batches=batches,
-        row_log_interval=1,
+        log_every_n_steps=1,
         max_epochs=epochs,
         weights_summary=None,
     )
@@ -190,7 +190,7 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
         default_root_dir=tmpdir,
         limit_train_batches=batches,
         limit_val_batches=batches,
-        row_log_interval=1,
+        log_every_n_steps=1,
         max_epochs=epochs,
         weights_summary=None,
     )
@@ -322,7 +322,7 @@ def test_training_step_epoch_end_result(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=epochs,
-        row_log_interval=1,
+        log_every_n_steps=1,
         limit_train_batches=batches,
         weights_summary=None,
     )
@@ -404,7 +404,7 @@ def test_no_auto_callbacks_with_train_loop_only(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=epochs,
-        row_log_interval=1,
+        log_every_n_steps=1,
         limit_train_batches=batches,
         weights_summary=None,
     )
@@ -422,7 +422,7 @@ def test_no_auto_callbacks_with_train_loop_only(tmpdir):
         default_root_dir=tmpdir,
         early_stop_callback=True,
         max_epochs=epochs,
-        row_log_interval=1,
+        log_every_n_steps=1,
         limit_train_batches=batches,
         weights_summary=None,
     )
@@ -447,7 +447,7 @@ def test_no_callbacks_with_train_loop_only(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=epochs,
-        row_log_interval=1,
+        log_every_n_steps=1,
         limit_train_batches=batches,
         weights_summary=None,
     )
@@ -476,7 +476,7 @@ def test_use_callbacks_with_train_loop_only(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=epochs,
         early_stop_callback=True,
-        row_log_interval=1,
+        log_every_n_steps=1,
         limit_train_batches=batches,
         weights_summary=None,
     )
@@ -532,7 +532,7 @@ def test_full_train_loop_with_results_obj_dp(tmpdir):
         gpus=[0, 1],
         max_epochs=epochs,
         early_stop_callback=True,
-        row_log_interval=2,
+        log_every_n_steps=2,
         limit_train_batches=batches,
         weights_summary=None,
     )
@@ -573,7 +573,7 @@ def test_loop_steps_only_dp(tmpdir):
         gpus=[0, 1],
         max_epochs=epochs,
         early_stop_callback=True,
-        row_log_interval=2,
+        log_every_n_steps=2,
         limit_train_batches=batches,
         weights_summary=None,
     )
@@ -613,7 +613,7 @@ def test_result_monitor_warnings(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=2,
         early_stop_callback=True,
-        row_log_interval=2,
+        log_every_n_steps=2,
         limit_train_batches=2,
         weights_summary=None,
         checkpoint_callback=ModelCheckpoint(monitor='not_checkpoint_on')
@@ -626,7 +626,7 @@ def test_result_monitor_warnings(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        row_log_interval=2,
+        log_every_n_steps=2,
         limit_train_batches=2,
         weights_summary=None,
         early_stop_callback=EarlyStopping(monitor='not_val_loss')
@@ -653,7 +653,7 @@ def test_eval_loop_return_none(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        row_log_interval=2,
+        log_every_n_steps=2,
         limit_train_batches=2,
         weights_summary=None,
     )
