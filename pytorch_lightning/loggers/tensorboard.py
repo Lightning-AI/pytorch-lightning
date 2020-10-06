@@ -32,6 +32,7 @@ from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
     from omegaconf import Container, OmegaConf
@@ -179,7 +180,15 @@ class TensorBoardLogger(LightningLoggerBase):
         for k, v in metrics.items():
             if isinstance(v, torch.Tensor):
                 v = v.item()
-            self.experiment.add_scalar(k, v, step)
+
+            if isinstance(v, dict):
+                self.experiment.add_scalars(k, v, step)
+            else:
+                try:
+                    self.experiment.add_scalar(k, v, step)
+                except Exception as e:
+                    m = f'you tried to log {v} which is not currently supported. Try a dict or a scalar/tensor.'
+                    raise MisconfigurationException(m)
 
     @rank_zero_only
     def log_graph(self, model: LightningModule, input_array=None):
@@ -232,7 +241,8 @@ class TensorBoardLogger(LightningLoggerBase):
             return 0
 
         existing_versions = []
-        for d in self._fs.ls(root_dir):
+        for listing in self._fs.listdir(root_dir):
+            d = listing["name"]
             bn = os.path.basename(d)
             if self._fs.isdir(d) and bn.startswith("version_"):
                 dir_ver = bn.split("_")[1].replace('/', '')

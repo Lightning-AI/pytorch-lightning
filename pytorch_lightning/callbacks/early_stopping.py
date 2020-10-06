@@ -65,7 +65,7 @@ class EarlyStopping(Callback):
         >>> from pytorch_lightning import Trainer
         >>> from pytorch_lightning.callbacks import EarlyStopping
         >>> early_stopping = EarlyStopping('val_loss')
-        >>> trainer = Trainer(early_stop_callback=early_stopping)
+        >>> trainer = Trainer(callbacks=[early_stopping])
     """
     mode_dict = {
         'min': torch.lt,
@@ -106,9 +106,9 @@ class EarlyStopping(Callback):
 
     def _validate_condition_metric(self, logs):
         monitor_val = logs.get(self.monitor)
+
         error_msg = (f'Early stopping conditioned on metric `{self.monitor}`'
-                     f' which is not available. Either add `{self.monitor}` to the return of'
-                     ' `validation_epoch_end` or modify your `EarlyStopping` callback to use any of the'
+                     f' which is not available. Pass in or modify your `EarlyStopping` callback to use any of the'
                      f' following: `{"`, `".join(list(logs.keys()))}`')
 
         if monitor_val is None:
@@ -181,7 +181,7 @@ class EarlyStopping(Callback):
         current = logs.get(self.monitor)
 
         # when in dev debugging
-        trainer.dev_debugger.track_early_stopping_history(current)
+        trainer.dev_debugger.track_early_stopping_history(self, current)
 
         if not isinstance(current, torch.Tensor):
             current = torch.tensor(current, device=pl_module.device)

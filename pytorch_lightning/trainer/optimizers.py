@@ -50,9 +50,10 @@ class TrainerOptimizersMixin(ABC):
         # single dictionary
         elif isinstance(optim_conf, dict):
             optimizer = optim_conf["optimizer"]
+            monitor = optim_conf.get('monitor', None)
             lr_scheduler = optim_conf.get("lr_scheduler", [])
             if lr_scheduler:
-                lr_schedulers = self.configure_schedulers([lr_scheduler])
+                lr_schedulers = self.configure_schedulers([lr_scheduler], monitor)
             else:
                 lr_schedulers = []
             return [optimizer], lr_schedulers, []
@@ -94,13 +95,18 @@ class TrainerOptimizersMixin(ABC):
                 '    a list of `torch.optim.lr_scheduler`'
                 ' * multiple outputs, dictionaries as described with an optional `frequency` key (int)')
 
-    def configure_schedulers(self, schedulers: list):
+    def configure_schedulers(self, schedulers: list, monitor: str = None):
         # Convert each scheduler into dict structure with relevant information
         lr_schedulers = []
-        default_config = {'interval': 'epoch',  # default every epoch
-                          'frequency': 1,  # default every epoch/batch
-                          'reduce_on_plateau': False,  # most often not ReduceLROnPlateau scheduler
-                          'monitor': 'val_loss'}  # default value to monitor for ReduceLROnPlateau
+        default_config = {
+            'interval': 'epoch',  # default every epoch
+            'frequency': 1,  # default every epoch/batch
+            'reduce_on_plateau': False
+        }  # most often not ReduceLROnPlateau scheduler
+
+        if monitor is not None:
+            default_config['monitor'] = monitor
+
         for scheduler in schedulers:
             if isinstance(scheduler, dict):
                 if 'scheduler' not in scheduler:

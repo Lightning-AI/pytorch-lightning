@@ -4,6 +4,8 @@ import signal
 from subprocess import call
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities.distributed import rank_zero_info
+import torch.distributed as torch_distrib
+import torch
 
 
 class SLURMConnector:
@@ -26,6 +28,10 @@ class SLURMConnector:
             try:
                 self.trainer.num_slurm_tasks = int(os.environ['SLURM_NTASKS'])
                 self.trainer.is_slurm_managing_tasks = self.trainer.num_slurm_tasks == self.trainer.num_requested_gpus
+
+                # enable slurm cpu
+                if self.trainer.num_requested_gpus == 0:
+                    self.trainer.is_slurm_managing_tasks = self.trainer.num_slurm_tasks == self.trainer.num_processes
 
                 # in interactive mode we don't manage tasks
                 job_name = os.environ['SLURM_JOB_NAME']
@@ -101,3 +107,49 @@ class SLURMConnector:
     def term_handler(self, signum, frame):
         # save
         log.info("bypassing sigterm")
+
+    def connect_ddp(self, global_rank: int, world_size: int) -> None:
+        """"""
+        """
+        Sets up environment variables necessary for pytorch distributed communications
+        based on slurm environment.
+        """
+        # use slurm job id for the port number
+        # guarantees unique ports across jobs from same grid search
+        try:
+            # use the last 4 numbers in the job id as the id
+            default_port = os.environ["SLURM_JOB_ID"]
+            default_port = default_port[-4:]
+
+            # all ports should be in the 10k+ range
+            default_port = int(default_port) + 15000
+
+        except Exception:
+            default_port = 12910
+
+        # if user gave a port number, use that one instead
+        try:
+            default_port = os.environ["MASTER_PORT"]
+        except Exception:
+            os.environ["MASTER_PORT"] = str(default_port)
+        log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
+
+        # figure out the root node addr
+        try:
+            root_node = os.environ["SLURM_NODELIST"].split(" ")[0]
+        except Exception:
+            root_node = "127.0.0.1"
+
+        root_node = self.trainer.slurm_connector.resolve_root_node_address(root_node)
+        os.environ["MASTER_ADDR"] = root_node
+        log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
+
+        torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
+
+        if not torch.distributed.is_initialized():
+            log.info(
+                f"initializing ddp (SLURM): GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}"
+            )
+            torch_distrib.init_process_group(
+                torch_backend, rank=global_rank, world_size=world_size
+            )

@@ -448,7 +448,7 @@ The matching pseudocode is:
         optimizer.step()
         optimizer.zero_grad()
 
-    epoch_out = training_epoch_end(outs)
+    training_epoch_end(outs)
 
 Training with DataParallel
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1046,12 +1046,6 @@ get_progress_bar_dict
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.get_progress_bar_dict
-    :noindex:
-
-init_ddp_connection
-~~~~~~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.init_ddp_connection
     :noindex:
 
 tbptt_split_batch

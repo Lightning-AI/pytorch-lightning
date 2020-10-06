@@ -37,7 +37,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     """
 
     model = EvalModelTemplate()
-    checkpoint_callback = ModelCheckpoint(monitor="val_loss", save_top_k=1)
+    checkpoint_callback = ModelCheckpoint(monitor="early_stop_on", save_top_k=1)
     early_stop_callback = EarlyStoppingTestRestore()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -77,7 +77,7 @@ def test_early_stopping_no_extraneous_invocations(tmpdir):
     expected_count = 4
     trainer = Trainer(
         default_root_dir=tmpdir,
-        early_stop_callback=True,
+        callbacks=[EarlyStopping()],
         val_check_interval=1.0,
         max_epochs=expected_count,
     )
@@ -159,13 +159,13 @@ def test_early_stopping_functionality(tmpdir):
         def validation_epoch_end(self, outputs):
             losses = [8, 4, 2, 3, 4, 5, 8, 10]
             val_loss = losses[self.current_epoch]
-            return {'val_loss': torch.tensor(val_loss)}
+            self.log('abc', torch.tensor(val_loss))
 
     model = CurrentModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        early_stop_callback=True,
+        early_stop_callback=EarlyStopping(monitor='abc'),
         overfit_batches=0.20,
         max_epochs=20,
     )

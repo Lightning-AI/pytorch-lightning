@@ -23,11 +23,9 @@ from typing import Any, Dict, Optional, Union
 try:
     import mlflow
     from mlflow.tracking import MlflowClient
-    _MLFLOW_AVAILABLE = True
 except ModuleNotFoundError:  # pragma: no-cover
     mlflow = None
     MlflowClient = None
-    _MLFLOW_AVAILABLE = False
 
 
 from pytorch_lightning import _logger as log
@@ -83,7 +81,7 @@ class MLFlowLogger(LightningLoggerBase):
         tags: Optional[Dict[str, Any]] = None,
         save_dir: Optional[str] = './mlruns'
     ):
-        if not _MLFLOW_AVAILABLE:
+        if mlflow is None:
             raise ImportError('You want to use `mlflow` logger which is not installed yet,'
                               ' install it with `pip install mlflow`.')
         super().__init__()
