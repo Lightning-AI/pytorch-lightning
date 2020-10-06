@@ -168,7 +168,7 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
         limit_train_batches=batches,
         limit_val_batches=batches,
         max_epochs=max_epochs,
-        row_log_interval=log_interval,
+        log_every_n_steps=log_interval,
         weights_summary=None,
     )
     trainer.fit(model)
