@@ -26,15 +26,6 @@ def test_global_zero_only_logging_ddp_cpu(tmpdir):
     """
     Makes sure logging only happens from root zero
     """
-    class TestModel(BoringModel):
-
-        def on_pretrain_routine_end(self) -> None:
-            with mock.patch('pytorch_lightning.loggers.base.LightningLoggerBase.agg_and_log_metrics') as m:
-                self.trainer.logger_connector.log_metrics({'a': 2}, {})
-                logged_times = m.call_count
-                expected = 1 if self.global_rank == 0 else 0
-                assert logged_times == expected, 'actual logger called from non-global zero'
-
     model = TestModel()
     model.training_epoch_end = None
     trainer = Trainer(
