@@ -6,7 +6,7 @@ import cloudpickle
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from tests.base import EvalModelTemplate
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -35,7 +35,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     https://github.com/PyTorchLightning/pytorch-lightning/issues/1464
     https://github.com/PyTorchLightning/pytorch-lightning/issues/1463
     """
-
+    seed_everything()
     model = EvalModelTemplate()
     checkpoint_callback = ModelCheckpoint(monitor="early_stop_on", save_top_k=1)
     early_stop_callback = EarlyStoppingTestRestore()
