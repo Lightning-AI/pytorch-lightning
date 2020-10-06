@@ -24,6 +24,10 @@ class ConfigureOptimizersPool(ABC):
         optimizer = optim.LBFGS(self.parameters(), lr=self.learning_rate)
         return optimizer
 
+    def configure_optimizers__adagrad(self):
+        optimizer = optim.Adagrad(self.parameters(), lr=self.learning_rate)
+        return optimizer
+
     def configure_optimizers__multiple_optimizers(self):
         """
         return whatever optimizers we want here.

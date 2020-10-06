@@ -131,11 +131,14 @@ def test_trainer_arg_str(tmpdir, use_hparams):
         'Learning rate was not altered after running learning rate finder'
 
 
-def test_call_to_trainer_method(tmpdir):
+@pytest.mark.parametrize('optimizer', ['Adam', 'Adagrad'])
+def test_call_to_trainer_method(tmpdir, optimizer):
     """ Test that directly calling the trainer method works """
 
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
+    if optimizer == 'adagrad':
+        model.configure_optimizers = model.configure_optimizers__adagrad
 
     before_lr = hparams.get('learning_rate')
     # logger file to get meta
