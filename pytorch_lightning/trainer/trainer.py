@@ -280,13 +280,14 @@ class Trainer(
 
         # deprecation warnings
         if row_log_interval is not None:
-            warnings.warn("`row_log_interval` is deprecated, use `log_every_n_steps instead`", DeprecationWarning)
+            warnings.warn("Argument `row_log_interval` is deprecated in v0.10, use `log_every_n_steps` instead."
+                          " It will be removed in v0.11.0.", DeprecationWarning)
             log_every_n_steps = row_log_interval
 
         if log_save_interval is not None:
             warnings.warn(
-                "`log_save_interval` is deprecated, use `flush_logs_every_n_steps` instead",
-                DeprecationWarning
+                "Argument `log_save_interval` is deprecated in v0.10, use `flush_logs_every_n_steps` instead."
+                " It will be removed in v0.11.0.", DeprecationWarning
             )
             flush_logs_every_n_steps = log_save_interval
 

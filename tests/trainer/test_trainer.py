@@ -1198,15 +1198,3 @@ def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, l
     trainer.fit(model)
     expected_calls = [call(metrics=ANY, step=s) for s in range(log_interval - 1, max_steps, log_interval)]
     log_metrics_mock.assert_has_calls(expected_calls)
-
-
-def test_deprecated_log_interval(tmpdir):
-    with pytest.warns(DeprecationWarning):
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            row_log_interval=1,
-            log_save_interval=2,
-        )
-    assert trainer.log_every_n_steps == 1
-    assert trainer.flush_logs_every_n_steps == 2
-
