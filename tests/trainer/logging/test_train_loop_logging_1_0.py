@@ -1,7 +1,7 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
-from tests.base.boring_model import BoringModel
+from tests.base.boring_model import BoringModel, RandomDictDataset
 import os
 import torch
 import pytest
@@ -351,4 +351,48 @@ def test_tbptt_log(tmpdir):
 
     generated = set(trainer.logged_metrics.keys())
     expected = {'a', 'step_a', 'epoch_a', 'epoch'}
+    assert generated == expected
+
+
+def test_different_batch_types_for_sizing(tmpdir):
+
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            assert isinstance(batch, dict)
+            a = batch['a']
+            acc = self.step(a)
+            self.log('a', {'d1': 2, 'd2': torch.tensor(1)}, on_step=True, on_epoch=True)
+            return acc
+
+        def validation_step(self, batch, batch_idx):
+            assert isinstance(batch, dict)
+            a = batch['a']
+            output = self.layer(a)
+            loss = self.loss(batch, output)
+            self.log('n', {'d3': 2, 'd4': torch.tensor(1)}, on_step=True, on_epoch=True)
+            return {"x": loss}
+
+        def train_dataloader(self):
+            return torch.utils.data.DataLoader(RandomDictDataset(32, 64), batch_size=32)
+
+        def val_dataloader(self):
+            return torch.utils.data.DataLoader(RandomDictDataset(32, 64), batch_size=32)
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=2,
+        max_epochs=1,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    generated = set(trainer.logger_connector.logged_metrics)
+    expected = {
+        'epoch_a', 'a',
+        'n', 'step_n/epoch_0', 'epoch_n',
+        'epoch'
+    }
+
     assert generated == expected
