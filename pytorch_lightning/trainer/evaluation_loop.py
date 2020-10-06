@@ -165,7 +165,7 @@ class EvaluationLoop(object):
         # track batch size for weighted average
         is_result_obj = isinstance(output, Result)
         if is_result_obj:
-            output.track_batch_size(len(batch))
+            output.track_batch_size(batch)
 
         # allow only EvalResult when using structured results (from val_step)
         if is_result_obj and not isinstance(output, EvalResult):
@@ -320,7 +320,7 @@ class EvaluationLoop(object):
         if len(results) == 1:
             return None
 
-        results.track_batch_size(len(batch))
+        results.track_batch_size(batch)
         self.__log_result_step_metrics(results, batch_idx)
 
         return results

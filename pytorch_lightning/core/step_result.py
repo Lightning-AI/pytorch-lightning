@@ -21,6 +21,7 @@ from torch import Tensor
 import os
 
 from pytorch_lightning.metrics.converters import sync_ddp_if_available
+from typing import Iterable
 
 
 class Result(Dict):
@@ -217,7 +218,8 @@ class Result(Dict):
         _internal = self['meta']['_internal']
         _internal['_reduce_on_epoch'] = max(_internal['_reduce_on_epoch'], on_epoch)
 
-    def track_batch_size(self, batch_size):
+    def track_batch_size(self, batch):
+        batch_size = self.unpack_batch_size(batch)
         meta = self['meta']
         meta['_internal']['batch_sizes'].append(batch_size)
 
@@ -321,6 +323,23 @@ class Result(Dict):
             newone[k] = copy(v)
         return newone
 
+    def unpack_batch_size(self, sample):
+        """
+        Recursively unpack sample to find a torch.Tensor.
+        returns len(tensor) when found, or 1 when it hits an empty or non iterable.
+        """
+        if isinstance(sample, torch.Tensor):
+            size = sample.size(0)
+        elif isinstance(sample, dict):
+            sample = next(iter(sample.values()), 1)
+            size = self.unpack_batch_size(sample)
+        elif isinstance(sample, Iterable):
+            sample = next(iter(sample), 1)
+            size = self.unpack_batch_size(sample)
+        else:
+            size = 1
+        return size
+
     @classmethod
     def gather(cls, outputs):
         meta = outputs[0].get('meta')
@@ -420,7 +439,12 @@ class Result(Dict):
                 tbptt_reduce_fx = torch.mean
             else:
                 tbptt_reduce_fx = meta[k]['tbptt_reduce_fx']
-            result[k] = tbptt_reduce_fx(value.float())
+
+            if isinstance(value, dict):
+                # TODO: recursive reduce:
+                _recursive_fx_apply(value, tbptt_reduce_fx)
+            else:
+                result[k] = tbptt_reduce_fx(value.float())
 
         result['meta'] = meta
         return result
@@ -466,12 +490,14 @@ def recursive_gather(outputs: Sequence[dict], result: Optional[MutableMapping] =
 
         for k, v in out.items():
             if isinstance(v, dict):
-                v = recursive_gather([v], result)
+                in_d = result.get(k, {})
+                v = recursive_gather([v], in_d)
+                result[k] = v
+            else:
+                if k not in result:
+                    result[k] = []
 
-            if k not in result:
-                result[k] = []
-
-            result[k].append(v)
+                result[k].append(v)
 
     return result
 
@@ -482,6 +508,18 @@ def recursive_stack(result: MutableMapping):
             recursive_stack(v)
 
         result[k] = collate_tensors(v)
+
+
+def _recursive_fx_apply(input: dict, fx):
+    for k, v in input.items():
+        if isinstance(v, list):
+            v = torch.tensor(v)
+
+        if isinstance(v, torch.Tensor):
+            v = fx(v.float())
+            input[k] = v
+        else:
+            _recursive_fx_apply(v, fx)
 
 
 def collate_tensors(items: Union[List, Tuple]) -> Union[Tensor, List, Tuple]:
@@ -894,9 +932,41 @@ class EvalResult(Result):
 
 
 def weighted_mean(result, weights):
-    if not isinstance(result, torch.Tensor):
-        result = torch.tensor(result)
-    weights = weights.to(result.device)[:result.size(0)]
-    numerator = torch.dot(result.float(), weights.transpose(-1, 0).float())
-    result = numerator / weights.sum().float()
+
+    if isinstance(result, dict):
+        _process_dataloader_aggregated_steps(result, weights)
+    else:
+        if isinstance(result, list):
+            result = torch.tensor(result)
+
+        weights = weights.to(result.device)[:result.size(0)]
+        numerator = torch.dot(result.float(), weights.transpose(-1, 0).float())
+        result = numerator / weights.sum().float()
     return result
+
+
+def _process_dataloader_aggregated_steps(result, weights):
+    internal_keys = {'meta'}
+
+    moved = False
+
+    for k, v in result.items():
+        if k in internal_keys:
+            continue
+
+        # make sure v is a tensor
+        if not isinstance(v, torch.Tensor):
+            v = torch.tensor(v)
+
+        # move to memory only once
+        if not moved:
+            weights = weights.to(v.device)
+            moved = True
+
+        # move weights to same device as value to reduce
+        weights_t = weights[:v.size(0)]
+
+        # weighted mean
+        numerator = torch.dot(v.float(), weights_t.transpose(-1, 0).float())
+        v = numerator / weights.sum().float()
+        result[k] = v
