@@ -57,47 +57,6 @@ def test_resume_from_checkpoint(tmpdir):
     trainer.fit(model)
 
 
-class ModelTrainerPropertyParity(Callback):
-
-    def check_properties(self, trainer, pl_module):
-        assert trainer.global_step == pl_module.global_step
-        assert trainer.current_epoch == pl_module.current_epoch
-
-    def on_train_start(self, trainer, pl_module):
-        self.check_properties(trainer, pl_module)
-
-    def on_train_batch_start(self, trainer, pl_module, *args, **kwargs):
-        self.check_properties(trainer, pl_module)
-
-    def on_train_batch_end(self, trainer, pl_module, *args, **kwargs):
-        self.check_properties(trainer, pl_module)
-
-    def on_epoch_end(self, trainer, pl_module):
-        self.check_properties(trainer, pl_module)
-
-    def on_train_end(self, trainer, pl_module):
-        self.check_properties(trainer, pl_module)
-
-
-def test_resume_from_checkpoint(tmpdir):
-    """ Test that properties like `current_epoch` and `global_step`
-    in model and trainer are always the same. """
-    model = EvalModelTemplate()
-    checkpoint_callback = ModelCheckpoint(filepath=tmpdir, monitor="val_loss", save_last=True)
-    trainer_args = dict(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        logger=False,
-        early_stop_callback=False,
-        checkpoint_callback=checkpoint_callback,
-        callbacks=[ModelTrainerPropertyParity()]  # this performs the assertions
-    )
-    trainer = Trainer(**trainer_args)
-    trainer.fit(model)
-    trainer = Trainer(**trainer_args, resume_from_checkpoint=str(tmpdir / "last.ckpt"))
-    trainer.fit(model)
-
-
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_running_test_pretrained_model_distrib_dp(tmpdir):
     """Verify `test()` on pretrained model."""
