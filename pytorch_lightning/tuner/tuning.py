@@ -93,8 +93,6 @@ class Tuner:
             early_stop_threshold: float = 4.0,
             datamodule: Optional[LightningDataModule] = None
     ):
-        import pdb
-        pdb.set_trace()
         if self.trainer.fast_dev_run:
             rank_zero_warn('Skipping learning rate finder since `fast_dev_run=True`', UserWarning)
             return
