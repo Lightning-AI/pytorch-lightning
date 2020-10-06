@@ -16,9 +16,9 @@ def setup_ddp(rank, world_size):
     torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
 
 
-def _compute_batch(rank, preds, target, metric_class, sk_metric, ddp_sync_on_step, worldsize=1, metric_args={}):
+def _compute_batch(rank, preds, target, metric_class, sk_metric, dist_sync_on_step, worldsize=1, metric_args={}):
 
-    metric = metric_class(compute_on_step=True, ddp_sync_on_step=ddp_sync_on_step, **metric_args)
+    metric = metric_class(compute_on_step=True, dist_sync_on_step=dist_sync_on_step, **metric_args)
 
     # verify metrics work after being loaded from pickled state
     pickled_metric = pickle.dumps(metric)
@@ -31,7 +31,7 @@ def _compute_batch(rank, preds, target, metric_class, sk_metric, ddp_sync_on_ste
     for i in range(rank, NUM_BATCHES, worldsize):
         batch_result = metric(preds[i], target[i])
 
-        if metric.ddp_sync_on_step:
+        if metric.dist_sync_on_step:
             if rank == 0:
                 ddp_preds = torch.stack([preds[i + r] for r in range(worldsize)])
                 ddp_target = torch.stack([target[i + r] for r in range(worldsize)])
@@ -52,15 +52,15 @@ def _compute_batch(rank, preds, target, metric_class, sk_metric, ddp_sync_on_ste
     assert np.allclose(result.numpy(), sk_result)
 
 
-def compute_batch(preds, target, metric_class, sk_metric, ddp_sync_on_step, ddp=False, metric_args={}):
+def compute_batch(preds, target, metric_class, sk_metric, dist_sync_on_step, ddp=False, metric_args={}):
     if ddp:
         if sys.platform == "win32":
             pytest.skip("DDP not supported on windows")
 
         torch.multiprocessing.spawn(
-            _compute_batch, args=(preds, target, metric_class, sk_metric, ddp_sync_on_step, NUM_PROCESSES, metric_args),
+            _compute_batch, args=(preds, target, metric_class, sk_metric, dist_sync_on_step, NUM_PROCESSES, metric_args),
             nprocs=NUM_PROCESSES
         )
     else:
         # first args: rank, last args: world size
-        _compute_batch(0, preds, target, metric_class, sk_metric, ddp_sync_on_step, 1, metric_args)
+        _compute_batch(0, preds, target, metric_class, sk_metric, dist_sync_on_step, 1, metric_args)

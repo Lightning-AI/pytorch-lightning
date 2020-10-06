@@ -200,7 +200,7 @@ def test_horovod_multi_optimizer(tmpdir):
 @pytest.mark.parametrize("result_cls", [Result, TrainResult, EvalResult])
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 def test_result_reduce_horovod(result_cls):
-    """Make sure result logging works with DDP"""
+    """Make sure result logging works with Horovod."""
     tutils.reset_seed()
     tutils.set_random_master_port()
 

@@ -132,7 +132,7 @@ def _multidim_multiclass_sk_metric(preds, target):
 
 
 @pytest.mark.parametrize("ddp", [True, False])
-@pytest.mark.parametrize("ddp_sync_on_step", [True, False])
+@pytest.mark.parametrize("dist_sync_on_step", [True, False])
 @pytest.mark.parametrize("preds, target, sk_metric", [
     (_binary_prob_inputs.preds, _binary_prob_inputs.target, _binary_prob_sk_metric),
     (_binary_inputs.preds, _binary_inputs.target, _binary_sk_metric),
@@ -151,5 +151,5 @@ def _multidim_multiclass_sk_metric(preds, target):
         _multidim_multiclass_sk_metric
     )
 ])
-def test_accuracy(ddp, ddp_sync_on_step, preds, target, sk_metric):
-    compute_batch(preds, target, Accuracy, sk_metric, ddp_sync_on_step, ddp, metric_args={"threshold": threshold})
+def test_accuracy(ddp, dist_sync_on_step, preds, target, sk_metric):
+    compute_batch(preds, target, Accuracy, sk_metric, dist_sync_on_step, ddp, metric_args={"threshold": threshold})
