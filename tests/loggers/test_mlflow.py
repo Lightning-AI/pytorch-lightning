@@ -4,6 +4,8 @@ import os
 from unittest import mock
 from unittest.mock import MagicMock
 
+import pytest
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import MLFlowLogger
 from tests.base import EvalModelTemplate
