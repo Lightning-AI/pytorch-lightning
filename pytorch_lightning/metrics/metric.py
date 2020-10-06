@@ -11,6 +11,7 @@ from torch import nn
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.metrics.utils import _flatten, gather_all_tensors_if_available
+from pytorch_lightning.metrics.utils import dim_zero_cat, dim_zero_mean, dim_zero_sum
 
 
 class Metric(nn.Module, ABC):
@@ -71,9 +72,10 @@ class Metric(nn.Module, ABC):
             name: The name of the state variable. The variable will then be accessible at ``self.name``.
             default: Default value of the state; can either be a ``torch.Tensor`` or an empty list. The state will be
                 reset to this value when ``self.reset()`` is called.
-            dist_reduce_fx (Optional): Function to reduce state accross mutliple processes in distributed mode. If value is ``"sum"``,
-                ``"mean"``, or ``"cat"``, we will use ``torch.sum``, ``torch.mean``, and ``torch.cat`` respectively,
-                each with argument ``dim=0``. The user can also pass a custom function in this parameter.
+            dist_reduce_fx (Optional): Function to reduce state accross mutliple processes in distributed mode.
+                If value is ``"sum"``, ``"mean"``, or ``"cat"``, we will use ``torch.sum``, ``torch.mean``,
+                and ``torch.cat`` respectively, each with argument ``dim=0``. The user can also pass a custom
+                function in this parameter.
 
         Note:
             Setting ``dist_reduce_fx`` to None will return the metric state synchronized across different processes.
@@ -99,11 +101,11 @@ class Metric(nn.Module, ABC):
             )
 
         if dist_reduce_fx == "sum":
-            dist_reduce_fx = lambda x: torch.sum(x, dim=0)
+            dist_reduce_fx = dim_zero_sum
         elif dist_reduce_fx == "mean":
-            dist_reduce_fx = lambda x: torch.mean(x, dim=0)
+            dist_reduce_fx = dim_zero_mean
         elif dist_reduce_fx == "cat":
-            dist_reduce_fx = lambda x: torch.cat(x, dim=0)
+            dist_reduce_fx = dim_zero_cat
         elif dist_reduce_fx is not None and not isinstance(dist_reduce_fx, Callable):
             raise ValueError(
                 "`dist_reduce_fx` must be callable or one of ['mean', 'sum', 'cat', None]"
@@ -177,9 +179,11 @@ class Metric(nn.Module, ABC):
             if self._computed is not None:
                 return self._computed
 
-            if self._to_sync \
-                and torch.distributed.is_available() \
-                and torch.distributed.is_initialized():
+            if (
+                self._to_sync
+                and torch.distributed.is_available()
+                and torch.distributed.is_initialized()
+            ):
                 self._sync_dist()
 
             self._computed = compute(*args, **kwargs)

@@ -44,7 +44,7 @@ class Accuracy(Metric):
         >>> preds = torch.tensor([0, 2, 1, 3])
         >>> accuracy = Accuracy()
         >>> accuracy(preds, target)
-        tensor(0.5)
+        tensor(0.5000)
 
     """
 

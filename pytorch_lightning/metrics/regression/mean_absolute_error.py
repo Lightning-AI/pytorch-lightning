@@ -4,7 +4,6 @@ from typing import Any, Callable, Optional, Union
 from pytorch_lightning.metrics.metric import Metric
 
 
-
 class MeanAbsoluteError(Metric):
     """
     Computes mean absolute error.
@@ -16,7 +15,7 @@ class MeanAbsoluteError(Metric):
         >>> preds = torch.tensor([2.5, 0.0, 2.0, 8.0])
         >>> mean_absolute_error = MeanAbsoluteError()
         >>> mean_absolute_error(preds, target)
-        tensor(0.5)
+        tensor(0.5000)
     """
 
     def __init__(
