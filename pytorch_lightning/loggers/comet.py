@@ -77,7 +77,7 @@ class CometLogger(LightningLoggerBase):
             rest_api_key=os.environ.get('COMET_REST_API_KEY'),  # Optional
             experiment_name='default'  # Optional
         )
-        >>> trainer = Trainer(logger=comet_logger)
+        trainer = Trainer(logger=comet_logger)
 
     **OFFLINE MODE**
 
