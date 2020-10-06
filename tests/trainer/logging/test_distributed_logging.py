@@ -7,6 +7,16 @@ from pytorch_lightning import Trainer, Callback
 from unittest import mock
 
 
+class TestModel(Callback):
+
+    def on_pretrain_routine_end(self) -> None:
+        with mock.patch('pytorch_lightning.loggers.base.LightningLoggerBase.agg_and_log_metrics') as m:
+            self.trainer.logger_connector.log_metrics({'a': 2}, {})
+            logged_times = m.call_count
+            expected = 1 if self.global_rank == 0 else 0
+            assert logged_times == expected, 'actual logger called from non-global zero'
+
+
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif((platform.system() == "Darwin" and
@@ -16,19 +26,19 @@ def test_global_zero_only_logging_ddp_cpu(tmpdir):
     """
     Makes sure logging only happens from root zero
     """
-    class CB(Callback):
+    class TestModel(BoringModel):
 
-        def on_pretrain_routine_end(self, trainer, pl_module):
+        def on_pretrain_routine_end(self) -> None:
             with mock.patch('pytorch_lightning.loggers.base.LightningLoggerBase.agg_and_log_metrics') as m:
                 self.trainer.logger_connector.log_metrics({'a': 2}, {})
                 logged_times = m.call_count
-                expected = 1 if trainer.global_rank == 0 else 0
+                expected = 1 if self.global_rank == 0 else 0
                 assert logged_times == expected, 'actual logger called from non-global zero'
 
-    model = BoringModel()
+    model = TestModel()
     model.training_epoch_end = None
     trainer = Trainer(
-        callbacks=[CB()],
+        distributed_backend='ddp_cpu',
         num_processes=2,
         default_root_dir=tmpdir,
         limit_train_batches=1,
@@ -44,19 +54,9 @@ def test_global_zero_only_logging_ddp_spawn(tmpdir):
     """
     Makes sure logging only happens from root zero
     """
-    class CB(Callback):
-
-        def on_pretrain_routine_end(self, trainer, pl_module):
-            with mock.patch('pytorch_lightning.loggers.base.LightningLoggerBase.agg_and_log_metrics') as m:
-                self.trainer.logger_connector.log_metrics({'a': 2}, {})
-                logged_times = m.call_count
-                expected = 1 if trainer.global_rank == 0 else 0
-                assert logged_times == expected, 'actual logger called from non-global zero'
-
-    model = BoringModel()
+    model = TestModel()
     model.training_epoch_end = None
     trainer = Trainer(
-        callbacks=[CB()],
         distributed_backend='ddp_spawn',
         gpus=2,
         default_root_dir=tmpdir,
