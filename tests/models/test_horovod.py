@@ -4,7 +4,6 @@ import platform
 import shlex
 import subprocess
 import sys
-from unittest.mock import patch
 
 import pytest
 import torch
@@ -12,10 +11,12 @@ import torch
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.core.step_result import Result, TrainResult, EvalResult
 from tests.base import EvalModelTemplate
 from tests.base.models import BasicGAN
 
 try:
+    import horovod
     from horovod.common.util import nccl_built
 except ImportError:
     HOROVOD_AVAILABLE = False
@@ -194,6 +195,27 @@ def test_horovod_multi_optimizer(tmpdir):
     assert get_model_params(model.generator) != get_model_params(model.discriminator)
     assert get_model_params(model.generator) == get_optimizer_params(trainer.optimizers[0])
     assert get_model_params(model.discriminator) == get_optimizer_params(trainer.optimizers[1])
+
+
+@pytest.mark.parametrize("result_cls", [Result, TrainResult, EvalResult])
+@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
+def test_result_reduce_horovod(result_cls):
+    """Make sure result logging works with DDP"""
+    tutils.reset_seed()
+    tutils.set_random_master_port()
+
+    def hvd_test_fn():
+        import horovod.torch as hvd
+        hvd.init()
+
+        tensor = torch.tensor([1.0])
+
+        res = result_cls()
+        res.log("test_tensor", tensor, sync_dist=True, sync_dist_op='sum')
+        assert res["test_tensor"].item() == hvd.size(), \
+            "Result-Log does not work properly with Horovod and Tensors"
+
+    horovod.run(hvd_test_fn, np=2)
 
 # @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 # def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
