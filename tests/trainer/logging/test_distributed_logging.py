@@ -29,7 +29,7 @@ def test_global_zero_only_logging_ddp_cpu(tmpdir):
     model.training_epoch_end = None
     trainer = Trainer(
         distributed_backend='ddp_cpu',
-        num_processes=4,
+        num_processes=2,
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
