@@ -133,8 +133,6 @@ class Trainer(
         amp_backend: str = 'native',
         amp_level: str = 'O2',
         overfit_pct: float = None,  # backward compatible, todo: remove in v1.0.0
-        log_save_interval: Optional[int] = None,  # backward compatible, todo: remove in 0.11
-        row_log_interval: Optional[int] = None,  # backward compatible, todo: remove in 0.11
     ):
         r"""
         Customize every aspect of training via flags
@@ -410,17 +408,10 @@ class Trainer(
 
             train_dataloader: A Pytorch DataLoader with training samples. If the model has
                 a predefined train_dataloader method this will be skipped.
-<<<<<<< HEAD
 
             val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
                 If the model has a predefined val_dataloaders method this will be skipped
 
-=======
-
-            val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
-                If the model has a predefined val_dataloaders method this will be skipped
-
->>>>>>> a279ded19c80e57b7e6cf64f0a880617482f34f8
         """
         # setup data, etc...
         self.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
