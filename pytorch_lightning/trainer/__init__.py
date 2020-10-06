@@ -249,16 +249,21 @@ before any training, to find optimal initial learning rate.
     # default used by the Trainer (no learning rate finder)
     trainer = Trainer(auto_lr_find=False)
 
-    # call tune to find the lr
-    trainer.tune(model)
-
 Example::
 
     # run learning rate finder, results override hparams.learning_rate
     trainer = Trainer(auto_lr_find=True)
 
+    # call tune to find the lr
+    trainer.tune(model)
+
+Example::
+
     # run learning rate finder, results override hparams.my_lr_arg
     trainer = Trainer(auto_lr_find='my_lr_arg')
+
+    # call tune to find the lr
+    trainer.tune(model)
 
 .. note::
     See the :ref:`learning rate finder guide <lr_finder>`.
