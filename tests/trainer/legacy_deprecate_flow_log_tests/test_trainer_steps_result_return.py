@@ -546,7 +546,7 @@ def test_full_train_loop_with_results_obj_dp(tmpdir):
 
     assert 'train_step_metric' in seen_keys
     assert 'train_step_end_metric' in seen_keys
-    assert 'epoch_train_epoch_end_metric' in seen_keys
+    assert 'train_epoch_end_metric_epoch' in seen_keys
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")

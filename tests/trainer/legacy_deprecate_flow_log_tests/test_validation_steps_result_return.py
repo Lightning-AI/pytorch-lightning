@@ -411,13 +411,13 @@ def test_val_step_full_loop_result_dp(tmpdir):
 
     assert 'train_step_metric' in seen_keys
     assert 'train_step_end_metric' in seen_keys
-    assert 'epoch_train_epoch_end_metric' in seen_keys
-    assert 'step_validation_step_metric/epoch_0' in seen_keys
-    assert 'epoch_validation_step_metric' in seen_keys
+    assert 'train_epoch_end_metric_epoch' in seen_keys
+    assert 'validation_step_metric/epoch_0_step' in seen_keys
+    assert 'validation_step_metric_epoch' in seen_keys
     assert 'validation_step_end_metric' in seen_keys
     assert 'validation_epoch_end_metric' in seen_keys
-    assert 'step_test_step_metric/epoch_2' in seen_keys
-    assert 'epoch_test_step_metric' in seen_keys
+    assert 'test_step_metric_step/epoch_2' in seen_keys
+    assert 'test_step_metric_epoch' in seen_keys
     assert 'test_step_end_metric' in seen_keys
     assert 'test_epoch_end_metric' in seen_keys
 
