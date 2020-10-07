@@ -509,7 +509,7 @@ class LightningModule(
             See the :ref:`multi_gpu` guide for more details.
         """
 
-    def training_epoch_end(self, outputs: List[Any]):
+    def training_epoch_end(self, outputs: List[Any]) -> None:
         """
         Called at the end of the training epoch with the outputs of all training steps.
         Use this in case you need to do something with all the outputs for every training_step.
@@ -695,7 +695,7 @@ class LightningModule(
 
     def validation_epoch_end(
         self, outputs: List[Any]
-    ):
+    ) -> None:
         """
         Called at the end of the validation epoch with the outputs of all validation steps.
 
@@ -878,7 +878,7 @@ class LightningModule(
 
     def test_epoch_end(
         self, outputs: List[Any]
-    ):
+    ) -> None:
         """
         Called at the end of a test epoch with the output of all test steps.
 
