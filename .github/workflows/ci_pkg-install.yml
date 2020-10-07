@@ -8,8 +8,8 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     branches: [master]
 
 jobs:
-  if: "! contains(toJSON(github.event.commits.*.message), '[skip ci]', '[ci skip]')"
   pkg-install:
+    if: "! contains(toJSON(github.event.commits.*.message), '[skip ci]', '[ci skip]')"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false

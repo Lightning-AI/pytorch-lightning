@@ -8,8 +8,8 @@ on:
     types: [created]
 
 jobs:
-  if: "! contains(toJSON(github.event.commits.*.message), '[skip ci]', '[ci skip]')"
   build-Conda:
+    if: "! contains(toJSON(github.event.commits.*.message), '[skip ci]', '[ci skip]')"
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false

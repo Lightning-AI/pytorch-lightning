@@ -17,8 +17,8 @@ env:
   CHECK_SPEEP: 5
 
 jobs:
-  if: "! contains(toJSON(github.event.commits.*.message), '[skip ci]', '[ci skip]')"
   setup-build-publish-deploy:
+    if: "! contains(toJSON(github.event.commits.*.message), '[skip ci]', '[ci skip]')"
     name: tpu-testing-job
     runs-on: ubuntu-20.04
     strategy:
