@@ -146,8 +146,8 @@ class PredictionCollection(object):
             # normalize local filepaths only
             if fs.protocol == "file":
                 filepath = os.path.realpath(filepath)
-            stem, extension = os.path.splitext(filepath)
             if self.world_size > 1:
+                stem, extension = os.path.splitext(filepath)
                 filepath = f"{stem}_rank_{self.global_rank}{extension}"
             dirpath = os.path.split(filepath)[0]
             fs.mkdirs(dirpath, exist_ok=True)
