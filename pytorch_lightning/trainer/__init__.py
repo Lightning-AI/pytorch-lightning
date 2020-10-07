@@ -242,7 +242,7 @@ Example::
 auto_lr_find
 ^^^^^^^^^^^^
 Runs a learning rate finder algorithm (see this `paper <https://arxiv.org/abs/1506.01186>`_)
-before any training, to find optimal initial learning rate.
+when calling trainer.tune(), to find optimal initial learning rate.
 
 .. code-block:: python
 
@@ -304,9 +304,9 @@ callbacks
 ^^^^^^^^^
 
 Add a list of user defined callbacks. These callbacks DO NOT replace the explicit callbacks
-(loggers, EarlyStopping or ModelCheckpoint).
+(loggers or ModelCheckpoint).
 
-.. note:: Only user defined callbacks (ie: Not EarlyStopping or ModelCheckpoint)
+.. note:: Only user defined callbacks (ie: Not ModelCheckpoint)
 
 .. code-block:: python
 
@@ -439,37 +439,10 @@ See Also:
 early_stop_callback
 ^^^^^^^^^^^^^^^^^^^
 
-Callback for early stopping.
-early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
+.. warning:: .. deprecated:: 0.10.0.
 
-.. deprecated:
     Deprecated since v0.10.0 and will be removed in v1.0. Configure the EarlyStopping callback class
     and add it to the list of callbacks: ``Trainer(callbacks=[EarlyStopping(...)])``
-
-- ``True``: A default callback monitoring ``'early_stop_on'`` (if dict is returned in validation loop) or
-  ``early_stopping_on`` (if :class:`~pytorch_lightning.core.step_result.Result` is returned) is created.
-  Will raise an error if a dictionary is returned and ``'early_stop_on'`` is not found.
-  Will raise an error if a :class:`~pytorch_lightning.core.step_result.Result` is returned
-  and ``early_stopping_on`` was not specified.
-- ``False``: Early stopping will be disabled.
-- ``None``: Equivalent to ``True``.
-- Default: ``False``.
-
-.. testcode::
-
-    from pytorch_lightning.callbacks import EarlyStopping
-
-    # default used by the Trainer
-    early_stop = EarlyStopping(
-        monitor='early_stop_on',
-        patience=3,
-        strict=False,
-        verbose=False,
-        mode='min'
-    )
-    trainer = Trainer(early_stop_callback=early_stop)
-
-.. note:: If ``'early_stop_on'`` is not found will work as if early stopping is disabled.
 
 fast_dev_run
 ^^^^^^^^^^^^
