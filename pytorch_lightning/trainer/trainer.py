@@ -464,32 +464,48 @@ class Trainer(
                 If the model has a predefined val_dataloaders method this will be skipped
 
         """
+        # bookkeeping
         self._state = TrainerState.RUNNING
 
+        # ----------------------------
+        # LINK DATA
+        # ----------------------------
         # setup data, etc...
         self.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
 
         # hook
         self.data_connector.prepare_data(model)
 
-        # set testing if set in environ
+        # bookkeeping
+        # we reuse fit in .test() but change its behavior using this flag
         self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
 
-        # -------------------------
-        # TRAIN
-        # -------------------------
+        # ----------------------------
+        # SET UP TRAINING
+        # ----------------------------
         self.accelerator_backend = self.accelerator_connector.select_accelerator()
         self.accelerator_backend.setup(model)
 
+        # ----------------------------
+        # INSPECT THESE FOR MAIN LOOPS
+        # ----------------------------
+        # assign training and eval functions... inspect these to see the train and eval loops :)
+        self.accelerator_backend.train_loop = self.train
+        self.accelerator_backend.validation_loop = self.run_evaluation
+        self.accelerator_backend.test_loop = self.run_evaluation
+
+        # ----------------------------
+        # TRAIN
+        # ----------------------------
         # hook
         self.call_hook('on_fit_start')
 
         results = self.accelerator_backend.train()
         self.accelerator_backend.teardown()
 
-        # -------------------------
-        # POST-Training
-        # -------------------------
+        # ----------------------------
+        # POST-Training CLEAN UP
+        # ----------------------------
         # hook
         self.call_hook('on_fit_end')
 
