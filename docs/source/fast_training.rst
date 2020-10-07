@@ -40,7 +40,7 @@ Set validation check frequency within 1 training epoch
 ------------------------------------------------------
 For large datasets it's often desirable to check validation multiple times within a training loop.
 Pass in a float to check that often within 1 training epoch. Pass in an int k to check every k training batches.
-Must use an int if using an IterableDataset.
+Must use an `int` if using an `IterableDataset`.
 
 .. testcode::
 
@@ -50,7 +50,7 @@ Must use an int if using an IterableDataset.
     # check every .25 of an epoch
     trainer = Trainer(val_check_interval=0.25)
 
-    # check every 100 train batches (ie: for IterableDatasets or fixed frequency)
+    # check every 100 train batches (ie: for `IterableDatasets` or fixed frequency)
     trainer = Trainer(val_check_interval=100)
 
 ----------------

@@ -163,7 +163,7 @@ on how to set up the instance groups and VMs needed to run TPU Pods.
 16 bit precision
 -----------------
 Lightning also supports training in 16-bit precision with TPUs.
-By default, TPU training will use 32-bit precision. To enable 16-bit, also
+By default, TPU training will use 32-bit precision. To enable 16-bit,
 set the 16-bit flag.
 
 .. code-block:: python
