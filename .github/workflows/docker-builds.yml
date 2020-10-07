@@ -9,8 +9,12 @@ on:
 
 jobs:
   build-Conda:
-    if: "! contains(github.event.commits.*.message, '[skip ci]', '[ci skip]', 'skip ci', 'ci skip')"
-    runs-on: ubuntu-20.04
+    if: |
+    "! contains(github.event.commits.*.message, '[skip ci]')" ||
+    "! contains(github.event.commits.*.message, '[ci skip]')" ||
+    "! contains(github.event.commits.*.message, 'skip ci')" ||
+    "! contains(github.event.commits.*.message, 'ci skip')"
+  runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
