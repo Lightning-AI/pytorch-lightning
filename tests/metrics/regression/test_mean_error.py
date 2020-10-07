@@ -9,6 +9,8 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_square
 from tests.metrics.utils import compute_batch, setup_ddp
 from tests.metrics.utils import NUM_BATCHES, NUM_PROCESSES, BATCH_SIZE
 
+torch.manual_seed(42)
+
 num_targets = 5
 
 Input = namedtuple('Input', ["preds", "target"])
