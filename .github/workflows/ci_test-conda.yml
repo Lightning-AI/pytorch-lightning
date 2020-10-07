@@ -14,7 +14,7 @@ jobs:
       !contains(github.event.commits.*.message, '[ci skip]') ||
       !contains(github.event.commits.*.message, 'skip ci') ||
       !contains(github.event.commits.*.message, 'ci skip')
-  runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     container: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python-version }}-torch${{ matrix.pytorch-version }}
     strategy:
       fail-fast: false
