@@ -8,6 +8,7 @@ on:
     types: [created]
 
 jobs:
+  if: "! contains(toJSON(github.event.commits.*.message), '[skip ci]', '[ci skip]')"
   build-Conda:
     runs-on: ubuntu-20.04
     strategy:
