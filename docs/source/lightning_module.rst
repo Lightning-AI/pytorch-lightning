@@ -1024,17 +1024,6 @@ Advanced hooks
 ^^^^^^^^^^^^^^
 Use these hooks to modify advanced functionality
 
-configure_apex
-~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.configure_apex
-    :noindex:
-
-configure_ddp
-~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.configure_ddp
-    :noindex:
 
 configure_sync_batchnorm
 ~~~~~~~~~~~~~~~~~~~~~~~~

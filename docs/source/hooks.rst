@@ -24,10 +24,7 @@ Training set-up
 
 - :meth:`~pytorch_lightning.core.datamodule.LightningDataModule.prepare_data`
 - :meth:`~pytorch_lightning.core.datamodule.LightningDataModule.setup`
-- :meth:`~pytorch_lightning.core.lightning.LightningModule.init_ddp_connection`
 - :meth:`~pytorch_lightning.trainer.optimizers.TrainerOptimizersMixin.init_optimizers`
-- :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_apex`
-- :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_ddp`
 - :meth:`~pytorch_lightning.core.datamodule.LightningDataModule.train_dataloader`
 - :meth:`~pytorch_lightning.core.datamodule.LightningDataModule.test_dataloader`
 - :meth:`~pytorch_lightning.core.datamodule.LightningDataModule.val_dataloader`
