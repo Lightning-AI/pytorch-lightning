@@ -1,4 +1,3 @@
-import atexit
 import inspect
 import os
 import pickle
@@ -20,6 +19,7 @@ from pytorch_lightning.loggers import (
 from pytorch_lightning.loggers.base import DummyExperiment
 from tests.base import EvalModelTemplate
 from tests.loggers.test_comet import _patch_comet_atexit
+from tests.loggers.test_mlflow import mock_mlflow_run_creation
 
 
 def _get_logger_args(logger_class, save_dir):
@@ -34,27 +34,31 @@ def _get_logger_args(logger_class, save_dir):
 
 
 def test_loggers_fit_test_all(tmpdir, monkeypatch):
-    _patch_comet_atexit(monkeypatch)
+    """ Verify that basic functionality of all loggers. """
+
+    _test_loggers_fit_test(tmpdir, TensorBoardLogger)
+
     with mock.patch('pytorch_lightning.loggers.comet.comet_ml'), \
          mock.patch('pytorch_lightning.loggers.comet.CometOfflineExperiment'):
+        _patch_comet_atexit(monkeypatch)
         _test_loggers_fit_test(tmpdir, CometLogger)
 
-    _test_loggers_fit_test(tmpdir, MLFlowLogger)
+    with mock.patch('pytorch_lightning.loggers.mlflow.mlflow'), \
+         mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient'):
+        _test_loggers_fit_test(tmpdir, MLFlowLogger)
 
     with mock.patch('pytorch_lightning.loggers.neptune.neptune'):
         _test_loggers_fit_test(tmpdir, NeptuneLogger)
 
-    _test_loggers_fit_test(tmpdir, TensorBoardLogger)
-    _test_loggers_fit_test(tmpdir, TestTubeLogger)
+    with mock.patch('pytorch_lightning.loggers.test_tube.Experiment'):
+        _test_loggers_fit_test(tmpdir, TestTubeLogger)
 
     with mock.patch('pytorch_lightning.loggers.wandb.wandb'):
         _test_loggers_fit_test(tmpdir, WandbLogger)
 
 
 def _test_loggers_fit_test(tmpdir, logger_class):
-    """Verify that basic functionality of all loggers."""
     os.environ['PL_DEV_DEBUG'] = '0'
-
     model = EvalModelTemplate()
 
     class StoreHistoryLogger(logger_class):
@@ -77,6 +81,13 @@ def _test_loggers_fit_test(tmpdir, logger_class):
     if logger_class == CometLogger:
         logger.experiment.id = 'foo'
         logger.experiment.project_name = 'bar'
+
+    if logger_class == TestTubeLogger:
+        logger.experiment.version = 'foo'
+        logger.experiment.name = 'bar'
+
+    if logger_class == MLFlowLogger:
+        logger = mock_mlflow_run_creation(logger, experiment_id="foo", run_id="bar")
 
     trainer = Trainer(
         max_epochs=1,
@@ -109,21 +120,27 @@ def _test_loggers_fit_test(tmpdir, logger_class):
 
 
 def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch):
-    _patch_comet_atexit(monkeypatch)
-    with mock.patch('pytorch_lightning.loggers.comet.comet_ml'), \
-         mock.patch('pytorch_lightning.loggers.comet.CometOfflineExperiment'):
-        _test_loggers_save_dir_and_weights_save_path(tmpdir, CometLogger)
+    """ Test the combinations of save_dir, weights_save_path and default_root_dir.  """
 
     _test_loggers_save_dir_and_weights_save_path(tmpdir, TensorBoardLogger)
-    _test_loggers_save_dir_and_weights_save_path(tmpdir, MLFlowLogger)
-    _test_loggers_save_dir_and_weights_save_path(tmpdir, TestTubeLogger)
+
+    with mock.patch('pytorch_lightning.loggers.comet.comet_ml'), \
+         mock.patch('pytorch_lightning.loggers.comet.CometOfflineExperiment'):
+        _patch_comet_atexit(monkeypatch)
+        _test_loggers_save_dir_and_weights_save_path(tmpdir, CometLogger)
+
+    with mock.patch('pytorch_lightning.loggers.mlflow.mlflow'), \
+         mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient'):
+        _test_loggers_save_dir_and_weights_save_path(tmpdir, MLFlowLogger)
+
+    with mock.patch('pytorch_lightning.loggers.test_tube.Experiment'):
+        _test_loggers_save_dir_and_weights_save_path(tmpdir, TestTubeLogger)
 
     with mock.patch('pytorch_lightning.loggers.wandb.wandb'):
         _test_loggers_save_dir_and_weights_save_path(tmpdir, WandbLogger)
 
 
 def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
-    """ Test the combinations of save_dir, weights_save_path and default_root_dir.  """
 
     class TestLogger(logger_class):
         # for this test it does not matter what these attributes are
@@ -255,18 +272,24 @@ class RankZeroLoggerCheck(Callback):
             assert pl_module.logger.experiment.something(foo="bar") is None
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.parametrize("logger_class", [
-    TensorBoardLogger,
+    CometLogger,
     MLFlowLogger,
-    # NeptuneLogger,  # TODO: fix: https://github.com/PyTorchLightning/pytorch-lightning/pull/3256
+    NeptuneLogger,
+    TensorBoardLogger,
     TestTubeLogger,
 ])
-@mock.patch('pytorch_lightning.loggers.neptune.neptune')
-def test_logger_created_on_rank_zero_only(neptune, tmpdir, monkeypatch, logger_class):
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
     """ Test that loggers get replaced by dummy loggers on global rank > 0"""
     _patch_comet_atexit(monkeypatch)
+    try:
+        _test_logger_created_on_rank_zero_only(tmpdir, logger_class)
+    except (ImportError, ModuleNotFoundError):
+        pytest.xfail(f"multi-process test requires {logger_class.__class__} dependencies to be installed.")
 
+
+def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
     logger_args = _get_logger_args(logger_class, tmpdir)
     logger = logger_class(**logger_args)
     model = EvalModelTemplate()
