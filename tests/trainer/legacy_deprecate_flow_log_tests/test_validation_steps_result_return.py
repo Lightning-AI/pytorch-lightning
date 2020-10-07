@@ -251,10 +251,10 @@ def test_val_step_epoch_step_metrics(tmpdir):
     expected_metrics = {
         'early_stop_on',
         'checkpoint_on',
-        'val_step_pbar_acc', 'epoch_val_step_pbar_acc',
-        'val_step_log_acc', 'epoch_val_step_log_acc',
-        'val_step_log_pbar_acc', 'epoch_val_step_log_pbar_acc',
-        'val_step_batch_idx', 'epoch_val_step_batch_idx'
+        'val_step_pbar_acc', 'val_step_pbar_acc_epoch',
+        'val_step_log_acc', 'val_step_log_acc_epoch',
+        'val_step_log_pbar_acc', 'val_step_log_pbar_acc_epoch',
+        'val_step_batch_idx', 'val_step_batch_idx_epoch'
     }
     expected_metrics.add('debug_epoch')
     seen_metrics = set(trainer.logger_connector.callback_metrics)
