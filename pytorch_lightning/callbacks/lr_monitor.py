@@ -165,7 +165,7 @@ class LearningRateMonitor(Callback):
         should_log = (
             (trainer.global_step + 1) % trainer.log_every_n_steps == 0
             or trainer.should_stop
-            or trainer.fast_dev_run
         )
 
+        should_log = should_log and trainer.fast_dev_run
         return should_log
