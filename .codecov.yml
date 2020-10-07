@@ -65,12 +65,3 @@ comment:
   require_changes: false
   behavior: default  # update if exists else create new
   after_n_builds: 23
-
-# TODO: figure out how to get codecov to pick up the test results on these backends
-#  The actual coverage for each is 90%+
-ignore:  # see: https://docs.codecov.io/docs/ignoring-paths
-  - "pytorch_lightning/accelerators/ddp_*.py"
-  - "pytorch_lightning/accelerators/ddp2_*.py"
-  - "pytorch_lightning/accelerators/dp_*.py"
-  - "pytorch_lightning/accelerators/gpu_*.py"
-  - "pytorch_lightning/accelerators/tpu_*.py"
