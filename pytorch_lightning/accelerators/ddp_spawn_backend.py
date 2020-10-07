@@ -27,7 +27,9 @@ from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_wa
 from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.utilities.distributed import find_free_network_port
-
+from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
+from torch.nn.parallel import DistributedDataParallel
+from typing import List
 
 try:
     from hydra.core.hydra_config import HydraConfig
@@ -232,3 +234,11 @@ class DDPSpawnBackend(Accelerator):
                 last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
                 atomic_save(model.state_dict(), last_path)
             mp_queue.put(last_path)
+
+    def configure_ddp(
+        self, model: "LightningModule", device_ids: List[int]
+    ) -> DistributedDataParallel:
+        model = LightningDistributedDataParallel(
+            model, device_ids=device_ids, find_unused_parameters=True
+        )
+        return model

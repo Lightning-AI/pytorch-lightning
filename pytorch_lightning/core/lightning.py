@@ -27,7 +27,6 @@ from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.core.step_result import TrainResult, EvalResult
@@ -41,7 +40,6 @@ from pytorch_lightning.utilities.parsing import (
 )
 from torch import ScriptModule, Tensor
 from torch.nn import Module
-from torch.nn.parallel import DistributedDataParallel
 from torch.optim.optimizer import Optimizer
 
 
@@ -930,43 +928,6 @@ class LightningModule(
 
                     self.log('final_metric', final_value)
         """
-
-    def configure_ddp(
-        self, model: "LightningModule", device_ids: List[int]
-    ) -> DistributedDataParallel:
-        r"""
-        Override to init DDP in your own way or with your own wrapper.
-        The only requirements are that:
-
-        1. On a validation batch, the call goes to ``model.validation_step``.
-        2. On a training batch, the call goes to ``model.training_step``.
-        3. On a testing batch, the call goes to ``model.test_step``.
-
-        Args:
-            model: the :class:`LightningModule` currently being optimized.
-            device_ids: the list of GPU ids.
-
-        Return:
-            DDP wrapped model
-
-        Examples:
-            .. code-block:: python
-
-                # default implementation used in Trainer
-                def configure_ddp(self, model, device_ids):
-                    # Lightning DDP simply routes to test_step, val_step, etc...
-                    model = LightningDistributedDataParallel(
-                        model,
-                        device_ids=device_ids,
-                        find_unused_parameters=True
-                    )
-                    return model
-
-        """
-        model = LightningDistributedDataParallel(
-            model, device_ids=device_ids, find_unused_parameters=True
-        )
-        return model
 
     def configure_sync_batchnorm(self, model: "LightningModule") -> "LightningModule":
         """
