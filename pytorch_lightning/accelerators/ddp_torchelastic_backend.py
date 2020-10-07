@@ -22,6 +22,9 @@ from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
+from torch.nn.parallel import DistributedDataParallel
+from typing import List
 
 
 try:
@@ -142,7 +145,7 @@ class DDPTorchElasticBackend(Accelerator):
 
         # call sync_bn before .cuda(), configure_apex and configure_ddp
         if self.trainer.sync_batchnorm:
-            model = model.configure_sync_batchnorm(model)
+            model = self.configure_sync_batchnorm(model)
 
         # move the model to the correct device
         self.model_to_device(model, process_idx)
@@ -161,7 +164,7 @@ class DDPTorchElasticBackend(Accelerator):
         device_ids = self.get_device_ids()
 
         # allow user to configure ddp
-        model = model.configure_ddp(model, device_ids)
+        model = self.configure_ddp(model, device_ids)
 
         # set up training routine
         self.trainer.train_loop.setup_training(model)
@@ -173,3 +176,28 @@ class DDPTorchElasticBackend(Accelerator):
         torch.cuda.empty_cache()
 
         return results
+
+    def configure_ddp(
+        self, model: "LightningModule", device_ids: List[int]
+    ) -> DistributedDataParallel:
+        model = LightningDistributedDataParallel(
+            model, device_ids=device_ids, find_unused_parameters=True
+        )
+        return model
+
+    def configure_sync_batchnorm(self, model: "LightningModule") -> "LightningModule":
+        """
+        Add global batchnorm for a model spread across multiple GPUs and nodes.
+
+        Override to synchronize batchnorm between specific process groups instead
+        of the whole world or use a different sync_bn like `apex`'s version.
+
+        Args:
+            model: pointer to current :class:`LightningModule`.
+
+        Return:
+            LightningModule with batchnorm layers synchronized between process groups
+        """
+        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
+
+        return model
