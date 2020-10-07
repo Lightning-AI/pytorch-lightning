@@ -5,11 +5,20 @@ from unittest import mock
 from unittest.mock import MagicMock
 import pytest
 
-from mlflow.tracking import MlflowClient
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import MLFlowLogger
 from tests.base import EvalModelTemplate
+
+
+def mock_mlflow_run_creation(logger, experiment_name=None, experiment_id=None, run_id=None):
+    """ Helper function to simulate mlflow client creating a new (or existing) experiment. """
+    run = MagicMock()
+    run.info.run_id = run_id
+    logger._mlflow_client.get_experiment_by_name = MagicMock(return_value=experiment_name)
+    logger._mlflow_client.create_experiment = MagicMock(return_value=experiment_id)
+    logger._mlflow_client.create_run = MagicMock(return_value=run)
+    return logger
 
 
 @mock.patch('pytorch_lightning.loggers.mlflow.mlflow')

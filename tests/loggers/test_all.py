@@ -1,4 +1,3 @@
-import atexit
 import inspect
 import os
 import pickle
@@ -20,6 +19,7 @@ from pytorch_lightning.loggers import (
 from pytorch_lightning.loggers.base import DummyExperiment
 from tests.base import EvalModelTemplate
 from tests.loggers.test_comet import _patch_comet_atexit
+from tests.loggers.test_mlflow import mock_mlflow_run_creation
 
 
 def _get_logger_args(logger_class, save_dir):
@@ -39,7 +39,9 @@ def test_loggers_fit_test_all(tmpdir, monkeypatch):
          mock.patch('pytorch_lightning.loggers.comet.CometOfflineExperiment'):
         _test_loggers_fit_test(tmpdir, CometLogger)
 
-    _test_loggers_fit_test(tmpdir, MLFlowLogger)
+    with mock.patch('pytorch_lightning.loggers.mlflow.mlflow'), \
+         mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient'):
+        _test_loggers_fit_test(tmpdir, MLFlowLogger)
 
     with mock.patch('pytorch_lightning.loggers.neptune.neptune'):
         _test_loggers_fit_test(tmpdir, NeptuneLogger)
@@ -78,6 +80,9 @@ def _test_loggers_fit_test(tmpdir, logger_class):
         logger.experiment.id = 'foo'
         logger.experiment.project_name = 'bar'
 
+    if logger_class == MLFlowLogger:
+        logger = mock_mlflow_run_creation(logger, experiment_id="foo", run_id="bar")
+
     trainer = Trainer(
         max_epochs=1,
         logger=logger,
@@ -114,8 +119,11 @@ def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch):
          mock.patch('pytorch_lightning.loggers.comet.CometOfflineExperiment'):
         _test_loggers_save_dir_and_weights_save_path(tmpdir, CometLogger)
 
+    with mock.patch('pytorch_lightning.loggers.mlflow.mlflow'), \
+         mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient'):
+        _test_loggers_save_dir_and_weights_save_path(tmpdir, MLFlowLogger)
+
     _test_loggers_save_dir_and_weights_save_path(tmpdir, TensorBoardLogger)
-    _test_loggers_save_dir_and_weights_save_path(tmpdir, MLFlowLogger)
     _test_loggers_save_dir_and_weights_save_path(tmpdir, TestTubeLogger)
 
     with mock.patch('pytorch_lightning.loggers.wandb.wandb'):
