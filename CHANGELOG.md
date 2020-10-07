@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added new Metrics API. ([#3868](https://github.com/PyTorchLightning/pytorch-lightning/pull/3868))
+- Added new Metrics API. ([#3868](https://github.com/PyTorchLightning/pytorch-lightning/pull/3868), [#3921](https://github.com/PyTorchLightning/pytorch-lightning/pull/3921))
 
 - Enable PyTorch 1.7 compatibility ([#3541](https://github.com/PyTorchLightning/pytorch-lightning/pull/3541))
 
@@ -154,12 +154,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
    * bug fix with logging val epoch end + monitor ([#3812](https://github.com/PyTorchLightning/pytorch-lightning/pull/3812))
    * decoupled DDP, DDP spawn ([#3733](https://github.com/PyTorchLightning/pytorch-lightning/pull/3733)),
         [#3817](https://github.com/PyTorchLightning/pytorch-lightning/pull/3817),
-        [#3819](https://github.com/PyTorchLightning/pytorch-lightning/pull/3819))
+        [#3819](https://github.com/PyTorchLightning/pytorch-lightning/pull/3819),
+        [#3927](https://github.com/PyTorchLightning/pytorch-lightning/pull/3927))
    * callback system and init DDP ([#3836](https://github.com/PyTorchLightning/pytorch-lightning/pull/3836))
    * adding compute environments ([#3837](https://github.com/PyTorchLightning/pytorch-lightning/pull/3837), [#3842](https://github.com/PyTorchLightning/pytorch-lightning/pull/3842))
    * epoch can now log independently ([#3843](https://github.com/PyTorchLightning/pytorch-lightning/pull/3843))
    * test selecting the correct backend. temp backends while slurm and TorchElastic are decoupled ([#3848](https://github.com/PyTorchLightning/pytorch-lightning/pull/3848))
    * fixed `init_slurm_connection` causing hostname errors ([#3856](https://github.com/PyTorchLightning/pytorch-lightning/pull/3856))
+   * moves init apex from LM to apex connector ([#3923](https://github.com/PyTorchLightning/pytorch-lightning/pull/3923))
+   * moves sync bn to each backend ([#3925](https://github.com/PyTorchLightning/pytorch-lightning/pull/3925))
+   * moves configure ddp to each backend ([#3924](https://github.com/PyTorchLightning/pytorch-lightning/pull/3924))
 
 - Deprecation warning ([#3844](https://github.com/PyTorchLightning/pytorch-lightning/pull/3844))
 
@@ -199,7 +203,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     [#3851](https://github.com/PyTorchLightning/pytorch-lightning/pull/3851),
     [#3859](https://github.com/PyTorchLightning/pytorch-lightning/pull/3859),
     [#3884](https://github.com/PyTorchLightning/pytorch-lightning/pull/3884),
-    [#3853](https://github.com/PyTorchLightning/pytorch-lightning/pull/3853))
+    [#3853](https://github.com/PyTorchLightning/pytorch-lightning/pull/3853),
+    [#3910](https://github.com/PyTorchLightning/pytorch-lightning/pull/3910),
+    [#3889](https://github.com/PyTorchLightning/pytorch-lightning/pull/3889),
+    [#3926](https://github.com/PyTorchLightning/pytorch-lightning/pull/3926))
 
 - Write predictions in LightningModule instead of EvalResult [#3882](https://github.com/PyTorchLightning/pytorch-lightning/pull/3882)
 
@@ -213,7 +220,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
-- Removed experimental Metric API ([#3868](https://github.com/PyTorchLightning/pytorch-lightning/pull/3868)), listed changes before final removal:
+- Removed experimental Metric API ([#3868](https://github.com/PyTorchLightning/pytorch-lightning/pull/3868),
+        [#3943](https://github.com/PyTorchLightning/pytorch-lightning/pull/3943),
+        [#3946](https://github.com/PyTorchLightning/pytorch-lightning/pull/3946)), listed changes before final removal:
     * Added `EmbeddingSimilarity` metric ([#3349](https://github.com/PyTorchLightning/pytorch-lightning/pull/3349), [#3358](https://github.com/PyTorchLightning/pytorch-lightning/pull/3358))
     * Added hooks to metric module interface ([#2528](https://github.com/PyTorchLightning/pytorch-lightning/pull/2528))
     * Added error when AUROC metric is used for multiclass problems ([#3350](https://github.com/PyTorchLightning/pytorch-lightning/pull/3350))
