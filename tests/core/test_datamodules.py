@@ -355,36 +355,6 @@ def test_full_loop_dp(tmpdir):
     assert result['test_acc'] > 0.8
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_full_loop_ddp_spawn(tmpdir):
-    import os
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
-
-    seed_everything(1234)
-
-    dm = TrialMNISTDataModule(tmpdir)
-
-    model = EvalModelTemplate()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=5,
-        weights_summary=None,
-        distributed_backend='ddp_spawn',
-        gpus=[0, 1],
-        deterministic=True,
-    )
-
-    # fit model
-    result = trainer.fit(model, dm)
-    assert result == 1
-
-    # test
-    result = trainer.test(datamodule=dm)
-    result = result[0]
-    assert result['test_acc'] > 0.8
-
-
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires multi-GPU machine")
 def test_dm_transfer_batch_to_device(tmpdir):
     class CustomBatch:
