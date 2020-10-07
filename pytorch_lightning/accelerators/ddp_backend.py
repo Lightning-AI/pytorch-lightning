@@ -24,7 +24,7 @@ import numpy as np
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities.distributed import find_free_network_port
-from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.accelerators.base_accelerator import Accelerator
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.seed import seed_everything

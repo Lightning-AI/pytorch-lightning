@@ -16,7 +16,7 @@ import torch
 import torch.distributed as torch_distrib
 import torch.distributed as dist
 
-from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.accelerators.base_accelerator import Accelerator
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
