@@ -306,7 +306,7 @@ Snapshot code
 Loggers also allow you to snapshot a copy of the code used in this experiment.
 For example, TestTubeLogger does this with a flag:
 
-.. testcode::
+.. code-block:: python
 
     from pytorch_lightning.loggers import TestTubeLogger
     logger = TestTubeLogger('.', create_git_tag=True)
