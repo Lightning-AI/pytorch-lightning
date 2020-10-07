@@ -19,6 +19,28 @@ from tests.base import EvalModelTemplate, BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
+@pytest.mark.parametrize('save_top_k', [1])
+def test_model_checkpoint_correct_score(tmpdir, save_top_k):
+    """Test that when a model checkpoint is saved, it saves with the correct score appended to ckpt_path"""
+    tutils.reset_seed()
+    model = EvalModelTemplate()
+
+    filepath = os.path.join(tmpdir, "{val_acc:.4f}-{epoch}")
+
+    checkpoint = ModelCheckpoint(filepath=filepath, monitor='val_acc', save_top_k=save_top_k)
+
+    trainer = Trainer(default_root_dir=tmpdir, checkpoint_callback=checkpoint, overfit_batches=0.20, max_epochs=2)
+    trainer.fit(model)
+
+    ckpt_file = next(Path(tmpdir).glob('*.ckpt'))
+    ckpt_filename = os.path.basename(ckpt_file)
+
+    val_acc = trainer.callback_metrics["val_acc"]
+    expected_filename = f'val_acc={val_acc:.4f}-epoch=1.ckpt'
+
+    assert ckpt_filename == expected_filename
+
+
 @pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
 def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
     """Test that None in checkpoint callback is valid and that ckpt_path is set correctly"""
