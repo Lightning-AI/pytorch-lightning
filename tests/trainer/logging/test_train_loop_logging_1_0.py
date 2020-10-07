@@ -432,8 +432,10 @@ def test_nested_datasouce_batch(tmpdir):
         def __getitem__(self, index):
             x = {
                 'post_text': ['bird is fast', 'big cat'],
-                'dense_0': [torch.tensor([-0.1000,  0.2000], dtype=torch.float64),
-                            torch.tensor([1, 1], dtype=torch.uint8)],
+                'dense_0': [
+                    torch.tensor([-0.1000,  0.2000], dtype=torch.float64),
+                    torch.tensor([1, 1], dtype=torch.uint8)
+                ],
                 'post_id': ['115', '116'],
                 'label': [torch.tensor([0, 1]), torch.tensor([1, 1], dtype=torch.uint8)]
             }
