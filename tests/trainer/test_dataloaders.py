@@ -16,6 +16,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 def test_fit_train_loader_only(tmpdir):
 
     model = EvalModelTemplate()

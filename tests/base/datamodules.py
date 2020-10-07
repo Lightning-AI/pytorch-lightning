@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader, random_split
 from torch.utils.data.distributed import DistributedSampler
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
 class TrialMNISTDataModule(LightningDataModule):
     def __init__(self, data_dir: str = "./"):
         super().__init__()

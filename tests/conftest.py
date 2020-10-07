@@ -4,8 +4,11 @@ from functools import wraps, partial
 from http.server import SimpleHTTPRequestHandler
 
 import pytest
+import os
 import torch.multiprocessing as mp
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "spawn: spawn test in a separate process using torch.multiprocessing.spawn")

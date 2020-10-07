@@ -1,9 +1,12 @@
 import pytest
 import torch
+import os
 
 from pytorch_lightning.core.decorators import auto_move_data
 from tests.base import EvalModelTemplate
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.parametrize(['src_device', 'dest_device'], [

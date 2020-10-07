@@ -22,6 +22,8 @@ from tests.loggers.test_comet import _patch_comet_atexit
 from tests.loggers.test_mlflow import mock_mlflow_run_creation
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 def _get_logger_args(logger_class, save_dir):
     logger_args = {}
     if 'save_dir' in inspect.getfullargspec(logger_class).args:

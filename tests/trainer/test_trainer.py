@@ -27,6 +27,8 @@ from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
 from tests.base import EvalModelTemplate
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 @pytest.mark.parametrize('url_ckpt', [True, False])
 def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""

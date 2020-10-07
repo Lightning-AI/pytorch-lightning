@@ -9,6 +9,7 @@ NUM_PROCESSES = 2
 NUM_BATCHES = 10
 BATCH_SIZE = 16
 
+os.environ['PL_DEV_DEBUG'] = '1'
 
 def setup_ddp(rank, world_size):
     os.environ["MASTER_ADDR"] = 'localhost'

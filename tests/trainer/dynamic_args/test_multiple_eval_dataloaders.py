@@ -1,8 +1,11 @@
 from pytorch_lightning import Trainer
 from tests.base.boring_model import BoringModel
 import torch
+import os
 from torch.utils.data import Dataset
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 class RandomDatasetA(Dataset):
     def __init__(self, size, length):

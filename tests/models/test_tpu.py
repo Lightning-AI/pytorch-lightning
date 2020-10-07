@@ -15,6 +15,10 @@ from tests.base import EvalModelTemplate
 from tests.base.datasets import TrialMNIST
 from tests.base.develop_utils import pl_multi_process_test
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
+
+
 TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 
 if TPU_AVAILABLE:

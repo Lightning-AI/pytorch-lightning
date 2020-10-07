@@ -1,12 +1,15 @@
 from copy import deepcopy
 import pytest
 import torch
+import os
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.base.datamodules import TrialMNISTDataModule
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 def test_error_on_more_than_1_optimizer(tmpdir):
     """ Check that error is thrown when more than 1 optimizer is passed """

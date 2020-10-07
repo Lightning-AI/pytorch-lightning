@@ -7,6 +7,9 @@ import numpy as np
 import pickle
 import cloudpickle
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
+
 torch.manual_seed(42)
 
 

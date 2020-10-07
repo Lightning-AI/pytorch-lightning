@@ -19,6 +19,7 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning import accelerators, Trainer
 from unittest import mock
 
+os.environ['PL_DEV_DEBUG'] = '1'
 
 def test_accelerator_choice_cpu(tmpdir):
     class CB(Callback):

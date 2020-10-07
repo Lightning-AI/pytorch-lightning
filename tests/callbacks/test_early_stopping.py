@@ -12,6 +12,8 @@ from tests.base import EvalModelTemplate
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 class EarlyStoppingTestRestore(EarlyStopping):
     # this class has to be defined outside the test function, otherwise we get pickle error
     def __init__(self, expected_state=None):

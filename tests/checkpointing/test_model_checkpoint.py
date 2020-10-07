@@ -19,6 +19,8 @@ from tests.base import EvalModelTemplate, BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 @pytest.mark.parametrize('save_top_k', [-1])
 def test_model_checkpoint_correct_score(tmpdir, save_top_k):
     os.environ['PL_DEV_DEBUG'] = '1'

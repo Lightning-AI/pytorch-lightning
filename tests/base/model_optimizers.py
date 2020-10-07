@@ -1,7 +1,10 @@
 from abc import ABC
 
 from torch import optim
+import os
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 class ConfigureOptimizersPool(ABC):
 

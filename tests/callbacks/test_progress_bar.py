@@ -1,10 +1,13 @@
 import pytest
+import os
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ProgressBarBase, ProgressBar, ModelCheckpoint
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 @pytest.mark.parametrize('callbacks,refresh_rate', [
     ([], 1),

@@ -7,6 +7,8 @@ from pathlib import Path
 import pytorch_lightning
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 def call_training_script(module_file, cli_args, method, tmpdir, timeout=60):
     file = Path(module_file.__file__).absolute()
     cli_args = cli_args.split(' ') if cli_args else []

@@ -2,10 +2,14 @@ from distutils.version import LooseVersion
 
 import pytest
 import torch
+import os
 
 from tests.base import EvalModelTemplate
 from tests.base.datamodules import TrialMNISTDataModule
 from tests.base.models import ParityModuleRNN, BasicGAN
+
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 
 @pytest.mark.parametrize("modelclass", [

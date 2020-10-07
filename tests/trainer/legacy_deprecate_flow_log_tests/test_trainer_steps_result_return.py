@@ -14,6 +14,8 @@ from tests.base.deterministic_model import DeterministicModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 # test with train_step_end
 # add logging + row interval tests
 

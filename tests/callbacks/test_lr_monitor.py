@@ -1,4 +1,5 @@
 import pytest
+import os
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor
@@ -6,6 +7,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 import tests.base.develop_utils as tutils
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 def test_lr_monitor_single_lr(tmpdir):
     """ Test that learning rates are extracted and logged for single lr scheduler. """

@@ -1,8 +1,11 @@
 from abc import ABC, abstractmethod
+import os
 
 from tests.base.dataloaders import CustomInfDataloader
 from tests.base.dataloaders import CustomNotImplementedErrorDataloader
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 class TestDataloaderVariations(ABC):
 

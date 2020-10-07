@@ -2,6 +2,8 @@ import os
 
 import numpy as np
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 TEST_ROOT = os.path.dirname(__file__)
 PACKAGE_ROOT = os.path.dirname(TEST_ROOT)
 TEMP_PATH = os.path.join(PACKAGE_ROOT, 'test_temp')

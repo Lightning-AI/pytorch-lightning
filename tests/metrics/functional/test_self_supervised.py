@@ -1,8 +1,12 @@
 import pytest
 import torch
+import os
 from sklearn.metrics import pairwise
 
 from pytorch_lightning.metrics.functional.self_supervised import embedding_similarity
+
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 
 @pytest.mark.parametrize('similarity', ['cosine', 'dot'])

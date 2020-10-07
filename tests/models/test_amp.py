@@ -13,6 +13,8 @@ from tests.base import EvalModelTemplate
 from pytorch_lightning.utilities import APEX_AVAILABLE
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 @pytest.mark.skip(reason='dp + amp not supported currently')  # TODO
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_amp_single_gpu_dp(tmpdir):

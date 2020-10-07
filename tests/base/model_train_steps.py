@@ -3,9 +3,12 @@ from abc import ABC
 from collections import OrderedDict
 
 import torch
+import os
 
 from pytorch_lightning import TrainResult, EvalResult
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 class TrainingStepVariations(ABC):
     """

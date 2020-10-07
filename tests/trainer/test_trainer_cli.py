@@ -4,6 +4,7 @@ import sys
 from argparse import ArgumentParser, Namespace
 from unittest import mock
 
+import os
 import pytest
 import torch
 
@@ -11,6 +12,8 @@ import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import argparse_utils
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 @mock.patch('argparse.ArgumentParser.parse_args')
 def test_default_args(mock_argparse, tmpdir):

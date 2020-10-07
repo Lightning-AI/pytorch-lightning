@@ -10,6 +10,8 @@ import torch
 import pytest
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 def test__validation_step__log(tmpdir):
     """
     Tests that validation_step can log

@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import os
 
 from typing import Generic, TypeVar
 
@@ -17,6 +18,8 @@ from tests.base.model_valid_dataloaders import ValDataloaderVariations
 from tests.base.model_valid_epoch_ends import ValidationEpochEndVariations
 from tests.base.model_valid_steps import ValidationStepVariations
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 class EvalModelTemplate(
     ModelTemplateData,

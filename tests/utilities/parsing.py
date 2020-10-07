@@ -1,7 +1,9 @@
 import pytest
+import os
 
 from pytorch_lightning.utilities.parsing import lightning_getattr, lightning_hasattr, lightning_setattr
 
+os.environ['PL_DEV_DEBUG'] = '1'
 
 def _get_test_cases():
     class TestHparamsNamespace:

@@ -14,6 +14,8 @@ from pytorch_lightning.core.step_result import TrainResult
 from tests.base import EvalModelTemplate
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 def test_cpu_slurm_save_load(tmpdir):
     """Verify model save/load/checkpoint on CPU."""
     hparams = EvalModelTemplate.get_default_hparams()

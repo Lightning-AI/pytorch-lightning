@@ -15,6 +15,8 @@ from tests import PACKAGE_ROOT
 PATH_DATASETS = os.path.join(PACKAGE_ROOT, 'Datasets')
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 class MNIST(Dataset):
     """
     Customized `MNIST <http://yann.lecun.com/exdb/mnist/>`_ dataset for testing Pytorch Lightning

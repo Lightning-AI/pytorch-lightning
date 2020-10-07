@@ -1,11 +1,14 @@
 import pytest
 import torch
+import os
 
 from pytorch_lightning import Trainer, Callback
 from tests.base import EvalModelTemplate
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 def test_optimizer_with_scheduling(tmpdir):
     """ Verify that learning rate scheduling is working """

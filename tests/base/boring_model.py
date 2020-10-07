@@ -1,7 +1,10 @@
 import torch
+import os
 from pytorch_lightning import LightningModule
 from torch.utils.data import Dataset
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 class RandomDictDataset(Dataset):
     def __init__(self, size, length):

@@ -8,6 +8,9 @@ import torch
 import pytest
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
+
 def test__eval_step__flow(tmpdir):
     """
     Tests that only training_step can be used
