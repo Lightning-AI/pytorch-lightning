@@ -13,7 +13,7 @@
 # limitations under the License.
 import torch
 
-from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.accelerators.base_accelerator import Accelerator
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 

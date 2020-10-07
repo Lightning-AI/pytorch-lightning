@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 
 import tests.base.develop_pipelines as tpipes
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.accelerators.base_backend import BackendType
+from pytorch_lightning.accelerators.base_accelerator import BackendType
 from pytorch_lightning.accelerators import TPUBackend
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.utilities.exceptions import MisconfigurationException

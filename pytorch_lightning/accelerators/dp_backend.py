@@ -15,7 +15,7 @@
 import torch
 from torch import optim
 
-from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.accelerators.base_accelerator import Accelerator
 from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.overrides.data_parallel import LightningDataParallel

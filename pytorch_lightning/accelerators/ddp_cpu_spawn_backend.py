@@ -20,7 +20,7 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.accelerators.base_accelerator import Accelerator
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.cloud_io import atomic_save, load as pl_load
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn

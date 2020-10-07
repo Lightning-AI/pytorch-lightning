@@ -393,55 +393,6 @@ class Trainer(
         # Callback system
         self.on_init_end()
 
-    def tune(
-        self,
-        model: LightningModule,
-        train_dataloader: Optional[DataLoader] = None,
-        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-        datamodule: Optional[LightningDataModule] = None,
-    ):
-        r"""
-        Runs routines to tune hyperparameters before training.
-
-        Args:
-            datamodule: A instance of :class:`LightningDataModule`.
-
-            model: Model to tune.
-
-            train_dataloader: A Pytorch DataLoader with training samples. If the model has
-                a predefined train_dataloader method this will be skipped.
-
-            val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
-                If the model has a predefined val_dataloaders method this will be skipped
-
-        """
-        # setup data, etc...
-        self.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
-
-        # hook
-        self.data_connector.prepare_data(model)
-
-        # Run auto batch size scaling
-        if self.auto_scale_batch_size:
-            if isinstance(self.auto_scale_batch_size, bool):
-                self.auto_scale_batch_size = 'power'
-            self.tuner.scale_batch_size(
-                model,
-                mode=self.auto_scale_batch_size,
-                train_dataloader=train_dataloader,
-                val_dataloaders=val_dataloaders,
-                datamodule=datamodule,
-            )
-            model.logger = self.logger  # reset logger binding
-
-        # Run learning rate finder:
-        if self.auto_lr_find:
-            self.tuner.internal_find_lr(self, model)
-            model.logger = self.logger  # reset logger binding
-
-    # -----------------------------
-    # MODEL TRAINING
-    # -----------------------------
     def fit(
         self,
         model: LightningModule,
@@ -464,32 +415,48 @@ class Trainer(
                 If the model has a predefined val_dataloaders method this will be skipped
 
         """
+        # bookkeeping
         self._state = TrainerState.RUNNING
 
+        # ----------------------------
+        # LINK DATA
+        # ----------------------------
         # setup data, etc...
         self.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
 
         # hook
         self.data_connector.prepare_data(model)
 
-        # set testing if set in environ
+        # bookkeeping
+        # we reuse fit in .test() but change its behavior using this flag
         self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
 
-        # -------------------------
-        # TRAIN
-        # -------------------------
+        # ----------------------------
+        # SET UP TRAINING
+        # ----------------------------
         self.accelerator_backend = self.accelerator_connector.select_accelerator()
         self.accelerator_backend.setup(model)
 
+        # ----------------------------
+        # INSPECT THESE FOR MAIN LOOPS
+        # ----------------------------
+        # assign training and eval functions... inspect these to see the train and eval loops :)
+        self.accelerator_backend.train_loop = self.train
+        self.accelerator_backend.validation_loop = self.run_evaluation
+        self.accelerator_backend.test_loop = self.run_evaluation
+
+        # ----------------------------
+        # TRAIN
+        # ----------------------------
         # hook
         self.call_hook('on_fit_start')
 
         results = self.accelerator_backend.train()
         self.accelerator_backend.teardown()
 
-        # -------------------------
-        # POST-Training
-        # -------------------------
+        # ----------------------------
+        # POST-Training CLEAN UP
+        # ----------------------------
         # hook
         self.call_hook('on_fit_end')
 
@@ -829,6 +796,30 @@ class Trainer(
             model.teardown('test')
 
         return results
+
+    def tune(
+        self,
+        model: LightningModule,
+        train_dataloader: Optional[DataLoader] = None,
+        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        datamodule: Optional[LightningDataModule] = None,
+    ):
+        r"""
+        Runs routines to tune hyperparameters before training.
+
+        Args:
+            datamodule: A instance of :class:`LightningDataModule`.
+
+            model: Model to tune.
+
+            train_dataloader: A Pytorch DataLoader with training samples. If the model has
+                a predefined train_dataloader method this will be skipped.
+
+            val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
+                If the model has a predefined val_dataloaders method this will be skipped
+
+        """
+        self.tuner.tune(model, train_dataloader, val_dataloaders, datamodule)
 
     def call_setup_hook(self, model):
         # call setup after the ddp process has connected
