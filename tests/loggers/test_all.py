@@ -273,10 +273,12 @@ class RankZeroLoggerCheck(Callback):
 
 
 @pytest.mark.parametrize("logger_class", [
-    TensorBoardLogger,
+    CometLogger,
     MLFlowLogger,
-    NeptuneLogger,  # TODO: fix: https://github.com/PyTorchLightning/pytorch-lightning/pull/3256
+    NeptuneLogger,
+    TensorBoardLogger,
     TestTubeLogger,
+    WandbLogger,
 ])
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
