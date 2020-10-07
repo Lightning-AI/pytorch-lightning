@@ -120,7 +120,7 @@ class DDPBackend(Accelerator):
             env_copy['LOCAL_RANK'] = f'{local_rank}'
             env_copy['PL_DDP_PID'] = str(self.trainer.data_parallel_device_ids[local_rank])
             # remove env var if global seed not set
-            if os.environ.get('PL_GLOBAL_SEED') is None:
+            if os.environ.get('PL_GLOBAL_SEED') is None and 'PL_GLOBAL_SEED' in env_copy:
                 del env_copy['PL_GLOBAL_SEED']
 
             # start process
@@ -249,7 +249,7 @@ class DDPBackend(Accelerator):
 
         # call sync_bn before .cuda(), configure_apex and configure_ddp
         if self.trainer.sync_batchnorm:
-            model = model.configure_sync_batchnorm(model)
+            model = self.configure_sync_batchnorm(model)
 
         # move the model to the correct device
         self.model_to_device(model, process_idx)
@@ -288,4 +288,20 @@ class DDPBackend(Accelerator):
         model = LightningDistributedDataParallel(
             model, device_ids=device_ids, find_unused_parameters=True
         )
+
+    def configure_sync_batchnorm(self, model: "LightningModule") -> "LightningModule":
+        """
+        Add global batchnorm for a model spread across multiple GPUs and nodes.
+
+        Override to synchronize batchnorm between specific process groups instead
+        of the whole world or use a different sync_bn like `apex`'s version.
+
+        Args:
+            model: pointer to current :class:`LightningModule`.
+
+        Return:
+            LightningModule with batchnorm layers synchronized between process groups
+        """
+        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
+
         return model
