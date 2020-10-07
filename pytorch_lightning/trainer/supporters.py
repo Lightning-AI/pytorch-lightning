@@ -172,5 +172,5 @@ class PredictionCollection(object):
                 outputs.append(output_element)
 
             # Write predictions for current file to disk
-            with fs.open(outfile, "wb") as fp:
+            with fs.open(filepath, "wb") as fp:
                 torch.save(outputs, fp)
