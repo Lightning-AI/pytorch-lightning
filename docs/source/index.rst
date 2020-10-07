@@ -116,6 +116,7 @@ PyTorch Lightning Documentation
    CONTRIBUTING.md
    BECOMING_A_CORE_CONTRIBUTOR.md
    governance.md
+   CHANGELOG.md
 
 Indices and tables
 ------------------
