@@ -29,6 +29,7 @@ from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 from copy import deepcopy
+from typing import Iterable
 
 TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 try:
@@ -336,7 +337,19 @@ class TrainerDataLoadingMixin(ABC):
             The dataloader
         """
         dataloader = dataloader_fx()
+        dataloader = self._flatten_dl_only(dataloader)
 
         if self.accelerator_backend is not None:
             self.accelerator_backend.barrier('get_dataloaders')
         return dataloader
+
+    def _flatten_dl_only(self, dataloaders):
+        # handles user error when they return:
+        # return dl1, dl2  vs  return (dl1, dl2)
+        if isinstance(dataloaders, tuple):
+            all_dls = [isinstance(x, Iterable) for x in dataloaders]
+            all_dls = all(all_dls)
+            if all_dls:
+                dataloaders = list(dataloaders)
+
+        return dataloaders
