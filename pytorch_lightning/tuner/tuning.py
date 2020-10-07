@@ -40,7 +40,7 @@ class Tuner:
         if self.trainer.auto_scale_batch_size:
             if isinstance(self.trainer.auto_scale_batch_size, bool):
                 self.trainer.auto_scale_batch_size = 'power'
-            self.trainer.tuner.scale_batch_size(
+            self.trainer.scale_batch_size(
                 model,
                 mode=self.trainer.auto_scale_batch_size,
                 train_dataloader=train_dataloader,
@@ -51,7 +51,7 @@ class Tuner:
 
         # Run learning rate finder:
         if self.trainer.auto_lr_find:
-            self.internal_find_lr(self, model)
+            self.internal_find_lr(self.trainer, model)
             model.logger = self.trainer.logger  # reset logger binding
 
     def scale_batch_size(self,
