@@ -72,7 +72,7 @@ and change where it is called:
    at the end of every validation epoch,
    which, under the default configuration, happen after every training epoch.
    However, the frequency of validation can be modified by setting various parameters
-   on the :class:`~pytorch_lightning.trainer.trainer.Trainer`,
+   in the :class:`~pytorch_lightning.trainer.trainer.Trainer`,
    for example :paramref:`~pytorch_lightning.trainer.trainer.Trainer.check_val_every_n_epoch`
    and :paramref:`~pytorch_lightning.trainer.trainer.Trainer.val_check_interval`.
    It must be noted that the `patience` parameter counts the number of
