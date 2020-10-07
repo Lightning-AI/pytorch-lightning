@@ -23,6 +23,8 @@ import abc
 class Callback(abc.ABC):
     r"""
     Abstract base class used to build new callbacks.
+
+    Subclass this class and override any of the relevant hooks
     """
 
     def setup(self, trainer, pl_module, stage: str):

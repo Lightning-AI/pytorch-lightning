@@ -33,20 +33,27 @@ def _get_logger_args(logger_class, save_dir):
     return logger_args
 
 
-@pytest.mark.parametrize("logger_class", [
-    TensorBoardLogger,
-    CometLogger,
-    MLFlowLogger,
-    NeptuneLogger,
-    TestTubeLogger,
-    WandbLogger,
-])
-@mock.patch('pytorch_lightning.loggers.neptune.neptune')
-@mock.patch('pytorch_lightning.loggers.wandb.wandb')
-def test_loggers_fit_test(wandb, neptune, tmpdir, monkeypatch, logger_class):
+def test_loggers_fit_test_all(tmpdir, monkeypatch):
+    _patch_comet_atexit(monkeypatch)
+    with mock.patch('pytorch_lightning.loggers.comet.comet_ml'), \
+         mock.patch('pytorch_lightning.loggers.comet.CometOfflineExperiment'):
+        _test_loggers_fit_test(tmpdir, CometLogger)
+
+    _test_loggers_fit_test(tmpdir, MLFlowLogger)
+
+    with mock.patch('pytorch_lightning.loggers.neptune.neptune'):
+        _test_loggers_fit_test(tmpdir, NeptuneLogger)
+
+    _test_loggers_fit_test(tmpdir, TensorBoardLogger)
+    _test_loggers_fit_test(tmpdir, TestTubeLogger)
+
+    with mock.patch('pytorch_lightning.loggers.wandb.wandb'):
+        _test_loggers_fit_test(tmpdir, WandbLogger)
+
+
+def _test_loggers_fit_test(tmpdir, logger_class):
     """Verify that basic functionality of all loggers."""
     os.environ['PL_DEV_DEBUG'] = '0'
-    _patch_comet_atexit(monkeypatch)
 
     model = EvalModelTemplate()
 
@@ -66,6 +73,10 @@ def test_loggers_fit_test(wandb, neptune, tmpdir, monkeypatch, logger_class):
         # required mocks for Trainer
         logger.experiment.id = 'foo'
         logger.experiment.project_name.return_value = 'bar'
+
+    if logger_class == CometLogger:
+        logger.experiment.id = 'foo'
+        logger.experiment.project_name = 'bar'
 
     trainer = Trainer(
         max_epochs=1,
@@ -97,17 +108,22 @@ def test_loggers_fit_test(wandb, neptune, tmpdir, monkeypatch, logger_class):
         assert log_metric_names == expected
 
 
-@pytest.mark.parametrize("logger_class", [
-    TensorBoardLogger,
-    CometLogger,
-    MLFlowLogger,
-    TestTubeLogger,
-    WandbLogger,
-])
-@mock.patch('pytorch_lightning.loggers.wandb.wandb')
-def test_loggers_save_dir_and_weights_save_path(wandb, tmpdir, monkeypatch, logger_class):
-    """ Test the combinations of save_dir, weights_save_path and default_root_dir.  """
+def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch):
     _patch_comet_atexit(monkeypatch)
+    with mock.patch('pytorch_lightning.loggers.comet.comet_ml'), \
+         mock.patch('pytorch_lightning.loggers.comet.CometOfflineExperiment'):
+        _test_loggers_save_dir_and_weights_save_path(tmpdir, CometLogger)
+
+    _test_loggers_save_dir_and_weights_save_path(tmpdir, TensorBoardLogger)
+    _test_loggers_save_dir_and_weights_save_path(tmpdir, MLFlowLogger)
+    _test_loggers_save_dir_and_weights_save_path(tmpdir, TestTubeLogger)
+
+    with mock.patch('pytorch_lightning.loggers.wandb.wandb'):
+        _test_loggers_save_dir_and_weights_save_path(tmpdir, WandbLogger)
+
+
+def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
+    """ Test the combinations of save_dir, weights_save_path and default_root_dir.  """
 
     class TestLogger(logger_class):
         # for this test it does not matter what these attributes are
@@ -157,15 +173,23 @@ def test_loggers_save_dir_and_weights_save_path(wandb, tmpdir, monkeypatch, logg
 
 
 @pytest.mark.parametrize("logger_class", [
-    TensorBoardLogger,
     CometLogger,
     MLFlowLogger,
     NeptuneLogger,
+    TensorBoardLogger,
     TestTubeLogger,
     # The WandbLogger gets tested for pickling in its own test.
 ])
-@mock.patch('pytorch_lightning.loggers.neptune.neptune')
-def test_loggers_pickle(neptune, tmpdir, monkeypatch, logger_class):
+def test_loggers_pickle_all(tmpdir, monkeypatch, logger_class):
+    """ Test that the logger objects can be pickled. This test only makes sense if the packages are installed. """
+    _patch_comet_atexit(monkeypatch)
+    try:
+        _test_loggers_pickle(tmpdir, monkeypatch, logger_class)
+    except (ImportError, ModuleNotFoundError):
+        pytest.xfail(f"pickle test requires {logger_class.__class__} dependencies to be installed.")
+
+
+def _test_loggers_pickle(tmpdir, monkeypatch, logger_class):
     """Verify that pickling trainer with logger works."""
     _patch_comet_atexit(monkeypatch)
 
