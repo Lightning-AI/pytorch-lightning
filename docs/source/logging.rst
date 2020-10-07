@@ -113,32 +113,6 @@ Once your training starts, you can view the logs by using your favorite logger o
 
 ----------
 
-***********************
-Logging from a Callback
-***********************
-To log from a callback, use the :func:`~~pytorch_lightning.core.lightning.LightningModule.log`
-method of the :class:`~pytorch_lightning.core.LightningModule`.
-
-.. code-block:: python
-
-    class MyCallback(Callback):
-
-        def on_train_epoch_end(self, trainer, pl_module):
-            pl_module.log('something', x)
-
-or access the logger object directly for manual logging
-
-.. code-block:: python
-
-    class MyCallback(Callback):
-
-        def on_train_epoch_end(self, trainer, pl_module):
-            tensorboard = pl_module.logger.experiment
-            tensorboard.add_histogram(...)
-            tensorboard.add_figure(...)
-
-----------
-
 ********************
 Make a custom logger
 ********************
