@@ -180,6 +180,7 @@ class DDPCPUTorchElasticBackend(Accelerator):
         model = LightningDistributedDataParallel(
             model, device_ids=device_ids, find_unused_parameters=True
         )
+        return model
 
     def configure_sync_batchnorm(self, model: "LightningModule") -> "LightningModule":
         """
