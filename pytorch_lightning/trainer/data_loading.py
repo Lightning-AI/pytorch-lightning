@@ -344,6 +344,8 @@ class TrainerDataLoadingMixin(ABC):
         return dataloader
 
     def _flatten_dl_only(self, dataloaders):
+        # handles user error when they return:
+        # return dl1, dl2  vs  return (dl1, dl2)
         if isinstance(dataloaders, tuple):
             all_dls = [isinstance(x, Iterable) for x in dataloaders]
             all_dls = all(all_dls)
