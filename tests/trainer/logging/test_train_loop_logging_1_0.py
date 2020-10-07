@@ -82,8 +82,8 @@ def test__training_step__log(tmpdir):
         'l_e',
         'l_s',
         'l_se',
-        'step_l_se',
-        'epoch_l_se',
+        'l_se_step',
+        'l_se_epoch',
     }
     assert logged_metrics == expected_logged_metrics
 
@@ -92,8 +92,8 @@ def test__training_step__log(tmpdir):
         'p_e',
         'p_s',
         'p_se',
-        'step_p_se',
-        'epoch_p_se',
+        'p_se_step',
+        'p_se_epoch',
     }
     assert pbar_metrics == expected_pbar_metrics
 
@@ -382,7 +382,7 @@ def test_different_batch_types_for_sizing(tmpdir):
     generated = set(trainer.logger_connector.logged_metrics)
     expected = {
         'a_epoch', 'a',
-        'n', 'step_n/epoch_0', 'epoch_n',
+        'n', 'n_step/epoch_0', 'n_epoch',
         'epoch'
     }
 
