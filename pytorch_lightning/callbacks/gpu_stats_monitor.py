@@ -212,5 +212,5 @@ class GPUStatsMonitor(Callback):
             or trainer.should_stop
         )
 
-        should_log = should_log and trainer.fast_dev_run
+        should_log = should_log and not trainer.fast_dev_run
         return should_log
