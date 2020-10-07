@@ -138,7 +138,7 @@ class PredictionCollection(object):
             for feature_name, values in pred_dict.items():
                 self._add_prediction(feature_name, values, filename)
 
-    def to_disk(self):
+    def to_disk(self) -> None:
         """Write predictions to file(s).
         """
         for filepath, predictions in self.predictions.items():
