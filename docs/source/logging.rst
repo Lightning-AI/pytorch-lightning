@@ -319,44 +319,17 @@ Supported Loggers
 
 The following are loggers we support
 
-Comet
-=====
+.. currentmodule:: pytorch_lightning.loggers
 
-.. autoclass:: pytorch_lightning.loggers.comet.CometLogger
-    :noindex:
+.. autosummary::
+    :toctree: generated
+    :nosignatures:
+    :template: classtemplate.rst
 
-CSVLogger
-=========
-
-.. autoclass:: pytorch_lightning.loggers.csv_logs.CSVLogger
-    :noindex:
-
-MLFlow
-======
-
-.. autoclass:: pytorch_lightning.loggers.mlflow.MLFlowLogger
-    :noindex:
-
-Neptune
-=======
-
-.. autoclass:: pytorch_lightning.loggers.neptune.NeptuneLogger
-    :noindex:
-
-Tensorboard
-============
-
-.. autoclass:: pytorch_lightning.loggers.tensorboard.TensorBoardLogger
-    :noindex:
-
-Test-tube
-=========
-
-.. autoclass:: pytorch_lightning.loggers.test_tube.TestTubeLogger
-    :noindex:
-
-Weights and Biases
-==================
-
-.. autoclass:: pytorch_lightning.loggers.wandb.WandbLogger
-    :noindex:
+    CometLogger
+    CSVLogger
+    MLFlowLogger
+    NeptuneLogger
+    TensorBoardLogger
+    TestTubeLogger
+    WandbLogger

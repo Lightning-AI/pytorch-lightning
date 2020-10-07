@@ -13,8 +13,8 @@
 # limitations under the License.
 
 """
-Neptune
--------
+Neptune Logger
+--------------
 """
 from argparse import Namespace
 from typing import Any, Dict, Iterable, List, Optional, Union

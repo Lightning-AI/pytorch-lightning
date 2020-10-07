@@ -13,8 +13,8 @@
 # limitations under the License.
 
 """
-TensorBoard
------------
+TensorBoard Logger
+------------------
 """
 
 import os

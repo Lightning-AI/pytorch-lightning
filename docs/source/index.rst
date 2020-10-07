@@ -41,6 +41,13 @@ PyTorch Lightning Documentation
    metrics
 
 .. toctree::
+   :maxdepth: 2
+   :name: api
+   :caption: API References
+
+   api_references
+
+.. toctree::
    :maxdepth: 1
    :name: Bolts
    :caption: Bolts

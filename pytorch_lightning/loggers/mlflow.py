@@ -13,8 +13,8 @@
 # limitations under the License.
 
 """
-MLflow
-------
+MLflow Logger
+-------------
 """
 from argparse import Namespace
 from time import time

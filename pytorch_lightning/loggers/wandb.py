@@ -13,8 +13,8 @@
 # limitations under the License.
 
 """
-Weights and Biases
-------------------
+Weights and Biases Logger
+-------------------------
 """
 import os
 from argparse import Namespace

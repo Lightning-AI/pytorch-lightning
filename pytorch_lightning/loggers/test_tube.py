@@ -13,8 +13,8 @@
 # limitations under the License.
 
 """
-Test Tube
----------
+Test Tube Logger
+----------------
 """
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union

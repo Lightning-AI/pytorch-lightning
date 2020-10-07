@@ -13,8 +13,8 @@
 # limitations under the License.
 
 """
-Comet
------
+Comet Logger
+------------
 """
 
 import os
