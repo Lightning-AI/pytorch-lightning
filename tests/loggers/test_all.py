@@ -272,32 +272,23 @@ class RankZeroLoggerCheck(Callback):
             assert pl_module.logger.experiment.something(foo="bar") is None
 
 
-# @pytest.mark.parametrize("logger_class", [
-#     TensorBoardLogger,
-#     MLFlowLogger,
-#     # NeptuneLogger,  # TODO: fix: https://github.com/PyTorchLightning/pytorch-lightning/pull/3256
-#     TestTubeLogger,
-# ])
-# @mock.patch('pytorch_lightning.loggers.neptune.neptune')
-#
-#
-
+@pytest.mark.parametrize("logger_class", [
+    TensorBoardLogger,
+    MLFlowLogger,
+    NeptuneLogger,  # TODO: fix: https://github.com/PyTorchLightning/pytorch-lightning/pull/3256
+    TestTubeLogger,
+])
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
-def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch):
+def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
+    """ Test that loggers get replaced by dummy loggers on global rank > 0"""
     _patch_comet_atexit(monkeypatch)
-    _test_logger_created_on_rank_zero_only(tmpdir, TensorBoardLogger)
-
-    # with mock.patch('pytorch_lightning.loggers.mlflow.mlflow'), \
-    #      mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient'):
-    #     _test_logger_created_on_rank_zero_only(tmpdir, MLFlowLogger)
-
-    with mock.patch('pytorch_lightning.loggers.test_tube.Experiment'):
-        _test_logger_created_on_rank_zero_only(tmpdir, TestTubeLogger)
+    try:
+        _test_logger_created_on_rank_zero_only(tmpdir, logger_class)
+    except (ImportError, ModuleNotFoundError):
+        pytest.xfail(f"multi-process test requires {logger_class.__class__} dependencies to be installed.")
 
 
 def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
-    """ Test that loggers get replaced by dummy loggers on global rank > 0"""
-
     logger_args = _get_logger_args(logger_class, tmpdir)
     logger = logger_class(**logger_args)
     model = EvalModelTemplate()
