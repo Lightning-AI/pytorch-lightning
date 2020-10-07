@@ -6,6 +6,7 @@
 PyTorch Lightning Documentation
 ===============================
 
+
 .. toctree::
    :maxdepth: 1
    :name: start
@@ -105,6 +106,13 @@ PyTorch Lightning Documentation
    tpu
    test_set
    production_inference
+
+.. toctree::
+   :maxdepth: 1
+   :name: Partner Domain Frameworks
+   :caption: Partner Domain Frameworks
+
+   asr_tts
 
 .. toctree::
    :maxdepth: 1
