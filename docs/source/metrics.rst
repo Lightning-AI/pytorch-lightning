@@ -84,7 +84,7 @@ To implement your custom metric, subclass the base ``Metric`` class and implemen
 - ``update()``: Any code needed to update the state given any inputs to the metric.
 - ``compute()``: Computes a final value from the state of the metric.
 
-All you need to do is call add_state correctly to implement a custom metric with DDP.
+All you need to do is call ``add_state`` correctly to implement a custom metric with DDP.
 ``reset()`` is called on metric state variables added using ``add_state()``.
 
 To see how metric states are synchronized across distributed processes, refer to ``add_state()`` docs

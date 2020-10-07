@@ -53,7 +53,7 @@ which can be accessed via ``self.learning_rate`` or ``self.lr``.
 
     trainer.tune(model)
 
-If your model is using an arbitrary value instead of ``self.lr`` or ``self.learning_rate``, set that value as auto_lr_find
+If your model is using an arbitrary value instead of ``self.lr`` or ``self.learning_rate``, set that value as ``auto_lr_find``:
 
 .. code-block:: python
 
