@@ -1,5 +1,13 @@
+#########
+ASR & TTS
+#########
+These are amazing ecosystems to help with Automatic Speech Recognition (ASR) and Text to speech (TTS).
+
+----
+
+****
 NeMo
-====
+****
 
 `NVIDIA NeMo <https://github.com/NVIDIA/NeMo>`_ is a toolkit for building new State-of-the-Art 
 Conversational AI models. NeMo has separate collections for Automatic Speech Recognition (ASR), 
@@ -17,7 +25,7 @@ mixed-precision training.
 ----------
 
 NeMo Models
------------
+===========
 
 NeMo Models contain everything needed to train and reproduce state of the art Conversational AI
 research and applications, including:
@@ -42,7 +50,7 @@ NeMo models all have the same look and feel. This makes it easy to do Conversati
 across multiple domains. NeMo models are also fully compatible with the PyTorch ecosystem.
 
 Installing NeMo
-^^^^^^^^^^^^^^^
+---------------
 
 Before installing NeMo, please install Cython first.
 
@@ -86,7 +94,7 @@ For Docker users, the NeMo container is available on
     docker run --runtime=nvidia -it --rm -v --shm-size=8g -p 8888:8888 -p 6006:6006 --ulimit memlock=-1 --ulimit stack=67108864 nvcr.io/nvidia/nemo:1.0.0b1
 
 Experiment Manager
-^^^^^^^^^^^^^^^^^^
+------------------
 
 NeMo's Experiment Manager leverages PyTorch Lightning for model checkpointing, 
 TensorBoard Logging, and Weights and Biases logging. The Experiment Manager is included by default
@@ -115,7 +123,7 @@ Optionally launch Tensorboard to view training results in ./nemo_experiments (by
 --------
 
 Automatic Speech Recognition (ASR)
-----------------------------------
+==================================
 
 Everything needed to train Convolutional ASR models is included with NeMo. 
 NeMo supports multiple Speech Recognition architectures, including Jasper and QuartzNet. 
@@ -136,7 +144,7 @@ See this `asr notebook <https://github.com/NVIDIA/NeMo/blob/main/tutorials/asr/0
 for a full tutorial on doing ASR with NeMo, PyTorch Lightning, and Hydra.
 
 Specify ASR Model Configurations with YAML File
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------------------------------
 
 NeMo Models and the PyTorch Lightning Trainer can be fully configured from .yaml files using Hydra.
 
@@ -175,7 +183,7 @@ for the entire speech to text .yaml file.
         ...
 
 Developing ASR Model From Scratch
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------------
 
 `speech_to_text.py <https://github.com/NVIDIA/NeMo/blob/main/examples/asr/speech_to_text.py>`_
 
@@ -208,7 +216,7 @@ including the PyTorch Lightning Trainer, customizable from the command line.
 
 
 Using State-Of-The-Art Pre-trained ASR Model
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------------------------
 
 Transcribe audio with QuartzNet model pretrained on ~3300 hours of audio.
 
@@ -228,7 +236,7 @@ To see the available pretrained checkpoints:
     EncDecCTCModel.list_available_models()
 
 NeMo ASR Model Under the Hood
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------------
 
 Any aspect of ASR training or model architecture design can easily be customized
 with PyTorch Lightning since every NeMo model is a Lightning Module.
@@ -269,7 +277,7 @@ with PyTorch Lightning since every NeMo model is a Lightning Module.
             return {'loss': loss_value, 'log': tensorboard_logs}
 
 Neural Types in NeMo ASR
-^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------
 
 NeMo Models and Neural Modules come with Neural Type checking.
 Neural type checking is extremely useful when combining many different neural 
@@ -299,7 +307,7 @@ network architectures for a production-grade application.
 --------
 
 Natural Language Processing (NLP)
----------------------------------
+=================================
 
 Everything needed to finetune BERT-like language models for NLP tasks is included with NeMo.
 `NeMo NLP Models <https://ngc.nvidia.com/catalog/models/nvidia:nemonlpmodels>`_  
@@ -319,7 +327,7 @@ that are included with NeMo:
 - `Punctuation and Capitalization <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/Punctuation_and_Capitalization.ipynb>`_
 
 Named Entity Recognition (NER)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------------
 
 NER (or more generally token classifcation) is the NLP task of detecting and classifying key information (entities) in text.
 This task is very popular in Healthcare and Finance. In finance, for example, it can be important to identify
@@ -328,7 +336,7 @@ See this `NER notebook <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/T
 for a full tutorial on doing NER with NeMo, PyTorch Lightning, and Hydra.
 
 Specify NER Model Configurations with YAML File
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------------------------------
 
 ..note NeMo Models and the PyTorch Lightning Trainer can be fully configured from .yaml files using Hydra. 
 
@@ -369,7 +377,7 @@ for the entire NER (token classification) .yaml file.
     ...
 
 Developing NER Model From Scratch
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------------
 
 `token_classification.py <https://github.com/NVIDIA/NeMo/blob/main/examples/nlp/token_classification/token_classification.py>`_
 
@@ -421,9 +429,10 @@ Hydra makes every aspect of the NeMo model, including the PyTorch Lightning Trai
         trainer.max_epochs=5 \
         trainer.gpus=[0,1]
 
+-----------
 
 Tokenizers
-^^^^^^^^^^
+==========
 
 Tokenization is the process of converting natural langauge text into integer arrays 
 which can be used for machine learning.
@@ -445,7 +454,7 @@ See this `tokenizer notebook <https://github.com/NVIDIA/NeMo/blob/main/tutorials
 for a full tutorial on using tokenizers in NeMo.
 
 Language Models
-^^^^^^^^^^^^^^^
+---------------
 
 Language models are used to extract information from (tokenized) text. 
 Much of the state-of-the-art in natural language processing is achieved
@@ -471,7 +480,7 @@ See this `language model notebook <https://github.com/NVIDIA/NeMo/blob/main/tuto
 for a full tutorial on using pretrained language models in NeMo.
 
 Using a Pre-trained NER Model
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------------
 
 NeMo has pre-trained NER models that can be used 
 to get started with Token Classification right away.
@@ -499,7 +508,7 @@ and loaded into GPU memory using the `.from_pretrained` method.
         print(f'Result: {result.strip()}\n')
 
 NeMo NER Model Under the Hood
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------------
 
 Any aspect of NLP training or model architecture design can easily be customized with PyTorch Lightning 
 since every NeMo model is a Lightning Module.
@@ -534,7 +543,7 @@ since every NeMo model is a Lightning Module.
         ...
 
 Neural Types in NeMo NLP
-^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------
 
 NeMo Models and Neural Modules come with Neural Type checking. 
 Neural type checking is extremely useful when combining many different neural network architectures 
@@ -553,7 +562,7 @@ for a production-grade application.
 --------
 
 Text-To-Speech (TTS)
---------------------
+====================
 
 Everything needed to train TTS models and generate audio is included with NeMo. 
 `NeMo TTS Models <https://ngc.nvidia.com/catalog/models/nvidia:nemottsmodels>`_ 
@@ -575,7 +584,7 @@ Audio Generators:
 
 
 Specify TTS Model Configurations with YAML File
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------------------------------
 
 ..note NeMo Models and PyTorch Lightning Trainer can be fully configured from .yaml files using Hydra.
 
@@ -607,7 +616,7 @@ Specify TTS Model Configurations with YAML File
     ...
 
 Developing TTS Model From Scratch
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------------
 
 `tts/glow_tts.py <https://github.com/NVIDIA/NeMo/blob/main/examples/tts/glow_tts.py>`_
 
@@ -635,7 +644,7 @@ Hydra makes every aspect of the NeMo model, including the PyTorch Lightning Trai
 ..note Training NeMo TTTs models from scratch take days/weeks so it is highly recommended to use multiple GPUs and multiple nodes with the PyTorch Lightning Trainer.
 
 Using State-Of-The-Art Pre-trained TTS Model
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------------------------
 
 Generate speech using models trained on `LJSpeech <https://keithito.com/LJ-Speech-Dataset/>`, 
 around 24 hours of single speaker data.
@@ -678,7 +687,7 @@ To see the available pretrained checkpoints:
     WaveGlowModel.list_available_models()
 
 NeMo TTS Model Under the Hood
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------------
 
 Any aspect of TTS training or model architecture design can easily
 be customized with PyTorch Lightning since every NeMo model is a LightningModule.
@@ -751,7 +760,7 @@ be customized with PyTorch Lightning since every NeMo model is a LightningModule
         ...
 
 Neural Types in NeMo TTS
-^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------
 
 NeMo Models and Neural Modules come with Neural Type checking. 
 Neural type checking is extremely useful when combining many different neural network architectures 
@@ -776,7 +785,7 @@ for a production-grade application.
 --------
 
 Learn More
-----------
+==========
 
 Download pre-trained 
 `ASR <https://ngc.nvidia.com/catalog/models/nvidia:nemospeechmodels>`_, 

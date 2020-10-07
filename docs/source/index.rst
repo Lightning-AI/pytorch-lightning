@@ -109,10 +109,10 @@ PyTorch Lightning Documentation
 
 .. toctree::
    :maxdepth: 1
-   :name: Conversational AI
-   :caption: Conversational AI
+   :name: Partner Domain Frameworks
+   :caption: Partner Domain Frameworks
 
-   conversational_ai
+   asr_tts
 
 .. toctree::
    :maxdepth: 1
