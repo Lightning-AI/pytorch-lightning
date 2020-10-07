@@ -985,40 +985,6 @@ class LightningModule(
 
         return model
 
-    def configure_apex(
-        self,
-        amp: object,
-        model: "LightningModule",
-        optimizers: List[Optimizer],
-        amp_level: str,
-    ) -> Tuple["LightningModule", List[Optimizer]]:
-        r"""
-        Override to init AMP your own way.
-        Must return a model and list of optimizers.
-
-        Args:
-            amp: pointer to amp library object.
-            model: pointer to current :class:`LightningModule`.
-            optimizers: list of optimizers passed in :meth:`configure_optimizers`.
-            amp_level: AMP mode chosen ('O1', 'O2', etc...)
-
-        Return:
-            Apex wrapped model and optimizers
-
-        Examples:
-            .. code-block:: python
-
-                # Default implementation used by Trainer.
-                def configure_apex(self, amp, model, optimizers, amp_level):
-                    model, optimizers = amp.initialize(
-                        model, optimizers, opt_level=amp_level,
-                    )
-
-                    return model, optimizers
-        """
-        model, optimizers = amp.initialize(model, optimizers, opt_level=amp_level)
-        return model, optimizers
-
     def configure_optimizers(
             self,
     ):
