@@ -40,7 +40,7 @@ class Tuner:
         if self.trainer.auto_scale_batch_size:
             if isinstance(self.trainer.auto_scale_batch_size, bool):
                 self.trainer.auto_scale_batch_size = 'power'
-            self.trainer.scale_batch_size(
+            self.scale_batch_size(
                 model,
                 mode=self.trainer.auto_scale_batch_size,
                 train_dataloader=train_dataloader,
