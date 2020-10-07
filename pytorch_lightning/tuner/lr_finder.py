@@ -13,10 +13,12 @@
 # limitations under the License.
 import importlib
 import os
-from typing import List, Optional, Sequence, Union
+from typing import List, Optional, Sequence, Union, Callable
+from functools import wraps
 
 import numpy as np
 import torch
+from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 
@@ -165,13 +167,7 @@ def lr_find(
     trainer.save_checkpoint(str(save_path))
 
     # Configure optimizer and scheduler
-    optimizers, _, _ = trainer.init_optimizers(model)
-
-    if len(optimizers) != 1:
-        raise MisconfigurationException(
-            f'`model.configure_optimizers()` returned {len(optimizers)}, but'
-            ' learning rate finder only works with single optimizer')
-    model.configure_optimizers = lr_finder._get_new_optimizer(optimizers[0])
+    model.configure_optimizers = lr_finder._exchange_scheduler(model.configure_optimizers)
 
     # Fit, lr & loss logged in callback
     trainer.fit(model,
@@ -261,28 +257,47 @@ class _LRFinder(object):
         self.results = {}
         self._total_batch_idx = 0  # for debug purpose
 
-    def _get_new_optimizer(self, optimizer: torch.optim.Optimizer):
-        """ Construct a new `configure_optimizers()` method, that has a optimizer
-            with initial lr set to lr_min and a scheduler that will either
-            linearly or exponentially increase the lr to lr_max in num_training steps.
-
-        Args:
-            optimizer: instance of `torch.optim.Optimizer`
-
+    def _exchange_scheduler(self, configure_optimizers: Callable):
+        """ Decorate configure_optimizers methods such that it returns the users
+            originally specified optimizer together with a new scheduler that
+            that takes care of the learning rate search.
         """
-        new_lrs = [self.lr_min] * len(optimizer.param_groups)
-        for param_group, new_lr in zip(optimizer.param_groups, new_lrs):
-            param_group["lr"] = new_lr
-            param_group["initial_lr"] = new_lr
+        @wraps(configure_optimizers)
+        def func():
+            # Decide the structure of the output from configure_optimizers
+            # Same logic as method `init_optimizers` in trainer/optimizers.py
+            optim_conf = configure_optimizers()
+            if isinstance(optim_conf, Optimizer):
+                optimizers = [optim_conf]
+            elif isinstance(optim_conf, (list, tuple)) and len(optim_conf) == 2 \
+                    and isinstance(optim_conf[0], list):
+                optimizers, _ = optim_conf
+            elif isinstance(optim_conf, dict):
+                optimizers = [optim_conf["optimizer"]]
+            elif isinstance(optim_conf, (list, tuple)) and isinstance(optim_conf[0], dict):
+                optimizers = [opt_dict["optimizer"] for opt_dict in optim_conf]
+            elif isinstance(optim_conf, (list, tuple)):
+                optimizers = [optim_conf]
 
-        args = (optimizer, self.lr_max, self.num_training)
-        scheduler = _LinearLR(*args) if self.mode == 'linear' else _ExponentialLR(*args)
+            if len(optimizers) != 1:
+                raise MisconfigurationException(
+                    f'`model.configure_optimizers()` returned {len(optimizers)}, but'
+                    ' learning rate finder only works with single optimizer')
 
-        def configure_optimizers():
+            optimizer = optimizers[0]
+
+            new_lrs = [self.lr_min] * len(optimizer.param_groups)
+            for param_group, new_lr in zip(optimizer.param_groups, new_lrs):
+                param_group["lr"] = new_lr
+                param_group["initial_lr"] = new_lr
+
+            args = (optimizer, self.lr_max, self.num_training)
+            scheduler = _LinearLR(*args) if self.mode == 'linear' else _ExponentialLR(*args)
+
             return [optimizer], [{'scheduler': scheduler,
                                   'interval': 'step'}]
 
-        return configure_optimizers
+        return func
 
     def plot(self, suggest: bool = False, show: bool = False):
         """ Plot results from lr_find run

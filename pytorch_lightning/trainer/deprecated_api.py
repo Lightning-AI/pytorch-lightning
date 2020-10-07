@@ -13,3 +13,42 @@
 # limitations under the License.
 
 """Mirroring deprecated API"""
+from abc import ABC
+
+from pytorch_lightning.utilities import rank_zero_warn
+
+
+class TrainerDeprecatedAPITillVer0_11(ABC):
+    flush_logs_every_n_steps: int
+    log_every_n_steps: int
+
+    def __init__(self):
+        super().__init__()  # mixin calls super too
+
+    @property
+    def log_save_interval(self) -> int:
+        """Back compatibility, will be removed in v0.11.0"""
+        rank_zero_warn("Attribute `log_save_interval` is now set by `flush_logs_every_n_steps` since v0.10.0"
+                       " and this method will be removed in v0.11.0", DeprecationWarning)
+        return self.flush_logs_every_n_steps
+
+    @log_save_interval.setter
+    def log_save_interval(self, val: int):
+        """Back compatibility, will be removed in v0.11.0"""
+        rank_zero_warn("Attribute `log_save_interval` is now set by `flush_logs_every_n_steps` since v0.10.0"
+                       " and this method will be removed in v0.11.0", DeprecationWarning)
+        self.flush_logs_every_n_steps = val
+
+    @property
+    def row_log_interval(self) -> int:
+        """Back compatibility, will be removed in v0.10.0"""
+        rank_zero_warn("Attribute `row_log_interval` is now set by `log_every_n_steps` since v0.10.0"
+                       " and this method will be removed in v0.11.0", DeprecationWarning)
+        return self.log_every_n_steps
+
+    @row_log_interval.setter
+    def row_log_interval(self, val: int):
+        """Back compatibility, will be removed in v0.10.0"""
+        rank_zero_warn("Attribute `row_log_interval` is now set by `log_every_n_steps` since v0.10.0"
+                       " and this method will be removed in v0.11.0", DeprecationWarning)
+        self.log_every_n_steps = val

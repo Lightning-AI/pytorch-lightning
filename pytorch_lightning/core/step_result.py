@@ -14,14 +14,13 @@
 
 import numbers
 from copy import copy
-from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any, List, Tuple
+from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any, List, Tuple, Iterable
 
 import torch
 from torch import Tensor
 import os
 
-from pytorch_lightning.metrics.converters import sync_ddp_if_available
-from typing import Iterable
+from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 
 
 class Result(Dict):
@@ -219,7 +218,11 @@ class Result(Dict):
         _internal['_reduce_on_epoch'] = max(_internal['_reduce_on_epoch'], on_epoch)
 
     def track_batch_size(self, batch):
-        batch_size = self.unpack_batch_size(batch)
+        try:
+            batch_size = self.unpack_batch_size(batch)
+        except RecursionError as re:
+            batch_size = 1
+
         meta = self['meta']
         meta['_internal']['batch_sizes'].append(batch_size)
 
@@ -330,6 +333,8 @@ class Result(Dict):
         """
         if isinstance(sample, torch.Tensor):
             size = sample.size(0)
+        elif isinstance(sample, str):
+            return len(sample)
         elif isinstance(sample, dict):
             sample = next(iter(sample.values()), 1)
             size = self.unpack_batch_size(sample)
@@ -406,7 +411,10 @@ class Result(Dict):
             if option['on_epoch']:
                 fx = option['reduce_fx']
                 if fx == torch.mean:
-                    reduced_val = weighted_mean(result[k], batch_sizes)
+                    try:
+                        reduced_val = weighted_mean(result[k], batch_sizes)
+                    except Exception as e:
+                        reduced_val = torch.mean(result[k])
                 else:
                     reduced_val = fx(result[k])
 
