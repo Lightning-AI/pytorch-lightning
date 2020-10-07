@@ -150,3 +150,210 @@ MeanSquaredLogError
 
 .. autoclass:: pytorch_lightning.metrics.regression.MeanSquaredLogError
     :noindex:
+
+
+Functional Metrics
+==================
+
+The functional metrics follow the simple paradigm input in, output out. This means, they don't provide any advanced mechanisms for syncing across DDP nodes or aggregation over batches. They simply compute the metric value based on the given inputs.
+
+Also the integration within other parts of PyTorch Lightning will never be as tight as with the class-based interface.
+If you look for just computing the values, the functional metrics are the way to go. However, if you are looking for the best integration and user experience, please consider also to use the class interface.
+
+Classification
+--------------
+
+accuracy
+^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.accuracy
+    :noindex:
+
+
+auc
+^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.auc
+    :noindex:
+
+
+auroc
+^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.auroc
+    :noindex:
+
+
+average_precision
+^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.average_precision
+    :noindex:
+
+
+confusion_matrix
+^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.confusion_matrix
+    :noindex:
+
+
+dice_score
+^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.dice_score
+    :noindex:
+
+
+f1_score
+^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.f1_score
+    :noindex:
+
+
+fbeta_score
+^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.fbeta_score
+    :noindex:
+
+
+iou
+^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.iou
+    :noindex:
+
+
+multiclass_precision_recall_score
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.multiclass_precision_recall_score
+    :noindex:
+
+
+multiclass_roc
+^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.multiclass_roc
+    :noindex:
+
+
+precision
+^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.precision
+    :noindex:
+
+
+precision_recall
+^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.precision_recall
+    :noindex:
+
+
+precision_recall_curve
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.precision_recall_curve
+    :noindex:
+
+
+recall
+^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.recall
+    :noindex:
+
+
+roc
+^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.roc
+    :noindex:
+
+
+stat_scores
+^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.stat_scores
+    :noindex:
+
+
+stat_scores_multiple_classes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.stat_scores_multiple_classes
+    :noindex:
+
+
+to_categorical
+^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.to_categorical
+    :noindex:
+
+
+to_onehot
+^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.to_onehot
+    :noindex:
+
+
+Regression
+----------
+
+mae
+^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.regression.mae
+    :noindex:
+
+
+mse
+^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.regression.mse
+    :noindex:
+
+
+psnr
+^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.regression.psnr
+    :noindex:
+
+
+rmse
+^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.regression.rmse
+    :noindex:
+
+
+rmsle
+^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.regression.rmsle
+    :noindex:
+
+
+ssim
+^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.regression.mae
+    :noindex:
+
+
+NLP
+---
+
+bleu_score
+^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.nlp.bleu_score
+    :noindex:
+
