@@ -143,7 +143,7 @@ class PredictionCollection(object):
         """
         for filepath, predictions in self.predictions.items():
             fs = get_filesystem(filepath)
-            # don't normalize remote paths
+            # normalize local filepaths only
             if fs.protocol == "file":
                 filepath = os.path.realpath(filepath)
             stem, extension = os.path.splitext(filepath)
