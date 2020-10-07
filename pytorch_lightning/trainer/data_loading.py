@@ -235,15 +235,15 @@ class TrainerDataLoadingMixin(ABC):
         loader_name = f'{mode}_dataloader'
         dataloaders = self.request_dataloader(getattr(model, loader_name))
 
+        if not isinstance(dataloaders, list):
+            dataloaders = [dataloaders]
+
         # when overfitting use the training loader as val and test
         # duplicate it the numb of times needed to match the train loaders
         if self.overfit_batches > 0:
             num_loaders = len(dataloaders)
             train_dataloader = self.request_dataloader(getattr(model, 'train_dataloader'))
             dataloaders = [deepcopy(train_dataloader) for _ in range(num_loaders)]
-
-        if not isinstance(dataloaders, list):
-            dataloaders = [dataloaders]
 
         self.dev_debugger.track_load_dataloader_call(loader_name, dataloaders=dataloaders)
 
