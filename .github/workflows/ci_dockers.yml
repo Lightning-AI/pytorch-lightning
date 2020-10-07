@@ -11,10 +11,10 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
 jobs:
   build-Conda:
     if: |
-      "! contains(github.event.commits.*.message, '[skip ci]')" ||
-      "! contains(github.event.commits.*.message, '[ci skip]')" ||
-      "! contains(github.event.commits.*.message, 'skip ci')" ||
-      "! contains(github.event.commits.*.message, 'ci skip')"
+      !contains(github.event.commits.*.message, '[skip ci]') ||
+      !contains(github.event.commits.*.message, '[ci skip]') ||
+      !contains(github.event.commits.*.message, 'skip ci') ||
+      !contains(github.event.commits.*.message, 'ci skip')
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -36,10 +36,10 @@ jobs:
 
   build-XLA:
     if: |
-    "! contains(github.event.commits.*.message, '[skip ci]')" ||
-    "! contains(github.event.commits.*.message, '[ci skip]')" ||
-    "! contains(github.event.commits.*.message, 'skip ci')" ||
-    "! contains(github.event.commits.*.message, 'ci skip')"
+      !contains(github.event.commits.*.message, '[skip ci]') ||
+      !contains(github.event.commits.*.message, '[ci skip]') ||
+      !contains(github.event.commits.*.message, 'skip ci') ||
+      !contains(github.event.commits.*.message, 'ci skip')
   runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -61,10 +61,10 @@ jobs:
 
   build-cuda:
     if: |
-    "! contains(github.event.commits.*.message, '[skip ci]')" ||
-    "! contains(github.event.commits.*.message, '[ci skip]')" ||
-    "! contains(github.event.commits.*.message, 'skip ci')" ||
-    "! contains(github.event.commits.*.message, 'ci skip')"
+      !contains(github.event.commits.*.message, '[skip ci]') ||
+      !contains(github.event.commits.*.message, '[ci skip]') ||
+      !contains(github.event.commits.*.message, 'skip ci') ||
+      !contains(github.event.commits.*.message, 'ci skip')
   runs-on: ubuntu-20.04
     strategy:
       fail-fast: false

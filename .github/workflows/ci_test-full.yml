@@ -10,10 +10,10 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
 jobs:
   pytest:
     if: |
-    "! contains(github.event.commits.*.message, '[skip ci]')" ||
-    "! contains(github.event.commits.*.message, '[ci skip]')" ||
-    "! contains(github.event.commits.*.message, 'skip ci')" ||
-    "! contains(github.event.commits.*.message, 'ci skip')"
+      !contains(github.event.commits.*.message, '[skip ci]') ||
+      !contains(github.event.commits.*.message, '[ci skip]') ||
+      !contains(github.event.commits.*.message, 'skip ci') ||
+      !contains(github.event.commits.*.message, 'ci skip')
   runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
