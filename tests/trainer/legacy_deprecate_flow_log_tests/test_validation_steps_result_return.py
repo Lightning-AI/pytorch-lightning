@@ -280,12 +280,12 @@ def test_val_step_epoch_step_metrics(tmpdir):
 
         # make sure the metric was split
         for batch_metric in batch_metrics:
-            assert f'step_val_step_log_acc/epoch_{epoch}' in batch_metric
-            assert f'step_val_step_log_pbar_acc/epoch_{epoch}' in batch_metric
+            assert f'val_step_log_acc_step/epoch_{epoch}' in batch_metric
+            assert f'val_step_log_pbar_acc_step/epoch_{epoch}' in batch_metric
 
         # make sure the epoch split was correct
-        assert 'epoch_val_step_log_acc' in epoch_metric
-        assert 'epoch_val_step_log_pbar_acc' in epoch_metric
+        assert 'val_step_log_acc_epoch' in epoch_metric
+        assert 'val_step_log_pbar_acc_epoch' in epoch_metric
 
     # make sure we logged the correct pbar metrics
     for metric_idx in range(0, len(trainer.dev_debugger.pbar_added_metrics), batches + 1):
@@ -294,12 +294,12 @@ def test_val_step_epoch_step_metrics(tmpdir):
 
         # make sure the metric was split
         for batch_metric in batch_metrics:
-            assert 'step_val_step_pbar_acc' in batch_metric
-            assert 'step_val_step_log_pbar_acc' in batch_metric
+            assert 'val_step_pbar_acc_step' in batch_metric
+            assert 'val_step_log_pbar_acc_step' in batch_metric
 
         # make sure the epoch split was correct
-        assert 'epoch_val_step_pbar_acc' in epoch_metric
-        assert 'epoch_val_step_log_pbar_acc' in epoch_metric
+        assert 'val_step_pbar_acc_epoch' in epoch_metric
+        assert 'val_step_log_pbar_acc_epoch' in epoch_metric
 
     # only 1 checkpoint expected since values didn't change after that
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 1
