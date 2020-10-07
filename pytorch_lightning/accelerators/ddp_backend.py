@@ -117,7 +117,7 @@ class DDPBackend(Accelerator):
             env_copy['LOCAL_RANK'] = f'{local_rank}'
             env_copy['PL_DDP_PID'] = str(self.trainer.data_parallel_device_ids[local_rank])
             # remove env var if global seed not set
-            if os.environ.get('PL_GLOBAL_SEED') is None:
+            if os.environ.get('PL_GLOBAL_SEED') is None and 'PL_GLOBAL_SEED' in env_copy:
                 del env_copy['PL_GLOBAL_SEED']
 
             # start process
