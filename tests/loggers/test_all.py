@@ -272,18 +272,24 @@ class RankZeroLoggerCheck(Callback):
             assert pl_module.logger.experiment.something(foo="bar") is None
 
 
+# @pytest.mark.parametrize("logger_class", [
+#     TensorBoardLogger,
+#     MLFlowLogger,
+#     # NeptuneLogger,  # TODO: fix: https://github.com/PyTorchLightning/pytorch-lightning/pull/3256
+#     TestTubeLogger,
+# ])
+# @mock.patch('pytorch_lightning.loggers.neptune.neptune')
+# @mock.patch('pytorch_lightning.loggers.test_tube.Experiment')
+#
+
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
-@pytest.mark.parametrize("logger_class", [
-    TensorBoardLogger,
-    MLFlowLogger,
-    # NeptuneLogger,  # TODO: fix: https://github.com/PyTorchLightning/pytorch-lightning/pull/3256
-    TestTubeLogger,
-])
-@mock.patch('pytorch_lightning.loggers.neptune.neptune')
-@mock.patch('pytorch_lightning.loggers.test_tube.Experiment')
-def test_logger_created_on_rank_zero_only(test_tube, neptune, tmpdir, monkeypatch, logger_class):
-    """ Test that loggers get replaced by dummy loggers on global rank > 0"""
+def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch):
     _patch_comet_atexit(monkeypatch)
+    _test_logger_created_on_rank_zero_only(tmpdir, TensorBoardLogger)
+
+
+def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
+    """ Test that loggers get replaced by dummy loggers on global rank > 0"""
 
     logger_args = _get_logger_args(logger_class, tmpdir)
     logger = logger_class(**logger_args)
