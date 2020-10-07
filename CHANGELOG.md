@@ -222,6 +222,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed experimental Metric API ([#3868](https://github.com/PyTorchLightning/pytorch-lightning/pull/3868),
         [#3943](https://github.com/PyTorchLightning/pytorch-lightning/pull/3943),
+        [#3949](https://github.com/PyTorchLightning/pytorch-lightning/pull/3949),
         [#3946](https://github.com/PyTorchLightning/pytorch-lightning/pull/3946)), listed changes before final removal:
     * Added `EmbeddingSimilarity` metric ([#3349](https://github.com/PyTorchLightning/pytorch-lightning/pull/3349), [#3358](https://github.com/PyTorchLightning/pytorch-lightning/pull/3358))
     * Added hooks to metric module interface ([#2528](https://github.com/PyTorchLightning/pytorch-lightning/pull/2528))
@@ -314,6 +315,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed for `load_from_checkpoint` ([#2776](https://github.com/PyTorchLightning/pytorch-lightning/pull/2776))
 
 - Fixes incorrect `batch_sizes` when Dataloader returns a dict with multiple tensors ([#3668](https://github.com/PyTorchLightning/pytorch-lightning/pull/3668))
+
+- Fixed unexpected signature for `validation_step` ([#3947](https://github.com/PyTorchLightning/pytorch-lightning/pull/3947))
 
 ## [0.9.0] - 2020-08-20
 
