@@ -41,7 +41,7 @@ To enable it:
 
 -   You can customize the callbacks behaviour by changing its parameters.
 
-.. testcode::
+.. code-block:: python
 
     early_stop_callback = EarlyStopping(
        monitor='val_accuracy',
