@@ -34,9 +34,13 @@ def _get_logger_args(logger_class, save_dir):
 
 
 def test_loggers_fit_test_all(tmpdir, monkeypatch):
-    _patch_comet_atexit(monkeypatch)
+    """ Verify that basic functionality of all loggers. """
+
+    _test_loggers_fit_test(tmpdir, TensorBoardLogger)
+
     with mock.patch('pytorch_lightning.loggers.comet.comet_ml'), \
          mock.patch('pytorch_lightning.loggers.comet.CometOfflineExperiment'):
+        _patch_comet_atexit(monkeypatch)
         _test_loggers_fit_test(tmpdir, CometLogger)
 
     with mock.patch('pytorch_lightning.loggers.mlflow.mlflow'), \
@@ -46,7 +50,6 @@ def test_loggers_fit_test_all(tmpdir, monkeypatch):
     with mock.patch('pytorch_lightning.loggers.neptune.neptune'):
         _test_loggers_fit_test(tmpdir, NeptuneLogger)
 
-    _test_loggers_fit_test(tmpdir, TensorBoardLogger)
     with mock.patch('pytorch_lightning.loggers.test_tube.Experiment'):
         _test_loggers_fit_test(tmpdir, TestTubeLogger)
 
@@ -55,9 +58,7 @@ def test_loggers_fit_test_all(tmpdir, monkeypatch):
 
 
 def _test_loggers_fit_test(tmpdir, logger_class):
-    """Verify that basic functionality of all loggers."""
     os.environ['PL_DEV_DEBUG'] = '0'
-
     model = EvalModelTemplate()
 
     class StoreHistoryLogger(logger_class):
@@ -119,16 +120,19 @@ def _test_loggers_fit_test(tmpdir, logger_class):
 
 
 def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch):
-    _patch_comet_atexit(monkeypatch)
+    """ Test the combinations of save_dir, weights_save_path and default_root_dir.  """
+
+    _test_loggers_save_dir_and_weights_save_path(tmpdir, TensorBoardLogger)
+
     with mock.patch('pytorch_lightning.loggers.comet.comet_ml'), \
          mock.patch('pytorch_lightning.loggers.comet.CometOfflineExperiment'):
+        _patch_comet_atexit(monkeypatch)
         _test_loggers_save_dir_and_weights_save_path(tmpdir, CometLogger)
 
     with mock.patch('pytorch_lightning.loggers.mlflow.mlflow'), \
          mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient'):
         _test_loggers_save_dir_and_weights_save_path(tmpdir, MLFlowLogger)
 
-    _test_loggers_save_dir_and_weights_save_path(tmpdir, TensorBoardLogger)
     with mock.patch('pytorch_lightning.loggers.test_tube.Experiment'):
         _test_loggers_save_dir_and_weights_save_path(tmpdir, TestTubeLogger)
 
@@ -137,7 +141,6 @@ def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch):
 
 
 def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
-    """ Test the combinations of save_dir, weights_save_path and default_root_dir.  """
 
     class TestLogger(logger_class):
         # for this test it does not matter what these attributes are
