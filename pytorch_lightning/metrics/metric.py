@@ -19,7 +19,7 @@ class Metric(nn.Module, ABC):
     Base class for all metrics present in the Metrics API.
 
     Implements ``add_state()``, ``forward()``, ``reset()`` and a few other things to
-    handle distributed synchronization and per step metric computation.
+    handle distributed synchronization and per-step metric computation.
 
     Override ``update()`` and ``compute()`` functions to implement your own metric. Use
     ``add_state()`` to register metric state variables which keep track of state on each
@@ -32,11 +32,11 @@ class Metric(nn.Module, ABC):
     Note:
         Different metrics only override ``update()`` and not ``forward()``. A call to ``update()``
         is valid, but it won't return the metric value at the current step. A call to ``forward()``
-        automatically calls ``update()`` and also return the metric value at the current step.
+        automatically calls ``update()`` and also returns the metric value at the current step.
 
     Args:
         compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False. default: True
+            Forward only calls ``update()`` and returns None if this is set to False. default: True
         ddp_sync_on_step:
             Synchronize metric state across processes at each ``forward()``
             before returning the value at the step. default: False

@@ -78,14 +78,14 @@ def lr_find(
         datamodule: Optional[LightningDataModule] = None,
 ):
     r"""
-    lr_find enables the user to do a range test of good initial learning rates,
+    `lr_find` enables the user to do a range test of good initial learning rates,
     to reduce the amount of guesswork in picking a good starting learning rate.
 
     Args:
         model: Model to do range testing for
 
         train_dataloader: A PyTorch
-            DataLoader with training samples. If the model has
+            `DataLoader` with training samples. If the model has
             a predefined train_dataloader method, this will be skipped.
 
         min_lr: minimum learning rate to investigate
