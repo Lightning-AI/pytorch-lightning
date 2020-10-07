@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 
+import os
 import pytest
 import torch
 import torch.distributed as dist
@@ -12,9 +13,9 @@ import tests.base.develop_utils as tutils
 from tests.base import EvalModelTemplate
 from tests.base.datamodules import TrialMNISTDataModule
 
+os.environ['PL_DEV_DEBUG'] = '1'
 
 def _setup_ddp(rank, worldsize):
-    import os
 
     os.environ["MASTER_ADDR"] = "localhost"
 

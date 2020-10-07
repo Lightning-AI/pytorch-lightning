@@ -1,10 +1,13 @@
 import pytest
 import torch
+import os
 
 import pytorch_lightning as pl
 import tests.base.develop_utils as tutils
 from tests.base import EvalModelTemplate
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_single_gpu_test(tmpdir):

@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 import torch
+import os
 from functools import partial
 from math import sqrt
 from skimage.metrics import (
@@ -21,6 +22,9 @@ from pytorch_lightning.metrics.functional import (
     rmsle,
     ssim
 )
+
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 
 @pytest.mark.parametrize(['sklearn_metric', 'torch_metric'], [

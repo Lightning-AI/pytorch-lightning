@@ -4,7 +4,9 @@ import cloudpickle
 import pytest
 
 from tests.base.datasets import MNIST, TrialMNIST, AverageDataset
+import os
 
+os.environ['PL_DEV_DEBUG'] = '1'
 
 @pytest.mark.parametrize('dataset_cls', [MNIST, TrialMNIST, AverageDataset])
 def test_pickling_dataset_mnist(tmpdir, dataset_cls):

@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import pytest
 import torch
+import os
 from torchtext.data import Batch, Dataset, Example, Field, LabelField
 
 import tests.base.develop_pipelines as tpipes
@@ -18,6 +19,7 @@ from pytorch_lightning.accelerators.gpu_backend import GPUBackend
 
 PRETEND_N_OF_GPUS = 16
 
+os.environ['PL_DEV_DEBUG'] = '1'
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_early_stop_dp(tmpdir):

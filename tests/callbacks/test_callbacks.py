@@ -2,6 +2,10 @@ from pytorch_lightning import Callback
 from pytorch_lightning import Trainer, LightningModule
 from tests.base import EvalModelTemplate
 
+import os
+
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 def test_trainer_callback_system(tmpdir):
     """Test the callback system."""

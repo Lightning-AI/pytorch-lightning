@@ -1,10 +1,13 @@
 import pytest
+import os
 
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 # TODO: add matching messages
 

@@ -6,6 +6,9 @@ import sys
 from tests.metrics.test_metric import Dummy
 from tests.metrics.utils import setup_ddp
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
+
 torch.manual_seed(42)
 
 

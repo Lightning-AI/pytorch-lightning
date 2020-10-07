@@ -15,6 +15,8 @@ from pytorch_lightning.utilities import AttributeDict, is_picklable
 from tests.base import EvalModelTemplate, TrialMNIST
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 class SaveHparamsModel(EvalModelTemplate):
     """ Tests that a model can take an object """
     def __init__(self, hparams):

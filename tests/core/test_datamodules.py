@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 import torch
+import os
 
 from pytorch_lightning import LightningDataModule, Trainer, seed_everything
 from tests.base import EvalModelTemplate
@@ -13,6 +14,8 @@ from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.accelerators.gpu_backend import GPUBackend
 from pytorch_lightning.callbacks import ModelCheckpoint
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 def test_can_prepare_data(tmpdir):
 

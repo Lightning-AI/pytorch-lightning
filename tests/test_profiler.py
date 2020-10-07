@@ -10,6 +10,8 @@ from pytorch_lightning.profiler import AdvancedProfiler, SimpleProfiler
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 def _get_python_cprofile_total_duration(profile):
     return sum([x.inlinetime for x in profile.getstats()])
 

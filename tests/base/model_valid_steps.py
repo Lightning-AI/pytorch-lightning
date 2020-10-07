@@ -3,7 +3,9 @@ from collections import OrderedDict
 from pytorch_lightning.core.step_result import EvalResult
 
 import torch
+import os
 
+os.environ['PL_DEV_DEBUG'] = '1'
 
 class ValidationStepVariations(ABC):
     """

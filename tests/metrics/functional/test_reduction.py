@@ -1,7 +1,11 @@
 import pytest
 import torch
+import os
 
 from pytorch_lightning.metrics.functional.reduction import reduce, class_reduce
+
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 
 def test_reduce():

@@ -1,3 +1,4 @@
+import os
 import pytest
 import torch
 import torch.nn as nn
@@ -8,6 +9,8 @@ from pytorch_lightning.utilities import FLOAT16_EPSILON
 from tests.base.datamodules import MNISTDataModule
 from tests.base.develop_utils import set_random_master_port
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 class SyncBNModule(LightningModule):
     def __init__(self, gpu_count=1, **kwargs):

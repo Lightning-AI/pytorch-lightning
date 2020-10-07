@@ -11,6 +11,8 @@ from tests.base.deterministic_model import DeterministicModel
 from torch.utils.data import Dataset
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 def test__training_step__log(tmpdir):
     """
     Tests that only training_step can be used

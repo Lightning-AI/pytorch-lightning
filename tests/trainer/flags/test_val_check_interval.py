@@ -1,7 +1,10 @@
 import pytest
+import os
 from tests.base import SimpleModule
 from pytorch_lightning.trainer import Trainer
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 @pytest.mark.parametrize('max_epochs', [1, 2, 3])
 def test_val_check_interval_1(tmpdir, max_epochs):

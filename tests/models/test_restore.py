@@ -16,6 +16,8 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from tests.base import EvalModelTemplate, GenericEvalModelTemplate, TrialMNIST
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 class ModelTrainerPropertyParity(Callback):
 
     def _check_properties(self, trainer, pl_module):

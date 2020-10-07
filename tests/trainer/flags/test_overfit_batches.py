@@ -1,8 +1,11 @@
 import torch
 import pytest
+import os
 from tests.base.boring_model import BoringModel, RandomDataset
 from pytorch_lightning import Trainer
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 def test_overfit_multiple_val_loaders(tmpdir):
     """

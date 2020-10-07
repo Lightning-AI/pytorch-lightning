@@ -22,6 +22,8 @@ import os
 import sys
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 try:
     import horovod.torch as hvd
 except ImportError:

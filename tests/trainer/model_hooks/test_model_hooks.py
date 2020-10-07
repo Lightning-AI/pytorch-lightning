@@ -1,7 +1,10 @@
+import os
 from tests.base.boring_model import BoringModel
 from pytorch_lightning import Trainer
 from unittest import mock
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 @mock.patch('pytorch_lightning.core.hooks.ModelHooks.on_validation_model_eval')
 @mock.patch('pytorch_lightning.core.hooks.ModelHooks.on_validation_model_train')

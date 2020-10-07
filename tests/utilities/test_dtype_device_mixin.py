@@ -1,4 +1,5 @@
 import pytest
+import os
 import torch
 import torch.nn as nn
 
@@ -6,6 +7,8 @@ from pytorch_lightning import Trainer, Callback
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from tests.base import EvalModelTemplate
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 class SubSubModule(DeviceDtypeModuleMixin):
     pass

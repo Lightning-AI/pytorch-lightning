@@ -1,10 +1,12 @@
 import pytest
+import os
 
 from pytorch_lightning import Trainer, Callback
 from pytorch_lightning.trainer.states import TrainerState, trainer_state
 from tests.base import EvalModelTemplate
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
 class StateSnapshotCallback(Callback):
     """ Allows to shapshot the state inside a particular trainer method. """
 

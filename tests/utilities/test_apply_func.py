@@ -1,11 +1,14 @@
 import numbers
 from collections import namedtuple
 
+import os
 import numpy as np
 import torch
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 def test_recursive_application_to_collection():
     ntc = namedtuple('Foo', ['bar'])

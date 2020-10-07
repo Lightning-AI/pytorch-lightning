@@ -1,5 +1,8 @@
 """Custom dataloaders for testing"""
 
+import os
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 class CustomInfDataloader:
 

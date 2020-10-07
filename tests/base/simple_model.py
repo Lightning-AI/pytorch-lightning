@@ -1,8 +1,12 @@
 import torch
+import os
+
 from pytorch_lightning import LightningModule
 from torch.utils.data import Dataset
 from typing import Optional
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 class RandomDataset(Dataset):
     def __init__(self, size, length):

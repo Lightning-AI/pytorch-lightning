@@ -1,4 +1,5 @@
 from functools import partial
+import os
 
 import pytest
 import torch
@@ -38,6 +39,8 @@ from pytorch_lightning.metrics.functional.classification import (
     iou,
 )
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 @pytest.mark.parametrize(['sklearn_metric', 'torch_metric', 'only_binary'], [
     pytest.param(sk_accuracy, accuracy, False, id='accuracy'),

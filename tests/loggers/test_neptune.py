@@ -1,11 +1,14 @@
 from unittest.mock import patch, MagicMock
 
 import torch
+import os
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import NeptuneLogger
 from tests.base import EvalModelTemplate
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 @patch('pytorch_lightning.loggers.neptune.neptune')
 def test_neptune_online(neptune):

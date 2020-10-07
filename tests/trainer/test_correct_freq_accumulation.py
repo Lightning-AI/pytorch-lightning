@@ -6,6 +6,8 @@ from tests.base.model_template import EvalModelTemplate
 import os
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 def test_training_step_scalar(tmpdir):
     """
     Tests that only training_step can be used
