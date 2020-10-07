@@ -4,6 +4,9 @@ from pytorch_lightning.metrics.metric import Metric
 import os
 import numpy as np
 
+import pickle
+import cloudpickle
+
 torch.manual_seed(42)
 
 
@@ -106,3 +109,30 @@ def test_compute():
     # called without update, should return cached value
     a._computed = 5
     assert a.compute() == 5
+
+
+class ToPickle(Dummy):
+    def update(self, x):
+        self.x += x
+
+    def compute(self):
+        return self.x
+
+
+def test_pickle(tmpdir):
+    # doesn't tests for DDP
+    a = ToPickle()
+    a.update(1)
+
+    metric_pickled = pickle.dumps(a)
+    metric_loaded = pickle.loads(metric_pickled)
+
+    assert metric_loaded.compute() == 1
+
+    metric_loaded.update(5)
+    assert metric_loaded.compute() == 5
+
+    metric_pickled = cloudpickle.dumps(a)
+    metric_loaded = cloudpickle.loads(metric_pickled)
+
+    assert metric_loaded.compute() == 1

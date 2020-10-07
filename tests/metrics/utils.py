@@ -3,6 +3,7 @@ import numpy as np
 import os
 import sys
 import pytest
+import pickle
 
 NUM_PROCESSES = 2
 NUM_BATCHES = 10
@@ -18,6 +19,10 @@ def setup_ddp(rank, world_size):
 def _compute_batch(rank, preds, target, metric_class, sk_metric, ddp_sync_on_step, worldsize=1, metric_args={}):
 
     metric = metric_class(compute_on_step=True, ddp_sync_on_step=ddp_sync_on_step, **metric_args)
+
+    # verify metrics work after being loaded from pickled state
+    pickled_metric = pickle.dumps(metric)
+    metric = pickle.loads(pickled_metric)
 
     # Only use ddp if world size
     if worldsize > 1:
