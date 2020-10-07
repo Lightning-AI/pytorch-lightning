@@ -82,8 +82,8 @@ def test__training_step__log(tmpdir):
         'l_e',
         'l_s',
         'l_se',
-        'step_l_se',
-        'epoch_l_se',
+        'l_se_step',
+        'l_se_epoch',
     }
     assert logged_metrics == expected_logged_metrics
 
@@ -92,8 +92,8 @@ def test__training_step__log(tmpdir):
         'p_e',
         'p_s',
         'p_se',
-        'step_p_se',
-        'epoch_p_se',
+        'p_se_step',
+        'p_se_epoch',
     }
     assert pbar_metrics == expected_pbar_metrics
 
@@ -149,7 +149,7 @@ def test__training_step__epoch_end__log(tmpdir):
 
     # make sure all the metrics are available for callbacks
     logged_metrics = set(trainer.logged_metrics.keys())
-    expected_logged_metrics = {'epoch', 'a', 'step_a', 'epoch_a', 'b', 'b1', 'a1', 'a2'}
+    expected_logged_metrics = {'epoch', 'a', 'a_step', 'a_epoch', 'b', 'b1', 'a1', 'a2'}
     assert logged_metrics == expected_logged_metrics
 
     pbar_metrics = set(trainer.progress_bar_metrics.keys())
@@ -212,8 +212,8 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     # make sure all the metrics are available for callbacks
     logged_metrics = set(trainer.logged_metrics.keys())
     expected_logged_metrics = {
-        'a', 'step_a', 'epoch_a',
-        'b', 'step_b', 'epoch_b',
+        'a', 'a_step', 'a_epoch',
+        'b', 'b_step', 'b_epoch',
         'c',
         'd/e/f',
         'epoch'
@@ -221,7 +221,7 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     assert logged_metrics == expected_logged_metrics
 
     pbar_metrics = set(trainer.progress_bar_metrics.keys())
-    expected_pbar_metrics = {'b', 'c', 'epoch_b', 'step_b'}
+    expected_pbar_metrics = {'b', 'c', 'b_epoch', 'b_step'}
     assert pbar_metrics == expected_pbar_metrics
 
     callback_metrics = set(trainer.callback_metrics.keys())
@@ -341,7 +341,7 @@ def test_tbptt_log(tmpdir):
     trainer.fit(model)
 
     generated = set(trainer.logged_metrics.keys())
-    expected = {'a', 'step_a', 'epoch_a', 'epoch'}
+    expected = {'a', 'a_step', 'a_epoch', 'epoch'}
     assert generated == expected
 
 
@@ -381,8 +381,8 @@ def test_different_batch_types_for_sizing(tmpdir):
 
     generated = set(trainer.logger_connector.logged_metrics)
     expected = {
-        'epoch_a', 'a',
-        'n', 'step_n/epoch_0', 'epoch_n',
+        'a_epoch', 'a',
+        'n', 'n_step/epoch_0', 'n_epoch',
         'epoch'
     }
 

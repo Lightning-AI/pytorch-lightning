@@ -187,6 +187,6 @@ def test_result_gather_mixed_types():
 def test_result_retrieve_last_logged_item():
     result = Result()
     result.log('a', 5., on_step=True, on_epoch=True)
-    assert result['epoch_a'] == 5.
-    assert result['step_a'] == 5.
+    assert result['a_epoch'] == 5.
+    assert result['a_step'] == 5.
     assert result['a'] == 5.

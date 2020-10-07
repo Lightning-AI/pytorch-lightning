@@ -224,8 +224,8 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
             mean_vals['epoch_step_epoch_log_and_pbar_acc1'].append(torch.tensor(expected_val_1).float())
             mean_vals['epoch_step_epoch_log_acc2'].append(torch.tensor(expected_val_2).float())
 
-            assert logged_metrics['step_step_epoch_log_and_pbar_acc1'] == expected_val_1
-            assert logged_metrics['step_step_epoch_log_acc2'] == expected_val_2
+            assert logged_metrics['step_epoch_log_and_pbar_acc1_step'] == expected_val_1
+            assert logged_metrics['step_epoch_log_acc2_step'] == expected_val_2
             assert 'step_epoch_pbar_acc3' not in logged_metrics
             assert len(logged_metrics) == 6
 
@@ -233,8 +233,8 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
         epoch_end_metrics = epoch_outputs[-1]
         eval_1 = torch.stack(mean_vals['epoch_step_epoch_log_and_pbar_acc1']).mean()
         eval_2 = torch.stack(mean_vals['epoch_step_epoch_log_acc2']).mean()
-        assert epoch_end_metrics['epoch_step_epoch_log_and_pbar_acc1'] == eval_1
-        assert epoch_end_metrics['epoch_step_epoch_log_acc2'] == eval_2
+        assert epoch_end_metrics['step_epoch_log_and_pbar_acc1_epoch'] == eval_1
+        assert epoch_end_metrics['step_epoch_log_acc2_epoch'] == eval_2
         assert 'step_epoch_pbar_acc3' not in epoch_end_metrics
         assert len(logged_metrics) == 6
 
@@ -265,18 +265,18 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
             expected_val_2 = (7 + batch_idx) * (epoch_idx + 1)
             mean_vals['epoch_step_epoch_log_and_pbar_acc1'].append(torch.tensor(expected_val_1).float())
             mean_vals['epoch_step_epoch_pbar_acc3'].append(torch.tensor(expected_val_2).float())
-            assert logged_metrics['step_step_epoch_log_and_pbar_acc1'] == expected_val_1
-            assert logged_metrics['step_step_epoch_pbar_acc3'] == expected_val_2
-            assert 'step_epoch_log_acc2' not in logged_metrics
+            assert logged_metrics['step_epoch_log_and_pbar_acc1_step'] == expected_val_1
+            assert logged_metrics['step_epoch_pbar_acc3_step'] == expected_val_2
+            assert 'epoch_log_acc2_step' not in logged_metrics
             assert len(logged_metrics) == 5
 
         # make sure the metrics for the epoch end are actual means (the default reduce fx) or all the batches
         epoch_end_metrics = epoch_outputs[-1]
         eval_1 = torch.stack(mean_vals['epoch_step_epoch_log_and_pbar_acc1']).mean()
         eval_2 = torch.stack(mean_vals['epoch_step_epoch_pbar_acc3']).mean()
-        assert epoch_end_metrics['epoch_step_epoch_log_and_pbar_acc1'] == eval_1
-        assert epoch_end_metrics['epoch_step_epoch_pbar_acc3'] == eval_2
-        assert 'step_epoch_log_acc2' not in epoch_end_metrics
+        assert epoch_end_metrics['step_epoch_log_and_pbar_acc1_epoch'] == eval_1
+        assert epoch_end_metrics['step_epoch_pbar_acc3_epoch'] == eval_2
+        assert 'epoch_log_acc2_step' not in epoch_end_metrics
         assert len(logged_metrics) == 5
 
     # -----------------------------------------
@@ -295,10 +295,10 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
     assert isinstance(train_step_out, TrainResult)
 
     assert 'minimize' in train_step_out
-    assert 'step_step_epoch_log_and_pbar_acc1' in train_step_out
-    assert 'step_step_epoch_log_acc2' in train_step_out
-    assert 'epoch_step_epoch_log_and_pbar_acc1' in train_step_out
-    assert 'epoch_step_epoch_log_acc2' in train_step_out
+    assert 'step_epoch_log_and_pbar_acc1_step' in train_step_out
+    assert 'step_epoch_log_acc2_step' in train_step_out
+    assert 'step_epoch_log_and_pbar_acc1_epoch' in train_step_out
+    assert 'step_epoch_log_acc2_epoch' in train_step_out
 
     # make sure the optimizer closure returns the correct things
     opt_closure_result = trainer.train_loop.training_step_and_backward(
@@ -340,21 +340,21 @@ def test_training_step_epoch_end_result(tmpdir):
     assert len(logged_metrics) == (epochs * batches) + epochs
     last_logged = logged_metrics[-1]
 
-    assert last_logged['epoch_step_epoch_log_and_pbar_acc1'] == 210.0
-    assert last_logged['epoch_step_epoch_log_acc2'] == 336.0
-    assert last_logged['epoch_epoch_end_log_acc'] == 1212.0
-    assert last_logged['epoch_epoch_end_log_pbar_acc'] == 1214.0
+    assert last_logged['step_epoch_log_and_pbar_acc1_epoch'] == 210.0
+    assert last_logged['step_epoch_log_acc2_epoch'] == 336.0
+    assert last_logged['epoch_end_log_acc_epoch'] == 1212.0
+    assert last_logged['epoch_end_log_pbar_acc_epoch'] == 1214.0
     assert 'epoch_end_pbar_acc' not in last_logged
 
     # make sure pbar metrics are correct
     logged_pbar = trainer.dev_debugger.pbar_added_metrics
     assert len(logged_pbar) == (epochs * batches) + epochs
 
-    assert trainer.logger_connector.progress_bar_metrics['epoch_step_epoch_log_and_pbar_acc1'] == 210.0
-    assert trainer.logger_connector.progress_bar_metrics['step_step_epoch_log_and_pbar_acc1'] == 7.0
-    assert trainer.logger_connector.progress_bar_metrics['epoch_step_epoch_pbar_acc3'] == 504.0
-    assert trainer.logger_connector.progress_bar_metrics['epoch_epoch_end_pbar_acc'] == 1213.0
-    assert trainer.logger_connector.progress_bar_metrics['epoch_epoch_end_log_pbar_acc'] == 1214.0
+    assert trainer.logger_connector.progress_bar_metrics['step_epoch_log_and_pbar_acc1_epoch'] == 210.0
+    assert trainer.logger_connector.progress_bar_metrics['step_epoch_log_and_pbar_acc1_step'] == 7.0
+    assert trainer.logger_connector.progress_bar_metrics['step_epoch_pbar_acc3_epoch'] == 504.0
+    assert trainer.logger_connector.progress_bar_metrics['epoch_end_pbar_acc_epoch'] == 1213.0
+    assert trainer.logger_connector.progress_bar_metrics['epoch_end_log_pbar_acc_epoch'] == 1214.0
     assert 'epoch_end_log_acc' not in trainer.logger_connector.progress_bar_metrics
     assert 'log_acc2' not in trainer.logger_connector.progress_bar_metrics
 
@@ -377,10 +377,10 @@ def test_training_step_epoch_end_result(tmpdir):
     assert isinstance(train_step_out, TrainResult)
 
     assert 'minimize' in train_step_out
-    assert 'step_step_epoch_log_and_pbar_acc1' in train_step_out
-    assert 'epoch_step_epoch_log_and_pbar_acc1' in train_step_out
-    assert 'step_step_epoch_log_acc2' in train_step_out
-    assert 'epoch_step_epoch_log_acc2' in train_step_out
+    assert 'step_epoch_log_and_pbar_acc1_step' in train_step_out
+    assert 'step_epoch_log_and_pbar_acc1_epoch' in train_step_out
+    assert 'step_epoch_log_acc2_step' in train_step_out
+    assert 'step_epoch_log_acc2_epoch' in train_step_out
 
     # make sure the optimizer closure returns the correct things
     opt_closure_result = trainer.train_loop.training_step_and_backward(
@@ -546,7 +546,7 @@ def test_full_train_loop_with_results_obj_dp(tmpdir):
 
     assert 'train_step_metric' in seen_keys
     assert 'train_step_end_metric' in seen_keys
-    assert 'epoch_train_epoch_end_metric' in seen_keys
+    assert 'train_epoch_end_metric_epoch' in seen_keys
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
