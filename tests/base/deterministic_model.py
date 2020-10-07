@@ -186,23 +186,23 @@ class DeterministicModel(LightningModule):
             # only saw 4 batches
             assert isinstance(result, TrainResult)
 
-        result.step_epoch_log_acc2 = result.step_step_epoch_log_acc2.prod()
-        result.step_epoch_pbar_acc3 = result.step_step_epoch_pbar_acc3.prod()
-        result.step_epoch_log_and_pbar_acc1 = result.step_epoch_log_and_pbar_acc1.prod()
+        result.step_epoch_log_acc2 = result.step_epoch_log_acc2_step.prod()
+        result.step_epoch_pbar_acc3 = result.step_epoch_pbar_acc3_step.prod()
+        result.step_epoch_log_and_pbar_acc1 = result.step_epoch_log_and_pbar_acc1_step.prod()
         result.minimize = result.minimize.mean()
         result.checkpoint_on = result.checkpoint_on.mean()
 
-        result.step_step_epoch_log_and_pbar_acc1 = result.step_step_epoch_log_and_pbar_acc1.prod()
-        result.epoch_step_epoch_log_and_pbar_acc1 = result.epoch_step_epoch_log_and_pbar_acc1.prod()
-        result.step_step_epoch_log_acc2 = result.step_step_epoch_log_acc2.prod()
-        result.epoch_step_epoch_log_acc2 = result.epoch_step_epoch_log_acc2.prod()
-        result.step_step_epoch_pbar_acc3 = result.step_step_epoch_pbar_acc3.prod()
-        result.epoch_step_epoch_pbar_acc3 = result.epoch_step_epoch_pbar_acc3.prod()
-        result.log('epoch_end_log_acc', torch.tensor(1212).type_as(result.epoch_step_epoch_log_acc2),
+        result.step_epoch_log_and_pbar_acc1_step = result.step_epoch_log_and_pbar_acc1_step.prod()
+        result.step_epoch_log_and_pbar_acc1_epoch = result.step_epoch_log_and_pbar_acc1_epoch.prod()
+        result.step_epoch_log_acc2_step = result.step_epoch_log_acc2_step.prod()
+        result.step_epoch_log_acc2_epoch = result.step_epoch_log_acc2_epoch.prod()
+        result.step_epoch_pbar_acc3_step = result.step_epoch_pbar_acc3_step.prod()
+        result.step_epoch_pbar_acc3_epoch = result.step_epoch_pbar_acc3_epoch.prod()
+        result.log('epoch_end_log_acc', torch.tensor(1212).type_as(result.step_epoch_log_acc2_epoch),
                    logger=True, on_epoch=True)
-        result.log('epoch_end_pbar_acc', torch.tensor(1213).type_as(result.epoch_step_epoch_log_acc2),
+        result.log('epoch_end_pbar_acc', torch.tensor(1213).type_as(result.step_epoch_log_acc2_epoch),
                    logger=False, prog_bar=True, on_epoch=True)
-        result.log('epoch_end_log_pbar_acc', torch.tensor(1214).type_as(result.epoch_step_epoch_log_acc2),
+        result.log('epoch_end_log_pbar_acc', torch.tensor(1214).type_as(result.step_epoch_log_acc2_epoch),
                    logger=True, prog_bar=True, on_epoch=True)
         return result
 

@@ -340,21 +340,21 @@ def test_training_step_epoch_end_result(tmpdir):
     assert len(logged_metrics) == (epochs * batches) + epochs
     last_logged = logged_metrics[-1]
 
-    assert last_logged['epoch_step_epoch_log_and_pbar_acc1'] == 210.0
-    assert last_logged['epoch_step_epoch_log_acc2'] == 336.0
-    assert last_logged['epoch_epoch_end_log_acc'] == 1212.0
-    assert last_logged['epoch_epoch_end_log_pbar_acc'] == 1214.0
+    assert last_logged['step_epoch_log_and_pbar_acc1_epoch'] == 210.0
+    assert last_logged['step_epoch_log_acc2_epoch'] == 336.0
+    assert last_logged['epoch_end_log_acc_epoch'] == 1212.0
+    assert last_logged['epoch_end_log_pbar_acc_epoch'] == 1214.0
     assert 'epoch_end_pbar_acc' not in last_logged
 
     # make sure pbar metrics are correct
     logged_pbar = trainer.dev_debugger.pbar_added_metrics
     assert len(logged_pbar) == (epochs * batches) + epochs
 
-    assert trainer.logger_connector.progress_bar_metrics['epoch_step_epoch_log_and_pbar_acc1'] == 210.0
-    assert trainer.logger_connector.progress_bar_metrics['step_step_epoch_log_and_pbar_acc1'] == 7.0
-    assert trainer.logger_connector.progress_bar_metrics['epoch_step_epoch_pbar_acc3'] == 504.0
-    assert trainer.logger_connector.progress_bar_metrics['epoch_epoch_end_pbar_acc'] == 1213.0
-    assert trainer.logger_connector.progress_bar_metrics['epoch_epoch_end_log_pbar_acc'] == 1214.0
+    assert trainer.logger_connector.progress_bar_metrics['step_epoch_log_and_pbar_acc1_epoch'] == 210.0
+    assert trainer.logger_connector.progress_bar_metrics['step_epoch_log_and_pbar_acc1_step'] == 7.0
+    assert trainer.logger_connector.progress_bar_metrics['step_epoch_pbar_acc3_epoch'] == 504.0
+    assert trainer.logger_connector.progress_bar_metrics['epoch_end_pbar_acc_epoch'] == 1213.0
+    assert trainer.logger_connector.progress_bar_metrics['epoch_end_log_pbar_acc_epoch'] == 1214.0
     assert 'epoch_end_log_acc' not in trainer.logger_connector.progress_bar_metrics
     assert 'log_acc2' not in trainer.logger_connector.progress_bar_metrics
 
@@ -377,10 +377,10 @@ def test_training_step_epoch_end_result(tmpdir):
     assert isinstance(train_step_out, TrainResult)
 
     assert 'minimize' in train_step_out
-    assert 'step_step_epoch_log_and_pbar_acc1' in train_step_out
-    assert 'epoch_step_epoch_log_and_pbar_acc1' in train_step_out
-    assert 'step_step_epoch_log_acc2' in train_step_out
-    assert 'epoch_step_epoch_log_acc2' in train_step_out
+    assert 'step_epoch_log_and_pbar_acc1_step' in train_step_out
+    assert 'step_epoch_log_and_pbar_acc1_epoch' in train_step_out
+    assert 'step_epoch_log_acc2_step' in train_step_out
+    assert 'step_epoch_log_acc2_epoch' in train_step_out
 
     # make sure the optimizer closure returns the correct things
     opt_closure_result = trainer.train_loop.training_step_and_backward(
