@@ -163,134 +163,134 @@ If you look for just computing the values, the functional metrics are the way to
 Classification
 --------------
 
-accuracy
-^^^^^^^^
+accuracy [func]
+^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.accuracy
     :noindex:
 
 
-auc
-^^^
+auc [func]
+^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.auc
     :noindex:
 
 
-auroc
-^^^^^
+auroc [func]
+^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.auroc
     :noindex:
 
 
-average_precision
-^^^^^^^^^^^^^^^^^
+average_precision [func]
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.average_precision
     :noindex:
 
 
-confusion_matrix
-^^^^^^^^^^^^^^^^
+confusion_matrix [func]
+^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.confusion_matrix
     :noindex:
 
 
-dice_score
-^^^^^^^^^^
+dice_score [func]
+^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.dice_score
     :noindex:
 
 
-f1_score
-^^^^^^^^
+f1_score [func]
+^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.f1_score
     :noindex:
 
 
-fbeta_score
-^^^^^^^^^^^
+fbeta_score [func]
+^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.fbeta_score
     :noindex:
 
 
-iou
-^^^
+iou [func]
+^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.iou
     :noindex:
 
 
-multiclass_roc
-^^^^^^^^^^^^^^
+multiclass_roc [func]
+^^^^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.multiclass_roc
     :noindex:
 
 
-precision
-^^^^^^^^^
+precision [func]
+^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.precision
     :noindex:
 
 
-precision_recall
-^^^^^^^^^^^^^^^^
+precision_recall [func]
+^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.precision_recall
     :noindex:
 
 
-precision_recall_curve
-^^^^^^^^^^^^^^^^^^^^^^
+precision_recall_curve [func]
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.precision_recall_curve
     :noindex:
 
 
-recall
-^^^^^^
+recall [func]
+^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.recall
     :noindex:
 
 
-roc
-^^^
+roc [func]
+^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.roc
     :noindex:
 
 
-stat_scores
-^^^^^^^^^^^
+stat_scores [func]
+^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.stat_scores
     :noindex:
 
 
-stat_scores_multiple_classes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+stat_scores_multiple_classes [func]
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.stat_scores_multiple_classes
     :noindex:
 
 
-to_categorical
-^^^^^^^^^^^^^^
+to_categorical [func]
+^^^^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.to_categorical
     :noindex:
 
 
-to_onehot
-^^^^^^^^^
+to_onehot [func]
+^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.to_onehot
     :noindex:
@@ -299,43 +299,43 @@ to_onehot
 Regression
 ----------
 
-mae
-^^^
+mae [func]
+^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.regression.mae
     :noindex:
 
 
-mse
-^^^
+mse [func]
+^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.regression.mse
     :noindex:
 
 
-psnr
-^^^^
+psnr [func]
+^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.regression.psnr
     :noindex:
 
 
-rmse
-^^^^
+rmse [func]
+^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.regression.rmse
     :noindex:
 
 
-rmsle
-^^^^^
+rmsle [func]
+^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.regression.rmsle
     :noindex:
 
 
-ssim
-^^^^
+ssim [func]
+^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.regression.mae
     :noindex:
@@ -344,8 +344,8 @@ ssim
 NLP
 ---
 
-bleu_score
-^^^^^^^^^^
+bleu_score [func]
+^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.nlp.bleu_score
     :noindex:
