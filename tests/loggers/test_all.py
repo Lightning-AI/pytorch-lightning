@@ -47,7 +47,8 @@ def test_loggers_fit_test_all(tmpdir, monkeypatch):
         _test_loggers_fit_test(tmpdir, NeptuneLogger)
 
     _test_loggers_fit_test(tmpdir, TensorBoardLogger)
-    _test_loggers_fit_test(tmpdir, TestTubeLogger)
+    with mock.patch('pytorch_lightning.loggers.test_tube.Experiment'):
+        _test_loggers_fit_test(tmpdir, TestTubeLogger)
 
     with mock.patch('pytorch_lightning.loggers.wandb.wandb'):
         _test_loggers_fit_test(tmpdir, WandbLogger)
@@ -79,6 +80,10 @@ def _test_loggers_fit_test(tmpdir, logger_class):
     if logger_class == CometLogger:
         logger.experiment.id = 'foo'
         logger.experiment.project_name = 'bar'
+
+    if logger_class == TestTubeLogger:
+        logger.experiment.version = 'foo'
+        logger.experiment.name = 'bar'
 
     if logger_class == MLFlowLogger:
         logger = mock_mlflow_run_creation(logger, experiment_id="foo", run_id="bar")
@@ -124,7 +129,8 @@ def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch):
         _test_loggers_save_dir_and_weights_save_path(tmpdir, MLFlowLogger)
 
     _test_loggers_save_dir_and_weights_save_path(tmpdir, TensorBoardLogger)
-    _test_loggers_save_dir_and_weights_save_path(tmpdir, TestTubeLogger)
+    with mock.patch('pytorch_lightning.loggers.test_tube.Experiment'):
+        _test_loggers_save_dir_and_weights_save_path(tmpdir, TestTubeLogger)
 
     with mock.patch('pytorch_lightning.loggers.wandb.wandb'):
         _test_loggers_save_dir_and_weights_save_path(tmpdir, WandbLogger)
@@ -271,7 +277,8 @@ class RankZeroLoggerCheck(Callback):
     TestTubeLogger,
 ])
 @mock.patch('pytorch_lightning.loggers.neptune.neptune')
-def test_logger_created_on_rank_zero_only(neptune, tmpdir, monkeypatch, logger_class):
+@mock.patch('pytorch_lightning.loggers.test_tube.Experiment')
+def test_logger_created_on_rank_zero_only(test_tube, neptune, tmpdir, monkeypatch, logger_class):
     """ Test that loggers get replaced by dummy loggers on global rank > 0"""
     _patch_comet_atexit(monkeypatch)
 

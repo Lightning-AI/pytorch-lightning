@@ -21,10 +21,8 @@ from typing import Any, Dict, Optional, Union
 
 try:
     from test_tube import Experiment
-    _TEST_TUBE_AVAILABLE = True
 except ImportError:  # pragma: no-cover
     Experiment = None
-    _TEST_TUBE_AVAILABLE = False
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
@@ -83,7 +81,7 @@ class TestTubeLogger(LightningLoggerBase):
         create_git_tag: bool = False,
         log_graph: bool = False
     ):
-        if not _TEST_TUBE_AVAILABLE:
+        if Experiment is None:
             raise ImportError('You want to use `test_tube` logger which is not installed yet,'
                               ' install it with `pip install test-tube`.')
         super().__init__()
