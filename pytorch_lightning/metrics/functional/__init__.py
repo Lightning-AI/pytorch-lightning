@@ -29,3 +29,6 @@ from pytorch_lightning.metrics.functional.regression import (
     rmsle,
     ssim
 )
+from pytorch_lightning.metrics.functional.self_supervised import (
+    embedding_similarity
+)

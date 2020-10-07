@@ -1,15 +1,15 @@
 from typing import Sequence
 
 import torch
-from torch.nn import functional as F
-
 from pytorch_lightning.metrics.functional.reduction import reduce
+from torch.nn import functional as F
 
 
 def mse(
         pred: torch.Tensor,
         target: torch.Tensor,
-        reduction: str = 'elementwise_mean'
+        reduction: str = 'elementwise_mean',
+        return_state: bool = False
 ) -> torch.Tensor:
     """
     Computes mean squared error
@@ -17,12 +17,13 @@ def mse(
     Args:
         pred: estimated labels
         target: ground truth labels
-        reduction: method for reducing mse (default: takes the mean)
-            Available reduction methods:
+        reduction: a method to reduce metric score over labels.
 
-            - elementwise_mean: takes the mean
-            - none: pass array
-            - sum: add elements
+            - ``'elementwise_mean'``: takes the mean (default)
+            - ``'sum'``: takes the sum
+            - ``'none'``: no reduction will be applied
+        return_state: returns a internal state that can be ddp reduced
+            before doing the final calculation
 
     Return:
         Tensor with MSE
@@ -36,6 +37,8 @@ def mse(
 
     """
     mse = F.mse_loss(pred, target, reduction='none')
+    if return_state:
+        return {'squared_error': mse.sum(), 'n_observations': torch.tensor(mse.numel())}
     mse = reduce(mse, reduction=reduction)
     return mse
 
@@ -43,7 +46,8 @@ def mse(
 def rmse(
         pred: torch.Tensor,
         target: torch.Tensor,
-        reduction: str = 'elementwise_mean'
+        reduction: str = 'elementwise_mean',
+        return_state: bool = False
 ) -> torch.Tensor:
     """
     Computes root mean squared error
@@ -51,12 +55,13 @@ def rmse(
     Args:
         pred: estimated labels
         target: ground truth labels
-        reduction: method for reducing rmse (default: takes the mean)
-            Available reduction methods:
+        reduction: a method to reduce metric score over labels.
 
-            - elementwise_mean: takes the mean
-            - none: pass array
-            - sum: add elements
+            - ``'elementwise_mean'``: takes the mean (default)
+            - ``'sum'``: takes the sum
+            - ``'none'``: no reduction will be applied
+        return_state: returns a internal state that can be ddp reduced
+            before doing the final calculation
 
     Return:
         Tensor with RMSE
@@ -68,14 +73,18 @@ def rmse(
         tensor(0.5000)
 
     """
-    rmse = torch.sqrt(mse(pred, target, reduction=reduction))
-    return rmse
+    mean_squared_error = mse(pred, target, reduction=reduction)
+    if return_state:
+        return {'squared_error': mean_squared_error.sum(),
+                'n_observations': torch.tensor(mean_squared_error.numel())}
+    return torch.sqrt(mean_squared_error)
 
 
 def mae(
         pred: torch.Tensor,
         target: torch.Tensor,
-        reduction: str = 'elementwise_mean'
+        reduction: str = 'elementwise_mean',
+        return_state: bool = False
 ) -> torch.Tensor:
     """
     Computes mean absolute error
@@ -83,12 +92,13 @@ def mae(
     Args:
         pred: estimated labels
         target: ground truth labels
-        reduction: method for reducing mae (default: takes the mean)
-            Available reduction methods:
+        reduction: a method to reduce metric score over labels.
 
-            - elementwise_mean: takes the mean
-            - none: pass array
-            - sum: add elements
+            - ``'elementwise_mean'``: takes the mean (default)
+            - ``'sum'``: takes the sum
+            - ``'none'``: no reduction will be applied
+        return_state: returns a internal state that can be ddp reduced
+            before doing the final calculation
 
     Return:
         Tensor with MAE
@@ -102,6 +112,8 @@ def mae(
 
     """
     mae = F.l1_loss(pred, target, reduction='none')
+    if return_state:
+        return {'absolute_error': mae.sum(), 'n_observations': torch.tensor(mae.numel())}
     mae = reduce(mae, reduction=reduction)
     return mae
 
@@ -117,12 +129,11 @@ def rmsle(
     Args:
         pred: estimated labels
         target: ground truth labels
-        reduction: method for reducing rmsle (default: takes the mean)
-            Available reduction methods:
+        reduction: a method to reduce metric score over labels.
 
-            - elementwise_mean: takes the mean
-            - none: pass array
-            - sum: add elements
+            - ``'elementwise_mean'``: takes the mean (default)
+            - ``'sum'``: takes the sum
+            - ``'none'``: no reduction will be applied
 
     Return:
         Tensor with RMSLE
@@ -132,10 +143,10 @@ def rmsle(
         >>> x = torch.tensor([0., 1, 2, 3])
         >>> y = torch.tensor([0., 1, 2, 2])
         >>> rmsle(x, y)
-        tensor(0.0207)
+        tensor(0.1438)
 
     """
-    rmsle = mse(torch.log(pred + 1), torch.log(target + 1), reduction=reduction)
+    rmsle = rmse(torch.log(pred + 1), torch.log(target + 1), reduction=reduction)
     return rmsle
 
 
@@ -144,7 +155,8 @@ def psnr(
     target: torch.Tensor,
     data_range: float = None,
     base: float = 10.0,
-    reduction: str = 'elementwise_mean'
+    reduction: str = 'elementwise_mean',
+    return_state: bool = False
 ) -> torch.Tensor:
     """
     Computes the peak signal-to-noise ratio
@@ -154,12 +166,13 @@ def psnr(
         target: groun truth signal
         data_range: the range of the data. If None, it is determined from the data (max - min)
         base: a base of a logarithm to use (default: 10)
-        reduction: method for reducing psnr (default: takes the mean)
-            Available reduction methods:
+        reduction: a method to reduce metric score over labels.
 
-            - elementwise_mean: takes the mean
-            - none: pass array
-            - sum add elements
+            - ``'elementwise_mean'``: takes the mean (default)
+            - ``'sum'``: takes the sum
+            - ``'none'``: no reduction will be applied
+        return_state: returns a internal state that can be ddp reduced
+            before doing the final calculation
 
     Return:
         Tensor with PSNR score
@@ -172,11 +185,15 @@ def psnr(
         tensor(2.5527)
 
     """
-
     if data_range is None:
-        data_range = max(target.max() - target.min(), pred.max() - pred.min())
+        data_range = target.max() - target.min()
     else:
         data_range = torch.tensor(float(data_range))
+
+    if return_state:
+        return {'data_range': data_range,
+                'sum_squared_error': F.mse_loss(pred, target, reduction='none').sum(),
+                'n_obs': torch.tensor(target.numel())}
 
     mse_score = mse(pred.view(-1), target.view(-1), reduction=reduction)
     psnr_base_e = 2 * torch.log(data_range) - torch.log(mse_score)
@@ -185,16 +202,19 @@ def psnr(
 
 
 def _gaussian_kernel(channel, kernel_size, sigma, device):
-    def gaussian(kernel_size, sigma, device):
+    def _gaussian(kernel_size, sigma, device):
         gauss = torch.arange(
-            start=(1 - kernel_size) / 2, end=(1 + kernel_size) / 2, step=1, dtype=torch.float32, device=device
+            start=(1 - kernel_size) / 2, end=(1 + kernel_size) / 2,
+            step=1,
+            dtype=torch.float32,
+            device=device
         )
         gauss = torch.exp(-gauss.pow(2) / (2 * pow(sigma, 2)))
         return (gauss / gauss.sum()).unsqueeze(dim=0)  # (1, kernel_size)
 
-    gaussian_kernel_x = gaussian(kernel_size[0], sigma[0], device)
-    gaussian_kernel_y = gaussian(kernel_size[1], sigma[1], device)
-    kernel = torch.matmul(gaussian_kernel_x.t(), gaussian_kernel_y)  # (kernel_size, 1) * (1, kernel_size)
+    gaussian_kernel_x = _gaussian(kernel_size[0], sigma[0], device)
+    gaussian_kernel_y = _gaussian(kernel_size[1], sigma[1], device)
+    kernel = torch.matmul(gaussian_kernel_x.t(), gaussian_kernel_y)
 
     return kernel.expand(channel, 1, kernel_size[0], kernel_size[1])
 
@@ -213,32 +233,31 @@ def ssim(
     Computes Structual Similarity Index Measure
 
     Args:
-        pred: Estimated image
-        target: Ground truth image
-        kernel_size: Size of the gaussian kernel. Default: (11, 11)
-        sigma: Standard deviation of the gaussian kernel. Default: (1.5, 1.5)
-        reduction: A method for reducing ssim over all elements in the ``pred`` tensor. Default: ``elementwise_mean``
+        pred: estimated image
+        target: ground truth image
+        kernel_size: size of the gaussian kernel (default: (11, 11))
+        sigma: Standard deviation of the gaussian kernel (default: (1.5, 1.5))
+        reduction: a method to reduce metric score over labels.
 
-            Available reduction methods:
-            - elementwise_mean: takes the mean
-            - none: pass away
-            - sum: add elements
+            - ``'elementwise_mean'``: takes the mean (default)
+            - ``'sum'``: takes the sum
+            - ``'none'``: no reduction will be applied
 
         data_range: Range of the image. If ``None``, it is determined from the image (max - min)
         k1: Parameter of SSIM. Default: 0.01
         k2: Parameter of SSIM. Default: 0.03
 
-    Returns:
-        A Tensor with SSIM
+    Return:
+        Tensor with SSIM score
 
     Example:
 
         >>> pred = torch.rand([16, 1, 16, 16])
-        >>> target = pred * 1.25
+        >>> target = pred * 0.75
         >>> ssim(pred, target)
-        tensor(0.9520)
-    """
+        tensor(0.9219)
 
+    """
     if pred.dtype != target.dtype:
         raise TypeError(
             "Expected `pred` and `target` to have the same data type."
@@ -278,16 +297,24 @@ def ssim(
 
     channel = pred.size(1)
     kernel = _gaussian_kernel(channel, kernel_size, sigma, device)
-    mu_pred = F.conv2d(pred, kernel, groups=channel)
-    mu_target = F.conv2d(target, kernel, groups=channel)
 
-    mu_pred_sq = mu_pred.pow(2)
-    mu_target_sq = mu_target.pow(2)
-    mu_pred_target = mu_pred * mu_target
+    # Concatenate
+    # pred for mu_pred
+    # target for mu_target
+    # pred * pred for sigma_pred
+    # target * target for sigma_target
+    # pred * target for sigma_pred_target
+    input_list = torch.cat([pred, target, pred * pred, target * target, pred * target])  # (5 * B, C, H, W)
+    outputs = F.conv2d(input_list, kernel, groups=channel)
+    output_list = [outputs[x * pred.size(0): (x + 1) * pred.size(0)] for x in range(len(outputs))]
 
-    sigma_pred_sq = F.conv2d(pred * pred, kernel, groups=channel) - mu_pred_sq
-    sigma_target_sq = F.conv2d(target * target, kernel, groups=channel) - mu_target_sq
-    sigma_pred_target = F.conv2d(pred * target, kernel, groups=channel) - mu_pred_target
+    mu_pred_sq = output_list[0].pow(2)
+    mu_target_sq = output_list[1].pow(2)
+    mu_pred_target = output_list[0] * output_list[1]
+
+    sigma_pred_sq = output_list[2] - mu_pred_sq
+    sigma_target_sq = output_list[3] - mu_target_sq
+    sigma_pred_target = output_list[4] - mu_pred_target
 
     UPPER = 2 * sigma_pred_target + C2
     LOWER = sigma_pred_sq + sigma_target_sq + C2
