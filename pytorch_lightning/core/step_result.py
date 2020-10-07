@@ -57,7 +57,7 @@ class Result(Dict):
         try:
             return super().__getitem__(key)
         except KeyError:
-            return super().__getitem__(f'step_{key}')
+            return super().__getitem__(f'{key}_step')
 
     def __getattr__(self, key: str) -> Any:
         try:
@@ -136,7 +136,7 @@ class Result(Dict):
             was_forked = True
 
             # set step version
-            step_name = f'step_{name}'
+            step_name = f'{name}_step'
             self.__set_meta(
                 step_name,
                 value,
@@ -152,7 +152,7 @@ class Result(Dict):
             self.__setitem__(step_name, value)
 
             # set epoch version
-            epoch_name = f'epoch_{name}'
+            epoch_name = f'{name}_epoch'
             self.__set_meta(
                 epoch_name,
                 value,
