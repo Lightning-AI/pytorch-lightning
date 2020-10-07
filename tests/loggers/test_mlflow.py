@@ -11,6 +11,8 @@ from pytorch_lightning.loggers import MLFlowLogger
 from tests.base import EvalModelTemplate
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 def mock_mlflow_run_creation(logger, experiment_name=None, experiment_id=None, run_id=None):
     """ Helper function to simulate mlflow client creating a new (or existing) experiment. """
     run = MagicMock()

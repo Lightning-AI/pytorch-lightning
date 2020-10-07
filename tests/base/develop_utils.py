@@ -10,6 +10,8 @@ from tests import TEMP_PATH, RANDOM_PORTS
 from tests.base.model_template import EvalModelTemplate
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 def assert_speed_parity_relative(pl_times, pt_times, max_diff: float = 0.1):
     # assert speeds
     diffs = np.asarray(pl_times) - np.asarray(pt_times)

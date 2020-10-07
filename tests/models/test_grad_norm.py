@@ -9,6 +9,8 @@ from tests.base import EvalModelTemplate
 from tests.base.develop_utils import reset_seed
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 class ModelWithManualGradTracker(EvalModelTemplate):
     def __init__(self, norm_type, *args, **kwargs):
         super().__init__(*args, **kwargs)

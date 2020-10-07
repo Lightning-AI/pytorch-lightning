@@ -1,11 +1,14 @@
 import pytest
 import torch
 import torch.nn as nn
+import os
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning.core.memory import UNKNOWN_SIZE, ModelSummary
 from tests.base.models import ParityModuleRNN
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 class EmptyModule(LightningModule):
     """ A module that has no layers """

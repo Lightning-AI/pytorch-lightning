@@ -15,6 +15,9 @@ from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate
 from tests.base.models import BasicGAN
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
+
 try:
     from horovod.common.util import nccl_built
 except ImportError:

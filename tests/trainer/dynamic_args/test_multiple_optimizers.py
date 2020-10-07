@@ -1,7 +1,10 @@
 from pytorch_lightning import Trainer
 from tests.base.boring_model import BoringModel
 import torch
+import os
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 def test_multiple_optimizers(tmpdir):
     """

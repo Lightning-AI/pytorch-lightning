@@ -13,6 +13,9 @@ import numpy
 import torch
 import tqdm
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
+
 sys.path += [os.path.abspath('..'), os.path.abspath('.')]
 import pytorch_lightning  # noqa: E402
 

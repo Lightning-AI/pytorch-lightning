@@ -6,6 +6,8 @@ from tests.base.deterministic_model import DeterministicModel
 import os
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 def test_training_step_dict(tmpdir):
     """
     Tests that only training_step can be used

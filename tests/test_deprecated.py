@@ -2,6 +2,7 @@
 import random
 import sys
 
+import os
 import pytest
 import torch
 
@@ -9,6 +10,8 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import GpuUsageLogger, LearningRateLogger
 from tests.base import EvalModelTemplate
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 def _soft_unimport_module(str_module):
     # once the module is imported  e.g with parsing with pytest it lives in memory

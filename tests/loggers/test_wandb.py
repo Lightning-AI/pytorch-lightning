@@ -7,6 +7,8 @@ from pytorch_lightning.loggers import WandbLogger
 from tests.base import EvalModelTemplate
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
 def test_wandb_logger(wandb):
     """Verify that basic functionality of wandb logger works.

@@ -1,9 +1,12 @@
 import torch
+import os
 
 from pytorch_lightning import Trainer
 from tests.base.develop_utils import load_model_from_checkpoint, get_default_logger, \
     reset_seed
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50):
     reset_seed()

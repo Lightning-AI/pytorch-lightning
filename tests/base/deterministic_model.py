@@ -1,10 +1,13 @@
 import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
+import os
 
 from pytorch_lightning import TrainResult, EvalResult
 from pytorch_lightning.core.lightning import LightningModule
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 class DeterministicModel(LightningModule):
 

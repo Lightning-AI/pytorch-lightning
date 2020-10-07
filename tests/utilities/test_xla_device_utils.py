@@ -1,4 +1,5 @@
 import pytest
+import os
 
 from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils as xdu
 from tests.base.develop_utils import pl_multi_process_test
@@ -9,6 +10,7 @@ try:
 except ImportError as e:
     XLA_AVAILABLE = False
 
+os.environ['PL_DEV_DEBUG'] = '1'
 
 @pytest.mark.skipif(XLA_AVAILABLE, reason="test requires torch_xla to be absent")
 def test_tpu_device_absence():

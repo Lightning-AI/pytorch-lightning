@@ -8,6 +8,7 @@ from tests.base import EvalModelTemplate
 import os
 import torch
 
+os.environ['PL_DEV_DEBUG'] = '1'
 
 def main():
     seed_everything(1234)

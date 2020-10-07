@@ -10,6 +10,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_gpu_stats_monitor(tmpdir):
     """

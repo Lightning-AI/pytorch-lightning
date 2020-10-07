@@ -1,7 +1,10 @@
 from abc import ABC
 
 import torch
+import os
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 class ValidationEpochEndVariations(ABC):
     """

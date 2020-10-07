@@ -1,7 +1,10 @@
 from torch.utils.data import DataLoader
+import os
 
 from tests.base.datasets import TrialMNIST
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 class ModelTemplateData:
 

@@ -1,11 +1,14 @@
 import pytest
 import torch
+import os
 from tests.base import BoringModel
 import platform
 from distutils.version import LooseVersion
 from pytorch_lightning import Trainer, Callback
 from unittest import mock
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 class TestModel(BoringModel):
 

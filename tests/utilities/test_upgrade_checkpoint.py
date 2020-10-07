@@ -7,6 +7,8 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.utilities.upgrade_checkpoint import upgrade_checkpoint
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 @pytest.mark.parametrize(
     "old_checkpoint, new_checkpoint",
     [

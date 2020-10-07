@@ -1,8 +1,12 @@
 import pytest
 import torch
+import os
 from nltk.translate.bleu_score import SmoothingFunction, corpus_bleu, sentence_bleu
 
 from pytorch_lightning.metrics.functional.nlp import bleu_score
+
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 # example taken from
 # https://www.nltk.org/api/nltk.translate.html?highlight=bleu%20score#nltk.translate.bleu_score.sentence_bleu

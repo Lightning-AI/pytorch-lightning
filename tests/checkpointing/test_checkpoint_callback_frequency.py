@@ -6,6 +6,8 @@ import pytest
 import torch
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 def test_mc_called_on_fastdevrun(tmpdir):
     seed_everything(1234)
     os.environ['PL_DEV_DEBUG'] = '1'

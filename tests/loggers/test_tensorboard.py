@@ -13,6 +13,8 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from tests.base import EvalModelTemplate
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 @pytest.mark.skipif(
     LooseVersion(torch.__version__) < LooseVersion("1.5.0"),
     reason="Minimal PT version is set to 1.5",

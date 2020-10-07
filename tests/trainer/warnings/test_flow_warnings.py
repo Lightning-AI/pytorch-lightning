@@ -4,6 +4,8 @@ from pytorch_lightning import Trainer
 import warnings
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 def test_no_depre_without_epoch_end(tmpdir):
     """
     Tests that only training_step can be used

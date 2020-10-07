@@ -1,4 +1,3 @@
-import os
 import pytest
 import torch
 import os
@@ -10,6 +9,9 @@ from sklearn.metrics import accuracy_score
 
 from tests.metrics.utils import compute_batch, setup_ddp
 from tests.metrics.utils import NUM_BATCHES, NUM_PROCESSES, BATCH_SIZE
+
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 torch.manual_seed(42)
 

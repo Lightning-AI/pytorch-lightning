@@ -5,11 +5,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
+import os
 
 from tests.base.datasets import TrialMNIST, AverageDataset, MNIST
 
 from pytorch_lightning.core.lightning import LightningModule
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 class Generator(nn.Module):
     def __init__(self, latent_dim: int, img_shape: tuple):

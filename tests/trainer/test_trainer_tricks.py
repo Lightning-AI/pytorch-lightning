@@ -1,4 +1,5 @@
 from copy import deepcopy
+import os
 import pytest
 import torch
 from torch.utils.data import RandomSampler, SequentialSampler, DataLoader
@@ -10,6 +11,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.base.datamodules import MNISTDataModule
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 def test_num_training_batches(tmpdir):
     """

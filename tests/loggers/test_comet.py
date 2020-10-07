@@ -9,6 +9,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 def _patch_comet_atexit(monkeypatch):
     """ Prevent comet logger from trying to print at exit, since pytest's stdout/stderr redirection breaks it. """
     import atexit

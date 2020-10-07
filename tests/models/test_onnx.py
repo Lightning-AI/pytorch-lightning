@@ -11,6 +11,9 @@ from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
+
 def test_model_saves_with_input_sample(tmpdir):
     """Test that ONNX model saves with input sample and size is greater than 3 MB"""
     model = EvalModelTemplate()

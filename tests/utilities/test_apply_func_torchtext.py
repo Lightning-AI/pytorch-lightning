@@ -1,3 +1,4 @@
+import os
 import pytest
 import torch
 import torchtext
@@ -5,6 +6,8 @@ from torchtext.data.example import Example
 
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 def _get_torchtext_data_iterator(include_lengths=False):
     text_field = torchtext.data.Field(sequential=True, pad_first=False,  # nosec

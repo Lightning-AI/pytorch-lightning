@@ -9,6 +9,8 @@ import os
 import torch
 
 
+os.environ['PL_DEV_DEBUG'] = '1'
+
 def test__training_step__flow_scalar(tmpdir):
     """
     Tests that only training_step can be used

@@ -4,6 +4,7 @@ import os
 from tests.backends import ddp_model
 from tests.utilities.dist import call_training_script
 
+os.environ['PL_DEV_DEBUG'] = '1'
 
 @pytest.mark.parametrize('cli_args', [
     pytest.param('--max_epochs 1 --gpus 2 --distributed_backend ddp'),

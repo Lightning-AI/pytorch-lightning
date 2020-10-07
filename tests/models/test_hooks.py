@@ -2,10 +2,14 @@ from unittest.mock import MagicMock
 
 import pytest
 import torch
+import os
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.gpu_backend import GPUBackend
 from tests.base import EvalModelTemplate
+
+
+os.environ['PL_DEV_DEBUG'] = '1'
 
 
 @pytest.mark.parametrize('max_steps', [1, 2, 3])
