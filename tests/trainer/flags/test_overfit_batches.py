@@ -1,4 +1,5 @@
 import torch
+import pytest
 from tests.base.boring_model import BoringModel, RandomDataset
 from pytorch_lightning import Trainer
 
@@ -29,6 +30,24 @@ def test_overfit_multiple_val_loaders(tmpdir):
         max_epochs=2,
         overfit_batches=1,
         row_log_interval=1,
+        weights_summary=None,
+    )
+
+    trainer.fit(model)
+
+
+@pytest.mark.parametrize('overfit', [1, 2, 0.1, 0.25, 1.0])
+def test_overfit_basic(tmpdir, overfit):
+    """
+    Tests that only training_step can be used
+    """
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        overfit_batches=overfit,
         weights_summary=None,
     )
 
