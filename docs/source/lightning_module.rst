@@ -1025,12 +1025,6 @@ Advanced hooks
 Use these hooks to modify advanced functionality
 
 
-configure_sync_batchnorm
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.configure_sync_batchnorm
-    :noindex:
-
 get_progress_bar_dict
 ~~~~~~~~~~~~~~~~~~~~~
 

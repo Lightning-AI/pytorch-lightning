@@ -155,7 +155,7 @@ class DDP2Backend(Accelerator):
 
         # call sync_bn before .cuda(), configure_apex and configure_ddp
         if self.trainer.sync_batchnorm:
-            model = model.configure_sync_batchnorm(model)
+            model = self.configure_sync_batchnorm(model)
 
         # move the model to the correct device
         self.model_to_device(model, process_idx)
@@ -185,3 +185,19 @@ class DDP2Backend(Accelerator):
         # clean up memory
         torch.cuda.empty_cache()
         return results
+
+    def configure_sync_batchnorm(self, model: "LightningModule") -> "LightningModule":
+        """
+        Add global batchnorm for a model spread across multiple GPUs and nodes.
+
+        Override to synchronize batchnorm between specific process groups instead
+        of the whole world or use a different sync_bn like `apex`'s version.
+
+        Args:
+            model: pointer to current :class:`LightningModule`.
+
+        Return:
+            LightningModule with batchnorm layers synchronized between process groups
+        """
+        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
+        return model
