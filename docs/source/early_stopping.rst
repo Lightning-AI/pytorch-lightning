@@ -50,7 +50,7 @@ To enable it:
        verbose=False,
        mode='max'
     )
-    trainer = Trainer(callbacks=[early_stop_callback)]
+    trainer = Trainer(callbacks=[early_stop_callback])
 
 In case you need early stopping in a different part of training, subclass EarlyStopping
 and change where it is called:
