@@ -22,6 +22,9 @@ from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
+from torch.nn.parallel import DistributedDataParallel
+from typing import List
 
 
 try:
@@ -161,7 +164,7 @@ class DDPTorchElasticBackend(Accelerator):
         device_ids = self.get_device_ids()
 
         # allow user to configure ddp
-        model = model.configure_ddp(model, device_ids)
+        model = self.configure_ddp(model, device_ids)
 
         # set up training routine
         self.trainer.train_loop.setup_training(model)
@@ -173,6 +176,14 @@ class DDPTorchElasticBackend(Accelerator):
         torch.cuda.empty_cache()
 
         return results
+
+    def configure_ddp(
+        self, model: "LightningModule", device_ids: List[int]
+    ) -> DistributedDataParallel:
+        model = LightningDistributedDataParallel(
+            model, device_ids=device_ids, find_unused_parameters=True
+        )
+        return model
 
     def configure_sync_batchnorm(self, model: "LightningModule") -> "LightningModule":
         """
@@ -188,4 +199,5 @@ class DDPTorchElasticBackend(Accelerator):
             LightningModule with batchnorm layers synchronized between process groups
         """
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
+
         return model
