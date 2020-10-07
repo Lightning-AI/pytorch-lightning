@@ -66,7 +66,7 @@ Use the :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method to
     def training_step(self, batch, batch_idx):
         self.log('my_metric', x)
 
-Depending on where log is called from, Lightning auto-determines the correct logging mode for you.\
+Depending on where log is called from, Lightning auto-determines the correct logging mode for you. \
 But of course you can override the default behavior by manually setting the :func:`~~pytorch_lightning.core.lightning.LightningModule.log` parameters.
 
 .. code-block:: python
@@ -76,16 +76,16 @@ But of course you can override the default behavior by manually setting the :fun
 
 The :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method has a few options:
 
-* on_step: Logs the metric at the current step. Defaults to True in :func:`~~pytorch_lightning.core.lightning.LightningModule.training_step`, and :func:`~pytorch_lightning.core.lightning.LightningModule.training_step_end`.
+* `on_step`: Logs the metric at the current step. Defaults to `True` in :func:`~~pytorch_lightning.core.lightning.LightningModule.training_step`, and :func:`~pytorch_lightning.core.lightning.LightningModule.training_step_end`.
 
-* on_epoch: Automatically accumulates and logs at the end of the epoch. Defaults to True anywhere in validation or test loops, and in :func:`~~pytorch_lightning.core.lightning.LightningModule.training_epoch_end`.
+* `on_epoch`: Automatically accumulates and logs at the end of the epoch. Defaults to True anywhere in validation or test loops, and in :func:`~~pytorch_lightning.core.lightning.LightningModule.training_epoch_end`.
 
-* prog_bar: Logs to the progress bar.
+* `prog_bar`: Logs to the progress bar.
 
-* logger: Logs to the logger like Tensorboard, or any other custom logger passed to the :class:`~pytorch_lightning.trainer.trainer.Trainer`.
+* `logger`: Logs to the logger like Tensorboard, or any other custom logger passed to the :class:`~pytorch_lightning.trainer.trainer.Trainer`.
 
 
-.. note:: Setting on_epoch=True will accumulate your logged values over the full training epoch.
+.. note:: Setting `on_epoch=True` will accumulate your logged values over the full training epoch.
 
 
 Manual logging
