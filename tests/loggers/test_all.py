@@ -287,8 +287,12 @@ def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch):
     _patch_comet_atexit(monkeypatch)
     _test_logger_created_on_rank_zero_only(tmpdir, TensorBoardLogger)
 
+    with mock.patch('pytorch_lightning.loggers.mlflow.mlflow'), \
+         mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient'):
+        _test_logger_created_on_rank_zero_only(tmpdir, MLFlowLogger)
+
     with mock.patch('pytorch_lightning.loggers.test_tube.Experiment'):
-        _test_logger_created_on_rank_zero_only(tmpdir, TensorBoardLogger)
+        _test_logger_created_on_rank_zero_only(tmpdir, TestTubeLogger)
 
 
 def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
