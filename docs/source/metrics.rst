@@ -226,13 +226,6 @@ iou
     :noindex:
 
 
-multiclass_precision_recall_score
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. autofunction:: pytorch_lightning.metrics.functional.classification.multiclass_precision_recall_score
-    :noindex:
-
-
 multiclass_roc
 ^^^^^^^^^^^^^^
 
