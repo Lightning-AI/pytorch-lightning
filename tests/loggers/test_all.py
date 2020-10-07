@@ -279,13 +279,16 @@ class RankZeroLoggerCheck(Callback):
 #     TestTubeLogger,
 # ])
 # @mock.patch('pytorch_lightning.loggers.neptune.neptune')
-# @mock.patch('pytorch_lightning.loggers.test_tube.Experiment')
+#
 #
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch):
     _patch_comet_atexit(monkeypatch)
     _test_logger_created_on_rank_zero_only(tmpdir, TensorBoardLogger)
+
+    with mock.patch('pytorch_lightning.loggers.test_tube.Experiment'):
+        _test_logger_created_on_rank_zero_only(tmpdir, TensorBoardLogger)
 
 
 def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
