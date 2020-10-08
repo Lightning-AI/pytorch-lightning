@@ -1,12 +1,8 @@
 """Test deprecated functionality which will be removed in vX.Y.Z"""
-import random
 import sys
 
-import pytest
 import torch
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import GpuUsageLogger, LearningRateLogger
 from tests.base import EvalModelTemplate
 
 
