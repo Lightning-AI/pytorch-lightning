@@ -52,13 +52,20 @@ Our native platform for training models at scale on the cloud!
 To use grid, take your regular command:
 
 ```
-    python my_model.py --learning_rate 1e-6 --layers 2 --gpus 4
+    python 
+    my_model.py 
+    --learning_rate 1e-6 
+    --layers 2 
+    --gpus 4
 ```
 
 And change it to use the grid train command:
 
 ```
-    grid train --grid_gpus 4 my_model.py --learning_rate 'uniform(1e-6, 1e-1, 20)' --layers '[2, 4, 8, 16]'
+    grid train 
+    --grid_gpus 4 my_model.py 
+    --learning_rate 'uniform(1e-6, 1e-1, 20)' 
+    --layers '[2, 4, 8, 16]'
 ```
 
 The above command will launch (20 * 4) experiments each running on 4 GPUs (320 GPUs!) - by making ZERO changes to
