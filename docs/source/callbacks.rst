@@ -13,7 +13,7 @@ Callback
 
 .. raw:: html
 
-    <video width="100%" controls autoplay
+    <video width="100%" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/callbacks.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/callbacks.mp4"></video>
 

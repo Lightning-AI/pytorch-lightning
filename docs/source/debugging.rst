@@ -9,7 +9,7 @@ Debugging
 
 .. raw:: html
 
-    <video width="100%" controls autoplay
+    <video width="100%" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/yt_thumbs/thumb_debugging.png"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/yt/Trainer+flags+7-+debugging_1.mp4"></video>
 
