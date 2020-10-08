@@ -3,6 +3,7 @@ from tests.base.boring_model import BoringModel
 from pytorch_lightning.metrics import Metric
 from pytorch_lightning import Trainer
 
+
 class SumMetric(Metric):
     def __init__(self):
         super().__init__()
@@ -13,6 +14,7 @@ class SumMetric(Metric):
 
     def compute(self):
         return self.x
+
 
 def test_metric_lightning(tmpdir):
     class TestModel(BoringModel):
@@ -31,7 +33,7 @@ def test_metric_lightning(tmpdir):
         def training_epoch_end(self, outs):
             assert torch.allclose(self.sum, self.metric.compute())
             self.sum = 0.0
-            
+
     model = TestModel()
     model.val_dataloader = None
 
@@ -46,9 +48,7 @@ def test_metric_lightning(tmpdir):
     trainer.fit(model)
 
 
-
 def test_metric_lightning_log(tmpdir):
-
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
@@ -61,7 +61,7 @@ def test_metric_lightning_log(tmpdir):
             self.sum += x.sum()
             self.log("sum", self.metric, on_epoch=True, on_step=False)
             return self.step(x)
-            
+
     model = TestModel()
     model.val_dataloader = None
 
