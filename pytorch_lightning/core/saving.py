@@ -192,11 +192,11 @@ class ModelIO(object):
 
         model = cls(**_cls_kwargs)
 
-        # load the state_dict on the model automatically
-        model.load_state_dict(checkpoint['state_dict'], strict=strict)
-
         # give model a chance to load something
         model.on_load_checkpoint(checkpoint)
+
+        # load the state_dict on the model automatically
+        model.load_state_dict(checkpoint['state_dict'], strict=strict)
 
         return model
 
