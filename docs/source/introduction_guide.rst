@@ -462,7 +462,7 @@ The :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method has a 
 - logger (logs to the logger like Tensorboard)
 
 Depending on where the log is called from, Lightning auto-determines the correct mode for you. But of course
-you can override the default behavior by manually setting the flags
+you can override the default behavior by manually setting the flags.
 
 .. note:: Setting on_epoch=True will accumulate your logged values over the full training epoch.
 
