@@ -132,7 +132,7 @@ class GPUStatsMonitor(Callback):
         trainer.logger.log_metrics(logs, step=trainer.global_step)
 
     @rank_zero_only
-    def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         gpu_stat_keys = self._get_gpu_stat_keys() + self._get_gpu_device_stat_keys()
         gpu_stats = self._get_gpu_stats([k for k, _ in gpu_stat_keys])
         logs = self._parse_gpu_stats(self._gpu_ids, gpu_stats, gpu_stat_keys)

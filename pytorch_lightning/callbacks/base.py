@@ -63,7 +63,7 @@ class Callback(abc.ABC):
         """Called when the train batch begins."""
         pass
 
-    def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         """Called when the train batch ends."""
         pass
 
@@ -107,7 +107,7 @@ class Callback(abc.ABC):
         """Called when the validation batch begins."""
         pass
 
-    def on_validation_batch_end(self, outputs, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         """Called when the validation batch ends."""
         pass
 
@@ -115,7 +115,7 @@ class Callback(abc.ABC):
         """Called when the test batch begins."""
         pass
 
-    def on_test_batch_end(self, outputs, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         """Called when the test batch ends."""
         pass
 

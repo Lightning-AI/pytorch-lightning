@@ -290,7 +290,7 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_bat
         def on_before_zero_grad(self, optimizer):
             self.opt_step = self.state_dict()
 
-        def on_train_batch_end(self, batch, batch_idx, dataloader_idx):
+        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
             _exclude_keys = ['num_batches_tracked', 'running_mean', 'running_var']
 
             if (batch_idx + 1) == self.trainer.num_training_batches:

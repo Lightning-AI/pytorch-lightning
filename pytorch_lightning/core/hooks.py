@@ -127,38 +127,31 @@ class ModelHooks:
         """
         # do something when the batch starts
 
-    def on_train_batch_end(
-        self, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_train_batch_end(self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the training loop after the batch.
 
         Args:
+            outputs: The outputs of validation_step_end(validation_step(x))
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
         """
         # do something when the batch ends
 
-    def on_validation_model_eval(
-            self
-    ) -> None:
+    def on_validation_model_eval(self) -> None:
         """
         Sets the model to eval during the val loop
         """
         self.eval()
 
-    def on_validation_model_train(
-            self
-    ) -> None:
+    def on_validation_model_train(self) -> None:
         """
         Sets the model to train during the val loop
         """
         self.train()
 
-    def on_validation_batch_start(
-        self, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_validation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the validation loop before anything happens for that batch.
 
@@ -169,9 +162,7 @@ class ModelHooks:
         """
         # do something when the batch starts
 
-    def on_validation_batch_end(
-        self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_validation_batch_end(self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the validation loop after the batch.
 
@@ -183,9 +174,7 @@ class ModelHooks:
         """
         # do something when the batch ends
 
-    def on_test_batch_start(
-        self, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_test_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the test loop before anything happens for that batch.
 
@@ -196,9 +185,7 @@ class ModelHooks:
         """
         # do something when the batch starts
 
-    def on_test_batch_end(
-        self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_test_batch_end(self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the test loop after the batch.
 
@@ -210,17 +197,13 @@ class ModelHooks:
         """
         # do something when the batch ends
 
-    def on_test_model_eval(
-            self
-    ) -> None:
+    def on_test_model_eval(self) -> None:
         """
         Sets the model to eval during the test loop
         """
         self.eval()
 
-    def on_test_model_train(
-            self
-    ) -> None:
+    def on_test_model_train(self) -> None:
         """
         Sets the model to train during the test loop
         """
@@ -333,9 +316,7 @@ class ModelHooks:
 
         """
 
-    def backward(
-        self, trainer, loss: Tensor, optimizer: Optimizer, optimizer_idx: int
-    ) -> None:
+    def backward(self, trainer, loss: Tensor, optimizer: Optimizer, optimizer_idx: int) -> None:
         """
         Override backward with your own implementation if you need to.
 
@@ -358,13 +339,7 @@ class ModelHooks:
         """
         loss.backward()
 
-    def amp_scale_loss(
-        self,
-        unscaled_loss: Tensor,
-        optimizer: Optimizer,
-        optimizer_idx: int,
-        amp_backend: AMPType,
-    ):
+    def amp_scale_loss(self, unscaled_loss: Tensor, optimizer: Optimizer, optimizer_idx: int, amp_backend: AMPType):
         if amp_backend == AMPType.NATIVE:
             scaled_loss = self.trainer.scaler.scale(unscaled_loss)
         else:
