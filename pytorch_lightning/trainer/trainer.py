@@ -458,10 +458,10 @@ class Trainer(
         self.train_loop.on_train_start()
 
         try:
-            # run all epochs
             start_epoch = self.current_epoch
             end_epoch = self.max_epochs
 
+            # run all epochs
             for epoch in range(start_epoch, end_epoch):
 
                 # Update trainer current epoch
