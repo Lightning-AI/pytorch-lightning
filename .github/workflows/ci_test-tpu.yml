@@ -18,7 +18,7 @@ env:
 
 jobs:
   setup-build-publish-deploy:
-  name: tpu-testing-job
+    name: tpu-testing-job
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false

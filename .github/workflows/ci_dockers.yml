@@ -11,7 +11,7 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
 jobs:
   build-Conda:
     if: |
-      !contains(toJSON(github.event.commits), '[skip ci]') ||
+      !contains(toJSON(github.event.commits), '[skip ci]') &&
       !contains(toJSON(github.event.commits), '[ci skip]')
     runs-on: ubuntu-20.04
     strategy:
@@ -34,7 +34,7 @@ jobs:
 
   build-XLA:
     if: |
-      !contains(toJSON(github.event.commits), '[skip ci]') ||
+      !contains(toJSON(github.event.commits), '[skip ci]') &&
       !contains(toJSON(github.event.commits), '[ci skip]')
     runs-on: ubuntu-20.04
     strategy:
@@ -57,7 +57,7 @@ jobs:
 
   build-cuda:
     if: |
-      !contains(toJSON(github.event.commits), '[skip ci]') ||
+      !contains(toJSON(github.event.commits), '[skip ci]') &&
       !contains(toJSON(github.event.commits), '[ci skip]')
     runs-on: ubuntu-20.04
     strategy:

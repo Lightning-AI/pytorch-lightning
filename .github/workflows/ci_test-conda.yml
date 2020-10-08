@@ -10,7 +10,7 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
 jobs:
   conda:
     if: |
-      !contains(toJSON(github.event.commits), '[skip ci]') ||
+      !contains(toJSON(github.event.commits), '[skip ci]') &&
       !contains(toJSON(github.event.commits), '[ci skip]')
     runs-on: ${{ matrix.os }}
     container: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python-version }}-torch${{ matrix.pytorch-version }}
