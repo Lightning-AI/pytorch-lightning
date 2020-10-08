@@ -61,9 +61,3 @@ class ExplainedVariance(Metric):
 
         # TODO: multioutput
         return 1.0 - torch.mean(numerator / denominator)
-
-
-# target = torch.tensor([[0.5, 1], [-1, 1], [7, -6]])
-# preds = torch.tensor([[0, 2], [-1, 2], [8, -5]])
-# explained_variance = ExplainedVariance()
-# print(explained_variance(preds, target))
