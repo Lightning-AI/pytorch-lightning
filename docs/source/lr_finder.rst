@@ -8,6 +8,14 @@
 Learning Rate Finder
 --------------------
 
+.. raw:: html
+
+    <video width="100%" controls autoplay
+    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/auto_lr_find.jpg"
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/auto_lr_find.mp4"></video>
+
+|
+
 For training deep neural networks, selecting a good learning rate is essential
 for both better performance and faster convergence. Even optimizers such as
 `Adam` that are self-adjusting the learning rate can benefit from more optimal
