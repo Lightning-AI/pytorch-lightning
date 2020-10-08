@@ -333,14 +333,6 @@ class EvaluationLoop(object):
 
         return results
 
-    # TODO: deprecate at 1.0
-    def log_evaluation_step_metrics_legacy(self, output, batch_idx):
-        if self.trainer.running_sanity_check:
-            return
-
-        if isinstance(output, EvalResult):
-            self.__log_result_step_metrics(output, batch_idx)
-
     def __log_result_step_metrics(self, output, batch_idx):
         step_log_metrics = output.get_batch_log_metrics(include_forked_originals=False)
         step_pbar_metrics = output.get_batch_pbar_metrics(include_forked_originals=False)

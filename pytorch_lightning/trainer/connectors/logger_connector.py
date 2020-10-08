@@ -319,37 +319,13 @@ class LoggerConnector:
         # [optimizer_idx][training_step_idx][tbptt_index]
         opt_idx_outputs = epoch_output[0]
 
-        # TODO: deprecate 1.0
-        try:
-            sample_obj = opt_idx_outputs[0][0] if isinstance(opt_idx_outputs[0], list) else opt_idx_outputs[0]
-            is_result_obj = len(epoch_output) > 0 and isinstance(sample_obj, Result)
-            is_1_0_result = is_result_obj and 'extra' in sample_obj
-        except IndexError as e:
-            is_result_obj = False
-            is_1_0_result = False
+        # lightning module hook
+        epoch_end_log_result = self.training_epoch_end(model, epoch_output, num_optimizers)
 
-        # ------------------
-        # NEW 1.0.0 PATH
-        # ------------------
-        if is_1_0_result:
-            # lightning module hook
-            epoch_end_log_result = self.training_epoch_end(model, epoch_output, num_optimizers)
-
-            # log/aggregate metrics automatically
-            epoch_log_metrics, epoch_progress_bar_metrics = self.__auto_reduce_results_on_epoch_end(epoch_output)
-            epoch_log_metrics.update(epoch_end_log_result.get_epoch_log_metrics())
-            epoch_progress_bar_metrics.update(epoch_end_log_result.get_epoch_pbar_metrics())
-
-        # TODO: deprecate 1.0
-        else:
-            out = self.__run_legacy_training_epoch_end(
-                num_optimizers,
-                epoch_output,
-                model,
-                is_result_obj,
-                epoch_callback_metrics
-            )
-            epoch_log_metrics, epoch_progress_bar_metrics, epoch_callback_metrics = out
+        # log/aggregate metrics automatically
+        epoch_log_metrics, epoch_progress_bar_metrics = self.__auto_reduce_results_on_epoch_end(epoch_output)
+        epoch_log_metrics.update(epoch_end_log_result.get_epoch_log_metrics())
+        epoch_progress_bar_metrics.update(epoch_end_log_result.get_epoch_pbar_metrics())
 
         # --------------------------
         # track results
