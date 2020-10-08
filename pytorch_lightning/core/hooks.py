@@ -128,12 +128,13 @@ class ModelHooks:
         # do something when the batch starts
 
     def on_train_batch_end(
-        self, batch: Any, batch_idx: int, dataloader_idx: int
+        self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
         """
         Called in the training loop after the batch.
 
         Args:
+            outputs: The outputs of validation_step_end(validation_step(x))
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
