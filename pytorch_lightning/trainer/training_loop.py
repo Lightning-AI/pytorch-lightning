@@ -598,7 +598,7 @@ class TrainLoop:
         self.check_checkpoint_callback(not (should_check_val or is_overridden('validation_step', model)))
 
         # epoch end hook
-        self.run_on_epoch_end_hook()
+        self.run_on_epoch_end_hook(epoch_output)
 
         # increment the global step once
         # progress global step according to grads progress
@@ -760,9 +760,9 @@ class TrainLoop:
             # update lr
             self.trainer.optimizer_connector.update_learning_rates(interval='step', monitor_metrics=monitor_metrics)
 
-    def run_on_epoch_end_hook(self):
+    def run_on_epoch_end_hook(self, epoch_output):
         self.trainer.call_hook('on_epoch_end')
-        self.trainer.call_hook('on_train_epoch_end')
+        self.trainer.call_hook('on_train_epoch_end', epoch_output)
 
     def increment_accumulated_grad_global_step(self):
         num_accumulated_batches_reached = (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0

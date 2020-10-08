@@ -174,7 +174,7 @@ class Accelerator(object):
         for p in parameters:
             p.grad.data.mul_(clip_coef.to(p.grad.data.device))
 
-    def on_train_epoch_end(self):
+    def on_train_epoch_end(self, outputs):
         pass
 
     def on_train_end(self):

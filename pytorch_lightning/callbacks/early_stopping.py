@@ -153,7 +153,7 @@ class EarlyStopping(Callback):
             # turn off early stopping in on_train_epoch_end
             self.based_on_eval_results = True
 
-    def on_train_epoch_end(self, trainer, pl_module):
+    def on_train_epoch_end(self, trainer, pl_module, outputs):
         # disable early stopping in train loop when there's a val loop
         if self.based_on_eval_results:
             return

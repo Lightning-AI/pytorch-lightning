@@ -71,7 +71,7 @@ class Callback(abc.ABC):
         """Called when the train epoch begins."""
         pass
 
-    def on_train_epoch_end(self, trainer, pl_module):
+    def on_train_epoch_end(self, trainer, pl_module, outputs):
         """Called when the train epoch ends."""
         pass
 
