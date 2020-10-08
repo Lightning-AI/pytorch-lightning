@@ -181,6 +181,13 @@ MeanSquaredLogError
     :noindex:
 
 
+ExplainedVariance
+^^^^^^^^^^^^^^^^^
+
+.. autoclass:: pytorch_lightning.metrics.regression.ExplainedVariance
+    :noindex:
+
+
 Functional Metrics
 ==================
 
