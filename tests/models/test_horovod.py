@@ -238,10 +238,14 @@ def test_accuracy_metric_horovod():
 
     def _compute_batch():
         import horovod.torch as hvd
-        hvd.init()
+
+        trainer = Trainer(
+            fast_dev_run=True,
+            distributed_backend='horovod',
+        )
 
         metric = Accuracy(compute_on_step=True,
-                          dist_sync_on_step=True,
+                          dist_sync_on_step=trainer.accelerator_backend.gather_all_tensors,
                           threshold=threshold)
 
         for i in range(hvd.rank(), num_batches, hvd.size()):

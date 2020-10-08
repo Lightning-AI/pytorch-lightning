@@ -10,7 +10,7 @@ import torch
 from torch import nn
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.distributed import gather_all_tensors_if_available, is_distributed
+from pytorch_lightning.utilities.distributed import gather_all_tensors
 from pytorch_lightning.metrics.utils import _flatten, dim_zero_cat, dim_zero_mean, dim_zero_sum
 
 
@@ -39,14 +39,16 @@ class Metric(nn.Module, ABC):
             Forward only calls ``update()`` and returns None if this is set to False. default: True
         dist_sync_on_step:
             Synchronize metric state across processes at each ``forward()``
-            before returning the value at the step. default: False
+            before returning the value at the step. Optionally accepts a callback that
+            performs the allgather operation on the metric state. When `True`, DDP
+            will be used to perform the allgather. default: False
         process_group:
             Specify the process group on which synchronization is called. default: None (which selects the entire world)
     """
     def __init__(
         self,
         compute_on_step: bool = True,
-        dist_sync_on_step: bool = False,
+        dist_sync_on_step: Union[bool, Callable] = False,
         process_group: Optional[Any] = None,
     ):
         super().__init__()
@@ -151,12 +153,12 @@ class Metric(nn.Module, ABC):
 
             return self._forward_cache
 
-    def _sync_dist(self):
+    def _sync_dist(self, dist_sync_fn):
         input_dict = {attr: getattr(self, attr) for attr in self._reductions.keys()}
         output_dict = apply_to_collection(
             input_dict,
             torch.Tensor,
-            gather_all_tensors_if_available,
+            dist_sync_fn,
             group=self.process_group,
         )
 
@@ -185,8 +187,18 @@ class Metric(nn.Module, ABC):
             if self._computed is not None:
                 return self._computed
 
-            if self._to_sync and is_distributed:
-                self._sync_dist()
+            dist_sync_fn = None
+            if callable(self.dist_sync_on_step):
+                # User provided a custom sync function
+                dist_sync_fn = self.dist_sync_on_step
+            elif self.dist_sync_on_step is True and (
+                    torch.distributed.is_available() and
+                    torch.distributed.is_initialized()):
+                # User provided a bool, so we assume DDP if available
+                dist_sync_fn = gather_all_tensors
+
+            if self._to_sync and dist_sync_fn is not None:
+                self._sync_dist(dist_sync_fn)
 
             self._computed = compute(*args, **kwargs)
             self.reset()

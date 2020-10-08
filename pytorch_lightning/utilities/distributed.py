@@ -81,33 +81,7 @@ def find_free_network_port() -> int:
     return port
 
 
-def is_distributed():
-    return (torch.distributed.is_available() and torch.distributed.is_initialized()) or \
-           (HOROVOD_AVAILABLE and hvd.is_initialized())
-
-
-def gather_all_tensors_if_available(result: Union[torch.Tensor], group: Optional[Any] = None):
-    """
-    Function to gather all tensors from several distributed processes onto a list that
-    is broadcasted to all processes
-
-    Args:
-        result: the value to sync
-        group: the process group to gather results from. Defaults to all processes (world)
-
-    Return:
-        gathered_result: list with size equal to the process group where
-            gathered_result[i] corresponds to result tensor from process i
-
-    """
-    if torch.distributed.is_available() and torch.distributed.is_initialized():
-        result = gather_ddp(result, group)
-    if HOROVOD_AVAILABLE and hvd.is_initialized():
-        return gather_horovod(result, group=group)
-    return result
-
-
-def gather_ddp(result: Union[torch.Tensor], group: Optional[Any] = None):
+def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None):
     if group is None:
         group = torch.distributed.group.WORLD
 
@@ -119,24 +93,6 @@ def gather_ddp(result: Union[torch.Tensor], group: Optional[Any] = None):
     torch.distributed.barrier(group=group)
     torch.distributed.all_gather(gathered_result, result, group)
 
-    return gathered_result
-
-
-def gather_horovod(result: Union[torch.Tensor], group: Optional[Any] = None):
-    if group is not None:
-        raise ValueError(
-            "Horovod does not support allgather using a subcommunicator at this time. "
-            "Unset `group`."
-        )
-
-    if len(result.shape) == 0:
-        # Convert scalars to single dimension tensors
-        result = result.reshape(1)
-
-    # sync and gather all
-    hvd.join()
-    gathered = hvd.allgather(result)
-    gathered_result = list(gathered.split(1, dim=0))
     return gathered_result
 
 

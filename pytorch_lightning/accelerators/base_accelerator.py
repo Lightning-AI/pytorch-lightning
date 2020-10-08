@@ -1,7 +1,7 @@
 import os
 import math
 from enum import Enum
-from typing import Any
+from typing import Union, Optional, Any
 
 import torch
 
@@ -243,6 +243,21 @@ class Accelerator(object):
             torch_distrib.init_process_group(
                 torch_backend, rank=global_rank, world_size=world_size
             )
+
+    def gather_all_tensors(self, result: Union[torch.Tensor], group: Optional[Any] = None):
+        """
+        Function to gather all tensors from several distributed processes into a list that
+        is broadcast to all processes.
+
+        Args:
+            result: the tensor to be gathered
+            group: the process group to gather results from. Defaults to all processes (world)
+
+        Return:
+            gathered_result: list with size equal to the process group size where
+                gathered_result[i] corresponds to result tensor from process i
+        """
+        raise NotImplementedError
 
 
 # TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...

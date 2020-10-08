@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import ExitStack
+from typing import Union, Optional, Any
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
@@ -162,3 +163,20 @@ class HorovodBackend(Accelerator):
     def broadcast(self, obj, src=0):
         obj = hvd.broadcast_object(obj, src)
         return obj
+
+    def gather_all_tensors(self, result: Union[torch.Tensor], group: Optional[Any] = None):
+        if group is not None:
+            raise ValueError(
+                "Horovod does not support allgather using a subcommunicator at this time. "
+                "Unset `group`."
+            )
+
+        if len(result.shape) == 0:
+            # Convert scalars to single dimension tensors
+            result = result.reshape(1)
+
+        # sync and gather all
+        hvd.join()
+        gathered = hvd.allgather(result)
+        gathered_result = list(gathered.split(1, dim=0))
+        return gathered_result
