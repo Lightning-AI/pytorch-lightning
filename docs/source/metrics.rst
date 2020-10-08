@@ -102,7 +102,7 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
     total_train_accuracy = train_accuracy.compute()
     
     # total accuracy over all validation batches
-    total_valid_accuracy = train_accuracy.compute()
+    total_valid_accuracy = valid_accuracy.compute()
 
 Implementing a Metric
 ---------------------
