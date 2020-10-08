@@ -29,7 +29,6 @@ from pytorch_lightning.profiler import BaseProfiler
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_11
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
@@ -79,7 +78,6 @@ class Trainer(
     TrainerLoggingMixin,
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
-    TrainerDeprecatedAPITillVer0_11,
 ):
     def __init__(
         self,
@@ -132,9 +130,6 @@ class Trainer(
         cluster_environment: ClusterEnvironment = None,
         amp_backend: str = 'native',
         amp_level: str = 'O2',
-        overfit_pct: float = None,  # backward compatible, todo: remove in v1.0.0
-        log_save_interval: Optional[int] = None,  # backward compatible, todo: remove in 0.11
-        row_log_interval: Optional[int] = None,  # backward compatible, todo: remove in 0.11
     ):
         r"""
         Customize every aspect of training via flags
@@ -206,11 +201,6 @@ class Trainer(
 
             log_every_n_steps: How often to log within steps (defaults to every 50 steps).
 
-            log_save_interval: How often to flush logs to disk.
-                .. warning:: .. deprecated:: 0.10.0
-
-                    Use `flush_logs_every_n_steps` instead. Will remove v0.11.0.
-
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
 
@@ -277,19 +267,6 @@ class Trainer(
                     Defaults to `default_root_dir`.
         """
         super().__init__()
-
-        # deprecation warnings
-        if row_log_interval is not None:
-            warnings.warn("Argument `row_log_interval` is deprecated in v0.10, use `log_every_n_steps` instead."
-                          " It will be removed in v0.11.0.", DeprecationWarning)
-            log_every_n_steps = row_log_interval
-
-        if log_save_interval is not None:
-            warnings.warn(
-                "Argument `log_save_interval` is deprecated in v0.10, use `flush_logs_every_n_steps` instead."
-                " It will be removed in v0.11.0.", DeprecationWarning
-            )
-            flush_logs_every_n_steps = log_save_interval
 
         # init connectors
         self.dev_debugger = InternalDebugger(self)
@@ -378,7 +355,6 @@ class Trainer(
 
         # init debugging flags
         self.debugging_connector.on_init_start(
-            overfit_pct,
             limit_train_batches,
             limit_val_batches,
             limit_test_batches,

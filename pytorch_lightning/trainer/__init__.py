@@ -771,13 +771,6 @@ Example::
     --env=XLA_USE_BF16=1
     -- python your_trainer_file.py
 
-overfit_pct
-^^^^^^^^^^^
-
-.. warning:: .. deprecated:: 0.8.0.
-
-    Use `overfit_batches`. Will be removed in 0.10.0.
-
 overfit_batches
 ^^^^^^^^^^^^^^^
 Uses this much data of the training set. If nonzero, will use the same training set for validation and testing.
