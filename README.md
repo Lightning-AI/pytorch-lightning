@@ -3,7 +3,8 @@
 <img src="docs/source/_images/logos/lightning-logo.png" width="400px">
 
 
-**The lightweight PyTorch wrapper for high-performance AI research. Scale your models, not the boilerplate.**
+**The lightweight PyTorch wrapper for high-performance AI research.    
+Scale your models, not the boilerplate.**
 
 <p align="center">
   <a href="https://www.youtube.com/watch?v=DbESHcCoWbM&t=2s">Masterclass</a> •
