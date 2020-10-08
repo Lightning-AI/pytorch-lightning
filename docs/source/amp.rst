@@ -76,7 +76,7 @@ If you need to configure the apex init for your particular use case or want to u
 
 TPU 16-bit
 ----------
-16-bit on TPus is much simpler. To use 16-bit with TPUs set precision to 16 when using the TPU flag
+16-bit on TPUs is much simpler. To use 16-bit with TPUs set precision to 16 when using the TPU flag
 
 .. testcode::
     :skipif: not XLA_AVAILABLE
