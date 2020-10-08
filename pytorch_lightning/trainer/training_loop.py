@@ -207,10 +207,10 @@ class TrainLoop:
 
     def on_train_epoch_start(self, epoch):
 
-        model = self.trainer.get_model()
-
         # update training progress in trainer
         self.trainer.current_epoch = epoch
+
+        model = self.trainer.get_model()
 
         # reset train dataloader
         if self.trainer.reload_dataloaders_every_epoch:
