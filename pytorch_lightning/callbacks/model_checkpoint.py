@@ -154,6 +154,10 @@ class ModelCheckpoint(Callback):
         self.__init_ckpt_dir(filepath, save_top_k)
         self.__validate_init_configuration()
 
+    def on_init_end(self, trainer):
+        if self.save_function is None:
+            self.save_function = trainer.save_checkpoint
+
     def on_pretrain_routine_start(self, trainer, pl_module):
         """
         When pretrain routine starts we build the ckpt dir on the fly

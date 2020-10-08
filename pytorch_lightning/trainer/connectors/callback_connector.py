@@ -44,12 +44,17 @@ class CallbackConnector:
         )
 
     def init_default_checkpoint_callback(self, checkpoint_callback):
-        if checkpoint_callback is True:
+        via_callbacks = any(isinstance(c, ModelCheckpoint) for c in self.trainer.callbacks)
+        if via_callbacks:
+            rank_zero_warn(
+                "Callbacks list contains a ModelCheckpoint instance."
+                " Trainer(checkpoint_callback=...) will be ignored."
+            )
+            checkpoint_callback = None
+        elif checkpoint_callback is True:
             checkpoint_callback = ModelCheckpoint(filepath=None)
         elif checkpoint_callback is False:
             checkpoint_callback = None
-        if checkpoint_callback:
-            checkpoint_callback.save_function = self.trainer.save_checkpoint
 
         return checkpoint_callback
 
