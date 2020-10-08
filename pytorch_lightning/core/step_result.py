@@ -275,7 +275,7 @@ class Result(Dict):
                 else:
                     result[k] = self[k]
 
-            if not options['on_epoch'] and isinstance(self[k], Metric):
+            if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
                 # compute metric on epoch anyway so state does not accumulate 
                 self[k].compute()
 
@@ -298,7 +298,7 @@ class Result(Dict):
                 else:
                     result[k] = self[k]
 
-            if not options['on_epoch'] and isinstance(self[k], Metric):
+            if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
                 # compute metric on epoch anyway so state does not accumulate 
                 self[k].compute()
 
@@ -323,9 +323,6 @@ class Result(Dict):
                     result[k] = self[k]._forward_cache
                 else:
                     result[k] = self[k]
-
-            if not options['on_epoch'] and isinstance(self[k], Metric):
-                self[k].reset()
 
         return result
 
