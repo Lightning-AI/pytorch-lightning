@@ -210,6 +210,12 @@ def test_result_reduce_horovod(tmpdir):
     tutils.set_random_master_port()
 
     def hvd_test_fn():
+        import sys
+
+        path_here = os.path.abspath(os.path.dirname(__file__))
+        path_root = os.path.abspath(os.path.join(path_here, '..', '..'))
+        sys.path.insert(0, os.path.abspath(path_root))
+
         from tests.base.boring_model import BoringModel
 
         import horovod.torch as hvd
