@@ -52,7 +52,7 @@ class MeanSquaredError(Metric):
             target: Ground truth values
         """
         assert preds.shape == target.shape, \
-            'Predictions are targets are expected to have same shape'
+            'Predictions and targets are expected to have the same shape'
         squared_error = torch.pow(preds - target, 2)
 
         self.sum_squared_error += torch.sum(squared_error)
