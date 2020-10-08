@@ -1,4 +1,6 @@
 import os
+from typing import Union
+
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, ProgressBarBase, ProgressBar
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -29,7 +31,9 @@ class CallbackConnector:
         self.trainer.callbacks = callbacks or []
 
         # configure checkpoint callback
-        self.configure_checkpoint_callbacks(checkpoint_callback)
+        # it is important that this is the last callback to run
+        # pass through the required args to figure out defaults
+        checkpoint_callback = self.configure_checkpoint_callbacks(checkpoint_callback)
 
         # TODO refactor codebase (tests) to not directly reach into these callbacks
         self.trainer.checkpoint_callback = checkpoint_callback
@@ -39,35 +43,30 @@ class CallbackConnector:
             progress_bar_refresh_rate, process_position
         )
 
-    def configure_checkpoint_callbacks(self, checkpoint_callback):
-        # it is important that this is the last callback to run
-        # pass through the required args to figure out defaults
-        default_callback = self.init_default_checkpoint_callback(checkpoint_callback)
-        ckpt_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
-        default_callback = None
+    def configure_checkpoint_callbacks(self, checkpoint_callback: Union[ModelCheckpoint, bool]) -> ModelCheckpoint:
+        ckpt_callbacks = [c for c in self.trainer.callbacks + [checkpoint_callback] if isinstance(c, ModelCheckpoint)]
 
         if len(ckpt_callbacks) > 1:
             raise MisconfigurationException(
-                'You added multiple ModelCheckpoint callbacks to the Trainer, but currently only one'
-                ' instance is supported.'
+                "You added multiple ModelCheckpoint callbacks to the Trainer, but currently only one"
+                " instance is supported."
             )
-        if ckpt_callbacks:
-            if checkpoint_callback:
-                rank_zero_warn(
-                    "Callbacks list contains a ModelCheckpoint instance."
-                    " Trainer(checkpoint_callback=...) will be ignored."
-                )
-            else:
 
+        if ckpt_callbacks and checkpoint_callback is False:
+            raise MisconfigurationException(
+                "Trainer was configured with checkpoint_callback=False but found ModelCheckpoint"
+                " in callbacks list."
+            )
 
-        if default_callback:
-            self.trainer.callbacks.append(default_callback)
-
-    def init_default_checkpoint_callback(self, checkpoint_callback):
-        if checkpoint_callback is True:
+        if checkpoint_callback is True and ckpt_callbacks:
+            checkpoint_callback = ckpt_callbacks[0]
+        elif checkpoint_callback is True and not ckpt_callbacks:
             checkpoint_callback = ModelCheckpoint(filepath=None)
+            self.trainer.callbacks.append(checkpoint_callback)
         elif checkpoint_callback is False:
             checkpoint_callback = None
+        elif isinstance(checkpoint_callback, ModelCheckpoint):
+            self.trainer.callbacks.append(checkpoint_callback)
 
         return checkpoint_callback
 

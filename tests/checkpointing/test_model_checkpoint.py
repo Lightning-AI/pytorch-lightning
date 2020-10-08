@@ -499,3 +499,37 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
 
     # check that last one is also the best one
     assert trainer.dev_debugger.checkpoint_callback_history[-1]['epoch'] == len(monitor) - 1
+
+
+def test_configure_model_checkpoint(tmpdir):
+    kwargs = dict(default_root_dir=tmpdir)
+    callback = ModelCheckpoint()
+
+    # no callbacks
+    trainer = Trainer(checkpoint_callback=False, callbacks=[], **kwargs)
+    assert not any(isinstance(c, ModelCheckpoint) for c in trainer.callbacks)
+    assert trainer.checkpoint_callback is None
+
+    # default configuration
+    trainer = Trainer(checkpoint_callback=True, callbacks=[], **kwargs)
+    assert len([c for c in trainer.callbacks if isinstance(c, ModelCheckpoint)]) == 1
+    assert isinstance(trainer.checkpoint_callback, ModelCheckpoint)
+
+    # custom callback passed to checkpoint_callback
+    trainer = Trainer(checkpoint_callback=callback, callbacks=[], **kwargs)
+    assert [c for c in trainer.callbacks if isinstance(c, ModelCheckpoint)] == [callback]
+    assert trainer.checkpoint_callback == callback
+
+    # custom callback passed to callbacks list
+    trainer = Trainer(checkpoint_callback=True, callbacks=[callback], **kwargs)
+    assert [c for c in trainer.callbacks if isinstance(c, ModelCheckpoint)] == [callback]
+    assert trainer.checkpoint_callback == callback
+
+    with pytest.raises(MisconfigurationException, match="checkpoint_callback=False but found ModelCheckpoint"):
+        trainer = Trainer(checkpoint_callback=False, callbacks=[callback], **kwargs)
+
+    with pytest.raises(MisconfigurationException, match="You added multiple ModelCheckpoint callbacks"):
+        trainer = Trainer(checkpoint_callback=callback, callbacks=[callback], **kwargs)
+
+    with pytest.raises(MisconfigurationException, match="You added multiple ModelCheckpoint callbacks"):
+        trainer = Trainer(callbacks=[callback, callback], **kwargs)
