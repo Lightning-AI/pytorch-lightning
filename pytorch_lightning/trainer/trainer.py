@@ -459,7 +459,7 @@ class Trainer(
 
         try:
             # run all epochs
-            for epoch in range(start_epoch, end_epoch):
+            for epoch in range(self.current_epoch, self.max_epochs):
 
                 # hook
                 self.train_loop.on_train_epoch_start(epoch)
