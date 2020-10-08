@@ -401,6 +401,7 @@ class CustomMNISTDataModule(LightningDataModule):
     def __init__(self, data_dir: str = "./"):
         super().__init__()
         self.data_dir = data_dir
+        self._epochs_called_for = []
 
     def prepare_data(self):
         TrialMNIST(self.data_dir, train=True, download=True)
@@ -413,12 +414,10 @@ class CustomMNISTDataModule(LightningDataModule):
         self.mnist_train, self.mnist_val = random_split(mnist_full, [128, 64])
         self.dims = self.mnist_train[0][0].shape
 
-    def _check_reload_every_epoch_flag(self):
-        return self.trainer.reload_dataloaders_every_epoch
-
     def train_dataloader(self):
-        if self.trainer.current_epoch > 0:
-            assert self._check_reload_every_epoch_flag()
+        assert self.trainer.current_epoch not in self._epochs_called_for
+        self._epochs_called_for.append(self.trainer.current_epoch)
+
         return DataLoader(self.mnist_train, batch_size=4)
 
 
@@ -442,13 +441,4 @@ def test_dm_reload_dataloaders_every_epoch(tmpdir):
         limit_train_batches=0.01,
         reload_dataloaders_every_epoch=True,
     )
-    trainer.fit(model, dm)
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        limit_train_batches=0.01,
-        reload_dataloaders_every_epoch=False,
-    )
-
     trainer.fit(model, dm)
