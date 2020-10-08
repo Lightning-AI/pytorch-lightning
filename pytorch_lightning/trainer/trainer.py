@@ -587,7 +587,7 @@ class Trainer(
                 output = self.evaluation_loop.evaluation_step_end(output)
 
                 # hook
-                self.evaluation_loop.on_evaluation_batch_end(batch, batch_idx, dataloader_idx)
+                self.evaluation_loop.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
 
                 # clean up
                 self.evaluation_loop.evaluation_batch_end_cleanup(output, batch_idx, dataloader_idx)
