@@ -91,7 +91,7 @@ def test_early_stopping_cpu_model(tmpdir):
     stopping = EarlyStopping(monitor='early_stop_on', min_delta=0.1)
     trainer_options = dict(
         default_root_dir=tmpdir,
-        early_stop_callback=stopping,
+        callbacks=[stopping],
         max_epochs=2,
         gradient_clip_val=1.0,
         overfit_batches=0.20,
@@ -222,7 +222,6 @@ def test_running_test_no_val(tmpdir):
         limit_test_batches=0.2,
         checkpoint_callback=checkpoint,
         logger=logger,
-        early_stop_callback=False,
     )
     result = trainer.fit(model)
 
@@ -355,7 +354,6 @@ def test_tbptt_cpu_model(tmpdir):
         truncated_bptt_steps=truncated_bptt_steps,
         limit_val_batches=0,
         weights_summary=None,
-        early_stop_callback=False,
     )
     result = trainer.fit(model)
 
@@ -434,7 +432,6 @@ def test_tbptt_cpu_model_result(tmpdir):
         truncated_bptt_steps=truncated_bptt_steps,
         limit_val_batches=0,
         weights_summary=None,
-        early_stop_callback=False,
     )
     result = trainer.fit(model)
 
@@ -505,7 +502,6 @@ def test_tbptt_cpu_model_result_auto_reduce(tmpdir):
         truncated_bptt_steps=truncated_bptt_steps,
         limit_val_batches=0,
         weights_summary=None,
-        early_stop_callback=False,
     )
     result = trainer.fit(model)
 

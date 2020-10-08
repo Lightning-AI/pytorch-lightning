@@ -511,7 +511,6 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         limit_val_batches=1,
         checkpoint_callback=ModelCheckpoint(tmpdir, monitor='early_stop_on', save_top_k=-1),
         default_root_dir=tmpdir,
-        early_stop_callback=False,
         val_check_interval=1.,
     )
 
@@ -601,7 +600,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     # define callback for stopping the model and default epochs
     trainer_options.update(
         default_root_dir=tmpdir,
-        early_stop_callback=EarlyStopping(monitor='early_stop_on', min_delta=1.0),
+        callbacks=[EarlyStopping(monitor='early_stop_on', min_delta=1.0)],
         val_check_interval=2,
         min_epochs=1,
         max_epochs=7,

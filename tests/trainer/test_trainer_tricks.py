@@ -181,7 +181,6 @@ def test_trainer_reset_correctly(tmpdir):
                           'logger',
                           'callbacks',
                           'checkpoint_callback',
-                          'early_stop_callback',
                           'limit_train_batches',
                           'current_epoch']
 
