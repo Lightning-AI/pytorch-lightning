@@ -22,3 +22,4 @@ Core Maintainers
 - Peter Yu (`yukw777 <https://github.com/yukw777>`_)
 - Rohit Gupta (`rohitgr7 <https://github.com/rohitgr7>`_)
 - Lezwon Castelino (`lezwon <https://github.com/lezwon>`_)
+- Jeff Yang (`ydcjeff <https://github.com/ydcjeff>`_)
