@@ -989,7 +989,7 @@ This is the pseudocode to describe how all the hooks are called during a call to
             on_before_zero_grad()
             optimizer_zero_grad()
 
-            on_train_batch_end()
+            on_train_batch_end(out)
 
             if should_check_val:
                 val_loop()
