@@ -3,7 +3,7 @@
 <img src="docs/source/_images/logos/lightning-logo.png" width="400px">
 
 
-**The lightweight PyTorch wrapper for high-performance AI research and production.    
+**The lightweight PyTorch wrapper for high-performance AI research.    
 Scale your models, not the boilerplate.**
 
 <p align="center">
@@ -37,6 +37,10 @@ Scale your models, not the boilerplate.**
 
 ###### *Codecov is > 90%+ but build delays may show less
 
+```diff
+- NEWS: Lightning 1.0 is currently in rc and is being released for GA on Oct 8th 2020!
+```
+
 ---
 
 ## PyTorch Lightning is just organized PyTorch
@@ -63,6 +67,13 @@ Once you do this, you can train on multiple-GPUs, TPUs, CPUs and even in 16-bit 
 Get started with our [3 steps guide](https://pytorch-lightning.readthedocs.io/en/stable/new-project.html)
 
 ---
+
+## Inference
+Lightning is also designed for the fast inference AI researchers and production teams need to scale up things like BERT and Self-supevised learning.
+Lightning can automatically export to onnx or torchscript for those cases.
+
+---
+
 ## Trending contributors
 
 [![](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/images/0)](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/links/0)
