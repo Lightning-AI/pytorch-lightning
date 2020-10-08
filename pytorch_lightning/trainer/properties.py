@@ -169,12 +169,6 @@ class TrainerProperties(ABC):
             return os.path.normpath(self._weights_save_path)
         return self._weights_save_path
 
-    # @property
-    # def checkpoint_callback(self) -> Optional[ModelCheckpoint]:
-    #     ckpt_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
-    #     assert len(ckpt_callbacks) == 1, "currently only single checkpoint callback is supported"
-    #     return ckpt_callbacks[0]
-
     def save_checkpoint(self, filepath, weights_only: bool = False):
         self.checkpoint_connector.save_checkpoint(filepath, weights_only)
 

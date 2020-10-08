@@ -18,7 +18,6 @@ import pytorch_lightning as pl
 from torch.nn import functional as F
 from torch.utils.data import DataLoader, random_split
 
-from pytorch_lightning.callbacks import ModelCheckpoint
 
 try:
     from torchvision.datasets.mnist import MNIST
@@ -101,7 +100,7 @@ def cli_main():
     # ------------
     # training
     # ------------
-    trainer = pl.Trainer.from_argparse_args(args, callbacks=[ModelCheckpoint()], limit_train_batches=10)
+    trainer = pl.Trainer.from_argparse_args(args)
     trainer.fit(model, train_loader, val_loader)
 
     # ------------
