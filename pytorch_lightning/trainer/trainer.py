@@ -459,7 +459,13 @@ class Trainer(
 
         try:
             # run all epochs
-            for epoch in range(self.current_epoch, self.max_epochs):
+            start_epoch = self.current_epoch
+            end_epoch = self.max_epochs
+
+            for epoch in range(start_epoch, end_epoch):
+
+                # Update trainer current epoch
+                self.current_epoch = epoch
 
                 # reset train dataloader
                 if self.reload_dataloaders_every_epoch:

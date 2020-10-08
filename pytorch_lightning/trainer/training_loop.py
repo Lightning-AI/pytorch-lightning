@@ -214,8 +214,8 @@ class TrainLoop:
         except Exception:
             pass
 
-        # update training progress in trainer
-        self.trainer.current_epoch = epoch
+        # # update training progress in trainer
+        # self.trainer.current_epoch = epoch
 
         # changing gradient according accumulation_scheduler
         self.trainer.accumulation_scheduler.on_epoch_start(self.trainer, self.trainer.get_model())
