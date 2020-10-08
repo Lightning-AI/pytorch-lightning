@@ -1,6 +1,6 @@
 <div align="center">
 
-![Logo](docs/source/_images/logos/lightning-logo.png)
+<img src="docs/source/_images/logos/lightning-logo.png" width="400px">
 
 
 **The lightweight PyTorch wrapper for high-performance AI research. Scale your models, not the boilerplate.**
