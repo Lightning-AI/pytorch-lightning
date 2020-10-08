@@ -77,4 +77,3 @@ def test_metric_lightning_log(tmpdir):
 
     logged = trainer.logged_metrics
     assert torch.allclose(torch.tensor(logged["sum"]), model.sum)
-
