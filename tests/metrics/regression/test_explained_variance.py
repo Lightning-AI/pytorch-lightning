@@ -7,7 +7,8 @@ from pytorch_lightning.metrics.regression import ExplainedVariance
 from sklearn.metrics import explained_variance_score
 
 from tests.metrics.utils import compute_batch, setup_ddp
-from tests.metrics.utils import NUM_BATCHES, NUM_PROCESSES, BATCH_SIZE 
+from tests.metrics.utils import NUM_BATCHES, NUM_PROCESSES, BATCH_SIZE
+
 torch.manual_seed(42)
 
 num_targets = 5

@@ -98,8 +98,8 @@ class Metric(nn.Module, ABC):
         """
         if (
             not isinstance(default, torch.Tensor)
-            and not isinstance(default, list)
-            and not (isinstance(default, list) and len(default) != 0)
+            and not isinstance(default, list)                          # noqa: W503
+            and not (isinstance(default, list) and len(default) != 0)  # noqa: W503
         ):
             raise ValueError(
                 "state variable must be a tensor or any empty list (where you can append tensors)"
