@@ -5,36 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [0.10.0] - 2020-10-DD
+## [unreleased] - YYYY-MM-DD
+
+### Added
+
+
+### Changed
+
+
+### Deprecated
+
+
+### Removed
+
+
+### Fixed
+
+
+## [0.10.0] - 2020-10-07
 
 ### Added
 
 - Added new Metrics API. ([#3868](https://github.com/PyTorchLightning/pytorch-lightning/pull/3868), [#3921](https://github.com/PyTorchLightning/pytorch-lightning/pull/3921))
-
 - Enable PyTorch 1.7 compatibility ([#3541](https://github.com/PyTorchLightning/pytorch-lightning/pull/3541))
-
 - Added `LightningModule.to_torchscript` to support exporting as `ScriptModule` ([#3258](https://github.com/PyTorchLightning/pytorch-lightning/pull/3258/))
-
 - Added warning when dropping unpicklable `hparams` ([#2874](https://github.com/PyTorchLightning/pytorch-lightning/pull/2874))
-
 - Added EMB similarity ([#3349](https://github.com/PyTorchLightning/pytorch-lightning/pull/3349))
-
 - Added `ModelCheckpoint.to_yaml` method ([#3048](https://github.com/PyTorchLightning/pytorch-lightning/pull/3048))
-
-- Allow `ModelCheckpoint` monitor to be `None`, meaning it will always save ([3630](https://github.com/PyTorchLightning/pytorch-lightning/pull/3630))
-
+- Allow `ModelCheckpoint` monitor to be `None`, meaning it will always save ([#3630](https://github.com/PyTorchLightning/pytorch-lightning/pull/3630))
 - Disabled optimizers setup during testing ([#3059](https://github.com/PyTorchLightning/pytorch-lightning/pull/3059))
-
-- Added support for datamodules to save and load checkpoints when training ([#3563](https://github.com/PyTorchLightning/pytorch-lightning/pull/3563)
-
+- Added support for datamodules to save and load checkpoints when training ([#3563](https://github.com/PyTorchLightning/pytorch-lightning/pull/3563))
 - Added support for datamodule in learning rate finder ([#3425](https://github.com/PyTorchLightning/pytorch-lightning/pull/3425))
-
 - Added gradient clip test for native AMP ([#3754](https://github.com/PyTorchLightning/pytorch-lightning/pull/3754))
-
 - Added dist lib to enable syncing anything across devices ([#3762](https://github.com/PyTorchLightning/pytorch-lightning/pull/3762))
-
 - Added `broadcast` to `TPUBackend` ([#3814](https://github.com/PyTorchLightning/pytorch-lightning/pull/3814))
-
 - Added `XLADeviceUtils` class to check XLA device type ([#3274](https://github.com/PyTorchLightning/pytorch-lightning/pull/3274))
 
 ### Changed
@@ -152,7 +156,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
    * separate SLURM from DDP ([#3809](https://github.com/PyTorchLightning/pytorch-lightning/pull/3809))
    * decoupled DDP2 ([#3816](https://github.com/PyTorchLightning/pytorch-lightning/pull/3816))
    * bug fix with logging val epoch end + monitor ([#3812](https://github.com/PyTorchLightning/pytorch-lightning/pull/3812))
-   * decoupled DDP, DDP spawn ([#3733](https://github.com/PyTorchLightning/pytorch-lightning/pull/3733)),
+   * decoupled DDP, DDP spawn ([#3733](https://github.com/PyTorchLightning/pytorch-lightning/pull/3733),
         [#3817](https://github.com/PyTorchLightning/pytorch-lightning/pull/3817),
         [#3819](https://github.com/PyTorchLightning/pytorch-lightning/pull/3819),
         [#3927](https://github.com/PyTorchLightning/pytorch-lightning/pull/3927))
@@ -164,40 +168,25 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
    * moves init apex from LM to apex connector ([#3923](https://github.com/PyTorchLightning/pytorch-lightning/pull/3923))
    * moves sync bn to each backend ([#3925](https://github.com/PyTorchLightning/pytorch-lightning/pull/3925))
    * moves configure ddp to each backend ([#3924](https://github.com/PyTorchLightning/pytorch-lightning/pull/3924))
-
 - Deprecation warning ([#3844](https://github.com/PyTorchLightning/pytorch-lightning/pull/3844))
-
 - Changed `LearningRateLogger` to `LearningRateMonitor` ([#3251](https://github.com/PyTorchLightning/pytorch-lightning/pull/3251))
-
 - Used `fsspec` instead of `gfile` for all IO ([#3320](https://github.com/PyTorchLightning/pytorch-lightning/pull/3320))
     * Swaped `torch.load` for `fsspec` load in DDP spawn backend ([#3787](https://github.com/PyTorchLightning/pytorch-lightning/pull/3787))
     * Swaped `torch.load` for `fsspec` load in cloud_io loading ([#3692](https://github.com/PyTorchLightning/pytorch-lightning/pull/3692))
     * Added support for `to_disk()` to use remote filepaths with `fsspec` ([#3930](https://github.com/PyTorchLightning/pytorch-lightning/pull/3930))
     * Updated model_checkpoint's to_yaml to use `fsspec` open ([#3801](https://github.com/PyTorchLightning/pytorch-lightning/pull/3801))
     * Fixed `fsspec` is inconsistant when doing `fs.ls` ([#3805](https://github.com/PyTorchLightning/pytorch-lightning/pull/3805))
-
 - Refactor `GPUStatsMonitor` to improve training speed ([#3257](https://github.com/PyTorchLightning/pytorch-lightning/pull/3257))
-
 - Changed IoU score behavior for classes absent in target and pred ([#3098](https://github.com/PyTorchLightning/pytorch-lightning/pull/3098))
-
 - Changed IoU `remove_bg` bool to `ignore_index` optional int ([#3098](https://github.com/PyTorchLightning/pytorch-lightning/pull/3098))
-
 - Changed defaults of `save_top_k` and `save_last` to `None` in ModelCheckpoint ([#3680](https://github.com/PyTorchLightning/pytorch-lightning/pull/3680))
-
 - `row_log_interval` and `log_save_interval` are now based on training loop's `global_step` instead of epoch-internal batch index ([#3667](https://github.com/PyTorchLightning/pytorch-lightning/pull/3667))
-
 - Silenced some warnings. verified ddp refactors ([#3483](https://github.com/PyTorchLightning/pytorch-lightning/pull/3483))
-
 - Cleaning up stale logger tests ([#3490](https://github.com/PyTorchLightning/pytorch-lightning/pull/3490))
-
 - Allow `ModelCheckpoint` monitor to be `None` ([#3633](https://github.com/PyTorchLightning/pytorch-lightning/pull/3633))
-
 - Enable `None` model checkpoint default ([#3669](https://github.com/PyTorchLightning/pytorch-lightning/pull/3669))
-
 - Skipped `best_model_path` if `checkpoint_callback` is `None` ([#2962](https://github.com/PyTorchLightning/pytorch-lightning/pull/2962))
-
 - Used `raise .. from ..` to explicitly chain exceptions ([#3750](https://github.com/PyTorchLightning/pytorch-lightning/pull/3750))
-
 -  Mocking loggers ([#3596](https://github.com/PyTorchLightning/pytorch-lightning/pull/3596),
     [#3617](https://github.com/PyTorchLightning/pytorch-lightning/pull/3617),
     [#3851](https://github.com/PyTorchLightning/pytorch-lightning/pull/3851),
@@ -207,15 +196,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     [#3910](https://github.com/PyTorchLightning/pytorch-lightning/pull/3910),
     [#3889](https://github.com/PyTorchLightning/pytorch-lightning/pull/3889),
     [#3926](https://github.com/PyTorchLightning/pytorch-lightning/pull/3926))
-
 - Write predictions in LightningModule instead of EvalResult [#3882](https://github.com/PyTorchLightning/pytorch-lightning/pull/3882)
 
 ### Deprecated
 
 - Deprecated `TrainResult` and `EvalResult`, use `self.log` and `self.write` from the `LightningModule` to log metrics and write predictions. `training_step` can now only return a scalar (for the loss) or a dictionary with anything you want. ([#3681](https://github.com/PyTorchLightning/pytorch-lightning/pull/3681))
-
 - Deprecate `early_stop_callback` Trainer argument ([#3845](https://github.com/PyTorchLightning/pytorch-lightning/pull/3845))
-
 - Rename Trainer arguments `row_log_interval` >> `log_every_n_steps` and `log_save_interval` >> `flush_logs_every_n_steps` ([#3748](https://github.com/PyTorchLightning/pytorch-lightning/pull/3748))
 
 ### Removed
@@ -239,83 +225,44 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed `on_train_batch_start` hook to end epoch early ([#3700](https://github.com/PyTorchLightning/pytorch-lightning/pull/3700))
-
 - Fixed `num_sanity_val_steps` is clipped to `limit_val_batches` ([#2917](https://github.com/PyTorchLightning/pytorch-lightning/pull/2917))
-
 - Fixed ONNX model save on GPU ([#3145](https://github.com/PyTorchLightning/pytorch-lightning/pull/3145))
-
 - Fixed `GpuUsageLogger` to work on different platforms ([#3008](https://github.com/PyTorchLightning/pytorch-lightning/pull/3008))
-
 - Fixed auto-scale batch size not dumping `auto_lr_find` parameter ([#3151](https://github.com/PyTorchLightning/pytorch-lightning/pull/3151))
-
 - Fixed `batch_outputs` with optimizer frequencies ([#3229](https://github.com/PyTorchLightning/pytorch-lightning/pull/3229))
-
 - Fixed setting batch size in `LightningModule.datamodule` when using `auto_scale_batch_size` ([#3266](https://github.com/PyTorchLightning/pytorch-lightning/pull/3266))
-
 - Fixed Horovod distributed backend compatibility with native AMP ([#3404](https://github.com/PyTorchLightning/pytorch-lightning/pull/3404))
-
 - Fixed batch size auto scaling exceeding the size of the dataset ([#3271](https://github.com/PyTorchLightning/pytorch-lightning/pull/3271))
-
 - Fixed getting `experiment_id` from MLFlow only once instead of each training loop ([#3394](https://github.com/PyTorchLightning/pytorch-lightning/pull/3394))
-
 - Fixed `overfit_batches` which now correctly disables shuffling for the training loader. ([#3501](https://github.com/PyTorchLightning/pytorch-lightning/pull/3501))
-
 - Fixed gradient norm tracking for `row_log_interval > 1` ([#3489](https://github.com/PyTorchLightning/pytorch-lightning/pull/3489))
-
 - Fixed `ModelCheckpoint` name formatting ([3164](https://github.com/PyTorchLightning/pytorch-lightning/pull/3163))
-
 - Fixed auto-scale batch size ([#3151](https://github.com/PyTorchLightning/pytorch-lightning/pull/3151))
-
 - Fixed example implementation of AutoEncoder ([#3190](https://github.com/PyTorchLightning/pytorch-lightning/pull/3190))
-
 - Fixed invalid paths when remote logging with TensorBoard ([#3236](https://github.com/PyTorchLightning/pytorch-lightning/pull/3236))
-
 - Fixed change `t()` to `transpose()` as XLA devices do not support `.t()` on 1-dim tensor ([#3252](https://github.com/PyTorchLightning/pytorch-lightning/pull/3252))
-
 - Fixed (weights only) checkpoints loading without PL ([#3287](https://github.com/PyTorchLightning/pytorch-lightning/pull/3287))
-
 - Fixed `gather_all_tensors` cross GPUs in DDP ([#3319](https://github.com/PyTorchLightning/pytorch-lightning/pull/3319))
-
 - Fixed CometML save dir ([#3419](https://github.com/PyTorchLightning/pytorch-lightning/pull/3419))
-
 - Fixed forward key metrics ([#3467](https://github.com/PyTorchLightning/pytorch-lightning/pull/3467))
-
 - Fixed normalize mode at confusion matrix (replace NaNs with zeros) ([#3465](https://github.com/PyTorchLightning/pytorch-lightning/pull/3465))
-
 - Fixed global step increment in training loop when `training_epoch_end` hook is used ([#3673](https://github.com/PyTorchLightning/pytorch-lightning/pull/3673))
-
 - Fixed dataloader shuffling not getting turned off with `overfit_batches > 0` and `distributed_backend = "ddp"` ([#3534](https://github.com/PyTorchLightning/pytorch-lightning/pull/3534))
-
 - Fixed determinism in `DDPSpawnBackend` when using `seed_everything` in main process ([#3335](https://github.com/PyTorchLightning/pytorch-lightning/pull/3335))
-
 - Fixed `ModelCheckpoint` `period` to actually save every `period` epochs ([#3630](https://github.com/PyTorchLightning/pytorch-lightning/pull/3630))
-
 - Fixed `val_progress_bar` total with `num_sanity_val_steps` ([#3751](https://github.com/PyTorchLightning/pytorch-lightning/pull/3751))
-
 - Fixed Tuner dump: add `current_epoch` to dumped_params ([#3261](https://github.com/PyTorchLightning/pytorch-lightning/pull/3261))
-
 - Fixed `current_epoch` and `global_step` properties mismatch between `Trainer` and `LightningModule` ([#3785](https://github.com/PyTorchLightning/pytorch-lightning/pull/3785))
-
 - Fixed learning rate scheduler for optimizers with internal state ([#3897](https://github.com/PyTorchLightning/pytorch-lightning/pull/3897))
-
 - Fixed `tbptt_reduce_fx` when non-floating tensors are logged ([#3796](https://github.com/PyTorchLightning/pytorch-lightning/pull/3796))
-
 - Fixed model checkpoint frequency ([#3852](https://github.com/PyTorchLightning/pytorch-lightning/pull/3852))
-
 - Fixed logging non-tensor scalar with result breaks subsequent epoch aggregation ([#3855](https://github.com/PyTorchLightning/pytorch-lightning/pull/3855))
-
 - Fixed `TrainerEvaluationLoopMixin` activates `model.train()` at the end ([#3858](https://github.com/PyTorchLightning/pytorch-lightning/pull/3858))
-
 - Fixed `overfit_batches` when using with multiple val/test_dataloaders ([#3857](https://github.com/PyTorchLightning/pytorch-lightning/pull/3857))
-
 - Fixed enables `training_step` to return `None` ([#3862](https://github.com/PyTorchLightning/pytorch-lightning/pull/3862))
-
 - Fixed init nan for checkpointing ([#3863](https://github.com/PyTorchLightning/pytorch-lightning/pull/3863))
-
 - Fixed for `load_from_checkpoint` ([#2776](https://github.com/PyTorchLightning/pytorch-lightning/pull/2776))
-
 - Fixes incorrect `batch_sizes` when Dataloader returns a dict with multiple tensors ([#3668](https://github.com/PyTorchLightning/pytorch-lightning/pull/3668))
-
 - Fixed unexpected signature for `validation_step` ([#3947](https://github.com/PyTorchLightning/pytorch-lightning/pull/3947))
 
 ## [0.9.0] - 2020-08-20
