@@ -383,9 +383,9 @@ bleu_score [func]
 Self-Supervised
 ---------------
 
-embedding_similarity
-^^^^^^^^^^^^^^^^^^^^
+embedding_similarity [func]
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.self_supervised.embedding_similarity
-    :noindex
+    :noindex:
 
