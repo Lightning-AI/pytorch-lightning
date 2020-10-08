@@ -158,13 +158,13 @@ class ProgressBarBase(Callback):
     def on_validation_start(self, trainer, pl_module):
         self._val_batch_idx = 0
 
-    def on_validation_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_validation_batch_end(self, outputs, trainer, pl_module, batch, batch_idx, dataloader_idx):
         self._val_batch_idx += 1
 
     def on_test_start(self, trainer, pl_module):
         self._test_batch_idx = 0
 
-    def on_test_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_test_batch_end(self, outputs, trainer, pl_module, batch, batch_idx, dataloader_idx):
         self._test_batch_idx += 1
 
 
@@ -344,8 +344,8 @@ class ProgressBar(ProgressBarBase):
             self.val_progress_bar = self.init_validation_tqdm()
             self.val_progress_bar.total = convert_inf(self.total_val_batches)
 
-    def on_validation_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-        super().on_validation_batch_end(trainer, pl_module, batch, batch_idx, dataloader_idx)
+    def on_validation_batch_end(self, outputs, trainer, pl_module, batch, batch_idx, dataloader_idx):
+        super().on_validation_batch_end(outputs, trainer, pl_module, batch, batch_idx, dataloader_idx)
         if self.is_enabled and self.val_batch_idx % self.refresh_rate == 0:
             self.val_progress_bar.update(self.refresh_rate)
             self.main_progress_bar.update(self.refresh_rate)
@@ -364,8 +364,8 @@ class ProgressBar(ProgressBarBase):
         self.test_progress_bar = self.init_test_tqdm()
         self.test_progress_bar.total = convert_inf(self.total_test_batches)
 
-    def on_test_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-        super().on_test_batch_end(trainer, pl_module, batch, batch_idx, dataloader_idx)
+    def on_test_batch_end(self, outputs, trainer, pl_module, batch, batch_idx, dataloader_idx):
+        super().on_test_batch_end(outputs, trainer, pl_module, batch, batch_idx, dataloader_idx)
         if self.is_enabled and self.test_batch_idx % self.refresh_rate == 0:
             self.test_progress_bar.update(self.refresh_rate)
 
