@@ -16,15 +16,15 @@ import torch
 import torch.distributed as torch_distrib
 import torch.distributed as dist
 
-from pytorch_lightning.accelerators.base_accelerator import Accelerator
+from pytorch_lightning.accelerators.base_accelerator import Accelerator, ReduceOp
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.distributed import rank_zero_only, sync_ddp_if_available
 from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from torch.nn.parallel import DistributedDataParallel
-from typing import List
+from typing import List, Union, Optional, Any
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -198,3 +198,9 @@ class DDPCPUTorchElasticBackend(Accelerator):
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
 
         return model
+
+    def sync_tensor(self,
+                    tensor: Union[torch.Tensor],
+                    group: Optional[Any] = None,
+                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
+        return sync_ddp_if_available(tensor, group, reduce_op)

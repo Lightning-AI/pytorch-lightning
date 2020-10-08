@@ -17,6 +17,12 @@ try:
 except ImportError:
     amp = None
 
+if torch.distributed.is_available():
+    from torch.distributed import ReduceOp
+else:
+    class ReduceOp:
+        SUM = None
+
 EPSILON = 1e-6
 EPSILON_FP16 = 1e-5
 
@@ -256,6 +262,24 @@ class Accelerator(object):
         Return:
             gathered_result: list with size equal to the process group size where
                 gathered_result[i] corresponds to result tensor from process i
+        """
+        raise NotImplementedError
+
+    def sync_tensor(self,
+                    tensor: Union[torch.Tensor],
+                    group: Optional[Any] = None,
+                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
+        """
+        Function to reduce a tensor from several distributed processes to one aggregated tensor.
+
+        Args:
+            tensor: the tensor to sync and reduce
+            group: the process group to gather results from. Defaults to all processes (world)
+            reduce_op: the reduction operation. Defaults to sum.
+                Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
+
+        Return:
+            reduced value
         """
         raise NotImplementedError
 

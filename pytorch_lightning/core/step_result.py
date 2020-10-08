@@ -20,7 +20,7 @@ import torch
 from torch import Tensor
 import os
 
-from pytorch_lightning.utilities.distributed import sync_dist_if_available
+from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 from pytorch_lightning.metrics import Metric
 
 class Result(Dict):
@@ -117,14 +117,16 @@ class Result(Dict):
         sync_dist: bool = False,
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
+        sync_fn: Callable = None,
     ):
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
             value = value.detach()
 
         # sync across workers when using distributed training
+        sync_fn = sync_fn or sync_ddp_if_available
         if sync_dist and isinstance(value, (torch.Tensor, numbers.Number)):
-            value = sync_dist_if_available(value, group=sync_dist_group, reduce_op=sync_dist_op)
+            value = sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
         if 'meta' not in self:
             self.__setitem__('meta', {})

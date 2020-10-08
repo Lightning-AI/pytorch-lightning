@@ -27,14 +27,6 @@ else:
         SUM = None
 
 
-try:
-    import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
-
-
 def rank_zero_only(fn):
 
     @wraps(fn)
@@ -96,7 +88,7 @@ def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None)
     return gathered_result
 
 
-def sync_dist_if_available(
+def sync_ddp_if_available(
     result: Union[torch.Tensor], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
 ) -> torch.Tensor:
     """
@@ -111,8 +103,6 @@ def sync_dist_if_available(
     """
     if torch.distributed.is_available() and torch.distributed.is_initialized():
         return sync_ddp(result, group=group, reduce_op=reduce_op)
-    if HOROVOD_AVAILABLE and hvd.is_initialized():
-        return sync_horovod(result, group=group, reduce_op=reduce_op)
     return result
 
 
@@ -150,36 +140,3 @@ def sync_ddp(
         result = result / torch.distributed.get_world_size(group)
 
     return result
-
-
-def sync_horovod(
-    result: Union[torch.Tensor], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
-) -> torch.Tensor:
-    """
-    Function to reduce a tensor across all Horovod processes
-    Args:
-        result: the tensor to sync and reduce
-        group: the process group to gather results from. Defaults to all processes (world).
-            NOTE: Horovod does not support allreduce using communicators other than world
-            at this time.
-        reduce_op: the reduction operation. Defaults to sum.
-            Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
-    Return:
-        reduced value
-    """
-    if group is not None:
-        raise ValueError(
-            "Horovod does not support allreduce using a subcommunicator at this time. "
-            "Unset `group`."
-        )
-
-    if reduce_op is None or reduce_op == "sum":
-        reduce_op = hvd.Sum
-    elif isinstance(reduce_op, str) and reduce_op in ("avg", "mean"):
-        reduce_op = hvd.Average
-    else:
-        raise ValueError(f"unrecognized `reduce_op`: {reduce_op}")
-
-    # sync all processes before reduction
-    hvd.join()
-    return hvd.allreduce(result, op=reduce_op)

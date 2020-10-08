@@ -202,24 +202,53 @@ def test_horovod_multi_optimizer(tmpdir):
     assert get_model_params(model.discriminator) == get_optimizer_params(trainer.optimizers[1])
 
 
-@pytest.mark.parametrize("result_cls", [Result, TrainResult, EvalResult])
 @pytest.mark.skipif(not HOROVOD_AVAILABLE, reason="Horovod is unavailable")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
-def test_result_reduce_horovod(result_cls):
+def test_result_reduce_horovod(tmpdir):
     """Make sure result logging works with Horovod."""
     tutils.reset_seed()
     tutils.set_random_master_port()
 
     def hvd_test_fn():
+        from tests.base.boring_model import BoringModel
+
         import horovod.torch as hvd
-        hvd.init()
 
-        tensor = torch.tensor([1.0])
+        class TestModel(BoringModel):
+            def training_step(self, batch, batch_idx):
+                self.training_step_called = True
 
-        res = result_cls()
-        res.log("test_tensor", tensor, sync_dist=True, sync_dist_op='sum')
-        assert res["test_tensor"].item() == hvd.size(), \
-            "Result-Log does not work properly with Horovod and Tensors"
+                tensor = torch.tensor([1.0])
+                self.log("test_tensor", tensor, sync_dist=True, sync_dist_op='sum',
+                         on_step=True, on_epoch=True)
+
+                res = self._results
+                assert res["test_tensor"].item() == hvd.size(), \
+                        "Result-Log does not work properly with Horovod and Tensors"
+
+            def training_epoch_end(self, outputs) -> None:
+                assert len(outputs) == 0
+
+        model = TestModel()
+        model.val_dataloader = None
+
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            limit_train_batches=2,
+            limit_val_batches=2,
+            max_epochs=1,
+            log_every_n_steps=1,
+            weights_summary=None,
+        )
+
+        trainer.fit(model)
+
+        # tensor = torch.tensor([1.0])
+        #
+        # res = result_cls()
+        # res.log("test_tensor", tensor, sync_dist=True, sync_dist_op='sum')
+        # assert res["test_tensor"].item() == hvd.size(), \
+        #     "Result-Log does not work properly with Horovod and Tensors"
 
     horovod.run(hvd_test_fn, np=2)
 

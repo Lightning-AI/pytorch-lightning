@@ -17,7 +17,7 @@ from typing import Union, Optional, Any
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
-from pytorch_lightning.accelerators.base_accelerator import Accelerator
+from pytorch_lightning.accelerators.base_accelerator import Accelerator, ReduceOp
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
@@ -180,3 +180,24 @@ class HorovodBackend(Accelerator):
         gathered = hvd.allgather(result)
         gathered_result = list(gathered.split(1, dim=0))
         return gathered_result
+
+    def sync_tensor(self,
+                    tensor: Union[torch.Tensor],
+                    group: Optional[Any] = None,
+                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
+        if group is not None:
+            raise ValueError(
+                "Horovod does not support allreduce using a subcommunicator at this time. "
+                "Unset `group`."
+            )
+
+        if reduce_op is None or reduce_op == "sum":
+            reduce_op = hvd.Sum
+        elif isinstance(reduce_op, str) and reduce_op in ("avg", "mean"):
+            reduce_op = hvd.Average
+        else:
+            raise ValueError(f"unrecognized `reduce_op`: {reduce_op}")
+
+        # sync all processes before reduction
+        hvd.join()
+        return hvd.allreduce(tensor, op=reduce_op)

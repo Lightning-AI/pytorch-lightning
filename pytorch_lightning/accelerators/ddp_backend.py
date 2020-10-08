@@ -18,13 +18,13 @@ import subprocess
 import sys
 from os.path import abspath
 from time import sleep
-from typing import Optional
+from typing import Union, Optional, Any
 import numpy as np
 
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities.distributed import find_free_network_port
-from pytorch_lightning.accelerators.base_accelerator import Accelerator
+from pytorch_lightning.utilities.distributed import find_free_network_port, sync_ddp_if_available
+from pytorch_lightning.accelerators.base_accelerator import Accelerator, ReduceOp
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.seed import seed_everything
@@ -306,3 +306,9 @@ class DDPBackend(Accelerator):
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
 
         return model
+
+    def sync_tensor(self,
+                    tensor: Union[torch.Tensor],
+                    group: Optional[Any] = None,
+                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
+        return sync_ddp_if_available(tensor, group, reduce_op)

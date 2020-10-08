@@ -231,6 +231,8 @@ class LightningModule(
             on_step = self.__auto_choose_log_on_step(on_step)
             on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
+            accelerator = self.trainer.accelerator_backend
+
             self._results.log(
                 name,
                 value,
@@ -244,7 +246,8 @@ class LightningModule(
                 enable_graph,
                 sync_dist,
                 sync_dist_op,
-                sync_dist_group
+                sync_dist_group,
+                accelerator.sync_tensor,
             )
 
     def log_dict(
