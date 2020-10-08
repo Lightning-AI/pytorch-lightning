@@ -23,7 +23,7 @@ from torch.utils.data.distributed import DistributedSampler
 from pytorch_lightning.accelerators.base_accelerator import Accelerator
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
+from pytorch_lightning.utilities.data import has_iterable_dataset, has_len, replace_sampler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.model_utils import is_overridden
@@ -124,20 +124,10 @@ class TrainerDataLoadingMixin(ABC):
 
             # replace with distributed sampler
             sampler = self._get_distributed_sampler(dataloader, train)
-            dataloader = self.replace_sampler(dataloader, sampler)
+            dataloader = replace_sampler(dataloader, sampler=sampler)
 
         return dataloader
 
-    def replace_sampler(self, dataloader, sampler):
-        skip_keys = ['sampler', 'batch_sampler', 'dataset_kind']
-
-        dl_args = {
-            k: v for k, v in dataloader.__dict__.items() if not k.startswith('_') and k not in skip_keys
-        }
-
-        dl_args['sampler'] = sampler
-        dataloader = type(dataloader)(**dl_args)
-        return dataloader
 
     def _get_distributed_sampler(self, dataloader, train):
         if self.use_tpu:

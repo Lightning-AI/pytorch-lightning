@@ -45,3 +45,15 @@ def has_len(dataloader: DataLoader) -> bool:
             ' this can lead to unintended side effects since the samples will be duplicated.'
         )
     return has_len
+
+
+def replace_sampler(dataloader: DataLoader, **kwargs_replace):
+    skip_keys = ['sampler', 'batch_sampler', 'dataset_kind']
+
+    dl_args = {
+        k: v for k, v in dataloader.__dict__.items() if not k.startswith('_') and k not in skip_keys
+    }
+    for k,v in kwargs_replace.items():
+        dl_args[k] = v
+    dataloader = type(dataloader)(**dl_args)
+    return dataloader
