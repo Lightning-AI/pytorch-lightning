@@ -345,6 +345,11 @@ class TrainLoop:
         if training_step_output_for_epoch_end is None:
             return None, None
 
+        # -----------------------------------------
+        # process old dict
+        # -----------------------------------------
+        training_step_output = self.trainer.process_dict_result(training_step_output, train=True)
+
         training_step_output = AttributeDict(
             batch_loss=training_step_output[0],
             pbar_on_batch_end=training_step_output[1],
