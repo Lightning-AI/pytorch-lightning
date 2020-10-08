@@ -840,7 +840,7 @@ class LightningModule(
 
                 out = self(x)
                 loss = self.softmax(out)
-                result.log('test_loss', loss)
+                self.log('test_loss', loss)
 
             # --------------
             # with test_step_end to do softmax over the full batch
