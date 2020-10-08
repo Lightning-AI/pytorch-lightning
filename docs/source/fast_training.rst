@@ -56,7 +56,7 @@ Must use an `int` if using an `IterableDataset`.
 ----------------
 
 Use data subset for training, validation, and test
--------------------------------------------------
+--------------------------------------------------
 If you don't want to check 100% of the training/validation/test set (for debugging or if it's huge), set these flags.
 
 .. testcode::
