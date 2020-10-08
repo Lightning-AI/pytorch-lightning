@@ -9,11 +9,10 @@ Scale your models, not the boilerplate.**
 ```diff
 - NEWS: Lightning 1.0 is currently in rc and is being released for GA on Oct 8th 2020!
 ```
-
 ---
 
 <p align="center">
-  <a href="https://www.youtube.com/watch?v=DbESHcCoWbM&t=2s">Masterclass</a> •
+  <a href="https://www.pytorchlightning.ai/">Website</a> •
   <a href="#key-features">Key Features</a> •
   <a href="#how-to-use">How To Use</a> •
   <a href="https://pytorch-lightning.readthedocs.io/en/stable/">Docs</a> •
@@ -42,6 +41,25 @@ Scale your models, not the boilerplate.**
 </div>
 
 ###### *Codecov is > 90%+ but build delays may show less
+
+---
+
+**Just launched GridAI- our native solution for training models at scale on the cloud! Sign up for [early acces here](https://www.grid.ai/)**
+
+To use grid, take your regular command:
+
+```
+    python my_model.py --learning_rate 1e-6 --layers 2 --gpus 4
+```
+
+And change it to use the grid train command:
+
+```
+    grid train --grid_gpus 4 my_model.py --learning_rate 'uniform(1e-6, 1e-1, 20)' --layers '[2, 4, 8, 16]'
+```
+
+The above command will launch (20 * 4) experiments each running on 4 GPUs (320 GPUs!) - by making ZERO changes to
+your code.
 
 ---
 
