@@ -248,7 +248,7 @@ class ModelHooks:
         """
         # do something when the epoch starts
 
-    def on_train_epoch_end(self) -> None:
+    def on_train_epoch_end(self, outputs) -> None:
         """
         Called in the training loop at the very end of the epoch.
         """

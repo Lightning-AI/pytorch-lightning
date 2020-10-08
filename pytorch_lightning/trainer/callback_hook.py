@@ -71,10 +71,10 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_train_epoch_start(self, self.get_model())
 
-    def on_train_epoch_end(self):
+    def on_train_epoch_end(self, outputs):
         """Called when the epoch ends."""
         for callback in self.callbacks:
-            callback.on_train_epoch_end(self, self.get_model())
+            callback.on_train_epoch_end(self, self.get_model(), outputs)
 
     def on_validation_epoch_start(self):
         """Called when the epoch begins."""
