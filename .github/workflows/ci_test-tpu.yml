@@ -18,11 +18,6 @@ env:
 
 jobs:
   setup-build-publish-deploy:
-    if: |
-      !contains(github.event.commits.*.message, '[skip ci]') ||
-      !contains(github.event.commits.*.message, '[ci skip]') ||
-      !contains(github.event.commits.*.message, 'skip ci') ||
-      !contains(github.event.commits.*.message, 'ci skip')
   name: tpu-testing-job
     runs-on: ubuntu-20.04
     strategy:
