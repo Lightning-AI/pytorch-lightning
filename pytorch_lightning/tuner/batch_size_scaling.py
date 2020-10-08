@@ -143,7 +143,7 @@ def __scale_batch_reset_params(trainer, model, steps_per_trial):
     trainer.weights_summary = None  # not needed before full run
     trainer.logger = DummyLogger()
     trainer.callbacks = []  # not needed before full run
-    trainer.checkpoint_callback = False  # required for saving
+    # trainer.checkpoint_callback = False  # required for saving
     trainer.limit_train_batches = 1.0
     trainer.optimizers, trainer.schedulers = [], []  # required for saving
     trainer.model = model  # required for saving

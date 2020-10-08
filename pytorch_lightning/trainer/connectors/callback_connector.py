@@ -29,11 +29,7 @@ class CallbackConnector:
         self.trainer.callbacks = callbacks or []
 
         # configure checkpoint callback
-        # it is important that this is the last callback to run
-        # pass through the required args to figure out defaults
-        checkpoint_callback = self.init_default_checkpoint_callback(checkpoint_callback)
-        if checkpoint_callback:
-            self.trainer.callbacks.append(checkpoint_callback)
+        self.configure_checkpoint_callbacks(checkpoint_callback)
 
         # TODO refactor codebase (tests) to not directly reach into these callbacks
         self.trainer.checkpoint_callback = checkpoint_callback
@@ -43,20 +39,32 @@ class CallbackConnector:
             progress_bar_refresh_rate, process_position
         )
 
-    def init_default_checkpoint_callback(self, checkpoint_callback):
+    def configure_checkpoint_callbacks(self, checkpoint_callback):
+        # it is important that this is the last callback to run
+        # pass through the required args to figure out defaults
+        default_callback = self.init_default_checkpoint_callback(checkpoint_callback)
         ckpt_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
+        default_callback = None
+
         if len(ckpt_callbacks) > 1:
             raise MisconfigurationException(
                 'You added multiple ModelCheckpoint callbacks to the Trainer, but currently only one'
                 ' instance is supported.'
             )
-        if ckpt_callbacks and checkpoint_callback is not True:
-            rank_zero_warn(
-                "Callbacks list contains a ModelCheckpoint instance."
-                " Trainer(checkpoint_callback=...) will be ignored."
-            )
-            checkpoint_callback = None
-        elif checkpoint_callback is True:
+        if ckpt_callbacks:
+            if checkpoint_callback:
+                rank_zero_warn(
+                    "Callbacks list contains a ModelCheckpoint instance."
+                    " Trainer(checkpoint_callback=...) will be ignored."
+                )
+            else:
+
+
+        if default_callback:
+            self.trainer.callbacks.append(default_callback)
+
+    def init_default_checkpoint_callback(self, checkpoint_callback):
+        if checkpoint_callback is True:
             checkpoint_callback = ModelCheckpoint(filepath=None)
         elif checkpoint_callback is False:
             checkpoint_callback = None

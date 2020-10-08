@@ -9,7 +9,7 @@ import inspect
 import os
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.callbacks import ProgressBarBase
+from pytorch_lightning.callbacks import ProgressBarBase, ModelCheckpoint
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 
@@ -168,6 +168,12 @@ class TrainerProperties(ABC):
         if get_filesystem(self._weights_save_path).protocol == "file":
             return os.path.normpath(self._weights_save_path)
         return self._weights_save_path
+
+    # @property
+    # def checkpoint_callback(self) -> Optional[ModelCheckpoint]:
+    #     ckpt_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
+    #     assert len(ckpt_callbacks) == 1, "currently only single checkpoint callback is supported"
+    #     return ckpt_callbacks[0]
 
     def save_checkpoint(self, filepath, weights_only: bool = False):
         self.checkpoint_connector.save_checkpoint(filepath, weights_only)
