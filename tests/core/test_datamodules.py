@@ -1,12 +1,14 @@
 import pickle
 from argparse import ArgumentParser
 from unittest.mock import MagicMock
+from typing import Optional
 
 import pytest
 import torch
+from torch.utils.data import DataLoader, random_split
 
 from pytorch_lightning import LightningDataModule, Trainer, seed_everything
-from tests.base import EvalModelTemplate
+from tests.base.datasets import TrialMNIST
 from tests.base.datamodules import TrialMNISTDataModule
 from tests.base.develop_utils import reset_seed
 from pytorch_lightning.utilities.model_utils import is_overridden
@@ -391,3 +393,61 @@ def test_dm_transfer_batch_to_device(tmpdir):
     expected = torch.device('cuda', 0)
     assert dm.hook_called
     assert batch_gpu.samples.device == batch_gpu.targets.device == expected
+
+
+class CustomMNISTDataModule(LightningDataModule):
+
+    def __init__(self, data_dir: str = "./"):
+        super().__init__()
+        self.data_dir = data_dir
+
+    def prepare_data(self):
+        TrialMNIST(self.data_dir, train=True, download=True)
+
+    def setup(self, stage: Optional[str] = None):
+
+        mnist_full = TrialMNIST(
+            root=self.data_dir, train=True, num_samples=64, download=True
+        )
+        self.mnist_train, self.mnist_val = random_split(mnist_full, [128, 64])
+        self.dims = self.mnist_train[0][0].shape
+
+    def _check_reload_every_epoch_flag(self):
+        return self.trainer.reload_dataloaders_every_epoch
+
+    def train_dataloader(self):
+        if self.trainer.current_epoch > 0:
+            assert self._check_reload_every_epoch_flag()
+        return DataLoader(self.mnist_train, batch_size=4)
+
+
+def test_dm_reload_dataloaders_every_epoch(tmpdir):
+    """Test datamodule, where trainer argument
+    reload_dataloaders_every_epoch is set to True/False"""
+
+    dm = CustomMNISTDataModule(tmpdir)
+
+    model = EvalModelTemplate()
+    model.validation_step = None
+    model.validation_step_end = None
+    model.validation_epoch_end = None
+    model.test_step = None
+    model.test_step_end = None
+    model.test_epoch_end = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=0.01,
+        reload_dataloaders_every_epoch=True,
+    )
+    trainer.fit(model, dm)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=0.01,
+        reload_dataloaders_every_epoch=False,
+    )
+
+    trainer.fit(model, dm)
