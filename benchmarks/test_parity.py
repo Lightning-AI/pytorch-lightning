@@ -99,7 +99,6 @@ def lightning_loop(cls_model, num_runs=10, num_epochs=10):
             progress_bar_refresh_rate=0,
             weights_summary=None,
             gpus=1,
-            early_stop_callback=False,
             checkpoint_callback=False,
             deterministic=True,
             logger=False,
