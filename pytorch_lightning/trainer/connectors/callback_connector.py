@@ -1,5 +1,5 @@
 import os
-from typing import Union
+from typing import Union, Optional
 
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, ProgressBarBase, ProgressBar
 from pytorch_lightning.utilities import rank_zero_warn
@@ -43,7 +43,11 @@ class CallbackConnector:
             progress_bar_refresh_rate, process_position
         )
 
-    def configure_checkpoint_callbacks(self, checkpoint_callback: Union[ModelCheckpoint, bool]) -> ModelCheckpoint:
+    def configure_checkpoint_callbacks(
+            self,
+            checkpoint_callback: Union[ModelCheckpoint, bool]
+    ) -> Optional[ModelCheckpoint]:
+        
         ckpt_callbacks = [c for c in self.trainer.callbacks + [checkpoint_callback] if isinstance(c, ModelCheckpoint)]
 
         if len(ckpt_callbacks) > 1:
