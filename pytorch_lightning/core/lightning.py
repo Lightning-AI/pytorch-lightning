@@ -29,7 +29,6 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
-from pytorch_lightning.core.step_result import TrainResult, EvalResult
 from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.core.step_result import Result

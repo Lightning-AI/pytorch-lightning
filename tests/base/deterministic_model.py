@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
 
-from pytorch_lightning import TrainResult, EvalResult
+from pytorch_lightning.core.step_result import TrainResult, EvalResult
 from pytorch_lightning.core.lightning import LightningModule
 
 
