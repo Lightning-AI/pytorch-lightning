@@ -94,7 +94,7 @@ references:
 
 jobs:
 
-  TPU-tests:
+  build-test:
     parameters:
       python:
         type: string
