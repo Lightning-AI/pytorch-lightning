@@ -245,7 +245,8 @@ def test_accuracy_metric_horovod():
         )
 
         metric = Accuracy(compute_on_step=True,
-                          dist_sync_on_step=trainer.accelerator_backend.gather_all_tensors,
+                          dist_sync_on_step=True,
+                          dist_sync_fn=trainer.accelerator_backend.gather_all_tensors,
                           threshold=threshold)
 
         for i in range(hvd.rank(), num_batches, hvd.size()):

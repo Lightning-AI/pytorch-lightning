@@ -39,21 +39,24 @@ class Metric(nn.Module, ABC):
             Forward only calls ``update()`` and returns None if this is set to False. default: True
         dist_sync_on_step:
             Synchronize metric state across processes at each ``forward()``
-            before returning the value at the step. Optionally accepts a callback that
-            performs the allgather operation on the metric state. When `True`, DDP
-            will be used to perform the allgather. default: False
+            before returning the value at the step.
         process_group:
             Specify the process group on which synchronization is called. default: None (which selects the entire world)
+        dist_sync_fn:
+            Callback that performs the allgather operation on the metric state. When `None`, DDP
+            will be used to perform the allgather. default: None
     """
     def __init__(
         self,
         compute_on_step: bool = True,
-        dist_sync_on_step: Union[bool, Callable] = False,
+        dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
+        dist_sync_fn: Callable = None,
     ):
         super().__init__()
 
         self.dist_sync_on_step = dist_sync_on_step
+        self.dist_sync_fn = dist_sync_fn
         self.compute_on_step = compute_on_step
         self.process_group = process_group
         self._to_sync = True
@@ -187,13 +190,10 @@ class Metric(nn.Module, ABC):
             if self._computed is not None:
                 return self._computed
 
-            dist_sync_fn = None
-            if callable(self.dist_sync_on_step):
-                # User provided a custom sync function
-                dist_sync_fn = self.dist_sync_on_step
-            elif self.dist_sync_on_step is True and (
-                    torch.distributed.is_available() and
-                    torch.distributed.is_initialized()):
+            dist_sync_fn = self.dist_sync_fn
+            if dist_sync_fn is None and \
+                torch.distributed.is_available() and \
+                torch.distributed.is_initialized():
                 # User provided a bool, so we assume DDP if available
                 dist_sync_fn = gather_all_tensors
 
