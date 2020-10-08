@@ -502,6 +502,7 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
 
 
 def test_configure_model_checkpoint(tmpdir):
+    """ Test all valid and invalid ways a checkpoint callback can be passed to the Trainer. """
     kwargs = dict(default_root_dir=tmpdir)
     callback = ModelCheckpoint()
 
@@ -526,10 +527,32 @@ def test_configure_model_checkpoint(tmpdir):
     assert trainer.checkpoint_callback == callback
 
     with pytest.raises(MisconfigurationException, match="checkpoint_callback=False but found ModelCheckpoint"):
-        trainer = Trainer(checkpoint_callback=False, callbacks=[callback], **kwargs)
+        Trainer(checkpoint_callback=False, callbacks=[callback], **kwargs)
 
     with pytest.raises(MisconfigurationException, match="You added multiple ModelCheckpoint callbacks"):
-        trainer = Trainer(checkpoint_callback=callback, callbacks=[callback], **kwargs)
+        Trainer(checkpoint_callback=callback, callbacks=[callback], **kwargs)
 
     with pytest.raises(MisconfigurationException, match="You added multiple ModelCheckpoint callbacks"):
-        trainer = Trainer(callbacks=[callback, callback], **kwargs)
+        Trainer(callbacks=[callback, callback], **kwargs)
+
+
+def test_model_checkpoint_save_function_set(tmpdir):
+    """ Test that the save_function gets set on Trainer init. """
+    trainer = Trainer(checkpoint_callback=True, default_root_dir=tmpdir)
+    assert trainer.checkpoint_callback.save_function == trainer.save_checkpoint
+
+    callback = ModelCheckpoint()
+    assert callback.save_function is None
+    trainer = Trainer(callbacks=[callback], default_root_dir=tmpdir)
+    assert callback.save_function == trainer.save_checkpoint
+
+    # user has a custom save_function
+    callback = ModelCheckpoint()
+
+    def save_function(*args, **kwargs):
+        pass
+
+    # trainer should not override user defined save function
+    callback.save_function = save_function
+    Trainer(callbacks=[callback], default_root_dir=tmpdir)
+    assert callback.save_function == save_function
