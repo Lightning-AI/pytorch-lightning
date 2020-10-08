@@ -44,8 +44,13 @@ class CallbackConnector:
         )
 
     def init_default_checkpoint_callback(self, checkpoint_callback):
-        via_callbacks = any(isinstance(c, ModelCheckpoint) for c in self.trainer.callbacks)
-        if via_callbacks:
+        ckpt_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
+        if len(ckpt_callbacks) > 1:
+            raise MisconfigurationException(
+                'You added multiple ModelCheckpoint callbacks to the Trainer, but currently only one'
+                ' instance is supported.'
+            )
+        if ckpt_callbacks and checkpoint_callback is not True:
             rank_zero_warn(
                 "Callbacks list contains a ModelCheckpoint instance."
                 " Trainer(checkpoint_callback=...) will be ignored."
