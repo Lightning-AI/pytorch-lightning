@@ -453,10 +453,6 @@ class Trainer(
             # run all epochs
             for epoch in range(self.current_epoch, self.max_epochs):
 
-                # reset train dataloader
-                if self.reload_dataloaders_every_epoch:
-                    self.reset_train_dataloader(model)
-
                 # hook
                 self.train_loop.on_train_epoch_start(epoch)
 
