@@ -12,7 +12,7 @@ the Trainer automates everything else.
 
 .. raw:: html
 
-    <video width="100%" controls autoplay
+    <video width="50%" max-width="400px" controls autoplay
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_trainer_mov.m4v"></video>
 
 |
@@ -170,7 +170,7 @@ accumulate_grad_batches
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/accumulate_grad_batches.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/accumulate_grad_batches.mp4"></video>
 
@@ -197,7 +197,7 @@ amp_backend
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/amp_backend.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/amp_backend.mp4"></video>
 
@@ -218,7 +218,7 @@ amp_level
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/amp_level.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/amp_level.mp4"></video>
 
@@ -239,7 +239,7 @@ auto_scale_batch_size
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/auto_scale%E2%80%A8_batch_size.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/auto_scale_batch_size.mp4"></video>
 
@@ -264,7 +264,7 @@ auto_select_gpus
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/auto_select+_gpus.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/auto_select_gpus.mp4"></video>
 
@@ -287,7 +287,7 @@ auto_lr_find
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/auto_lr_find.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/auto_lr_find.mp4"></video>
 
@@ -325,7 +325,7 @@ benchmark
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/benchmark.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/benchmark.mp4"></video>
 
@@ -350,7 +350,7 @@ deterministic
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/deterministic.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/deterministic.mp4"></video>
 
@@ -373,7 +373,7 @@ callbacks
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/callbacks.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/callbacks.mp4"></video>
 
@@ -405,7 +405,7 @@ check_val_every_n_epoch
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/check_val_every_n_epoch.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/check_val_every_n_epoch.mp4"></video>
 
@@ -426,7 +426,7 @@ checkpoint_callback
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/checkpoint_callback.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/checkpoint_callback.mp4"></video>
 
@@ -458,7 +458,7 @@ cluster_environment
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/cluster_environment.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/cluster_environment.mp4"></video>
 
@@ -493,7 +493,7 @@ default_root_dir
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/default%E2%80%A8_root_dir.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/default_root_dir.mp4"></video>
 
@@ -516,7 +516,7 @@ distributed_backend
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/distributed_backend.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/distributed_backend.mp4"></video>
 
@@ -560,7 +560,7 @@ fast_dev_run
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/fast_dev_run.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/fast_dev_run.mp4"></video>
 
@@ -568,7 +568,7 @@ fast_dev_run
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/fast_dev_run.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/fast_dev_run.mp4"></video>
 
@@ -606,7 +606,7 @@ gpus
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/gpus.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/gpus.mp4"></video>
 
@@ -652,7 +652,7 @@ gradient_clip_val
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/gradient+_clip_val.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/gradient_clip_val.mp4"></video>
 
@@ -673,7 +673,7 @@ limit_test_batches
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/limit_test_batches.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/limit_batches.mp4"></video>
 
@@ -699,7 +699,7 @@ limit_val_batches
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/limit_val_batches.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/limit_batches.mp4"></video>
 
@@ -726,7 +726,7 @@ log_gpu_memory
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/log_gpu_memory.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/log_gpu_memory.mp4"></video>
 
@@ -756,7 +756,7 @@ flush_logs_every_n_steps
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/flush_logs%E2%80%A8_every_n_steps.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/flush_logs_every_n_steps.mp4"></video>
 
@@ -777,7 +777,7 @@ logger
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/logger.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/logger.mp4"></video>
 
@@ -802,7 +802,7 @@ max_epochs
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/max_epochs.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/min_max_epochs.mp4"></video>
 
@@ -820,7 +820,7 @@ min_epochs
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/min_epochs.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/min_max_epochs.mp4"></video>
 
@@ -838,7 +838,7 @@ max_steps
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/max_steps.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/min_max_steps.mp4"></video>
 
@@ -860,7 +860,7 @@ min_steps
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/min_steps.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/min_max_steps.mp4"></video>
 
@@ -882,7 +882,7 @@ num_nodes
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/num_nodes.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/num_nodes.mp4"></video>
 
@@ -903,7 +903,7 @@ num_processes
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/num_processes.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/num_processes.mp4"></video>
 
@@ -926,7 +926,7 @@ num_sanity_val_steps
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/num_sanity%E2%80%A8_val_steps.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/num_sanity_val_steps.mp4"></video>
 
@@ -960,7 +960,7 @@ prepare_data_per_node
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/prepare_data_per_node.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/prepare_data_per_node.mp4"></video>
 
@@ -982,7 +982,7 @@ tpu_cores
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/tpu_cores.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/tpu_cores.mp4"></video>
 
@@ -1038,7 +1038,7 @@ overfit_batches
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/overfit_batches.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/overfit_batches.mp4"></video>
 
@@ -1065,7 +1065,7 @@ precision
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/precision.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/precision.mp4"></video>
 
@@ -1096,7 +1096,7 @@ process_position
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/process_position.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/process_position.mp4"></video>
 
@@ -1117,7 +1117,7 @@ profiler
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/profiler.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/profiler.mp4"></video>
 
@@ -1148,7 +1148,7 @@ progress_bar_refresh_rate
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/progress_bar%E2%80%A8_refresh_rate.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/progress_bar_refresh_rate.mp4"></video>
 
@@ -1174,7 +1174,7 @@ reload_dataloaders_every_epoch
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/reload_%E2%80%A8dataloaders_%E2%80%A8every_epoch.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/reload_dataloaders_every_epoch.mp4"></video>
 
@@ -1200,7 +1200,7 @@ replace_sampler_ddp
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/replace_sampler_ddp.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/replace_sampler_ddp.mp4"></video>
 
@@ -1228,7 +1228,7 @@ resume_from_checkpoint
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/resume_from_checkpoint.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/resume_from_checkpoint.mp4"></video>
 
@@ -1249,7 +1249,7 @@ log_every_n_steps
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/log_every_n_steps.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/log_every_n_steps.mp4"></video>
 
@@ -1272,7 +1272,7 @@ sync_batchnorm
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/sync_batchnorm.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/sync_batchnorm.mp4"></video>
 
@@ -1289,7 +1289,7 @@ track_grad_norm
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/track_grad_norm.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/track_grad_norm.mp4"></video>
 
@@ -1311,7 +1311,7 @@ limit_train_batches
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/limit_train_batches.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/limit_batches.mp4"></video>
 
@@ -1341,7 +1341,7 @@ truncated_bptt_steps
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/truncated_bptt_steps.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/truncated_bptt_steps.mp4"></video>
 
@@ -1406,7 +1406,7 @@ val_check_interval
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/val_check_interval.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/val_check_interval.mp4"></video>
 
@@ -1437,7 +1437,7 @@ weights_save_path
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/weights_save_path.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/weights_save_path.mp4"></video>
 
@@ -1468,7 +1468,7 @@ weights_summary
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/weights_summary.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/weights_summary.mp4"></video>
 
