@@ -9,7 +9,7 @@ import inspect
 import os
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.callbacks import ProgressBarBase, ModelCheckpoint
+from pytorch_lightning.callbacks import ProgressBarBase
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 
