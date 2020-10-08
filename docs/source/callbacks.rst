@@ -13,7 +13,7 @@ Callback
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/callbacks.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/callbacks.mp4"></video>
 
@@ -28,7 +28,7 @@ Here's the flow of how the callback hooks are executed:
 
 .. raw:: html
 
-    <video width="100%" controls autoplay muted playsinline src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_callbacks_mov.m4v"></video>
+    <video width="50%" max-width="400px" controls autoplay muted playsinline src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_callbacks_mov.m4v"></video>
 
 An overall Lightning system should have:
 
