@@ -42,7 +42,7 @@ def _multi_target_sk_metric(preds, target, sk_fn=explained_variance_score):
 @pytest.mark.parametrize(
     "preds, target, sk_metric",
     [
-        #(_single_target_inputs.preds, _single_target_inputs.target, _single_target_sk_metric),
+        (_single_target_inputs.preds, _single_target_inputs.target, _single_target_sk_metric),
         (_multi_target_inputs.preds, _multi_target_inputs.target, _multi_target_sk_metric),
     ],
 )
