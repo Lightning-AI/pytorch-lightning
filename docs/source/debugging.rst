@@ -6,6 +6,15 @@
 
 Debugging
 =========
+
+.. raw:: html
+
+    <video width="100%" controls autoplay
+    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/yt_thumbs/thumb_debugging.png"
+    src="https://www.youtube.com/watch?v=8q4ieMG1QKU&feature=youtu.be&ab_channel=PyTorchLightning"></video>
+
+|
+
 The following are flags that make debugging much easier.
 
 ----------------
