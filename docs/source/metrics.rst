@@ -379,3 +379,13 @@ bleu_score [func]
 .. autofunction:: pytorch_lightning.metrics.functional.nlp.bleu_score
     :noindex:
 
+
+Self-Supervised
+---------------
+
+embedding_similarity
+^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.self_supervised.embedding_similarity
+    :noindex
+

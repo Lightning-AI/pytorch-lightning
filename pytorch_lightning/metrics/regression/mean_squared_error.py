@@ -8,6 +8,15 @@ class MeanSquaredError(Metric):
     """
     Computes mean squared error.
 
+    Args:
+        compute_on_step:
+            Forward only calls ``update()`` and return None if this is set to False. default: True
+        ddp_sync_on_step:
+            Synchronize metric state across processes at each ``forward()``
+            before returning the value at the step. default: False
+        process_group:
+            Specify the process group on which synchronization is called. default: None (which selects the entire world)
+
     Example:
 
         >>> from pytorch_lightning.metrics import MeanSquaredError
