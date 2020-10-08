@@ -121,7 +121,7 @@ class GPUStatsMonitor(Callback):
         if self._log_stats.intra_step_time:
             self._snap_intra_step_time = time.time()
 
-        if not self._should_log(trainer):
+        if not GPUStatsMonitor._should_log(trainer):
             return
 
         gpu_stat_keys = self._get_gpu_stat_keys()
@@ -206,7 +206,8 @@ class GPUStatsMonitor(Callback):
 
         return stat_keys
 
-    def _should_log(self, trainer) -> bool:
+    @staticmethod
+    def _should_log(trainer) -> bool:
         should_log = (
             (trainer.global_step + 1) % trainer.log_every_n_steps == 0
             or trainer.should_stop
