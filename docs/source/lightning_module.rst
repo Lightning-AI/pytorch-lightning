@@ -655,18 +655,18 @@ Training loop methods
 training_step
 ~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.training_step
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.training_step
     :noindex:
 
 training_step_end
 ~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.training_step_end
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.training_step_end
     :noindex:
 
 training_epoch_end
 ~~~~~~~~~~~~~~~~~~
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.training_epoch_end
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.training_epoch_end
     :noindex:
 
 ---------------
@@ -677,19 +677,19 @@ Validation loop methods
 validation_step
 ~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.validation_step
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.validation_step
     :noindex:
 
 validation_step_end
 ~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.validation_step_end
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.validation_step_end
     :noindex:
 
 validation_epoch_end
 ~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.validation_epoch_end
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.validation_epoch_end
     :noindex:
 
 ----------------
@@ -700,19 +700,19 @@ test loop methods
 test_step
 ~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.test_step
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.test_step
     :noindex:
 
 test_step_end
 ~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.test_step_end
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.test_step_end
     :noindex:
 
 test_epoch_end
 ~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.test_epoch_end
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.test_epoch_end
     :noindex:
 
 --------------
@@ -720,7 +720,7 @@ test_epoch_end
 configure_optimizers
 ^^^^^^^^^^^^^^^^^^^^
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.configure_optimizers
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.configure_optimizers
     :noindex:
 
 --------------
@@ -732,13 +732,13 @@ Use these methods for convenience
 print
 ~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.print
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.print
     :noindex:
 
 save_hyperparameters
 ~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.save_hyperparameters
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.save_hyperparameters
     :noindex:
 
 ------------
@@ -768,31 +768,31 @@ Use these hooks for inference with a lightning module
 forward
 ~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.forward
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.forward
     :noindex:
 
 freeze
 ~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.freeze
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.freeze
     :noindex:
 
 to_onnx
 ~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.to_onnx
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.to_onnx
     :noindex:
 
 to_torchscript
 ~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.to_torchscript
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.to_torchscript
     :noindex:
 
 unfreeze
 ~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.unfreeze
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.unfreeze
     :noindex:
 
 ------------
@@ -1010,7 +1010,7 @@ This is the pseudocode to describe how all the hooks are called during a call to
             out = validation_step(val_batch)
             val_outs.append(out)
 
-            on_validation_batch_end()
+            on_validation_batch_end(out)
 
         validation_epoch_end(val_outs)
         on_validation_epoch_end()
@@ -1028,13 +1028,13 @@ Use these hooks to modify advanced functionality
 get_progress_bar_dict
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.get_progress_bar_dict
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.get_progress_bar_dict
     :noindex:
 
 tbptt_split_batch
 ~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.tbptt_split_batch
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.tbptt_split_batch
     :noindex:
 
 Checkpoint hooks
@@ -1044,13 +1044,13 @@ These hooks allow you to modify checkpoints
 on_load_checkpoint
 ~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_load_checkpoint
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.on_load_checkpoint
     :noindex:
 
 on_save_checkpoint
 ~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_save_checkpoint
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.on_save_checkpoint
     :noindex:
 
 -------------
@@ -1064,25 +1064,25 @@ Use these hooks if you want to couple a LightningModule to a dataset.
 train_dataloader
 ~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.train_dataloader
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.train_dataloader
     :noindex:
 
 val_dataloader
 ~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.val_dataloader
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.val_dataloader
     :noindex:
 
 test_dataloader
 ~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.test_dataloader
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.test_dataloader
     :noindex:
 
 prepare_data
 ~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.prepare_data
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.prepare_data
     :noindex:
 
 ------------
@@ -1094,30 +1094,30 @@ These are hooks related to the optimization procedure.
 backward
 ~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.backward
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.backward
     :noindex:
 
 on_after_backward
 ~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_after_backward
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.on_after_backward
     :noindex:
 
 on_before_zero_grad
 ~~~~~~~~~~~~~~~~~~~
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_before_zero_grad
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.on_before_zero_grad
     :noindex:
 
 optimizer_step
 ~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.optimizer_step
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.optimizer_step
     :noindex:
 
 optimizer_zero_grad
 ~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad
     :noindex:
 
 Training lifecycle hooks
@@ -1127,113 +1127,113 @@ These hooks are called during training
 on_fit_start
 ~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_fit_start
+.. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_fit_start
     :noindex:
 
 on_fit_end
 ~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_fit_end
+.. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_fit_end
     :noindex:
 
 on_pretrain_routine_start
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_pretrain_routine_start
+.. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_pretrain_routine_start
     :noindex:
 
 on_pretrain_routine_end
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_pretrain_routine_end
+.. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_pretrain_routine_end
     :noindex:
 
 on_test_batch_start
 ~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_batch_start
+.. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_test_batch_start
     :noindex:
 
 on_test_batch_end
 ~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_batch_end
+.. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_test_batch_end
     :noindex:
 
 on_test_epoch_start
 ~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_epoch_start
+.. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_test_epoch_start
     :noindex:
 
 on_test_epoch_end
 ~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_epoch_end
+.. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_test_epoch_end
     :noindex:
 
 on_train_batch_start
 ~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_train_batch_start
+.. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_train_batch_start
     :noindex:
 
 on_train_batch_end
 ~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_train_batch_end
+.. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_train_batch_end
     :noindex:
 
 on_train_epoch_start
 ~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_train_epoch_start
+.. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_train_epoch_start
     :noindex:
 
 on_train_epoch_end
 ~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_train_epoch_end
+.. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_train_epoch_end
     :noindex:
 
 on_validation_batch_start
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_batch_start
+.. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_validation_batch_start
     :noindex:
 
 on_validation_batch_end
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_batch_end
+.. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_validation_batch_end
     :noindex:
 
 on_validation_epoch_start
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_epoch_start
+.. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_validation_epoch_start
     :noindex:
 
 on_validation_epoch_end
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_epoch_end
+.. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_validation_epoch_end
     :noindex:
 
 setup
 ~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.setup
+.. autofunction:: pytorch_lightning.core.hooks.ModelHooks.setup
     :noindex:
 
 teardown
 ~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.teardown
+.. autofunction:: pytorch_lightning.core.hooks.ModelHooks.teardown
     :noindex:
 
 transfer_batch_to_device
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.DataHooks.transfer_batch_to_device
+.. autofunction:: pytorch_lightning.core.hooks.DataHooks.transfer_batch_to_device
     :noindex:

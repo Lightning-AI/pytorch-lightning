@@ -151,20 +151,20 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_validation_batch_start(self, self.get_model(), batch, batch_idx, dataloader_idx)
 
-    def on_validation_batch_end(self, batch, batch_idx, dataloader_idx):
+    def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
         """Called when the validation batch ends."""
         for callback in self.callbacks:
-            callback.on_validation_batch_end(self, self.get_model(), batch, batch_idx, dataloader_idx)
+            callback.on_validation_batch_end(self, self.get_model(), outputs, batch, batch_idx, dataloader_idx)
 
     def on_test_batch_start(self, batch, batch_idx, dataloader_idx):
         """Called when the test batch begins."""
         for callback in self.callbacks:
             callback.on_test_batch_start(self, self.get_model(), batch, batch_idx, dataloader_idx)
 
-    def on_test_batch_end(self, batch, batch_idx, dataloader_idx):
+    def on_test_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
         """Called when the test batch ends."""
         for callback in self.callbacks:
-            callback.on_test_batch_end(self, self.get_model(), batch, batch_idx, dataloader_idx)
+            callback.on_test_batch_end(self, self.get_model(), outputs, batch, batch_idx, dataloader_idx)
 
     def on_validation_start(self):
         """Called when the validation loop begins."""
