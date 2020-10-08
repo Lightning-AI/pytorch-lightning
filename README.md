@@ -1,8 +1,7 @@
 <div align="center">
 
-![Logo](docs/source/_images/logos/lightning_logo.svg)
+![Logo](docs/source/_images/logos/lightning-logo.png)
 
-# PyTorch Lightning
 
 **The lightweight PyTorch wrapper for high-performance AI research. Scale your models, not the boilerplate.**
 
