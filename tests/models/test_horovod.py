@@ -253,6 +253,8 @@ def test_result_reduce_horovod(tmpdir):
     horovod.run(hvd_test_fn, np=2)
 
 
+@pytest.mark.skipif(not HOROVOD_AVAILABLE, reason="Horovod is unavailable")
+@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 def test_accuracy_metric_horovod():
     num_batches = 10
     batch_size = 16
