@@ -28,6 +28,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed deprecated trainer flags: `overfit_pct`, `log_save_interval`, `row_log_interval` ([#3969](https://github.com/PyTorchLightning/pytorch-lightning/pull/3969))
 
+- Removed deprecated early_stop_callback ([#3982](https://github.com/PyTorchLightning/pytorch-lightning/pull/3982))
+
+- Removed deprecated model hooks ([#3980](https://github.com/PyTorchLightning/pytorch-lightning/pull/3980))
+
+- Removed deprecated callbacks ([#3979](https://github.com/PyTorchLightning/pytorch-lightning/pull/3979))
+
 ### Fixed
 - Fixed `current_epoch` property update to reflect true epoch number inside `LightningDataModule`, when `reload_dataloaders_every_epoch=True`. ([#3974](https://github.com/PyTorchLightning/pytorch-lightning/issues/3974))
 - Fixed to print scaler value in progress bar ([#4053](https://github.com/PyTorchLightning/pytorch-lightning/pull/4053)) 
