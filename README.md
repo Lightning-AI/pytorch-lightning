@@ -6,6 +6,10 @@
 **The lightweight PyTorch wrapper for high-performance AI research.    
 Scale your models, not the boilerplate.**
 
+```diff
+- NEWS: Lightning 1.0 is currently in rc and is being released for GA on Oct 8th 2020!
+```
+
 ---
 
 <p align="center">
@@ -38,10 +42,6 @@ Scale your models, not the boilerplate.**
 </div>
 
 ###### *Codecov is > 90%+ but build delays may show less
-
-```diff
-- NEWS: Lightning 1.0 is currently in rc and is being released for GA on Oct 8th 2020!
-```
 
 ---
 
