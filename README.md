@@ -44,7 +44,10 @@ Scale your models, not the boilerplate.**
 
 ---
 
-**Just launched GridAI- our native solution for training models at scale on the cloud! Sign up for [early acces here](https://www.grid.ai/)**
+## Just launched GridAI
+Our native platform for training models at scale on the cloud!    
+
+**Sign up for [early acces here](https://www.grid.ai/)**
 
 To use grid, take your regular command:
 
