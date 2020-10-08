@@ -3,6 +3,8 @@ import torch
 import os
 import sys
 
+from pytorch_lightning.utilities.distributed import gather_all_tensors
+
 from tests.metrics.test_metric import Dummy
 from tests.metrics.utils import setup_ddp
 
@@ -15,7 +17,7 @@ def _test_ddp_sum(rank, worldsize):
     dummy._reductions = {"foo": torch.sum}
     dummy.foo = torch.tensor(1)
 
-    dummy._sync_dist()
+    dummy._sync_dist(gather_all_tensors)
     assert dummy.foo == worldsize
 
 
@@ -24,7 +26,7 @@ def _test_ddp_cat(rank, worldsize):
     dummy = Dummy()
     dummy._reductions = {"foo": torch.cat}
     dummy.foo = [torch.tensor([1])]
-    dummy._sync_dist()
+    dummy._sync_dist(gather_all_tensors)
     assert torch.all(torch.eq(dummy.foo, torch.tensor([1, 1])))
 
 
@@ -34,7 +36,7 @@ def _test_ddp_sum_cat(rank, worldsize):
     dummy._reductions = {"foo": torch.cat, "bar": torch.sum}
     dummy.foo = [torch.tensor([1])]
     dummy.bar = torch.tensor(1)
-    dummy._sync_dist()
+    dummy._sync_dist(gather_all_tensors)
     assert torch.all(torch.eq(dummy.foo, torch.tensor([1, 1])))
     assert dummy.bar == worldsize
 
