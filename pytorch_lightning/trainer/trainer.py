@@ -238,11 +238,6 @@ class Trainer(
             resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.
                 This can be a URL.
 
-            row_log_interval: How often to log within steps.
-                .. warning:: .. deprecated:: 0.10.0
-
-                    Use `log_every_n_steps` instead. Will remove v0.11.0.
-
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
 
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the

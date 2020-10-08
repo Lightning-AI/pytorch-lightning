@@ -56,7 +56,7 @@ def test_multiple_eval_dataloaders_tuple(tmpdir):
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=1,
-        row_log_interval=1,
+        log_every_n_steps=1,
         weights_summary=None,
     )
 
@@ -87,7 +87,7 @@ def test_multiple_eval_dataloaders_list(tmpdir):
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=1,
-        row_log_interval=1,
+        log_every_n_steps=1,
         weights_summary=None,
     )
 
@@ -145,7 +145,7 @@ def test_multiple_optimizers_multiple_dataloaders(tmpdir):
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=1,
-        row_log_interval=1,
+        log_every_n_steps=1,
         weights_summary=None,
     )
 

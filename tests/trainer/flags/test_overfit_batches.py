@@ -29,7 +29,7 @@ def test_overfit_multiple_val_loaders(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=2,
         overfit_batches=1,
-        row_log_interval=1,
+        log_every_n_steps=1,
         weights_summary=None,
     )
 

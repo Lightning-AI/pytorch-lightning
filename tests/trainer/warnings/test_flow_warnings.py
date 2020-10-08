@@ -23,7 +23,7 @@ def test_no_depre_without_epoch_end(tmpdir):
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=2,
-        row_log_interval=1,
+        log_every_n_steps=1,
         weights_summary=None,
     )
 
