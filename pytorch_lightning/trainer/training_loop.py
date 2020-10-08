@@ -206,6 +206,11 @@ class TrainLoop:
             [c.on_validation_end(self.trainer, model) for c in checkpoint_callbacks]
 
     def on_train_epoch_start(self, epoch):
+
+        # reset train dataloader
+        if self.trainer.reload_dataloaders_every_epoch:
+            self.trainer.reset_train_dataloader(model)
+
         model = self.trainer.get_model()
 
         # set seed for distributed sampler (enables shuffling for each epoch)
@@ -213,6 +218,9 @@ class TrainLoop:
             self.trainer.train_dataloader.sampler.set_epoch(epoch)
         except Exception:
             pass
+
+        # update training progress in trainer
+        self.trainer.current_epoch = epoch
 
         # changing gradient according accumulation_scheduler
         self.trainer.accumulation_scheduler.on_epoch_start(self.trainer, self.trainer.get_model())
