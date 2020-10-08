@@ -6,6 +6,8 @@
 **The lightweight PyTorch wrapper for high-performance AI research.    
 Scale your models, not the boilerplate.**
 
+---
+
 <p align="center">
   <a href="https://www.youtube.com/watch?v=DbESHcCoWbM&t=2s">Masterclass</a> •
   <a href="#key-features">Key Features</a> •
