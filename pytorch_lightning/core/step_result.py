@@ -21,7 +21,7 @@ from torch import Tensor
 import os
 
 from pytorch_lightning.utilities.distributed import sync_ddp_if_available
-
+from pytorch_lightning.metrics import Metric
 
 class Result(Dict):
     def __init__(
@@ -251,12 +251,16 @@ class Result(Dict):
                 continue
 
             if options['logger'] and options['on_step']:
-                result[k] = self[k]
+                if isinstance(self[k], Metric):
+                    result[k] = self[k]._forward_cache
+                else:
+                    result[k] = self[k]
+
         return result
 
     def get_epoch_log_metrics(self) -> dict:
         """
-        Gets the metrics to log at the end of the batch step
+        Gets the metrics to log at the end of epoch
         """
         result = {}
 
@@ -264,13 +268,22 @@ class Result(Dict):
         for k, options in meta.items():
             if k == '_internal':
                 continue
+
             if options['logger'] and options['on_epoch']:
-                result[k] = self[k]
+                if isinstance(self[k], Metric):
+                    result[k] = self[k].compute()
+                else:
+                    result[k] = self[k]
+
+            if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
+                # compute metric on epoch anyway so state does not accumulate 
+                self[k].compute()
+
         return result
 
     def get_epoch_pbar_metrics(self):
         """
-        Gets the metrics to log at the end of the batch step
+        Gets the metrics to log at the end of epoch
         """
         result = {}
 
@@ -278,8 +291,17 @@ class Result(Dict):
         for k, options in meta.items():
             if k == '_internal':
                 continue
+
             if options['prog_bar'] and options['on_epoch']:
-                result[k] = self[k]
+                if isinstance(self[k], Metric):
+                    result[k] = self[k].compute()
+                else:
+                    result[k] = self[k]
+
+            if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
+                # compute metric on epoch anyway so state does not accumulate 
+                self[k].compute()
+
         return result
 
     def get_batch_pbar_metrics(self, include_forked_originals=True):
@@ -292,11 +314,16 @@ class Result(Dict):
         for k, options in meta.items():
             if k == '_internal':
                 continue
+
             if options['forked'] and not include_forked_originals:
                 continue
 
             if options['prog_bar'] and options['on_step']:
-                result[k] = self[k]
+                if isinstance(self[k], Metric):
+                    result[k] = self[k]._forward_cache
+                else:
+                    result[k] = self[k]
+
         return result
 
     def detach(self):
@@ -405,7 +432,7 @@ class Result(Dict):
         recursive_stack(result)
 
         for k, option in meta.items():
-            if k == '_internal':
+            if k == '_internal' or isinstance(result[k], Metric):
                 continue
 
             if option['on_epoch']:
@@ -439,7 +466,7 @@ class Result(Dict):
         recursive_stack(result)
 
         for k, value in result.items():
-            if k in ['meta', 'extra']:
+            if k in ['meta', 'extra'] or isinstance(value, Metric):
                 continue
 
             # pick the reduce fx
@@ -459,10 +486,12 @@ class Result(Dict):
 
     def dp_reduce(self):
         for k, value in self.items():
-            if k == 'meta':
+            if k == 'meta' or isinstance(value, Metric):
                 continue
+
             if isinstance(value, list):
                 value = torch.tensor(value)
+
             self[k] = value.mean(dim=-1)
 
     @property
@@ -502,10 +531,14 @@ def recursive_gather(outputs: Sequence[dict], result: Optional[MutableMapping] =
                 v = recursive_gather([v], in_d)
                 result[k] = v
             else:
-                if k not in result:
-                    result[k] = []
-
-                result[k].append(v)
+                if isinstance(v, Metric):
+                    # if v is a metric, just keep one of them,
+                    # don't keep on adding a list of them
+                    result[k] = v
+                else:
+                    if k not in result:
+                        result[k] = []
+                    result[k].append(v)
 
     return result
 

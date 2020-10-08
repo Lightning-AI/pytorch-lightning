@@ -111,6 +111,24 @@ def test_compute():
     assert a.compute() == 5
 
 
+def test_forward():
+    class A(Dummy):
+        def update(self, x):
+            self.x += x
+
+        def compute(self):
+            return self.x
+
+    a = A()
+    assert a(5) == 5
+    assert a._forward_cache == 5
+
+    assert a(8) == 8
+    assert a._forward_cache == 8
+
+    assert a.compute() == 13
+
+
 class ToPickle(Dummy):
     def update(self, x):
         self.x += x

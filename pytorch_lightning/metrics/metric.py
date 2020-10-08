@@ -59,6 +59,7 @@ class Metric(nn.Module, ABC):
         self.update = self._wrap_update(self.update)
         self.compute = self._wrap_compute(self.compute)
         self._computed = None
+        self._forward_cache = None
 
         # initialize state
         self._reductions = {}
@@ -125,6 +126,7 @@ class Metric(nn.Module, ABC):
         """
         # add current step
         self.update(*args, **kwargs)
+        self._forward_cache = None
 
         if self.compute_on_step:
             self._to_sync = self.ddp_sync_on_step
@@ -135,7 +137,7 @@ class Metric(nn.Module, ABC):
             # call reset, update, compute, on single batch
             self.reset()
             self.update(*args, **kwargs)
-            result = self.compute()
+            self._forward_cache = self.compute()
 
             # restore context
             for attr, val in self._cache.items():
@@ -143,7 +145,7 @@ class Metric(nn.Module, ABC):
             self._to_sync = True
             self._computed = None
 
-            return result
+            return self._forward_cache
 
     def _sync_dist(self):
         input_dict = {attr: getattr(self, attr) for attr in self._reductions.keys()}
