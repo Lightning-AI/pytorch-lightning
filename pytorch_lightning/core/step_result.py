@@ -275,6 +275,10 @@ class Result(Dict):
                 else:
                     result[k] = self[k]
 
+            if not options['on_epoch'] and isinstance(self[k], Metric):
+                # compute metric on epoch anyway so state does not accumulate 
+                self[k].compute()
+
         return result
 
     def get_epoch_pbar_metrics(self):
@@ -293,6 +297,10 @@ class Result(Dict):
                     result[k] = self[k].compute()
                 else:
                     result[k] = self[k]
+
+            if not options['on_epoch'] and isinstance(self[k], Metric):
+                # compute metric on epoch anyway so state does not accumulate 
+                self[k].compute()
 
         return result
 
@@ -315,6 +323,9 @@ class Result(Dict):
                     result[k] = self[k]._forward_cache
                 else:
                     result[k] = self[k]
+
+            if not options['on_epoch'] and isinstance(self[k], Metric):
+                self[k].reset()
 
         return result
 
