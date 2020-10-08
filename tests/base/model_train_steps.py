@@ -4,7 +4,7 @@ from collections import OrderedDict
 
 import torch
 
-from pytorch_lightning import TrainResult, EvalResult
+from pytorch_lightning.core.step_result import TrainResult, EvalResult
 
 
 class TrainingStepVariations(ABC):

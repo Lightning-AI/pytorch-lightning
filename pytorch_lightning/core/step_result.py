@@ -555,23 +555,7 @@ class TrainResult(Result):
         hiddens: Optional[Tensor] = None,
     ):
         """
-        Used in train loop to auto-log to a logger or progress bar without needing to define
-        a train_step_end or train_epoch_end method
-
-        Example::
-
-            def training_step(self, batch, batch_idx):
-                loss = ...
-                result = pl.TrainResult(loss)
-                result.log('train_loss', loss)
-                return result
-
-            # without val/test loop can model checkpoint or early stop
-            def training_step(self, batch, batch_idx):
-                loss = ...
-                result = pl.TrainResult(loss, early_stop_on=loss, checkpoint_on=loss)
-                result.log('train_loss', loss)
-                return result
+        Tracks internal metrics aggregations
 
         Args:
             minimize: Metric currently being minimized.
