@@ -49,7 +49,7 @@ Or conda.
 
     conda install pytorch-lightning -c conda-forge
 
-
+-------------
 
 The research
 ============
@@ -486,7 +486,7 @@ Once your training starts, you can view the logs by using your favorite logger o
     tensorboard --logdir ./lightning_logs
 
 
-Which will generate automatic tensorboard logs.
+Which will generate automatic tensorboard logs (or with the logger of your choice).
 
 .. figure:: /_images/mnist_imgs/mnist_tb.png
    :alt: mnist CPU bar

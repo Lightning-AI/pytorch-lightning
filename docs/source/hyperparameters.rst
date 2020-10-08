@@ -12,6 +12,37 @@ Hyperparameters
 Lightning has utilities to interact seamlessly with the command line ``ArgumentParser``
 and plays well with the hyperparameter optimization framework of your choice.
 
+------------
+
+Lightning-Grid
+--------------
+Lightning has a native solution for doing sweeps and training models at scale called Lightning-Grid.
+Grid lets you launch sweeps from your laptop on the cloud provider of your choice. We've designed Grid to
+work for Lightning users without needing to make ANY changes to their code.
+
+To use grid, take your regular command:
+
+.. code-block:: bash
+
+    python my_model.py --learning_rate 1e-6 --layers 2 --gpus 4
+
+And change it to use the grid train command:
+
+.. code-block:: bash
+
+    grid train --grid_gpus 4 my_model.py --learning_rate 'uniform(1e-6, 1e-1, 20)' --layers '[2, 4, 8, 16]'
+
+The above command will launch (20 * 4) experiments each running on 4 GPUs (320 GPUs!) - by making ZERO changes to
+your code.
+
+The `uniform` command is part of our new expressive syntax which lets you construct hyperparameter combinations
+using over 20+ distributions, lists, etc. Of course, you can also configure all of this using yamls which
+can be dynamically assembled at runtime.
+
+Grid is in private early-access now but you can request access at `grid.ai <https://www.grid.ai/>`_.
+
+.. hint:: Grid supports the search strategy of your choice! (and much more than just sweeps)
+
 ----------
 
 ArgumentParser
@@ -291,14 +322,3 @@ and now we can train MNIST or the GAN using the command line interface!
 
     $ python main.py --model_name gan --encoder_layers 24
     $ python main.py --model_name mnist --layer_1_dim 128
-
-----------
-
-Hyperparameter Optimization
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Lightning is fully compatible with the hyperparameter optimization libraries!
-Here are some useful ones:
-
-- `Hydra <https://medium.com/pytorch/hydra-a-fresh-look-at-configuration-for-machine-learning-projects-50583186b710>`_
-- `Optuna <https://github.com/optuna/optuna/blob/master/examples/pytorch_lightning_simple.py>`_
-- `Ray Tune <https://docs.ray.io/en/master/tune/tutorials/tune-pytorch-lightning.html>`_
