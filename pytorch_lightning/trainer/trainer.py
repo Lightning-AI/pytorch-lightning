@@ -85,7 +85,6 @@ class Trainer(
         self,
         logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
         checkpoint_callback: Union[ModelCheckpoint, bool] = True,
-        early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,  # todo: remove in v1.0.0
         callbacks: Optional[List[Callback]] = None,
         default_root_dir: Optional[str] = None,
         gradient_clip_val: float = 0,
@@ -180,11 +179,6 @@ class Trainer(
             deterministic: If true enables cudnn.deterministic.
 
             distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn, ddp_cpu)
-
-            early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`).
-                .. warning:: .. deprecated:: 0.10.0
-
-                    Will be removed in v1.0.
 
             fast_dev_run: runs 1 batch of train, test and val to find any bugs (ie: a sort of unit test).
 
@@ -319,10 +313,10 @@ class Trainer(
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init
         self.checkpoint_callback: Union[ModelCheckpoint, bool] = checkpoint_callback
-        self.early_stop_callback: Optional[Union[EarlyStopping, bool]] = early_stop_callback
+        self.early_stop_callback: Optional[Union[EarlyStopping, bool]] = False
         self.callback_connector.on_trainer_init(
             callbacks,
-            early_stop_callback,
+            False,
             checkpoint_callback,
             progress_bar_refresh_rate,
             process_position,
