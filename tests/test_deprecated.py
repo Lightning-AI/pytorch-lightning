@@ -16,29 +16,6 @@ def _soft_unimport_module(str_module):
         del sys.modules[str_module]
 
 
-def test_tbd_remove_in_v0_11_0_trainer():
-    with pytest.deprecated_call(match='will be removed in v0.11.0'):
-        LearningRateLogger()
-
-    with pytest.deprecated_call(match='will be removed in v0.11.0'):
-        trainer = Trainer(row_log_interval=8)
-    assert trainer.log_every_n_steps == 8
-    with pytest.deprecated_call(match='will be removed in v0.11.0'):
-        assert trainer.row_log_interval == 8
-
-    with pytest.deprecated_call(match='will be removed in v0.11.0'):
-        trainer = Trainer(log_save_interval=9)
-    assert trainer.flush_logs_every_n_steps == 9
-    with pytest.deprecated_call(match='will be removed in v0.11.0'):
-        assert trainer.log_save_interval == 9
-
-
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-def test_tbd_remove_in_v0_11_0_trainer_gpu():
-    with pytest.deprecated_call(match='will be removed in v0.11.0'):
-        GpuUsageLogger()
-
-
 class ModelVer0_6(EvalModelTemplate):
 
     # todo: this shall not be needed while evaluate asks for dataloader explicitly

@@ -336,7 +336,7 @@ def test_tbptt_log(tmpdir):
         limit_val_batches=0,
         truncated_bptt_steps=truncated_bptt_steps,
         max_epochs=2,
-        row_log_interval=2,
+        log_every_n_steps=2,
         weights_summary=None,
     )
     trainer.fit(model)
