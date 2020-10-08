@@ -1,13 +1,18 @@
 <div align="center">
 
-![Logo](docs/source/_images/logos/lightning_logo.svg)
+<img src="docs/source/_images/logos/lightning-logo.png" width="400px">
 
-# PyTorch Lightning
 
-**The lightweight PyTorch wrapper for high-performance AI research. Scale your models, not the boilerplate.**
+**The lightweight PyTorch wrapper for high-performance AI research.    
+Scale your models, not the boilerplate.**
+
+```diff
+- NEWS: Lightning 1.0 is currently in rc and is being released for GA on Oct 8th 2020!
+```
+---
 
 <p align="center">
-  <a href="https://www.youtube.com/watch?v=DbESHcCoWbM&t=2s">Masterclass</a> •
+  <a href="https://www.pytorchlightning.ai/">Website</a> •
   <a href="#key-features">Key Features</a> •
   <a href="#how-to-use">How To Use</a> •
   <a href="https://pytorch-lightning.readthedocs.io/en/stable/">Docs</a> •
@@ -39,6 +44,28 @@
 
 ---
 
+## Just launched GridAI
+Our native platform for training models at scale on the cloud!    
+
+**Sign up for [early acces here](https://www.grid.ai/)**
+
+To use grid, take your regular command:
+
+```
+    python my_model.py --learning_rate 1e-6 --layers 2 --gpus 4
+```
+
+And change it to use the grid train command:
+
+```
+    grid train --grid_gpus 4 my_model.py --learning_rate 'uniform(1e-6, 1e-1, 20)' --layers '[2, 4, 8, 16]'
+```
+
+The above command will launch (20 * 4) experiments each running on 4 GPUs (320 GPUs!) - by making ZERO changes to
+your code.
+
+---
+
 ## PyTorch Lightning is just organized PyTorch
 Lightning disentangles PyTorch code to decouple the science from the engineering.
 ![PT to PL](/docs/source/_images/general/pl_quick_start_full_compressed.gif)
@@ -63,6 +90,13 @@ Once you do this, you can train on multiple-GPUs, TPUs, CPUs and even in 16-bit 
 Get started with our [3 steps guide](https://pytorch-lightning.readthedocs.io/en/stable/new-project.html)
 
 ---
+
+## Inference
+Lightning is also designed for the fast inference AI researchers and production teams need to scale up things like BERT and Self-supevised learning.
+Lightning can automatically export to onnx or torchscript for those cases.
+
+---
+
 ## Trending contributors
 
 [![](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/images/0)](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/links/0)
@@ -151,6 +185,7 @@ class LitAutoEncoder(pl.LightningModule):
         x = x.view(x.size(0), -1)
         z = self.encoder(x)
         x_hat = self.decoder(z)
+        self.log('train_loss', loss)
         loss = F.mse_loss(x_hat, x)
         return loss
 

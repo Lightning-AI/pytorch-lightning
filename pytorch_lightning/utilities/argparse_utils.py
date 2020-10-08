@@ -135,7 +135,6 @@ def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
          'default_root_dir': None,
          'deterministic': False,
          'distributed_backend': None,
-         'early_stop_callback': False,
          ...
          'logger': True,
          'max_epochs': 1000,
