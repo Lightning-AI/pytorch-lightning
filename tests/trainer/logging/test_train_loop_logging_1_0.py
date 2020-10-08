@@ -1,13 +1,14 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
-from tests.base.boring_model import BoringModel, RandomDictDataset
+from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
 import os
 import torch
 import pytest
 
 from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
+from torch.utils.data import Dataset
 
 
 def test__training_step__log(tmpdir):
@@ -64,7 +65,7 @@ def test__training_step__log(tmpdir):
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=2,
-        row_log_interval=1,
+        log_every_n_steps=1,
         weights_summary=None,
     )
     trainer.fit(model)
@@ -82,8 +83,8 @@ def test__training_step__log(tmpdir):
         'l_e',
         'l_s',
         'l_se',
-        'step_l_se',
-        'epoch_l_se',
+        'l_se_step',
+        'l_se_epoch',
     }
     assert logged_metrics == expected_logged_metrics
 
@@ -92,8 +93,8 @@ def test__training_step__log(tmpdir):
         'p_e',
         'p_s',
         'p_se',
-        'step_p_se',
-        'epoch_p_se',
+        'p_se_step',
+        'p_se_epoch',
     }
     assert pbar_metrics == expected_pbar_metrics
 
@@ -137,7 +138,7 @@ def test__training_step__epoch_end__log(tmpdir):
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=2,
-        row_log_interval=1,
+        log_every_n_steps=1,
         weights_summary=None,
     )
     trainer.fit(model)
@@ -149,16 +150,7 @@ def test__training_step__epoch_end__log(tmpdir):
 
     # make sure all the metrics are available for callbacks
     logged_metrics = set(trainer.logged_metrics.keys())
-    expected_logged_metrics = {
-        'epoch',
-        'a',
-        'step_a',
-        'epoch_a',
-        'b',
-        'b1',
-        'a1',
-        'a2'
-    }
+    expected_logged_metrics = {'epoch', 'a', 'a_step', 'a_epoch', 'b', 'b1', 'a1', 'a2'}
     assert logged_metrics == expected_logged_metrics
 
     pbar_metrics = set(trainer.progress_bar_metrics.keys())
@@ -208,7 +200,7 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
         limit_train_batches=batches,
         limit_val_batches=batches,
         max_epochs=max_epochs,
-        row_log_interval=log_interval,
+        log_every_n_steps=log_interval,
         weights_summary=None,
     )
     trainer.fit(model)
@@ -221,8 +213,8 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     # make sure all the metrics are available for callbacks
     logged_metrics = set(trainer.logged_metrics.keys())
     expected_logged_metrics = {
-        'a', 'step_a', 'epoch_a',
-        'b', 'step_b', 'epoch_b',
+        'a', 'a_step', 'a_epoch',
+        'b', 'b_step', 'b_epoch',
         'c',
         'd/e/f',
         'epoch'
@@ -230,7 +222,7 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     assert logged_metrics == expected_logged_metrics
 
     pbar_metrics = set(trainer.progress_bar_metrics.keys())
-    expected_pbar_metrics = {'b', 'c', 'epoch_b', 'step_b'}
+    expected_pbar_metrics = {'b', 'c', 'b_epoch', 'b_step'}
     assert pbar_metrics == expected_pbar_metrics
 
     callback_metrics = set(trainer.callback_metrics.keys())
@@ -344,13 +336,13 @@ def test_tbptt_log(tmpdir):
         limit_val_batches=0,
         truncated_bptt_steps=truncated_bptt_steps,
         max_epochs=2,
-        row_log_interval=2,
+        log_every_n_steps=2,
         weights_summary=None,
     )
     trainer.fit(model)
 
     generated = set(trainer.logged_metrics.keys())
-    expected = {'a', 'step_a', 'epoch_a', 'epoch'}
+    expected = {'a', 'a_step', 'a_epoch', 'epoch'}
     assert generated == expected
 
 
@@ -390,9 +382,94 @@ def test_different_batch_types_for_sizing(tmpdir):
 
     generated = set(trainer.logger_connector.logged_metrics)
     expected = {
-        'epoch_a', 'a',
-        'n', 'step_n/epoch_0', 'epoch_n',
+        'a_epoch', 'a',
+        'n', 'n_step/epoch_0', 'n_epoch',
         'epoch'
     }
 
     assert generated == expected
+
+
+def test_validation_step_with_string_data_logging():
+    class TestModel(BoringModel):
+        def on_train_epoch_start(self) -> None:
+            print("override any method to prove your bug")
+
+        def training_step(self, batch, batch_idx):
+            output = self.layer(batch["x"])
+            loss = self.loss(batch, output)
+            return {"loss": loss}
+
+        def validation_step(self, batch, batch_idx):
+            output = self.layer(batch["x"])
+            loss = self.loss(batch, output)
+            self.log("x", loss)
+            return {"x": loss}
+
+    # fake data
+    train_data = torch.utils.data.DataLoader(RandomDictStringDataset(32, 64))
+    val_data = torch.utils.data.DataLoader(RandomDictStringDataset(32, 64))
+
+    # model
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=os.getcwd(),
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=1,
+        weights_summary=None,
+    )
+    trainer.fit(model, train_data, val_data)
+
+
+def test_nested_datasouce_batch(tmpdir):
+
+    class NestedDictStringDataset(Dataset):
+        def __init__(self, size, length):
+            self.len = length
+            self.data = torch.randn(length, size)
+
+        def __getitem__(self, index):
+            x = {
+                'post_text': ['bird is fast', 'big cat'],
+                'dense_0': [
+                    torch.tensor([-0.1000,  0.2000], dtype=torch.float64),
+                    torch.tensor([1, 1], dtype=torch.uint8)
+                ],
+                'post_id': ['115', '116'],
+                'label': [torch.tensor([0, 1]), torch.tensor([1, 1], dtype=torch.uint8)]
+            }
+            return x
+
+        def __len__(self):
+            return self.len
+
+    class TestModel(BoringModel):
+        def on_train_epoch_start(self) -> None:
+            print("override any method to prove your bug")
+
+        def training_step(self, batch, batch_idx):
+            output = self.layer(torch.rand(32))
+            loss = self.loss(batch, output)
+            return {"loss": loss}
+
+        def validation_step(self, batch, batch_idx):
+            output = self.layer(torch.rand(32))
+            loss = self.loss(batch, output)
+            self.log("x", loss)
+            return {"x": loss}
+
+    # fake data
+    train_data = torch.utils.data.DataLoader(NestedDictStringDataset(32, 64))
+    val_data = torch.utils.data.DataLoader(NestedDictStringDataset(32, 64))
+
+    # model
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=os.getcwd(),
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=1,
+        weights_summary=None,
+    )
+    trainer.fit(model, train_data, val_data)

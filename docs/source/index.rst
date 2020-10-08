@@ -6,6 +6,7 @@
 PyTorch Lightning Documentation
 ===============================
 
+
 .. toctree::
    :maxdepth: 1
    :name: start
@@ -37,7 +38,7 @@ PyTorch Lightning Documentation
 
    callbacks
    datamodules
-   loggers
+   logging
    metrics
 
 .. toctree::
@@ -87,8 +88,7 @@ PyTorch Lightning Documentation
    slurm
    child_modules
    debugging
-   experiment_logging
-   experiment_reporting
+   loggers
    early_stopping
    fast_training
    hooks
@@ -109,6 +109,13 @@ PyTorch Lightning Documentation
 
 .. toctree::
    :maxdepth: 1
+   :name: Partner Domain Frameworks
+   :caption: Partner Domain Frameworks
+
+   asr_tts
+
+.. toctree::
+   :maxdepth: 1
    :name: community
    :caption: Community
 
@@ -117,6 +124,7 @@ PyTorch Lightning Documentation
    CONTRIBUTING.md
    BECOMING_A_CORE_CONTRIBUTOR.md
    governance.md
+   CHANGELOG.md
 
 Indices and tables
 ------------------
@@ -124,22 +132,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
-
-
-.. This is here to make sphinx aware of the modules but not throw an error/warning
-.. toctree::
-   :hidden:
-
-   api/pytorch_lightning.core
-   api/pytorch_lightning.callbacks
-   api/pytorch_lightning.loggers
-   api/pytorch_lightning.metrics
-   api/pytorch_lightning.overrides
-   api/pytorch_lightning.profiler
-   api/pytorch_lightning.trainer
-   api/pytorch_lightning.utilities
-   api/pytorch_lightning.tuner
-   api/pytorch_lightning.plugins
-   api/pytorch_lightning.distributed
-   api/pytorch_lightning.cluster_environments

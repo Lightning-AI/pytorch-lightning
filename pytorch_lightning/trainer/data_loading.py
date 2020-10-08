@@ -20,29 +20,26 @@ from typing import Union, List, Tuple, Callable, Optional
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
-from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.accelerators.base_accelerator import Accelerator
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 from copy import deepcopy
+from typing import Iterable
 
-
+TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 try:
     from apex import amp
 except ImportError:
     amp = None
 
-try:
+if TPU_AVAILABLE:
     import torch_xla
     import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
 
 try:
     import horovod.torch as hvd
@@ -238,15 +235,15 @@ class TrainerDataLoadingMixin(ABC):
         loader_name = f'{mode}_dataloader'
         dataloaders = self.request_dataloader(getattr(model, loader_name))
 
+        if not isinstance(dataloaders, list):
+            dataloaders = [dataloaders]
+
         # when overfitting use the training loader as val and test
         # duplicate it the numb of times needed to match the train loaders
         if self.overfit_batches > 0:
             num_loaders = len(dataloaders)
             train_dataloader = self.request_dataloader(getattr(model, 'train_dataloader'))
             dataloaders = [deepcopy(train_dataloader) for _ in range(num_loaders)]
-
-        if not isinstance(dataloaders, list):
-            dataloaders = [dataloaders]
 
         self.dev_debugger.track_load_dataloader_call(loader_name, dataloaders=dataloaders)
 
@@ -340,7 +337,19 @@ class TrainerDataLoadingMixin(ABC):
             The dataloader
         """
         dataloader = dataloader_fx()
+        dataloader = self._flatten_dl_only(dataloader)
 
         if self.accelerator_backend is not None:
             self.accelerator_backend.barrier('get_dataloaders')
         return dataloader
+
+    def _flatten_dl_only(self, dataloaders):
+        # handles user error when they return:
+        # return dl1, dl2  vs  return (dl1, dl2)
+        if isinstance(dataloaders, tuple):
+            all_dls = [isinstance(x, Iterable) for x in dataloaders]
+            all_dls = all(all_dls)
+            if all_dls:
+                dataloaders = list(dataloaders)
+
+        return dataloaders

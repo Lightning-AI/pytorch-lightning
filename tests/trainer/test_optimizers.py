@@ -307,7 +307,7 @@ def test_multiple_optimizers_callbacks(tmpdir):
     """
     class CB(Callback):
 
-        def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
             pass
 
         def on_train_epoch_start(self, trainer, pl_module):

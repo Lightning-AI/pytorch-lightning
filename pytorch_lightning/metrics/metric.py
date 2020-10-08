@@ -1,262 +1,232 @@
-# Copyright The PyTorch Lightning team.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+import functools
 from abc import ABC, abstractmethod
-from typing import Any, Mapping, Optional, Sequence
-import numbers
+from typing import Any, Callable, Optional, Union
+from collections.abc import Mapping, Sequence
+from collections import namedtuple
+from copy import deepcopy
 
+import os
 import torch
 from torch import nn
-import numpy as np
 
-from pytorch_lightning.metrics.converters import (
-    at_least_1d,
-    gather_all_tensors_if_available,
-    convert_to_tensor,
-    convert_to_numpy,
-)
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
+from pytorch_lightning.utilities.distributed import gather_all_tensors_if_available
+from pytorch_lightning.metrics.utils import _flatten, dim_zero_cat, dim_zero_mean, dim_zero_sum
 
 
-class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
+class Metric(nn.Module, ABC):
     """
-    Abstract base class for metric implementation.
+    Base class for all metrics present in the Metrics API.
 
-    Should be used to implement metrics that
+    Implements ``add_state()``, ``forward()``, ``reset()`` and a few other things to
+    handle distributed synchronization and per-step metric computation.
 
-        1. Return multiple Outputs
-        2. Handle their own DDP sync
+    Override ``update()`` and ``compute()`` functions to implement your own metric. Use
+    ``add_state()`` to register metric state variables which keep track of state on each
+    call of ``update()`` and are synchronized across processes when ``compute()`` is called.
 
-    Metric hooks that can be implemented are
+    Note:
+        Metric state variables can either be ``torch.Tensors`` or an empty list which can we used
+        to store `torch.Tensors``.
 
-        * input_convert: pre-forward hook that takes care of input conversion
-        * output_convert: post-forward hook that takes care of output convertion
-        * ddp_reduce: implementation of ddp sync + aggregation, default is ddp_sync + aggregate
-        * compute: post-ddp sync for additional metric computations
+    Note:
+        Different metrics only override ``update()`` and not ``forward()``. A call to ``update()``
+        is valid, but it won't return the metric value at the current step. A call to ``forward()``
+        automatically calls ``update()`` and also returns the metric value at the current step.
 
-    ``ddp_reduce`` by default calls the following methods, which can also be overwritten if necessary.
-
-        * ddp_sync: implements how values should be synced across ddp-processes. Defaults to gather all.
-        * aggregate: implement how values should be aggregated (defaults to mean).
-
-    Call order
-
-        input_convert -> forward -> output_convert -> ddp_reduce (per default being ddp_sync -> aggregate) -> compute
-
+    Args:
+        compute_on_step:
+            Forward only calls ``update()`` and returns None if this is set to False. default: True
+        ddp_sync_on_step:
+            Synchronize metric state across processes at each ``forward()``
+            before returning the value at the step. default: False
+        process_group:
+            Specify the process group on which synchronization is called. default: None (which selects the entire world)
     """
-
-    def __init__(self, name: str, reduce_group: Optional[Any] = None):
-        """
-        Args:
-            name: the metric's name
-            reduce_group: the process group for DDP reduces (only needed for DDP training).
-                Defaults to all processes (world)
-
-        """
+    def __init__(
+        self,
+        compute_on_step: bool = True,
+        ddp_sync_on_step: bool = False,
+        process_group: Optional[Any] = None,
+    ):
         super().__init__()
-        self.name = name
-        self._dtype = torch.get_default_dtype()
-        self._device = torch.device("cpu")
 
-        self.reduce_group = reduce_group
+        self.ddp_sync_on_step = ddp_sync_on_step
+        self.compute_on_step = compute_on_step
+        self.process_group = process_group
+        self._to_sync = True
 
-        # Buffer for holding aggregated state after each batch
-        self._step_vals = []
+        self.update = self._wrap_update(self.update)
+        self.compute = self._wrap_compute(self.compute)
+        self._computed = None
+        self._forward_cache = None
 
-        # Register hooks
-        self.register_forward_pre_hook(self.input_convert)
-        self.register_forward_hook(self.output_convert)
-        self.register_forward_hook(self.ddp_reduce)
-        self.register_forward_hook(self.compute)
+        # initialize state
+        self._reductions = {}
+        self._defaults = {}
 
-    @staticmethod
-    def input_convert(self, data: Any):
+    def add_state(self, name: str, default, dist_reduce_fx: Optional[Union[str, Callable]] = None):
         """
-        Implement how the inputs should be casted before calling forward
+        Adds metric state variable. Only used by subclasses.
 
         Args:
-            data: input to forward method
+            name: The name of the state variable. The variable will then be accessible at ``self.name``.
+            default: Default value of the state; can either be a ``torch.Tensor`` or an empty list. The state will be
+                reset to this value when ``self.reset()`` is called.
+            dist_reduce_fx (Optional): Function to reduce state accross mutliple processes in distributed mode.
+                If value is ``"sum"``, ``"mean"``, or ``"cat"``, we will use ``torch.sum``, ``torch.mean``,
+                and ``torch.cat`` respectively, each with argument ``dim=0``. The user can also pass a custom
+                function in this parameter.
 
-        Returns:
-            casted data
+        Note:
+            Setting ``dist_reduce_fx`` to None will return the metric state synchronized across different processes.
+            However, there won't be any reduction function applied to the synchronized metric state.
+
+            The metric states would be synced as follows
+
+            - If the metric state is ``torch.Tensor``, the synced value will be a stacked ``torch.Tensor`` across
+              the process dimension if the metric state was a ``torch.Tensor``. The original ``torch.Tensor`` metric
+              state retains dimension and hence the synchronized output will be of shape ``(num_process, ...)``.
+
+            - If the metric state is a ``list``, the synced value will be a ``list`` containing the
+              combined elements from all processes.
+
+        Note:
+            When passing a custom function to ``dist_reduce_fx``, expect the synchronized metric state to follow
+            the format discussed in the above note.
+
         """
-        return data
+        if not isinstance(default, torch.Tensor) or (isinstance(default, list) and len(default) != 0):
+            raise ValueError(
+                "state variable must be a tensor or any empty list (where you can append tensors)"
+            )
 
-    @abstractmethod
+        if dist_reduce_fx == "sum":
+            dist_reduce_fx = dim_zero_sum
+        elif dist_reduce_fx == "mean":
+            dist_reduce_fx = dim_zero_mean
+        elif dist_reduce_fx == "cat":
+            dist_reduce_fx = dim_zero_cat
+        elif dist_reduce_fx is not None and not isinstance(dist_reduce_fx, Callable):
+            raise ValueError(
+                "`dist_reduce_fx` must be callable or one of ['mean', 'sum', 'cat', None]"
+            )
+
+        if isinstance(default, torch.Tensor):
+            self.register_buffer(name, default)
+        else:
+            setattr(self, name, default)
+
+        self._defaults[name] = deepcopy(default)
+        self._reductions[name] = dist_reduce_fx
+
     def forward(self, *args, **kwargs):
         """
-        Implements the actual metric computation.
-
-        Returns:
-            metric value or metric state
-
+        Automatically calls ``update()``. Returns the metric value over inputs if ``compute_on_step`` is True.
         """
-        raise NotImplementedError
+        # add current step
+        self.update(*args, **kwargs)
+        self._forward_cache = None
 
-    @staticmethod
-    def output_convert(self, data: Any, output: Any):
+        if self.compute_on_step:
+            self._to_sync = self.ddp_sync_on_step
+
+            # save context before switch
+            self._cache = {attr: getattr(self, attr) for attr in self._defaults.keys()}
+
+            # call reset, update, compute, on single batch
+            self.reset()
+            self.update(*args, **kwargs)
+            self._forward_cache = self.compute()
+
+            # restore context
+            for attr, val in self._cache.items():
+                setattr(self, attr, val)
+            self._to_sync = True
+            self._computed = None
+
+            return self._forward_cache
+
+    def _sync_dist(self):
+        input_dict = {attr: getattr(self, attr) for attr in self._reductions.keys()}
+        output_dict = apply_to_collection(
+            input_dict,
+            torch.Tensor,
+            gather_all_tensors_if_available,
+            group=self.process_group,
+        )
+
+        for attr, reduction_fn in self._reductions.items():
+            # pre-processing ops (stack or flatten for inputs)
+            if isinstance(output_dict[attr][0], torch.Tensor):
+                output_dict[attr] = torch.stack(output_dict[attr])
+            elif isinstance(output_dict[attr][0], list):
+                output_dict[attr] = _flatten(output_dict[attr])
+
+            assert isinstance(reduction_fn, (Callable, None))
+            reduced = reduction_fn(output_dict[attr]) if reduction_fn is not None else output_dict[attr]
+            setattr(self, attr, reduced)
+
+    def _wrap_update(self, update):
+        @functools.wraps(update)
+        def wrapped_func(*args, **kwargs):
+            self._computed = None
+            return update(*args, **kwargs)
+        return wrapped_func
+
+    def _wrap_compute(self, compute):
+        @functools.wraps(compute)
+        def wrapped_func(*args, **kwargs):
+            # return cached value
+            if self._computed is not None:
+                return self._computed
+
+            if (
+                self._to_sync
+                and torch.distributed.is_available()  # noqa: W503
+                and torch.distributed.is_initialized()  # noqa: W503
+            ):
+                self._sync_dist()
+
+            self._computed = compute(*args, **kwargs)
+            self.reset()
+
+            return self._computed
+
+        return wrapped_func
+
+    @abstractmethod
+    def update(self) -> None:  # pylint: disable=E0202
         """
-        Implement how outputs from forward should be casted
-
-        Args:
-            data: input to forward method
-            output: output from forward method
-
-        Returns:
-            casted outputs
+        Override this method to update the state variables of your metric class.
         """
-        return apply_to_collection(output, (torch.Tensor, np.ndarray), at_least_1d)
+        pass
 
-    def ddp_sync(self, tensor: Any):
+    @abstractmethod
+    def compute(self):  # pylint: disable=E0202
         """
-        Implement how the outputs from forward should be synced
-        (per default just gathers all of them and adds them to self._step_vals)
-
-        Args:
-            tensor: tensor to sync
-
-        Returns:
-            synced output
-
+        Override this method to compute the final metric value from state variables
+        synchronized across the distributed backend.
         """
-        gathered_tensors = apply_to_collection(tensor, torch.Tensor, gather_all_tensors_if_available, self.reduce_group)
-        return gathered_tensors
-
-    @staticmethod
-    def ddp_reduce(self, data: Any, output: Any):
-        """
-        Implement how the outputs from forward should be synced and reduced across nodes
-
-        Args:
-            data: input to forward method
-            output: output from the `output_convert` hook
-
-        Returns:
-            synced output
-
-        """
-        synced = self.ddp_sync(output)
-        agg_val = self.aggregate(synced)
-        self._step_vals.append(agg_val)
-        return agg_val
-
-    def aggregate(self, *tensors: torch.Tensor) -> torch.Tensor:
-        """
-        Implement aggregation of values on the same device
-
-        Args:
-            tensors: the values to be aggregated
-
-        Returns:
-            aggregated values
-
-        """
-        # single tensor
-        if len(tensors) == 1:
-            tensors = tensors[0]
-            if isinstance(tensors, Mapping):
-                return {k: _stack_and_agg(tensors[k]) for k in tensors.keys()}
-            if isinstance(tensors, list):
-                return _stack_and_agg(tensors)
-            if isinstance(tensors, tuple):
-                return tensors
-            if isinstance(tensors, torch.Tensor):
-                return _stack_and_agg(tensors)
-
-        # multiple tensors (from aggregation over batches)
-        if isinstance(tensors[0], Mapping):
-            return {k: torch.stack([tensor[k] for tensor in tensors]).sum(0) for k in tensors[0].keys()}
-        if isinstance(tensors[0], Sequence):
-            return tuple([torch.stack(tmp).sum(0) for tmp in zip(*tensors)])
-        if isinstance(tensors[0], torch.Tensor):
-            return torch.stack(tensors).sum(0)
-
-        raise TypeError("unknown metric value format to aggregate")
-
-    @staticmethod
-    def compute(self, data: Any, output: Any):
-        """
-        Implement additionally metric computations to be done after the aggregation
-
-        Args:
-            data: input to forward method
-            output: output from the `aggregate` hook
-
-        Returns:
-            final metric value
-
-        """
-        return output
-
-    @property
-    def aggregated(self) -> torch.Tensor:
-        aggr = self.aggregate(*self._step_vals if len(self._step_vals) > 1 else self._step_vals)
-        self.reset()
-        return self.compute(self, None, aggr)
+        pass
 
     def reset(self):
-        self._step_vals = []
+        """
+        This method automatically resets the metric state variables to their default value.
+        """
+        for attr, default in self._defaults.items():
+            current_val = getattr(self, attr)
+            if isinstance(current_val, torch.Tensor):
+                setattr(self, attr, deepcopy(default).to(current_val.device))
+            else:
+                setattr(self, attr, deepcopy(default))
 
+    def __getstate__(self):
+        # ignore update and compute functions for pickling
+        return {k: v for k, v in self.__dict__.items() if k not in ["update", "compute"]}
 
-def _stack_and_agg(tensors):
-    """ Utility function for stacking and aggregating tensors """
-    if isinstance(tensors, list):
-        return torch.sum(torch.stack([t for t in tensors]), 0)
-    return tensors.squeeze() if tensors.numel() == 1 else tensors
-
-
-class TensorMetric(Metric):
-    """
-    Base class for metric implementation operating directly on tensors.
-    All inputs and outputs will be casted to tensors if necessary.
-    Already handles DDP sync and input/output conversions.
-    """
-
-    @staticmethod
-    def input_convert(self, data: Any):
-        data = apply_to_collection(
-            data, (torch.Tensor, np.ndarray, numbers.Number), convert_to_tensor, self.dtype, self.device
-        )
-        return super(TensorMetric, self).input_convert(self, data)
-
-    @staticmethod
-    def output_convert(self, data: Any, output: Any):
-
-        output = apply_to_collection(
-            output, (torch.Tensor, np.ndarray, numbers.Number), convert_to_tensor, self.dtype, self.device
-        )
-        return super(TensorMetric, self).output_convert(self, data, output)
-
-
-class NumpyMetric(Metric):
-    """
-    Base class for metric implementation operating on numpy arrays.
-    All inputs will be casted to numpy if necessary and all outputs will
-    be casted to tensors if necessary.
-    Already handles DDP sync and input/output conversions.
-    """
-
-    @staticmethod
-    def input_convert(self, data: Any):
-        data = apply_to_collection(data, (torch.Tensor, np.ndarray, numbers.Number), convert_to_numpy)
-        return super(NumpyMetric, self).input_convert(self, data)
-
-    @staticmethod
-    def output_convert(self, data: Any, output: Any):
-        output = apply_to_collection(
-            output, (torch.Tensor, np.ndarray, numbers.Number), convert_to_tensor, self.dtype, self.device
-        )
-
-        return super(NumpyMetric, self).output_convert(self, data, output)
+    def __setstate__(self, state):
+        # manually restore update and compute functions for pickling
+        self.__dict__.update(state)
+        self.update = self._wrap_update(self.update)
+        self.compute = self._wrap_compute(self.compute)

@@ -338,12 +338,11 @@ Without changing a SINGLE line of your code, you can now do the following with t
 
 .. code-block:: python
 
-    # train on TPUs using 16 bit precision with early stopping
+    # train on TPUs using 16 bit precision
     # using only half the training data and checking validation every quarter of a training epoch
     trainer = pl.Trainer(
         tpu_cores=8,
         precision=16,
-        early_stop_callback=True,
         limit_train_batches=0.5,
         val_check_interval=0.25
     )
@@ -519,7 +518,7 @@ Here's an example adding a not-so-fancy learning rate decay rule:
                     group.append(param_group['lr'])
                 self.old_lrs.append(group)
 
-        def on_train_epoch_end(self, trainer, pl_module):
+        def on_train_epoch_end(self, trainer, pl_module, outputs):
             for opt_idx in optimizer in enumerate(trainer.optimizers):
                 old_lr_group = self.old_lrs[opt_idx]
                 new_lr_group = []

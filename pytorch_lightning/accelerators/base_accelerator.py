@@ -27,6 +27,9 @@ class Accelerator(object):
         self.trainer = trainer
         self.cluster_environment = cluster_environment
         self.dist = AttributeDict(rank=0, device=None)
+        self.train_loop = self.trainer.train
+        self.validation_loop = self.trainer.run_evaluation
+        self.test_loop = self.trainer.run_evaluation
 
     def setup(self, model):
         pass
@@ -171,7 +174,7 @@ class Accelerator(object):
         for p in parameters:
             p.grad.data.mul_(clip_coef.to(p.grad.data.device))
 
-    def on_train_epoch_end(self):
+    def on_train_epoch_end(self, outputs):
         pass
 
     def on_train_end(self):

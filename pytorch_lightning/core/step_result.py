@@ -14,15 +14,14 @@
 
 import numbers
 from copy import copy
-from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any, List, Tuple
+from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any, List, Tuple, Iterable
 
 import torch
 from torch import Tensor
 import os
 
-from pytorch_lightning.metrics.converters import sync_ddp_if_available
-from typing import Iterable
-
+from pytorch_lightning.utilities.distributed import sync_ddp_if_available
+from pytorch_lightning.metrics import Metric
 
 class Result(Dict):
     def __init__(
@@ -58,7 +57,7 @@ class Result(Dict):
         try:
             return super().__getitem__(key)
         except KeyError:
-            return super().__getitem__(f'step_{key}')
+            return super().__getitem__(f'{key}_step')
 
     def __getattr__(self, key: str) -> Any:
         try:
@@ -137,7 +136,7 @@ class Result(Dict):
             was_forked = True
 
             # set step version
-            step_name = f'step_{name}'
+            step_name = f'{name}_step'
             self.__set_meta(
                 step_name,
                 value,
@@ -153,7 +152,7 @@ class Result(Dict):
             self.__setitem__(step_name, value)
 
             # set epoch version
-            epoch_name = f'epoch_{name}'
+            epoch_name = f'{name}_epoch'
             self.__set_meta(
                 epoch_name,
                 value,
@@ -219,7 +218,11 @@ class Result(Dict):
         _internal['_reduce_on_epoch'] = max(_internal['_reduce_on_epoch'], on_epoch)
 
     def track_batch_size(self, batch):
-        batch_size = self.unpack_batch_size(batch)
+        try:
+            batch_size = self.unpack_batch_size(batch)
+        except RecursionError as re:
+            batch_size = 1
+
         meta = self['meta']
         meta['_internal']['batch_sizes'].append(batch_size)
 
@@ -248,12 +251,16 @@ class Result(Dict):
                 continue
 
             if options['logger'] and options['on_step']:
-                result[k] = self[k]
+                if isinstance(self[k], Metric):
+                    result[k] = self[k]._forward_cache
+                else:
+                    result[k] = self[k]
+
         return result
 
     def get_epoch_log_metrics(self) -> dict:
         """
-        Gets the metrics to log at the end of the batch step
+        Gets the metrics to log at the end of epoch
         """
         result = {}
 
@@ -261,13 +268,22 @@ class Result(Dict):
         for k, options in meta.items():
             if k == '_internal':
                 continue
+
             if options['logger'] and options['on_epoch']:
-                result[k] = self[k]
+                if isinstance(self[k], Metric):
+                    result[k] = self[k].compute()
+                else:
+                    result[k] = self[k]
+
+            if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
+                # compute metric on epoch anyway so state does not accumulate 
+                self[k].compute()
+
         return result
 
     def get_epoch_pbar_metrics(self):
         """
-        Gets the metrics to log at the end of the batch step
+        Gets the metrics to log at the end of epoch
         """
         result = {}
 
@@ -275,8 +291,17 @@ class Result(Dict):
         for k, options in meta.items():
             if k == '_internal':
                 continue
+
             if options['prog_bar'] and options['on_epoch']:
-                result[k] = self[k]
+                if isinstance(self[k], Metric):
+                    result[k] = self[k].compute()
+                else:
+                    result[k] = self[k]
+
+            if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
+                # compute metric on epoch anyway so state does not accumulate 
+                self[k].compute()
+
         return result
 
     def get_batch_pbar_metrics(self, include_forked_originals=True):
@@ -289,11 +314,16 @@ class Result(Dict):
         for k, options in meta.items():
             if k == '_internal':
                 continue
+
             if options['forked'] and not include_forked_originals:
                 continue
 
             if options['prog_bar'] and options['on_step']:
-                result[k] = self[k]
+                if isinstance(self[k], Metric):
+                    result[k] = self[k]._forward_cache
+                else:
+                    result[k] = self[k]
+
         return result
 
     def detach(self):
@@ -330,6 +360,8 @@ class Result(Dict):
         """
         if isinstance(sample, torch.Tensor):
             size = sample.size(0)
+        elif isinstance(sample, str):
+            return len(sample)
         elif isinstance(sample, dict):
             sample = next(iter(sample.values()), 1)
             size = self.unpack_batch_size(sample)
@@ -400,13 +432,16 @@ class Result(Dict):
         recursive_stack(result)
 
         for k, option in meta.items():
-            if k == '_internal':
+            if k == '_internal' or isinstance(result[k], Metric):
                 continue
 
             if option['on_epoch']:
                 fx = option['reduce_fx']
                 if fx == torch.mean:
-                    reduced_val = weighted_mean(result[k], batch_sizes)
+                    try:
+                        reduced_val = weighted_mean(result[k], batch_sizes)
+                    except Exception as e:
+                        reduced_val = torch.mean(result[k])
                 else:
                     reduced_val = fx(result[k])
 
@@ -431,7 +466,7 @@ class Result(Dict):
         recursive_stack(result)
 
         for k, value in result.items():
-            if k in ['meta', 'extra']:
+            if k in ['meta', 'extra'] or isinstance(value, Metric):
                 continue
 
             # pick the reduce fx
@@ -451,10 +486,12 @@ class Result(Dict):
 
     def dp_reduce(self):
         for k, value in self.items():
-            if k == 'meta':
+            if k == 'meta' or isinstance(value, Metric):
                 continue
+
             if isinstance(value, list):
                 value = torch.tensor(value)
+
             self[k] = value.mean(dim=-1)
 
     @property
@@ -494,10 +531,14 @@ def recursive_gather(outputs: Sequence[dict], result: Optional[MutableMapping] =
                 v = recursive_gather([v], in_d)
                 result[k] = v
             else:
-                if k not in result:
-                    result[k] = []
-
-                result[k].append(v)
+                if isinstance(v, Metric):
+                    # if v is a metric, just keep one of them,
+                    # don't keep on adding a list of them
+                    result[k] = v
+                else:
+                    if k not in result:
+                        result[k] = []
+                    result[k].append(v)
 
     return result
 
@@ -547,23 +588,7 @@ class TrainResult(Result):
         hiddens: Optional[Tensor] = None,
     ):
         """
-        Used in train loop to auto-log to a logger or progress bar without needing to define
-        a train_step_end or train_epoch_end method
-
-        Example::
-
-            def training_step(self, batch, batch_idx):
-                loss = ...
-                result = pl.TrainResult(loss)
-                result.log('train_loss', loss)
-                return result
-
-            # without val/test loop can model checkpoint or early stop
-            def training_step(self, batch, batch_idx):
-                loss = ...
-                result = pl.TrainResult(loss, early_stop_on=loss, checkpoint_on=loss)
-                result.log('train_loss', loss)
-                return result
+        Tracks internal metrics aggregations
 
         Args:
             minimize: Metric currently being minimized.

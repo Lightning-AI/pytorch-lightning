@@ -182,7 +182,8 @@ def test_trainer_reset_correctly(tmpdir):
                           'callbacks',
                           'checkpoint_callback',
                           'early_stop_callback',
-                          'limit_train_batches']
+                          'limit_train_batches',
+                          'current_epoch']
 
     attributes_before = {}
     for ca in changed_attributes:

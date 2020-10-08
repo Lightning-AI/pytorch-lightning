@@ -108,8 +108,8 @@ class Trainer(
         limit_val_batches: Union[int, float] = 1.0,
         limit_test_batches: Union[int, float] = 1.0,
         val_check_interval: Union[int, float] = 1.0,
-        log_save_interval: int = 100,
-        row_log_interval: int = 50,
+        flush_logs_every_n_steps: int = 100,
+        log_every_n_steps: int = 50,
         distributed_backend: Optional[str] = None,
         sync_batchnorm: bool = False,
         precision: int = 32,
@@ -129,8 +129,7 @@ class Trainer(
         prepare_data_per_node: bool = True,
         cluster_environment: ClusterEnvironment = None,
         amp_backend: str = 'native',
-        amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
-        overfit_pct: float = None,  # backward compatible, todo: remove in v1.0.0
+        amp_level: str = 'O2',
     ):
         r"""
         Customize every aspect of training via flags
@@ -178,9 +177,13 @@ class Trainer(
             distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn, ddp_cpu)
 
             early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`).
-                Deprecated since v0.10.0 and will be removed in v1.0.
+                .. warning:: .. deprecated:: 0.10.0
+
+                    Will be removed in v1.0.
 
             fast_dev_run: runs 1 batch of train, test and val to find any bugs (ie: a sort of unit test).
+
+            flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
 
             gpus: number of gpus to train on (int) or which GPUs to train on (list or str) applied per node
 
@@ -196,7 +199,7 @@ class Trainer(
 
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance
 
-            log_save_interval: Writes logs to disk this often
+            log_every_n_steps: How often to log within steps (defaults to every 50 steps).
 
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
@@ -234,8 +237,6 @@ class Trainer(
 
             resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.
                 This can be a URL.
-
-            row_log_interval: How often to add logging rows (does not write to disk)
 
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
 
@@ -299,7 +300,7 @@ class Trainer(
             process_position,
             default_root_dir,
             weights_save_path,
-            resume_from_checkpoint
+            resume_from_checkpoint,
         )
 
         # hook
@@ -310,18 +311,12 @@ class Trainer(
 
         # init data flags
         self.data_connector.on_trainer_init(
-            check_val_every_n_epoch,
-            reload_dataloaders_every_epoch,
-            prepare_data_per_node
+            check_val_every_n_epoch, reload_dataloaders_every_epoch, prepare_data_per_node
         )
 
         # init training tricks
         self.training_tricks_connector.on_trainer_init(
-            gradient_clip_val,
-            track_grad_norm,
-            accumulate_grad_batches,
-            truncated_bptt_steps,
-            terminate_on_nan
+            gradient_clip_val, track_grad_norm, accumulate_grad_batches, truncated_bptt_steps, terminate_on_nan
         )
 
         # init accelerator related flags
@@ -351,17 +346,16 @@ class Trainer(
         self.profile_connector.on_trainer_init(profiler)
 
         # init logger flags
-        self.logger_connector.on_trainer_init(logger, log_save_interval, row_log_interval)
+        self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps)
 
         # init debugging flags
         self.debugging_connector.on_init_start(
-            overfit_pct,
             limit_train_batches,
             limit_val_batches,
             limit_test_batches,
             val_check_interval,
             overfit_batches,
-            fast_dev_run
+            fast_dev_run,
         )
 
         # set precision
@@ -370,55 +364,6 @@ class Trainer(
         # Callback system
         self.on_init_end()
 
-    def tune(
-        self,
-        model: LightningModule,
-        train_dataloader: Optional[DataLoader] = None,
-        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-        datamodule: Optional[LightningDataModule] = None,
-    ):
-        r"""
-        Runs routines to tune hyperparameters before training.
-
-        Args:
-            datamodule: A instance of :class:`LightningDataModule`.
-
-            model: Model to tune.
-
-            train_dataloader: A Pytorch DataLoader with training samples. If the model has
-                a predefined train_dataloader method this will be skipped.
-
-            val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
-                If the model has a predefined val_dataloaders method this will be skipped
-
-        """
-        # setup data, etc...
-        self.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
-
-        # hook
-        self.data_connector.prepare_data(model)
-
-        # Run auto batch size scaling
-        if self.auto_scale_batch_size:
-            if isinstance(self.auto_scale_batch_size, bool):
-                self.auto_scale_batch_size = 'power'
-            self.tuner.scale_batch_size(
-                model,
-                mode=self.auto_scale_batch_size,
-                train_dataloader=train_dataloader,
-                val_dataloaders=val_dataloaders,
-                datamodule=datamodule,
-            )
-            model.logger = self.logger  # reset logger binding
-
-        # Run learning rate finder:
-        if self.auto_lr_find:
-            self.tuner.internal_find_lr(self, model)
-            model.logger = self.logger  # reset logger binding
-
-    # -----------------------------
-    # MODEL TRAINING
-    # -----------------------------
     def fit(
         self,
         model: LightningModule,
@@ -441,32 +386,48 @@ class Trainer(
                 If the model has a predefined val_dataloaders method this will be skipped
 
         """
+        # bookkeeping
         self._state = TrainerState.RUNNING
 
+        # ----------------------------
+        # LINK DATA
+        # ----------------------------
         # setup data, etc...
         self.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
 
         # hook
         self.data_connector.prepare_data(model)
 
-        # set testing if set in environ
+        # bookkeeping
+        # we reuse fit in .test() but change its behavior using this flag
         self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
 
-        # -------------------------
-        # TRAIN
-        # -------------------------
+        # ----------------------------
+        # SET UP TRAINING
+        # ----------------------------
         self.accelerator_backend = self.accelerator_connector.select_accelerator()
         self.accelerator_backend.setup(model)
 
+        # ----------------------------
+        # INSPECT THESE FOR MAIN LOOPS
+        # ----------------------------
+        # assign training and eval functions... inspect these to see the train and eval loops :)
+        self.accelerator_backend.train_loop = self.train
+        self.accelerator_backend.validation_loop = self.run_evaluation
+        self.accelerator_backend.test_loop = self.run_evaluation
+
+        # ----------------------------
+        # TRAIN
+        # ----------------------------
         # hook
         self.call_hook('on_fit_start')
 
         results = self.accelerator_backend.train()
         self.accelerator_backend.teardown()
 
-        # -------------------------
-        # POST-Training
-        # -------------------------
+        # ----------------------------
+        # POST-Training CLEAN UP
+        # ----------------------------
         # hook
         self.call_hook('on_fit_end')
 
@@ -524,13 +485,15 @@ class Trainer(
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
                 if self.should_stop:
-                    if (met_min_epochs and met_min_steps):
+                    if met_min_epochs and met_min_steps:
                         self.train_loop.on_train_end()
                         return
                     else:
-                        log.info('Trainer was signaled to stop but required minimum epochs'
-                                 f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
-                                 ' not been met. Training will continue...')
+                        log.info(
+                            'Trainer was signaled to stop but required minimum epochs'
+                            f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
+                            ' not been met. Training will continue...'
+                        )
 
             # hook
             self.train_loop.on_train_end()
@@ -595,7 +558,7 @@ class Trainer(
                 output = self.evaluation_loop.evaluation_step_end(output)
 
                 # hook
-                self.evaluation_loop.on_evaluation_batch_end(batch, batch_idx, dataloader_idx)
+                self.evaluation_loop.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
 
                 # clean up
                 self.evaluation_loop.evaluation_batch_end_cleanup(output, batch_idx, dataloader_idx)
@@ -804,6 +767,30 @@ class Trainer(
             model.teardown('test')
 
         return results
+
+    def tune(
+        self,
+        model: LightningModule,
+        train_dataloader: Optional[DataLoader] = None,
+        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        datamodule: Optional[LightningDataModule] = None,
+    ):
+        r"""
+        Runs routines to tune hyperparameters before training.
+
+        Args:
+            datamodule: A instance of :class:`LightningDataModule`.
+
+            model: Model to tune.
+
+            train_dataloader: A Pytorch DataLoader with training samples. If the model has
+                a predefined train_dataloader method this will be skipped.
+
+            val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
+                If the model has a predefined val_dataloaders method this will be skipped
+
+        """
+        self.tuner.tune(model, train_dataloader, val_dataloaders, datamodule)
 
     def call_setup_hook(self, model):
         # call setup after the ddp process has connected

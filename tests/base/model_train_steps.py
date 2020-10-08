@@ -4,7 +4,7 @@ from collections import OrderedDict
 
 import torch
 
-from pytorch_lightning import TrainResult, EvalResult
+from pytorch_lightning.core.step_result import TrainResult, EvalResult
 
 
 class TrainingStepVariations(ABC):
@@ -145,11 +145,11 @@ class TrainingStepVariations(ABC):
         Full loop flow train step (result obj + dp)
         """
         eval_name = 'validation' if not self.trainer.testing else 'test'
-        reduced = getattr(result, f'step_{eval_name}_step_metric').mean()
-        setattr(result, f'step_{eval_name}_step_metric', reduced)
+        reduced = getattr(result, f'{eval_name}_step_metric_step').mean()
+        setattr(result, f'{eval_name}_step_metric_step', reduced)
 
-        reduced = getattr(result, f'epoch_{eval_name}_step_metric').mean()
-        setattr(result, f'epoch_{eval_name}_step_metric', reduced)
+        reduced = getattr(result, f'{eval_name}_step_metric_epoch').mean()
+        setattr(result, f'{eval_name}_step_metric_epoch', reduced)
 
         reduced = getattr(result, f'{eval_name}_step_metric').mean()
         setattr(result, f'{eval_name}_step_metric', reduced)
@@ -172,11 +172,11 @@ class TrainingStepVariations(ABC):
         setattr(self, f'{eval_name}_epoch_end_called', True)
 
         # reduce the parametrized values
-        reduced = getattr(result, f'step_{eval_name}_step_metric').mean()
-        setattr(result, f'step_{eval_name}_step_metric', reduced)
+        reduced = getattr(result, f'{eval_name}_step_metric_step').mean()
+        setattr(result, f'{eval_name}_step_metric_step', reduced)
 
-        reduced = getattr(result, f'epoch_{eval_name}_step_metric').mean()
-        setattr(result, f'epoch_{eval_name}_step_metric', reduced)
+        reduced = getattr(result, f'{eval_name}_step_metric_epoch').mean()
+        setattr(result, f'{eval_name}_step_metric_epoch', reduced)
 
         reduced = getattr(result, f'{eval_name}_step_end_metric').mean()
         setattr(result, f'{eval_name}_step_end_metric', reduced)

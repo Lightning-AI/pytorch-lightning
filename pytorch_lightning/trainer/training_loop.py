@@ -110,6 +110,7 @@ class TrainLoop:
         if self.trainer.data_parallel:
             ref_model = model.module
 
+        # set the ranks and devices
         self.trainer.accelerator_backend.dist.rank = self.trainer.global_rank
         self.trainer.accelerator_backend.dist.device = ref_model.device
 
@@ -125,7 +126,7 @@ class TrainLoop:
 
         # log hyper-parameters
         if self.trainer.logger is not None:
-            # save exp to get started
+            # save exp to get started (this is where the first experiment logs are written)
             self.trainer.logger.log_hyperparams(ref_model.hparams)
             self.trainer.logger.log_graph(ref_model)
             self.trainer.logger.save()
@@ -238,7 +239,7 @@ class TrainLoop:
 
         # hook
         self.trainer.call_hook('on_batch_end')
-        self.trainer.call_hook('on_train_batch_end', batch, batch_idx, dataloader_idx)
+        self.trainer.call_hook('on_train_batch_end', epoch_end_outputs, batch, batch_idx, dataloader_idx)
 
     def reset_train_val_dataloaders(self, model):
         if not self.trainer.reload_dataloaders_every_epoch:
@@ -460,7 +461,7 @@ class TrainLoop:
 
     def _track_gradient_norm(self):
         grad_norm_dict = {}
-        if (self.trainer.global_step + 1) % self.trainer.row_log_interval == 0:
+        if (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0:
             if float(self.trainer.track_grad_norm) > 0:
                 model = self.trainer.get_model()
                 grad_norm_dict = model.grad_norm(self.trainer.track_grad_norm)
@@ -597,7 +598,7 @@ class TrainLoop:
         self.check_checkpoint_callback(not (should_check_val or is_overridden('validation_step', model)))
 
         # epoch end hook
-        self.run_on_epoch_end_hook()
+        self.run_on_epoch_end_hook(epoch_output)
 
         # increment the global step once
         # progress global step according to grads progress
@@ -759,9 +760,9 @@ class TrainLoop:
             # update lr
             self.trainer.optimizer_connector.update_learning_rates(interval='step', monitor_metrics=monitor_metrics)
 
-    def run_on_epoch_end_hook(self):
+    def run_on_epoch_end_hook(self, epoch_output):
         self.trainer.call_hook('on_epoch_end')
-        self.trainer.call_hook('on_train_epoch_end')
+        self.trainer.call_hook('on_train_epoch_end', epoch_output)
 
     def increment_accumulated_grad_global_step(self):
         num_accumulated_batches_reached = (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
@@ -805,7 +806,7 @@ class TrainLoop:
     def save_loggers_on_train_batch_end(self):
         # when loggers should save to disk
         should_save_log = (
-            (self.trainer.global_step + 1) % self.trainer.log_save_interval == 0 or self.trainer.should_stop
+            (self.trainer.global_step + 1) % self.trainer.flush_logs_every_n_steps == 0 or self.trainer.should_stop
         )
         if should_save_log or self.trainer.fast_dev_run:
             if self.trainer.is_global_zero and self.trainer.logger is not None:

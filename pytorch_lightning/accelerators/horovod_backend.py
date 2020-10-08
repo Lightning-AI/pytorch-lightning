@@ -16,7 +16,7 @@ from contextlib import ExitStack
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
-from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.accelerators.base_accelerator import Accelerator
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
@@ -153,7 +153,7 @@ class HorovodBackend(Accelerator):
         super().backward(closure_loss, optimizer, opt_idx)
         optimizer.synchronize()
 
-    def on_train_epoch_end(self):
+    def on_train_epoch_end(self, outputs):
         hvd.join(hvd.local_rank() if self.trainer.on_gpu else -1)
 
     def barrier(self, name: str = None):

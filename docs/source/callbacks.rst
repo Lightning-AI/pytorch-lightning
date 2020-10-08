@@ -68,19 +68,6 @@ You can do pretty much anything with callbacks.
 
 --------------
 
-Callback Hooks
---------------
-
-.. automodule:: pytorch_lightning.callbacks.base
-   :noindex:
-   :exclude-members:
-        _del_model,
-        _save_model,
-        _abc_impl,
-        check_monitor_top_k,
-
-----------------
-
 Built-in Callbacks
 ------------------
 Lightning has a few built-in callbacks.
@@ -89,58 +76,21 @@ Lightning has a few built-in callbacks.
     For a richer collection of callbacks, check out our
     `bolts library <https://pytorch-lightning-bolts.readthedocs.io/en/latest/callbacks.html>`_.
 
-----------------
+.. currentmodule:: pytorch_lightning.callbacks
 
-.. automodule:: pytorch_lightning.callbacks.early_stopping
-   :noindex:
-   :exclude-members:
-        _del_model,
-        _save_model,
-        _abc_impl,
-        check_monitor_top_k,
+.. autosummary::
+    :toctree: generated
+    :nosignatures:
+    :template: classtemplate.rst
 
-----------------
-
-.. automodule:: pytorch_lightning.callbacks.gpu_stats_monitor
-    :noindex:
-    :exclude-members:
-        _get_gpu_stats,
-        _get_gpu_stat_keys,
-        _get_gpu_device_stat_keys,
-
-----------------
-
-.. automodule:: pytorch_lightning.callbacks.gradient_accumulation_scheduler
-   :noindex:
-   :exclude-members:
-        _del_model,
-        _save_model,
-        _abc_impl,
-        check_monitor_top_k,
-
-----------------
-
-.. automodule:: pytorch_lightning.callbacks.lr_monitor
-    :noindex:
-    :exclude-members:
-        _extract_lr,
-        _find_names
-
-----------------
-
-.. automodule:: pytorch_lightning.callbacks.model_checkpoint
-   :noindex:
-   :exclude-members:
-        _del_model,
-        _save_model,
-        _abc_impl,
-        check_monitor_top_k,
-
-----------------
-
-.. automodule:: pytorch_lightning.callbacks.progress
-   :noindex:
-   :exclude-members:
+    Callback
+    EarlyStopping
+    GPUStatsMonitor
+    GradientAccumulationScheduler
+    LearningRateMonitor
+    ModelCheckpoint
+    ProgressBar
+    ProgressBarBase
 
 ----------
 

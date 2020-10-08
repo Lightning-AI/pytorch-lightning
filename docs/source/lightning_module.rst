@@ -208,7 +208,7 @@ Note that in this case, the train loop and val loop are exactly the same. We can
 
          def training_step(self, batch, batch_idx):
             loss = self.shared_step(batch)
-            
+
             return loss
 
          def validation_step(self, batch, batch_idx):
@@ -989,7 +989,7 @@ This is the pseudocode to describe how all the hooks are called during a call to
             on_before_zero_grad()
             optimizer_zero_grad()
 
-            on_train_batch_end()
+            on_train_batch_end(out)
 
             if should_check_val:
                 val_loop()
@@ -1010,7 +1010,7 @@ This is the pseudocode to describe how all the hooks are called during a call to
             out = validation_step(val_batch)
             val_outs.append(out)
 
-            on_validation_batch_end()
+            on_validation_batch_end(out)
 
         validation_epoch_end(val_outs)
         on_validation_epoch_end()
@@ -1024,23 +1024,6 @@ Advanced hooks
 ^^^^^^^^^^^^^^
 Use these hooks to modify advanced functionality
 
-configure_apex
-~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.configure_apex
-    :noindex:
-
-configure_ddp
-~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.configure_ddp
-    :noindex:
-
-configure_sync_batchnorm
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.configure_sync_batchnorm
-    :noindex:
 
 get_progress_bar_dict
 ~~~~~~~~~~~~~~~~~~~~~

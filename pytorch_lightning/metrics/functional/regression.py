@@ -1,9 +1,8 @@
 from typing import Sequence
 
 import torch
-from torch.nn import functional as F
-
 from pytorch_lightning.metrics.functional.reduction import reduce
+from torch.nn import functional as F
 
 
 def mse(

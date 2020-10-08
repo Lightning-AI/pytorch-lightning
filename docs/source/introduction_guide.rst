@@ -916,31 +916,6 @@ With your own
             # do a custom way of backward
             loss.backward(retain_graph=True)
 
-Or if you wanted to initialize ddp in a different way than the default one
-
-.. testcode::
-
-    def configure_ddp(self, model, device_ids):
-        # Lightning DDP simply routes to test_step, val_step, etc...
-        model = LightningDistributedDataParallel(
-            model,
-            device_ids=device_ids,
-            find_unused_parameters=True
-        )
-        return model
-
-you could do your own:
-
-.. testcode::
-
-    class LitMNIST(LightningModule):
-
-        def configure_ddp(self, model, device_ids):
-
-            model = Horovod(model)
-            # model = Ray(model)
-            return model
-
 Every single part of training is configurable this way.
 For a full list look at :ref:`LightningModule <lightning_module>`.
 

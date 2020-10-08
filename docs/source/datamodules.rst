@@ -40,7 +40,7 @@ This class can then be shared and used anywhere:
 Why do I need a DataModule?
 ---------------------------
 In normal PyTorch code, the data cleaning/preparation is usually scattered across many files. This makes
-sharing and reusing the exact splits, and transforms across projects.
+sharing and reusing the exact splits and transforms across projects impossible.
 
 Datamodules are for you if you ever asked the questions:
 
