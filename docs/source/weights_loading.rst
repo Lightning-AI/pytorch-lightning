@@ -36,6 +36,7 @@ Lightning automatically saves a checkpoint for you in your current working direc
 To change the checkpoint path pass in:
 
 .. code-block:: python
+
     # saves checkpoints to '/your/path/to/save/checkpoints' at every epoch end
     trainer = Trainer(default_root_dir='/your/path/to/save/checkpoints')
 
@@ -177,7 +178,7 @@ you can restore the model like this
 
 
 Restoring Training State
-------------------------
+========================
 
 If you don't just want to load weights, but instead restore the full training,
 do the following:
