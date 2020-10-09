@@ -113,6 +113,10 @@ class TrainerProperties(ABC):
         return argparse_utils.parse_argparser(cls, arg_parser)
 
     @classmethod
+    def match_env_arguments(cls) -> Namespace:
+        return argparse_utils.parse_env_variables(cls)
+
+    @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
         return argparse_utils.add_argparse_args(cls, parent_parser)
 
