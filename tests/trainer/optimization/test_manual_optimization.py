@@ -3,6 +3,7 @@ import pytest
 from tests.base.boring_model import BoringModel, RandomDataset
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import APEX_AVAILABLE
+from unittest import mock
 
 
 def test_multiple_optimizers_manual(tmpdir):
@@ -125,6 +126,7 @@ def test_multiple_optimizers_manual_apex(tmpdir):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@mock.patch('pytorch_lightning.trainer.scaler.scale')
 def test_multiple_optimizers_manual_native_amp(tmpdir):
     """Check calling apex scaling in training."""
     """
