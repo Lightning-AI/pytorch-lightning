@@ -125,7 +125,6 @@ def test_multiple_optimizers_manual_apex(tmpdir):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@pytest.mark.skipif(not APEX_AVAILABLE, reason="test requires apex")
 def test_multiple_optimizers_manual_native_amp(tmpdir):
     """Check calling apex scaling in training."""
     """
