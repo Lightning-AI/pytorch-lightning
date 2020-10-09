@@ -141,7 +141,10 @@ def test_multiple_optimizers_manual_apex(tmpdir):
         def training_step(self, batch, batch_idx, optimizer_idx):
             # manual
             (opt_a, opt_b) = self.optimizers()
-            loss_1 = self.step(batch[0])
+            x = batch[0]
+
+            import pdb; pdb.set_trace()
+            loss_1 = self.step(x)
 
             # make sure there are no grads
             if batch_idx > 0:
