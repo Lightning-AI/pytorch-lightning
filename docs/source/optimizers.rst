@@ -4,13 +4,15 @@
 Optimization
 ************
 
-Lightning offers two modes of managing the optimization process for you: automatic optimization (AutoOpt) or
-manual optimization.
+Lightning offers two modes for managing the optimization process:
 
-For the majority of research cases, Automatic optimization will do the right thing for you and it is what
+- automatic optimization (AutoOpt)
+- manual optimization
+
+For the majority of research cases, **automatic optimization** will do the right thing for you and it is what
 most users should use.
 
-For advanced/expert users who want to do esoteric optimization schedules or techniques, use the manual option.
+For advanced/expert users who want to do esoteric optimization schedules or techniques, use **manual optimization**.
 
 ------
 
@@ -32,13 +34,16 @@ to manually manage the optimization process. To do so, do the following:
         loss_a = ...
 
         # use self.backward which will also handle scaling the loss when using amp
-        loss_a = self.backward(loss_a)
+        self.backward(loss_a, opt_g)
         opt_g.step()
         opt_g.zero_grad()
 
         # do anything you want
         loss_b = ...
-        loss_b = self.backward(loss_b)
+
+        # pass in any args that loss.backward() normally takes
+        self.backward(loss_b, opt_d, retain_graph=True)
+        self.backward(loss_b, opt_d, retain_graph=True)
         loss_b.step()
         loss_b.zero_grad()
 
