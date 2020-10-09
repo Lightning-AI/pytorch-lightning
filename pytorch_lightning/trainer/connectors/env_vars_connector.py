@@ -34,6 +34,7 @@ def overwrite_by_env_vars(fn: Callable) -> Callable:
             # convert args to kwargs
             kwargs.update({k: v for k, v in zip(cls_arg_names, args)})
         # update the kwargs by env variables
+        # todo: maybe add a warning that some init args were overwritten by Env arguments
         kwargs.update(vars(parse_env_variables(cls)))
 
         # all args were already moved to kwargs
