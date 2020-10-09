@@ -1,5 +1,6 @@
 from pytorch_lightning import Callback
 from pytorch_lightning import Trainer, LightningModule
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, ProgressBar
 from tests.base import EvalModelTemplate
 
 
@@ -264,3 +265,20 @@ def test_trainer_callback_system(tmpdir):
     assert not test_callback.on_validation_end_called
     assert not test_callback.on_validation_batch_end_called
     assert not test_callback.on_validation_batch_start_called
+
+
+def test_callbacks_list_mutability(tmpdir):
+    callback_list = []
+    model = EvalModelTemplate()
+    trainer = Trainer(callbacks=callback_list, checkpoint_callback=True, default_root_dir=tmpdir, max_steps=1)
+    new_callback = ModelCheckpoint()
+    callback_list.append(new_callback)
+    assert new_callback not in trainer.callbacks
+    trainer.fit(model)
+    assert new_callback not in trainer.callbacks
+    #trainer = Trainer(default_root_dir=tmpdir, max_steps=1, resume_from_checkpoint=trainer.checkpoint_callback.best_model_path)
+    #trainer.fit(model)
+    print(trainer.callbacks)
+
+    assert False
+    #assert len(trainer.callbacks) == 0
