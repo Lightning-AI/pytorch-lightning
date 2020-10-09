@@ -294,14 +294,27 @@ class AutogradProfiler(BaseProfiler):
     being executed under the hood in C++. This profiler is most useful when trying to optimize
     the forward and backward pass of your neural network.
     """
-    def __init__(self, use_cuda: bool = False, output_filename: str = None, row_limit: int = 20):
+
+    def __init__(self,
+                 output_filename: str = None,
+                 profile_memory: bool = True,
+                 use_cuda: bool = False,
+                 row_limit: int = 0,
+                 group_by_input_shapes: bool = False
+                 ):
         """
         Args:
-            use_cuda: set to True to also profile CUDA times.
             output_filename: optionally save profile results to file instead of printing
                 to std out when training is finished.
-            row_limit: limits number of rows reported for each action.
+            profile_memory: Record memory usage.
+            use_cuda: Measure execution time of CUDA kernels.
+            row_limit: Optional limit to number of rows in table.
+            group_by_input_shapes: Include operator input shapes and group calls by shape.
         """
+        self.profile_memory = profile_memory
+        self.group_by_input_shapes = group_by_input_shapes
+        self.use_cuda = use_cuda
+        self.row_limit = row_limit
         self.use_cuda = use_cuda
         self.row_limit = row_limit
         self.profiled_actions = {}
@@ -314,7 +327,11 @@ class AutogradProfiler(BaseProfiler):
         super().__init__(output_streams=streaming_out)
 
     def start(self, action_name: str) -> None:
-        prof = torch.autograd.profiler.profile(use_cuda=self.use_cuda)
+        prof = torch.autograd.profiler.profile(
+            profile_memory=self.profile_memory,
+            use_cuda=self.use_cuda,
+            record_shapes=self.group_by_input_shapes
+        )
         prof.__enter__()
         self.profilers[action_name] = prof
 
@@ -324,7 +341,11 @@ class AutogradProfiler(BaseProfiler):
             raise ValueError(  # pragma: no-cover
                 f"Attempting to stop recording an action ({action_name}) which was never started."
             )
-        prof.__exit__(None, None, None)
+        prof.__exit__(
+                exc_type=None,
+                exc_val=None,
+                exc_tb=None
+            )
         del self.profilers[action_name]
 
         events = prof.function_events
@@ -337,7 +358,7 @@ class AutogradProfiler(BaseProfiler):
         output_string = f"{os.linesep}Profiler Report{os.linesep}"
 
         for name, events in self.profiled_actions.items():
-            report = events.key_averages().table(
+            report = events.key_averages(group_by_input_shapes=self.group_by_input_shapes).table(
                 sort_by=("cuda_time_total" if self.use_cuda else "cpu_time_total"),
                 row_limit=self.row_limit
             )
