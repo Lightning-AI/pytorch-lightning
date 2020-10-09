@@ -157,7 +157,7 @@ def test_multiple_optimizers_manual_apex(tmpdir):
             assert torch.all(self.layer.weight.grad == 0)
 
             # fake discriminator
-            loss_2 = self(batch[0])
+            loss_2 = self(x)
             loss_2 = self.loss(loss_2, loss_2)
 
             # ensure we forward the correct params to the optimizer
