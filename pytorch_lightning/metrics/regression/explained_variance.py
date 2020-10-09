@@ -84,8 +84,7 @@ class ExplainedVariance(Metric):
             preds: Predictions from model
             target: Ground truth values
         """
-        assert preds.shape == target.shape, \
-            'Predictions and targets are expected to have the same shape'
+        self._check_same_shape(preds, target)
         self.y.append(target)
         self.y_pred.append(preds)
 
