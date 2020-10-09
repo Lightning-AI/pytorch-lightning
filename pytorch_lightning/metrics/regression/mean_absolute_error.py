@@ -50,8 +50,7 @@ class MeanAbsoluteError(Metric):
             preds: Predictions from model
             target: Ground truth values
         """
-        assert preds.shape == target.shape, \
-            'Predictions and targets are expected to have the same shape'
+        self._check_same_shape(preds, target)
         abs_error = torch.abs(preds - target)
 
         self.sum_abs_error += torch.sum(abs_error)
