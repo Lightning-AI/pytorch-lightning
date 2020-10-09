@@ -184,6 +184,7 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
 
     trainer.fit(model)
 
-    assert len(trainer.dev_debugger.backward_calls) == limit_train_batches
+    import pdb; pdb.set_trace()
+    assert len(trainer.dev_debugger.backward_calls) == limit_train_batches * 3
     for call in trainer.dev_debugger.backward_calls:
         assert call['type'] == 'native_amp'
