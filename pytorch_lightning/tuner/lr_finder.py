@@ -41,10 +41,11 @@ else:
 
 def _run_lr_finder_internally(trainer, model: LightningModule):
     """ Call lr finder internally during Trainer.fit() """
-    if trainer.fast_dev_run:
-        rank_zero_warn('Skipping learning rate finder since `fast_dev_run=True`', UserWarning)
-        return
     lr_finder = lr_find(trainer, model)
+    
+    if lr_finder is None:
+        return
+
     lr = lr_finder.suggestion()
 
     # TODO: log lr.results to self.logger
