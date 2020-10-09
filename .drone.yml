@@ -41,8 +41,7 @@ steps:
   #    path: /opt/conda/lib/python3.7/site-packages
 
   commands:
-    - unset HOROVOD_GPU_ALLREDUCE
-    - unset HOROVOD_GPU_BROADCAST
+    - pip uninstall -y horovod
     - export PATH="$PATH:/root/.local/bin"
     - python --version
     - pip install pip -U
@@ -51,7 +50,7 @@ steps:
     #- bash ./requirements/install_AMP.sh
     - apt-get update && apt-get install -y cmake
     - pip install -r ./requirements/base.txt --user -q --upgrade-strategy only-if-needed
-    - pip install -r ./requirements/devel.txt --user -q --upgrade-strategy only-if-needed
+    - pip install --no-cache-dir -r ./requirements/devel.txt --user -q --upgrade-strategy only-if-needed
     #- pip install -r ./requirements/docs.txt --user -q
     - pip install -r ./requirements/examples.txt --user -q --upgrade-strategy only-if-needed
     - pip list
