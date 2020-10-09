@@ -4,6 +4,7 @@ import pytest
 from tests.base.boring_model import BoringModel, RandomDataset
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import APEX_AVAILABLE
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def test_multiple_optimizers_manual(tmpdir):
@@ -194,7 +195,8 @@ def test_multiple_optimizers_manual_apex(tmpdir):
         gpus=1
     )
 
-    trainer.fit(model)
+    with pytest.raises(MisconfigurationException, match='.*manual optimization and apex with.*'):
+        trainer.fit(model)
 
     num_manual_backward_calls = 3
     assert len(trainer.dev_debugger.backward_calls) == limit_train_batches * num_manual_backward_calls
