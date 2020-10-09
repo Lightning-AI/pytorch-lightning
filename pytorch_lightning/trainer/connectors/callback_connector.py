@@ -32,7 +32,7 @@ class CallbackConnector:
         # it is important that this is the last callback to run
         # pass through the required args to figure out defaults
         checkpoint_callback = self.init_default_checkpoint_callback(checkpoint_callback)
-        if checkpoint_callback:
+        if checkpoint_callback and not resume_from_checkpoint:
             self.trainer.callbacks.append(checkpoint_callback)
 
         # TODO refactor codebase (tests) to not directly reach into these callbacks

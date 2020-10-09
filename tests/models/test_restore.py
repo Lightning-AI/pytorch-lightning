@@ -52,8 +52,10 @@ def test_resume_from_checkpoint(tmpdir):
     )
     trainer = Trainer(**trainer_args)
     trainer.fit(model)
+    callbacks_before_resume = trainer.callbacks.copy()
     trainer = Trainer(**trainer_args, resume_from_checkpoint=str(tmpdir / "last.ckpt"))
     trainer.fit(model)
+    assert trainer.callbacks == callbacks_before_resume
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
