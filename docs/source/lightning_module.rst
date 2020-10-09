@@ -649,6 +649,42 @@ for a live demo.
 LightningModule API
 -------------------
 
+
+.. currentmodule:: pytorch_lightning.core.lightning.LightningModule
+
+.. autosummary::
+    :toctree: generated
+    :nosignatures:
+    :template: classtemplate.rst
+
+    print
+    log
+    log_dict
+    write_prediction
+    write_prediction_dict
+    forward
+    training_step
+    training_step_end
+    training_epoch_end
+    validation_step
+    validation_step_end
+    validation_epoch_end
+    test_step
+    test_step_end
+    test_epoch_end
+    configure_optimizers
+    optimizer_step
+    optimizer_zero_grad
+    tbptt_split_batch
+    summarize
+    freeze
+    unfreeze
+    get_progress_bar_dict
+    save_hyperparameters
+    to_onnx
+    to_torchscript
+
+
 Training loop methods
 ^^^^^^^^^^^^^^^^^^^^^
 
