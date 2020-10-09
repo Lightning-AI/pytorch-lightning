@@ -47,7 +47,7 @@ Scale your models, not the boilerplate.**
 ## Just launched GridAI
 Our native platform for training models at scale on the cloud!    
 
-**Sign up for [early acces here](https://www.grid.ai/)**
+**Sign up for [early access here](https://www.grid.ai/)**
 
 To use grid, take your regular command:
 
@@ -87,13 +87,13 @@ Principle 4: Deep learning code should be organized into 4 distinct categories.
 
 Once you do this, you can train on multiple-GPUs, TPUs, CPUs and even in 16-bit precision without changing your code!
 
-Get started with our [3 steps guide](https://pytorch-lightning.readthedocs.io/en/stable/new-project.html)
+Get started with our [2 step guide](https://pytorch-lightning.readthedocs.io/en/stable/new-project.html)
 
 ---
 
 ## Inference
-Lightning is also designed for the fast inference AI researchers and production teams need to scale up things like BERT and Self-supevised learning.
-Lightning can automatically export to onnx or torchscript for those cases.
+Lightning is also designed for the fast inference AI researchers and production teams need to scale up things like BERT and self-supervised learning.
+Lightning can automatically export to ONNX or TorchScript for those cases.
 
 ---
 

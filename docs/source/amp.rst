@@ -10,7 +10,7 @@ Lightning offers 16-bit training for CPUs, GPUs and TPUs.
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/yt_thumbs/thumb_precision.png"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/yt/Trainer+flags+9+-+precision_1.mp4"></video>
 
