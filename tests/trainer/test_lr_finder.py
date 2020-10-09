@@ -244,19 +244,3 @@ def test_suggestion_with_non_finite_values(tmpdir):
 
     assert before_lr == after_lr, \
         'Learning rate was altered because of non-finite loss values'
-
-
-def test_skip_on_fast_dev_run_lr_find(tmpdir):
-    """ Test that learning rate finder is skipped if fast dev run is enabled """
-
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        auto_lr_find=True,
-        fast_dev_run=True
-    )
-    expected_message = 'Skipping learning rate finder since `fast_dev_run=True`'
-    with pytest.warns(UserWarning, match=expected_message):
-        trainer.tune(model)

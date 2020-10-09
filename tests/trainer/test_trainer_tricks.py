@@ -182,7 +182,8 @@ def test_trainer_reset_correctly(tmpdir):
                           'callbacks',
                           'checkpoint_callback',
                           'early_stop_callback',
-                          'limit_train_batches']
+                          'limit_train_batches',
+                          'current_epoch']
 
     attributes_before = {}
     for ca in changed_attributes:
@@ -328,19 +329,3 @@ def test_auto_scale_batch_size_with_amp(tmpdir):
     assert trainer.amp_backend == AMPType.NATIVE
     assert trainer.scaler is not None
     assert batch_size_after != batch_size_before
-
-
-def test_skip_on_fast_dev_run_batch_scaler(tmpdir):
-    """ Test that batch scaler is skipped if fast dev run is enabled """
-
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        auto_scale_batch_size=True,
-        fast_dev_run=True
-    )
-    expected_message = 'Skipping batch size scaler `fast_dev_run=True`'
-    with pytest.warns(UserWarning, match=expected_message):
-        trainer.tune(model)

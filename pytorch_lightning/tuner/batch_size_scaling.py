@@ -127,6 +127,7 @@ def __scale_batch_dump_params(trainer):
     # Prevent going into infinite loop
     trainer.__dumped_params = {
         'auto_lr_find': trainer.auto_lr_find,
+        'current_epoch': trainer.current_epoch,
         'max_steps': trainer.max_steps,
         'weights_summary': trainer.weights_summary,
         'logger': trainer.logger,
@@ -142,6 +143,7 @@ def __scale_batch_dump_params(trainer):
 def __scale_batch_reset_params(trainer, model, steps_per_trial):
     trainer.auto_scale_batch_size = None  # prevent recursion
     trainer.auto_lr_find = False  # avoid lr find being called multiple times
+    trainer.current_epoch = 0
     trainer.max_steps = steps_per_trial  # take few steps
     trainer.weights_summary = None  # not needed before full run
     trainer.logger = DummyLogger()
@@ -155,6 +157,7 @@ def __scale_batch_reset_params(trainer, model, steps_per_trial):
 
 def __scale_batch_restore_params(trainer):
     trainer.auto_lr_find = trainer.__dumped_params['auto_lr_find']
+    trainer.current_epoch = trainer.__dumped_params['current_epoch']
     trainer.max_steps = trainer.__dumped_params['max_steps']
     trainer.weights_summary = trainer.__dumped_params['weights_summary']
     trainer.logger = trainer.__dumped_params['logger']

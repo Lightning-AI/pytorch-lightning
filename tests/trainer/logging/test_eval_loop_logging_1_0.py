@@ -50,12 +50,12 @@ def test__validation_step__log(tmpdir):
     # make sure all the metrics are available for callbacks
     expected_logged_metrics = {
         'a',
-        'step_a',
-        'epoch_a',
+        'a_step',
+        'a_epoch',
         'b',
-        'step_b/epoch_0',
-        'step_b/epoch_1',
-        'epoch_b',
+        'b_step/epoch_0',
+        'b_step/epoch_1',
+        'b_epoch',
         'epoch',
     }
     logged_metrics = set(trainer.logged_metrics.keys())
@@ -63,7 +63,7 @@ def test__validation_step__log(tmpdir):
 
     # we don't want to enable val metrics during steps because it is not something that users should do
     # on purpose DO NOT allow step_b... it's silly to monitor val step metrics
-    expected_cb_metrics = {'a', 'b', 'epoch_a', 'epoch_b', 'step_a'}
+    expected_cb_metrics = {'a', 'b', 'a_epoch', 'b_epoch', 'a_step'}
     callback_metrics = set(trainer.callback_metrics.keys())
     assert expected_cb_metrics == callback_metrics
 
@@ -122,18 +122,18 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
         'epoch',
         'a',
         'b',
-        'step_b',
-        'epoch_b',
+        'b_step',
+        'b_epoch',
         'c',
         'd',
-        'step_d/epoch_0',
-        'step_d/epoch_1',
-        'epoch_d',
+        'd_step/epoch_0',
+        'd_step/epoch_1',
+        'd_epoch',
         'e',
         'f',
-        'step_f/epoch_0',
-        'step_f/epoch_1',
-        'epoch_f',
+        'f_step/epoch_0',
+        'f_step/epoch_1',
+        'f_epoch',
         'g',
     }
     assert expected_logged_metrics == logged_metrics
@@ -145,7 +145,7 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
     # we don't want to enable val metrics during steps because it is not something that users should do
     callback_metrics = set(trainer.callback_metrics.keys())
     callback_metrics.remove('debug_epoch')
-    expected_cb_metrics = {'a', 'b', 'c', 'd', 'e', 'epoch_b', 'epoch_d', 'epoch_f', 'f', 'g', 'step_b'}
+    expected_cb_metrics = {'a', 'b', 'c', 'd', 'e', 'b_epoch', 'd_epoch', 'f_epoch', 'f', 'g', 'b_step'}
     assert expected_cb_metrics == callback_metrics
 
 

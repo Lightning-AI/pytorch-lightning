@@ -27,9 +27,10 @@ from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
+from pytorch_lightning.core.step_result import TrainResult, EvalResult
+from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities.parsing import (
@@ -39,16 +40,13 @@ from pytorch_lightning.utilities.parsing import (
 )
 from torch import ScriptModule, Tensor
 from torch.nn import Module
-from torch.nn.parallel import DistributedDataParallel
 from torch.optim.optimizer import Optimizer
 
 
-try:
+TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
+
+if TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
 
 
 class LightningModule(
@@ -930,94 +928,6 @@ class LightningModule(
 
                     self.log('final_metric', final_value)
         """
-
-    def configure_ddp(
-        self, model: "LightningModule", device_ids: List[int]
-    ) -> DistributedDataParallel:
-        r"""
-        Override to init DDP in your own way or with your own wrapper.
-        The only requirements are that:
-
-        1. On a validation batch, the call goes to ``model.validation_step``.
-        2. On a training batch, the call goes to ``model.training_step``.
-        3. On a testing batch, the call goes to ``model.test_step``.
-
-        Args:
-            model: the :class:`LightningModule` currently being optimized.
-            device_ids: the list of GPU ids.
-
-        Return:
-            DDP wrapped model
-
-        Examples:
-            .. code-block:: python
-
-                # default implementation used in Trainer
-                def configure_ddp(self, model, device_ids):
-                    # Lightning DDP simply routes to test_step, val_step, etc...
-                    model = LightningDistributedDataParallel(
-                        model,
-                        device_ids=device_ids,
-                        find_unused_parameters=True
-                    )
-                    return model
-
-        """
-        model = LightningDistributedDataParallel(
-            model, device_ids=device_ids, find_unused_parameters=True
-        )
-        return model
-
-    def configure_sync_batchnorm(self, model: "LightningModule") -> "LightningModule":
-        """
-        Add global batchnorm for a model spread across multiple GPUs and nodes.
-
-        Override to synchronize batchnorm between specific process groups instead
-        of the whole world or use a different sync_bn like `apex`'s version.
-
-        Args:
-            model: pointer to current :class:`LightningModule`.
-
-        Return:
-            LightningModule with batchnorm layers synchronized between process groups
-        """
-        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
-
-        return model
-
-    def configure_apex(
-        self,
-        amp: object,
-        model: "LightningModule",
-        optimizers: List[Optimizer],
-        amp_level: str,
-    ) -> Tuple["LightningModule", List[Optimizer]]:
-        r"""
-        Override to init AMP your own way.
-        Must return a model and list of optimizers.
-
-        Args:
-            amp: pointer to amp library object.
-            model: pointer to current :class:`LightningModule`.
-            optimizers: list of optimizers passed in :meth:`configure_optimizers`.
-            amp_level: AMP mode chosen ('O1', 'O2', etc...)
-
-        Return:
-            Apex wrapped model and optimizers
-
-        Examples:
-            .. code-block:: python
-
-                # Default implementation used by Trainer.
-                def configure_apex(self, amp, model, optimizers, amp_level):
-                    model, optimizers = amp.initialize(
-                        model, optimizers, opt_level=amp_level,
-                    )
-
-                    return model, optimizers
-        """
-        model, optimizers = amp.initialize(model, optimizers, opt_level=amp_level)
-        return model, optimizers
 
     def configure_optimizers(
             self,

@@ -16,7 +16,6 @@ from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.tuner.lr_finder import _run_lr_finder_internally, lr_find
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.utilities import rank_zero_warn
 from typing import Optional, List, Union
 from torch.utils.data import DataLoader
 

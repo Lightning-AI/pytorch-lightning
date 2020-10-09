@@ -43,25 +43,28 @@ class MLFlowLogger(LightningLoggerBase):
 
         pip install mlflow
 
-    Example:
-        >>> from pytorch_lightning import Trainer
-        >>> from pytorch_lightning.loggers import MLFlowLogger
-        >>> mlf_logger = MLFlowLogger(
-        ...     experiment_name="default",
-        ...     tracking_uri="file:./ml-runs"
-        ... )
-        >>> trainer = Trainer(logger=mlf_logger)
+    .. code-block:: python
 
-    Use the logger anywhere in you :class:`~pytorch_lightning.core.lightning.LightningModule` as follows:
+        from pytorch_lightning import Trainer
+        from pytorch_lightning.loggers import MLFlowLogger
+        mlf_logger = MLFlowLogger(
+            experiment_name="default",
+            tracking_uri="file:./ml-runs"
+        )
+        trainer = Trainer(logger=mlf_logger)
 
-    >>> from pytorch_lightning import LightningModule
-    >>> class LitModel(LightningModule):
-    ...     def training_step(self, batch, batch_idx):
-    ...         # example
-    ...         self.logger.experiment.whatever_ml_flow_supports(...)
-    ...
-    ...     def any_lightning_module_function_or_hook(self):
-    ...         self.logger.experiment.whatever_ml_flow_supports(...)
+    Use the logger anywhere in your :class:`~pytorch_lightning.core.lightning.LightningModule` as follows:
+
+    .. code-block:: python
+
+        from pytorch_lightning import LightningModule
+        class LitModel(LightningModule):
+            def training_step(self, batch, batch_idx):
+                # example
+                self.logger.experiment.whatever_ml_flow_supports(...)
+
+            def any_lightning_module_function_or_hook(self):
+                self.logger.experiment.whatever_ml_flow_supports(...)
 
     Args:
         experiment_name: The name of the experiment
