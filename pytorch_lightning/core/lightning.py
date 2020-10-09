@@ -685,13 +685,6 @@ class LightningModule(
             See the :ref:`multi_gpu` guide for more details.
         """
 
-    def validation_end(self, outputs):
-        """
-        Warnings:
-            Deprecated in v0.7.0. Use :meth:`validation_epoch_end` instead.
-            Will be removed in 1.0.0.
-        """
-
     def validation_epoch_end(
         self, outputs: List[Any]
     ) -> None:
@@ -847,7 +840,7 @@ class LightningModule(
 
                 out = self(x)
                 loss = self.softmax(out)
-                result.log('test_loss', loss)
+                self.log('test_loss', loss)
 
             # --------------
             # with test_step_end to do softmax over the full batch
@@ -866,13 +859,6 @@ class LightningModule(
 
         See Also:
             See the :ref:`multi_gpu` guide for more details.
-        """
-
-    def test_end(self, outputs):
-        """
-        Warnings:
-             Deprecated in v0.7.0. Use :meth:`test_epoch_end` instead.
-             Will be removed in 1.0.0.
         """
 
     def test_epoch_end(
@@ -1287,24 +1273,6 @@ class LightningModule(
             tqdm_dict["v_num"] = version
 
         return tqdm_dict
-
-    def get_tqdm_dict(self) -> Dict[str, Union[int, str]]:
-        """
-        Additional items to be displayed in the progress bar.
-
-        Return:
-            Dictionary with the items to be displayed in the progress bar.
-
-        Warning:
-            Deprecated since v0.7.3.
-            Use :meth:`get_progress_bar_dict` instead.
-        """
-        rank_zero_warn(
-            "`get_tqdm_dict` was renamed to `get_progress_bar_dict` in v0.7.3"
-            " and this method will be removed in v1.0.0",
-            DeprecationWarning,
-        )
-        return self.get_progress_bar_dict()
 
     @classmethod
     def _auto_collect_arguments(cls, frame=None) -> Tuple[Dict, Dict]:

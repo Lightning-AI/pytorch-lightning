@@ -76,6 +76,43 @@ Lightning will call each optimizer sequentially:
 
 ----------
 
+Ultimate freedom and flexibility
+--------------------------------
+Your particular research may require more complex mixtures of optimizers where an alternating
+schedule may not work.
+
+In this case, feel free to pull out the optimizers yourself and do what you need to do.
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx, optimizer_idx):
+        # ignore optimizer_idx
+        (opt_g, opt_d) = self.trainer.optimizers
+
+        # do anything you want
+        loss_a = ...
+        loss_a.backward()
+        opt_g.step()
+        opt_g.zero_grad()
+
+        # do anything you want
+        loss_b = ...
+        loss_b.backward()
+        loss_b.step()
+        loss_b.zero_grad()
+
+The only caveat here is that although you get all the flexibility you need, you lose the ability
+to have lightning automate a few things for you:
+
+* Accumulated gradients
+* Gradient clipping
+* Half precision
+
+For this reason, we only recommend the above approach when you need 100% flexibility
+and don't need the features listed above.
+
+----------
+
 Step optimizers at arbitrary intervals
 --------------------------------------
 To do more interesting things with your optimizers such as learning rate warm-up or odd scheduling,

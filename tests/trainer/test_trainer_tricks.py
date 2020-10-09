@@ -8,7 +8,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import AMPType, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-from tests.base.datamodules import MNISTDataModule
+from tests.base.datamodules import MNISTDataModule, TrialMNISTDataModule
 
 
 def test_num_training_batches(tmpdir):
@@ -181,7 +181,6 @@ def test_trainer_reset_correctly(tmpdir):
                           'logger',
                           'callbacks',
                           'checkpoint_callback',
-                          'early_stop_callback',
                           'limit_train_batches',
                           'current_epoch']
 
@@ -286,30 +285,47 @@ def test_call_to_trainer_method(tmpdir, scale_method):
     )
 
     after_batch_size = trainer.tuner.scale_batch_size(model, mode=scale_method, max_trials=5)
-    model.batch_size = after_batch_size
-    trainer.fit(model)
 
     assert before_batch_size != after_batch_size, \
         'Batch size was not altered after running auto scaling of batch size'
 
 
-def test_error_on_dataloader_passed_to_fit(tmpdir):
-    """Verify that when the auto scale batch size feature raises an error
-       if a train dataloader is passed to fit """
-
-    # only train passed to fit
+@pytest.mark.parametrize('fit_arg', ['train_dataloader', 'datamodule'])
+def test_auto_scale_batch_size_with_only_fit_arg(tmpdir, fit_arg):
+    """ Verify that auto scale batch size feature also works when a
+        train dataloader is passed to tune """
     model = EvalModelTemplate()
+    model.train_dataloader = None
+    model.val_dataloader = None
+    model.test_dataloader = None
+
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        limit_val_batches=0.1,
-        limit_train_batches=0.2,
         auto_scale_batch_size='power',
     )
-    fit_options = dict(train_dataloader=model.dataloader(train=True))
 
-    with pytest.raises(MisconfigurationException):
-        trainer.tune(model, **fit_options)
+    if fit_arg == 'train_dataloader':
+        train_dataloader = model.dataloader(train=True)
+        before_batch_size = train_dataloader.batch_size
+        del model.batch_size, model.hparams['batch_size']
+        trainer.tune(model, train_dataloader=train_dataloader)
+        after_batch_size = train_dataloader.batch_size
+
+    elif fit_arg == 'datamodule':
+        datamodule = TrialMNISTDataModule(data_dir=tmpdir)
+        datamodule.setup()
+        before_batch_size = datamodule.train_dataloader().batch_size
+        del model.batch_size, model.hparams['batch_size']
+        trainer.tune(model, datamodule=datamodule)
+        after_batch_size = datamodule.train_dataloader().batch_size
+
+    assert before_batch_size != after_batch_size, \
+        'Batch size was not altered after running auto scaling of batch size'
+    assert hasattr(model, "batch_size"), \
+        'Batch size field was not created'
+    assert model.batch_size == after_batch_size, \
+        'Model attribute batch size not the same as dataloader batch size'
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")

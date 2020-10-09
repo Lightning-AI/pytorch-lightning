@@ -223,7 +223,6 @@ def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches, expected):
         callbacks=[progress_bar],
         logger=False,
         checkpoint_callback=False,
-        early_stop_callback=False,
     )
     trainer.fit(model)
     assert trainer.progress_bar_callback.val_progress_bar_total == expected

@@ -49,7 +49,7 @@ Or conda.
 
     conda install pytorch-lightning -c conda-forge
 
-
+-------------
 
 The research
 ============
@@ -486,7 +486,7 @@ Once your training starts, you can view the logs by using your favorite logger o
     tensorboard --logdir ./lightning_logs
 
 
-Which will generate automatic tensorboard logs.
+Which will generate automatic tensorboard logs (or with the logger of your choice).
 
 .. figure:: /_images/mnist_imgs/mnist_tb.png
    :alt: mnist CPU bar
@@ -1018,7 +1018,7 @@ Switching your model to Lightning is straight forward - here's a 2-minute video 
 
 .. raw:: html
 
-    <video width="100%" controls autoplay muted playsinline src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_quick_start_full.m4v"></video>
+    <video width="50%" max-width="400px" controls autoplay muted playsinline src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_quick_start_full.m4v"></video>
 
 Your projects WILL grow in complexity and you WILL end up engineering more than trying out new ideas...
 Defer the hardest parts to Lightning!

@@ -3,6 +3,14 @@
 TPU support
 ===========
 
+.. raw:: html
+
+    <video width="50%" max-width="400px" controls autoplay
+    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/yt_thumbs/thumb_tpus.png"
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/tpu_cores.mp4"></video>
+
+|
+
 Lightning supports running on TPUs. At this moment, TPUs are available
 on Google Cloud (GCP), Google Colab and Kaggle Environments. For more information on TPUs
 `watch this video <https://www.youtube.com/watch?v=kPMpmcl_Pyw>`_.

@@ -16,7 +16,7 @@ from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from typing import List, Optional, Union
 from torch.utils.data import DataLoader
-from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.model_utils import is_overridden, _PatchDataLoader
 
 
 class DataConnector(object):
@@ -123,25 +123,3 @@ class DataConnector(object):
 
             self.trainer.datamodule = datamodule
             datamodule.trainer = self.trainer
-
-
-class _PatchDataLoader(object):
-    r"""
-    Callable object for patching dataloaders passed into trainer.fit().
-    Use this class to override model.*_dataloader() and be pickle-compatible.
-
-    Args:
-        dataloader: Dataloader object to return when called.
-
-    """
-
-    def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
-        self.dataloader = dataloader
-
-        # cannot pickle __code__ so cannot verify if PatchDataloader
-        # exists which shows dataloader methods have been overwritten.
-        # so, we hack it by using the string representation
-        self.patch_loader_code = str(self.__call__.__code__)
-
-    def __call__(self) -> Union[List[DataLoader], DataLoader]:
-        return self.dataloader

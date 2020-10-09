@@ -102,7 +102,7 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
     total_train_accuracy = train_accuracy.compute()
     
     # total accuracy over all validation batches
-    total_valid_accuracy = train_accuracy.compute()
+    total_valid_accuracy = valid_accuracy.compute()
 
 Implementing a Metric
 ---------------------
@@ -178,6 +178,13 @@ MeanSquaredLogError
 ^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: pytorch_lightning.metrics.regression.MeanSquaredLogError
+    :noindex:
+
+
+ExplainedVariance
+^^^^^^^^^^^^^^^^^
+
+.. autoclass:: pytorch_lightning.metrics.regression.ExplainedVariance
     :noindex:
 
 
@@ -377,5 +384,15 @@ bleu_score [func]
 ^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.nlp.bleu_score
+    :noindex:
+
+
+Self-Supervised
+---------------
+
+embedding_similarity [func]
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.self_supervised.embedding_similarity
     :noindex:
 
