@@ -11,13 +11,17 @@ BATCH_SIZE = 16
 
 
 def setup_ddp(rank, world_size):
+    """ Setup ddp enviroment """
     os.environ["MASTER_ADDR"] = 'localhost'
     os.environ['MASTER_PORT'] = '8088'
     torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
 
 
 def _compute_batch(rank, preds, target, metric_class, sk_metric, ddp_sync_on_step, worldsize=1, metric_args={}):
-
+    """ Utility function doing the actual comparison between lightning metric
+        and reference metric
+    """
+    # Instanciate lightning metric
     metric = metric_class(compute_on_step=True, ddp_sync_on_step=ddp_sync_on_step, **metric_args)
 
     # verify metrics work after being loaded from pickled state
@@ -53,6 +57,19 @@ def _compute_batch(rank, preds, target, metric_class, sk_metric, ddp_sync_on_ste
 
 
 def compute_batch(preds, target, metric_class, sk_metric, ddp_sync_on_step, ddp=False, metric_args={}):
+    """ Utility function for comparing the result between a lightning class
+        metric and another metric (often sklearns)
+
+        Args:
+            preds: prediction tensor
+            target: target tensor
+            metric_class: lightning metric class to test
+            sk_metric: function to compare with
+            ddp_sync_on_step: bool, determine if values should be reduce on step
+            ddp: bool, determine if test should run in ddp mode
+            metric_args: dict, additional kwargs that are use when instanciating
+                the lightning metric
+    """
     if ddp:
         if sys.platform == "win32":
             pytest.skip("DDP not supported on windows")

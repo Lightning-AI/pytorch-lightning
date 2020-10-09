@@ -6,8 +6,7 @@ from functools import partial
 from pytorch_lightning.metrics.regression import MeanSquaredError, MeanAbsoluteError, MeanSquaredLogError
 from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_squared_log_error
 
-from tests.metrics.utils import compute_batch, setup_ddp
-from tests.metrics.utils import NUM_BATCHES, NUM_PROCESSES, BATCH_SIZE
+from tests.metrics.utils import compute_batch, NUM_BATCHES, BATCH_SIZE
 
 torch.manual_seed(42)
 
