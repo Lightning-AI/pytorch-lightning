@@ -144,6 +144,7 @@ def test_multiple_optimizers_manual_apex(tmpdir):
             x = batch[0]
 
             loss_1 = self(x)
+            loss_1 = self.loss(loss_1, loss_1)
 
             # make sure there are no grads
             if batch_idx > 0:
@@ -156,6 +157,7 @@ def test_multiple_optimizers_manual_apex(tmpdir):
 
             # fake discriminator
             loss_2 = self(batch[0])
+            loss_2 = self.loss(loss_2, loss_2)
 
             # ensure we forward the correct params to the optimizer
             # without retain_graph we can't do multiple backward passes
