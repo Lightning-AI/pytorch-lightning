@@ -132,7 +132,8 @@ def test_multiple_optimizers_manual_single_optimizer_called(tmpdir):
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.skipif(not APEX_AVAILABLE, reason="test requires apex")
 def test_multiple_optimizers_manual_apex(tmpdir):
-    """Check calling apex scaling in training."""
+    os.environ['PL_DEV_DEBUG'] = '1'
+
     """
     Tests that only training_step can be used
     """
@@ -156,7 +157,7 @@ def test_multiple_optimizers_manual_apex(tmpdir):
 
             # ensure we forward the correct params to the optimizer
             # without retain_graph we can't do multiple backward passes
-            self.backward(loss_2, opt_a, retain_graph=True)
+            self.backward(loss_2, opt_b, retain_graph=True)
             self.backward(loss_2, opt_a, retain_graph=True)
 
             assert self.layer.weight.grad is not None
@@ -174,20 +175,28 @@ def test_multiple_optimizers_manual_apex(tmpdir):
             return optimizer, optimizer_2
 
     model = TestModel()
+    model.val_dataloader = None
 
+    limit_train_batches = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
-        limit_train_batches=2,
+        limit_train_batches=limit_train_batches,
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
         weights_summary=None,
         precision=16,
         amp_backend='apex',
-        gpus=1,
+        gpus=1
     )
 
     trainer.fit(model)
+
+    num_manual_backward_calls = 3
+    assert len(trainer.dev_debugger.backward_calls) == limit_train_batches * num_manual_backward_calls
+
+    for call in trainer.dev_debugger.backward_calls:
+        assert call['type'] == 'apex'
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
