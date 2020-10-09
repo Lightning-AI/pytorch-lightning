@@ -379,10 +379,10 @@ callbacks
 
 |
 
-Add a list of user defined callbacks. These callbacks DO NOT replace the explicit callbacks
-(loggers or ModelCheckpoint).
+Add a list of :class:`~pytorch_lightning.callbacks.Callback`. These callbacks DO NOT replace the explicit callbacks
+(loggers or :class:`~pytorch_lightning.callbacks.ModelCheckpoint`).
 
-.. note:: Only user defined callbacks (ie: Not ModelCheckpoint)
+.. note:: Only user defined callbacks (ie: Not :class:`~pytorch_lightning.callbacks.ModelCheckpoint`)
 
 .. code-block:: python
 
@@ -432,14 +432,12 @@ checkpoint_callback
 
 |
 
-Callback for checkpointing.
+Pass in a callback for checkpointing. Checkpoints capture the exact value of all parameters used by a model.
+By default Lightning saves a checkpoint for you in your current working directory, with the state of your last training epoch,
+but you can override the default behavior by Initializing the :class:`~pytorch_lightning.callbacks.ModelCheckpoint` callback,
+and passing it to :class:`~pytorch_lightning.trainer.Trainer` `checkpoint_callback` flag.
 
 .. code-block:: python
-
-    from pytorch_lightning.callbacks import ModelCheckpoint
-    trainer = Trainer(checkpoint_callback=ModelCheckpoint())
-
-Example::
 
     from pytorch_lightning.callbacks import ModelCheckpoint
 
@@ -452,6 +450,16 @@ Example::
         mode='min',
         prefix=''
     )
+
+    trainer = Trainer(checkpoint_callback=checkpoint_callback)
+
+To disable automatic checkpointing, set this to `False`.
+
+.. code-block:: python
+
+    trainer = Trainer(checkpoint_callback=False)
+
+See also :ref:`Saving and Loading Weights <weights_loading>`.
 
 cluster_environment
 ^^^^^^^^^^^^^^^^^^^
