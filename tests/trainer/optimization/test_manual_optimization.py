@@ -144,7 +144,7 @@ def test_multiple_optimizers_manual_apex(tmpdir):
             x = batch[0]
 
             import pdb; pdb.set_trace()
-            loss_1 = self.step(x)
+            loss_1 = self(x)
 
             # make sure there are no grads
             if batch_idx > 0:
@@ -156,7 +156,7 @@ def test_multiple_optimizers_manual_apex(tmpdir):
             assert torch.all(self.layer.weight.grad == 0)
 
             # fake discriminator
-            loss_2 = self.step(batch[0])
+            loss_2 = self(batch[0])
 
             # ensure we forward the correct params to the optimizer
             # without retain_graph we can't do multiple backward passes
