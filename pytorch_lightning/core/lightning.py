@@ -399,7 +399,8 @@ class LightningModule(
                 :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0.
 
         Return:
-            :class:`~torch.Tensor` or a dictionary with anything you want (must include the keyword 'loss')
+            Either a :class:`~torch.Tensor` or a dictionary with anything
+                you want (must include the keyword 'loss') or None
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
         You can also do fancier things like multiple forward passes or something model specific.
