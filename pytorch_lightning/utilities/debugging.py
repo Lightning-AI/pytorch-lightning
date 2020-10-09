@@ -53,6 +53,7 @@ class InternalDebugger(object):
         self.val_dataloader_calls = []
         self.test_dataloader_calls = []
         self.dataloader_sequence_calls = []
+        self.backward_calls = []
 
     def track_event(
             self,
@@ -109,6 +110,12 @@ class InternalDebugger(object):
             self.val_dataloader_calls.append(values)
         elif 'test' in name:
             self.test_dataloader_calls.append(values)
+
+    @enabled_only
+    def track_backward_calls(self, call_info):
+        call_info['global_step'] = self.trainer.global_step
+        call_info['epoch'] = self.trainer.current_epoch
+        self.backward_calls.append(call_info)
 
     @enabled_only
     def track_logged_metrics_history(self, scalar_metrics):

@@ -1,9 +1,9 @@
+import os
 import torch
 import pytest
 from tests.base.boring_model import BoringModel, RandomDataset
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import APEX_AVAILABLE
-from unittest import mock
 
 
 def test_multiple_optimizers_manual(tmpdir):
@@ -125,6 +125,8 @@ def test_multiple_optimizers_manual_apex(tmpdir):
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_multiple_optimizers_manual_native_amp(tmpdir):
+    os.environ['PL_DEV_DEBUG'] = '1'
+
     """Check calling apex scaling in training."""
     """
     Tests that only training_step can be used
@@ -139,7 +141,6 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
             if batch_idx > 0:
                 assert torch.all(self.layer.weight.grad == 0)
 
-            import pdb; pdb.set_trace()
             self.backward(loss_1, opt_a)
             opt_a.step()
             opt_a.zero_grad()
@@ -182,3 +183,7 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
     )
 
     trainer.fit(model)
+
+    assert len(trainer.dev_debugger.backward_calls) == limit_train_batches
+    for call in trainer.dev_debugger.backward_calls:
+        assert call['type'] == 'native_amp'

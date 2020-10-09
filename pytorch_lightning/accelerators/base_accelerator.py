@@ -73,6 +73,7 @@ class Accelerator(object):
         if self.trainer.precision == 16:
             self.trainer.precision_connector.backend.backward(closure_loss, optimizer, *args, **kwargs)
         else:
+            self.trainer.dev_debugger.track_backward_calls({'type': 'default'})
             closure_loss.backward(*args, **kwargs)
 
         # once backward has been applied, release graph

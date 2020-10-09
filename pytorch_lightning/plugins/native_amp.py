@@ -24,6 +24,7 @@ class NativeAMP:
         return model, optimizers
 
     def backward(self, unscaled_loss, optimizer=None, *args, **kwargs):
+        self.trainer.dev_debugger.track_backward_calls({'type': 'native_amp'})
         scaled_loss = self.trainer.scaler.scale(unscaled_loss)
         scaled_loss.backward(*args, **kwargs)
 
