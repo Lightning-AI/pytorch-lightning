@@ -27,8 +27,7 @@ steps:
     CODECOV_TOKEN:
       from_secret: codecov_token
     MKL_THREADING_LAYER: GNU
-    HOROVOD_GPU_ALLREDUCE: NCCL
-    HOROVOD_GPU_BROADCAST: NCCL
+    HOROVOD_GPU_OPERATIONS: NCCL
     HOROVOD_WITH_PYTORCH: 1
     HOROVOD_WITHOUT_TENSORFLOW: 1
     HOROVOD_WITHOUT_MXNET: 1
@@ -48,8 +47,8 @@ steps:
     - nvidia-smi
     #- bash ./requirements/install_AMP.sh
     - apt-get update && apt-get install -y cmake
-    - pip install -r ./requirements/base.txt --user -q --upgrade-strategy only-if-needed
-    - pip install -r ./requirements/devel.txt --user -q --upgrade-strategy only-if-needed
+    - pip uninstall -y horovod
+    - pip install -r ./requirements/devel.txt --user -q --upgrade-strategy only-if-needed  --no-cache-dir
     #- pip install -r ./requirements/docs.txt --user -q
     - pip install -r ./requirements/examples.txt --user -q --upgrade-strategy only-if-needed
     - pip list
