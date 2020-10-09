@@ -1,6 +1,5 @@
 from pytorch_lightning import Callback
 from pytorch_lightning import Trainer, LightningModule
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, ProgressBar
 from tests.base import EvalModelTemplate
 
 
