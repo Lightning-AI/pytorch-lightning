@@ -126,7 +126,7 @@ def test_multiple_optimizers_manual_apex(tmpdir):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@mock.patch('pytorch_lightning.trainer.scaler.scale')
+@mock.patch('pytorch_lightning.trainer.trainer.scaler.scale')
 def test_multiple_optimizers_manual_native_amp(tmpdir):
     """Check calling apex scaling in training."""
     """
