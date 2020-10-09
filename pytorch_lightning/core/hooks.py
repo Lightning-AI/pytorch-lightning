@@ -299,6 +299,8 @@ class ModelHooks:
         """
         Call this directly from your training_step when doing optimizations manually.
         By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
+        
+        This function forwards all args to the .backward() call as well.
 
         Example::
 
@@ -306,7 +308,7 @@ class ModelHooks:
                 loss = ...
 
                 # automatically applies scaling, etc...
-                scaled_loss = self.backward(loss)
+                self.backward(loss)
 
         """
         self.trainer.accelerator_backend.backward(loss, optimizer, *args, **kwargs)
