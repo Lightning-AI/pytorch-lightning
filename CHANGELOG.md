@@ -9,10 +9,30 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Added Explained Variance Metric + metric fix ([#4013](https://github.com/PyTorchLightning/pytorch-lightning/pull/4013))
+
+- Added Metric <-> Lightning Module integration tests ([#4008](https://github.com/PyTorchLightning/pytorch-lightning/pull/4008))
+
+- Added parsing OS env vars in `Trainer` ([#4022](https://github.com/PyTorchLightning/pytorch-lightning/pull/4022))
+
+- Added classification metrics ([#4043](https://github.com/PyTorchLightning/pytorch-lightning/pull/4043))
+
+- Updated explained variance metric ([#4024](https://github.com/PyTorchLightning/pytorch-lightning/pull/4024))
+
+- Enabled plugins ([#4041](https://github.com/PyTorchLightning/pytorch-lightning/pull/4041))
+
+- Enabled custom clusters ([#4048](https://github.com/PyTorchLightning/pytorch-lightning/pull/4048))
+
+- Enabled passing in custom accelerators ([#4050](https://github.com/PyTorchLightning/pytorch-lightning/pull/4050))
 
 ### Changed
 
 - Integrated metrics API with self.log ([#3961](https://github.com/PyTorchLightning/pytorch-lightning/pull/3961))
+
+- Decoupled Appex ([#4052](https://github.com/PyTorchLightning/pytorch-lightning/pull/4052),
+        [#4054](https://github.com/PyTorchLightning/pytorch-lightning/pull/4054),
+        [#4055](https://github.com/PyTorchLightning/pytorch-lightning/pull/4055),
+        [#4056](https://github.com/PyTorchLightning/pytorch-lightning/pull/4056))
 
 ### Deprecated
 
@@ -37,7 +57,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed `current_epoch` property update to reflect true epoch number inside `LightningDataModule`, when `reload_dataloaders_every_epoch=True`. ([#3974](https://github.com/PyTorchLightning/pytorch-lightning/issues/3974))
+
 - Fixed to print scaler value in progress bar ([#4053](https://github.com/PyTorchLightning/pytorch-lightning/pull/4053)) 
+
+- Fixed mismatch between docstring and code regarding when `on_load_checkpoint` hook is called ([#3996](https://github.com/PyTorchLightning/pytorch-lightning/issues/3996))
 
 
 ## [0.10.0] - 2020-10-07
