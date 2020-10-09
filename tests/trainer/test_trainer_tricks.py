@@ -289,7 +289,8 @@ def test_call_to_trainer_method(tmpdir, scale_method):
     assert before_batch_size != after_batch_size, \
         'Batch size was not altered after running auto scaling of batch size'
 
-@pytest.mark.parametrize('fit_arg', ['train_dataloader'])#, 'datamodule'])
+
+@pytest.mark.parametrize('fit_arg', ['train_dataloader', 'datamodule'])
 def test_auto_scale_batch_size_with_only_fit_arg(tmpdir, fit_arg):
     """ Verify that auto scale batch size feature also works when a
         train dataloader is passed to tune """
@@ -321,6 +322,10 @@ def test_auto_scale_batch_size_with_only_fit_arg(tmpdir, fit_arg):
 
     assert before_batch_size != after_batch_size, \
         'Batch size was not altered after running auto scaling of batch size'
+    assert hasattr(model, "batch_size"), \
+        'Batch size field was not created'
+    assert model.batch_size == after_batch_size, \
+        'Model attribute batch size not the same as dataloader batch size'
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")

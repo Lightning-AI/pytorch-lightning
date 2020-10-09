@@ -109,12 +109,11 @@ class Tuner:
 
             datamodule: A instance of :class:`LightningDataModule`.
         """
-        fit_kwargs = {'train_dataloader': train_dataloader}
         scale_batch_size(self.trainer, model, mode, steps_per_trial,
                          init_val, max_trials, batch_arg_name,
-                         fit_kwargs=fit_kwargs)
-        import pdb
-        pdb.set_trace()
+                         train_dataloader=train_dataloader,
+                         val_dataloaders=val_dataloaders,
+                         datamodule=datamodule)
         return
 
 

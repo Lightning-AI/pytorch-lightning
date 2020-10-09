@@ -19,11 +19,12 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.utilities.data import has_len, replace_sampler
+from pytorch_lightning.utilities.data import has_len, replace_dataloader_args
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_getattr, lightning_setattr
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import is_oom_error, garbage_collection_cuda
+from pytorch_lightning.utilities.model_utils import _PatchDataLoader
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning import _logger as log
 
@@ -72,11 +73,15 @@ def scale_batch_size(trainer,
             - `model.datamodule`
             - `trainer.datamodule` (the datamodule passed to the tune method)
 
-        **fit_kwargs: remaining arguments to be passed to .fit(), e.g., dataloader
-            or datamodule.
+        train_dataloader: A Pytorch DataLoader with training samples. If the model has
+                a predefined train_dataloader method this will be skipped.
+
+        val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
+            If the model has a predefined val_dataloaders method this will be skipped
+
+        datamodule: A instance of :class:`LightningDataModule`.
     """
-    import pdb
-    pdb.set_trace()
+    # Make copy of dataloader passed to fit that we work with while doing the search
     fit_kwargs={'train_dataloader': deepcopy(train_dataloader),
                 'val_dataloaders': deepcopy(val_dataloaders),
                 'datamodule': deepcopy(datamodule)}
@@ -104,9 +109,9 @@ def scale_batch_size(trainer,
     if trainer.progress_bar_callback:
         trainer.progress_bar_callback.disable()
 
-    # Initially we just double in size until an OOM is encountered
+    # Initially set to init_val
     new_size, _ = _adjust_batch_size(trainer, init_val, batch_arg_name,
-                                     in_model, value=init_val, fit_kwargs=fit_kwargs)  # initially set to init_val
+                                     in_model, value=init_val, fit_kwargs=fit_kwargs)
     if mode == 'power':
         new_size = _run_power_scaling(trainer, model, new_size, batch_arg_name,
                                       max_trials, in_model, fit_kwargs=fit_kwargs)
@@ -118,10 +123,17 @@ def scale_batch_size(trainer,
     garbage_collection_cuda()
     log.info(f'Finished batch size finder, will continue with full run using batch size {new_size}')
 
+    # If we have not altered a field in the model/datamodule, we update
+    # the dataloader/datamodule here
     if not in_model:
         if fit_kwargs['train_dataloader'] is not None:
             train_dataloader.__dict__['batch_size'] = new_size
             train_dataloader.batch_sampler.batch_size = new_size
+        if fit_kwargs['datamodule'] is not None:
+            datamodule.train_dataloader = _PatchDataLoader(
+                replace_dataloader_args(datamodule.train_dataloader(), batch_size=new_size)
+            )
+        setattr(model, 'batch_size', new_size)
 
     # Restore initial state of model
     trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer.on_gpu)
@@ -313,7 +325,8 @@ def _is_valid_batch_size(current_size, dataloader):
 def _replace_batch_size(new_batch_size, fit_kwargs):
     """ Replace the batch size of the train_dataloader passed in the fit_kwargs argument """
     if 'train_dataloader' in fit_kwargs and fit_kwargs['train_dataloader'] is not None:
-        fit_kwargs['train_dataloader'] = replace_sampler(fit_kwargs['train_dataloader'], batch_size=new_batch_size)
+        fit_kwargs['train_dataloader'] = replace_dataloader_args(fit_kwargs['train_dataloader'], batch_size=new_batch_size)
     if 'datamodule' in fit_kwargs and fit_kwargs['datamodule'] is not None:
-        fit_kwargs['datamodule'].train_dataloader = \
-            lambda: replace_sampler(fit_kwargs['datamodule'].train_dataloader(), batch_size=new_batch_size)
+        fit_kwargs['datamodule'].train_dataloader = _PatchDataLoader(
+            replace_dataloader_args(fit_kwargs['datamodule'].train_dataloader(), batch_size=new_batch_size)
+        )
