@@ -160,8 +160,8 @@ class TrainerDataLoadingMixin(ABC):
             if hasattr(self.train_dataloader, 'sampler') and isinstance(self.train_dataloader.sampler, RandomSampler):
                 rank_zero_warn('You requested to overfit but enabled training dataloader shuffling.'
                                ' We are turning it off for you.')
-                self.train_dataloader = self.replace_sampler(
-                    self.train_dataloader, SequentialSampler(self.train_dataloader.dataset))
+                self.train_dataloader = replace_sampler(
+                    self.train_dataloader, sampler=SequentialSampler(self.train_dataloader.dataset))
 
         # debugging
         self.dev_debugger.track_load_dataloader_call('train_dataloader', dataloaders=[self.train_dataloader])
@@ -247,7 +247,7 @@ class TrainerDataLoadingMixin(ABC):
                 if self.overfit_batches > 0:
                     rank_zero_warn('You requested to overfit but enabled test/val dataloader shuffling.'
                                    ' We are turning it off for you.')
-                    dataloaders[loader_i] = self.replace_sampler(loader, SequentialSampler(loader.dataset))
+                    dataloaders[loader_i] = replace_sampler(loader, sampler=SequentialSampler(loader.dataset))
 
                 else:
                     rank_zero_warn(f'Your {mode}_dataloader has `shuffle=True`, it is best practice to turn'
