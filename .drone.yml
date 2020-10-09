@@ -48,6 +48,7 @@ steps:
     - pip install pip -U
     - pip --version
     - nvidia-smi
+    - pip uninstall -y horovod
     #- bash ./requirements/install_AMP.sh
     - apt-get update && apt-get install -y cmake
     - pip install -r ./requirements/base.txt --user -q --upgrade-strategy only-if-needed
