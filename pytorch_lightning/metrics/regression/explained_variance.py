@@ -64,9 +64,10 @@ class ExplainedVariance(Metric):
             process_group=process_group,
         )
         allowed_multioutput = ('raw_values', 'uniform_average', 'variance_weighted')
-        assert multioutput in allowed_multioutput, \
-            'Invalid input to argument `multioutput`. Choose one of the following:' \
-            f'{allowed_multioutput}'
+        if multioutput not in allowed_multioutput:
+            raise ValueError(
+                f'Invalid input to argument `multioutput`. Choose one of the following: {allowed_multioutput}'
+            )
         self.multioutput = multioutput
         self.add_state("y", default=[], dist_reduce_fx=None)
         self.add_state("y_pred", default=[], dist_reduce_fx=None)
