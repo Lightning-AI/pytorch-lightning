@@ -35,18 +35,9 @@ class ApexPlugin:
         return output
 
     def backward(self, unscaled_loss, optimizer, *args, **kwargs):
-        try:
-            if unscaled_loss.grad_fn is None:
-                import pdb;
-                pdb.set_trace()
-                print('a')
-
-            self.trainer.dev_debugger.track_backward_calls({'type': 'apex'})
-            with amp.scale_loss(unscaled_loss, optimizer) as scaled_loss:
-                scaled_loss.backward(*args, **kwargs)
-        except Exception as e:
-            import pdb; pdb.set_trace()
-            print(e)
+        self.trainer.dev_debugger.track_backward_calls({'type': 'apex'})
+        with amp.scale_loss(unscaled_loss, optimizer) as scaled_loss:
+            scaled_loss.backward(*args, **kwargs)
 
     def configure_apex(
         self,
