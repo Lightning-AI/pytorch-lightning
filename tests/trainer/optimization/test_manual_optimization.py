@@ -124,8 +124,7 @@ def test_multiple_optimizers_manual_apex(tmpdir):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@mock.patch('torch.cuda.amp.GradScaler.scale')
-def test_multiple_optimizers_manual_native_amp(scaler_mock, tmpdir):
+def test_multiple_optimizers_manual_native_amp(tmpdir):
     """Check calling apex scaling in training."""
     """
     Tests that only training_step can be used
@@ -183,4 +182,3 @@ def test_multiple_optimizers_manual_native_amp(scaler_mock, tmpdir):
     )
 
     trainer.fit(model)
-    assert scaler_mock.call_count == limit_train_batches
