@@ -146,6 +146,8 @@ def test_multiple_optimizers_manual_apex(tmpdir):
             loss_1 = self(x)
             loss_1 = self.loss(loss_1, loss_1)
 
+            import pdb; pdb.set_trace()
+
             # make sure there are no grads
             if batch_idx > 0:
                 assert torch.all(self.layer.weight.grad == 0)
