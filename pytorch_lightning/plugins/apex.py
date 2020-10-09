@@ -37,6 +37,7 @@ class ApexPlugin:
     def backward(self, unscaled_loss, optimizer, *args, **kwargs):
         self.trainer.dev_debugger.track_backward_calls({'type': 'apex'})
         with amp.scale_loss(unscaled_loss, optimizer) as scaled_loss:
+            import pdb; pdb.set_trace()
             scaled_loss.backward(*args, **kwargs)
 
     def configure_apex(
