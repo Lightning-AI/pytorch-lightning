@@ -41,6 +41,8 @@ steps:
   #    path: /opt/conda/lib/python3.7/site-packages
 
   commands:
+    - unset HOROVOD_GPU_ALLREDUCE
+    - unset HOROVOD_GPU_BROADCAST
     - export PATH="$PATH:/root/.local/bin"
     - python --version
     - pip install pip -U
