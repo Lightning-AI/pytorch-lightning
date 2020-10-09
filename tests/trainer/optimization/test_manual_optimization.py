@@ -143,7 +143,6 @@ def test_multiple_optimizers_manual_apex(tmpdir):
             (opt_a, opt_b) = self.optimizers()
             x = batch[0]
 
-            import pdb; pdb.set_trace()
             loss_1 = self(x)
 
             # make sure there are no grads
