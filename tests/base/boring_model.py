@@ -72,7 +72,7 @@ class BoringModel(LightningModule):
         return torch.nn.functional.mse_loss(prediction, torch.ones_like(prediction))
 
     def step(self, x):
-        x = self.layer(x)
+        x = self(x)
         out = torch.nn.functional.mse_loss(x, torch.ones_like(x))
         return out
 
