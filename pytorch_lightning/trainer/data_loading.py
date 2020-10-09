@@ -23,7 +23,7 @@ from torch.utils.data.distributed import DistributedSampler
 from pytorch_lightning.accelerators.base_accelerator import Accelerator
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.data import has_iterable_dataset, has_len, replace_sampler
+from pytorch_lightning.utilities.data import has_iterable_dataset, has_len, replace_dataloader_args
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.model_utils import is_overridden
@@ -124,7 +124,7 @@ class TrainerDataLoadingMixin(ABC):
 
             # replace with distributed sampler
             sampler = self._get_distributed_sampler(dataloader, train)
-            dataloader = replace_sampler(dataloader, sampler=sampler)
+            dataloader = replace_dataloader_args(dataloader, sampler=sampler)
 
         return dataloader
 
@@ -160,7 +160,7 @@ class TrainerDataLoadingMixin(ABC):
             if hasattr(self.train_dataloader, 'sampler') and isinstance(self.train_dataloader.sampler, RandomSampler):
                 rank_zero_warn('You requested to overfit but enabled training dataloader shuffling.'
                                ' We are turning it off for you.')
-                self.train_dataloader = replace_sampler(
+                self.train_dataloader = replace_dataloader_args(
                     self.train_dataloader, sampler=SequentialSampler(self.train_dataloader.dataset))
 
         # debugging
@@ -247,7 +247,9 @@ class TrainerDataLoadingMixin(ABC):
                 if self.overfit_batches > 0:
                     rank_zero_warn('You requested to overfit but enabled test/val dataloader shuffling.'
                                    ' We are turning it off for you.')
-                    dataloaders[loader_i] = replace_sampler(loader, sampler=SequentialSampler(loader.dataset))
+                    dataloaders[loader_i] = replace_dataloader_args(
+                        loader, sampler=SequentialSampler(loader.dataset)
+                    )
 
                 else:
                     rank_zero_warn(f'Your {mode}_dataloader has `shuffle=True`, it is best practice to turn'
