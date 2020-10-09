@@ -169,6 +169,8 @@ def test_multiple_optimizers_manual_apex(tmpdir):
             opt_b.zero_grad()
             assert torch.all(self.layer.weight.grad == 0)
 
+            import pdb; pdb.set_trace()
+
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
             assert len(outputs) == 2
