@@ -687,10 +687,6 @@ LightningModule API
 Training loop methods
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. currentmodule:: pytorch_lightning.core.lightning.LightningModule
-
-
-
 training_step
 ~~~~~~~~~~~~~
 
