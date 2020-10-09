@@ -61,7 +61,7 @@ def test_multiple_optimizers_manual(tmpdir):
 
         def training_step(self, batch, batch_idx, optimizer_idx):
             # manual
-            (opt_a, opt_b) = self.trainer.optimizers
+            (opt_a, opt_b) = self.optimizers
             loss_1 = self.step(batch[0])
 
             # fake generator

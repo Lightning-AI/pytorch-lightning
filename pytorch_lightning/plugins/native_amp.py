@@ -23,10 +23,9 @@ class NativeAMP:
     def connect(self, model, optimizers):
         return model, optimizers
 
-    def backward(self, unscaled_loss, optimizer=None, retain_graph=False):
+    def backward(self, unscaled_loss, optimizer=None, *args, **kwargs):
         scaled_loss = self.trainer.scaler.scale(unscaled_loss)
-        scaled_loss.backward(retain_graph=retain_graph)
-        return scaled_loss
+        scaled_loss.backward(*args, **kwargs)
 
     def training_step(self, fx, args):
         with torch.cuda.amp.autocast():

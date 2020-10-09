@@ -26,7 +26,7 @@ to manually manage the optimization process. To do so, do the following:
 
     def training_step(self, batch, batch_idx, optimizer_idx):
         # ignore optimizer_idx
-        (opt_g, opt_d) = self.trainer.optimizers
+        (opt_g, opt_d) = self.optimizers
 
         # do anything you want
         loss_a = ...

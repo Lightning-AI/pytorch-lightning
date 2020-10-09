@@ -68,12 +68,12 @@ class Accelerator(object):
     def process_dataloader(self, dataloader):
         return dataloader
 
-    def backward(self, closure_loss, optimizer, retain_graph=False):
+    def backward(self, closure_loss, optimizer, *args, **kwargs):
         # scale loss for 16 bit
         if self.trainer.precision == 16:
-            closure_loss = self.trainer.amp_backend.backward(closure_loss, optimizer, retain_graph)
+            closure_loss = self.trainer.amp_backend.backward(closure_loss, optimizer, *args, **kwargs)
         else:
-            closure_loss.backward(retain_graph=retain_graph)
+            closure_loss.backward(*args, **kwargs)
 
         # once backward has been applied, release graph
         closure_loss = closure_loss.detach()

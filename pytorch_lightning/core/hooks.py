@@ -295,10 +295,11 @@ class ModelHooks:
 
         """
 
+    @property
     def optimizers(self):
         return self.trainer.optimizers
 
-    def backward(self, loss: Tensor, optimizer: Optimizer, retain_graph: bool = False) -> None:
+    def backward(self, loss: Tensor, optimizer: Optimizer, *args, **kwargs) -> None:
         """
         Call this directly from your training_step when doing optimizations manually.
         By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
@@ -312,8 +313,7 @@ class ModelHooks:
                 scaled_loss = self.backward(loss)
 
         """
-        scaled_loss = self.trainer.accelerator_backend.backward(loss, optimizer, retain_graph)
-        return scaled_loss
+        self.trainer.accelerator_backend.backward(loss, optimizer, *args, **kwargs)
 
 
 class DataHooks:
