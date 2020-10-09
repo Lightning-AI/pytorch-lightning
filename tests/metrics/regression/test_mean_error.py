@@ -56,3 +56,11 @@ def _multi_target_sk_metric(preds, target, sk_fn=mean_squared_error):
 )
 def test_mean_error(ddp, ddp_sync_on_step, preds, target, sk_metric, metric_class, sk_fn):
     compute_batch(preds, target, metric_class, partial(sk_metric, sk_fn=sk_fn), ddp_sync_on_step, ddp)
+
+
+@pytest.mark.parametrize("metric_class", [MeanSquaredError, MeanAbsoluteError, MeanSquaredLogError])
+def test_error_on_different_shape(metric_class):
+    metric = metric_class()
+    with pytest.raises(RuntimeError,
+                       match='Predictions and targets are expected to have the same shape'):
+        metric(torch.randn(100,), torch.randn(50,))

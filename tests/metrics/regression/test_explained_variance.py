@@ -57,3 +57,10 @@ def test_explained_variance(ddp, ddp_sync_on_step, multioutput, preds, target, s
         ddp,
         metric_args=dict(multioutput=multioutput),
     )
+
+
+def test_error_on_different_shape(metric_class=ExplainedVariance):
+    metric = metric_class()
+    with pytest.raises(RuntimeError,
+                       match='Predictions and targets are expected to have the same shape'):
+        metric(torch.randn(100,), torch.randn(50,))
