@@ -277,10 +277,10 @@ class TrainLoop:
         opt_idx = np.argmax(optimizer_freq_cumsum > current_place_in_loop)
         return [(opt_idx, self.trainer.optimizers[opt_idx])]
 
-    def backward(self, result, optimizer, opt_idx):
+    def backward(self, result, optimizer):
         # backward pass
         with self.trainer.profiler.profile('model_backward'):
-            result.closure_loss = self.trainer.accelerator_backend.backward(result.closure_loss, optimizer, opt_idx)
+            result.closure_loss = self.trainer.accelerator_backend.backward(result.closure_loss, optimizer)
 
     def on_after_backward(self, training_step_output, batch_idx, untouched_loss):
         is_result_obj = isinstance(training_step_output, Result)
@@ -750,7 +750,7 @@ class TrainLoop:
             return None
 
         # backward pass
-        self.backward(result, optimizer, opt_idx)
+        self.backward(result, optimizer)
 
         # hook
         self.on_after_backward(result.training_step_output, batch_idx, result.loss)

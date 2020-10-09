@@ -34,7 +34,7 @@ class ApexPlugin:
         output = fx(args)
         return output
 
-    def backward(self, unscaled_loss, optimizer=None, *args, **kwargs):
+    def backward(self, unscaled_loss, optimizer, *args, **kwargs):
         with amp.scale_loss(unscaled_loss, optimizer) as scaled_loss:
             scaled_loss.backward(*args, **kwargs)
 
