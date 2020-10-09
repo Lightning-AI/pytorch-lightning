@@ -311,7 +311,7 @@ class ModelHooks:
                 self.backward(loss)
 
         """
-        self.trainer.accelerator_backend.backward(loss, optimizer, *args, **kwargs)
+        self.trainer.train_loop.backward(loss, optimizer, *args, **kwargs)
 
 
 class DataHooks:
