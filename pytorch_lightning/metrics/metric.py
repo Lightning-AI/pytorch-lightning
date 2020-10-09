@@ -96,7 +96,11 @@ class Metric(nn.Module, ABC):
             the format discussed in the above note.
 
         """
-        if not isinstance(default, torch.Tensor) or (isinstance(default, list) and len(default) != 0):
+        if (
+            not isinstance(default, torch.Tensor)
+            and not isinstance(default, list)                     # noqa: W503
+            or (isinstance(default, list) and len(default) != 0)  # noqa: W503
+        ):
             raise ValueError(
                 "state variable must be a tensor or any empty list (where you can append tensors)"
             )
@@ -163,7 +167,7 @@ class Metric(nn.Module, ABC):
             elif isinstance(output_dict[attr][0], list):
                 output_dict[attr] = _flatten(output_dict[attr])
 
-            assert isinstance(reduction_fn, (Callable, None))
+            assert isinstance(reduction_fn, (Callable)) or reduction_fn is None
             reduced = reduction_fn(output_dict[attr]) if reduction_fn is not None else output_dict[attr]
             setattr(self, attr, reduced)
 
