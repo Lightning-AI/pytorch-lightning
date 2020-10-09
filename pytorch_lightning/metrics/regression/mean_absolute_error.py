@@ -8,6 +8,15 @@ class MeanAbsoluteError(Metric):
     """
     Computes mean absolute error.
 
+    Args:
+        compute_on_step:
+            Forward only calls ``update()`` and return None if this is set to False. default: True
+        ddp_sync_on_step:
+            Synchronize metric state across processes at each ``forward()``
+            before returning the value at the step. default: False
+        process_group:
+            Specify the process group on which synchronization is called. default: None (which selects the entire world)
+
     Example:
 
         >>> from pytorch_lightning.metrics import MeanAbsoluteError
@@ -41,7 +50,8 @@ class MeanAbsoluteError(Metric):
             preds: Predictions from model
             target: Ground truth values
         """
-        assert preds.shape == target.shape
+        assert preds.shape == target.shape, \
+            'Predictions and targets are expected to have the same shape'
         abs_error = torch.abs(preds - target)
 
         self.sum_abs_error += torch.sum(abs_error)

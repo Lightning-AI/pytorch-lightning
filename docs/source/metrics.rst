@@ -181,6 +181,13 @@ MeanSquaredLogError
     :noindex:
 
 
+ExplainedVariance
+^^^^^^^^^^^^^^^^^
+
+.. autoclass:: pytorch_lightning.metrics.regression.ExplainedVariance
+    :noindex:
+
+
 Functional Metrics
 ==================
 
@@ -377,5 +384,15 @@ bleu_score [func]
 ^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.nlp.bleu_score
+    :noindex:
+
+
+Self-Supervised
+---------------
+
+embedding_similarity [func]
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.self_supervised.embedding_similarity
     :noindex:
 

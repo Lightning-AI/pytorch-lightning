@@ -8,6 +8,15 @@ class MeanSquaredLogError(Metric):
     """
     Computes mean squared logarithmic error.
 
+    Args:
+        compute_on_step:
+            Forward only calls ``update()`` and return None if this is set to False. default: True
+        ddp_sync_on_step:
+            Synchronize metric state across processes at each ``forward()``
+            before returning the value at the step. default: False
+        process_group:
+            Specify the process group on which synchronization is called. default: None (which selects the entire world)
+
     Example:
 
         >>> from pytorch_lightning.metrics import MeanSquaredLogError
@@ -42,7 +51,8 @@ class MeanSquaredLogError(Metric):
             preds: Predictions from model
             target: Ground truth values
         """
-        assert preds.shape == target.shape
+        assert preds.shape == target.shape, \
+            'Predictions and targets are expected to have the same shape'
         squared_log_error = torch.pow(torch.log1p(preds) - torch.log1p(target), 2)
 
         self.sum_squared_log_error += torch.sum(squared_log_error)
