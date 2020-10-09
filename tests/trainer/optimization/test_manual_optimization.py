@@ -198,12 +198,6 @@ def test_multiple_optimizers_manual_apex(tmpdir):
     with pytest.raises(MisconfigurationException, match='.*manual optimization and apex with.*'):
         trainer.fit(model)
 
-    num_manual_backward_calls = 3
-    assert len(trainer.dev_debugger.backward_calls) == limit_train_batches * num_manual_backward_calls
-
-    for call in trainer.dev_debugger.backward_calls:
-        assert call['type'] == 'apex'
-
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_multiple_optimizers_manual_native_amp(tmpdir):
