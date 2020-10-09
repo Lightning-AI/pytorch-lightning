@@ -140,6 +140,7 @@ def test_multiple_optimizers_manual_native_amp(scaler_mock, tmpdir):
             if batch_idx > 0:
                 assert torch.all(self.layer.weight.grad == 0)
 
+            import pdb; pdb.set_trace()
             self.backward(loss_1, opt_a)
             opt_a.step()
             opt_a.zero_grad()
