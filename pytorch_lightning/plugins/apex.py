@@ -14,6 +14,9 @@
 from typing import List, Tuple
 from torch.optim.optimizer import Optimizer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities import AMPType
+
+
 try:
     from apex import amp
 except ImportError:
@@ -41,6 +44,7 @@ class ApexPlugin:
             raise MisconfigurationException(m)
 
         self.trainer.dev_debugger.track_backward_calls({'type': 'apex'})
+        self.trainer.dev_debugger.track_event('AMP', str(AMPType.APEX))
         with amp.scale_loss(unscaled_loss, optimizer) as scaled_loss:
             scaled_loss.backward(*args, **kwargs)
 
