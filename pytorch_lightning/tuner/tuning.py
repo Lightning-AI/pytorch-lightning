@@ -74,9 +74,6 @@ class Tuner:
                 or datamodule.
 
         """
-        if self.trainer.fast_dev_run:
-            rank_zero_warn('Skipping batch size scaler `fast_dev_run=True`', UserWarning)
-            return
         return scale_batch_size(
             self.trainer, model, mode, steps_per_trial, init_val, max_trials, batch_arg_name, **fit_kwargs
         )
@@ -93,9 +90,6 @@ class Tuner:
             early_stop_threshold: float = 4.0,
             datamodule: Optional[LightningDataModule] = None
     ):
-        if self.trainer.fast_dev_run:
-            rank_zero_warn('Skipping learning rate finder since `fast_dev_run=True`', UserWarning)
-            return
         return lr_find(
             self.trainer,
             model,

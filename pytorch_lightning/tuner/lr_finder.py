@@ -41,8 +41,6 @@ else:
 
 def _run_lr_finder_internally(trainer, model: LightningModule):
     """ Call lr finder internally during Trainer.fit() """
-    if trainer.fast_dev_run:
-        rank_zero_warn('Skipping learning rate finder since `fast_dev_run=True`', UserWarning)
     lr_finder = lr_find(trainer, model)
     lr = lr_finder.suggestion()
 
@@ -133,6 +131,10 @@ def lr_find(
         trainer.fit(model)
 
     """
+    if trainer.fast_dev_run:
+        rank_zero_warn('Skipping learning rate finder since `fast_dev_run=True`', UserWarning)
+        return
+
     save_path = os.path.join(trainer.default_root_dir, 'lr_find_temp.ckpt')
 
     __lr_finder_dump_params(trainer, model)
