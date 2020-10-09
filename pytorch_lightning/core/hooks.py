@@ -295,35 +295,24 @@ class ModelHooks:
 
         """
 
-    def backward(self, trainer, loss: Tensor, optimizer: Optimizer, optimizer_idx: int) -> None:
+    def optimizers(self):
+        return self.trainer.optimizers
+
+    def backward(self, loss: Tensor, optimizer: Optimizer, retain_graph: bool = False) -> None:
         """
-        Override backward with your own implementation if you need to.
-
-        Args:
-            trainer: Pointer to the trainer
-            loss: Loss is already scaled by accumulated grads
-            optimizer: Current optimizer being used
-            optimizer_idx: Index of the current optimizer being used
-
-        Called to perform backward step.
-        Feel free to override as needed.
-
-        The loss passed in has already been scaled for accumulated gradients if requested.
+        Call this directly from your training_step when doing optimizations manually.
+        By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
 
         Example::
 
-            def backward(self, trainer, loss, optimizer, optimizer_idx):
-                loss.backward()
+            def training_step(...):
+                loss = ...
+
+                # automatically applies scaling, etc...
+                scaled_loss = self.backward(loss)
 
         """
-        loss.backward()
-
-    def amp_scale_loss(self, unscaled_loss: Tensor, optimizer: Optimizer, optimizer_idx: int, amp_backend: AMPType):
-        if amp_backend == AMPType.NATIVE:
-            scaled_loss = self.trainer.scaler.scale(unscaled_loss)
-        else:
-            scaled_loss = amp.scale_loss(unscaled_loss, optimizer)
-
+        scaled_loss = self.trainer.accelerator_backend.backward(loss, optimizer, retain_graph)
         return scaled_loss
 
 

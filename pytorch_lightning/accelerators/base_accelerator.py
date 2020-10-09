@@ -68,34 +68,12 @@ class Accelerator(object):
     def process_dataloader(self, dataloader):
         return dataloader
 
-    def backward(self, closure_loss, optimizer, opt_idx):
-        model_ref = self.trainer.get_model()
-
+    def backward(self, closure_loss, optimizer, retain_graph=False):
         # scale loss for 16 bit
         if self.trainer.precision == 16:
-            closure_loss = model_ref.amp_scale_loss(
-                closure_loss,
-                optimizer,
-                opt_idx,
-                amp_backend=self.trainer.amp_backend
-            )
-
-            # enter amp context
-            if self.trainer.amp_backend == AMPType.APEX:
-                self.trainer.dev_debugger.track_event('AMP', str(AMPType.APEX))
-                context = closure_loss
-                closure_loss = closure_loss.__enter__()
-
-        # do backward pass
-        model_ref.backward(self, closure_loss, optimizer, opt_idx)
-
-        # exit amp context
-        if self.trainer.precision == 16 and self.trainer.amp_backend == AMPType.APEX:
-            a, b, c = None, None, None
-            error = context.__exit__(a, b, c)
-            if error:
-                rank_zero_warn(a, b, c)
-                raise Exception('apex unscale error')
+            closure_loss = self.trainer.amp_backend.backward(closure_loss, optimizer, retain_graph)
+        else:
+            closure_loss.backward(retain_graph=retain_graph)
 
         # once backward has been applied, release graph
         closure_loss = closure_loss.detach()

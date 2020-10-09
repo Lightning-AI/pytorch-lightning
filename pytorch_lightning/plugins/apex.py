@@ -34,6 +34,11 @@ class ApexPlugin:
         output = fx(args)
         return output
 
+    def backward(self, unscaled_loss, optimizer=None, retain_graph=False):
+        with amp.scale_loss(unscaled_loss, optimizer) as scaled_loss:
+            scaled_loss.backward(retain_graph=retain_graph)
+        return scaled_loss
+
     def configure_apex(
         self,
         amp: object,
