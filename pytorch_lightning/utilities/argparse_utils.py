@@ -84,7 +84,7 @@ def parse_env_variables(cls, template: str = "PL_%(cls_name)s_%(cls_argument)s")
     cls_arg_defaults = get_init_arguments_and_types(cls)
 
     env_args = {}
-    for arg_name, arg_type, arg_val in cls_arg_defaults:
+    for arg_name, _, _ in cls_arg_defaults:
         env = template % {'cls_name': cls.__name__.upper(), 'cls_argument': arg_name.upper()}
         val = os.environ.get(env)
         if not (val is None or val == ''):
