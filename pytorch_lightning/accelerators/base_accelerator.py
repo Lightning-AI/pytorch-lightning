@@ -69,6 +69,7 @@ class Accelerator(object):
         return dataloader
 
     def backward(self, closure_loss, optimizer, *args, **kwargs):
+        import pdb; pdb.set_trace()
         # scale loss for 16 bit
         if self.trainer.precision == 16:
             self.trainer.precision_connector.backend.backward(closure_loss, optimizer, *args, **kwargs)
