@@ -110,7 +110,6 @@ class LightningModule(
         self._results: Result = None
         self._current_fx_name = ''
 
-    @property
     def optimizers(self):
         return self.trainer.optimizers
 

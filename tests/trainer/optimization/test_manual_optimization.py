@@ -15,7 +15,7 @@ def test_multiple_optimizers_manual(tmpdir):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
             # manual
-            (opt_a, opt_b) = self.optimizers
+            (opt_a, opt_b) = self.optimizers()
             loss_1 = self.step(batch[0])
 
             # make sure there are no grads
@@ -77,7 +77,7 @@ def test_multiple_optimizers_manual_single_optimizer_called(tmpdir):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
             # manual
-            (opt_a, opt_b) = self.optimizers
+            (opt_a, opt_b) = self.optimizers()
             loss_1 = self.step(batch[0])
 
             # make sure there are no grads
@@ -140,7 +140,7 @@ def test_multiple_optimizers_manual_apex(tmpdir):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
             # manual
-            (opt_a, opt_b) = self.optimizers
+            (opt_a, opt_b) = self.optimizers()
             loss_1 = self.step(batch[0])
 
             # make sure there are no grads
@@ -209,7 +209,7 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
             # manual
-            (opt_a, opt_b) = self.optimizers
+            (opt_a, opt_b) = self.optimizers()
             loss_1 = self.step(batch[0])
 
             # make sure there are no grads
