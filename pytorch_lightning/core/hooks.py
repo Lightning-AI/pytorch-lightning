@@ -295,10 +295,6 @@ class ModelHooks:
 
         """
 
-    @property
-    def optimizers(self):
-        return self.trainer.optimizers
-
     def backward(self, loss: Tensor, optimizer: Optimizer, *args, **kwargs) -> None:
         """
         Call this directly from your training_step when doing optimizations manually.

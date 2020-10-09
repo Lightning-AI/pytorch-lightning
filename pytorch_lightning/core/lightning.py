@@ -111,6 +111,10 @@ class LightningModule(
         self._current_fx_name = ''
 
     @property
+    def optimizers(self):
+        return self.trainer.optimizers
+
+    @property
     def example_input_array(self) -> Any:
         return self._example_input_array
 

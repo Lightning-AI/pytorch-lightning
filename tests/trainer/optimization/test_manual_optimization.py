@@ -29,6 +29,7 @@ def test_multiple_optimizers_manual(tmpdir):
             loss_2 = self.step(batch[0])
 
             # ensure we forward the correct params to the optimizer
+            # without retain_graph we can't do multiple backward passes
             self.backward(loss_2, opt_a, retain_graph=True)
             self.backward(loss_2, opt_a, retain_graph=True)
 
@@ -88,6 +89,7 @@ def test_multiple_optimizers_manual_apex(tmpdir):
             loss_2 = self.step(batch[0])
 
             # ensure we forward the correct params to the optimizer
+            # without retain_graph we can't do multiple backward passes
             self.backward(loss_2, opt_a, retain_graph=True)
             self.backward(loss_2, opt_a, retain_graph=True)
 
@@ -149,6 +151,7 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
             loss_2 = self.step(batch[0])
 
             # ensure we forward the correct params to the optimizer
+            # without retain_graph we can't do multiple backward passes
             self.backward(loss_2, opt_a, retain_graph=True)
             self.backward(loss_2, opt_a, retain_graph=True)
 
