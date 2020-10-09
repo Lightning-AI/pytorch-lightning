@@ -106,8 +106,7 @@ class ExplainedVariance(Metric):
         nonzero_denominator = denominator != 0
         valid_score = nonzero_numerator & nonzero_denominator
         output_scores = torch.ones_like(y_diff_avg)
-        output_scores[valid_score] = 1.0 - (numerator[valid_score] /
-                                            denominator[valid_score])
+        output_scores[valid_score] = 1.0 - (numerator[valid_score] / denominator[valid_score])
         output_scores[nonzero_numerator & ~nonzero_denominator] = 0.
 
         # Decide what to do in multioutput case
