@@ -12,6 +12,8 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
+from pytorch_lightning.trainer.train_loader_patch import MagicClass
+
 try:
     from torch.utils.data import IterableDataset
     ITERABLE_DATASET_EXISTS = True
@@ -353,7 +355,7 @@ class TrainerDataLoadingMixin(ABC):
         Returns:
             The dataloader
         """
-        dataloader = dataloader_fx()
+        dataloader = MagicClass(dataloader_fx())
 
         # get the function we'll use to get data
         if self.use_ddp or self.use_ddp2:
