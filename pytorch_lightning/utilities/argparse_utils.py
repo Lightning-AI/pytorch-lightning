@@ -1,4 +1,5 @@
 import inspect
+import os
 from argparse import ArgumentParser, Namespace
 from typing import Union, List, Tuple, Any
 from pytorch_lightning.utilities import parsing
@@ -7,6 +8,7 @@ from pytorch_lightning.utilities import parsing
 def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
     """
     Create an instance from CLI arguments.
+    Eventually use varibles from OS environement which are defined as "PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>"
 
     Args:
         args: The parser or namespace to take arguments from. Only known arguments will be
@@ -22,9 +24,13 @@ def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
         >>> args = Trainer.parse_argparser(parser.parse_args(""))
         >>> trainer = Trainer.from_argparse_args(args, logger=False)
     """
+    # fist check if any args are defined in environment for the class and set as default
+    params = vars(parse_env_variables(cls))
+
     if isinstance(args, ArgumentParser):
         args = cls.parse_argparser(args)
-    params = vars(args)
+    # if other arg passed,  update parameters
+    params.update(vars(args))
 
     # we only want to pass in valid Trainer args, the rest may be user specific
     valid_kwargs = inspect.signature(cls.__init__).parameters
@@ -59,6 +65,34 @@ def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namesp
 
         modified_args[k] = v
     return Namespace(**modified_args)
+
+
+def parse_env_variables(cls, template: str = "PL_%(cls_name)s_%(cls_argument)s") -> Namespace:
+    """Parse environment arguments if they are defined.
+
+    Example:
+        >>> from pytorch_lightning import Trainer
+        >>> parse_env_variables(Trainer)
+        Namespace()
+        >>> import os
+        >>> os.environ["PL_TRAINER_GPUS"] = '42'
+        >>> os.environ["PL_TRAINER_BLABLABLA"] = '1.23'
+        >>> parse_env_variables(Trainer)
+        Namespace(gpus=42)
+    """
+    cls_arg_defaults = get_init_arguments_and_types(cls)
+
+    env_args = {}
+    for arg_name, arg_type, arg_val in cls_arg_defaults:
+        env = template % {'cls_name': cls.__name__.upper(), 'cls_argument': arg_name.upper()}
+        val = os.environ.get(env)
+        if val is not None:
+            try:  # converting to native types like int/float/bool
+                val = eval(val)
+            except Exception:
+                pass
+            env_args[arg_name] = val
+    return Namespace(**env_args)
 
 
 def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
