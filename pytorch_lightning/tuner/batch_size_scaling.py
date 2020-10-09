@@ -29,7 +29,6 @@ from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning import _logger as log
 
 
-
 def scale_batch_size(trainer,
                      model: LightningModule,
                      mode: str = 'power',
@@ -82,9 +81,9 @@ def scale_batch_size(trainer,
         datamodule: A instance of :class:`LightningDataModule`.
     """
     # Make copy of dataloader passed to fit that we work with while doing the search
-    fit_kwargs={'train_dataloader': deepcopy(train_dataloader),
-                'val_dataloaders': deepcopy(val_dataloaders),
-                'datamodule': deepcopy(datamodule)}
+    fit_kwargs = {'train_dataloader': deepcopy(train_dataloader),
+                  'val_dataloaders': deepcopy(val_dataloaders),
+                  'datamodule': deepcopy(datamodule)}
     in_model = True
     if not lightning_hasattr(model, batch_arg_name):
         rank_zero_warn(f'Did not find a field, saving result under model.{batch_arg_name}')

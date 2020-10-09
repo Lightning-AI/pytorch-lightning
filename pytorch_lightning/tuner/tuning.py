@@ -33,8 +33,7 @@ class Tuner:
              model: LightningModule,
              train_dataloader: Optional[DataLoader] = None,
              val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-             datamodule: Optional[LightningDataModule] = None
-        ):
+             datamodule: Optional[LightningDataModule] = None):
         # setup data, etc...
         self.trainer.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
 
@@ -115,7 +114,6 @@ class Tuner:
                          val_dataloaders=val_dataloaders,
                          datamodule=datamodule)
         return
-
 
     def lr_find(
             self,

@@ -53,7 +53,7 @@ def replace_dataloader_args(dataloader: DataLoader, **kwargs_replace):
     dl_args = {
         k: v for k, v in dataloader.__dict__.items() if not k.startswith('_') and k not in skip_keys
     }
-    for k,v in kwargs_replace.items():
+    for k, v in kwargs_replace.items():
         dl_args[k] = v
     dataloader = type(dataloader)(**dl_args)
     return dataloader
