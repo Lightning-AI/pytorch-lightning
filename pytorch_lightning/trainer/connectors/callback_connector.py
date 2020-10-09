@@ -28,7 +28,7 @@ class CallbackConnector:
         self.trainer._weights_save_path = weights_save_path or self.trainer._default_root_dir
 
         # init callbacks
-        self.trainer.callbacks = (callbacks or []).copy()
+        self.trainer.callbacks = callbacks or []
 
         # configure checkpoint callback
         # it is important that this is the last callback to run
@@ -48,7 +48,9 @@ class CallbackConnector:
             checkpoint_callback: Union[ModelCheckpoint, bool]
     ) -> Optional[ModelCheckpoint]:
 
-        ckpt_callbacks = [c for c in self.trainer.callbacks + [checkpoint_callback] if isinstance(c, ModelCheckpoint)]
+        ckpt_callbacks = set(
+            c for c in self.trainer.callbacks + [checkpoint_callback] if isinstance(c, ModelCheckpoint)
+        )
 
         if len(ckpt_callbacks) > 1:
             raise MisconfigurationException(
