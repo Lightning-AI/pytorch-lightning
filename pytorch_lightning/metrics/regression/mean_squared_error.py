@@ -11,7 +11,7 @@ class MeanSquaredError(Metric):
     Args:
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
-        ddp_sync_on_step:
+        dist_sync_on_step:
             Synchronize metric state across processes at each ``forward()``
             before returning the value at the step. default: False
         process_group:

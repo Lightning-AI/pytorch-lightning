@@ -39,7 +39,7 @@ def _multi_target_sk_metric(preds, target, sk_fn=explained_variance_score):
 
 
 @pytest.mark.parametrize("ddp", [True, False])
-@pytest.mark.parametrize("ddp_sync_on_step", [True, False])
+@pytest.mark.parametrize("dist_sync_on_step", [True, False])
 @pytest.mark.parametrize(
     "preds, target, sk_metric",
     [
@@ -47,5 +47,5 @@ def _multi_target_sk_metric(preds, target, sk_fn=explained_variance_score):
         (_multi_target_inputs.preds, _multi_target_inputs.target, _multi_target_sk_metric),
     ],
 )
-def test_explained_variance(ddp, ddp_sync_on_step, preds, target, sk_metric):
-    compute_batch(preds, target, ExplainedVariance, sk_metric, ddp_sync_on_step, ddp)
+def test_explained_variance(ddp, dist_sync_on_step, preds, target, sk_metric):
+    compute_batch(preds, target, ExplainedVariance, sk_metric, dist_sync_on_step, ddp)
