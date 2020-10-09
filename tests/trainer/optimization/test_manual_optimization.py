@@ -21,7 +21,6 @@ def test_multiple_optimizers_manual(tmpdir):
                 assert torch.all(self.layer.weight.grad == 0)
 
             self.backward(loss_1, opt_a)
-            assert self.layer.weight.grad is not None
             opt_a.step()
             opt_a.zero_grad()
             assert torch.all(self.layer.weight.grad == 0)
@@ -81,7 +80,6 @@ def test_multiple_optimizers_manual_apex(tmpdir):
                 assert torch.all(self.layer.weight.grad == 0)
 
             self.backward(loss_1, opt_a)
-            assert self.layer.weight.grad is not None
             opt_a.step()
             opt_a.zero_grad()
             assert torch.all(self.layer.weight.grad == 0)
@@ -143,7 +141,6 @@ def test_multiple_optimizers_manual_native_amp(scaler_mock, tmpdir):
                 assert torch.all(self.layer.weight.grad == 0)
 
             self.backward(loss_1, opt_a)
-            assert self.layer.weight.grad is not None
             opt_a.step()
             opt_a.zero_grad()
             assert torch.all(self.layer.weight.grad == 0)
