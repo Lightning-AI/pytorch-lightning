@@ -13,7 +13,7 @@
 # limitations under the License.
 from typing import List, Tuple
 from torch.optim.optimizer import Optimizer
-
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 try:
     from apex import amp
 except ImportError:
@@ -35,6 +35,11 @@ class ApexPlugin:
         return output
 
     def backward(self, unscaled_loss, optimizer, *args, **kwargs):
+        if unscaled_loss.grad_fn is None:
+            m = f'manual optimization and apex with {self.trainer.amp_level} mode is not supported. ' \
+                f'Please switch modes or use native amp'
+            raise MisconfigurationException(m)
+
         self.trainer.dev_debugger.track_backward_calls({'type': 'apex'})
         with amp.scale_loss(unscaled_loss, optimizer) as scaled_loss:
             scaled_loss.backward(*args, **kwargs)
