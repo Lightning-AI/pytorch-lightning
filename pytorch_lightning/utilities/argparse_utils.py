@@ -25,12 +25,11 @@ def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
         >>> trainer = Trainer.from_argparse_args(args, logger=False)
     """
     # fist check if any args are defined in environment for the class and set as default
-    params = vars(parse_env_variables(cls))
 
     if isinstance(args, ArgumentParser):
         args = cls.parse_argparser(args)
     # if other arg passed,  update parameters
-    params.update(vars(args))
+    params = vars(args)
 
     # we only want to pass in valid Trainer args, the rest may be user specific
     valid_kwargs = inspect.signature(cls.__init__).parameters
