@@ -41,7 +41,6 @@ steps:
   #    path: /opt/conda/lib/python3.7/site-packages
 
   commands:
-    - pip uninstall -y horovod
     - export PATH="$PATH:/root/.local/bin"
     - python --version
     - pip install pip -U
