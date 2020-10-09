@@ -71,7 +71,7 @@ class Accelerator(object):
     def backward(self, closure_loss, optimizer, *args, **kwargs):
         # scale loss for 16 bit
         if self.trainer.precision == 16:
-            closure_loss = self.trainer.precision_connector.backend.backward(closure_loss, optimizer, *args, **kwargs)
+            self.trainer.precision_connector.backend.backward(closure_loss, optimizer, *args, **kwargs)
         else:
             closure_loss.backward(*args, **kwargs)
 
