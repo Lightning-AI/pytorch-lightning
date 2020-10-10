@@ -54,7 +54,7 @@ class ApexPlugin:
         closure_loss = closure_loss.__enter__()
 
         # do backward pass
-        closure_loss.backward()
+        closure_loss.backward(*args, **kwargs)
 
         # exit amp context
         a, b, c = None, None, None
