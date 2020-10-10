@@ -105,9 +105,11 @@ def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
         >>> args = get_init_arguments_and_types(Trainer)
         >>> import pprint
         >>> pprint.pprint(sorted(args))  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-        [('accumulate_grad_batches',
-          (<class 'int'>, typing.Dict[int, int], typing.List[list]),
-          1),
+        [('accelerator',
+          (<class 'str'>,
+           <class 'pytorch_lightning.accelerators.base_accelerator.Accelerator'>,
+           <class 'NoneType'>),
+          None),
          ...
          ('callbacks',
           (typing.List[pytorch_lightning.callbacks.base.Callback],
