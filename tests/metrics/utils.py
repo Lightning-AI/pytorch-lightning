@@ -30,7 +30,7 @@ def _compute_batch(
     target: torch.Tensor,
     metric_class: Metric,
     sk_metric: Callable,
-    ddp_sync_on_step: bool,
+    dist_sync_on_step: bool,
     worldsize: int = 1,
     metric_args: dict = {},
     check_dist_sync_on_step: bool = True,
@@ -40,7 +40,7 @@ def _compute_batch(
         and reference metric
     """
     # Instanciate lightning metric
-    metric = metric_class(compute_on_step=True, ddp_sync_on_step=ddp_sync_on_step, **metric_args)
+    metric = metric_class(compute_on_step=True, dist_sync_on_step=dist_sync_on_step, **metric_args)
 
     # verify metrics work after being loaded from pickled state
     pickled_metric = pickle.dumps(metric)
@@ -84,7 +84,7 @@ def compute_batch(
     target: torch.Tensor,
     metric_class: Metric,
     sk_metric: Callable,
-    ddp_sync_on_step: bool,
+    dist_sync_on_step: bool,
     ddp: bool = False,
     metric_args: dict = {},
     check_dist_sync_on_step: bool = True,
@@ -98,7 +98,7 @@ def compute_batch(
             target: target tensor
             metric_class: lightning metric class to test
             sk_metric: function to compare with
-            ddp_sync_on_step: bool, determine if values should be reduce on step
+            dist_sync_on_step: bool, determine if values should be reduce on step
             ddp: bool, determine if test should run in ddp mode
             metric_args: dict, additional kwargs that are use when instanciating
                 the lightning metric
