@@ -1,15 +1,13 @@
 import os
 import pytest
 import torch
-import os
 import numpy as np
 from collections import namedtuple
 
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
 from sklearn.metrics import accuracy_score
 
-from tests.metrics.utils import compute_batch, setup_ddp
-from tests.metrics.utils import NUM_BATCHES, NUM_PROCESSES, BATCH_SIZE
+from tests.metrics.utils import compute_batch, NUM_BATCHES, BATCH_SIZE
 
 torch.manual_seed(42)
 

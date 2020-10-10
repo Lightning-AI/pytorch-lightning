@@ -40,6 +40,7 @@ Training loop
 ^^^^^^^^^^^^^
 
 - :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_epoch_start`
+- :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_train_batch_start`
 - :meth:`~pytorch_lightning.core.lightning.LightningModule.tbptt_split_batch`
 - :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`
 - :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step_end` (optional)
@@ -47,6 +48,7 @@ Training loop
 - :meth:`~pytorch_lightning.core.hooks.ModelHooks.backward`
 - :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_after_backward`
 - ``optimizer.step()``
+- :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_train_batch_end`
 - :meth:`~pytorch_lightning.core.lightning.LightningModule.training_epoch_end`
 - :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_epoch_end`
 
@@ -89,4 +91,7 @@ General hooks
     :noindex:
 
 .. autoclass:: pytorch_lightning.core.hooks.DataHooks
+    :noindex:
+
+.. autoclass:: pytorch_lightning.core.hooks.CheckpointHooks
     :noindex:
