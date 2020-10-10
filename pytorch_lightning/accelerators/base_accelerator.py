@@ -195,6 +195,7 @@ class Accelerator(object):
     def init_ddp_connection(
         self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
     ) -> None:
+        import pdb; pdb.set_trace()
         os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
         os.environ["MASTER_PORT"] = self.cluster_environment.master_port()
         os.environ["WORLD_SIZE"] = self.cluster_environment.world_size()
