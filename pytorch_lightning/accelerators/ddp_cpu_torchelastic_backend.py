@@ -47,6 +47,7 @@ class DDPCPUTorchElasticBackend(Accelerator):
         self.task_idx = None
         self._has_spawned_children = False
         self.dist = LightningDistributed()
+        self.nickname = 'ddp_cpu'
 
     def setup(self, model):
         self.trainer.model = model

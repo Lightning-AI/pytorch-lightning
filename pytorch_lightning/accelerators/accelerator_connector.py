@@ -52,8 +52,7 @@ class AcceleratorConnector:
             self.accelerator = accelerator
             if isinstance(accelerator, Accelerator):
                 self.accelerator.trainer = self
-            else:
-                distributed_backend = accelerator
+            distributed_backend = self.accelerator.nickname
 
         self.trainer.deterministic = deterministic
 

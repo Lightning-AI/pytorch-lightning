@@ -25,6 +25,7 @@ class Accelerator(object):
 
     def __init__(self, trainer=None, cluster_environment=None):
         self.trainer = trainer
+        self.nickname = None
         self.cluster_environment = cluster_environment
         self.dist = AttributeDict(rank=0, device=None)
 
