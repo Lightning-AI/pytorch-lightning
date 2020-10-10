@@ -13,6 +13,8 @@
 # limitations under the License.
 from typing import List, Tuple
 from torch.optim.optimizer import Optimizer
+from pytorch_lightning.utilities.distributed import rank_zero_warn
+from pytorch_lightning.utilities import AMPType
 
 try:
     from apex import amp
@@ -33,6 +35,28 @@ class ApexPlugin:
     def training_step(self, fx, args):
         output = fx(args)
         return output
+
+    def backward(self, closure_loss, optimizer, *args, **kwargs):
+        closure_loss = amp.scale_loss(closure_loss, optimizer)
+
+        # enter apex context
+        self.trainer.dev_debugger.track_event('AMP', str(AMPType.APEX))
+        context = closure_loss
+        closure_loss = closure_loss.__enter__()
+
+        # do backward pass
+        closure_loss.backward(*args, **kwargs)
+
+        # exit amp context
+        a, b, c = None, None, None
+        error = context.__exit__(a, b, c)
+        if error:
+            rank_zero_warn(a, b, c)
+            raise Exception('apex unscale error')
+
+        # once backward has been applied, release graph
+        closure_loss = closure_loss.detach()
+        return closure_loss
 
     def configure_apex(
         self,
