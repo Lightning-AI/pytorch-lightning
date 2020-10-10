@@ -146,8 +146,6 @@ def test_multiple_optimizers_manual_apex(tmpdir):
     """
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
-            import pdb; pdb.set_trace()
-
             # manual
             (opt_a, opt_b) = self.optimizers()
             x = batch[0]
@@ -204,6 +202,8 @@ def test_multiple_optimizers_manual_apex(tmpdir):
         amp_backend='apex',
         gpus=1
     )
+
+    trainer.fit(model)
 
     num_manual_backward_calls = 3
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * num_manual_backward_calls
