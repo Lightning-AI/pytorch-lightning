@@ -29,6 +29,14 @@ from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_utils import is_overridden
 
+from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
+from copy import deepcopy
+from typing import Iterable
+from pytorch_lightning.utilities.apply_func import apply_to_collection
+
+TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
+from pytorch_lightning.trainer.train_loader_patch import MagicClass
+
 
 class TrainerDataLoadingMixin(ABC):
 
@@ -308,9 +316,9 @@ class TrainerDataLoadingMixin(ABC):
         Returns:
             The dataloader
         """
-        dataloader = dataloader_fx()
+        dataloader = MagicClass(dataloader_fx())
         dataloader = self._flatten_dl_only(dataloader)
-
+        
         if self.accelerator_backend is not None:
             self.accelerator_backend.barrier('get_dataloaders')
         return dataloader
