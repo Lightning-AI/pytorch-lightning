@@ -155,25 +155,25 @@ Accuracy
 ^^^^^^^^
 
 .. autoclass:: pytorch_lightning.metrics.classification.Accuracy
-    :noindex::
+    :noindex:
 
 Precision
 ^^^^^^^^^
 
 .. autoclass:: pytorch_lightning.metrics.classification.Precision
-    :noindex::
+    :noindex:
 
 Recall
 ^^^^^^
 
 .. autoclass:: pytorch_lightning.metrics.classification.Recall
-    :noindex::
+    :noindex:
 
 Fbeta
 ^^^^^
 
 .. autoclass:: pytorch_lightning.metrics.classification.Fbeta
-    :noindex::
+    :noindex:
 
 Regression Metrics
 ------------------
