@@ -13,15 +13,8 @@
 # limitations under the License.
 from typing import List, Tuple
 from torch.optim.optimizer import Optimizer
-<<<<<<< HEAD
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities import AMPType
-
-=======
-from pytorch_lightning.utilities.distributed import rank_zero_warn
-from pytorch_lightning.utilities import AMPType
->>>>>>> master
 
 try:
     from apex import amp
