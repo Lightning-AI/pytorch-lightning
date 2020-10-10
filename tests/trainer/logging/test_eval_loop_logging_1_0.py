@@ -63,8 +63,9 @@ def test__validation_step__log(tmpdir):
 
     # we don't want to enable val metrics during steps because it is not something that users should do
     # on purpose DO NOT allow step_b... it's silly to monitor val step metrics
-    expected_cb_metrics = {'a', 'b', 'a_epoch', 'b_epoch', 'a_step'}
     callback_metrics = set(trainer.callback_metrics.keys())
+    callback_metrics.remove('debug_epoch')
+    expected_cb_metrics = {'a', 'b', 'a_epoch', 'b_epoch', 'a_step'}
     assert expected_cb_metrics == callback_metrics
 
 

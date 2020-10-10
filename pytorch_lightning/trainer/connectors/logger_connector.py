@@ -157,7 +157,7 @@ class LoggerConnector:
         epoch_pbar_metrics = epoch_logs.get_epoch_pbar_metrics()
 
         self.logged_metrics.update(epoch_logger_metrics)
-        self.progress_bar_metrics.update(epoch_pbar_metrics)
+        self.add_progress_bar_metrics(epoch_pbar_metrics)
 
         # enable the metrics to be monitored
         self.callback_metrics.update(epoch_logger_metrics)
@@ -183,7 +183,7 @@ class LoggerConnector:
             logger_metrics = reduced_epoch_metrics.get_epoch_log_metrics()
             pbar_metrics = reduced_epoch_metrics.get_epoch_pbar_metrics()
             self.logged_metrics.update(logger_metrics)
-            self.progress_bar_metrics.update(pbar_metrics)
+            self.add_progress_bar_metrics(pbar_metrics)
 
             # enable the metrics to be monitored
             self.callback_metrics.update(logger_metrics)
