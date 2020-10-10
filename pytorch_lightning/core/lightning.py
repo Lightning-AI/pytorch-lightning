@@ -110,6 +110,9 @@ class LightningModule(
         self._results: Result = None
         self._current_fx_name = ''
 
+    def optimizers(self):
+        return self.trainer.optimizers
+
     @property
     def example_input_array(self) -> Any:
         return self._example_input_array
@@ -1048,9 +1051,6 @@ class LightningModule(
                 self.backward(loss, optimizer)
         """
         self.trainer.train_loop.backward(loss, optimizer, *args, **kwargs)
-
-    def optimizers(self):
-        return self.trainer.optimizers
 
     def optimizer_step(
         self,
