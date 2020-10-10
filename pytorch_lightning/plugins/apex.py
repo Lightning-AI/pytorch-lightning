@@ -14,6 +14,7 @@
 from typing import List, Tuple
 from torch.optim.optimizer import Optimizer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities import AMPType
 
 
@@ -37,16 +38,34 @@ class ApexPlugin:
         output = fx(args)
         return output
 
-    def backward(self, unscaled_loss, optimizer, *args, **kwargs):
-        if unscaled_loss.grad_fn is None:
-            m = f'manual optimization and apex with {self.trainer.amp_level} mode is not supported. ' \
-                f'Please switch modes or use native amp'
-            raise MisconfigurationException(m)
+    def backward(self, closure_loss, optimizer, *args, **kwargs):
+        # if unscaled_loss.grad_fn is None:
+        #     m = f'manual optimization and apex with {self.trainer.amp_level} mode is not supported. ' \
+        #         f'Please switch modes or use native amp'
+        #     raise MisconfigurationException(m)
 
         self.trainer.dev_debugger.track_backward_calls({'type': 'apex'})
         self.trainer.dev_debugger.track_event('AMP', str(AMPType.APEX))
-        with amp.scale_loss(unscaled_loss, optimizer) as scaled_loss:
-            scaled_loss.backward(*args, **kwargs)
+
+        closure_loss = amp.scale_loss(closure_loss, optimizer)
+
+        self.trainer.dev_debugger.track_event('AMP', str(AMPType.APEX))
+        context = closure_loss
+        closure_loss = closure_loss.__enter__()
+
+        # do backward pass
+        closure_loss.backward()
+
+        # exit amp context
+        a, b, c = None, None, None
+        error = context.__exit__(a, b, c)
+        if error:
+            rank_zero_warn(a, b, c)
+            raise Exception('apex unscale error')
+
+        # once backward has been applied, release graph
+        closure_loss = closure_loss.detach()
+        return closure_loss
 
     def configure_apex(
         self,

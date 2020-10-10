@@ -33,7 +33,6 @@ if TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.parallel_loader as xla_pl
     import torch_xla.distributed.xla_multiprocessing as xmp
-    import torch_xla.distributed.parallel_loader as xla_pl
 
 
 class TPUBackend(Accelerator):
