@@ -146,6 +146,8 @@ def test_multiple_optimizers_manual_apex(tmpdir):
     """
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
+            import pdb; pdb.set_trace()
+
             # manual
             (opt_a, opt_b) = self.optimizers()
             x = batch[0]
