@@ -9,6 +9,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning import _logger as log
 from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.cluster_environments.torchelastic_environment import TorchElasticEnvironment
+from pytorch_lightning.accelerators.base_accelerator import Accelerator
 
 try:
     import torch_xla
@@ -29,11 +30,13 @@ class AcceleratorConnector:
 
     def __init__(self, trainer):
         self.trainer = trainer
+        self.accelerator = None
 
     def on_trainer_init(
             self,
             num_processes,
             tpu_cores,
+            accelerator,
             distributed_backend,
             auto_select_gpus,
             gpus,
@@ -44,6 +47,15 @@ class AcceleratorConnector:
             replace_sampler_ddp,
             deterministic,
     ):
+        # temporary mapping until we remove all the distributed_backend references
+        if accelerator is not None:
+            self.accelerator = accelerator
+            if isinstance(accelerator, Accelerator):
+                self.accelerator.trainer = self
+                distributed_backend = self.accelerator.nickname
+            else:
+                distributed_backend = accelerator
+
         self.trainer.deterministic = deterministic
 
         torch.backends.cudnn.deterministic = self.trainer.deterministic
@@ -145,7 +157,18 @@ class AcceleratorConnector:
         if self.trainer.accelerator_backend is not None:
             return self.trainer.accelerator_backend
 
-        # SLURM ddp
+        # ----------------------------------
+        # Use the user provided accelerator
+        # ----------------------------------
+        # use the one the user passed in
+        if self.accelerator is not None and isinstance(self.accelerator, Accelerator):
+            self.accelerator.trainer = self.trainer
+            acc = self.accelerator
+            return acc
+
+        # ----------------------------------
+        # choose an accelerator for the user
+        # ----------------------------------
         use_slurm_ddp = self.trainer.use_ddp and self.trainer.is_slurm_managing_tasks
 
         # torchelastic or general non_slurm ddp

@@ -33,6 +33,7 @@ class HorovodBackend(Accelerator):
 
     def __init__(self, trainer, cluster_environment=None):
         super().__init__(trainer, cluster_environment)
+        self.nickname = 'horovod'
 
     def setup(self, model):
         # call setup after the ddp process has connected

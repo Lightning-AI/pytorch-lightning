@@ -11,3 +11,4 @@ from pytorch_lightning.accelerators.ddp_slurm_backend import DDPSLURMBackend
 from pytorch_lightning.accelerators.ddp_torchelastic_backend import DDPTorchElasticBackend
 from pytorch_lightning.accelerators.ddp_cpu_torchelastic_backend import DDPCPUTorchElasticBackend
 from pytorch_lightning.accelerators.ddp_cpu_slurm_backend import DDPCPUSLURMBackend
+from pytorch_lightning.accelerators.base_accelerator import Accelerator

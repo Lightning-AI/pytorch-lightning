@@ -52,6 +52,7 @@ class DDPBackend(Accelerator):
         self._has_spawned_children = False
         self.interactive_ddp_procs = []
         self.dist = LightningDistributed()
+        self.nickname = 'ddp'
 
     def setup(self, model):
         # first track model

@@ -29,6 +29,7 @@ class DataParallelBackend(Accelerator):
         super().__init__(trainer, cluster_environment)
         self.model_autocast_original_forward = None
         self.dist = LightningDistributed()
+        self.nickname = 'dp'
 
     def setup(self, model):
         # call setup after the ddp process has connected
