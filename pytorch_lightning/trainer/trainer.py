@@ -134,6 +134,7 @@ class Trainer(
         amp_backend: str = 'native',
         amp_level: str = 'O2',
         distributed_backend: Optional[str] = None,
+        automatic_optimization: bool = True,
     ):
         r"""
         Customize every aspect of training via flags
@@ -200,6 +201,9 @@ class Trainer(
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance
 
             log_every_n_steps: How often to log within steps (defaults to every 50 steps).
+
+            automatic_optimization: If False you are responsible for calling .backward, .step, zero_grad.
+                Meant to be used with multiple optimizers by advanced users.
 
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
@@ -337,7 +341,14 @@ class Trainer(
         )
 
         # init train loop related flags
-        self.train_loop.on_trainer_init(max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps)
+        self.train_loop.on_trainer_init(
+            max_epochs,
+            min_epochs,
+            max_steps,
+            min_steps,
+            num_sanity_val_steps,
+            automatic_optimization
+        )
         self.evaluation_loop.on_trainer_init()
 
         # configure tuner

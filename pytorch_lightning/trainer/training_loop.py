@@ -44,8 +44,9 @@ class TrainLoop:
         self.warning_cache = WarningCache()
         self._teardown_already_run = False
         self.running_loss = TensorRunningAccum(window_length=20)
+        self.automatic_optimization = True
 
-    def on_trainer_init(self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps):
+    def on_trainer_init(self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps, automatic_optimization):
         self.trainer.global_step = 0
         self.trainer.current_epoch = 0
         self.trainer.interrupted = False
@@ -56,6 +57,7 @@ class TrainLoop:
         self.trainer.batch_idx = 0
         self.trainer.num_training_batches = 0
         self.trainer.train_dataloader = None
+        self.automatic_optimization = automatic_optimization
 
         self.trainer.max_epochs = max_epochs
         self.trainer.min_epochs = min_epochs
@@ -275,7 +277,7 @@ class TrainLoop:
 
         # find optimzier index by looking for the first {item > current_place} in the cumsum list
         opt_idx = np.argmax(optimizer_freq_cumsum > current_place_in_loop)
-        return [(opt_idx, self.trainer.optimizers[opt_idx])]
+        return [[opt_idx, self.trainer.optimizers[opt_idx]]]
 
     def on_after_backward(self, training_step_output, batch_idx, untouched_loss):
         is_result_obj = isinstance(training_step_output, Result)
@@ -640,11 +642,16 @@ class TrainLoop:
         for split_idx, split_batch in enumerate(splits):
             self.trainer.split_idx = split_idx
 
+            # in manual optimization we loop over all optimizers at once
+            optimizers = self.get_optimizers_iterable()
+            if not self.automatic_optimization:
+                optimizers = [optimizers[0]]
+
             # loop over optimizers
-            for opt_idx, optimizer in self.get_optimizers_iterable():
+            for opt_idx, optimizer in optimizers:
                 # make sure only the gradients of the current optimizer's parameters are calculated
                 # in the training step to prevent dangling gradients in multiple-optimizer setup.
-                if len(self.trainer.optimizers) > 1:
+                if self.automatic_optimization and len(self.trainer.optimizers) > 1:
                     model = self.trainer.get_model()
                     model.toggle_optimizer(optimizer, opt_idx)
 
@@ -751,12 +758,16 @@ class TrainLoop:
         return result
 
     def backward(self, result, optimizer, *args, **kwargs):
-        result.closure_loss = self.trainer.accelerator_backend.backward(
-            result.closure_loss,
-            optimizer,
-            *args,
-            **kwargs
-        )
+        # backward can be called manually in the training loop.
+        if isinstance(result, torch.Tensor):
+            self.trainer.accelerator_backend.backward(result, optimizer, *args, **kwargs)
+        else:
+            result.closure_loss = self.trainer.accelerator_backend.backward(
+                result.closure_loss,
+                optimizer,
+                *args,
+                **kwargs
+            )
 
     def update_train_loop_lr_schedulers(self, monitor_metrics=None):
         num_accumulated_batches_reached = (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
