@@ -13,10 +13,15 @@
 # limitations under the License.
 from typing import List, Tuple
 from torch.optim.optimizer import Optimizer
+<<<<<<< HEAD
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities import AMPType
 
+=======
+from pytorch_lightning.utilities.distributed import rank_zero_warn
+from pytorch_lightning.utilities import AMPType
+>>>>>>> master
 
 try:
     from apex import amp
@@ -39,16 +44,9 @@ class ApexPlugin:
         return output
 
     def backward(self, closure_loss, optimizer, *args, **kwargs):
-        # if unscaled_loss.grad_fn is None:
-        #     m = f'manual optimization and apex with {self.trainer.amp_level} mode is not supported. ' \
-        #         f'Please switch modes or use native amp'
-        #     raise MisconfigurationException(m)
-
-        self.trainer.dev_debugger.track_backward_calls({'type': 'apex'})
-        self.trainer.dev_debugger.track_event('AMP', str(AMPType.APEX))
-
         closure_loss = amp.scale_loss(closure_loss, optimizer)
 
+        # enter apex context
         self.trainer.dev_debugger.track_event('AMP', str(AMPType.APEX))
         context = closure_loss
         closure_loss = closure_loss.__enter__()

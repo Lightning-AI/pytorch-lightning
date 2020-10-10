@@ -18,6 +18,7 @@ from tests.base.boring_model import BoringModel
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning import accelerators, Trainer
 from pytorch_lightning.cluster_environments import SLURMEnvironment, TorchElasticEnvironment, ClusterEnvironment
+from pytorch_lightning.accelerators import Accelerator
 from unittest import mock
 
 
@@ -291,6 +292,64 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(tmpdir):
         plugins=[CustomCluster()],
         fast_dev_run=True,
         distributed_backend='ddp_cpu',
+        num_processes=1,
+        callbacks=[CB()]
+    )
+
+    with pytest.raises(SystemExit):
+        trainer.fit(model)
+
+
+@mock.patch.dict(os.environ, {
+    "SLURM_NTASKS": "1",
+    "SLURM_JOB_NAME": "SOME_NAME",
+    "SLURM_NODEID": "0",
+    "LOCAL_RANK": "0",
+    "SLURM_LOCALID": "0"
+})
+@mock.patch('torch.cuda.device_count', return_value=0)
+def test_custom_accelerator(tmpdir):
+    class Accel(Accelerator):
+        def init_ddp_connection(
+        self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
+    ) -> None:
+            pass
+
+    class CB(Callback):
+        def on_fit_start(self, trainer, pl_module):
+            assert isinstance(trainer.accelerator_backend, Accel)
+            raise SystemExit()
+
+    model = BoringModel()
+    trainer = Trainer(
+        fast_dev_run=True,
+        accelerator=Accel(),
+        num_processes=1,
+        callbacks=[CB()]
+    )
+
+    with pytest.raises(SystemExit):
+        trainer.fit(model)
+
+
+@mock.patch.dict(os.environ, {
+    "SLURM_NTASKS": "1",
+    "SLURM_JOB_NAME": "SOME_NAME",
+    "SLURM_NODEID": "0",
+    "LOCAL_RANK": "0",
+    "SLURM_LOCALID": "0"
+})
+@mock.patch('torch.cuda.device_count', return_value=0)
+def test_dist_backend_accelerator_mapping(tmpdir):
+    class CB(Callback):
+        def on_fit_start(self, trainer, pl_module):
+            assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUSLURMBackend)
+            raise SystemExit()
+
+    model = BoringModel()
+    trainer = Trainer(
+        fast_dev_run=True,
+        accelerator='ddp_cpu',
         num_processes=1,
         callbacks=[CB()]
     )

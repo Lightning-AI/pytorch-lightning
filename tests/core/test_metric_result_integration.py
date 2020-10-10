@@ -39,7 +39,7 @@ def _ddp_test_fn(rank, worldsize):
     metric_b = DummyMetric()
     metric_c = DummyMetric()
 
-    # ddp_sync_on_step is False by default
+    # dist_sync_on_step is False by default
     result = Result()
 
     for epoch in range(3):

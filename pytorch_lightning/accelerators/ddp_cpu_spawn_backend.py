@@ -46,6 +46,7 @@ class DDPCPUSpawnBackend(Accelerator):
         self.mp_queue = None
         self.nprocs = nprocs
         self.dist = LightningDistributed()
+        self.nickname = 'ddp_cpu'
 
     def setup(self, model):
         os.environ['MASTER_PORT'] = os.environ.get('MASTER_PORT', str(find_free_network_port()))

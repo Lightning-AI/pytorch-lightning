@@ -23,10 +23,15 @@ class NativeAMP:
     def connect(self, model, optimizers):
         return model, optimizers
 
-    def backward(self, unscaled_loss, optimizer=None, *args, **kwargs):
-        self.trainer.dev_debugger.track_backward_calls({'type': 'native_amp'})
-        scaled_loss = self.trainer.scaler.scale(unscaled_loss)
-        scaled_loss.backward(*args, **kwargs)
+    def backward(self, closure_loss, optimizer, *args, **kwargs):
+        closure_loss = self.trainer.scaler.scale(closure_loss)
+
+        # do backward pass
+        closure_loss.backward(*args, **kwargs)
+
+        # once backward has been applied, release graph
+        closure_loss = closure_loss.detach()
+        return closure_loss
 
     def training_step(self, fx, args):
         with torch.cuda.amp.autocast():

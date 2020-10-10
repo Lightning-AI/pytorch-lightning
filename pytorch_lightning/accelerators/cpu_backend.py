@@ -22,6 +22,7 @@ class CPUBackend(Accelerator):
 
     def __init__(self, trainer, cluster_environment=None):
         super().__init__(trainer, cluster_environment)
+        self.nickname = None
 
     def setup(self, model):
         # run through amp wrapper

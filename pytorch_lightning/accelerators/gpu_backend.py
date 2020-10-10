@@ -25,6 +25,7 @@ class GPUBackend(Accelerator):
     def __init__(self, trainer, cluster_environment=None):
         super().__init__(trainer, cluster_environment)
         self.dist = LightningDistributed()
+        self.nickname = None
 
     def setup(self, model):
 

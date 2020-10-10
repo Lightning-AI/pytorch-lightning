@@ -23,13 +23,16 @@ EPSILON_FP16 = 1e-5
 
 class Accelerator(object):
 
-    def __init__(self, trainer, cluster_environment=None):
+    def __init__(self, trainer=None, cluster_environment=None):
         self.trainer = trainer
+        self.nickname = None
         self.cluster_environment = cluster_environment
         self.dist = AttributeDict(rank=0, device=None)
-        self.train_loop = self.trainer.train
-        self.validation_loop = self.trainer.run_evaluation
-        self.test_loop = self.trainer.run_evaluation
+
+        if trainer is not None:
+            self.train_loop = self.trainer.train
+            self.validation_loop = self.trainer.run_evaluation
+            self.test_loop = self.trainer.run_evaluation
 
     def setup(self, model):
         pass
@@ -69,15 +72,14 @@ class Accelerator(object):
         return dataloader
 
     def backward(self, closure_loss, optimizer, *args, **kwargs):
-        # scale loss for 16 bit
         if self.trainer.precision == 16:
-            self.trainer.precision_connector.backend.backward(closure_loss, optimizer, *args, **kwargs)
+            closure_loss = self.trainer.precision_connector.backend.backward(closure_loss, optimizer, *args, **kwargs)
         else:
-            self.trainer.dev_debugger.track_backward_calls({'type': 'default'})
+            # do backward pass
             closure_loss.backward(*args, **kwargs)
 
-        # once backward has been applied, release graph
-        closure_loss = closure_loss.detach()
+            # once backward has been applied, release graph
+            closure_loss = closure_loss.detach()
         return closure_loss
 
     def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure):

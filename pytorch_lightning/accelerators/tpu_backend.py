@@ -41,6 +41,7 @@ class TPUBackend(Accelerator):
         super().__init__(trainer, cluster_environment)
         self.start_method = None
         self.mp_queue = None
+        self.nickname = None
 
     def setup(self, model):
         rank_zero_info(f'training on {self.trainer.tpu_cores} TPU cores')

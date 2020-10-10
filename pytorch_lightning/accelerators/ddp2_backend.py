@@ -42,6 +42,7 @@ class DDP2Backend(Accelerator):
         super().__init__(trainer, cluster_environment)
         self.task_idx = None
         self.dist = LightningDistributed()
+        self.nickname = 'ddp2'
 
     def setup(self, model):
         self._resolve_task_idx()

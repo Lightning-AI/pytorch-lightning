@@ -126,8 +126,8 @@ Example implementation:
     from pytorch_lightning.metrics import Metric
 
     class MyAccuracy(Metric):
-        def __init__(self, ddp_sync_on_step=False):
-            super().__init__(ddp_sync_on_step=ddp_sync_on_step)
+        def __init__(self, dist_sync_on_step=False):
+            super().__init__(dist_sync_on_step=dist_sync_on_step)
 
             self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
             self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
@@ -155,6 +155,24 @@ Accuracy
 ^^^^^^^^
 
 .. autoclass:: pytorch_lightning.metrics.classification.Accuracy
+    :noindex:
+
+Precision
+^^^^^^^^^
+
+.. autoclass:: pytorch_lightning.metrics.classification.Precision
+    :noindex:
+
+Recall
+^^^^^^
+
+.. autoclass:: pytorch_lightning.metrics.classification.Recall
+    :noindex:
+
+Fbeta
+^^^^^
+
+.. autoclass:: pytorch_lightning.metrics.classification.Fbeta
     :noindex:
 
 Regression Metrics

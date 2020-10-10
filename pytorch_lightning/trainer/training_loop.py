@@ -278,16 +278,6 @@ class TrainLoop:
         opt_idx = np.argmax(optimizer_freq_cumsum > current_place_in_loop)
         return [(opt_idx, self.trainer.optimizers[opt_idx])]
 
-    def backward(self, result, optimizer, *args, **kwargs):
-        # backward pass
-        with self.trainer.profiler.profile('model_backward'):
-            # manually called
-            if isinstance(result, torch.Tensor):
-                self.manually_called_optimizers.add(optimizer.__hash__)
-                self.trainer.accelerator_backend.backward(result, optimizer, *args, **kwargs)
-            else:
-                result.closure_loss = self.trainer.accelerator_backend.backward(result.closure_loss, optimizer)
-
     def on_after_backward(self, training_step_output, batch_idx, untouched_loss):
         is_result_obj = isinstance(training_step_output, Result)
 
@@ -770,6 +760,18 @@ class TrainLoop:
         self.on_after_backward(result.training_step_output, batch_idx, result.loss)
 
         return result
+
+    def backward(self, result, optimizer, *args, **kwargs):
+        if isinstance(result, torch.Tensor):
+            self.manually_called_optimizers.add(optimizer.__hash__)
+            self.trainer.accelerator_backend.backward(result, optimizer, *args, **kwargs)
+        else:
+            result.closure_loss = self.trainer.accelerator_backend.backward(
+                result.closure_loss,
+                optimizer,
+                *args,
+                **kwargs
+            )
 
     def update_train_loop_lr_schedulers(self, monitor_metrics=None):
         num_accumulated_batches_reached = (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
