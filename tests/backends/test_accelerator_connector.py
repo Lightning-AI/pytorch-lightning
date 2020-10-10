@@ -17,7 +17,7 @@ import os
 from tests.base.boring_model import BoringModel
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning import accelerators, Trainer
-from pytorch_lightning.cluster_environments import SLURMEnvironment, TorchElasticEnvironment
+from pytorch_lightning.cluster_environments import SLURMEnvironment, TorchElasticEnvironment, ClusterEnvironment
 from unittest import mock
 
 
@@ -226,6 +226,42 @@ def test_accelerator_choice_ddp_cpu_slurm(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
+        fast_dev_run=True,
+        distributed_backend='ddp_cpu',
+        num_processes=1,
+        callbacks=[CB()]
+    )
+
+    with pytest.raises(SystemExit):
+        trainer.fit(model)
+
+
+@mock.patch.dict(os.environ, {
+    "SLURM_NTASKS": "1",
+    "SLURM_JOB_NAME": "SOME_NAME",
+    "SLURM_NODEID": "0",
+    "LOCAL_RANK": "0",
+    "SLURM_LOCALID": "0"
+})
+@mock.patch('torch.cuda.device_count', return_value=0)
+def test_accelerator_choice_ddp_cpu_custom_cluster(tmpdir):
+    """
+    Test that we choose the custom cluster even when SLURM or TE flags are around
+    """
+    class CustomCluster(ClusterEnvironment):
+        def master_address(self):
+            return 'asdf'
+
+    class CB(Callback):
+        def on_fit_start(self, trainer, pl_module):
+            assert trainer.use_ddp
+            assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUSLURMBackend)
+            assert isinstance(trainer.accelerator_backend.cluster_environment, CustomCluster)
+            raise SystemExit()
+
+    model = BoringModel()
+    trainer = Trainer(
+        plugins=[CustomCluster()],
         fast_dev_run=True,
         distributed_backend='ddp_cpu',
         num_processes=1,
