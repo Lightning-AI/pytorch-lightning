@@ -57,7 +57,7 @@ from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer.properties import TrainerProperties
-from pytorch_lightning.cluster_environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.plugin_connector import PluginConnector
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -114,7 +114,7 @@ class Trainer(
         distributed_backend: Optional[str] = None,
         sync_batchnorm: bool = False,
         precision: int = 32,
-        weights_summary: Optional[str] = ModelSummary.MODE_DEFAULT,
+        weights_summary: Optional[str] = 'top',
         weights_save_path: Optional[str] = None,
         num_sanity_val_steps: int = 2,
         truncated_bptt_steps: Optional[int] = None,
@@ -128,7 +128,7 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
-        cluster_environment: ClusterEnvironment = None,
+        plugins: list = None,
         amp_backend: str = 'native',
         amp_level: str = 'O2',
     ):
@@ -166,8 +166,6 @@ class Trainer(
             checkpoint_callback: Callback for checkpointing.
 
             check_val_every_n_epoch: Check val every n train epochs.
-
-            cluster_environment: Environment config to link up arbitrary clusters
 
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
                 Default: ``os.getcwd()``.
@@ -208,6 +206,8 @@ class Trainer(
             profiler:  To profile individual steps during training and assist in identifying bottlenecks.
 
             overfit_batches: Overfit a percent of training data (float) or a set number of batches (int). Default: 0.0
+
+            plugins: Plugins allow modification of core behavior like ddp and amp.
 
             precision: Full precision (32), half precision (16). Can be used on CPU, GPU or TPUs.
 
@@ -278,6 +278,7 @@ class Trainer(
         self.accelerator_backend = None
         self.evaluation_loop = EvaluationLoop(self)
         self.train_loop = TrainLoop(self)
+        self.plugin_connector = PluginConnector(self)
 
         # training state
         self.weights_summary = weights_summary
@@ -326,7 +327,6 @@ class Trainer(
             benchmark,
             replace_sampler_ddp,
             deterministic,
-            cluster_environment
         )
 
         # init train loop related flags
@@ -354,6 +354,9 @@ class Trainer(
 
         # set precision
         self.precision_connector.on_trainer_init(precision, amp_level, amp_backend)
+
+        # last thing are the plugins which override whatever the trainer used by default
+        self.plugin_connector.on_trainer_init(plugins)
 
         # Callback system
         self.on_init_end()
