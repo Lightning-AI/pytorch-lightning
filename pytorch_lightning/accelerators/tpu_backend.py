@@ -223,7 +223,7 @@ class TPUBackend(Accelerator):
                  f' global rank: {trainer.tpu_global_core_rank}'
                  f' with XLA_USE_BF16={os.environ.get("XLA_USE_BF16")}')
 
-    def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
+    def backward(self, closure_loss, optimizer, *args, **kwargs):
         # do backward pass
         closure_loss.backward(*args, **kwargs)
 

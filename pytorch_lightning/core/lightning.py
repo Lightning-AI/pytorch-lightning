@@ -110,6 +110,9 @@ class LightningModule(
         self._results: Result = None
         self._current_fx_name = ''
 
+    def optimizers(self):
+        return self.trainer.optimizers
+
     @property
     def example_input_array(self) -> Any:
         return self._example_input_array
@@ -1033,6 +1036,23 @@ class LightningModule(
         rank_zero_warn(
             "`configure_optimizers` must be implemented to be used with the Lightning Trainer"
         )
+
+    def backward(self, loss: Tensor, optimizer: Optimizer, *args, **kwargs) -> None:
+        """
+        Call this directly from your training_step when doing optimizations manually.
+        By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
+
+        This function forwards all args to the .backward() call as well.
+
+        Example::
+
+            def training_step(...):
+                (opt_a, opt_b) = self.optimizers()
+                loss = ...
+                # automatically applies scaling, etc...
+                self.backward(loss, opt_a)
+        """
+        self.trainer.train_loop.backward(loss, optimizer, *args, **kwargs)
 
     def optimizer_step(
         self,

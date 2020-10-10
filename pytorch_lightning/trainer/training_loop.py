@@ -746,12 +746,20 @@ class TrainLoop:
 
         # backward pass
         with self.trainer.profiler.profile('model_backward'):
-            result.closure_loss = self.trainer.accelerator_backend.backward(result.closure_loss, optimizer, opt_idx)
+            self.backward(result, optimizer)
 
         # hook
         self.on_after_backward(result.training_step_output, batch_idx, result.loss)
 
         return result
+
+    def backward(self, result, optimizer, *args, **kwargs):
+        result.closure_loss = self.trainer.accelerator_backend.backward(
+            result.closure_loss,
+            optimizer,
+            *args,
+            **kwargs
+        )
 
     def update_train_loop_lr_schedulers(self, monitor_metrics=None):
         num_accumulated_batches_reached = (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
