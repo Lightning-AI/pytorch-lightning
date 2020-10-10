@@ -38,7 +38,7 @@ def to_onehot(
 
     Example:
         >>> x = torch.tensor([1, 2, 3])
-        >>> to_onehot(x)
+        >>> to_onehot(x, num_classes=4)
         tensor([[0, 1, 0, 0],
                 [0, 0, 1, 0],
                 [0, 0, 0, 1]])
