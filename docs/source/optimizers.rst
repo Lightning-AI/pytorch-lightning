@@ -53,7 +53,7 @@ to manually manage the optimization process. To do so, do the following:
 
 Automatic optimization
 ======================
-With Lightning 90% of users don't have to think about when to call .backward(), .step(), .zero_grad(), since
+With Lightning most users don't have to think about when to call .backward(), .step(), .zero_grad(), since
 Lightning automates that for you.
 
 Under the hood Lightning does the following:
