@@ -22,7 +22,7 @@ For advanced research topics like reinforcement learning, sparse coding, or GAN 
 to manually manage the optimization process. To do so, do the following:
 
 * Ignore the optimizer_idx argument
-* So we can scale the loss automatically for you use self.backward(loss) instead of loss.backward()
+* So we can scale the loss automatically for you use self.manual_backward(loss) instead of loss.backward()
 
 .. code-block:: python
 
@@ -34,7 +34,7 @@ to manually manage the optimization process. To do so, do the following:
         loss_a = ...
 
         # use self.backward which will also handle scaling the loss when using amp
-        self.backward(loss_a, opt_g)
+        self.manual_backward(loss_a, opt_g)
         opt_g.step()
         opt_g.zero_grad()
 
@@ -42,8 +42,8 @@ to manually manage the optimization process. To do so, do the following:
         loss_b = ...
 
         # pass in any args that loss.backward() normally takes
-        self.backward(loss_b, opt_d, retain_graph=True)
-        self.backward(loss_b, opt_d, retain_graph=True)
+        self.manual_backward(loss_b, opt_d, retain_graph=True)
+        self.manual_backward(loss_b, opt_d, retain_graph=True)
         loss_b.step()
         loss_b.zero_grad()
 

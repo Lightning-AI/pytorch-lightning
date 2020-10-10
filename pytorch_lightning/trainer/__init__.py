@@ -296,7 +296,7 @@ Example::
         (opt) = self.optimizers()
 
         loss = ...
-        self.backward(loss, opt)
+        self.manual_backward(loss, opt)
         opt.step()
         opt.zero_grad()
 
@@ -311,12 +311,12 @@ Example::
         (opt_a, opt_b) = self.optimizers()
 
         gen_loss = ...
-        self.backward(gen_loss, opt_a)
+        self.manual_backward(gen_loss, opt_a)
         opt_a.step()
         opt_a.zero_grad()
 
         disc_loss = ...
-        self.backward(disc_loss, opt_b)
+        self.manual_backward(disc_loss, opt_b)
         opt_b.step()
         opt_b.zero_grad()
 
