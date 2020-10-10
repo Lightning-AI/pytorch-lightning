@@ -1043,7 +1043,9 @@ class LightningModule(
         By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
 
         This function forwards all args to the .backward() call as well.
+
         Example::
+
             def training_step(...):
                 (opt_a, opt_b) = self.optimizers()
                 loss = ...
