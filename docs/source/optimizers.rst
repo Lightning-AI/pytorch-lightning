@@ -77,6 +77,7 @@ In the case of multiple optimizers, Lightning does the following:
     for epoch in epochs:
       for batch in data:
          for opt in optimizers:
+            disable_grads_for_other_optimizers()
             train_step(opt)
             opt.step()
 
