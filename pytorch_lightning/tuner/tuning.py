@@ -29,11 +29,7 @@ class Tuner:
         self.trainer.auto_lr_find = auto_lr_find
         self.trainer.auto_scale_batch_size = auto_scale_batch_size
 
-    def tune(self,
-             model: LightningModule,
-             train_dataloader: Optional[DataLoader] = None,
-             val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-             datamodule: Optional[LightningDataModule] = None):
+    def tune(self, model, train_dataloader, val_dataloaders, datamodule):
         # setup data, etc...
         self.trainer.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
 
@@ -65,9 +61,7 @@ class Tuner:
                          init_val: int = 2,
                          max_trials: int = 25,
                          batch_arg_name: str = 'batch_size',
-                         train_dataloader: Optional[DataLoader] = None,
-                         val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-                         datamodule: Optional[LightningDataModule] = None):
+                         **fit_kwargs):
         r"""
         Will iteratively try to find the largest batch size for a given model
         that does not give an out of memory (OOM) error.
@@ -100,20 +94,13 @@ class Tuner:
                 - `model.datamodule`
                 - `trainer.datamodule` (the datamodule passed to the tune method)
 
-            train_dataloader: A Pytorch DataLoader with training samples. If the model has
-                a predefined train_dataloader method this will be skipped.
+            **fit_kwargs: remaining arguments to be passed to .fit(), e.g., dataloader
+                or datamodule.
 
-            val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
-                If the model has a predefined val_dataloaders method this will be skipped
-
-            datamodule: A instance of :class:`LightningDataModule`.
         """
-        scale_batch_size(self.trainer, model, mode, steps_per_trial,
-                         init_val, max_trials, batch_arg_name,
-                         train_dataloader=train_dataloader,
-                         val_dataloaders=val_dataloaders,
-                         datamodule=datamodule)
-        return
+        return scale_batch_size(
+            self.trainer, model, mode, steps_per_trial, init_val, max_trials, batch_arg_name, **fit_kwargs
+        )
 
     def lr_find(
             self,

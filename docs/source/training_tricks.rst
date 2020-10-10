@@ -68,21 +68,24 @@ it encounters an OOM, after which it will do a binary search that will finetune 
 batch size. Additionally, it should be noted that the batch size scaler cannot
 search for batch sizes larger than the size of the training dataset.
 
-This feature works both with dataloaders/datamodule being passed directly to fit
-or being part of the model. If they are passed to fit, they are directly overriden
-by a new dataloader/datamodule with the optimized batch size, and the result is
-saved to the model attribute `batch_size`. If the dataloader/datamodule is part of
-the model, it is expected that a `batch_size` field is either located as a model attribute
-i.e. `model.batch_size` or as a field in your `hparams` i.e. `model.hparams.batch_size`.
-The field should exist and will be overridden by the results of this algorithm.
-Additionally, your `train_dataloader()` method should depend on this field
-for this feature to work i.e.
 
-.. code-block:: python
+.. note::
 
-    def train_dataloader(self):
-        return DataLoader(train_dataset, batch_size=self.batch_size|self.hparams.batch_size)
+    This feature expects that a `batch_size` field is either located as a model attribute
+    i.e. `model.batch_size` or as a field in your `hparams` i.e. `model.hparams.batch_size`.
+    The field should exist and will be overridden by the results of this algorithm.
+    Additionally, your `train_dataloader()` method should depend on this field
+    for this feature to work i.e.
 
+    .. code-block:: python
+
+        def train_dataloader(self):
+            return DataLoader(train_dataset, batch_size=self.batch_size|self.hparams.batch_size)
+
+.. warning::
+
+    Due to these constraints, this features does *NOT* work when passing dataloaders directly
+    to `.fit()`.
 
 The scaling algorithm has a number of parameters that the user can control by
 invoking the trainer method `.scale_batch_size` themself (see description below).

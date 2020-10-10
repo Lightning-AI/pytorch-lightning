@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 from distutils.version import LooseVersion
 import torch
 from torch.utils.data import DataLoader, IterableDataset
@@ -44,16 +45,3 @@ def has_len(dataloader: DataLoader) -> bool:
             ' this can lead to unintended side effects since the samples will be duplicated.'
         )
     return has_len
-
-
-def replace_dataloader_args(dataloader: DataLoader, **kwargs_replace):
-    """ Instanciate a new dataloader with some changed arguments """
-    skip_keys = ['sampler', 'batch_sampler', 'dataset_kind']
-
-    dl_args = {
-        k: v for k, v in dataloader.__dict__.items() if not k.startswith('_') and k not in skip_keys
-    }
-    for k, v in kwargs_replace.items():
-        dl_args[k] = v
-    dataloader = type(dataloader)(**dl_args)
-    return dataloader
