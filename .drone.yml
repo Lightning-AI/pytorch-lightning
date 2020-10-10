@@ -27,12 +27,6 @@ steps:
     CODECOV_TOKEN:
       from_secret: codecov_token
     MKL_THREADING_LAYER: GNU
-    HOROVOD_GPU_OPERATIONS: NCCL
-    HOROVOD_WITH_PYTORCH: 1
-    HOROVOD_WITHOUT_TENSORFLOW: 1
-    HOROVOD_WITHOUT_MXNET: 1
-    HOROVOD_WITH_GLOO: 1
-    HOROVOD_WITHOUT_MPI: 1
 
   #volumes:
   #  # Mount pip cache from host
@@ -40,18 +34,10 @@ steps:
   #    path: /opt/conda/lib/python3.7/site-packages
 
   commands:
-    # todo: remove unsets as in correct image Horovod shall be set
-    - unset HOROVOD_GPU_ALLREDUCE
-    - unset HOROVOD_GPU_BROADCAST
-    - export PATH="$PATH:/root/.local/bin"
     - python --version
-    - pip install pip -U
     - pip --version
     - nvidia-smi
-    #- bash ./requirements/install_AMP.sh
-    - apt-get update && apt-get install -y cmake
-    - pip uninstall -y horovod  # todo: this shall not be needed
-    - pip install -r ./requirements/devel.txt --user -q --upgrade-strategy only-if-needed  --no-cache-dir
+    - pip install -r ./requirements/devel.txt --user -q --upgrade-strategy only-if-needed
     #- pip install -r ./requirements/docs.txt --user -q
     - pip install -r ./requirements/examples.txt --user -q --upgrade-strategy only-if-needed
     - pip list
