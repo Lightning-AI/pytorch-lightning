@@ -127,14 +127,14 @@ class AcceleratorConnector:
         self.trainer.replace_sampler_ddp = replace_sampler_ddp
 
     def _select_environment(self):
-        env = None
-
         if self.trainer.plugin_connector.cloud_environment:
             env = self.trainer.plugin_connector.cloud_environment
-        elif self._is_using_torchelastic():
-            env = TorchElasticEnvironment()
         elif self.trainer.is_slurm_managing_tasks:
             env = SLURMEnvironment()
+        elif self._is_using_torchelastic():
+            env = TorchElasticEnvironment()
+        else:
+            env = TorchElasticEnvironment()
         return env
 
     def _is_using_torchelastic(self):

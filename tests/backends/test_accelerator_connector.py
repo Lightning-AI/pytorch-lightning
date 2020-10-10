@@ -17,6 +17,7 @@ import os
 from tests.base.boring_model import BoringModel
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning import accelerators, Trainer
+from pytorch_lightning.cluster_environments import SLURMEnvironment, TorchElasticEnvironment
 from unittest import mock
 
 
@@ -24,6 +25,7 @@ def test_accelerator_choice_cpu(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator_backend, accelerators.CPUBackend)
+            assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
 
     model = BoringModel()
     trainer = Trainer(
@@ -36,7 +38,9 @@ def test_accelerator_choice_cpu(tmpdir):
 def test_accelerator_choice_ddp_cpu(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
+            assert trainer.use_ddp
             assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUSpawnBackend)
+            assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
             raise SystemExit()
 
     model = BoringModel()
@@ -55,7 +59,9 @@ def test_accelerator_choice_ddp_cpu(tmpdir):
 def test_accelerator_choice_ddp(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
+            assert trainer.use_ddp
             assert isinstance(trainer.accelerator_backend, accelerators.DDPBackend)
+            assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
             raise SystemExit()
 
     model = BoringModel()
@@ -75,7 +81,9 @@ def test_accelerator_choice_ddp(tmpdir):
 def test_accelerator_choice_ddp_spawn(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
+            assert trainer.use_ddp
             assert isinstance(trainer.accelerator_backend, accelerators.DDPSpawnBackend)
+            assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
             raise SystemExit()
 
     model = BoringModel()
@@ -101,7 +109,9 @@ def test_accelerator_choice_ddp_spawn(tmpdir):
 def test_accelerator_choice_ddp_slurm(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
+            assert trainer.use_ddp
             assert isinstance(trainer.accelerator_backend, accelerators.DDPSLURMBackend)
+            assert isinstance(trainer.accelerator_backend.cluster_environment, SLURMEnvironment)
             raise SystemExit()
 
     model = BoringModel()
@@ -128,7 +138,9 @@ def test_accelerator_choice_ddp_slurm(tmpdir):
 def test_accelerator_choice_ddp2_slurm(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
+            assert trainer.use_ddp2
             assert isinstance(trainer.accelerator_backend, accelerators.DDP2Backend)
+            assert isinstance(trainer.accelerator_backend.cluster_environment, SLURMEnvironment)
             raise SystemExit()
 
     model = BoringModel()
@@ -153,7 +165,9 @@ def test_accelerator_choice_ddp2_slurm(tmpdir):
 def test_accelerator_choice_ddp_te(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
+            assert trainer.use_ddp
             assert isinstance(trainer.accelerator_backend, accelerators.DDPTorchElasticBackend)
+            assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
             raise SystemExit()
 
     model = BoringModel()
@@ -177,7 +191,9 @@ def test_accelerator_choice_ddp_te(tmpdir):
 def test_accelerator_choice_ddp_cpu_te(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
+            assert trainer.use_ddp
             assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUTorchElasticBackend)
+            assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
             raise SystemExit()
 
     model = BoringModel()
@@ -203,7 +219,9 @@ def test_accelerator_choice_ddp_cpu_te(tmpdir):
 def test_accelerator_choice_ddp_cpu_slurm(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
+            assert trainer.use_ddp
             assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUSLURMBackend)
+            assert isinstance(trainer.accelerator_backend.cluster_environment, SLURMEnvironment)
             raise SystemExit()
 
     model = BoringModel()
