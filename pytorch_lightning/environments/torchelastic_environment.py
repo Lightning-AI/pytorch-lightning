@@ -1,7 +1,8 @@
 import os
+
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 class TorchElasticEnvironment(ClusterEnvironment):
