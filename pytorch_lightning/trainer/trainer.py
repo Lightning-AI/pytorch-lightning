@@ -58,6 +58,8 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.plugins.plugin_connector import PluginConnector
+from pytorch_lightning.accelerators.base_accelerator import Accelerator
+from pytorch_lightning.accelerators.cpu_backend import CPUBackend
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -111,7 +113,7 @@ class Trainer(
         val_check_interval: Union[int, float] = 1.0,
         flush_logs_every_n_steps: int = 100,
         log_every_n_steps: int = 50,
-        distributed_backend: Optional[str] = None,
+        accelerator: Optional[str, Accelerator] = None,
         sync_batchnorm: bool = False,
         precision: int = 32,
         weights_summary: Optional[str] = 'top',
@@ -131,11 +133,15 @@ class Trainer(
         plugins: list = None,
         amp_backend: str = 'native',
         amp_level: str = 'O2',
+        distributed_backend: Optional[str] = None,
     ):
         r"""
         Customize every aspect of training via flags
 
         Args:
+
+            accelerator: Previously known as distributed_backend (dp, ddp, ddp2, etc...).
+                Can also take in an accelerator object for custom hardware.
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
 
@@ -173,7 +179,7 @@ class Trainer(
 
             deterministic: If true enables cudnn.deterministic.
 
-            distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn, ddp_cpu)
+            distributed_backend: deprecated. Please use 'accelerator'
 
             fast_dev_run: runs 1 batch of train, test and val to find any bugs (ie: a sort of unit test).
 
@@ -318,6 +324,7 @@ class Trainer(
         self.accelerator_connector.on_trainer_init(
             num_processes,
             tpu_cores,
+            accelerator,
             distributed_backend,
             auto_select_gpus,
             gpus,
