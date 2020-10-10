@@ -1053,7 +1053,7 @@ class LightningModule(
                 # automatically applies scaling, etc...
                 self.manual_backward(loss, opt_a)
         """
-        self.trainer.train_loop.backward(loss, optimizer,-1, *args, **kwargs)
+        self.trainer.train_loop.backward(loss, optimizer, -1, *args, **kwargs)
 
     def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int) -> None:
         """
