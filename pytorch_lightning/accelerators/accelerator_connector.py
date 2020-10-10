@@ -43,10 +43,8 @@ class AcceleratorConnector:
             benchmark,
             replace_sampler_ddp,
             deterministic,
-            cluster_environment
     ):
         self.trainer.deterministic = deterministic
-        self.cluster_environment = cluster_environment
 
         torch.backends.cudnn.deterministic = self.trainer.deterministic
         if self.trainer.deterministic:
@@ -131,9 +129,8 @@ class AcceleratorConnector:
     def _select_environment(self):
         env = None
 
-        # in priority: user environment, torchelastic (which is a generic environment), slurm
-        if self.cluster_environment is not None:
-            env = self.cluster_environment
+        if self.trainer.plugin_connector.cloud_environment:
+            return self.trainer.plugin_connector.cloud_environment
         elif self._is_using_torchelastic():
             env = TorchElasticEnvironment()
         elif self.trainer.is_slurm_managing_tasks:
