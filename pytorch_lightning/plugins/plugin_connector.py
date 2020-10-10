@@ -1,4 +1,4 @@
-from pytorch_lightning.cluster_environments import ClusterEnvironment
+from pytorch_lightning.environments import ClusterEnvironment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 

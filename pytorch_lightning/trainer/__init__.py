@@ -950,7 +950,7 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 
 .. code-block:: python
 
-    from pytorch_lightning.cluster_environments import cluster_environment
+    from pytorch_lightning.environments import cluster_environment
 
     class MyCluster(ClusterEnvironment):
 
