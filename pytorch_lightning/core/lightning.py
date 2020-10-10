@@ -1038,7 +1038,7 @@ class LightningModule(
             "`configure_optimizers` must be implemented to be used with the Lightning Trainer"
         )
 
-    def backward(self, loss: Tensor, optimizer: Optimizer, *args, **kwargs) -> None:
+    def manual_backward(self, loss: Tensor, optimizer: Optimizer, *args, **kwargs) -> None:
         """
         Call this directly from your training_step when doing optimizations manually.
         By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
@@ -1051,9 +1051,25 @@ class LightningModule(
                 (opt_a, opt_b) = self.optimizers()
                 loss = ...
                 # automatically applies scaling, etc...
-                self.backward(loss, opt_a)
+                self.manual_backward(loss, opt_a)
         """
         self.trainer.train_loop.backward(loss, optimizer, *args, **kwargs)
+
+    def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int) -> None:
+        """
+        Override backward with your own implementation if you need to.
+        Args:
+            loss: Loss is already scaled by accumulated grads
+            optimizer: Current optimizer being used
+            optimizer_idx: Index of the current optimizer being used
+        Called to perform backward step.
+        Feel free to override as needed.
+        The loss passed in has already been scaled for accumulated gradients if requested.
+        Example::
+            def backward(self, trainer, loss, optimizer, optimizer_idx):
+                loss.backward()
+        """
+        loss.backward()
 
     def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):
         """
