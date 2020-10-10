@@ -1,7 +1,6 @@
 import os
 import pytest
 import torch
-import os
 import numpy as np
 from collections import namedtuple
 
