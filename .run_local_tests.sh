@@ -11,4 +11,4 @@ python -m coverage run --source pytorch_lightning -m py.test pytorch_lightning t
 python -m coverage report -m
 
 # specific file
-# python -m coverage run --source pytorch_lightning -m py.test -k .py --flake8 --durations=0 -v
+# python -m coverage run --source pytorch_lightning -m py.test --flake8 --durations=0 -v -k
