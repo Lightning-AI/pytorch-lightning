@@ -758,6 +758,7 @@ class TrainLoop:
         return result
 
     def backward(self, result, optimizer, *args, **kwargs):
+        import pdb; pdb.set_trace()
         self.trainer.dev_debugger.track_event('backward_call')
 
         # backward can be called manually in the training loop.
