@@ -36,7 +36,7 @@ class ApexPlugin:
         output = fx(args)
         return output
 
-    def backward(self, closure_loss, optimizer, *args, **kwargs):
+    def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         closure_loss = amp.scale_loss(closure_loss, optimizer)
 
         # enter apex context
