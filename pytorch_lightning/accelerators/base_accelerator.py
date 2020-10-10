@@ -195,45 +195,9 @@ class Accelerator(object):
     def init_ddp_connection(
         self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
     ) -> None:
-        if is_slurm_managing_tasks:
-            self.trainer.slurm_connector.connect_ddp(global_rank, world_size)
-        else:
-            self.connect_torchelastic(global_rank, world_size)
-
-    def connect_torchelastic(
-        self, global_rank: int, world_size: int
-    ) -> None:
-        """
-        Override to define your custom way of setting up a distributed environment.
-
-        Lightning's implementation uses env:// init by default and sets the first node as root
-        for SLURM managed cluster.
-
-        Args:
-            global_rank: The global process idx.
-            world_size: Number of GPUs being use across all nodes. (num_nodes * num_gpus).
-        """
-
-        if "MASTER_ADDR" not in os.environ:
-            rank_zero_warn(
-                "MASTER_ADDR environment variable is not defined. Set as localhost"
-            )
-            os.environ["MASTER_ADDR"] = "127.0.0.1"
-        log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
-
-        if "MASTER_PORT" not in os.environ:
-            rank_zero_warn(
-                "MASTER_PORT environment variable is not defined. Set as 12910"
-            )
-            os.environ["MASTER_PORT"] = "12910"
-        log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
-
-        if "WORLD_SIZE" in os.environ and int(os.environ["WORLD_SIZE"]) != world_size:
-            rank_zero_warn(
-                f"WORLD_SIZE environment variable ({os.environ['WORLD_SIZE']}) "
-                f"is not equal to the computed world size ({world_size}). Ignored."
-            )
-
+        os.environ["MASTER_ADDR"] = str(self.cluster_environment.master_address())
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
+        os.environ["WORLD_SIZE"] = str(self.cluster_environment.world_size())
         torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
 
         if not torch.distributed.is_initialized():

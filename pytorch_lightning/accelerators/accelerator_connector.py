@@ -127,14 +127,14 @@ class AcceleratorConnector:
         self.trainer.replace_sampler_ddp = replace_sampler_ddp
 
     def _select_environment(self):
-        env = None
-
         if self.trainer.plugin_connector.cloud_environment:
-            return self.trainer.plugin_connector.cloud_environment
-        elif self._is_using_torchelastic():
-            env = TorchElasticEnvironment()
+            env = self.trainer.plugin_connector.cloud_environment
         elif self.trainer.is_slurm_managing_tasks:
             env = SLURMEnvironment()
+        elif self._is_using_torchelastic():
+            env = TorchElasticEnvironment()
+        else:
+            env = TorchElasticEnvironment()
         return env
 
     def _is_using_torchelastic(self):
@@ -163,45 +163,55 @@ class AcceleratorConnector:
         if os.environ.get('PL_DDP_PID', False):
             use_torchelastic_ddp = False
 
+        cluster_env = self._select_environment()
+
         # choose the appropriate accelerator backend
         if self.trainer.use_ddp2:
-            accelerator_backend = accelerators.DDP2Backend(self.trainer)
+            accelerator_backend = accelerators.DDP2Backend(self.trainer, cluster_env)
 
         elif use_ddp_cpu_slurm:
-            accelerator_backend = accelerators.DDPCPUSLURMBackend(self.trainer)
+            accelerator_backend = accelerators.DDPCPUSLURMBackend(self.trainer, cluster_env)
 
         elif use_slurm_ddp:
-            accelerator_backend = accelerators.DDPSLURMBackend(self.trainer)
+            accelerator_backend = accelerators.DDPSLURMBackend(self.trainer, cluster_env)
 
         elif use_ddp_cpu_torch_elastic:
-            accelerator_backend = accelerators.DDPCPUTorchElasticBackend(self.trainer)
+            accelerator_backend = accelerators.DDPCPUTorchElasticBackend(self.trainer, cluster_env)
 
         elif use_torchelastic_ddp:
-            accelerator_backend = accelerators.DDPTorchElasticBackend(self.trainer)
+            accelerator_backend = accelerators.DDPTorchElasticBackend(self.trainer, cluster_env)
 
         elif use_ddp_spawn:
-            accelerator_backend = accelerators.DDPSpawnBackend(self.trainer, nprocs=self.trainer.num_processes)
+            accelerator_backend = accelerators.DDPSpawnBackend(
+                self.trainer,
+                nprocs=self.trainer.num_processes,
+                cluster_environment=cluster_env
+            )
 
         elif use_ddp_cpu_spawn:
-            accelerator_backend = accelerators.DDPCPUSpawnBackend(self.trainer, nprocs=self.trainer.num_processes)
+            accelerator_backend = accelerators.DDPCPUSpawnBackend(
+                self.trainer,
+                nprocs=self.trainer.num_processes,
+                cluster_environment=cluster_env
+            )
 
         elif self.trainer.distributed_backend == "ddp":
-            accelerator_backend = accelerators.DDPBackend(self.trainer)
+            accelerator_backend = accelerators.DDPBackend(self.trainer, cluster_env)
 
         elif self.trainer.use_dp:
-            accelerator_backend = accelerators.DataParallelBackend(self.trainer)
+            accelerator_backend = accelerators.DataParallelBackend(self.trainer, cluster_env)
 
         elif self.trainer.use_horovod:
-            accelerator_backend = accelerators.HorovodBackend(self.trainer)
+            accelerator_backend = accelerators.HorovodBackend(self.trainer, cluster_env)
 
         elif self.trainer.use_single_gpu:
-            accelerator_backend = accelerators.GPUBackend(self.trainer)
+            accelerator_backend = accelerators.GPUBackend(self.trainer, cluster_env)
 
         elif self.trainer.use_tpu:
-            accelerator_backend = accelerators.TPUBackend(self.trainer)
+            accelerator_backend = accelerators.TPUBackend(self.trainer, cluster_env)
 
         elif self.trainer.distributed_backend is None:
-            accelerator_backend = accelerators.CPUBackend(self.trainer)
+            accelerator_backend = accelerators.CPUBackend(self.trainer, cluster_env)
         else:
             raise MisconfigurationException(
                 f'Trainer(distributed_backend={self.trainer.distributed_backend} is not a supported backend'
