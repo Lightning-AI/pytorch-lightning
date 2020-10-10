@@ -76,12 +76,10 @@ class Accelerator(object):
 
         # scale loss for 16 bit
         if self.trainer.precision == 16:
-            closure_loss = model_ref.amp_scale_loss(
-                closure_loss,
-                optimizer,
-                opt_idx,
-                amp_backend=self.trainer.amp_backend
-            )
+            if self.trainer.amp_backend == AMPType.NATIVE:
+                closure_loss = self.trainer.scaler.scale(closure_loss)
+            else:
+                closure_loss = amp.scale_loss(closure_loss, optimizer)
 
             # enter amp context
             if self.trainer.amp_backend == AMPType.APEX:
