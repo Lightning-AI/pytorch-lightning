@@ -72,7 +72,6 @@ class Accelerator(object):
         return dataloader
 
     def backward(self, closure_loss, optimizer, opt_idx):
-        model_ref = self.trainer.get_model()
 
         # scale loss for 16 bit
         if self.trainer.precision == 16:
@@ -88,7 +87,7 @@ class Accelerator(object):
                 closure_loss = closure_loss.__enter__()
 
         # do backward pass
-        model_ref.backward(self, closure_loss, optimizer, opt_idx)
+        closure_loss.backward()
 
         # exit amp context
         if self.trainer.precision == 16 and self.trainer.amp_backend == AMPType.APEX:
