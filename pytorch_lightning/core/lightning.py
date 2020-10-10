@@ -1048,7 +1048,7 @@ class LightningModule(
                 (opt_a, opt_b) = self.optimizers()
                 loss = ...
                 # automatically applies scaling, etc...
-                self.backward(loss, optimizer)
+                self.backward(loss, opt_a)
         """
         self.trainer.train_loop.backward(loss, optimizer, *args, **kwargs)
 
