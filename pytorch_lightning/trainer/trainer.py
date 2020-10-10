@@ -113,7 +113,7 @@ class Trainer(
         val_check_interval: Union[int, float] = 1.0,
         flush_logs_every_n_steps: int = 100,
         log_every_n_steps: int = 50,
-        accelerator: Optional[str, Accelerator] = None,
+        accelerator: Optional[Union[str, Accelerator]] = None,
         sync_batchnorm: bool = False,
         precision: int = 32,
         weights_summary: Optional[str] = 'top',

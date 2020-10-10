@@ -49,8 +49,11 @@ class AcceleratorConnector:
     ):
         # temporary mapping until we remove all the distributed_backend references
         if accelerator is not None:
-            distributed_backend = accelerator
             self.accelerator = accelerator
+            if isinstance(accelerator, Accelerator):
+                self.accelerator.trainer = self
+            else:
+                distributed_backend = accelerator
 
         self.trainer.deterministic = deterministic
 
