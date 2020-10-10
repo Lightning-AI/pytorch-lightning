@@ -38,7 +38,7 @@ def _multi_target_sk_metric(preds, target, sk_fn=mean_squared_error):
 
 
 @pytest.mark.parametrize("ddp", [True, False])
-@pytest.mark.parametrize("ddp_sync_on_step", [True, False])
+@pytest.mark.parametrize("dist_sync_on_step", [True, False])
 @pytest.mark.parametrize(
     "preds, target, sk_metric",
     [
