@@ -645,11 +645,8 @@ class TrainLoop:
                 # make sure only the gradients of the current optimizer's parameters are calculated
                 # in the training step to prevent dangling gradients in multiple-optimizer setup.
                 if len(self.trainer.optimizers) > 1:
-                    for param in self.trainer.get_model().parameters():
-                        param.requires_grad = False
-                    for group in optimizer.param_groups:
-                        for param in group['params']:
-                            param.requires_grad = True
+                    model = self.trainer.get_model()
+                    model.toggle_optimizer(optimizer, opt_idx)
 
                 # -------------------
                 # calculate loss (train step + train step end)
