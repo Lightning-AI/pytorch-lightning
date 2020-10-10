@@ -11,6 +11,9 @@ class PluginConnector:
 
     def on_trainer_init(self, plugins):
         self.plugins = plugins
+        if self.plugins is None:
+            self.plugins = []
+
         self.__attach_cluster()
 
     def __attach_cluster(self, limit=1):
