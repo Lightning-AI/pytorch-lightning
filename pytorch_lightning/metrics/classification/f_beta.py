@@ -35,9 +35,11 @@ class Fbeta(Metric):
         beta: Beta coefficient in the F measure.
         threshold:
             Threshold value for binary or multi-label logits. default: 0.5
+
         average:
-            - `micro` computes metric globally
-            - `macro` computes metric for each class and then takes the mean
+            * `'micro'` computes metric globally
+            * `'macro'` computes metric for each class and then takes the mean
+
         multilabel: If predictions are from multilabel classification.
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
@@ -52,7 +54,7 @@ class Fbeta(Metric):
         >>> from pytorch_lightning.metrics import Fbeta
         >>> target = torch.tensor([0, 1, 2, 0, 1, 2])
         >>> preds = torch.tensor([0, 2, 1, 0, 0, 1])
-        >>> f_beta = Fbeta(beta=0.5)
+        >>> f_beta = Fbeta(num_classes=3, beta=0.5)
         >>> f_beta(preds, target)
         tensor(0.3333)
 

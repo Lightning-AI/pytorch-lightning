@@ -11,9 +11,6 @@ from sklearn.metrics import accuracy_score
 from tests.metrics.utils import compute_batch, setup_ddp
 from tests.metrics.utils import THRESHOLD
 
-torch.manual_seed(42)
-
-
 from tests.metrics.classification.utils import (
     _binary_prob_inputs,
     _binary_inputs,
@@ -24,6 +21,9 @@ from tests.metrics.classification.utils import (
     _multidim_multiclass_prob_inputs,
     _multidim_multiclass_inputs,
 )
+
+torch.manual_seed(42)
+
 
 def _binary_prob_sk_metric(preds, target):
     sk_preds = (preds.view(-1).numpy() >= THRESHOLD).astype(np.uint8)

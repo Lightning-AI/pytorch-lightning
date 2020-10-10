@@ -13,11 +13,6 @@ from sklearn.metrics import precision_score, recall_score
 from tests.metrics.utils import compute_batch, setup_ddp
 from tests.metrics.utils import NUM_BATCHES, NUM_PROCESSES, BATCH_SIZE, NUM_CLASSES, THRESHOLD
 
-torch.manual_seed(42)
-
-Input = namedtuple('Input', ["preds", "target"])
-
-
 from tests.metrics.classification.utils import (
     _binary_prob_inputs,
     _binary_inputs,
@@ -28,6 +23,8 @@ from tests.metrics.classification.utils import (
     _multidim_multiclass_prob_inputs,
     _multidim_multiclass_inputs,
 )
+
+torch.manual_seed(42)
 
 
 def _binary_prob_sk_metric(preds, target, sk_fn=precision_score, average='micro'):
@@ -135,8 +132,8 @@ def test_precision_recall(
         target,
         metric_class,
         partial(sk_metric, sk_fn=sk_fn, average=average),
-        dist_sync_on_step, 
-        ddp, 
+        dist_sync_on_step,
+        ddp,
         metric_args={
             "num_classes": num_classes,
             "average": average,
