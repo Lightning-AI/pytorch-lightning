@@ -32,7 +32,18 @@ from copy import deepcopy
 from typing import Iterable
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
+<<<<<<< HEAD
 TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
+=======
+from pytorch_lightning.trainer.train_loader_patch import MagicClass
+
+try:
+    from torch.utils.data import IterableDataset
+    ITERABLE_DATASET_EXISTS = True
+except ImportError:
+    ITERABLE_DATASET_EXISTS = False
+
+>>>>>>> Train loaders (#4032)
 try:
     from apex import amp
 except ImportError:
@@ -340,9 +351,9 @@ class TrainerDataLoadingMixin(ABC):
         Returns:
             The dataloader
         """
-        dataloader = dataloader_fx()
+        dataloader = MagicClass(dataloader_fx())
         dataloader = self._flatten_dl_only(dataloader)
-
+        
         if self.accelerator_backend is not None:
             self.accelerator_backend.barrier('get_dataloaders')
         return dataloader
