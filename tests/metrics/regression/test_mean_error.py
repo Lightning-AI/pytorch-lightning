@@ -38,7 +38,7 @@ def _multi_target_sk_metric(preds, target, sk_fn=mean_squared_error):
 
 
 @pytest.mark.parametrize("ddp", [True, False])
-@pytest.mark.parametrize("ddp_sync_on_step", [True, False])
+@pytest.mark.parametrize("dist_sync_on_step", [True, False])
 @pytest.mark.parametrize(
     "preds, target, sk_metric",
     [
@@ -54,8 +54,8 @@ def _multi_target_sk_metric(preds, target, sk_fn=mean_squared_error):
         (MeanSquaredLogError, mean_squared_log_error),
     ],
 )
-def test_mean_error(ddp, ddp_sync_on_step, preds, target, sk_metric, metric_class, sk_fn):
-    compute_batch(preds, target, metric_class, partial(sk_metric, sk_fn=sk_fn), ddp_sync_on_step, ddp)
+def test_mean_error(ddp, dist_sync_on_step, preds, target, sk_metric, metric_class, sk_fn):
+    compute_batch(preds, target, metric_class, partial(sk_metric, sk_fn=sk_fn), dist_sync_on_step, ddp)
 
 
 @pytest.mark.parametrize("metric_class", [MeanSquaredError, MeanAbsoluteError, MeanSquaredLogError])
