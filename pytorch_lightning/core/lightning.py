@@ -1058,16 +1058,21 @@ class LightningModule(
     def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int) -> None:
         """
         Override backward with your own implementation if you need to.
+
         Args:
             loss: Loss is already scaled by accumulated grads
             optimizer: Current optimizer being used
             optimizer_idx: Index of the current optimizer being used
+
         Called to perform backward step.
         Feel free to override as needed.
         The loss passed in has already been scaled for accumulated gradients if requested.
+
         Example::
+
             def backward(self, trainer, loss, optimizer, optimizer_idx):
                 loss.backward()
+
         """
         loss.backward()
 
