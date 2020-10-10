@@ -258,7 +258,6 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
         gpus=1
     )
 
-    import pdb; pdb.set_trace()
     trainer.fit(model)
 
     num_manual_backward_calls = 3
