@@ -183,6 +183,33 @@ def test_accelerator_choice_ddp_te(tmpdir):
 
 
 @mock.patch.dict(os.environ, {
+    "CUDA_VISIBLE_DEVICES": "0,1",
+    "WORLD_SIZE": "2",
+    "LOCAL_RANK": "0",
+    "NODE_RANK": "0"
+})
+@mock.patch('torch.cuda.device_count', return_value=2)
+def test_accelerator_choice_ddp2_te(tmpdir):
+    class CB(Callback):
+        def on_fit_start(self, trainer, pl_module):
+            assert trainer.use_ddp2
+            assert isinstance(trainer.accelerator_backend, accelerators.DDP2Backend)
+            assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
+            raise SystemExit()
+
+    model = BoringModel()
+    trainer = Trainer(
+        fast_dev_run=True,
+        distributed_backend='ddp2',
+        gpus=2,
+        callbacks=[CB()]
+    )
+
+    with pytest.raises(SystemExit):
+        trainer.fit(model)
+
+
+@mock.patch.dict(os.environ, {
     "WORLD_SIZE": "1",
     "LOCAL_RANK": "0",
     "NODE_RANK": "0"
