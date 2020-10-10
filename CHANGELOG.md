@@ -32,7 +32,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Decoupled Appex ([#4052](https://github.com/PyTorchLightning/pytorch-lightning/pull/4052),
         [#4054](https://github.com/PyTorchLightning/pytorch-lightning/pull/4054),
         [#4055](https://github.com/PyTorchLightning/pytorch-lightning/pull/4055),
-        [#4056](https://github.com/PyTorchLightning/pytorch-lightning/pull/4056))
+        [#4056](https://github.com/PyTorchLightning/pytorch-lightning/pull/4056),
+        [#4058](https://github.com/PyTorchLightning/pytorch-lightning/pull/4058),
+        [#4060](https://github.com/PyTorchLightning/pytorch-lightning/pull/4060),
+        [#4061](https://github.com/PyTorchLightning/pytorch-lightning/pull/4061),
+        [#4062](https://github.com/PyTorchLightning/pytorch-lightning/pull/4062))
 
 ### Deprecated
 
