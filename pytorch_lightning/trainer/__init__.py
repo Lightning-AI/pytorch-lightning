@@ -461,41 +461,6 @@ To disable automatic checkpointing, set this to `False`.
 
 See also :ref:`Saving and Loading Weights <weights_loading>`.
 
-cluster_environment
-^^^^^^^^^^^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/cluster_environment.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/cluster_environment.mp4"></video>
-
-|
-
-Environment to connect arbitrary cluster backends. Lightning automatically handles:
-
-- SLURM
-- TorchElastic
-
-For any other non-supported cluster environment, define your own class and pass it in.
-
-.. code-block:: python
-
-    from pytorch_lightning.cluster_environments import cluster_environment
-
-    class MyCluster(ClusterEnvironment):
-
-        def master_address(self):
-            return your_master_address
-
-        def master_port(self):
-            return your_master_port
-
-        def world_size(self):
-            return the_world_size
-
-    trainer = Trainer(cluster_environment=cluster_environment())
-
 default_root_dir
 ^^^^^^^^^^^^^^^^
 
@@ -962,6 +927,43 @@ Example::
     --conda-env=torch-xla-nightly
     --env=XLA_USE_BF16=1
     -- python your_trainer_file.py
+
+plugins
+^^^^^^^
+
+.. raw:: html
+
+    <video width="50%" max-width="400px" controls
+    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/cluster_environment.jpg"
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/cluster_environment.mp4"></video>
+
+|
+
+Plugins allow you to connect arbitrary backends, precision libraries, SLURM, etc... For example:
+
+- DDP
+- SLURM
+- TorchElastic
+- Apex
+
+To define your own behavior, subclass the relevant class and pass it in. Here's an example linking up your own cluster.
+
+.. code-block:: python
+
+    from pytorch_lightning.cluster_environments import cluster_environment
+
+    class MyCluster(ClusterEnvironment):
+
+        def master_address(self):
+            return your_master_address
+
+        def master_port(self):
+            return your_master_port
+
+        def world_size(self):
+            return the_world_size
+
+    trainer = Trainer(cluster_environment=cluster_environment())
 
 prepare_data_per_node
 ^^^^^^^^^^^^^^^^^^^^^
