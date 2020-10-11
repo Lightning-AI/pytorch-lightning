@@ -7,7 +7,7 @@
 Scale your models, not the boilerplate.**
 
 ```diff
-- NEWS: Lightning 1.0 is currently in rc and is being released for GA next week!
+- NEWS: Lightning 1.0 is currently in rc and is being released for GA Oct 11!
 ```
 ---
 
