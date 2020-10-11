@@ -317,13 +317,15 @@ If you have any questions please:
 4. [Ask on stackoverflow](https://stackoverflow.com/questions/ask?guided=false) with the tag pytorch-lightning.
 
 ### Funding
-Building open-source software with only a few part-time people is hard! We've secured funding to make sure we can
+Building open-source software with only a few part-time people is hard! 
+
+[We're venture funded](https://techcrunch.com/2020/10/08/grid-ai-raises-18-6m-series-a-to-help-ai-researchers-and-engineers-bring-their-models-to-production/)
+and backed by some of the top VC funds in the world, [Index Ventures](https://www.indexventures.com/companies/), [Bain Capital Ventures](https://www.baincapitalventures.com/portfolio/), [First Minute Capital](https://firstminute.capital/companies).
+
+Their funding ensures we can continue to build awesome tooling like Grid, give you around the clock support, 
 hire a full-time staff, attend conferences, and move faster through implementing features you request.
 
-Our goal is to build an incredible research platform and a big supportive community. Many open-source projects
-have gone on to fund operations through things like support and special help for big corporations!
-
-If you are one of these corporations, please feel free to reach out to will@pytorchlightning.ai!
+To supercharge your research and production work, visit our [Grid.ai platform](https://www.grid.ai/)
 
 ---
 
