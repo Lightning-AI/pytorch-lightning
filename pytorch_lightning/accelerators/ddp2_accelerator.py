@@ -11,74 +11,121 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
+
 import os
-import re
 
 import torch
 import torch.distributed as torch_distrib
-import torch.distributed as dist
-import torch.multiprocessing as mp
-
-from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.base_accelerator import Accelerator
-from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities.cloud_io import atomic_save, load as pl_load
-from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
-from pytorch_lightning.utilities.distributed import find_free_network_port
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning import _logger as log
+from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from torch.nn.parallel import DistributedDataParallel
 from typing import List
 
 try:
+    from hydra.utils import to_absolute_path, get_original_cwd
     from hydra.core.hydra_config import HydraConfig
-    from hydra.utils import get_original_cwd, to_absolute_path
 except ImportError:
     HYDRA_AVAILABLE = False
 else:
     HYDRA_AVAILABLE = True
 
 
-class DDPCPUSpawnBackend(Accelerator):
+class DDP2Accelerator(Accelerator):
 
-    def __init__(self, trainer, nprocs, cluster_environment=None):
+    def __init__(self, trainer, cluster_environment=None):
         super().__init__(trainer, cluster_environment)
-        self.mp_queue = None
-        self.nprocs = nprocs
+        self.task_idx = None
         self.dist = LightningDistributed()
-        self.nickname = 'ddp_cpu'
+        self.nickname = 'ddp2'
 
     def setup(self, model):
-        os.environ['MASTER_PORT'] = os.environ.get('MASTER_PORT', str(find_free_network_port()))
-
-        # pass in a state q
-        smp = mp.get_context('spawn')
-        self.mp_queue = smp.SimpleQueue()
-
+        self._resolve_task_idx()
         self.trainer.model = model
+
+    def _resolve_task_idx(self):
+        if self.trainer.is_slurm_managing_tasks:
+            self.task_idx = int(os.environ['SLURM_LOCALID'])
+        else:
+            # torchelastic or general non_slurm ddp2
+            try:
+                self.task_idx = int(os.environ['LOCAL_RANK'])
+            except Exception as exp:
+                m = 'ddp2 only works in SLURM or via torchelastic with the WORLD_SIZE, LOCAL_RANK, GROUP_RANK flags'
+                raise MisconfigurationException(m) from exp
 
     def train(self):
         model = self.trainer.model
+        return self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=model)
 
-        # train in children process
-        mp.spawn(self.ddp_train, nprocs=self.nprocs, args=(self.mp_queue, model,))
+    def training_step(self, args):
+        if self.trainer.amp_backend == AMPType.NATIVE:
+            with torch.cuda.amp.autocast():
+                output = self.trainer.model(*args)
+        else:
+            output = self.trainer.model(*args)
+        return output
 
-        # restore main state with best weights
-        best_path = self.mp_queue.get()
-        results = self.mp_queue.get()
+    def validation_step(self, args):
+        output = self.training_step(args)
+        return output
 
-        # recover the weights of the processes trained in the children
-        self.__recover_child_process_weights(model, best_path)
-        return results
+    def test_step(self, args):
+        output = self.training_step(args)
+        return output
+
+    def barrier(self, name: str = None):
+        if torch_distrib.is_initialized():
+            torch_distrib.barrier()
+
+    def training_step_end(self, output):
+        if isinstance(output, Result):
+            output.dp_reduce()
+        return output
+
+    def validation_step_end(self, output):
+        if isinstance(output, Result):
+            output.dp_reduce()
+        return output
+
+    def test_step_end(self, output):
+        if isinstance(output, Result):
+            output.dp_reduce()
+        return output
+
+    def set_world_ranks(self, process_idx):
+        self.trainer.local_rank = self.trainer.node_rank
+        self.trainer.global_rank = self.trainer.node_rank
+        self.trainer.world_size = self.trainer.num_nodes
+
+    def broadcast(self, obj, src=0):
+        return self.dist.broadcast(obj)
+
+    def model_to_device(self, model, process_idx):
+        self.trainer.root_gpu = process_idx
+        torch.cuda.set_device(self.trainer.root_gpu)
+        model.cuda(self.trainer.root_gpu)
+
+    def get_device_ids(self):
+        device_ids = self.trainer.data_parallel_device_ids
+        return device_ids
 
     def ddp_train(self, process_idx, mp_queue, model):
         """
         Entry point for ddp
+
         Args:
             process_idx:
             mp_queue: multiprocessing queue
             model:
+
         Returns:
+
         """
         # show progressbar only on progress_rank 0
         if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:
@@ -127,7 +174,7 @@ class DDPCPUSpawnBackend(Accelerator):
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
 
-        # DDP spawn already spawned off each process... no need to do anything
+        # device ids change depending on the DDP setup
         device_ids = self.get_device_ids()
 
         # allow user to configure ddp
@@ -139,75 +186,9 @@ class DDPCPUSpawnBackend(Accelerator):
         # train or test
         results = self.train_or_test()
 
-        # get original model
-        model = self.trainer.get_model()
-
-        # persist info in ddp_spawn
-        self.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
-
         # clean up memory
         torch.cuda.empty_cache()
-
-    def training_step(self, args):
-        if self.trainer.amp_backend == AMPType.NATIVE:
-            with torch.cuda.amp.autocast():
-                output = self.trainer.model(*args)
-        else:
-            output = self.trainer.model(*args)
-        return output
-
-    def validation_step(self, args):
-        output = self.training_step(args)
-        return output
-
-    def test_step(self, args):
-        output = self.training_step(args)
-        return output
-
-    def barrier(self, name: str = None):
-        if torch_distrib.is_initialized():
-            torch_distrib.barrier()
-
-    def broadcast(self, obj, src=0):
-        return self.dist.broadcast(obj)
-
-    def early_stopping_should_stop(self, pl_module):
-        stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device)
-        dist.all_reduce(stop, op=dist.reduce_op.SUM)
-        dist.barrier()
-        should_stop = stop == self.trainer.world_size
-        return should_stop
-
-    def set_world_ranks(self, process_idx):
-        self.trainer.local_rank = process_idx
-        self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
-        self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
-
-    def model_to_device(self, model, process_idx):
-        model.cpu()
-
-    def get_device_ids(self):
-        device_ids = None
-        return device_ids
-
-    def __recover_child_process_weights(self, model, best_path):
-        # transfer back the best path to the trainer
-        if self.trainer.checkpoint_callback:
-            self.trainer.checkpoint_callback.best_model_path = best_path
-
-        self.trainer.model = model
-
-    def transfer_distrib_spawn_state_on_fit_end(self, model, mp_queue, results):
-        # track the best model path
-        best_model_path = None
-        if self.trainer.checkpoint_callback is not None:
-            best_model_path = self.trainer.checkpoint_callback.best_model_path
-
-        if self.trainer.global_rank == 0 and mp_queue is not None:
-            rank_zero_warn('cleaning up ddp environment...')
-            # todo, pass complete checkpoint as state dictionary
-            mp_queue.put(best_model_path)
-            mp_queue.put(results)
+        return results
 
     def configure_ddp(
         self, model: "LightningModule", device_ids: List[int]

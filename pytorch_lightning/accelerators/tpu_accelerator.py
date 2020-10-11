@@ -19,7 +19,7 @@ import torch
 import torch.multiprocessing as mp
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.base_accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save
@@ -35,7 +35,7 @@ if TPU_AVAILABLE:
     import torch_xla.distributed.xla_multiprocessing as xmp
 
 
-class TPUBackend(Accelerator):
+class TPUAccelerator(Accelerator):
 
     def __init__(self, trainer, cluster_environment=None):
         super().__init__(trainer, cluster_environment)

@@ -209,7 +209,7 @@ You can also modify hardware behavior by subclassing an existing accelerator to 
 
 Example::
 
-    class MyOwnDDP(DDPBackend):
+    class MyOwnDDP(DDPAccelerator):
         ...
 
     Trainer(accelerator=MyOwnDDP())
