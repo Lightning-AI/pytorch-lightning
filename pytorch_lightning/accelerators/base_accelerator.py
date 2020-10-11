@@ -78,7 +78,11 @@ class Accelerator(object):
             )
         else:
             # do backward pass
-            closure_loss.backward(*args, **kwargs)
+            if self.trainer.train_loop.automatic_optimization:
+                model = self.trainer.get_model()
+                model.backward(closure_loss, optimizer, opt_idx)
+            else:
+                closure_loss.backward(*args, **kwargs)
 
             # once backward has been applied, release graph
             closure_loss = closure_loss.detach()

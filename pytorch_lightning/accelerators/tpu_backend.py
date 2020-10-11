@@ -224,7 +224,11 @@ class TPUBackend(Accelerator):
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         # do backward pass
-        closure_loss.backward(*args, **kwargs)
+        if self.trainer.train_loop.automatic_optimization:
+            model = self.trainer.get_model()
+            model.backward(closure_loss, optimizer, opt_idx)
+        else:
+            closure_loss.backward(*args, **kwargs)
 
         # detach after backward
         closure_loss = closure_loss.detach()
