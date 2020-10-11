@@ -682,12 +682,6 @@ log_dict
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.log_dict
     :noindex:
 
-manual_backward
-~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.manual_backward
-    :noindex:
-
 print
 ~~~~~
 
@@ -916,10 +910,7 @@ True if using TPUs
 --------------
 
 Hooks
------
-
-Hook lifecycle pseudocode
-^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^
 This is the pseudocode to describe how all the hooks are called during a call to `.fit()`
 
 .. code-block:: python
@@ -995,12 +986,6 @@ This is the pseudocode to describe how all the hooks are called during a call to
         model.train()
         torch.set_grad_enabled(True)
 
-
-Advanced hooks
-^^^^^^^^^^^^^^
-Use these hooks to modify advanced functionality
-
-
 get_progress_bar_dict
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -1013,8 +998,6 @@ tbptt_split_batch
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.tbptt_split_batch
     :noindex:
 
-Checkpoint hooks
-^^^^^^^^^^^^^^^^
 These hooks allow you to modify checkpoints
 
 on_load_checkpoint
@@ -1028,14 +1011,6 @@ on_save_checkpoint
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.on_save_checkpoint
     :noindex:
-
--------------
-
-Data hooks
-^^^^^^^^^^
-Use these hooks if you want to couple a LightningModule to a dataset.
-
-.. note:: The same collection of hooks is available in a DataModule class to decouple the data from the model.
 
 train_dataloader
 ~~~~~~~~~~~~~~~~
@@ -1061,16 +1036,16 @@ prepare_data
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.prepare_data
     :noindex:
 
-------------
-
-Optimization hooks
-^^^^^^^^^^^^^^^^^^
-These are hooks related to the optimization procedure.
-
 backward
 ~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.backward
+    :noindex:
+
+manual_backward
+~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.manual_backward
     :noindex:
 
 on_after_backward
@@ -1095,10 +1070,6 @@ optimizer_zero_grad
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad
     :noindex:
-
-Training lifecycle hooks
-^^^^^^^^^^^^^^^^^^^^^^^^^
-These hooks are called during training
 
 on_fit_start
 ~~~~~~~~~~~~
