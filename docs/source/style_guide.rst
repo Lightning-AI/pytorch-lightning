@@ -171,3 +171,28 @@ However, when using DataParallel, you will need to call forward manually
 Data
 ****
 These are best practices for handling data.
+
+Dataloaders
+===========
+Lightning uses dataloaders to handle all the data flow through the system. Whenever you structure dataloaders,
+make sure to tune the number of workers for maximum efficiency.
+
+.. warning:: Make sure not to use ddp_spawn with num_workers > 0 or your will bottleneck your code.
+
+DataModules
+===========
+Lightning introduced datamodules. The problem with dataloaders is that sharing full datasets is often still challenging
+because all these questions need to be answered:
+
+* What splits were used?
+* How many samples does this dataset have?
+* What transformes were used?
+* etc...
+
+It's for this reason that we recommend you use datamodules. This is specially important when collaborating because
+it will save your team a lot of time as well.
+
+All they need to do is drop a datamodule into a lightning trainer and not worry about what was done to the data.
+
+This is true for both academic and corporate settings where data cleaning and ad-hoc instructions slow down the progress
+of iterating through ideas.
