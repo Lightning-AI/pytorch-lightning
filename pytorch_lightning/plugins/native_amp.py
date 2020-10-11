@@ -23,7 +23,7 @@ class NativeAMP:
     def connect(self, model, optimizers):
         return model, optimizers
 
-    def backward(self, closure_loss, optimizer, *args, **kwargs):
+    def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         closure_loss = self.trainer.scaler.scale(closure_loss)
 
         # do backward pass

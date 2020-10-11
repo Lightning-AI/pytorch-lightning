@@ -750,23 +750,24 @@ class TrainLoop:
 
         # backward pass
         with self.trainer.profiler.profile('model_backward'):
-            self.backward(result, optimizer)
+            self.backward(result, optimizer, opt_idx)
 
         # hook
         self.on_after_backward(result.training_step_output, batch_idx, result.loss)
 
         return result
 
-    def backward(self, result, optimizer, *args, **kwargs):
+    def backward(self, result, optimizer, opt_idx, *args, **kwargs):
         self.trainer.dev_debugger.track_event('backward_call')
 
-        # backward can be called manually in the training loop.
+        # backward can be called manually in the training loop
         if isinstance(result, torch.Tensor):
-            self.trainer.accelerator_backend.backward(result, optimizer, *args, **kwargs)
+            self.trainer.accelerator_backend.backward(result, optimizer, opt_idx, *args, **kwargs)
         else:
             result.closure_loss = self.trainer.accelerator_backend.backward(
                 result.closure_loss,
                 optimizer,
+                opt_idx,
                 *args,
                 **kwargs
             )
