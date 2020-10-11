@@ -43,9 +43,9 @@ to manually manage the optimization process. To do so, do the following:
 
         # pass in any args that loss.backward() normally takes
         self.manual_backward(loss_b, opt_d, retain_graph=True)
-        self.manual_backward(loss_b, opt_d, retain_graph=True)
-        loss_b.step()
-        loss_b.zero_grad()
+        self.manual_backward(loss_b, opt_d)
+        opt_d.step()
+        opt_d.zero_grad()
 
 .. note:: This is only recommended for experts who need ultimate flexibility
 
