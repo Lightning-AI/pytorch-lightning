@@ -1070,7 +1070,7 @@ class LightningModule(
 
         Example::
 
-            def backward(self, trainer, loss, optimizer, optimizer_idx):
+            def backward(self, loss, optimizer, optimizer_idx):
                 loss.backward()
 
         """

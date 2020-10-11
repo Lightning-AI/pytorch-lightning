@@ -30,7 +30,7 @@ def test__validation_step__log(tmpdir):
             self.log('b', acc, on_step=True, on_epoch=True)
             self.training_step_called = True
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
     model = TestModel()
@@ -102,7 +102,7 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
             self.log('g', torch.tensor(2, device=self.device), on_epoch=True)
             self.validation_epoch_end_called = True
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
     model = TestModel()
