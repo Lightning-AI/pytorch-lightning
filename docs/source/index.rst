@@ -14,6 +14,7 @@ PyTorch Lightning Documentation
 
    new-project
    converting
+   rapid_prototyping_templates
 
 .. toctree::
    :maxdepth: 1
