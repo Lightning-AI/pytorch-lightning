@@ -25,6 +25,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Enabled passing in custom accelerators ([#4050](https://github.com/PyTorchLightning/pytorch-lightning/pull/4050))
 
+- Added `LightningModule.toggle_optimizer` ([#4058](https://github.com/PyTorchLightning/pytorch-lightning/pull/4058))
+
+- Added `LightningModule.manual_backward` ([#4063](https://github.com/PyTorchLightning/pytorch-lightning/pull/4063))
+
 ### Changed
 
 - Integrated metrics API with self.log ([#3961](https://github.com/PyTorchLightning/pytorch-lightning/pull/3961))
@@ -37,6 +41,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
         [#4060](https://github.com/PyTorchLightning/pytorch-lightning/pull/4060),
         [#4061](https://github.com/PyTorchLightning/pytorch-lightning/pull/4061),
         [#4062](https://github.com/PyTorchLightning/pytorch-lightning/pull/4062))
+        
+- Renamed all backends to `Accelerator` [#4066](https://github.com/PyTorchLightning/pytorch-lightning/pull/4066))
 
 ### Deprecated
 
@@ -57,6 +63,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated model hooks ([#3980](https://github.com/PyTorchLightning/pytorch-lightning/pull/3980))
 
 - Removed deprecated callbacks ([#3979](https://github.com/PyTorchLightning/pytorch-lightning/pull/3979))
+
+- Removed `trainer` argument in `LightningModule.backward` [#4056](https://github.com/PyTorchLightning/pytorch-lightning/pull/4056))
 
 ### Fixed
 
