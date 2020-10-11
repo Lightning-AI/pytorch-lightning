@@ -249,10 +249,10 @@ class TPUAccelerator(Accelerator):
             using_lbfgs=is_lbfgs
         )
 
-    def clip_gradients(self, optimizer):
+    def clip_gradients(self, optimizer, clip_val=None):
         # apply clip gradients
         # TODO: separate TPU case from here
-        self._clip_gradients(optimizer)
+        self._clip_gradients(optimizer, clip_val)
 
     def barrier(self, name: str = None):
         torch_xla.core.xla_model.rendezvous(f"pl.Trainer.{name}")

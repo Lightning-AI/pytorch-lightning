@@ -725,6 +725,16 @@ configure_optimizers
 
 --------------
 
+Manual optimization
+^^^^^^^^^^^^^^^^^^^
+Use these methods when doing manual optimization
+
+manual_backward
+~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.manual_backward
+    :noindex:
+
 Convenience methods
 ^^^^^^^^^^^^^^^^^^^
 Use these methods for convenience

@@ -1053,6 +1053,8 @@ class LightningModule(
 
         This function forwards all args to the .backward() call as well.
 
+        .. tip:: In manual mode we still automatically clip grads if Trainer(gradient_clip_val=x) is set
+
         Example::
 
             def training_step(...):
@@ -1061,7 +1063,14 @@ class LightningModule(
                 # automatically applies scaling, etc...
                 self.manual_backward(loss, opt_a)
         """
+        # make sure we're using manual opt
+        self._verify_is_manual_optimization('manual_backward')
+
+        # backward
         self.trainer.train_loop.backward(loss, optimizer, -1, *args, **kwargs)
+
+        # clip grads after backward
+        self.trainer.accelerator_backend.clip_gradients(optimizer)
 
     def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int) -> None:
         """
@@ -1343,6 +1352,11 @@ class LightningModule(
             tqdm_dict["v_num"] = version
 
         return tqdm_dict
+
+    def _verify_is_manual_optimization(self, fn_name):
+        if self.trainer.train_loop.automatic_optimization:
+            m = f'to use {fn_name}, please disable automatic optimization: Trainer(automatic_optimization=False)'
+            raise MisconfigurationException(m)
 
     @classmethod
     def _auto_collect_arguments(cls, frame=None) -> Tuple[Dict, Dict]:
