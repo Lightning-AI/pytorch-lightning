@@ -731,6 +731,15 @@ Or read our :ref:`introduction_guide` to learn more!
 
 -------------
 
+********************
+Large-scale training
+********************
+Grid AI is our native solution for large scale training and tuning on the cloud provider of your choice.
+
+`Click here to request early-access <https://www.grid.ai/>`_.
+
+------------
+
 **********
 Community
 **********
@@ -740,13 +749,6 @@ and `Forum <https://forums.pytorchlightning.ai/>`_. Drop by to hang out, ask Lig
 
 
 -------------
-
-*******
-Grid AI
-*******
-Grid AI is our native solution for large scale training and tuning on the cloud provider of your choice.
-
-`Click here to request early-access <https://www.grid.ai/>`_.
 
 Masterclass
 ===========
