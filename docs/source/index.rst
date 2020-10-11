@@ -21,8 +21,8 @@ PyTorch Lightning Documentation
    :name: guides
    :caption: Best practices
 
-   style_guide
    performance
+   style_guide
 
 .. toctree::
    :maxdepth: 1
