@@ -67,9 +67,9 @@ from pytorch_lightning.utilities.memory import recursive_detach
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
-    "ignore", message="torch.distributed.reduce_op is deprecated, " "please use torch.distributed.ReduceOp instead"
+    'ignore', message='torch.distributed.reduce_op is deprecated, ' 'please use torch.distributed.ReduceOp instead'
 )
-os.environ["PYTHONWARNINGS"] = "ignore:semaphore_tracker:UserWarning"
+os.environ['PYTHONWARNINGS'] = 'ignore:semaphore_tracker:UserWarning'
 
 try:
     from apex import amp
@@ -120,7 +120,7 @@ class Trainer(
         accelerator: Optional[Union[str, Accelerator]] = None,
         sync_batchnorm: bool = False,
         precision: int = 32,
-        weights_summary: Optional[str] = "top",
+        weights_summary: Optional[str] = 'top',
         weights_save_path: Optional[str] = None,
         num_sanity_val_steps: int = 2,
         truncated_bptt_steps: Optional[int] = None,
@@ -442,7 +442,7 @@ class Trainer(
 
         # bookkeeping
         # we reuse fit in .test() but change its behavior using this flag
-        self.testing = os.environ.get("PL_TESTING_MODE", self.testing)
+        self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
 
         # ----------------------------
         # SET UP TRAINING
@@ -462,7 +462,7 @@ class Trainer(
         # TRAIN
         # ----------------------------
         # hook
-        self.call_hook("on_fit_start")
+        self.call_hook('on_fit_start')
 
         results = self.accelerator_backend.train()
         self.accelerator_backend.teardown()
@@ -471,12 +471,12 @@ class Trainer(
         # POST-Training CLEAN UP
         # ----------------------------
         # hook
-        self.call_hook("on_fit_end")
+        self.call_hook('on_fit_end')
 
         # hook
-        self.teardown("fit")
-        if self.is_function_implemented("teardown"):
-            model.teardown("fit")
+        self.teardown('fit')
+        if self.is_function_implemented('teardown'):
+            model.teardown('fit')
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
@@ -526,7 +526,7 @@ class Trainer(
                     return
 
                 # update LR schedulers
-                self.optimizer_connector.update_learning_rates(interval="epoch")
+                self.optimizer_connector.update_learning_rates(interval='epoch')
 
                 # early stopping
                 met_min_epochs = epoch >= self.min_epochs - 1 if self.min_epochs else True
@@ -538,16 +538,16 @@ class Trainer(
                         return
                     else:
                         log.info(
-                            "Trainer was signaled to stop but required minimum epochs"
-                            f" ({self.min_epochs}) or minimum steps ({self.min_steps}) has"
-                            " not been met. Training will continue..."
+                            'Trainer was signaled to stop but required minimum epochs'
+                            f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
+                            ' not been met. Training will continue...'
                         )
 
             # hook
             self.train_loop.on_train_end()
 
         except KeyboardInterrupt:
-            rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
+            rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
 
             # user could press ctrl+c many times... only shutdown once
             if not self.interrupted:
@@ -676,7 +676,7 @@ class Trainer(
         return eval_loop_results
 
     def run_sanity_check(self, ref_model):
-        using_val_step = ref_model.val_dataloader is not None and is_overridden("validation_step", ref_model)
+        using_val_step = ref_model.val_dataloader is not None and is_overridden('validation_step', ref_model)
         should_sanity_check = using_val_step and self.num_sanity_val_steps > 0 and self.limit_val_batches > 0
 
         # run tiny validation (if validation defined)
@@ -713,7 +713,7 @@ class Trainer(
         self,
         model: Optional[LightningModule] = None,
         test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-        ckpt_path: Optional[str] = "best",
+        ckpt_path: Optional[str] = 'best',
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ):
@@ -747,18 +747,18 @@ class Trainer(
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
         if test_dataloaders and datamodule:
             raise MisconfigurationException(
-                "You cannot pass test_dataloaders to trainer.test if you supply a datamodule"
+                'You cannot pass test_dataloaders to trainer.test if you supply a datamodule'
             )
 
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
-        self.data_connector.attach_datamodule(model or self.get_model(), datamodule, "test")
+        self.data_connector.attach_datamodule(model or self.get_model(), datamodule, 'test')
 
         if model is not None:
             results = self.__test_given_model(model, test_dataloaders)
         else:
             results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
 
-        self.teardown("test")
+        self.teardown('test')
 
         return results
 
@@ -766,7 +766,7 @@ class Trainer(
         model = self.get_model()
 
         # if user requests the best checkpoint but we don't have it, error
-        if ckpt_path == "best" and not self.checkpoint_callback.best_model_path:
+        if ckpt_path == 'best' and not self.checkpoint_callback.best_model_path:
             raise MisconfigurationException(
                 'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.'
             )
@@ -774,20 +774,20 @@ class Trainer(
         # load best weights
         if ckpt_path is not None:
             # ckpt_path is 'best' so load the best model
-            if ckpt_path == "best":
+            if ckpt_path == 'best':
                 ckpt_path = self.checkpoint_callback.best_model_path
 
             if len(ckpt_path) == 0:
                 rank_zero_warn(
-                    f".test() found no path for the best weights, {ckpt_path}. Please "
-                    f"specify a path for a checkpoint .test(ckpt_path=PATH)"
+                    f'.test() found no path for the best weights, {ckpt_path}. Please '
+                    f'specify a path for a checkpoint .test(ckpt_path=PATH)'
                 )
                 return {}
             if self.accelerator_backend is not None:
                 self.accelerator_backend.barrier()
 
             ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
-            model.load_state_dict(ckpt["state_dict"])
+            model.load_state_dict(ckpt['state_dict'])
 
         # attach dataloaders
         if test_dataloaders is not None:
@@ -796,16 +796,16 @@ class Trainer(
         # run tests
         self.tested_ckpt_path = ckpt_path
         self.testing = True
-        os.environ["PL_TESTING_MODE"] = "1"
+        os.environ['PL_TESTING_MODE'] = '1'
         self.model = model
         results = self.fit(model)
         self.testing = False
-        del os.environ["PL_TESTING_MODE"]
+        del os.environ['PL_TESTING_MODE']
 
         # teardown
-        if self.is_function_implemented("teardown"):
+        if self.is_function_implemented('teardown'):
             model_ref = self.get_model()
-            model_ref.teardown("test")
+            model_ref.teardown('test')
 
         return results
 
@@ -823,8 +823,8 @@ class Trainer(
         self.testing = False
 
         # teardown
-        if self.is_function_implemented("teardown"):
-            model.teardown("test")
+        if self.is_function_implemented('teardown'):
+            model.teardown('test')
 
         return results
 
@@ -854,7 +854,7 @@ class Trainer(
 
     def call_setup_hook(self, model):
         # call setup after the ddp process has connected
-        stage_name = "test" if self.testing else "fit"
+        stage_name = 'test' if self.testing else 'fit'
         if self.datamodule is not None:
             called = self.datamodule.has_setup_test if self.testing else self.datamodule.has_setup_fit
             if not called:
