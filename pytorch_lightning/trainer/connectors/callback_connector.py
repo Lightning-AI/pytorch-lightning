@@ -1,5 +1,6 @@
 import os
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, ProgressBarBase, ProgressBar
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, ProgressBarBase, ProgressBar, \
+    DifferentialPrivacy
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -17,7 +18,8 @@ class CallbackConnector:
             process_position,
             default_root_dir,
             weights_save_path,
-            resume_from_checkpoint
+            resume_from_checkpoint,
+            differential_privacy_calllback
     ):
         self.trainer.resume_from_checkpoint = resume_from_checkpoint
 
@@ -35,6 +37,10 @@ class CallbackConnector:
         if checkpoint_callback:
             self.trainer.callbacks.append(checkpoint_callback)
 
+        differential_privacy_calllback = self.init_default_differential_privacy_callback(differential_privacy_calllback)
+        if differential_privacy_calllback:
+            self.trainer.callbacks.append(differential_privacy_calllback)
+
         # TODO refactor codebase (tests) to not directly reach into these callbacks
         self.trainer.checkpoint_callback = checkpoint_callback
 
@@ -42,6 +48,14 @@ class CallbackConnector:
         self.trainer._progress_bar_callback = self.configure_progress_bar(
             progress_bar_refresh_rate, process_position
         )
+
+    def init_default_differential_privacy_callback(self, differential_privacy_calllback):
+        if differential_privacy_calllback is True:
+            differential_privacy_calllback = DifferentialPrivacy()
+        elif differential_privacy_calllback is False:
+            differential_privacy_calllback = None
+
+        return differential_privacy_calllback
 
     def init_default_checkpoint_callback(self, checkpoint_callback):
         if checkpoint_callback is True:

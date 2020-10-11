@@ -20,17 +20,12 @@ Train your model with differential privacy using Opacus(https://github.com/pytor
 
 """
 
-import os
-import re
-from typing import Optional
-
-import numpy as np
-import torch
 from opacus import PrivacyEngine
+from opacus.dp_model_inspector import DPModelInspector
+from opacus.utils import module_modification
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_only
 
 
 class DifferentialPrivacy(Callback):
@@ -40,33 +35,32 @@ class DifferentialPrivacy(Callback):
 
     # take in privacy engine as arguement allow false and none and true
     # add to trainer
-    def __init__(self):
+    def __init__(
+        self, alphas=(1, 10, 100), noise_multiplier=0.1, max_grad_norm=0.1,
+    ):
         super().__init__()
+        self.alphas = alphas
+        self.noise_multiplier = noise_multiplier
+        self.max_grad_norm = max_grad_norm
 
-    @rank_zero_only
     def on_train_start(self, trainer, pl_module):
+        # VIRTUAL_BATCH_SIZE
+        # tune max grad
+        # check that channels divisible by 32
+        # get_privacy_spent
+
+        trainer.model = module_modification.convert_batchnorm_modules(pl_module)
+        inspector = DPModelInspector()
+        inspector.validate(trainer.model)
+
         privacy_engine = PrivacyEngine(
             pl_module,
             batch_size=trainer.train_dataloader.batch_size,
             sample_size=len(trainer.train_dataloader.dataset),
-            alphas=[1, 10, 100],
-            noise_multiplier=1.3,
-            max_grad_norm=1.0,
+            alphas=self.alphas,
+            noise_multiplier=self.noise_multiplier,
+            max_grad_norm=self.max_grad_norm,
         )
 
-        for optimizer in trainer.optimizers:
+        for optimizer in pl_module.optimizers():
             privacy_engine.attach(optimizer)
-# VIRTUAL_BATCH_SIZE
-# take a real optimizer step after N_VIRTUAL_STEP steps t
-#validate model
-# from opacus.dp_model_inspector import DPModelInspector
-#
-# inspector = DPModelInspector()
-# inspector.validate(model)
-
-# from opacus.utils import module_modification
-#
-# model = module_modification.convert_batchnorm_modules(model)
-# inspector = DPModelInspector()
-# print(f"Is the model valid? {inspector.validate(model)}")
-# epsilon, best_alpha = optimizer.privacy_engine.get_privacy_spent(DELTA)

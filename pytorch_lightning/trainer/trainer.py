@@ -19,7 +19,7 @@ from typing import Dict, Iterable, List, Optional, Union
 import torch
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
+from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, DifferentialPrivacy
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
@@ -87,7 +87,7 @@ class Trainer(
         self,
         logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
         checkpoint_callback: Union[ModelCheckpoint, bool] = True,
-        differential_privacy_calllback: Optional[Union[EarlyStopping, bool]] = False,
+        differential_privacy_callback: Optional[Union[DifferentialPrivacy, bool]] = False,
         callbacks: Optional[List[Callback]] = None,
         default_root_dir: Optional[str] = None,
         gradient_clip_val: float = 0,
@@ -307,6 +307,7 @@ class Trainer(
             default_root_dir,
             weights_save_path,
             resume_from_checkpoint,
+            differential_privacy_callback
         )
 
         # hook

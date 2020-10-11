@@ -1,4 +1,5 @@
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.callbacks.differential_privacy import DifferentialPrivacy
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
 from pytorch_lightning.callbacks.gradient_accumulation_scheduler import GradientAccumulationScheduler
@@ -16,4 +17,5 @@ __all__ = [
     'ModelCheckpoint',
     'ProgressBar',
     'ProgressBarBase',
+    'DifferentialPrivacy'
 ]
