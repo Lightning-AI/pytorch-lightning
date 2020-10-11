@@ -8,9 +8,90 @@ The goal of this style guide is to encourage Lightning code to be structured sim
 
 --------------
 
-****************************
-LightningModule method order
-****************************
+***************
+LightningModule
+***************
+These are best practices about structuring your LightningModule
+
+Systems vs models
+=================
+The main principle behind a LightningModule is that a full system should be self-contained.
+In Lightning we differentiate between a system and a model.
+
+A model is something like a resnet18, RNN, etc.
+
+A system defines how a collection of models interact with each other. Examples of this are:
+
+* GANs
+* Seq2Seq
+* BERT
+* etc
+
+A LightningModule can define both a system and a model.
+
+Here's a LightningModule that defines a model:
+
+.. code-block:: python
+
+    class LitModel(pl.LightningModule):
+        def __init__(self, num_layers: int = 3)
+            super().__init__()
+            self.layer_1 = nn.Linear(...)
+            self.layer_2 = nn.Linear(...)
+            self.layer_3 = nn.Linear(...)
+
+Here's a lightningModule that defines a system:
+
+.. code-block:: python
+
+    class LitModel(pl.LightningModule):
+        def __init__(self, encoder: nn.Module = None, decoder: nn.Module = None)
+            super().__init__()
+            self.encoder = encoder
+            self.decoder = decoder
+
+For fast prototyping it's often useful to define all the computations in a LightningModule. For reusability
+and scalability it might be better to pass in the relevant backbones.
+
+Self-contained
+==============
+A Lightning module should be self-contained. A good test to see how self-contained your model is, is to ask
+yourself this question:
+
+"Can someone drop this file into a Trainer without knowing anything about the internals?"
+
+For example, we couple the optimizer with a model because the majority of models require a specific optimizer with
+a specific learning rate scheduler to work well.
+
+Init
+====
+The first place where LightningModules tend to stop being self-contained is in the init. Try to define all the relevant
+sensible defaults in the init so that the user doesn't have to guess.
+
+Here's an example where a user will have to go hunt through files to figure out how to init this LightningModule.
+
+.. code-block:: python
+
+    class LitModel(pl.LightningModule):
+        def __init__(self, params):
+            self.lr = params.lr
+            self.coef_x = params.coef_x
+
+Models defined as such leave you with many questions; what is coef_x? is it a string? a float? what is the range? etc...
+
+Instead, be explicit in your init
+
+.. code-block:: python
+
+    class LitModel(pl.LightningModule):
+        def __init__(self, encoder: nn.Module, coeff_x: float = 0.2, lr: float = 1e-3)
+
+Now the user doesn't have to guess. Instead they know the value type and the model has a sensible default where the
+user can see the value immediately.
+
+
+Method order
+============
 The only required methods in the LightningModule are:
 
 * init
@@ -59,11 +140,8 @@ In practice, this code looks like:
 
         def any_extra_hook(...)
 
------------
-
-************************
 Forward vs training_step
-************************
+========================
 We recommend using forward for inference/predictions and keeping training_step independent
 
 .. code-block:: python
@@ -86,3 +164,10 @@ However, when using DataParallel, you will need to call forward manually
         z = self(x)  # < ---------- instead of self.encoder(x)
         pred = self.decoder(z)
         ...
+
+--------------
+
+****
+Data
+****
+These are best practices for handling data.
