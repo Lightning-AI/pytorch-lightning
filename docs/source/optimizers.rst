@@ -49,6 +49,8 @@ to manually manage the optimization process. To do so, do the following:
 
 .. note:: This is only recommended for experts who need ultimate flexibility
 
+Manual optimization does not yet support accumulated gradients but will be live in 1.1.0
+
 ------
 
 Automatic optimization

@@ -200,13 +200,17 @@ The :class:`~pytorch_lightning.trainer.Trainer` automates:
 
 -----------
 
-*****************
+**************
+Basic features
+**************
+
+
 Predict or Deploy
-*****************
+=================
 When you're done training, you have 3 options to use your LightningModule for predictions.
 
 Option 1: Sub-models
-====================
+--------------------
 Pull out any model inside your system for predictions.
 
 .. code-block:: python
@@ -225,7 +229,7 @@ Pull out any model inside your system for predictions.
     decoder_model.eval()
 
 Option 2: Forward
-=================
+-----------------
 You can also add a forward method to do predictions however you want.
 
 .. code-block:: python
@@ -258,7 +262,7 @@ You can also add a forward method to do predictions however you want.
     image_sample = autoencoder(()
 
 Option 3: Production
-====================
+--------------------
 For production systems onnx or torchscript are much faster. Make sure you have added
 a forward method or trace only the sub-models you need.
 
@@ -284,57 +288,8 @@ a forward method or trace only the sub-models you need.
 
 --------------------
 
-********************************
-Manual vs automatic optimization
-********************************
-
-Automatic optimization
-======================
-With Lightning you don't need to worry about when to enable/disable grads, do a backward pass, or update optimizers
-as long as you return a loss with an attached graph from the `training_step`, Lightning will automate the optimization.
-
-.. code-block:: python
-
-    def training_step(self, batch, batch_idx):
-        loss = self.encoder(batch[0])
-        return loss
-
-Manual optimization
-===================
-However, for certain research like GANs, reinforcement learning or something with multiple optimizers
-or an inner loop, you can turn off automatic optimization and fully control the training loop yourself.
-
-First, turn off automatic optimization:
-
-.. code-block:: python
-
-    trainer = Trainer(automatic_optimization=False)
-
-Now you own the train loop!
-
-.. code-block:: python
-
-    def training_step(self, batch, batch_idx, opt_idx):
-        (opt_a, opt_b, opt_c) = self.optimizers()
-
-        loss_a = self.generator(batch[0])
-
-        # use this instead of loss.backward so we can automate half precision, etc...
-        self.manual_backward(loss_a, opt_a, retain_graph=True)
-        self.manual_backward(loss_a, opt_a)
-        opt_a.step()
-        opt_a.zero_grad()
-
-        loss_b = self.discriminator(batch[0])
-        self.manual_backward(loss_b, opt_b)
-        ...
-
-
---------------------
-
-********************
 Using CPUs/GPUs/TPUs
-********************
+====================
 It's trivial to use CPUs, GPUs or TPUs in Lightning. There's **NO NEED** to change your code, simply change the :class:`~pytorch_lightning.trainer.Trainer` options.
 
 .. code-block:: python
@@ -398,9 +353,8 @@ Without changing a SINGLE line of your code, you can now do the following with t
     
 -----------
 
-***********
 Checkpoints
-***********
+===========
 Lightning automatically saves your model. Once you've trained, you can load the checkpoints as follows:
 
 .. code-block:: python
@@ -421,9 +375,8 @@ If you prefer to do it manually, here's the equivalent
 
 ---------
 
-*********
 Data flow
-*********
+=========
 Each loop (training, validation, test) has three hooks you can implement:
 
 - x_step
@@ -487,9 +440,8 @@ The lightning equivalent is:
 
 -----------------
 
-*****************
 Logging
-*****************
+=======
 To log to Tensorboard, your favorite logger, and/or the progress bar, use the
 :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method which can be called from
 any method in the LightningModule.
@@ -542,12 +494,11 @@ Read more about :ref:`loggers`.
 
 ----------------
 
-*****************
-Optional features
-*****************
+Optional extensions
+===================
 
 Callbacks
-=========
+---------
 A callback is an arbitrary self-contained program that can be executed at arbitrary parts of the training loop.
 
 Here's an example adding a not-so-fancy learning rate decay rule:
@@ -592,7 +543,7 @@ Things you can do with a callback:
 
 
 LightningDataModules
-====================
+--------------------
 DataLoaders and data processing code tends to end up scattered around.
 Make your data code reusable by organizing it into a :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
 
@@ -665,9 +616,8 @@ DataModules are specifically useful for building models based on data. Read more
 
 ------
 
-*********
 Debugging
-*********
+=========
 Lightning has many tools for debugging. Here is an example of just a few of them:
 
 .. code-block:: python
@@ -703,9 +653,56 @@ Lightning has many tools for debugging. Here is an example of just a few of them
  
 ---------------
 
-***************************
-Advanced Lightning Features
-***************************
+*****************
+Advanced features
+*****************
+
+Manual vs automatic optimization
+================================
+
+Automatic optimization
+----------------------
+With Lightning you don't need to worry about when to enable/disable grads, do a backward pass, or update optimizers
+as long as you return a loss with an attached graph from the `training_step`, Lightning will automate the optimization.
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        loss = self.encoder(batch[0])
+        return loss
+
+Manual optimization
+-------------------
+However, for certain research like GANs, reinforcement learning or something with multiple optimizers
+or an inner loop, you can turn off automatic optimization and fully control the training loop yourself.
+
+First, turn off automatic optimization:
+
+.. code-block:: python
+
+    trainer = Trainer(automatic_optimization=False)
+
+Now you own the train loop!
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx, opt_idx):
+        (opt_a, opt_b, opt_c) = self.optimizers()
+
+        loss_a = self.generator(batch[0])
+
+        # use this instead of loss.backward so we can automate half precision, etc...
+        self.manual_backward(loss_a, opt_a, retain_graph=True)
+        self.manual_backward(loss_a, opt_a)
+        opt_a.step()
+        opt_a.zero_grad()
+
+        loss_b = self.discriminator(batch[0])
+        self.manual_backward(loss_b, opt_b)
+        ...
+
+Other coool features
+====================
 
 Once you define and train your first Lightning model, you might want to try other cool features like
 
