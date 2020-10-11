@@ -198,6 +198,13 @@ The :class:`~pytorch_lightning.trainer.Trainer` automates:
 * :ref:`tpu`
 * :ref:`amp` support
 
+---------
+
+**That's it!**
+
+These are the main 2 concepts you need to know in Lightning. All the other features of lightning are either
+features of the Trainer or LightningModule.
+
 -----------
 
 **************
