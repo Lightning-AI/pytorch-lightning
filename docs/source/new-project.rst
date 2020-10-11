@@ -731,12 +731,23 @@ Or read our :ref:`introduction_guide` to learn more!
 
 -------------
 
+Grid AI
+=======
+Grid AI is our native solution for large scale training and tuning on the cloud provider of your choice.
+
+`Click here to request early-access <https://www.grid.ai/>`_.
+
+------------
+
 **********
 Community
 **********
 Our community of core maintainers and thousands of expert researchers is active on our
 `Slack <https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A>`_
 and `Forum <https://forums.pytorchlightning.ai/>`_. Drop by to hang out, ask Lightning questions or even discuss research!
+
+
+-------------
 
 Masterclass
 ===========
