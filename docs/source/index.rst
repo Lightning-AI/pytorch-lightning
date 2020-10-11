@@ -18,11 +18,11 @@ PyTorch Lightning Documentation
 
 .. toctree::
    :maxdepth: 1
-   :name: advanced
-   :caption: Advanced use
+   :name: guides
+   :caption: Best practices
 
-   introduction_guide
    performance
+   style_guide
 
 .. toctree::
    :maxdepth: 2
@@ -41,6 +41,17 @@ PyTorch Lightning Documentation
    datamodules
    logging
    metrics
+
+
+.. toctree::
+   :maxdepth: 1
+   :name: Tutorials
+   :caption: Tutorials
+
+   introduction_guide
+   PyTorch Lightning 101 class <https://www.youtube.com/playlist?list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2>
+   From PyTorch to PyTorch Lightning [Blog] <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
+   From PyTorch to PyTorch Lightning [Video] <https://www.youtube.com/watch?v=QHww1JH7IDU>
 
 .. toctree::
    :maxdepth: 1
@@ -63,15 +74,6 @@ PyTorch Lightning Documentation
    Image-GPT <https://pytorch-lightning-bolts.readthedocs.io/en/latest/convolutional.html#image-gpt>
    SimCLR <https://pytorch-lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#simclr>
    VAE <https://pytorch-lightning-bolts.readthedocs.io/en/latest/autoencoders.html#basic-vae>
-
-.. toctree::
-   :maxdepth: 1
-   :name: Tutorials
-   :caption: Tutorials
-
-   PyTorch Lightning 101 class <https://www.youtube.com/playlist?list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2>
-   From PyTorch to PyTorch Lightning <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
-   Video on how to refactor PyTorch into PyTorch Lightning <https://www.youtube.com/watch?v=QHww1JH7IDU>
 
 .. toctree::
    :maxdepth: 1
