@@ -6,8 +6,8 @@ from pytorch_lightning.callbacks import DifferentialPrivacy
 from tests.base import EvalModelTemplate
 
 
-def test_early_stopping_no_extraneous_invocations(tmpdir):
-    """Test to ensure that callback methods aren't being invoked outside of the callback handler."""
+def test_differential_privacy_accuracy(tmpdir):
+    """Test to check the accuracy with DP is similar to without DP"""
     os.environ["PL_DEV_DEBUG"] = "1"
     seed_everything(42)
 
@@ -17,7 +17,7 @@ def test_early_stopping_no_extraneous_invocations(tmpdir):
     expected_count = 4
     trainer_with_dp = Trainer(
         default_root_dir=tmpdir,
-        differential_privacy_callback=DifferentialPrivacy(noise_multiplier=0.1, max_grad_norm=0.1),
+        differential_privacy_callback=DifferentialPrivacy(noise_multiplier=0.3, max_grad_norm=0.1),
         max_epochs=expected_count,
         deterministic=True,
     )
@@ -35,3 +35,8 @@ def test_early_stopping_no_extraneous_invocations(tmpdir):
     dp_test_acc_ = result_with_dp[0]["test_acc"]
     no_dp_test_acc_ = result_no_dp[0]["test_acc"]
     assert math.isclose(dp_test_acc_, no_dp_test_acc_, rel_tol=1e-1)
+
+
+# TODO: Validation test
+# TODO: works with tpu
+# TODO: check that false and true also works

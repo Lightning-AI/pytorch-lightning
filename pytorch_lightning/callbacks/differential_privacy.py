@@ -16,7 +16,7 @@
 Differential Privacy
 ====================
 
-Train your model with differential privacy using Opacus(https://github.com/pytorch/opacus).
+Train your model with differential privacy using Opacus (https://github.com/pytorch/opacus).
 
 """
 
@@ -25,29 +25,51 @@ from opacus.dp_model_inspector import DPModelInspector
 from opacus.utils import module_modification
 
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_only
 
 
 class DifferentialPrivacy(Callback):
     r"""
     Attach privacy engine to the optimizer before the training begins.
+    Args:
+        alphas : List[float]
+            A list of RDP orders
+        noise_multiplier : float
+            The ratio of the standard deviation of the Gaussian noise to
+            the L2-sensitivity of the function to which the noise is added
+        max_grad_norm : Union[float, List[float]]
+            The maximum norm of the per-sample gradients. Any gradient with norm
+            higher than this will be clipped to this value.
+
+    Example::
+
+        >>> from pytorch_lightning import Trainer
+        >>> from pytorch_lightning.callbacks import DifferentialPrivacy
+        >>> differential_privacy = DifferentialPrivacy(noise_multiplier=0.3, max_grad_norm=0.1)
+        >>> trainer = Trainer(callbacks=[differential_privacy])
     """
 
-    # take in privacy engine as arguement allow false and none and true
-    # add to trainer
     def __init__(
-        self, alphas=(1, 10, 100), noise_multiplier=0.1, max_grad_norm=0.1,
+        self,
+        alphas=tuple(1 + x / 10.0 for x in range(1, 100)) + tuple(range(12, 64)),
+        noise_multiplier=0.1,
+        max_grad_norm=0.1,
+        **kwargs,
     ):
         super().__init__()
         self.alphas = alphas
         self.noise_multiplier = noise_multiplier
         self.max_grad_norm = max_grad_norm
+        self.kwargs = kwargs
 
     def on_train_start(self, trainer, pl_module):
-        # VIRTUAL_BATCH_SIZE
-        # tune max grad
-        # check that channels divisible by 32
-        # get_privacy_spent
+        """
+        Check model compatibility and attach privacy engine to optimizer before training
+        """
+
+        # TODO: explore VIRTUAL_BATCH_SIZE
+        # TODO: tune max grad
+        # TODO: check that channels divisible by 32
+        # TODO: get_privacy_spent
 
         trainer.model = module_modification.convert_batchnorm_modules(pl_module)
         inspector = DPModelInspector()
@@ -60,6 +82,7 @@ class DifferentialPrivacy(Callback):
             alphas=self.alphas,
             noise_multiplier=self.noise_multiplier,
             max_grad_norm=self.max_grad_norm,
+            **self.kwargs,
         )
 
         for optimizer in pl_module.optimizers():
