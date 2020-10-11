@@ -293,7 +293,7 @@ optimizer behavior
 Example::
 
     def training_step(self, batch, batch_idx):
-        (opt) = self.optimizers()
+        opt = self.optimizers()
 
         loss = ...
         self.manual_backward(loss, opt)
