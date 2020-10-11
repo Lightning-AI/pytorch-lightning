@@ -44,28 +44,6 @@ Scale your models, not the boilerplate.**
 
 ---
 
-## Just launched GridAI
-Our native platform for training models at scale on the cloud!    
-
-**Sign up for [early access here](https://www.grid.ai/)**
-
-To use grid, take your regular command:
-
-```
-    python my_model.py --learning_rate 1e-6 --layers 2 --gpus 4
-```
-
-And change it to use the grid train command:
-
-```
-    grid train --grid_gpus 4 my_model.py --learning_rate 'uniform(1e-6, 1e-1, 20)' --layers '[2, 4, 8, 16]'
-```
-
-The above command will launch (20 * 4) experiments each running on 4 GPUs (320 GPUs!) - by making ZERO changes to
-your code.
-
----
-
 ## PyTorch Lightning is just organized PyTorch
 Lightning disentangles PyTorch code to decouple the science from the engineering.
 ![PT to PL](/docs/source/_images/general/pl_quick_start_full_compressed.gif)
@@ -326,6 +304,28 @@ Their funding ensures we can continue to build awesome tooling like Grid, give y
 hire a full-time staff, attend conferences, and move faster through implementing features you request.
 
 To supercharge your research and production work, visit our [Grid.ai platform](https://www.grid.ai/)
+
+---
+
+## Native scalable cloud training with tuning
+Grid AI is our native platform for training models at scale on the cloud!    
+
+**Sign up for [early access here](https://www.grid.ai/)**
+
+To use grid, take your regular command:
+
+```
+    python my_model.py --learning_rate 1e-6 --layers 2 --gpus 4
+```
+
+And change it to use the grid train command:
+
+```
+    grid train --grid_gpus 4 my_model.py --learning_rate 'uniform(1e-6, 1e-1, 20)' --layers '[2, 4, 8, 16]'
+```
+
+The above command will launch (20 * 4) experiments each running on 4 GPUs (320 GPUs!) - by making ZERO changes to
+your code.
 
 ---
 
