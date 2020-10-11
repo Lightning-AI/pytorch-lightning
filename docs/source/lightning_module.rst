@@ -652,69 +652,35 @@ LightningModule API
 Methods
 ^^^^^^^
 
-training_step
-~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.training_step
-    :noindex:
-
-training_step_end
-~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.training_step_end
-    :noindex:
-
-training_epoch_end
-~~~~~~~~~~~~~~~~~~
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.training_epoch_end
-    :noindex:
-
----------------
-
-validation_step
-~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.validation_step
-    :noindex:
-
-validation_step_end
-~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.validation_step_end
-    :noindex:
-
-validation_epoch_end
+configure_optimizers
 ~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.validation_epoch_end
-    :noindex:
-
-----------------
-
-test_step
-~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.test_step
-    :noindex:
-
-test_step_end
-~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.test_step_end
-    :noindex:
-
-test_epoch_end
-~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.test_epoch_end
-    :noindex:
-
---------------
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.configure_optimizers
     :noindex:
 
---------------
+forward
+~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.forward
+    :noindex:
+
+freeze
+~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.freeze
+    :noindex:
+
+log
+~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.log
+    :noindex:
+
+log_dict
+~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.log_dict
+    :noindex:
 
 manual_backward
 ~~~~~~~~~~~~~~~
@@ -734,32 +700,22 @@ save_hyperparameters
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.save_hyperparameters
     :noindex:
 
-------------
+test_step
+~~~~~~~~~
 
-log
-~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.log
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.test_step
     :noindex:
 
-log_dict
-~~~~~~~~
+test_step_end
+~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.log_dict
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.test_step_end
     :noindex:
 
-------------
+test_epoch_end
+~~~~~~~~~~~~~~
 
-forward
-~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.forward
-    :noindex:
-
-freeze
-~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.freeze
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.test_epoch_end
     :noindex:
 
 to_onnx
@@ -774,10 +730,45 @@ to_torchscript
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.to_torchscript
     :noindex:
 
+training_step
+~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.training_step
+    :noindex:
+
+training_step_end
+~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.training_step_end
+    :noindex:
+
+training_epoch_end
+~~~~~~~~~~~~~~~~~~
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.training_epoch_end
+    :noindex:
+
 unfreeze
 ~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.unfreeze
+    :noindex:
+
+validation_step
+~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.validation_step
+    :noindex:
+
+validation_step_end
+~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.validation_step_end
+    :noindex:
+
+validation_epoch_end
+~~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.validation_epoch_end
     :noindex:
 
 ------------
