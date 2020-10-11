@@ -145,7 +145,7 @@ of the 20+ hooks found in :ref:`hooks`
 
     class LitAutoEncoder(pl.LightningModule):
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
 In Lightning, training_step defines the train loop and is independent of forward. Use forward to define

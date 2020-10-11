@@ -29,7 +29,7 @@ def test__eval_step__flow(tmpdir):
                 out = {'something': 'random'}
             return out
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
     model = TestModel()
@@ -79,7 +79,7 @@ def test__eval_step__eval_step_end__flow(tmpdir):
             assert self.last_out == out
             return out
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
     model = TestModel()
@@ -136,7 +136,7 @@ def test__eval_step__epoch_end__flow(tmpdir):
 
             return {'no returns needed'}
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
     model = TestModel()
@@ -201,7 +201,7 @@ def test__validation_step__step_end__epoch_end__flow(tmpdir):
 
             return {'no returns needed'}
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
     model = TestModel()

@@ -54,7 +54,7 @@ def test__training_step__log(tmpdir):
             self.training_step_called = True
             return acc
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
     model = TestModel()
@@ -127,7 +127,7 @@ def test__training_step__epoch_end__log(tmpdir):
             self.log('b1', outputs[0]['loss'])
             self.log('b', outputs[0]['loss'], on_epoch=True, prog_bar=True, logger=True)
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
     model = TestModel()

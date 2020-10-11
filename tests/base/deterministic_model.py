@@ -472,7 +472,7 @@ class DeterministicModel(LightningModule):
         scheduler = {'scheduler': lr_scheduler, 'interval': 'step', 'monitor': 'pbar_acc1'}
         return [optimizer], [scheduler]
 
-    def backward(self, trainer, loss, optimizer, optimizer_idx):
+    def backward(self, loss, optimizer, optimizer_idx):
         if self.assert_backward:
             if self.trainer.precision == 16:
                 assert loss > 171 * 1000
