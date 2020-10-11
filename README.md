@@ -225,6 +225,25 @@ trainer = Trainer(tpu_cores=8)
 trainer = Trainer(tpu_cores=[1])
 ```
 
+#### For advanced users, you can still own complex training loops
+
+```python
+class LitAutoEncoder(pl.LightningModule):
+    def training_step(self, batch, batch_idx, opt_idx):
+        (opt_a, opt_b) = self.optimizers()
+        
+        loss_a = ...
+        self.manual_backward(loss_a, opt_a)
+        opt_a.step()
+        opt_a.zero_grad()
+        
+        loss_b = ...
+        self.manual_backward(loss_b, opt_b, retain_graph=True)
+        self.manual_backward(loss_b, opt_b)
+        opt_b.step()
+        opt_b.zero_grad()
+
+```
 ---
 
 ## Key Features
