@@ -78,6 +78,12 @@ def _compute_batch(
     # assert after aggregation
     assert np.allclose(result.numpy(), sk_result)
 
+class MetricTester:
+    def setup_class(cls):
+        if sys.platform == 'win32':
+            return
+        torch.multiprocessing.spawn(setup_ddp, args=(NUM_PROCESSES,), nprocs=NUM_PROCESSES)
+
 
 def compute_batch(
     preds: torch.Tensor,

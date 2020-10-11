@@ -8,7 +8,7 @@ from functools import partial
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
 from sklearn.metrics import accuracy_score
 
-from tests.metrics.utils import compute_batch, setup_ddp
+from tests.metrics.utils import compute_batch, setup_ddp, MetricTester
 from tests.metrics.utils import THRESHOLD
 
 from tests.metrics.classification.utils import (
@@ -107,13 +107,14 @@ def test_accuracy_invalid_shape():
         _multidim_multiclass_sk_metric
     )
 ])
-def test_accuracy(ddp, dist_sync_on_step, preds, target, sk_metric):
-    compute_batch(
-        preds,
-        target,
-        Accuracy,
-        sk_metric,
-        dist_sync_on_step,
-        ddp,
-        metric_args={"threshold": THRESHOLD}
-    )
+class TestAccuracy(MetricTester):
+    def test_accuracy(self, ddp, dist_sync_on_step, preds, target, sk_metric):
+        compute_batch(
+            preds,
+            target,
+            Accuracy,
+            sk_metric,
+            dist_sync_on_step,
+            ddp,
+            metric_args={"threshold": THRESHOLD}
+        )
