@@ -18,6 +18,7 @@ Scale your models, not the boilerplate.**
   <a href="https://pytorch-lightning.readthedocs.io/en/stable/">Docs</a> •
   <a href="#examples">Examples</a> •
   <a href="#community">Community</a> •
+  <a href="#grid-ai">Grid AI</a> •
   <a href="#licence">Licence</a>
 </p>
 
@@ -307,7 +308,7 @@ To supercharge your research and production work, visit our [Grid.ai platform](h
 
 ---
 
-## Native scalable cloud training with tuning
+## Grid AI
 Grid AI is our native platform for training models at scale on the cloud!    
 
 **Sign up for [early access here](https://www.grid.ai/)**
