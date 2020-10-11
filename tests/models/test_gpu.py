@@ -13,7 +13,7 @@ from pytorch_lightning.core import memory
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-from pytorch_lightning.accelerators.gpu_backend import GPUBackend
+from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator
 
 
 PRETEND_N_OF_GPUS = 16
@@ -242,7 +242,7 @@ def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_coun
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_single_gpu_batch_parse():
     trainer = Trainer(gpus=1)
-    trainer.accelerator_backend = GPUBackend(trainer)
+    trainer.accelerator_backend = GPUAccelerator(trainer)
 
     # non-transferrable types
     primitive_objects = [None, {}, [], 1.0, "x", [None, 2], {"x": (1, 2), "y": None}]
@@ -338,7 +338,7 @@ def test_single_gpu_batch_parse():
 def test_non_blocking():
     """ Tests that non_blocking=True only gets passed on torch.Tensor.to, but not on other objects. """
     trainer = Trainer()
-    trainer.accelerator_backend = GPUBackend(trainer)
+    trainer.accelerator_backend = GPUAccelerator(trainer)
 
     batch = torch.zeros(2, 3)
     with patch.object(batch, 'to', wraps=batch.to) as mocked:

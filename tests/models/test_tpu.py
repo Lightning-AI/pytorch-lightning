@@ -6,8 +6,8 @@ from torch.utils.data import DataLoader
 
 import tests.base.develop_pipelines as tpipes
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.accelerators.base_accelerator import BackendType
-from pytorch_lightning.accelerators import TPUBackend
+from pytorch_lightning.accelerators.accelerator import BackendType
+from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
@@ -278,7 +278,7 @@ def test_broadcast_on_tpu():
     """ Checks if an object from the master process is broadcasted to other processes correctly"""
     def test_broadcast(rank):
         trainer = Trainer(tpu_cores=8)
-        backend = TPUBackend(trainer)
+        backend = TPUAccelerator(trainer)
         obj = ("ver_0.5", "logger_name", rank)
         result = backend.broadcast(obj)
         assert result == ("ver_0.5", "logger_name", 0)

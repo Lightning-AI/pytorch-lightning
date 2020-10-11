@@ -58,8 +58,8 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.plugins.plugin_connector import PluginConnector
-from pytorch_lightning.accelerators.base_accelerator import Accelerator
-from pytorch_lightning.accelerators.cpu_backend import CPUBackend
+from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.cpu_accelerator import CPUAccelerator
 
 # warnings to ignore in trainer
 warnings.filterwarnings(

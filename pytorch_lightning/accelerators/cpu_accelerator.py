@@ -13,12 +13,12 @@
 # limitations under the License.
 import torch
 
-from pytorch_lightning.accelerators.base_accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-class CPUBackend(Accelerator):
+class CPUAccelerator(Accelerator):
 
     def __init__(self, trainer, cluster_environment=None):
         super().__init__(trainer, cluster_environment)
