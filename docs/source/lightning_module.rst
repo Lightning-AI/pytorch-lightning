@@ -978,60 +978,16 @@ This is the pseudocode to describe how all the hooks are called during a call to
         model.train()
         torch.set_grad_enabled(True)
 
-get_progress_bar_dict
-~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.get_progress_bar_dict
-    :noindex:
-
-tbptt_split_batch
-~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.tbptt_split_batch
-    :noindex:
-
-These hooks allow you to modify checkpoints
-
-on_load_checkpoint
-~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_load_checkpoint
-    :noindex:
-
-on_save_checkpoint
-~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_save_checkpoint
-    :noindex:
-
-train_dataloader
-~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.train_dataloader
-    :noindex:
-
-val_dataloader
-~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.val_dataloader
-    :noindex:
-
-test_dataloader
-~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.test_dataloader
-    :noindex:
-
-prepare_data
-~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.prepare_data
-    :noindex:
-
 backward
 ~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.backward
+    :noindex:
+
+get_progress_bar_dict
+~~~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.get_progress_bar_dict
     :noindex:
 
 manual_backward
@@ -1051,18 +1007,6 @@ on_before_zero_grad
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.on_before_zero_grad
     :noindex:
 
-optimizer_step
-~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.optimizer_step
-    :noindex:
-
-optimizer_zero_grad
-~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad
-    :noindex:
-
 on_fit_start
 ~~~~~~~~~~~~
 
@@ -1074,6 +1018,20 @@ on_fit_end
 
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_fit_end
     :noindex:
+
+
+on_load_checkpoint
+~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_load_checkpoint
+    :noindex:
+
+on_save_checkpoint
+~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_save_checkpoint
+    :noindex:
+
 
 on_pretrain_routine_start
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1110,6 +1068,7 @@ on_test_epoch_end
 
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_epoch_end
     :noindex:
+
 
 on_train_batch_start
 ~~~~~~~~~~~~~~~~~~~~
@@ -1159,16 +1118,58 @@ on_validation_epoch_end
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_epoch_end
     :noindex:
 
+optimizer_step
+~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.optimizer_step
+    :noindex:
+
+optimizer_zero_grad
+~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad
+    :noindex:
+
+prepare_data
+~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.prepare_data
+    :noindex:
+
 setup
 ~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.setup
     :noindex:
 
+tbptt_split_batch
+~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.tbptt_split_batch
+    :noindex:
+
 teardown
 ~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.teardown
+    :noindex:
+
+train_dataloader
+~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.train_dataloader
+    :noindex:
+
+val_dataloader
+~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.val_dataloader
+    :noindex:
+
+test_dataloader
+~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.test_dataloader
     :noindex:
 
 transfer_batch_to_device
