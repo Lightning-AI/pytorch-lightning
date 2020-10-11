@@ -1354,7 +1354,7 @@ class LightningModule(
         return tqdm_dict
 
     def _verify_is_manual_optimization(self, fn_name):
-        if not self.trainer.train_loop.automatic_optimization:
+        if self.trainer.train_loop.automatic_optimization:
             m = f'to use {fn_name}, please disable automatic optimization: Trainer(automatic_optimization=False)'
             raise MisconfigurationException(m)
 
