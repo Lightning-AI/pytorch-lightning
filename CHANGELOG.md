@@ -40,7 +40,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
         [#4058](https://github.com/PyTorchLightning/pytorch-lightning/pull/4058),
         [#4060](https://github.com/PyTorchLightning/pytorch-lightning/pull/4060),
         [#4061](https://github.com/PyTorchLightning/pytorch-lightning/pull/4061),
-        [#4062](https://github.com/PyTorchLightning/pytorch-lightning/pull/4062))
+        [#4062](https://github.com/PyTorchLightning/pytorch-lightning/pull/4062),
+        [#4063](https://github.com/PyTorchLightning/pytorch-lightning/pull/4063),
+        [#4064](https://github.com/PyTorchLightning/pytorch-lightning/pull/4064),
+        [#4065](https://github.com/PyTorchLightning/pytorch-lightning/pull/4065))
         
 - Renamed all backends to `Accelerator` [#4066](https://github.com/PyTorchLightning/pytorch-lightning/pull/4066))
 
