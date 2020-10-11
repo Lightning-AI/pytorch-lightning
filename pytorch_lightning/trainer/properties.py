@@ -38,6 +38,7 @@ class TrainerProperties(ABC):
     use_dp: bool
     use_ddp: bool
     use_ddp2: bool
+    use_fairscale: bool
     model: LightningModule
     data_parallel_device_ids: Optional[List[int]]
     _progress_bar_callback: ProgressBarBase
@@ -144,7 +145,7 @@ class TrainerProperties(ABC):
 
     @property
     def data_parallel(self) -> bool:
-        return self.use_dp or self.use_ddp or self.use_ddp2
+        return self.use_dp or self.use_ddp or self.use_ddp2 or self.use_fairscale
 
     @property
     def progress_bar_callback(self):

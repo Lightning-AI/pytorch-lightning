@@ -292,6 +292,10 @@ class CheckpointConnector:
 
             # dump optimizers
             optimizer_states = []
+
+            # Ensure optimizer state has been synced if necessary
+            self.trainer.accelerator_backend.sync_optim_state()
+
             for i, optimizer in enumerate(self.trainer.optimizers):
                 optimizer_states.append(optimizer.state_dict())
             checkpoint['optimizer_states'] = optimizer_states

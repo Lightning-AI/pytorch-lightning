@@ -131,6 +131,9 @@ class Accelerator(object):
         model_ref = self.trainer.get_model()
         model_ref.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
+    def sync_optim_state(self):
+        pass
+
     def clip_gradients(self, optimizer, clip_val=None):
         # TODO: separate TPU case from here
         self._clip_gradients(optimizer, clip_val)
@@ -235,5 +238,6 @@ class BackendType(Enum):
     # decuple distrib and device
     DDP_CPU = 'ddp_cpu'
     HOROVOD = 'horovod'
+    FAIRSCALE = 'fairscale'
     # this is rather device
     TPU = 'tpu'
