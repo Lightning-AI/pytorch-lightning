@@ -284,6 +284,54 @@ a forward method or trace only the sub-models you need.
 
 --------------------
 
+********************************
+Manual vs automatic optimization
+********************************
+
+Automatic optimization
+======================
+With Lightning you don't need to worry about when to enable/disable grads, do a backward pass, or update optimizers
+as long as you return a loss with an attached graph from the `training_step`, Lightning will automate the optimization.
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        loss = self.encoder(batch[0])
+        return loss
+
+Manual optimization
+===================
+However, for certain research like GANs, reinforcement learning or something with multiple optimizers
+or an inner loop, you can turn off automatic optimization and fully control the training loop yourself.
+
+First, turn off automatic optimization:
+
+.. code-block:: python
+
+    trainer = Trainer(automatic_optimization=False)
+
+Now you own the train loop!
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx, opt_idx):
+        (opt_a, opt_b, opt_c) = self.optimizers()
+
+        loss_a = self.generator(batch[0])
+
+        # use this instead of loss.backward so we can automate half precision, etc...
+        self.manual_backward(loss_a, opt_a, retain_graph=True)
+        self.manual_backward(loss_a, opt_a)
+        opt_a.step()
+        opt_a.zero_grad()
+
+        loss_b = self.discriminator(batch[0])
+        self.manual_backward(loss_b, opt_b)
+        ...
+
+
+--------------------
+
 ********************
 Using CPUs/GPUs/TPUs
 ********************
