@@ -649,8 +649,8 @@ for a live demo.
 LightningModule API
 -------------------
 
-Training loop methods
-^^^^^^^^^^^^^^^^^^^^^
+Methods
+^^^^^^^
 
 training_step
 ~~~~~~~~~~~~~
@@ -670,9 +670,6 @@ training_epoch_end
     :noindex:
 
 ---------------
-
-Validation loop methods
-^^^^^^^^^^^^^^^^^^^^^^^
 
 validation_step
 ~~~~~~~~~~~~~~~
@@ -694,9 +691,6 @@ validation_epoch_end
 
 ----------------
 
-test loop methods
-^^^^^^^^^^^^^^^^^
-
 test_step
 ~~~~~~~~~
 
@@ -717,27 +711,16 @@ test_epoch_end
 
 --------------
 
-configure_optimizers
-^^^^^^^^^^^^^^^^^^^^
-
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.configure_optimizers
     :noindex:
 
 --------------
-
-Manual optimization
-^^^^^^^^^^^^^^^^^^^
-Use these methods when doing manual optimization
 
 manual_backward
 ~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.manual_backward
     :noindex:
-
-Convenience methods
-^^^^^^^^^^^^^^^^^^^
-Use these methods for convenience
 
 print
 ~~~~~
@@ -753,10 +736,6 @@ save_hyperparameters
 
 ------------
 
-Logging methods
-^^^^^^^^^^^^^^^
-Use these methods to interact with the loggers
-
 log
 ~~~
 
@@ -770,10 +749,6 @@ log_dict
     :noindex:
 
 ------------
-
-Inference methods
-^^^^^^^^^^^^^^^^^
-Use these hooks for inference with a lightning module
 
 forward
 ~~~~~~~
