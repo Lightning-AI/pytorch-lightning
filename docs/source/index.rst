@@ -18,11 +18,18 @@ PyTorch Lightning Documentation
 
 .. toctree::
    :maxdepth: 1
+   :name: guides
+   :caption: Best practices
+
+   style_guide
+   performance
+
+.. toctree::
+   :maxdepth: 1
    :name: advanced
    :caption: Advanced use
 
    introduction_guide
-   performance
 
 .. toctree::
    :maxdepth: 2
@@ -70,8 +77,8 @@ PyTorch Lightning Documentation
    :caption: Tutorials
 
    PyTorch Lightning 101 class <https://www.youtube.com/playlist?list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2>
-   From PyTorch to PyTorch Lightning <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
-   Video on how to refactor PyTorch into PyTorch Lightning <https://www.youtube.com/watch?v=QHww1JH7IDU>
+   From PyTorch to PyTorch Lightning [Blog] <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
+   From PyTorch to PyTorch Lightning [Video] <https://www.youtube.com/watch?v=QHww1JH7IDU>
 
 .. toctree::
    :maxdepth: 1

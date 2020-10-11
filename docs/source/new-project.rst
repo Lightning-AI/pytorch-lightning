@@ -198,6 +198,9 @@ The :class:`~pytorch_lightning.trainer.Trainer` automates:
 * :ref:`tpu`
 * :ref:`amp` support
 
+.. tip:: If you prefer to manually manage optimizers you can use the :ref:`manual_opt` mode  (ie: RL, GANs, etc...).
+
+
 ---------
 
 **That's it!**
@@ -677,6 +680,8 @@ as long as you return a loss with an attached graph from the `training_step`, Li
     def training_step(self, batch, batch_idx):
         loss = self.encoder(batch[0])
         return loss
+
+.. _manual_opt:
 
 Manual optimization
 -------------------
