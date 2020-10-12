@@ -1,6 +1,6 @@
 import pytest
 import torch
-from pytorch_lightning.metrics.metric import Metric
+from pytorch_lightning.metrics.metric import Metric, MetricCollection
 import os
 import numpy as np
 
@@ -129,7 +129,7 @@ def test_forward():
     assert a.compute() == 13
 
 
-class ToPickle(Dummy):
+class DummyMetric1(Dummy):
     def update(self, x):
         self.x += x
 
@@ -137,9 +137,17 @@ class ToPickle(Dummy):
         return self.x
 
 
+class DummyMetric2(Dummy):
+    def update(self, x):
+        self.x -= x
+
+    def compute(self):
+        return self.x
+
+
 def test_pickle(tmpdir):
     # doesn't tests for DDP
-    a = ToPickle()
+    a = DummyMetric1()
     a.update(1)
 
     metric_pickled = pickle.dumps(a)
@@ -154,3 +162,40 @@ def test_pickle(tmpdir):
     metric_loaded = cloudpickle.loads(metric_pickled)
 
     assert metric_loaded.compute() == 1
+
+
+def test_collection(tmpdir):
+    m1 = DummyMetric1()
+    m2 = DummyMetric2()
+
+    metric_collection = MetricCollection(m1, m2)
+
+    # Test correct dict structure
+    assert len(metric_collection) == 2
+    assert metric_collection['DummyMetric1'] == m1
+    assert metric_collection['DummyMetric2'] == m2
+
+    # Test correct initialization
+    for name, metric in metric_collection.items():
+        assert metric.x == 0, f'Metric {name} not initialized correctly'
+
+    # Test every metric gets updated
+    metric_collection.update(5)
+    for name, metric in metric_collection.items():
+        assert metric.x.abs() == 5, f'Metric {name} not updated correctly'
+
+    # Test compute on each metric
+    metric_collection.update(-5)
+    metric_vals = metric_collection.compute()
+    assert len(metric_vals) == 2
+    for name, metric_val in metric_vals.items():
+        assert metric_val == 0, f'Metric {name}.compute not called correctly'
+
+    # Test that everything is reset
+    for name, metric in metric_collection.items():
+        assert metric.x == 0, f'Metric {name} not reset correctly'
+
+    # Test pickable
+    metric_pickled = pickle.dumps(metric_collection)
+    metric_loaded = pickle.loads(metric_pickled)
+    assert isinstance(metric_loaded, MetricCollection)
