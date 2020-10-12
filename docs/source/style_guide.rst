@@ -1,5 +1,5 @@
 ###########
-Style Guide
+Style guide
 ###########
 A main goal of Lightning is to improve readability and reproducibility. Imagine looking into any GitHub repo,
 finding a lightning module and knowing exactly where to look to find the things you care about.
@@ -15,6 +15,10 @@ These are best practices about structuring your LightningModule
 
 Systems vs models
 =================
+
+.. figure:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/model_system.png
+    :width: 800
+
 The main principle behind a LightningModule is that a full system should be self-contained.
 In Lightning we differentiate between a system and a model.
 
