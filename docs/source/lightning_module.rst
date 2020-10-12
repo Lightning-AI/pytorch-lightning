@@ -446,17 +446,6 @@ Inference
 ---------
 For research, LightningModules are best structured as systems.
 
-A model (colloquially) refers to something like a resnet or RNN. A system, may be a collection of models. Here
-are examples of systems:
-
-- GAN (generator, discriminator)
-- RL (policy, actor, critic)
-- Autoencoders (encoder, decoder)
-- Seq2Seq (encoder, attention, decoder)
-- etc...
-
-A LightningModule is best used to define a complex system:
-
 .. code-block:: python
 
     import pytorch_lightning as pl
