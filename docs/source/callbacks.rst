@@ -42,6 +42,8 @@ Example:
 
 .. testcode::
 
+    from pytorch_lightning import Callback
+
     class MyPrintingCallback(Callback):
 
         def on_init_start(self, trainer):
