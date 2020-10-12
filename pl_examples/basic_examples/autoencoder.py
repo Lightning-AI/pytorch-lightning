@@ -26,9 +26,7 @@ try:
 except ModuleNotFoundError:
     from tests.base.datasets import MNIST
 
-class C(pl.Callback):
 
-    def tran
 class LitAutoEncoder(pl.LightningModule):
 
     def __init__(self):
