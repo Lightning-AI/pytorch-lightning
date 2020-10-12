@@ -313,17 +313,22 @@ class TrainLoop:
             if training_step_output_for_epoch_end is None:
                 return None
 
-        # accumulate loss
-        # (if accumulate_grad_batches = 1 no effect)
-        if is_result_obj:
-            closure_loss = training_step_output.minimize
-        else:
-            closure_loss = training_step_output.batch_loss
+        # enable empty loss when using manual opt
+        closure_loss = None
+        untouched_loss = None
 
-        closure_loss = closure_loss / self.trainer.accumulate_grad_batches
+        if self.trainer.train_loop.automatic_optimization:
+            # accumulate loss
+            # (if accumulate_grad_batches = 1 no effect)
+            if is_result_obj:
+                closure_loss = training_step_output.minimize
+            else:
+                closure_loss = training_step_output.batch_loss
 
-        # the loss will get scaled for amp. avoid any modifications to it
-        untouched_loss = closure_loss.detach().clone()
+            closure_loss = closure_loss / self.trainer.accumulate_grad_batches
+
+            # the loss will get scaled for amp. avoid any modifications to it
+            untouched_loss = closure_loss.detach().clone()
 
         # result
         result = AttributeDict(
@@ -681,12 +686,15 @@ class TrainLoop:
                 if self.trainer.terminate_on_nan:
                     self.trainer.detect_nan_tensors(opt_closure_result.loss)
 
-                # track total loss for logging (avoid mem leaks)
-                self.accumulated_loss.append(opt_closure_result.loss)
-
                 # track all the outputs across all steps
                 batch_opt_idx = opt_idx if len(batch_outputs) > 1 else 0
                 batch_outputs[batch_opt_idx].append(opt_closure_result.training_step_output_for_epoch_end)
+
+                if not self.automatic_optimization:
+                    continue
+
+                # track total loss for logging (avoid mem leaks)
+                self.accumulated_loss.append(opt_closure_result.loss)
 
                 # ------------------------------
                 # BACKWARD PASS
@@ -748,12 +756,13 @@ class TrainLoop:
             self.warning_cache.warn('training_step returned None if it was on purpose, ignore this warning...')
             return None
 
-        # backward pass
-        with self.trainer.profiler.profile('model_backward'):
-            self.backward(result, optimizer, opt_idx)
+        if self.trainer.train_loop.automatic_optimization:
+            # backward pass
+            with self.trainer.profiler.profile('model_backward'):
+                self.backward(result, optimizer, opt_idx)
 
-        # hook
-        self.on_after_backward(result.training_step_output, batch_idx, result.loss)
+            # hook
+            self.on_after_backward(result.training_step_output, batch_idx, result.loss)
 
         return result
 
