@@ -410,8 +410,11 @@ class LightningModule(
                 :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0.
 
         Return:
-            Either a :class:`~torch.Tensor` or a dictionary with anything
-                you want (must include the keyword 'loss') or None
+            Any of.
+
+            - `torch.Tensor` - The loss tensor
+            - `dict` - A dictionary. Can include any keys, but must include the key 'loss'
+            - `None` - Training will skip to the next batch
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
         You can also do fancier things like multiple forward passes or something model specific.
@@ -450,7 +453,7 @@ class LightningModule(
                 ...
                 return {'loss': loss, 'hiddens': hiddens}
 
-        Notes:
+        Note:
             The loss value shown in the progress bar is smoothed (averaged) over the last values,
             so it differs from the actual loss returned in train/validation step.
         """
@@ -583,7 +586,10 @@ class LightningModule(
                 (only if multiple val datasets used)
 
         Return:
-            None or whatever you want
+           Any of.
+
+            - Any object or value
+            - `None` - Validation will skip to the next batch
 
         .. code-block:: python
 
@@ -767,7 +773,10 @@ class LightningModule(
                 (only if multiple test datasets used).
 
         Return:
-            None or anything
+           Any of.
+
+            - Any object or value
+            - `None` - Testing will skip to the next batch
 
         .. code-block:: python
 
