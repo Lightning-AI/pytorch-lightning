@@ -195,7 +195,8 @@ If you want to calculate epoch-level metrics and log them, use the `.log` method
          y_hat = self.model(x)
          loss = F.cross_entropy(y_hat, y)
 
-         # logs metrics for each training_step, and the average across the epoch, to the progress bar and logger
+         # logs metrics for each training_step,
+         # and the average across the epoch, to the progress bar and logger
          self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
          return loss
 
