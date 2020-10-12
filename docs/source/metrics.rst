@@ -30,14 +30,14 @@ The example below shows how to use a metric in your ``LightningModule``:
     def __init__(self):
         ...
         self.accuracy = pl.metrics.Accuracy()
-   
+
     def training_step(self, batch, batch_idx):
         logits = self(x)
         ...
         # log step metric
         self.log('train_acc_step', self.accuracy(logits, y))
         ...
-   
+
     def training_epoch_end(self, outs):
         # log epoch metric
         self.log('train_acc_epoch', self.accuracy.compute())
@@ -56,7 +56,7 @@ If ``on_epoch`` is True, the logger automatically logs the end of epoch metric v
     This however is only true for metrics that inherit the base class ``Metric``,
     and thus the functional metric API provides no support for in-built distributed synchronization
     or reduction functions.
-    
+
 
 .. code-block:: python
 
@@ -64,7 +64,7 @@ If ``on_epoch`` is True, the logger automatically logs the end of epoch metric v
         ...
         self.train_acc = pl.metrics.Accuracy()
         self.valid_acc = pl.metrics.Accuracy()
-   
+
     def training_step(self, batch, batch_idx):
         logits = self(x)
         ...
@@ -90,17 +90,17 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
     for epoch in range(epochs):
         for x, y in train_data:
             y_hat = model(x)
-            
+
             # training step accuracy
             batch_acc = train_accuracy(y_hat, y)
-            
+
         for x, y in valid_data:
             y_hat = model(x)
             valid_accuracy(y_hat, y)
-            
+
     # total accuracy over all training batches
     total_train_accuracy = train_accuracy.compute()
-    
+
     # total accuracy over all validation batches
     total_valid_accuracy = valid_accuracy.compute()
 
@@ -147,6 +147,62 @@ Metric
 
 .. autoclass:: pytorch_lightning.metrics.Metric
     :noindex:
+
+
+MetricCollection
+^^^^^^^^^^^^^^^^
+
+In many cases it is beneficial to evaluate the model output by multiple metrics.
+In this case the `MetricCollection` class may come in handy. It accepts a sequence
+of metrics and wraps theses into a single callable metric class, with the same
+interface as any other metric.
+
+.. None::
+    It is expected that all metrics in the collection have the same call signature
+
+Example:
+
+.. code-block:: python
+
+    from pytorch_lightning.metrics import MetricCollection, Accuracy, Precision, Recall
+    target = torch.tensor([0, 2, 0, 2, 0, 1, 0, 2])
+    preds = torch.tensor([2, 1, 2, 0, 1, 2, 2, 2])
+    metric_collection = MetricCollection(Accuracy(),
+                                         Precision(num_classes=3, average='macro',
+                                         Recall(num_classes=3, average='macro'))
+    metric_collection(preds, target)
+    {'Accuracy': tensor(0.1250),
+     'Precision': tensor(0.0667),
+     'Recall': tensor(0.1111)}
+
+Similarly it can also reduce the amount of code required to log multiple metrics
+inside your LightningModule
+
+.. code-block:: python
+
+    def __init__(self):
+        ...
+        self.train_metrics = pl.metrics.MetricCollection(...)
+        self.valid_metrics = pl.metrics.MetricCollection(...)
+
+    def training_step(self, batch, batch_idx):
+        logits = self(x)
+        ...
+        self.train_metrics(logits, y)
+        # use log_dict instead of log
+        self.log_dict(self.train_metrics, on_step=True, on_epoch=False, prefix='train')
+
+    def validation_step(self, batch, batch_idx):
+        logits = self(x)
+        ...
+        self.valid_metrics(logits, y)
+        # use log_dict instead of log
+        self.log_dict(self.valid_metrics, on_step=True, on_epoch=True, prefix='val')
+
+
+.. autoclass:: pytorch_lightning.metrics.MetricCollection
+    :noindex:
+
 
 Classification Metrics
 ----------------------
