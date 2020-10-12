@@ -116,7 +116,7 @@ def lr_find(
         trainer = pl.Trainer()
 
         # Run lr finder
-        lr_finder = trainer.lr_find(model, ...)
+        lr_finder = trainer.tuner.lr_find(model, ...)
 
         # Inspect results
         fig = lr_finder.plot(); fig.show()
