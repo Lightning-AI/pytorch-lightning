@@ -47,14 +47,8 @@ class AcceleratorConnector:
             replace_sampler_ddp,
             deterministic,
     ):
-        # temporary mapping until we remove all the distributed_backend references
-        if accelerator is not None:
-            self.accelerator = accelerator
-            if isinstance(accelerator, Accelerator):
-                self.accelerator.trainer = self
-                distributed_backend = self.accelerator.nickname
-            else:
-                distributed_backend = accelerator
+        # temp until we remove all dist backend references
+        distributed_backend = self._map_deprecated_dist_backend(accelerator, distributed_backend)
 
         self.trainer.deterministic = deterministic
 
@@ -137,6 +131,21 @@ class AcceleratorConnector:
         self.trainer.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
 
         self.trainer.replace_sampler_ddp = replace_sampler_ddp
+
+    def _map_deprecated_dist_backend(self, accelerator, distributed_backend):
+        if distributed_backend is not None:
+            rank_zero_warn(DeprecationWarning('distributed_backend has been renamed to accelerator. '
+                                              'Deprecated in 1.0.0, will be removed in 1.2.0'))
+
+        # temporary mapping until we remove all the distributed_backend references
+        if accelerator is not None:
+            self.accelerator = accelerator
+            if isinstance(accelerator, Accelerator):
+                self.accelerator.trainer = self
+                distributed_backend = self.accelerator.nickname
+            else:
+                distributed_backend = accelerator
+        return distributed_backend
 
     def _select_environment(self):
         if self.trainer.plugin_connector.cloud_environment:
