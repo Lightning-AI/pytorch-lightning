@@ -82,6 +82,7 @@ PyTorch Lightning Documentation
    :name: Common Use Cases
    :caption: Common Use Cases
 
+   cloud_training
    amp
    slurm
    child_modules
