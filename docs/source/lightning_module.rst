@@ -17,7 +17,7 @@ A :class:`~LightningModule` organizes your PyTorch code into 5 sections
 
 .. raw:: html
 
-    <video width="50%" max-width="400px" controls autoplay muted playsinline src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_mod_vid.m4v"></video>
+    <video width="100%" max-width="400px" controls autoplay muted playsinline src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_mod_vid.m4v"></video>
 
 |
 
@@ -120,6 +120,27 @@ Which you can train by doing:
 
     trainer.fit(model, train_loader)
 
+The LightningModule has many convenience methods, but the core ones you need to know about are:
+
+.. list-table::
+   :widths: 50 50
+   :header-rows: 1
+
+   * - Name
+     - Description
+   * - init
+     - Define computations here
+   * - forward
+     - Use for inference only (separate from training_step)
+   * - training_step
+     - the full training loop
+   * - validation_step
+     - the full validation loop
+   * - test_step
+     - the full test loop
+   * - configure_optimizers
+     - define optimizers and LR schedulers
+
 ----------
 
 Training
@@ -174,7 +195,8 @@ If you want to calculate epoch-level metrics and log them, use the `.log` method
          y_hat = self.model(x)
          loss = F.cross_entropy(y_hat, y)
 
-         # logs metrics for each training_step, and the average across the epoch, to the progress bar and logger
+         # logs metrics for each training_step,
+         # and the average across the epoch, to the progress bar and logger
          self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
          return loss
 
@@ -423,17 +445,6 @@ There are two ways to call `test()`:
 Inference
 ---------
 For research, LightningModules are best structured as systems.
-
-A model (colloquially) refers to something like a resnet or RNN. A system, may be a collection of models. Here
-are examples of systems:
-
-- GAN (generator, discriminator)
-- RL (policy, actor, critic)
-- Autoencoders (encoder, decoder)
-- Seq2Seq (encoder, attention, decoder)
-- etc...
-
-A LightningModule is best used to define a complex system:
 
 .. code-block:: python
 
