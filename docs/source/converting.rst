@@ -12,6 +12,8 @@ How to organize PyTorch into Lightning
 
 To enable your code to work with Lightning, here's how to organize PyTorch into Lightning
 
+--------
+
 1. Move your computational code
 ===============================
 Move the model architecture and forward pass to your :class:`~pytorch_lightning.core.LightningModule`.
@@ -32,6 +34,8 @@ Move the model architecture and forward pass to your :class:`~pytorch_lightning.
             x = self.layer_2(x)
             return x
 
+--------
+
 2. Move the optimizer(s) and schedulers
 =======================================
 Move your optimizers to the :func:`~pytorch_lightning.core.LightningModule.configure_optimizers` hook.
@@ -43,6 +47,8 @@ Move your optimizers to the :func:`~pytorch_lightning.core.LightningModule.confi
         def configure_optimizers(self):
             optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
             return optimizer
+
+--------
 
 3. Find the train loop "meat"
 =============================
@@ -58,6 +64,8 @@ This should go into the :func:`~pytorch_lightning.core.LightningModule.training_
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
             return loss
+
+--------
 
 4. Find the val loop "meat"
 ===========================
@@ -75,6 +83,8 @@ To add an (optional) validation loop add logic to the
             return val_loss
 
 .. note:: ``model.eval()`` and ``torch.no_grad()`` are called automatically for validation
+
+--------
 
 5. Find the test loop "meat"
 ============================
@@ -100,6 +110,8 @@ The test loop will not be used until you call.
     trainer.test()
 
 .. tip:: .test() loads the best checkpoint automatically
+
+--------
 
 6. Remove any .cuda() or to.device() calls
 ==========================================

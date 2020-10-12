@@ -11,21 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
+
 import os
+
 import torch
 import torch.distributed as torch_distrib
-import torch.distributed as dist
-
-from pytorch_lightning.accelerators.base_accelerator import Accelerator
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning import _logger as log
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
-from pytorch_lightning.utilities.seed import seed_everything
-from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from torch.nn.parallel import DistributedDataParallel
 from typing import List
-
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -36,38 +36,32 @@ else:
     HYDRA_AVAILABLE = True
 
 
-# -------------------------------------------
-# !!!!!!!!!!!!!! NOTE !!!!!!!!!!!!!!!!!!!!!!
-# TEMP CLASS WHILE WE DECOUPLE TE FROM DDP
-# !!!!!!!!!!!!!! NOTE !!!!!!!!!!!!!!!!!!!!!!
-# -------------------------------------------
-class DDPCPUSLURMBackend(Accelerator):
+class DDP2Accelerator(Accelerator):
 
     def __init__(self, trainer, cluster_environment=None):
         super().__init__(trainer, cluster_environment)
         self.task_idx = None
-        self._has_spawned_children = False
         self.dist = LightningDistributed()
+        self.nickname = 'ddp2'
 
     def setup(self, model):
+        self._resolve_task_idx()
         self.trainer.model = model
-        self.task_idx = int(os.environ['SLURM_LOCALID'])
+
+    def _resolve_task_idx(self):
+        if self.trainer.is_slurm_managing_tasks:
+            self.task_idx = int(os.environ['SLURM_LOCALID'])
+        else:
+            # torchelastic or general non_slurm ddp2
+            try:
+                self.task_idx = int(os.environ['LOCAL_RANK'])
+            except Exception as exp:
+                m = 'ddp2 only works in SLURM or via torchelastic with the WORLD_SIZE, LOCAL_RANK, GROUP_RANK flags'
+                raise MisconfigurationException(m) from exp
 
     def train(self):
         model = self.trainer.model
-        self.ddp_train(process_idx=self.task_idx, model=model)
-
-    def set_world_ranks(self, process_idx):
-        self.trainer.local_rank = process_idx
-        self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
-        self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
-
-    def model_to_device(self, model, process_idx):
-        model.cpu()
-
-    def get_device_ids(self):
-        device_ids = None
-        return device_ids
+        return self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=model)
 
     def training_step(self, args):
         if self.trainer.amp_backend == AMPType.NATIVE:
@@ -89,17 +83,39 @@ class DDPCPUSLURMBackend(Accelerator):
         if torch_distrib.is_initialized():
             torch_distrib.barrier()
 
-    def early_stopping_should_stop(self, pl_module):
-        stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device)
-        dist.all_reduce(stop, op=dist.reduce_op.SUM)
-        dist.barrier()
-        should_stop = stop == self.trainer.world_size
-        return should_stop
+    def training_step_end(self, output):
+        if isinstance(output, Result):
+            output.dp_reduce()
+        return output
+
+    def validation_step_end(self, output):
+        if isinstance(output, Result):
+            output.dp_reduce()
+        return output
+
+    def test_step_end(self, output):
+        if isinstance(output, Result):
+            output.dp_reduce()
+        return output
+
+    def set_world_ranks(self, process_idx):
+        self.trainer.local_rank = self.trainer.node_rank
+        self.trainer.global_rank = self.trainer.node_rank
+        self.trainer.world_size = self.trainer.num_nodes
 
     def broadcast(self, obj, src=0):
         return self.dist.broadcast(obj)
 
-    def ddp_train(self, process_idx, model):
+    def model_to_device(self, model, process_idx):
+        self.trainer.root_gpu = process_idx
+        torch.cuda.set_device(self.trainer.root_gpu)
+        model.cuda(self.trainer.root_gpu)
+
+    def get_device_ids(self):
+        device_ids = self.trainer.data_parallel_device_ids
+        return device_ids
+
+    def ddp_train(self, process_idx, mp_queue, model):
         """
         Entry point for ddp
 
@@ -111,12 +127,12 @@ class DDPCPUSLURMBackend(Accelerator):
         Returns:
 
         """
+        # show progressbar only on progress_rank 0
+        if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:
+            self.trainer.progress_bar_callback.disable()
+
         # determine which process we are and world size
         self.set_world_ranks(process_idx)
-
-        # toggle prog bar
-        if self.trainer.global_rank == 0 and self.trainer.progress_bar_callback is not None:
-            self.trainer.progress_bar_callback.disable()
 
         # set warning rank
         rank_zero_only.rank = self.trainer.global_rank
@@ -137,7 +153,7 @@ class DDPCPUSLURMBackend(Accelerator):
         # on world_size=0 let everyone know training is starting
         if self.trainer.is_global_zero and not torch.distributed.is_initialized():
             log.info('-' * 100)
-            log.info(f'distributed_backend={self.trainer.distributed_backend} (TORCH_ELASTIC)')
+            log.info(f'distributed_backend={self.trainer.distributed_backend}')
             log.info(f'All DDP processes registered. Starting ddp with {self.trainer.world_size} processes')
             log.info('-' * 100)
 
@@ -172,7 +188,6 @@ class DDPCPUSLURMBackend(Accelerator):
 
         # clean up memory
         torch.cuda.empty_cache()
-
         return results
 
     def configure_ddp(

@@ -16,7 +16,7 @@ import torch
 import torch.distributed as torch_distrib
 import torch.distributed as dist
 
-from pytorch_lightning.accelerators.base_accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
@@ -25,6 +25,7 @@ from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from torch.nn.parallel import DistributedDataParallel
 from typing import List
+
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -40,17 +41,18 @@ else:
 # TEMP CLASS WHILE WE DECOUPLE TE FROM DDP
 # !!!!!!!!!!!!!! NOTE !!!!!!!!!!!!!!!!!!!!!!
 # -------------------------------------------
-class DDPCPUTorchElasticBackend(Accelerator):
+class DDPCPUSLURMAccelerator(Accelerator):
 
     def __init__(self, trainer, cluster_environment=None):
         super().__init__(trainer, cluster_environment)
         self.task_idx = None
         self._has_spawned_children = False
         self.dist = LightningDistributed()
+        self.nickname = 'ddp_cpu'
 
     def setup(self, model):
         self.trainer.model = model
-        self.task_idx = int(os.environ['LOCAL_RANK'])
+        self.task_idx = int(os.environ['SLURM_LOCALID'])
 
     def train(self):
         model = self.trainer.model

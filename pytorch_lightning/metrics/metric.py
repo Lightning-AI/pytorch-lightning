@@ -37,7 +37,7 @@ class Metric(nn.Module, ABC):
     Args:
         compute_on_step:
             Forward only calls ``update()`` and returns None if this is set to False. default: True
-        ddp_sync_on_step:
+        dist_sync_on_step:
             Synchronize metric state across processes at each ``forward()``
             before returning the value at the step. default: False
         process_group:
@@ -46,12 +46,12 @@ class Metric(nn.Module, ABC):
     def __init__(
         self,
         compute_on_step: bool = True,
-        ddp_sync_on_step: bool = False,
+        dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
     ):
         super().__init__()
 
-        self.ddp_sync_on_step = ddp_sync_on_step
+        self.dist_sync_on_step = dist_sync_on_step
         self.compute_on_step = compute_on_step
         self.process_group = process_group
         self._to_sync = True
@@ -133,7 +133,7 @@ class Metric(nn.Module, ABC):
         self._forward_cache = None
 
         if self.compute_on_step:
-            self._to_sync = self.ddp_sync_on_step
+            self._to_sync = self.dist_sync_on_step
 
             # save context before switch
             self._cache = {attr: getattr(self, attr) for attr in self._defaults.keys()}

@@ -165,6 +165,57 @@ Example::
 Trainer flags
 -------------
 
+accelerator
+^^^^^^^^^^^
+
+.. raw:: html
+
+    <video width="50%" max-width="400px" controls
+    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/distributed_backend.jpg"
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/distributed_backend.mp4"></video>
+
+|
+
+The accelerator backend to use (previously known as distributed_backend).
+
+- (```dp```) is DataParallel (split batch among GPUs of same machine)
+- (```ddp```) is DistributedDataParallel (each gpu on each node trains, and syncs grads)
+- (```ddp_cpu```) is DistributedDataParallel on CPU (same as `ddp`, but does not use GPUs.
+  Useful for multi-node CPU training or single-node debugging. Note that this will **not** give
+  a speedup on a single node, since Torch already makes effient use of multiple CPUs on a single
+  machine.)
+- (```ddp2```) dp on node, ddp across nodes. Useful for things like increasing
+    the number of negative samples
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(distributed_backend=None)
+
+Example::
+
+    # dp = DataParallel
+    trainer = Trainer(gpus=2, distributed_backend='dp')
+
+    # ddp = DistributedDataParallel
+    trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp')
+
+    # ddp2 = DistributedDataParallel + dp
+    trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp2')
+
+.. note:: this option does not apply to TPU. TPUs use ```ddp``` by default (over each core)
+
+You can also modify hardware behavior by subclassing an existing accelerator to adjust for your needs.
+
+Example::
+
+    class MyOwnDDP(DDPAccelerator):
+        ...
+
+    Trainer(accelerator=MyOwnDDP())
+
+.. warning:: Passing in custom accelerators is experimental but work is in progress to enable full compatibility.
+
 accumulate_grad_batches
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -233,6 +284,41 @@ Example::
 
     # default used by the Trainer
     trainer = Trainer(amp_level='O2')
+
+automatic_optimization
+^^^^^^^^^^^^^^^^^^^^^^
+When set to False, Lightning does not automate the optimization process. This means you are responsible for your own
+optimizer behavior
+
+Example::
+
+    def training_step(self, batch, batch_idx):
+        opt = self.optimizers()
+
+        loss = ...
+        self.manual_backward(loss, opt)
+        opt.step()
+        opt.zero_grad()
+
+This is not recommended when using a single optimizer, instead it's recommended when using 2+ optimizers
+AND you are an expert user. Most useful for research like RL, sparse coding and GAN research.
+
+In the multi-optimizer case, ignore the optimizer_idx flag and use the optimizers directly
+
+Example::
+
+    def training_step(self, batch, batch_idx, optimizer_idx):
+        (opt_a, opt_b) = self.optimizers()
+
+        gen_loss = ...
+        self.manual_backward(gen_loss, opt_a)
+        opt_a.step()
+        opt_a.zero_grad()
+
+        disc_loss = ...
+        self.manual_backward(disc_loss, opt_b)
+        opt_b.step()
+        opt_b.zero_grad()
 
 auto_scale_batch_size
 ^^^^^^^^^^^^^^^^^^^^^
@@ -486,47 +572,7 @@ Example::
 
 distributed_backend
 ^^^^^^^^^^^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/distributed_backend.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/distributed_backend.mp4"></video>
-
-|
-
-The distributed backend to use.
-
-- (```dp```) is DataParallel (split batch among GPUs of same machine)
-- (```ddp```) is DistributedDataParallel (each gpu on each node trains, and syncs grads)
-- (```ddp_cpu```) is DistributedDataParallel on CPU (same as `ddp`, but does not use GPUs.
-  Useful for multi-node CPU training or single-node debugging. Note that this will **not** give
-  a speedup on a single node, since Torch already makes effient use of multiple CPUs on a single
-  machine.)
-- (```ddp2```) dp on node, ddp across nodes. Useful for things like increasing
-    the number of negative samples
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(distributed_backend=None)
-
-Example::
-
-    # dp = DataParallel
-    trainer = Trainer(gpus=2, distributed_backend='dp')
-
-    # ddp = DistributedDataParallel
-    trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp')
-
-    # ddp2 = DistributedDataParallel + dp
-    trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp2')
-
-.. note:: this option does not apply to TPU. TPUs use ```ddp``` by default (over each core)
-
-See Also:
-    - :ref:`Multi-GPU training guide <multi_gpu>`.
-    - :ref:`Multi-node (SLURM) guide <slurm>`.
+This has been renamed "accelerator".
 
 fast_dev_run
 ^^^^^^^^^^^^

@@ -9,6 +9,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning import _logger as log
 from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.cluster_environments.torchelastic_environment import TorchElasticEnvironment
+from pytorch_lightning.accelerators.accelerator import Accelerator
 
 try:
     import torch_xla
@@ -29,11 +30,13 @@ class AcceleratorConnector:
 
     def __init__(self, trainer):
         self.trainer = trainer
+        self.accelerator = None
 
     def on_trainer_init(
             self,
             num_processes,
             tpu_cores,
+            accelerator,
             distributed_backend,
             auto_select_gpus,
             gpus,
@@ -44,6 +47,9 @@ class AcceleratorConnector:
             replace_sampler_ddp,
             deterministic,
     ):
+        # temp until we remove all dist backend references
+        distributed_backend = self._map_deprecated_dist_backend(accelerator, distributed_backend)
+
         self.trainer.deterministic = deterministic
 
         torch.backends.cudnn.deterministic = self.trainer.deterministic
@@ -126,15 +132,30 @@ class AcceleratorConnector:
 
         self.trainer.replace_sampler_ddp = replace_sampler_ddp
 
-    def _select_environment(self):
-        env = None
+    def _map_deprecated_dist_backend(self, accelerator, distributed_backend):
+        if distributed_backend is not None:
+            rank_zero_warn(DeprecationWarning('distributed_backend has been renamed to accelerator. '
+                                              'Deprecated in 1.0.0, will be removed in 1.2.0'))
 
+        # temporary mapping until we remove all the distributed_backend references
+        if accelerator is not None:
+            self.accelerator = accelerator
+            if isinstance(accelerator, Accelerator):
+                self.accelerator.trainer = self
+                distributed_backend = self.accelerator.nickname
+            else:
+                distributed_backend = accelerator
+        return distributed_backend
+
+    def _select_environment(self):
         if self.trainer.plugin_connector.cloud_environment:
-            return self.trainer.plugin_connector.cloud_environment
-        elif self._is_using_torchelastic():
-            env = TorchElasticEnvironment()
+            env = self.trainer.plugin_connector.cloud_environment
         elif self.trainer.is_slurm_managing_tasks:
             env = SLURMEnvironment()
+        elif self._is_using_torchelastic():
+            env = TorchElasticEnvironment()
+        else:
+            env = TorchElasticEnvironment()
         return env
 
     def _is_using_torchelastic(self):
@@ -145,7 +166,18 @@ class AcceleratorConnector:
         if self.trainer.accelerator_backend is not None:
             return self.trainer.accelerator_backend
 
-        # SLURM ddp
+        # ----------------------------------
+        # Use the user provided accelerator
+        # ----------------------------------
+        # use the one the user passed in
+        if self.accelerator is not None and isinstance(self.accelerator, Accelerator):
+            self.accelerator.trainer = self.trainer
+            acc = self.accelerator
+            return acc
+
+        # ----------------------------------
+        # choose an accelerator for the user
+        # ----------------------------------
         use_slurm_ddp = self.trainer.use_ddp and self.trainer.is_slurm_managing_tasks
 
         # torchelastic or general non_slurm ddp
@@ -163,45 +195,55 @@ class AcceleratorConnector:
         if os.environ.get('PL_DDP_PID', False):
             use_torchelastic_ddp = False
 
+        cluster_env = self._select_environment()
+
         # choose the appropriate accelerator backend
         if self.trainer.use_ddp2:
-            accelerator_backend = accelerators.DDP2Backend(self.trainer)
+            accelerator_backend = accelerators.DDP2Accelerator(self.trainer, cluster_env)
 
         elif use_ddp_cpu_slurm:
-            accelerator_backend = accelerators.DDPCPUSLURMBackend(self.trainer)
+            accelerator_backend = accelerators.DDPCPUSLURMAccelerator(self.trainer, cluster_env)
 
         elif use_slurm_ddp:
-            accelerator_backend = accelerators.DDPSLURMBackend(self.trainer)
+            accelerator_backend = accelerators.DDPSLURMAccelerator(self.trainer, cluster_env)
 
         elif use_ddp_cpu_torch_elastic:
-            accelerator_backend = accelerators.DDPCPUTorchElasticBackend(self.trainer)
+            accelerator_backend = accelerators.DDPCPUTorchElasticAccelerator(self.trainer, cluster_env)
 
         elif use_torchelastic_ddp:
-            accelerator_backend = accelerators.DDPTorchElasticBackend(self.trainer)
+            accelerator_backend = accelerators.DDPTorchElasticAccelerator(self.trainer, cluster_env)
 
         elif use_ddp_spawn:
-            accelerator_backend = accelerators.DDPSpawnBackend(self.trainer, nprocs=self.trainer.num_processes)
+            accelerator_backend = accelerators.DDPSpawnAccelerator(
+                self.trainer,
+                nprocs=self.trainer.num_processes,
+                cluster_environment=cluster_env
+            )
 
         elif use_ddp_cpu_spawn:
-            accelerator_backend = accelerators.DDPCPUSpawnBackend(self.trainer, nprocs=self.trainer.num_processes)
+            accelerator_backend = accelerators.DDPCPUSpawnAccelerator(
+                self.trainer,
+                nprocs=self.trainer.num_processes,
+                cluster_environment=cluster_env
+            )
 
         elif self.trainer.distributed_backend == "ddp":
-            accelerator_backend = accelerators.DDPBackend(self.trainer)
+            accelerator_backend = accelerators.DDPAccelerator(self.trainer, cluster_env)
 
         elif self.trainer.use_dp:
-            accelerator_backend = accelerators.DataParallelBackend(self.trainer)
+            accelerator_backend = accelerators.DataParallelAccelerator(self.trainer, cluster_env)
 
         elif self.trainer.use_horovod:
-            accelerator_backend = accelerators.HorovodBackend(self.trainer)
+            accelerator_backend = accelerators.HorovodAccelerator(self.trainer, cluster_env)
 
         elif self.trainer.use_single_gpu:
-            accelerator_backend = accelerators.GPUBackend(self.trainer)
+            accelerator_backend = accelerators.GPUAccelerator(self.trainer, cluster_env)
 
         elif self.trainer.use_tpu:
-            accelerator_backend = accelerators.TPUBackend(self.trainer)
+            accelerator_backend = accelerators.TPUAccelerator(self.trainer, cluster_env)
 
         elif self.trainer.distributed_backend is None:
-            accelerator_backend = accelerators.CPUBackend(self.trainer)
+            accelerator_backend = accelerators.CPUAccelerator(self.trainer, cluster_env)
         else:
             raise MisconfigurationException(
                 f'Trainer(distributed_backend={self.trainer.distributed_backend} is not a supported backend'

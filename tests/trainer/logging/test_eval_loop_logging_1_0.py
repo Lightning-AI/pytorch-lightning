@@ -30,7 +30,7 @@ def test__validation_step__log(tmpdir):
             self.log('b', acc, on_step=True, on_epoch=True)
             self.training_step_called = True
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
     model = TestModel()
@@ -63,8 +63,9 @@ def test__validation_step__log(tmpdir):
 
     # we don't want to enable val metrics during steps because it is not something that users should do
     # on purpose DO NOT allow step_b... it's silly to monitor val step metrics
-    expected_cb_metrics = {'a', 'b', 'a_epoch', 'b_epoch', 'a_step'}
     callback_metrics = set(trainer.callback_metrics.keys())
+    callback_metrics.remove('debug_epoch')
+    expected_cb_metrics = {'a', 'b', 'a_epoch', 'b_epoch', 'a_step'}
     assert expected_cb_metrics == callback_metrics
 
 
@@ -101,7 +102,7 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
             self.log('g', torch.tensor(2, device=self.device), on_epoch=True)
             self.validation_epoch_end_called = True
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
     model = TestModel()

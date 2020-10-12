@@ -20,7 +20,7 @@ def test__training_step__flow_dict(tmpdir):
             self.training_step_called = True
             return {'loss': acc, 'random_things': [1, 'a', torch.tensor(2)]}
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
     model = TestModel()
@@ -62,7 +62,7 @@ def test__training_step__tr_step_end__flow_dict(tmpdir):
             self.training_step_end_called = True
             return tr_step_output
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
     model = TestModel()
@@ -110,7 +110,7 @@ def test__training_step__epoch_end__flow_dict(tmpdir):
                 assert self.count_num_graphs(b) == 0
                 assert {'random_things', 'loss'} == set(b.keys())
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
     model = TestModel()
@@ -164,7 +164,7 @@ def test__training_step__step_end__epoch_end__flow_dict(tmpdir):
                 assert self.count_num_graphs(b) == 0
                 assert {'random_things', 'loss'} == set(b.keys())
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
     model = TestModel()

@@ -58,6 +58,8 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.plugins.plugin_connector import PluginConnector
+from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.cpu_accelerator import CPUAccelerator
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -111,7 +113,7 @@ class Trainer(
         val_check_interval: Union[int, float] = 1.0,
         flush_logs_every_n_steps: int = 100,
         log_every_n_steps: int = 50,
-        distributed_backend: Optional[str] = None,
+        accelerator: Optional[Union[str, Accelerator]] = None,
         sync_batchnorm: bool = False,
         precision: int = 32,
         weights_summary: Optional[str] = 'top',
@@ -131,11 +133,16 @@ class Trainer(
         plugins: list = None,
         amp_backend: str = 'native',
         amp_level: str = 'O2',
+        distributed_backend: Optional[str] = None,
+        automatic_optimization: bool = True,
     ):
         r"""
         Customize every aspect of training via flags
 
         Args:
+
+            accelerator: Previously known as distributed_backend (dp, ddp, ddp2, etc...).
+                Can also take in an accelerator object for custom hardware.
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
 
@@ -173,7 +180,7 @@ class Trainer(
 
             deterministic: If true enables cudnn.deterministic.
 
-            distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn, ddp_cpu)
+            distributed_backend: deprecated. Please use 'accelerator'
 
             fast_dev_run: runs 1 batch of train, test and val to find any bugs (ie: a sort of unit test).
 
@@ -194,6 +201,9 @@ class Trainer(
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance
 
             log_every_n_steps: How often to log within steps (defaults to every 50 steps).
+
+            automatic_optimization: If False you are responsible for calling .backward, .step, zero_grad.
+                Meant to be used with multiple optimizers by advanced users.
 
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
@@ -318,6 +328,7 @@ class Trainer(
         self.accelerator_connector.on_trainer_init(
             num_processes,
             tpu_cores,
+            accelerator,
             distributed_backend,
             auto_select_gpus,
             gpus,
@@ -330,7 +341,14 @@ class Trainer(
         )
 
         # init train loop related flags
-        self.train_loop.on_trainer_init(max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps)
+        self.train_loop.on_trainer_init(
+            max_epochs,
+            min_epochs,
+            max_steps,
+            min_steps,
+            num_sanity_val_steps,
+            automatic_optimization
+        )
         self.evaluation_loop.on_trainer_init()
 
         # configure tuner

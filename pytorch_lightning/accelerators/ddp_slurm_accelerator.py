@@ -16,7 +16,7 @@ import torch
 import torch.distributed as torch_distrib
 import torch.distributed as dist
 
-from pytorch_lightning.accelerators.base_accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
@@ -40,13 +40,14 @@ else:
 # TEMP CLASS WHILE WE DECOUPLE SLURM FROM DDP
 # !!!!!!!!!!!!!! NOTE !!!!!!!!!!!!!!!!!!!!!!
 # -------------------------------------------
-class DDPSLURMBackend(Accelerator):
+class DDPSLURMAccelerator(Accelerator):
 
     def __init__(self, trainer, cluster_environment=None):
         super().__init__(trainer, cluster_environment)
         self.task_idx = None
         self._has_spawned_children = False
         self.dist = LightningDistributed()
+        self.nickname = 'ddp'
 
     def setup(self, model):
         self.trainer.model = model

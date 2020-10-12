@@ -19,7 +19,7 @@ import torch
 import torch.multiprocessing as mp
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.base_accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save
@@ -33,15 +33,15 @@ if TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.parallel_loader as xla_pl
     import torch_xla.distributed.xla_multiprocessing as xmp
-    import torch_xla.distributed.parallel_loader as xla_pl
 
 
-class TPUBackend(Accelerator):
+class TPUAccelerator(Accelerator):
 
     def __init__(self, trainer, cluster_environment=None):
         super().__init__(trainer, cluster_environment)
         self.start_method = None
         self.mp_queue = None
+        self.nickname = None
 
     def setup(self, model):
         rank_zero_info(f'training on {self.trainer.tpu_cores} TPU cores')
@@ -222,11 +222,13 @@ class TPUBackend(Accelerator):
                  f' global rank: {trainer.tpu_global_core_rank}'
                  f' with XLA_USE_BF16={os.environ.get("XLA_USE_BF16")}')
 
-    def backward(self, closure_loss, optimizer, opt_idx):
-        model_ref = self.trainer.get_model()
-
+    def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         # do backward pass
-        model_ref.backward(self, closure_loss, optimizer, opt_idx)
+        if self.trainer.train_loop.automatic_optimization:
+            model = self.trainer.get_model()
+            model.backward(closure_loss, optimizer, opt_idx)
+        else:
+            closure_loss.backward(*args, **kwargs)
 
         # detach after backward
         closure_loss = closure_loss.detach()
@@ -247,10 +249,10 @@ class TPUBackend(Accelerator):
             using_lbfgs=is_lbfgs
         )
 
-    def clip_gradients(self, optimizer):
+    def clip_gradients(self, optimizer, clip_val=None):
         # apply clip gradients
         # TODO: separate TPU case from here
-        self._clip_gradients(optimizer)
+        self._clip_gradients(optimizer, clip_val)
 
     def barrier(self, name: str = None):
         torch_xla.core.xla_model.rendezvous(f"pl.Trainer.{name}")

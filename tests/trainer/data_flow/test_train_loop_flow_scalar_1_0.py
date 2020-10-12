@@ -22,7 +22,7 @@ def test__training_step__flow_scalar(tmpdir):
             self.training_step_called = True
             return acc
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
     model = TestModel()
@@ -64,7 +64,7 @@ def test__training_step__tr_step_end__flow_scalar(tmpdir):
             self.training_step_end_called = True
             return tr_step_output
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
     model = TestModel()
@@ -112,7 +112,7 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
                 assert 'loss' in b
                 assert isinstance(b, dict)
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
     model = TestModel()
@@ -166,7 +166,7 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
                 assert 'loss' in b
                 assert isinstance(b, dict)
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
     model = TestModel()

@@ -110,6 +110,17 @@ class LightningModule(
         self._results: Result = None
         self._current_fx_name = ''
 
+    def optimizers(self):
+        opts = self.trainer.optimizers
+
+        # single optimizer
+        if isinstance(opts, list) and len(opts) == 1 and isinstance(opts[0], Optimizer):
+            return opts[0]
+
+        # multiple opts
+        else:
+            return opts
+
     @property
     def example_input_array(self) -> Any:
         return self._example_input_array
@@ -399,7 +410,8 @@ class LightningModule(
                 :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0.
 
         Return:
-            roch.Tensor or a dictionary with anything you want (must include the keyword 'loss')
+            Either a :class:`~torch.Tensor` or a dictionary with anything
+                you want (must include the keyword 'loss') or None
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
         You can also do fancier things like multiple forward passes or something model specific.
@@ -1034,6 +1046,73 @@ class LightningModule(
             "`configure_optimizers` must be implemented to be used with the Lightning Trainer"
         )
 
+    def manual_backward(self, loss: Tensor, optimizer: Optimizer, *args, **kwargs) -> None:
+        """
+        Call this directly from your training_step when doing optimizations manually.
+        By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
+
+        This function forwards all args to the .backward() call as well.
+
+        .. tip:: In manual mode we still automatically clip grads if Trainer(gradient_clip_val=x) is set
+
+        Example::
+
+            def training_step(...):
+                (opt_a, opt_b) = self.optimizers()
+                loss = ...
+                # automatically applies scaling, etc...
+                self.manual_backward(loss, opt_a)
+        """
+        # make sure we're using manual opt
+        self._verify_is_manual_optimization('manual_backward')
+
+        # backward
+        self.trainer.train_loop.backward(loss, optimizer, -1, *args, **kwargs)
+
+        # clip grads after backward
+        self.trainer.accelerator_backend.clip_gradients(optimizer)
+
+    def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int) -> None:
+        """
+        Override backward with your own implementation if you need to.
+
+        Args:
+            loss: Loss is already scaled by accumulated grads
+            optimizer: Current optimizer being used
+            optimizer_idx: Index of the current optimizer being used
+
+        Called to perform backward step.
+        Feel free to override as needed.
+        The loss passed in has already been scaled for accumulated gradients if requested.
+
+        Example::
+
+            def backward(self, loss, optimizer, optimizer_idx):
+                loss.backward()
+
+        """
+        loss.backward()
+
+    def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):
+        """
+        Makes sure only the gradients of the current optimizer's parameters are calculated
+        in the training step to prevent dangling gradients in multiple-optimizer setup.
+
+        .. note:: Only called when using multiple optimizers
+
+        Override for your own behavior
+
+        Args:
+            optimizer:
+            optimizer_idx:
+        """
+        for param in self.parameters():
+            param.requires_grad = False
+
+        for group in optimizer.param_groups:
+            for param in group['params']:
+                param.requires_grad = True
+
     def optimizer_step(
         self,
         epoch: int,
@@ -1273,6 +1352,11 @@ class LightningModule(
             tqdm_dict["v_num"] = version
 
         return tqdm_dict
+
+    def _verify_is_manual_optimization(self, fn_name):
+        if self.trainer.train_loop.automatic_optimization:
+            m = f'to use {fn_name}, please disable automatic optimization: Trainer(automatic_optimization=False)'
+            raise MisconfigurationException(m)
 
     @classmethod
     def _auto_collect_arguments(cls, frame=None) -> Tuple[Dict, Dict]:

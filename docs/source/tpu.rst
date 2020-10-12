@@ -17,12 +17,6 @@ on Google Cloud (GCP), Google Colab and Kaggle Environments. For more informatio
 
 ----------------
 
-Live demo
-----------
-Check out this `Google Colab <https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3>`_ to see how to train MNIST on TPUs.
-
-----------------
-
 TPU Terminology
 ---------------
 A TPU is a Tensor processing unit. Each TPU has 8 cores where each

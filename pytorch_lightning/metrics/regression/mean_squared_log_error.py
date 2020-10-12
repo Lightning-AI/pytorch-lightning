@@ -11,7 +11,7 @@ class MeanSquaredLogError(Metric):
     Args:
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
-        ddp_sync_on_step:
+        dist_sync_on_step:
             Synchronize metric state across processes at each ``forward()``
             before returning the value at the step. default: False
         process_group:
@@ -31,12 +31,12 @@ class MeanSquaredLogError(Metric):
     def __init__(
         self,
         compute_on_step: bool = True,
-        ddp_sync_on_step: bool = False,
+        dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
     ):
         super().__init__(
             compute_on_step=compute_on_step,
-            ddp_sync_on_step=ddp_sync_on_step,
+            dist_sync_on_step=dist_sync_on_step,
             process_group=process_group,
         )
 

@@ -24,7 +24,7 @@ import numpy as np
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities.distributed import find_free_network_port
-from pytorch_lightning.accelerators.base_accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.seed import seed_everything
@@ -44,7 +44,7 @@ else:
     HYDRA_AVAILABLE = True
 
 
-class DDPBackend(Accelerator):
+class DDPAccelerator(Accelerator):
 
     def __init__(self, trainer, cluster_environment=None):
         super().__init__(trainer, cluster_environment)
@@ -52,6 +52,7 @@ class DDPBackend(Accelerator):
         self._has_spawned_children = False
         self.interactive_ddp_procs = []
         self.dist = LightningDistributed()
+        self.nickname = 'ddp'
 
     def setup(self, model):
         # first track model
