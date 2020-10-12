@@ -90,7 +90,6 @@ PyTorch Lightning Documentation
    loggers
    early_stopping
    fast_training
-   hooks
    hyperparameters
    lr_finder
    multi_gpu
