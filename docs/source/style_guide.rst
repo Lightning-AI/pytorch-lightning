@@ -17,7 +17,7 @@ Systems vs models
 =================
 
 .. figure:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/model_system.png
-    :width: 800
+    :width: 400
 
 The main principle behind a LightningModule is that a full system should be self-contained.
 In Lightning we differentiate between a system and a model.

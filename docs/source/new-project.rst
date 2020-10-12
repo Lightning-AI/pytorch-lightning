@@ -119,11 +119,14 @@ Step 1: Define LightningModule
             optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
             return optimizer
 
+**SYTEM VS MODEL**
+
+A :class:`~pytorch_lightning.core.LightningModule` defines a *system* not a model.
+
 .. figure:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/model_system.png
-    :width: 800
+    :width: 400
 
-
-A :class:`~pytorch_lightning.core.LightningModule` defines a *system* such as:
+Examples of systems are:
 
 - `Autoencoder <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_ae/basic_ae_module.py>`_
 - `BERT <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=yr7eaxkF-djf>`_
@@ -134,7 +137,7 @@ A :class:`~pytorch_lightning.core.LightningModule` defines a *system* such as:
 - `SimCLR <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/self_supervised/simclr/simclr_module.py>`_
 - `VAE <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_vae/basic_vae_module.py>`_
 
-It is a :class:`torch.nn.Module` that groups all research code into a single file to make it self-contained:
+Under the hood a LightningModule is still just a :class:`torch.nn.Module` that groups all research code into a single file to make it self-contained:
 
 - The Train loop
 - The Validation loop
