@@ -14,10 +14,9 @@ assignees: ''
 
 ### To Reproduce
 
-Before reporting a bug, make sure that the bug can be reproduced with a minimal example. You can simply subclass our [miminal code example] (https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/bug_report_model.py) and add your relevant changes, to see if the issue persists. 
-If the test is failing, please add your test cases to the issue (as a draft PR, or simple paste the code to the isse description here).
+1. Make sure that the bug can be reproduced with the [BoringModel](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/bug_report_model.py).
 
-<!-- If you have a code sample, error messages, stack traces, please provide it here as well -->
+2. Fill out the test case at the bottom of the BoringModel to make it fail.
 
 
 #### Code sample
