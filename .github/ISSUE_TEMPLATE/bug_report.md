@@ -6,7 +6,9 @@ labels: bug / fix, help wanted
 assignees: ''
 
 ---
-## Please use [the BoringModel to reproduce your bug](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/bug_report_model.py) and post here
+## Please use [the BoringModel to reproduce your bug](https://colab.research.google.com/drive/1HvWVVTK8j2Nj52qU4Q4YCyzOm0_aLQF3?usp=sharing) and post here
+
+Please paste your BoringModel colab link here
 
 ## 🐛 Bug
 
