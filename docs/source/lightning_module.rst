@@ -652,6 +652,39 @@ a `LightningModule`.
 LightningModule API
 -------------------
 
+.. currentmodule:: pytorch_lightning.core.lightning.LightningModule
+
+.. autosummary::
+    :toctree: generated
+    :nosignatures:
+
+    configure_optimizers
+    forward
+    freeze
+    get_progress_bar_dict
+    log
+    log_dict
+    optimizer_step
+    optimizer_zero_grad
+    print
+    save_hyperparameters
+    summarize
+    tbptt_split_batch
+    test_epoch_end
+    test_step
+    test_step_end
+    to_onnx
+    to_torchscript
+    training_epoch_end
+    training_step
+    training_step_end
+    unfreeze
+    validation_epoch_end
+    validation_step
+    validation_step_end
+    write_prediction
+    write_prediction_dict
+
 Methods
 ^^^^^^^
 
