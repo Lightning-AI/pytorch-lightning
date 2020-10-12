@@ -2,8 +2,8 @@ from typing import Any, Optional
 
 import torch
 
-from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.metrics.classification.accuracy import _input_format
+from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.utilities import rank_zero_warn
 
 

@@ -25,6 +25,7 @@ def _input_format(preds: torch.Tensor, target: torch.Tensor, threshold: float):
         preds = (preds >= threshold).long()
     return preds, target
 
+
 class Accuracy(Metric):
     """
     Computes accuracy. Works with binary, multiclass, and multilabel data.

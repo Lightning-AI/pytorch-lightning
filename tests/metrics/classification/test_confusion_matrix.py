@@ -1,25 +1,16 @@
-import pytest
 from functools import partial
 
-import torch
 import numpy as np
-
-from pytorch_lightning.metrics.classification.confusion_matrix import ConfusionMatrix
+import pytest
+import torch
 from sklearn.metrics import confusion_matrix
 
-from tests.metrics.utils import compute_batch
-from tests.metrics.utils import THRESHOLD, NUM_CLASSES
-
-from tests.metrics.classification.utils import (
-    _binary_prob_inputs,
-    _binary_inputs,
-    _multilabel_prob_inputs,
-    _multilabel_inputs,
-    _multiclass_prob_inputs,
-    _multiclass_inputs,
-    _multidim_multiclass_prob_inputs,
-    _multidim_multiclass_inputs,
-)
+from pytorch_lightning.metrics.classification.confusion_matrix import ConfusionMatrix
+from tests.metrics.classification.utils import (_binary_inputs, _binary_prob_inputs, _multiclass_inputs,
+                                                _multiclass_prob_inputs, _multidim_multiclass_inputs,
+                                                _multidim_multiclass_prob_inputs, _multilabel_inputs,
+                                                _multilabel_prob_inputs)
+from tests.metrics.utils import NUM_CLASSES, THRESHOLD, compute_batch
 
 torch.manual_seed(42)
 
