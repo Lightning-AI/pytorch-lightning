@@ -6,23 +6,20 @@ labels: bug / fix, help wanted
 assignees: ''
 
 ---
-## Please use [the BoringModel to reproduce your bug](https://colab.research.google.com/drive/1HvWVVTK8j2Nj52qU4Q4YCyzOm0_aLQF3?usp=sharing) and post here
+## Please reproduce using [the BoringModel and post here](https://colab.research.google.com/drive/1HvWVVTK8j2Nj52qU4Q4YCyzOm0_aLQF3?usp=sharing)
 
-Please paste your BoringModel colab link here
+Please paste your BoringModel colab link here.
 
 ## 🐛 Bug
 
 <!-- A clear and concise description of what the bug is. -->
 
 ### To Reproduce
-
-1. Make sure that the bug can be reproduced with the [BoringModel](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/bug_report_model.py).
-
-2. Fill out the test case at the bottom of the BoringModel to make it fail.
+If you could not reproduce using the BoringModel and still think there's a bug, please post here
 
 ### Expected behavior
 
-<!-- A clear and concise description of what you expected to happen. -->
+FILL IN
 
 ### Environment
 
