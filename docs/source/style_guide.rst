@@ -1,5 +1,5 @@
 ###########
-Style Guide
+Style guide
 ###########
 A main goal of Lightning is to improve readability and reproducibility. Imagine looking into any GitHub repo,
 finding a lightning module and knowing exactly where to look to find the things you care about.

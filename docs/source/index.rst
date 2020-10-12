@@ -23,6 +23,8 @@ PyTorch Lightning Documentation
 
    performance
    style_guide
+   Lightning project template<https://github.com/PyTorchLightning/pytorch-lightning-conference-seed>
+
 
 .. toctree::
    :maxdepth: 2
@@ -74,13 +76,6 @@ PyTorch Lightning Documentation
    Image-GPT <https://pytorch-lightning-bolts.readthedocs.io/en/latest/convolutional.html#image-gpt>
    SimCLR <https://pytorch-lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#simclr>
    VAE <https://pytorch-lightning-bolts.readthedocs.io/en/latest/autoencoders.html#basic-vae>
-
-.. toctree::
-   :maxdepth: 1
-   :name: project structure
-   :caption: Recommended Lightning Project Layout
-
-   Lightning project seed <https://github.com/PyTorchLightning/pytorch-lightning-conference-seed>
 
 .. toctree::
    :maxdepth: 1
