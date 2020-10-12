@@ -12,14 +12,14 @@ assignees: ''
 
 ## Please reproduce using [the BoringModel and post here](https://colab.research.google.com/drive/1HvWVVTK8j2Nj52qU4Q4YCyzOm0_aLQF3?usp=sharing)
 
-Please paste your BoringModel colab link here.
+<!-- Please paste your BoringModel colab link here. -->
 
 ### To Reproduce
-If you could not reproduce using the BoringModel and still think there's a bug, please post here
+<!-- If you could not reproduce using the BoringModel and still think there's a bug, please post here -->
 
 ### Expected behavior
 
-FILL IN
+<!-- FILL IN -->
 
 ### Environment
 
