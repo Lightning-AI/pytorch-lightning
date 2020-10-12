@@ -239,3 +239,68 @@ class Metric(nn.Module, ABC):
         """ Check that predictions and target have the same shape, else raise error """
         if pred.shape != target.shape:
             raise RuntimeError('Predictions and targets are expected to have the same shape')
+
+
+class MetricCollection(nn.Module, ABC, Mapping):
+    """
+    MetricCollection class can be used to chain metrics that have the same
+    call pattern into one single class.
+
+    Args:
+        *metrics: a sequence of metrics, all instances of the base class Metric
+
+    Example:
+
+        >>> from pytorch_lightning.metrics import MetricCollection, Accuracy, Precision, Recall
+        >>> target = torch.tensor([0, 2, 0, 2, 0, 1, 0, 2])
+        >>> preds = torch.tensor([2, 1, 2, 0, 1, 2, 2, 2])
+        >>> metrics = MetricCollection(Accuracy(),
+        ...                            Precision(num_classes=3, average='macro'),
+        ...                            Recall(num_classes=3, average='macro'))
+        >>> metrics(preds, target)
+        {'Accuracy': tensor(0.1250), 'Precision': tensor(0.0667), 'Recall': tensor(0.1111)}
+
+    """
+    def __init__(self, *metrics):
+        super().__init__()
+        metric_dict = { }
+        for i,m in enumerate(metrics):
+            if not isinstance(m, Metric):
+                raise ValueError(f'Input {m} to `MetricCollection` is not a instance'
+                                 ' of `pl.metrics.Metric`')
+            name = m.__class__.__name__
+            if name in metric_dict:
+                raise ValueError(f'Encountered two metrics both named {name}')
+
+            metric_dict[name] = m
+
+        self.metrics = nn.ModuleDict(metric_dict)
+
+    def __getitem__(self, name):
+        """ Returns a metric by its name """
+        return self.metrics[name]
+
+    def __iter__(self):
+        """ Returns iterator over the metric dict keys"""
+        for k in self.metrics.keys():
+            yield k
+
+    def __len__(self):
+        return len(self.metrics)
+
+    def forward(self, *args, **kwargs):
+        """ Iteratively call forward for each metric """
+        return {k: m(*args, **kwargs) for k,m in self.items()}
+
+    def update(self, *args, **kwargs):
+        """ Iteratively call update for each metric """
+        for _, m in self.items():
+            m.update(*args, **kwargs)
+
+    def compute(self):
+        return {k: m.compute() for k,m in self.items()}
+
+    def reset(self):
+        """ Iteratively call reset for each metric """
+        for _, m in self.items():
+            m.reset()
