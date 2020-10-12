@@ -412,7 +412,7 @@ class LightningModule(
         Return:
             Any of.
 
-            - `torch.Tensor` - The loss tensor
+            - :class:`~torch.Tensor` - The loss tensor
             - `dict` - A dictionary. Can include any keys, but must include the key 'loss'
             - `None` - Training will skip to the next batch
 
