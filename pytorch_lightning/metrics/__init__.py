@@ -4,7 +4,8 @@ from pytorch_lightning.metrics.classification import (
     Accuracy,
     Precision,
     Recall,
-    Fbeta
+    Fbeta,
+    ConfusionMatrix
 )
 
 from pytorch_lightning.metrics.regression import (
