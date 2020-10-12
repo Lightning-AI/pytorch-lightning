@@ -18,11 +18,6 @@ assignees: ''
 
 2. Fill out the test case at the bottom of the BoringModel to make it fail.
 
-
-#### Code sample
-<!-- Ideally attach a minimal code sample to reproduce the decried issue. 
-Minimal means having the shortest code but still preserving the bug. -->
-
 ### Expected behavior
 
 <!-- A clear and concise description of what you expected to happen. -->
