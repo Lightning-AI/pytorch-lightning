@@ -527,6 +527,10 @@ def recursive_gather(outputs: Sequence[dict], result: Optional[MutableMapping] =
             del out['meta']
 
         for k, v in out.items():
+            # support manual opt where the user does not return a minimize key
+            if k == 'minimize' and v is None:
+                continue
+
             if isinstance(v, dict):
                 in_d = result.get(k, {})
                 v = recursive_gather([v], in_d)

@@ -378,7 +378,7 @@ class LoggerConnector:
 
         epoch_output = self.__prepare_epoch_end_inputs(epoch_output)
 
-        if num_optimizers == 1:
+        if num_optimizers == 1 or not self.trainer.train_loop.automatic_optimization:
             epoch_output = epoch_output[0]
 
         # lightningmodule hook
@@ -447,11 +447,18 @@ class LoggerConnector:
             for train_step_idx in range(len(opt_outputs)):
                 tbptt_outs = opt_outputs[train_step_idx]
                 tbptt_outs = tbptt_outs[0].__class__.reduce_across_time(tbptt_outs)
-                time_reduced_outputs.append(tbptt_outs)
+                if len(tbptt_outs) > 1:
+                    time_reduced_outputs.append(tbptt_outs)
+
+            if len(time_reduced_outputs) == 0:
+                continue
 
             # reduce across training steps
             opt_outputs = time_reduced_outputs[0].__class__.reduce_on_epoch_end(time_reduced_outputs)
-            opt_outputs.minimize = opt_outputs.minimize.mean()
+
+            # with manual opt need 1+ metrics because meta is always there
+            if opt_outputs.minimize is not None:
+                opt_outputs.minimize = opt_outputs.minimize.mean()
             epoch_log_metrics.update(opt_outputs.epoch_log_metrics)
             epoch_progress_bar_metrics.update(opt_outputs.epoch_pbar_metrics)
 
