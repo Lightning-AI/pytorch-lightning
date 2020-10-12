@@ -21,8 +21,8 @@ PyTorch Lightning Documentation
    :name: guides
    :caption: Best practices
 
-   performance
    style_guide
+   performance
    Lightning project template<https://github.com/PyTorchLightning/pytorch-lightning-conference-seed>
 
 

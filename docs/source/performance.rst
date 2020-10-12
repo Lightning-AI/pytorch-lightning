@@ -1,8 +1,11 @@
 .. _performance:
 
-Fast performance
-================
-Here are some best practices to increase your performance.
+Fast performance tips
+=====================
+Lightning builds in all the micro-optimizations we can find to increase your performance.
+But we can only automate so much.
+
+Here are some additional things you can do to increase your performance.
 
 ----------
 
