@@ -143,7 +143,7 @@ Under the hood a LightningModule is still just a :class:`torch.nn.Module` that g
 - The Train loop
 - The Validation loop
 - The Test loop
-- The Model
+- The Model or system of Models
 - The Optimizer
 
 You can customize any part of training (such as the backward pass) by overriding any
