@@ -1,23 +1,20 @@
+import numpy as np
 import pytest
 import torch
-import numpy as np
-
-from pytorch_lightning.metrics.classification.accuracy import Accuracy
 from sklearn.metrics import accuracy_score
 
-from tests.metrics.utils import MetricTester
-from tests.metrics.utils import THRESHOLD
-
+from pytorch_lightning.metrics.classification.accuracy import Accuracy
 from tests.metrics.classification.utils import (
-    _binary_prob_inputs,
     _binary_inputs,
-    _multilabel_prob_inputs,
-    _multilabel_inputs,
-    _multiclass_prob_inputs,
+    _binary_prob_inputs,
     _multiclass_inputs,
-    _multidim_multiclass_prob_inputs,
+    _multiclass_prob_inputs,
     _multidim_multiclass_inputs,
+    _multidim_multiclass_prob_inputs,
+    _multilabel_inputs,
+    _multilabel_prob_inputs,
 )
+from tests.metrics.utils import THRESHOLD, MetricTester
 
 torch.manual_seed(42)
 
@@ -86,31 +83,31 @@ def test_accuracy_invalid_shape():
 
 @pytest.mark.parametrize("ddp", [True, False])
 @pytest.mark.parametrize("dist_sync_on_step", [True, False])
-@pytest.mark.parametrize("preds, target, sk_metric", [
-    (_binary_prob_inputs.preds, _binary_prob_inputs.target, _binary_prob_sk_metric),
-    (_binary_inputs.preds, _binary_inputs.target, _binary_sk_metric),
-    (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target, _multilabel_prob_sk_metric),
-    (_multilabel_inputs.preds, _multilabel_inputs.target, _multilabel_sk_metric),
-    (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, _multiclass_prob_sk_metric),
-    (_multiclass_inputs.preds, _multiclass_inputs.target, _multiclass_sk_metric),
-    (
-        _multidim_multiclass_prob_inputs.preds,
-        _multidim_multiclass_prob_inputs.target,
-        _multidim_multiclass_prob_sk_metric
-    ),
-    (
-        _multidim_multiclass_inputs.preds,
-        _multidim_multiclass_inputs.target,
-        _multidim_multiclass_sk_metric
-    )
-])
+@pytest.mark.parametrize(
+    "preds, target, sk_metric",
+    [
+        (_binary_prob_inputs.preds, _binary_prob_inputs.target, _binary_prob_sk_metric),
+        (_binary_inputs.preds, _binary_inputs.target, _binary_sk_metric),
+        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target, _multilabel_prob_sk_metric),
+        (_multilabel_inputs.preds, _multilabel_inputs.target, _multilabel_sk_metric),
+        (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, _multiclass_prob_sk_metric),
+        (_multiclass_inputs.preds, _multiclass_inputs.target, _multiclass_sk_metric),
+        (
+            _multidim_multiclass_prob_inputs.preds,
+            _multidim_multiclass_prob_inputs.target,
+            _multidim_multiclass_prob_sk_metric,
+        ),
+        (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target, _multidim_multiclass_sk_metric),
+    ],
+)
 class TestAccuracy(MetricTester):
     def test_accuracy(self, ddp, dist_sync_on_step, preds, target, sk_metric):
-        self.run_metric_test(ddp=ddp,
-                             preds=preds,
-                             target=target,
-                             metric_class=Accuracy,
-                             sk_metric=sk_metric,
-                             dist_sync_on_step=dist_sync_on_step,
-                             metric_args={"threshold": THRESHOLD}
+        self.run_metric_test(
+            ddp=ddp,
+            preds=preds,
+            target=target,
+            metric_class=Accuracy,
+            sk_metric=sk_metric,
+            dist_sync_on_step=dist_sync_on_step,
+            metric_args={"threshold": THRESHOLD},
         )

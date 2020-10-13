@@ -1,13 +1,13 @@
 import os
-import sys
-import pytest
 import pickle
-from typing import Callable
-from torch.multiprocessing import Pool, set_start_method
+import sys
 from functools import partial
+from typing import Callable
 
-import torch
 import numpy as np
+import pytest
+import torch
+from torch.multiprocessing import Pool, set_start_method
 
 from pytorch_lightning.metrics import Metric
 
@@ -41,7 +41,22 @@ def _compute_batch(
     check_batch: bool = True,
 ):
     """ Utility function doing the actual comparison between lightning metric
-        and reference metric
+        and reference metric.
+
+        Args:
+            rank: rank of current process
+            worldsize: number of processes
+            preds: torch tensor with predictions
+            target: torch tensor with targets
+            metric_class: lightning metric class that should be tested
+            sk_metric: callable function that is used for comparison
+            dist_sync_on_step: bool, if true will synchronize metric state across
+                processes at each ``forward()``
+            metric_args: dict with additional arguments used for class initialization
+            check_dist_sync_on_step: bool, if true will check if the metric is also correctly
+                calculated per batch per device (and not just at the end)
+            check_batch: bool, if true will check if the metric is also correctly
+                calculated across devices for each batch (and not just at the end)
     """
     # Instanciate lightning metric
     metric = metric_class(compute_on_step=True, dist_sync_on_step=dist_sync_on_step, **metric_args)
@@ -80,6 +95,15 @@ def _compute_batch(
 
 
 class MetricTester:
+    """ Class used for efficiently run alot of parametrized tests in ddp mode.
+        Makes sure that ddp is only setup once and that pool of processes are
+        used for all tests.
+
+        All tests should subclass from this and implement a new method called
+            `test_metric_name`
+        where the method `self.run_metric_test` is called inside.
+    """
+
     def setup_class(self):
         """ Setup the metric class. This will spawn the pool of workers that are
             used for metric testing and setup_ddp
@@ -97,38 +121,63 @@ class MetricTester:
         self.pool.close()
         self.pool.join()
 
-    def run_metric_test(self,
-                        ddp: bool,
-                        preds: torch.Tensor,
-                        target: torch.Tensor,
-                        metric_class: Metric,
-                        sk_metric: Callable,
-                        dist_sync_on_step: bool,
-                        metric_args: dict = {},
-                        check_dist_sync_on_step: bool = True,
-                        check_batch: bool = True):
+    def run_metric_test(
+        self,
+        ddp: bool,
+        preds: torch.Tensor,
+        target: torch.Tensor,
+        metric_class: Metric,
+        sk_metric: Callable,
+        dist_sync_on_step: bool,
+        metric_args: dict = {},
+        check_dist_sync_on_step: bool = True,
+        check_batch: bool = True,
+    ):
+        """ Main method that should be used for testing. Call this inside testing
+            methods.
+
+            Args:
+                ddp: bool, if running in ddp mode or not
+                preds: torch tensor with predictions
+                target: torch tensor with targets
+                metric_class: lightning metric class that should be tested
+                sk_metric: callable function that is used for comparison
+                dist_sync_on_step: bool, if true will synchronize metric state across
+                    processes at each ``forward()``
+                metric_args: dict with additional arguments used for class initialization
+                check_dist_sync_on_step: bool, if true will check if the metric is also correctly
+                    calculated per batch per device (and not just at the end)
+                check_batch: bool, if true will check if the metric is also correctly
+                    calculated across devices for each batch (and not just at the end)
+        """
         if ddp:
             if sys.platform == "win32":
                 pytest.skip("DDP not supported on windows")
 
             self.pool.starmap(
-                partial(_compute_batch,
-                        preds=preds,
-                        target=target,
-                        metric_class=metric_class,
-                        sk_metric=sk_metric,
-                        dist_sync_on_step=dist_sync_on_step,
-                        metric_args=metric_args,
-                        check_dist_sync_on_step=check_dist_sync_on_step,
-                        check_batch=check_batch),
-                [(rank, self.poolSize) for rank in range(self.poolSize)])
+                partial(
+                    _compute_batch,
+                    preds=preds,
+                    target=target,
+                    metric_class=metric_class,
+                    sk_metric=sk_metric,
+                    dist_sync_on_step=dist_sync_on_step,
+                    metric_args=metric_args,
+                    check_dist_sync_on_step=check_dist_sync_on_step,
+                    check_batch=check_batch,
+                ),
+                [(rank, self.poolSize) for rank in range(self.poolSize)],
+            )
         else:
-            _compute_batch(0, 1,
-                           preds=preds,
-                           target=target,
-                           metric_class=metric_class,
-                           sk_metric=sk_metric,
-                           dist_sync_on_step=dist_sync_on_step,
-                           metric_args=metric_args,
-                           check_dist_sync_on_step=check_dist_sync_on_step,
-                           check_batch=check_batch)
+            _compute_batch(
+                0,
+                1,
+                preds=preds,
+                target=target,
+                metric_class=metric_class,
+                sk_metric=sk_metric,
+                dist_sync_on_step=dist_sync_on_step,
+                metric_args=metric_args,
+                check_dist_sync_on_step=check_dist_sync_on_step,
+                check_batch=check_batch,
+            )

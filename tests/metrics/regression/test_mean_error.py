@@ -1,12 +1,12 @@
-import torch
-import pytest
 from collections import namedtuple
 from functools import partial
 
-from pytorch_lightning.metrics.regression import MeanSquaredError, MeanAbsoluteError, MeanSquaredLogError
-from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_squared_log_error
+import pytest
+import torch
+from sklearn.metrics import mean_absolute_error, mean_squared_error, mean_squared_log_error
 
-from tests.metrics.utils import NUM_BATCHES, BATCH_SIZE, MetricTester
+from pytorch_lightning.metrics.regression import MeanAbsoluteError, MeanSquaredError, MeanSquaredLogError
+from tests.metrics.utils import BATCH_SIZE, NUM_BATCHES, MetricTester
 
 torch.manual_seed(42)
 
@@ -14,14 +14,10 @@ num_targets = 5
 
 Input = namedtuple('Input', ["preds", "target"])
 
-_single_target_inputs = Input(
-    preds=torch.rand(NUM_BATCHES, BATCH_SIZE),
-    target=torch.rand(NUM_BATCHES, BATCH_SIZE),
-)
+_single_target_inputs = Input(preds=torch.rand(NUM_BATCHES, BATCH_SIZE), target=torch.rand(NUM_BATCHES, BATCH_SIZE),)
 
 _multi_target_inputs = Input(
-    preds=torch.rand(NUM_BATCHES, BATCH_SIZE, num_targets),
-    target=torch.rand(NUM_BATCHES, BATCH_SIZE, num_targets),
+    preds=torch.rand(NUM_BATCHES, BATCH_SIZE, num_targets), target=torch.rand(NUM_BATCHES, BATCH_SIZE, num_targets),
 )
 
 
@@ -55,25 +51,19 @@ def _multi_target_sk_metric(preds, target, sk_fn=mean_squared_error):
     ],
 )
 class TestMeanError(MetricTester):
-    def test_mean_error(self,
-                        ddp,
-                        dist_sync_on_step,
-                        preds,
-                        target,
-                        sk_metric,
-                        metric_class,
-                        sk_fn):
-        self.run_metric_test(ddp=ddp,
-                             preds=preds,
-                             target=target,
-                             metric_class=metric_class,
-                             sk_metric=partial(sk_metric, sk_fn=sk_fn),
-                             dist_sync_on_step=dist_sync_on_step)
+    def test_mean_error(self, ddp, dist_sync_on_step, preds, target, sk_metric, metric_class, sk_fn):
+        self.run_metric_test(
+            ddp=ddp,
+            preds=preds,
+            target=target,
+            metric_class=metric_class,
+            sk_metric=partial(sk_metric, sk_fn=sk_fn),
+            dist_sync_on_step=dist_sync_on_step,
+        )
 
 
 @pytest.mark.parametrize("metric_class", [MeanSquaredError, MeanAbsoluteError, MeanSquaredLogError])
 def test_error_on_different_shape(metric_class):
     metric = metric_class()
-    with pytest.raises(RuntimeError,
-                       match='Predictions and targets are expected to have the same shape'):
+    with pytest.raises(RuntimeError, match='Predictions and targets are expected to have the same shape'):
         metric(torch.randn(100,), torch.randn(50,))
