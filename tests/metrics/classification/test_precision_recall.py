@@ -9,7 +9,7 @@ from functools import partial
 from pytorch_lightning.metrics import Precision, Recall
 from sklearn.metrics import precision_score, recall_score
 
-from tests.metrics.utils import compute_batch, setup_ddp
+from tests.metrics.utils import MetricTester
 from tests.metrics.utils import NUM_BATCHES, NUM_PROCESSES, BATCH_SIZE, NUM_CLASSES, THRESHOLD
 
 from tests.metrics.classification.utils import (
@@ -114,31 +114,30 @@ def _multidim_multiclass_sk_metric(preds, target, sk_fn=precision_score, average
         (Recall, recall_score),
     ],
 )
-def test_precision_recall(
-    ddp,
-    dist_sync_on_step,
-    preds,
-    target,
-    sk_metric,
-    metric_class,
-    sk_fn,
-    num_classes,
-    multilabel,
-    average
-):
-    compute_batch(
-        preds,
-        target,
-        metric_class,
-        partial(sk_metric, sk_fn=sk_fn, average=average),
-        dist_sync_on_step,
-        ddp,
-        metric_args={
-            "num_classes": num_classes,
-            "average": average,
-            "multilabel": multilabel,
-            "threshold": THRESHOLD
-        },
-        check_dist_sync_on_step=False if average == 'macro' else True,
-        check_batch=False if average == 'macro' else True,
-    )
+class TestPrecisionRecall(MetricTester):
+    def test_precision_recall(self,
+                              ddp,
+                              dist_sync_on_step,
+                              preds,
+                              target,
+                              sk_metric,
+                              metric_class,
+                              sk_fn,
+                              num_classes,
+                              multilabel,
+                              average
+    ):
+        self.run_metric_test(ddp=ddp,
+                             preds=preds,
+                             target=target,
+                             metric_class=metric_class,
+                             sk_metric=partial(sk_metric, sk_fn=sk_fn, average=average),
+                             dist_sync_on_step=dist_sync_on_step,
+                             metric_args={
+                                 "num_classes": num_classes,
+                                 "average": average,
+                                 "multilabel": multilabel,
+                                 "threshold": THRESHOLD
+                             },
+                             check_dist_sync_on_step=False if average == 'macro' else True,
+                             check_batch=False if average == 'macro' else True)

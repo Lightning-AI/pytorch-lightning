@@ -91,7 +91,6 @@ class MetricTester:
         self.poolSize = NUM_PROCESSES
         self.pool = Pool(processes=self.poolSize)
         self.pool.starmap(setup_ddp, [(rank, self.poolSize) for rank in range(self.poolSize)])
-        print('setup called')
 
     def teardown_class(self):
         """ Close pool of workers """

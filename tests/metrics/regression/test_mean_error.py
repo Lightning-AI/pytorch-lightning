@@ -6,7 +6,7 @@ from functools import partial
 from pytorch_lightning.metrics.regression import MeanSquaredError, MeanAbsoluteError, MeanSquaredLogError
 from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_squared_log_error
 
-from tests.metrics.utils import compute_batch, NUM_BATCHES, BATCH_SIZE
+from tests.metrics.utils import NUM_BATCHES, BATCH_SIZE, MetricTester
 
 torch.manual_seed(42)
 
@@ -54,8 +54,21 @@ def _multi_target_sk_metric(preds, target, sk_fn=mean_squared_error):
         (MeanSquaredLogError, mean_squared_log_error),
     ],
 )
-def test_mean_error(ddp, dist_sync_on_step, preds, target, sk_metric, metric_class, sk_fn):
-    compute_batch(preds, target, metric_class, partial(sk_metric, sk_fn=sk_fn), dist_sync_on_step, ddp)
+class TestMeanError(MetricTester):
+    def test_mean_error(self,
+                        ddp,
+                        dist_sync_on_step,
+                        preds,
+                        target,
+                        sk_metric,
+                        metric_class,
+                        sk_fn):
+        self.run_metric_test(ddp=ddp,
+                             preds=preds,
+                             target=target,
+                             metric_class=metric_class,
+                             sk_metric=partial(sk_metric, sk_fn=sk_fn),
+                             dist_sync_on_step=dist_sync_on_step)
 
 
 @pytest.mark.parametrize("metric_class", [MeanSquaredError, MeanAbsoluteError, MeanSquaredLogError])
