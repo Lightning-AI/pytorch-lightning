@@ -397,7 +397,6 @@ def test_different_batch_types_for_sizing(tmpdir):
     expected = {
         'a_epoch', 'a',
         'n', 'n_step/epoch_0', 'n_epoch',
-        'epoch'
     }
 
     assert generated == expected
