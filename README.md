@@ -6,9 +6,6 @@
 **The lightweight PyTorch wrapper for high-performance AI research.    
 Scale your models, not the boilerplate.**
 
-```diff
-- NEWS: Lightning 1.0 is currently in rc and is being released for GA Oct 11!
-```
 ---
 
 <p align="center">
