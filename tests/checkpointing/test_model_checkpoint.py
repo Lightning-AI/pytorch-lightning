@@ -512,3 +512,56 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
 
     # check that last one is also the best one
     assert trainer.dev_debugger.checkpoint_callback_history[-1]['epoch'] == len(monitor) - 1
+
+
+def test_model_torch_save(tmpdir):
+    """Test to ensure torch save does not fail for model and trainer."""
+    model = EvalModelTemplate()
+    num_epochs = 4
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=num_epochs,
+    )
+    temp_path = os.path.join(tmpdir, 'temp.pt')
+    trainer.fit(model)
+
+    # Ensure these do not fail
+    torch.save(trainer.model, temp_path)
+    torch.save(trainer, temp_path)
+
+
+def test_model_torch_save_ddp_cpu(tmpdir):
+    """Test to ensure torch save does not fail for model and trainer using cpu ddp."""
+    model = EvalModelTemplate()
+    num_epochs = 4
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=num_epochs,
+        distributed_backend="ddp_cpu",
+        num_processes=2,
+    )
+    temp_path = os.path.join(tmpdir, 'temp.pt')
+    trainer.fit(model)
+
+    # Ensure these do not fail
+    torch.save(trainer.model, temp_path)
+    torch.save(trainer, temp_path)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_model_torch_save_ddp_cuda(tmpdir):
+    """Test to ensure torch save does not fail for model and trainer using gpu ddp."""
+    model = EvalModelTemplate()
+    num_epochs = 4
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=num_epochs,
+        distributed_backend="ddp",
+        gpus=2
+    )
+    temp_path = os.path.join(tmpdir, 'temp.pt')
+    trainer.fit(model)
+
+    # Ensure these do not fail
+    torch.save(trainer.model, temp_path)
+    torch.save(trainer, temp_path)
