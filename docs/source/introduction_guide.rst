@@ -57,7 +57,7 @@ The research
 The Model
 ---------
 
-The :class:`~pytorch_lightning.core.LightningModule` holds all the core research ingredients:
+The :ref:`lightning_module` holds all the core research ingredients:
 
 - The model
 
@@ -98,7 +98,7 @@ Let's first start with the model. In this case we'll design a 3-layer neural net
         x = F.log_softmax(x, dim=1)
         return x
 
-Notice this is a :class:`~pytorch_lightning.core.LightningModule` instead of a ``torch.nn.Module``. A LightningModule is
+Notice this is a :ref:`lightning_module` instead of a ``torch.nn.Module``. A LightningModule is
 equivalent to a pure PyTorch Module except it has added functionality. However, you can use it **EXACTLY** the same as you would a PyTorch Module.
 
 .. testcode::

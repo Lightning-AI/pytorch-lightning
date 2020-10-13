@@ -59,7 +59,7 @@ Lightning offers automatic log functionalities for logging scalars, or manual lo
 
 Automatic logging
 =================
-Use the :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method to log from anywhere in a :class:`~pytorch_lightning.core.LightningModule`.
+Use the :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method to log from anywhere in a :ref:`lightning_module`.
 
 .. code-block:: python
 

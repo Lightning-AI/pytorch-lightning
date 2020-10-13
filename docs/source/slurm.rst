@@ -17,7 +17,7 @@ Multi-node training
 -------------------
 To train a model using multiple nodes, do the following:
 
-1.  Design your :class:`~pytorch_lightning.core.LightningModule`.
+1.  Design your :ref:`lightning_module`.
 
 2.  Enable ddp in the trainer
 
