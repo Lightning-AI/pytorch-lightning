@@ -199,7 +199,7 @@ class LoggerConnector:
         # log all the metrics as a s single dict
         metrics_to_log = dict(ChainMap(*metrics_to_log))
         if len(metrics_to_log) > 0:
-            self.log_metrics(metrics_to_log, {}, step=self.trainer.global_step)
+            self.log_metrics(metrics_to_log, {}, step=self.trainer.current_epoch)
 
     def __rename_keys_by_dataloader_idx(self, metrics, dataloader_idx, num_loaders):
         if num_loaders == 1:
@@ -356,7 +356,7 @@ class LoggerConnector:
         # --------------------------
         # add the metrics to the loggers and callbacks
         if epoch_log_metrics and len(epoch_log_metrics) > 0:
-            self.log_metrics(epoch_log_metrics, {})
+            self.log_metrics(epoch_log_metrics, {}, step=self.trainer.current_epoch)
             self.callback_metrics.update(epoch_log_metrics)
 
         # add metrics to callbacks
