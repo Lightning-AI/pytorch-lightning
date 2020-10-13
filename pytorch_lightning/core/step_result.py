@@ -476,6 +476,9 @@ class Result(Dict):
             else:
                 tbptt_reduce_fx = meta[k]['tbptt_reduce_fx']
 
+            if isinstance(value, list):
+                value = torch.tensor(value)
+
             if isinstance(value, dict):
                 # TODO: recursive reduce:
                 _recursive_fx_apply(value, tbptt_reduce_fx)
