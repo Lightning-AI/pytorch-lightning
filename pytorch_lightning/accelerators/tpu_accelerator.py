@@ -23,6 +23,7 @@ from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save
+from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 
@@ -73,8 +74,10 @@ class TPUAccelerator(Accelerator):
         # todo, pass also bets score
 
         # load last weights
-        if last_path and not self.trainer.testing:
-            ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
+        #is_master = self.trainer.tpu_local_core_rank == 0 and \
+        #    self.trainer.global_rank == 0
+        if last_path and self.trainer.global_rank == 0 and not self.trainer.testing:
+            ckpt = pl_load(last_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt)
 
         self.trainer.model = model
