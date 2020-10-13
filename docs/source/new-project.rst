@@ -122,7 +122,7 @@ Step 1: Define LightningModule
 
 **SYTEM VS MODEL**
 
-A :class:`~pytorch_lightning.core.LightningModule` defines a *system* not a model.
+A :ref:`lightning_module` defines a *system* not a model.
 
 .. figure:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/model_system.png
     :width: 400
@@ -198,7 +198,7 @@ First, define the data however you want. Lightning just needs a :class:`~torch.u
     dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
     train_loader = DataLoader(dataset)
     
-Next, init the :class:`~pytorch_lightning.core.LightningModule` and the PyTorch Lightning :class:`~pytorch_lightning.trainer.Trainer`,
+Next, init the :ref:`lightning_module` and the PyTorch Lightning :class:`~pytorch_lightning.trainer.Trainer`,
 then call fit with both the data and model.
 
 .. code-block:: python

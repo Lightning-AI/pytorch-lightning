@@ -16,7 +16,7 @@ To enable your code to work with Lightning, here's how to organize PyTorch into 
 
 1. Move your computational code
 ===============================
-Move the model architecture and forward pass to your :class:`~pytorch_lightning.core.LightningModule`.
+Move the model architecture and forward pass to your :ref:`lightning_module`.
 
 .. testcode::
 
@@ -115,4 +115,4 @@ The test loop will not be used until you call.
 
 6. Remove any .cuda() or to.device() calls
 ==========================================
-Your :class:`~pytorch_lightning.core.LightningModule` can automatically run on any hardware!
+Your :ref:`lightning_module` can automatically run on any hardware!
