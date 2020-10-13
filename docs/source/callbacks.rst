@@ -22,7 +22,7 @@ Callback
 A callback is a self-contained program that can be reused across projects.
 
 Lightning has a callback system to execute callbacks when needed. Callbacks should capture NON-ESSENTIAL
-logic that is NOT required for your :class:`~pytorch_lightning.core.LightningModule` to run.
+logic that is NOT required for your :ref:`lightning_module` to run.
 
 Here's the flow of how the callback hooks are executed:
 
@@ -63,7 +63,7 @@ Example:
     trainer is init now
 
 We successfully extended functionality without polluting our super clean
-:class:`~pytorch_lightning.core.LightningModule` research code.
+:ref:`lightning_module` research code.
 
 -----------
 
