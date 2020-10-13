@@ -518,7 +518,7 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
 def test_model_torch_save(tmpdir):
     """Test to ensure torch save does not fail for model and trainer."""
     model = EvalModelTemplate()
-    num_epochs = 4
+    num_epochs = 1
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=num_epochs,
@@ -533,13 +533,10 @@ def test_model_torch_save(tmpdir):
 
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif((platform.system() == "Darwin" and
-                     LooseVersion(torch.__version__) < LooseVersion("1.3.0")),
-                    reason="Distributed training is not supported on MacOS before Torch 1.3.0")
 def test_model_torch_save_ddp_cpu(tmpdir):
     """Test to ensure torch save does not fail for model and trainer using cpu ddp."""
     model = EvalModelTemplate()
-    num_epochs = 4
+    num_epochs = 1
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=num_epochs,
@@ -558,7 +555,7 @@ def test_model_torch_save_ddp_cpu(tmpdir):
 def test_model_torch_save_ddp_cuda(tmpdir):
     """Test to ensure torch save does not fail for model and trainer using gpu ddp."""
     model = EvalModelTemplate()
-    num_epochs = 4
+    num_epochs = 1
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=num_epochs,
