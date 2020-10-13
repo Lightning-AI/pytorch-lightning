@@ -23,6 +23,7 @@ import os
 from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 from pytorch_lightning.metrics import Metric
 
+
 class Result(Dict):
     def __init__(
         self,
@@ -88,6 +89,12 @@ class Result(Dict):
             val = val.detach()
 
         self[key] = val
+
+    def __getstate__(self):
+        return self
+
+    def __setstate__(self, d):
+        self.update(d)
 
     def _assert_tensor_metric(self, name: str, potential_metric: Union[bool, Tensor, None, Any]):
         if potential_metric is not None and not isinstance(potential_metric, bool):

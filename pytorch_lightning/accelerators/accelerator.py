@@ -214,6 +214,20 @@ class Accelerator(object):
                 torch_backend, rank=global_rank, world_size=world_size
             )
 
+    def __getstate__(self):
+        return {
+            'trainer': self.trainer,
+            'nickname': self.nickname,
+            'cluster_environment': self.cluster_environment,
+            'dist': self.dist
+        }
+
+    def __setstate__(self, d):
+        self.trainer = d['trainer']
+        self.nickname = d['nickname']
+        self.cluster_environment = d['cluster_environment']
+        self.dist = d['dist']
+
 
 # TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...
 class BackendType(Enum):
