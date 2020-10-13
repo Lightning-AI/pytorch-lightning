@@ -45,7 +45,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
         [#4064](https://github.com/PyTorchLightning/pytorch-lightning/pull/4064),
         [#4065](https://github.com/PyTorchLightning/pytorch-lightning/pull/4065))
         
-- Renamed all backends to `Accelerator` [#4066](https://github.com/PyTorchLightning/pytorch-lightning/pull/4066))
+- Renamed all backends to `Accelerator` ([#4066](https://github.com/PyTorchLightning/pytorch-lightning/pull/4066))
+
+- Enabled manual returns ([#4089](https://github.com/PyTorchLightning/pytorch-lightning/pull/4089))
 
 ### Deprecated
 
