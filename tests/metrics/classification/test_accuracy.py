@@ -1,14 +1,11 @@
-import os
 import pytest
 import torch
 import numpy as np
-from collections import namedtuple
-from functools import partial
 
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
 from sklearn.metrics import accuracy_score
 
-from tests.metrics.utils import compute_batch, setup_ddp, MetricTester
+from tests.metrics.utils import MetricTester
 from tests.metrics.utils import THRESHOLD
 
 from tests.metrics.classification.utils import (
@@ -109,12 +106,11 @@ def test_accuracy_invalid_shape():
 ])
 class TestAccuracy(MetricTester):
     def test_accuracy(self, ddp, dist_sync_on_step, preds, target, sk_metric):
-        compute_batch(
-            preds,
-            target,
-            Accuracy,
-            sk_metric,
-            dist_sync_on_step,
-            ddp,
-            metric_args={"threshold": THRESHOLD}
+        self.run_metric_test(ddp=ddp,
+                             preds=preds,
+                             target=target,
+                             metric_class=Accuracy,
+                             sk_metric=sk_metric,
+                             dist_sync_on_step=dist_sync_on_step,
+                             metric_args={"threshold": THRESHOLD}
         )

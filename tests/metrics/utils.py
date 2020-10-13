@@ -3,6 +3,8 @@ import sys
 import pytest
 import pickle
 from typing import Callable
+from torch.multiprocessing import Pool, set_start_method
+from functools import partial
 
 import torch
 import numpy as np
@@ -21,17 +23,19 @@ def setup_ddp(rank, world_size):
     """ Setup ddp enviroment """
     os.environ["MASTER_ADDR"] = 'localhost'
     os.environ['MASTER_PORT'] = '8088'
-    torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
+
+    if torch.distributed.is_available():
+        torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
 
 
 def _compute_batch(
     rank: int,
+    worldsize: int,
     preds: torch.Tensor,
     target: torch.Tensor,
     metric_class: Metric,
     sk_metric: Callable,
     dist_sync_on_step: bool,
-    worldsize: int = 1,
     metric_args: dict = {},
     check_dist_sync_on_step: bool = True,
     check_batch: bool = True,
@@ -45,10 +49,6 @@ def _compute_batch(
     # verify metrics work after being loaded from pickled state
     pickled_metric = pickle.dumps(metric)
     metric = pickle.loads(pickled_metric)
-
-    # Only use ddp if world size
-    if worldsize > 1:
-        setup_ddp(rank, worldsize)
 
     for i in range(rank, NUM_BATCHES, worldsize):
         batch_result = metric(preds[i], target[i])
@@ -78,68 +78,58 @@ def _compute_batch(
     # assert after aggregation
     assert np.allclose(result.numpy(), sk_result)
 
+
 class MetricTester:
-    def setup_class(cls):
-        if sys.platform == 'win32':
-            return
-        torch.multiprocessing.spawn(setup_ddp, args=(NUM_PROCESSES,), nprocs=NUM_PROCESSES)
+    def setup_class(self):
+        """ Setup the metric class. This will spawn the pool of workers that are
+            used for metric testing and setup_ddp
+        """
+        try:
+            set_start_method('spawn')
+        except RuntimeError:
+            pass
+        self.poolSize = NUM_PROCESSES
+        self.pool = Pool(processes=self.poolSize)
+        self.pool.starmap(setup_ddp, [(rank, self.poolSize) for rank in range(self.poolSize)])
+        print('setup called')
 
+    def teardown_class(self):
+        """ Close pool of workers """
+        self.pool.close()
+        self.pool.join()
 
-def compute_batch(
-    preds: torch.Tensor,
-    target: torch.Tensor,
-    metric_class: Metric,
-    sk_metric: Callable,
-    dist_sync_on_step: bool,
-    ddp: bool = False,
-    metric_args: dict = {},
-    check_dist_sync_on_step: bool = True,
-    check_batch: bool = True,
-):
-    """ Utility function for comparing the result between a lightning class
-        metric and another metric (often sklearns)
+    def run_metric_test(self,
+                        ddp: bool,
+                        preds: torch.Tensor,
+                        target: torch.Tensor,
+                        metric_class: Metric,
+                        sk_metric: Callable,
+                        dist_sync_on_step: bool,
+                        metric_args: dict = {},
+                        check_dist_sync_on_step: bool = True,
+                        check_batch: bool = True):
+        if ddp:
+            if sys.platform == "win32":
+                pytest.skip("DDP not supported on windows")
 
-        Args:
-            preds: prediction tensor
-            target: target tensor
-            metric_class: lightning metric class to test
-            sk_metric: function to compare with
-            dist_sync_on_step: bool, determine if values should be reduce on step
-            ddp: bool, determine if test should run in ddp mode
-            metric_args: dict, additional kwargs that are use when instanciating
-                the lightning metric
-            check_dist_sync_on_step: assert for dist_sync_on_step
-            check_batch: assert for each batch
-    """
-    if ddp:
-        if sys.platform == "win32":
-            pytest.skip("DDP not supported on windows")
-
-        torch.multiprocessing.spawn(
-            _compute_batch, args=(
-                preds,
-                target,
-                metric_class,
-                sk_metric,
-                dist_sync_on_step,
-                NUM_PROCESSES,
-                metric_args,
-                check_dist_sync_on_step,
-                check_batch,
-            ),
-            nprocs=NUM_PROCESSES
-        )
-    else:
-        # first args: rank, last args: world size
-        _compute_batch(
-            rank=0,
-            preds=preds,
-            target=target,
-            metric_class=metric_class,
-            sk_metric=sk_metric,
-            dist_sync_on_step=dist_sync_on_step,
-            worldsize=1,
-            metric_args=metric_args,
-            check_dist_sync_on_step=check_dist_sync_on_step,
-            check_batch=check_batch,
-        )
+            self.pool.starmap(
+                partial(_compute_batch,
+                        preds=preds,
+                        target=target,
+                        metric_class=metric_class,
+                        sk_metric=sk_metric,
+                        dist_sync_on_step=dist_sync_on_step,
+                        metric_args=metric_args,
+                        check_dist_sync_on_step=check_dist_sync_on_step,
+                        check_batch=check_batch),
+                [(rank, self.poolSize) for rank in range(self.poolSize)])
+        else:
+            _compute_batch(0, 1,
+                           preds=preds,
+                           target=target,
+                           metric_class=metric_class,
+                           sk_metric=sk_metric,
+                           dist_sync_on_step=dist_sync_on_step,
+                           metric_args=metric_args,
+                           check_dist_sync_on_step=check_dist_sync_on_step,
+                           check_batch=check_batch)
