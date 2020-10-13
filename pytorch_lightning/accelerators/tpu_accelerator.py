@@ -76,6 +76,8 @@ class TPUAccelerator(Accelerator):
         # load last weights
         #is_master = self.trainer.tpu_local_core_rank == 0 and \
         #    self.trainer.global_rank == 0
+        print('my rank is: {}'.format(self.trainer.global_rank))
+        rank_zero_info('My rank is: {}'.format(self.trainer.global_rank))
         if last_path and self.trainer.global_rank == 0 and not self.trainer.testing:
             ckpt = pl_load(last_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt)
