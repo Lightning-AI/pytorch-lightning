@@ -46,7 +46,7 @@ def test_model_torch_save_ddp_cpu(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=num_epochs,
-        distributed_backend="ddp_cpu",
+        accelerator="ddp_cpu",
         num_processes=2,
     )
     temp_path = os.path.join(tmpdir, 'temp.pt')
@@ -65,7 +65,7 @@ def test_model_torch_save_ddp_cuda(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=num_epochs,
-        distributed_backend="ddp",
+        accelerator="ddp_spawn",
         gpus=2
     )
     temp_path = os.path.join(tmpdir, 'temp.pt')
