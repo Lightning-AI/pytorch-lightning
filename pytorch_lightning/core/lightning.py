@@ -107,7 +107,7 @@ class LightningModule(
         # optionally can be set by user
         self._example_input_array = None
         self._datamodule = None
-        self._results: Result = None
+        self._results: Optional[Result] = None
         self._current_fx_name = ''
 
     def optimizers(self):
