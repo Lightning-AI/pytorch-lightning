@@ -23,6 +23,7 @@ steps:
   image: pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.6
 
   environment:
+    WORLD_SIZE: 2
     SLURM_LOCALID: 0
     CODECOV_TOKEN:
       from_secret: codecov_token
