@@ -65,7 +65,7 @@ The :ref:`lightning_module` holds all the core research ingredients:
 
 - The train/ val/ test steps
 
-Let's first start with the model. In this case we'll design a 3-layer neural network.
+Let's first start with the model. In this case, we'll design a 3-layer neural network.
 
 .. testcode::
 
@@ -215,7 +215,7 @@ DataLoaders are already in the model, no need to specify on .fit().
 
 3. DataModules (recommended)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Defining free-floating dataloaders, splits, download instructions and such can get messy.
+Defining free-floating dataloaders, splits, download instructions, and such can get messy.
 In this case, it's better to group the full definition of a dataset into a `DataModule` which includes:
 
 - Download instructions
@@ -365,7 +365,7 @@ The training step is what happens inside the training loop.
             optimizer.step()
             optimizer.zero_grad()
 
-In the case of MNIST we do the following
+In the case of MNIST, we do the following
 
 .. code-block:: python
 
@@ -461,8 +461,8 @@ The :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method has a 
 - prog_bar (logs to the progress bar)
 - logger (logs to the logger like Tensorboard)
 
-Depending on where log is called from, Lightning auto-determines the correct mode for you. But of course
-you can override the default behavior by manually setting the flags
+Depending on where the log is called from, Lightning auto-determines the correct mode for you. But of course
+you can override the default behavior by manually setting the flags.
 
 .. note:: Setting on_epoch=True will accumulate your logged values over the full training epoch.
 
@@ -581,7 +581,7 @@ of this program. This means that without taking any care you will download the d
 will cause all sorts of issues.
 
 To solve this problem, make sure your download code is in the ``prepare_data`` method in the DataModule.
-In this method we do all the preparation we need to do once (instead of on every gpu).
+In this method we do all the preparation we need to do once (instead of on every GPU).
 
 ``prepare_data`` can be called in two ways, once per node or only on the root node
 (``Trainer(prepare_data_per_node=False)``).
@@ -660,7 +660,7 @@ For most cases, we stop training the model when the performance on a validation
 split of the data reaches a minimum.
 
 Just like the ``training_step``, we can define a ``validation_step`` to check whatever
-metrics we care about, generate samples or add more to our logs.
+metrics we care about, generate samples, or add more to our logs.
 
 .. code-block:: python
 
@@ -680,9 +680,9 @@ Now we can train with a validation loop as well.
 
 You may have noticed the words **Validation sanity check** logged. This is because Lightning runs 2 batches
 of validation before starting to train. This is a kind of unit test to make sure that if you have a bug
-in the validation loop, you won't need to potentially wait a full epoch to find out.
+in the validation loop, you won't need to potentially wait for a full epoch to find out.
 
-.. note:: Lightning disables gradients, puts model in eval mode and does everything needed for validation.
+.. note:: Lightning disables gradients, puts model in eval mode, and does everything needed for validation.
 
 Val loop under the hood
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -779,7 +779,7 @@ You can also run the test from a saved lightning model
     trainer = Trainer(tpu_cores=8)
     trainer.test(model)
 
-.. note:: Lightning disables gradients, puts model in eval mode and does everything needed for testing.
+.. note:: Lightning disables gradients, puts model in eval mode, and does everything needed for testing.
 
 .. warning:: .test() is not stable yet on TPUs. We're working on getting around the multiprocessing challenges.
 
@@ -886,7 +886,7 @@ prediction.
 
 ----------------
 
-The non essentials
+The nonessentials
 ==================
 
 Extensibility
@@ -897,7 +897,7 @@ Lightning offers multiple ways of managing the training state.
 Training overrides
 ^^^^^^^^^^^^^^^^^^
 
-Any part of the training, validation and testing loop can be modified.
+Any part of the training, validation, and testing loop can be modified.
 For instance, if you wanted to do your own backward pass, you would override the
 default implementation
 
@@ -975,7 +975,7 @@ a. Less boilerplate
 ===================
 
 Research and production code starts with simple code, but quickly grows in complexity
-once you add gpu training, 16-bit, checkpointing, logging, etc...
+once you add GPU training, 16-bit, checkpointing, logging, etc...
 
 PyTorch Lightning implements these features for you and tests them rigorously to make sure you can
 instead focus on the research idea.
@@ -994,12 +994,12 @@ research engs and PhDs from the world's top AI labs,
 implementing all the latest best practices and SOTA features such as
 
 - GPU, Multi GPU, TPU training
-- Multi node training
+- Multi-node training
 - Auto logging
 - ...
 - Gradient accumulation
 
-c. Less error prone
+c. Less error-prone
 ===================
 
 Why re-invent the wheel?
@@ -1096,7 +1096,7 @@ In Lightning this code is organized into :ref:`callbacks`.
 Data code
 =========
 Lightning uses standard PyTorch DataLoaders or anything that gives a batch of data.
-This code tends to end up getting messy with transforms, normalization constants and data splitting
+This code tends to end up getting messy with transforms, normalization constants, and data splitting
 spread all over files.
 
 .. code-block:: python
@@ -1114,7 +1114,7 @@ spread all over files.
     # dataloader ...
     # download with dist.barrier() for multi-gpu, etc...
 
-This code gets specially complicated once you start doing multi-gpu training or needing info about
+This code gets especially complicated once you start doing multi-GPU training or needing info about
 the data to build your models.
 
 In Lightning this code is organized inside a :ref:`datamodules`.

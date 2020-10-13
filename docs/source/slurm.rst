@@ -19,7 +19,7 @@ To train a model using multiple nodes, do the following:
 
 1.  Design your :ref:`lightning_module`.
 
-2.  Enable ddp in the trainer
+2.  Enable DDP in the trainer
 
     .. code-block:: python
 
@@ -76,7 +76,7 @@ To train a model using multiple nodes, do the following:
         # set the network interface
         # export NCCL_SOCKET_IFNAME=^docker0,lo
 
-        # might need the latest cuda
+        # might need the latest CUDA
         # module load NCCL/2.4.7-1-cuda.10.0
 
         # run script from above
@@ -172,7 +172,7 @@ See also the multi-node examples
     # which interface your nodes use for communication
     cluster.add_command('export NCCL_SOCKET_IFNAME=^docker0,lo')
 
-    # see output of the NCCL connection process
+    # see the output of the NCCL connection process
     # NCCL is how the nodes talk to each other
     cluster.add_command('export NCCL_DEBUG=INFO')
 

@@ -6,7 +6,7 @@
 
 16-bit training
 =================
-Lightning offers 16-bit training for CPUs, GPUs and TPUs.
+Lightning offers 16-bit training for CPUs, GPUs, and TPUs.
 
 .. raw:: html
 
@@ -21,7 +21,7 @@ Lightning offers 16-bit training for CPUs, GPUs and TPUs.
 
 GPU 16-bit
 ----------
-16 bit precision can cut your memory footprint by half.
+16-bit precision can cut your memory footprint by half.
 If using volta architecture GPUs it can give a dramatic training speed-up as well.
 
 .. note:: PyTorch 1.6+ is recommended for 16-bit
@@ -52,13 +52,13 @@ To use 16-bit precision, do two things:
     $ cd apex
 
     # ------------------------
-    # OPTIONAL: on your cluster you might need to load cuda 10 or 9
+    # OPTIONAL: on your cluster you might need to load CUDA 10 or 9
     # depending on how you installed PyTorch
 
     # see available modules
     module avail
 
-    # load correct cuda before install
+    # load correct CUDA before install
     module load cuda-10.0
     # ------------------------
 
@@ -85,7 +85,7 @@ If you need to configure the apex init for your particular use case or want to u
 
 TPU 16-bit
 ----------
-16-bit on TPus is much simpler. To use 16-bit with TPUs set precision to 16 when using the tpu flag
+16-bit on TPUs is much simpler. To use 16-bit with TPUs set precision to 16 when using the TPU flag
 
 .. testcode::
     :skipif: not XLA_AVAILABLE
