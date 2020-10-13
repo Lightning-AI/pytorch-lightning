@@ -50,41 +50,24 @@ class LitTextSentiment(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, offset, y = batch
-        #x,offset,y = self.generate_batch(batch)
-        #y_hat = self(x)
         y_hat = self(x,offset)
         loss = F.cross_entropy(y_hat, y)
         return loss
 
     def validation_step(self, batch, batch_idx):
         x,offset,y = batch
-        #x,offset,y = self.generate_batch(batch)
-        #y_hat = self(x)
         y_hat = self(x,offset)
         loss = F.cross_entropy(y_hat, y)
         self.log('valid_loss', loss)
 
     def test_step(self, batch, batch_idx):
         x,offset,y = batch
-        #x,offset,y = self.generate_batch(batch)
-        #y_hat = self(x)
         y_hat = self(x,offset)
         loss = F.cross_entropy(y_hat, y)
         self.log('test_loss', loss)
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
-
-    def generate_batch(self, batch):
-        label = torch.tensor([entry[0] for entry in batch])
-        text = [entry[1] for entry in batch]
-        offsets = [0] + [len(entry) for entry in text]
-        # torch.Tensor.cumsum returns the cumulative sum
-        # of elements in the dimension dim.
-
-        offsets = torch.tensor(offsets[:-1]).cumsum(dim=0)
-        text = torch.cat(text)
-        return text, offsets, label
+        return torch.optim.SGD(self.parameters(), lr=self.hparams.learning_rate)
 
     @staticmethod
     def add_model_specific_args(parent_parser):
@@ -92,6 +75,15 @@ class LitTextSentiment(pl.LightningModule):
         parser.add_argument('--learning_rate', type=float, default=0.0001)
         return parser
 
+
+
+def generate_batch(batch):
+        label = torch.tensor([entry[0] for entry in batch])
+        text = [entry[1] for entry in batch]
+        offsets = [0] + [len(entry) for entry in text]
+        offsets = torch.tensor(offsets[:-1]).cumsum(dim=0)
+        text = torch.cat(text)
+        return text, offsets, label
 
 def run():
     pl.seed_everything(1234)
@@ -111,12 +103,11 @@ def run():
     # ------------
 
     train_dataset, test_dataset = text_classification.DATASETS['AG_NEWS'](root='./.data', ngrams=NGRAMS, vocab=None)
-    #print(len(train_dataset)) 
     X_train, X_val = random_split(train_dataset, [100000, 20000])
 
-    train_loader = DataLoader(X_train, batch_size=args.batch_size)
-    val_loader = DataLoader(X_val, batch_size=args.batch_size)
-    test_loader = DataLoader(test_dataset, batch_size=args.batch_size)
+    train_loader = DataLoader(X_train, batch_size=args.batch_size, collate_fn=generate_batch)
+    val_loader = DataLoader(X_val, batch_size=args.batch_size, collate_fn=generate_batch)
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, collate_fn=generate_batch)
 
     VOCAB_SIZE = len(train_dataset.get_vocab())
     EMBED_DIM = 32
