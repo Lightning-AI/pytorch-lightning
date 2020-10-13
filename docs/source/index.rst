@@ -82,6 +82,7 @@ PyTorch Lightning Documentation
    :name: Common Use Cases
    :caption: Common Use Cases
 
+   cloud_training
    amp
    slurm
    child_modules
@@ -89,7 +90,6 @@ PyTorch Lightning Documentation
    loggers
    early_stopping
    fast_training
-   hooks
    hyperparameters
    lr_finder
    multi_gpu
