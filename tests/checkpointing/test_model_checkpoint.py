@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from distutils.version import LooseVersion
 from unittest.mock import MagicMock, Mock
 
 import yaml
@@ -530,6 +531,11 @@ def test_model_torch_save(tmpdir):
     torch.save(trainer, temp_path)
 
 
+@pytest.mark.skipif(platform.system() == "Windows",
+                    reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif((platform.system() == "Darwin" and
+                     LooseVersion(torch.__version__) < LooseVersion("1.3.0")),
+                    reason="Distributed training is not supported on MacOS before Torch 1.3.0")
 def test_model_torch_save_ddp_cpu(tmpdir):
     """Test to ensure torch save does not fail for model and trainer using cpu ddp."""
     model = EvalModelTemplate()
