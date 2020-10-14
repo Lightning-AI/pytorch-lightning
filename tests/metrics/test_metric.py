@@ -1,11 +1,11 @@
+import pickle
+
+import cloudpickle
+import numpy as np
 import pytest
 import torch
-from pytorch_lightning.metrics.metric import Metric
-import os
-import numpy as np
 
-import pickle
-import cloudpickle
+from pytorch_lightning.metrics.metric import Metric
 
 torch.manual_seed(42)
 

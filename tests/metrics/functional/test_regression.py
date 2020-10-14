@@ -1,8 +1,9 @@
+from functools import partial
+from math import sqrt
+
 import numpy as np
 import pytest
 import torch
-from functools import partial
-from math import sqrt
 from skimage.metrics import (
     peak_signal_noise_ratio as ski_psnr,
     structural_similarity as ski_ssim
