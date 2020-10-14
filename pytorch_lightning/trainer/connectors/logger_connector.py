@@ -20,7 +20,7 @@ from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pprint import pprint
-from typing import Iterable
+from typing import Iterable, Optional, Union
 from copy import deepcopy
 from collections import ChainMap
 
@@ -171,11 +171,17 @@ class LoggerConnector:
         # --------------------------------
         # each dataloader aggregated metrics
         # now we log all of them
+
+        device = None
+
+        if self.trainer.distributed_backend == 'dp':
+            device = self.trainer.root_gpu
+
         for dl_idx, dl_metrics in enumerate(step_metrics):
             if len(dl_metrics) == 0:
                 continue
 
-            reduced_epoch_metrics = dl_metrics[0].__class__.reduce_on_epoch_end(dl_metrics)
+            reduced_epoch_metrics = dl_metrics[0].__class__.reduce_on_epoch_end(dl_metrics, device=device)
             # make the keys 'k/dl'
             reduced_epoch_metrics = self.__rename_keys_by_dataloader_idx(reduced_epoch_metrics, dl_idx, num_loaders)
 
@@ -438,7 +444,7 @@ class LoggerConnector:
 
         return epoch_log_metrics, epoch_progress_bar_metrics, epoch_callback_metrics
 
-    def __auto_reduce_results_on_epoch_end(self, epoch_output):
+    def __auto_reduce_results_on_epoch_end(self, epoch_output, device: Optional[Union[str, torch.device]] = None):
         epoch_log_metrics = {}
         epoch_progress_bar_metrics = {}
         for opt_outputs in epoch_output:
@@ -454,7 +460,7 @@ class LoggerConnector:
                 continue
 
             # reduce across training steps
-            opt_outputs = time_reduced_outputs[0].__class__.reduce_on_epoch_end(time_reduced_outputs)
+            opt_outputs = time_reduced_outputs[0].__class__.reduce_on_epoch_end(time_reduced_outputs, device=device)
 
             # with manual opt need 1+ metrics because meta is always there
             if opt_outputs.minimize is not None:
