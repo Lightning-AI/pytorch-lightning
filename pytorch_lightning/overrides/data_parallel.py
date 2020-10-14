@@ -169,7 +169,7 @@ class LightningDistributedDataParallel(DistributedDataParallel):
         #
         # not necessary, when parameters did not change. 
         # this is true, if the last step was doing backward
-        if self.module.trainer.batch_idx % self.module.trainer.accumulate_grad_batches == 0:
+        if (self.module.trainer.batch_idx + 1) % self.module.trainer.accumulate_grad_batches == 0:
             self._sync_params()
         fx_called: str = ''
 
