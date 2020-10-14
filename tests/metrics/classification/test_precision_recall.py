@@ -8,7 +8,7 @@ import torch
 from sklearn.metrics import precision_score, recall_score
 
 from pytorch_lightning.metrics import Precision, Recall
-from tests.metrics.classification.utils import (
+from tests.metrics.classification.inputs import (
     _binary_inputs,
     _binary_prob_inputs,
     _multiclass_inputs,
