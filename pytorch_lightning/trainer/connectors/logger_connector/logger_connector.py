@@ -15,7 +15,7 @@ import os
 from collections import ChainMap
 from copy import deepcopy
 from pprint import pprint
-from typing import Iterable, Union, cast
+from typing import Iterable, Union, Optional
 
 import torch
 
@@ -288,11 +288,88 @@ class LoggerConnector:
         self.eval_loop_results = []
         return results
 
+    def _log_on_evaluation_epoch_end_metrics(self, epoch_logs):
+        step_metrics = self.trainer.evaluation_loop.step_metrics
+
+        num_loaders = len(step_metrics)
+
+        # clear mem
+        self.trainer.evaluation_loop.step_metrics = []
+
+        if self.trainer.running_sanity_check:
+            return
+
+        # track all metrics we want to log
+        metrics_to_log = []
+
+        # ---------------------------
+        # UPDATE EPOCH LOGGED METRICS
+        # ---------------------------
+        # (ie: in methods at the val_epoch_end level)
+        # union the epoch logs with whatever was returned from loaders and reduced
+        epoch_logger_metrics = epoch_logs.get_epoch_log_metrics()
+        epoch_pbar_metrics = epoch_logs.get_epoch_pbar_metrics()
+
+        self.logged_metrics.update(epoch_logger_metrics)
+        self.add_progress_bar_metrics(epoch_pbar_metrics)
+
+        # enable the metrics to be monitored
+        self.callback_metrics.update(epoch_logger_metrics)
+        self.callback_metrics.update(epoch_pbar_metrics)
+
+        if len(epoch_logger_metrics) > 0:
+            metrics_to_log.append(epoch_logger_metrics)
+
+        # --------------------------------
+        # UPDATE  METRICS PER DATALOADER
+        # --------------------------------
+        # each dataloader aggregated metrics
+        # now we log all of them
+
+        device = None
+
+        if self.trainer.distributed_backend == 'dp':
+            device = self.trainer.root_gpu
+
+        for dl_idx, dl_metrics in enumerate(step_metrics):
+            if len(dl_metrics) == 0:
+                continue
+
+            reduced_epoch_metrics = dl_metrics[0].__class__.reduce_on_epoch_end(dl_metrics, device=device)
+            # make the keys 'k/dl'
+            reduced_epoch_metrics = self.__rename_keys_by_dataloader_idx(reduced_epoch_metrics, dl_idx, num_loaders)
+
+            # track the metrics
+            logger_metrics = reduced_epoch_metrics.get_epoch_log_metrics()
+            pbar_metrics = reduced_epoch_metrics.get_epoch_pbar_metrics()
+            self.logged_metrics.update(logger_metrics)
+            self.add_progress_bar_metrics(pbar_metrics)
+
+            # enable the metrics to be monitored
+            self.callback_metrics.update(logger_metrics)
+            self.callback_metrics.update(pbar_metrics)
+
+            # track the final results for the dataloader
+            self.eval_loop_results.append(deepcopy(self.callback_metrics))
+
+            # actually log
+            if len(epoch_logger_metrics) > 0:
+                metrics_to_log.append(epoch_logger_metrics)
+
+        # log all the metrics as a s single dict
+        metrics_to_log = dict(ChainMap(*metrics_to_log))
+        if len(metrics_to_log) > 0:
+            self.log_metrics(metrics_to_log, {}, step=self.trainer.global_step)
+
+    def __rename_keys_by_dataloader_idx(self, metrics, dataloader_idx, num_loaders):
+        if num_loaders == 1:
+            return metrics
+
+        result = {f'{k}/dataloader_idx_{dataloader_idx}': v for k, v in metrics.items()}
+        return result
+
     def _track_callback_metrics(self, eval_results, using_eval_result):
-        if (
-                len(eval_results) > 0 and
-                (eval_results[0] is None or not isinstance(eval_results[0], Result))
-        ):
+        if len(eval_results) > 0 and (eval_results[0] is None or not isinstance(eval_results[0], Result)):
             return
 
         if using_eval_result:
@@ -388,11 +465,13 @@ class LoggerConnector:
         # inform cached logger connector epoch finished
         self.cached_results.has_batch_loop_finished = True
 
-    def log_train_epoch_end_metrics(self,
-                                    epoch_output,
-                                    checkpoint_accumulator,
-                                    early_stopping_accumulator,
-                                    num_optimizers):
+    def log_train_epoch_end_metrics(
+            self,
+            epoch_output,
+            checkpoint_accumulator,
+            early_stopping_accumulator,
+            num_optimizers,
+    ):
         # epoch output is a list. Each item in that list has all the outputs per optimizer
         # epoch_output[optimizer_idx][training_step_idx][tbptt_index]
         # remember that not using truncated backprop is equivalent with truncated back prop of len(1)
@@ -542,7 +621,7 @@ class LoggerConnector:
 
         return epoch_log_metrics, epoch_progress_bar_metrics, epoch_callback_metrics
 
-    def __auto_reduce_results_on_epoch_end(self, epoch_output):
+    def __auto_reduce_results_on_epoch_end(self, epoch_output, device: Optional[Union[str, torch.device]] = None):
         epoch_log_metrics = {}
         epoch_progress_bar_metrics = {}
         for opt_outputs in epoch_output:
@@ -557,7 +636,7 @@ class LoggerConnector:
                 continue
 
             # reduce across training steps
-            opt_outputs = time_reduced_outputs[0].__class__.reduce_on_epoch_end(time_reduced_outputs)
+            opt_outputs = time_reduced_outputs[0].__class__.reduce_on_epoch_end(time_reduced_outputs, device=device)
 
             # with manual opt need 1 + metrics because meta is always there
             if opt_outputs.minimize is not None:
