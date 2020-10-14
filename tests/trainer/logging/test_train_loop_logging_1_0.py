@@ -403,11 +403,9 @@ def test_different_batch_types_for_sizing(tmpdir):
     assert generated == expected
 
 
-def test_validation_step_with_string_data_logging():
-    class TestModel(BoringModel):
-        def on_train_epoch_start(self) -> None:
-            print("override any method to prove your bug")
+def test_validation_step_with_string_data_logging(tmpdir):
 
+    class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             output = self.layer(batch["x"])
             loss = self.loss(batch, output)
@@ -426,7 +424,7 @@ def test_validation_step_with_string_data_logging():
     # model
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=os.getcwd(),
+        default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=1,
