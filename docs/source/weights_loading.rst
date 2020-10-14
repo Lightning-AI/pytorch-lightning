@@ -68,7 +68,7 @@ You can customize the checkpointing behavior to monitor any quantity of your tra
     # 4. Pass your callback to checkpoint_callback trainer flag
     trainer = Trainer(checkpoint_callback=checkpoint_callback)
 
-You can also control more advanced options, like `save_top_k`, to save the best k models and the mode of the monitored quantity (min/max/auto, where the mode is automatically inferred from the name of the monitored quantity), `save_weights_only` or `period` to set the interval of epochs between checkpoints, to avoid slowdowns.
+You can also control more advanced options, like `save_top_k`, to save the best k models and the mode of the monitored quantity (min/max/auto, where the mode is automatically inferred from the name of the monitored quantity), `save_weights_only` or `period` to set the interval of epochs between checkpoints, to avoid slowdowns. In addition, inferred from the name of the monitored quantity means val_acc should be max. For val_loss this should be min, etc. In auto mode, the direction is automatically inferred from the name of the monitored quantity.
 
 .. code-block:: python
 
