@@ -29,8 +29,10 @@ NGRAMS = 2
 Pytorch equivalent 
 https://github.com/pytorch/tutorials/blob/master/beginner_source/text_sentiment_ngrams_tutorial.py
 '''
+
+
 class LitTextSentiment(pl.LightningModule):
-    def __init__(self, vocab_size, embed_dim, num_class, learning_rate=1e-3):
+    def __init__(self, vocab_size, num_class, embed_dim = 32, learning_rate=1e-3):
         super().__init__()
         self.save_hyperparameters()
         self.embedding = nn.EmbeddingBag(vocab_size, embed_dim, sparse=True)
@@ -47,22 +49,21 @@ class LitTextSentiment(pl.LightningModule):
         embedded = self.embedding(text, offsets)
         return self.fc(embedded)
 
-
     def training_step(self, batch, batch_idx):
         x, offset, y = batch
-        y_hat = self(x,offset)
+        y_hat = self(x, offset)
         loss = F.cross_entropy(y_hat, y)
         return loss
 
     def validation_step(self, batch, batch_idx):
         x,offset,y = batch
-        y_hat = self(x,offset)
+        y_hat = self(x, offset)
         loss = F.cross_entropy(y_hat, y)
         self.log('valid_loss', loss)
 
     def test_step(self, batch, batch_idx):
         x,offset,y = batch
-        y_hat = self(x,offset)
+        y_hat = self(x, offset)
         loss = F.cross_entropy(y_hat, y)
         self.log('test_loss', loss)
 
@@ -73,8 +74,8 @@ class LitTextSentiment(pl.LightningModule):
     def add_model_specific_args(parent_parser):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
         parser.add_argument('--learning_rate', type=float, default=0.0001)
+        parser.add_argument('--embed_dim', type=int, default=32)
         return parser
-
 
 
 def generate_batch(batch):
@@ -85,6 +86,7 @@ def generate_batch(batch):
         text = torch.cat(text)
         return text, offsets, label
 
+
 def run():
     pl.seed_everything(1234)
 
@@ -93,7 +95,6 @@ def run():
     # ------------
     parser = ArgumentParser()
     parser.add_argument('--batch_size', default=32, type=int)
-    #parser.add_argument('--hidden_dim', type=int, default=128)
     parser = pl.Trainer.add_argparse_args(parser)
     parser = LitTextSentiment.add_model_specific_args(parser)
     args = parser.parse_args()
@@ -101,27 +102,22 @@ def run():
     # ------------
     # data
     # ------------
-
     train_dataset, test_dataset = text_classification.DATASETS['AG_NEWS'](root='./.data', ngrams=NGRAMS, vocab=None)
     X_train, X_val = random_split(train_dataset, [100000, 20000])
-
     train_loader = DataLoader(X_train, batch_size=args.batch_size, collate_fn=generate_batch)
     val_loader = DataLoader(X_val, batch_size=args.batch_size, collate_fn=generate_batch)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, collate_fn=generate_batch)
-
     VOCAB_SIZE = len(train_dataset.get_vocab())
-    EMBED_DIM = 32
-    NUN_CLASS = len(train_dataset.get_labels())
+    NUM_CLASS = len(train_dataset.get_labels())
 
     # ------------
     # model
     # ------------
-    model = LitTextSentiment(VOCAB_SIZE, EMBED_DIM, NUN_CLASS, args.learning_rate)
+    model = LitTextSentiment(VOCAB_SIZE, NUM_CLASS, args.embed_dim, args.learning_rate)
 
     # ------------
     # training
     # ------------
-    #trainer = pl.Trainer.from_argparse_args(args)
     trainer = pl.Trainer(fast_dev_run=True, weights_summary='full')
     trainer.fit(model, train_loader, val_loader)
 

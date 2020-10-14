@@ -1,2 +1,3 @@
 torchvision>=0.4.1
+torchtext>=0.7.0
 gym>=0.17.0
