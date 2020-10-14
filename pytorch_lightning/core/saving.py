@@ -382,7 +382,7 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
         except TypeError as err:
             warn(f"Skipping '{k}' parameter because it is not possible to safely dump to YAML.")
         else:
-            hparams[k] = v
+            hparams_allowed[k] = v
 
     # saving the standard way
     with fs.open(config_yaml, "w", newline="") as fp:
