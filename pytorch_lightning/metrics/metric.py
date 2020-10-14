@@ -254,7 +254,7 @@ class Metric(nn.Module, ABC):
             raise RuntimeError('Predictions and targets are expected to have the same shape')
 
 
-class MetricCollection(nn.Module, ABC, Mapping):
+class MetricCollection(nn.Module, Mapping):
     """
     MetricCollection class can be used to chain metrics that have the same
     call pattern into one single class.

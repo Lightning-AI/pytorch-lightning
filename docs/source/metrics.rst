@@ -144,20 +144,9 @@ Example implementation:
         def compute(self):
             return self.correct.float() / self.total
 
-**********
-Metric API
-**********
-
-.. autoclass:: pytorch_lightning.metrics.Metric
-    :noindex:
-
-*************
-Class metrics
-*************
-
-
+****************
 MetricCollection
-^^^^^^^^^^^^^^^^
+****************
 
 In many cases it is beneficial to evaluate the model output by multiple metrics.
 In this case the `MetricCollection` class may come in handy. It accepts a sequence
@@ -210,6 +199,17 @@ inside your LightningModule
 .. autoclass:: pytorch_lightning.metrics.MetricCollection
     :noindex:
 
+
+**********
+Metric API
+**********
+
+.. autoclass:: pytorch_lightning.metrics.Metric
+    :noindex:
+
+*************
+Class metrics
+*************
 
 Classification Metrics
 ----------------------
