@@ -202,11 +202,11 @@ class LoggerConnector:
             self.log_metrics(metrics_to_log, {}, step=self.trainer.global_step)
 
     def __rename_keys_by_dataloader_idx(self, metrics, dataloader_idx, num_loaders):
-        if num_loaders == 1:
-            return metrics
-
-        result = {f'{k}/dataloader_idx_{dataloader_idx}': v for k, v in metrics.items()}
-        return result
+        if num_loaders != 1:
+            for k in metrics:
+                v = metrics.pop(k)
+                metrics[f'{k}/dataloader_idx_{dataloader_idx}'] = v
+        return metrics
 
     def _track_callback_metrics(self, eval_results, using_eval_result):
         if (
