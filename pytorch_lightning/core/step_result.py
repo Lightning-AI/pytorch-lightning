@@ -438,7 +438,7 @@ class Result(Dict):
 
         result = cls()
         result = recursive_gather(outputs, result)
-            
+
         recursive_stack(result, device=device)
 
         for k, option in meta.items():
@@ -580,7 +580,8 @@ def _recursive_fx_apply(input: dict, fx):
             _recursive_fx_apply(v, fx)
 
 
-def collate_tensors(items: Union[List, Tuple], device: Optional[Union[str, torch.device]] = None) -> Union[Tensor, List, Tuple]:
+def collate_tensors(items: Union[List, Tuple], 
+                    device: Optional[Union[str, torch.device]] = None) -> Union[Tensor, List, Tuple]:
     if not items or not isinstance(items, (list, tuple)) or any(not isinstance(item, Tensor) for item in items):
         # items is not a sequence, empty, or contains non-tensors
         return items
