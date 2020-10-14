@@ -1582,7 +1582,7 @@ class LightningModule(
                     example_inputs = self.example_input_array
                 # automatically send example inputs to the right device and use trace
                 torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs.to(self.device),
-                                                  **kwargs)
+                                                     **kwargs)
             else:
                 raise ValueError(f"The 'method' parameter only supports 'script' or 'trace', but value given was:"
                                  f"{method}")
