@@ -53,7 +53,7 @@ class TrainingStepVariations(ABC):
         )
         return output
 
-    def training_step_result_obj(self, batch, batch_idx, optimizer_idx=None):
+    def training_step__result_obj(self, batch, batch_idx, optimizer_idx=None):
         # forward pass
         x, y = batch
         x = x.view(x.size(0), -1)
@@ -81,7 +81,7 @@ class TrainingStepVariations(ABC):
                 output /= 0
         return output
 
-    def training_step_full_loop_result_obj_dp(self, batch, batch_idx, optimizer_idx=None):
+    def training_step__full_loop_result_obj_dp(self, batch, batch_idx, optimizer_idx=None):
         """
         Full loop flow train step (result obj + dp)
         """
@@ -94,7 +94,7 @@ class TrainingStepVariations(ABC):
         self.training_step_called = True
         return result
 
-    def training_step_result_obj_dp(self, batch, batch_idx, optimizer_idx=None):
+    def training_step__result_obj_dp(self, batch, batch_idx, optimizer_idx=None):
         # forward pass
         x, y = batch
         x = x.view(x.size(0), -1)
@@ -116,7 +116,7 @@ class TrainingStepVariations(ABC):
 
         return result
 
-    def training_step_end_full_loop_result_obj_dp(self, result):
+    def training_step__end_full_loop_result_obj_dp(self, result):
         """
         Full loop flow train step (result obj + dp)
         """

@@ -266,8 +266,8 @@ def test_none_monitor_save_last(tmpdir):
 def test_model_checkpoint_none_monitor(tmpdir):
     """ Test that it is possible to save all checkpoints when monitor=None. """
     model = EvalModelTemplate()
-    model.validation_step = model.validation_step_no_monitor
-    model.validation_epoch_end = model.validation_epoch_end_no_monitor
+    model.validation_step = model.validation_step__no_monitor
+    model.validation_epoch_end = model.validation_epoch_end__no_monitor
 
     epochs = 2
     checkpoint_callback = ModelCheckpoint(monitor=None, filepath=tmpdir, save_top_k=-1)
@@ -380,8 +380,8 @@ def test_default_checkpoint_behavior(tmpdir):
 
     os.environ['PL_DEV_DEBUG'] = '1'
     model = EvalModelTemplate()
-    model.validation_step = model.validation_step_no_monitor
-    model.validation_epoch_end = model.validation_epoch_end_no_monitor
+    model.validation_step = model.validation_step__no_monitor
+    model.validation_epoch_end = model.validation_epoch_end__no_monitor
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -406,11 +406,11 @@ def test_default_checkpoint_behavior(tmpdir):
 
 def test_ckpt_metric_names_results(tmpdir):
     model = EvalModelTemplate()
-    model.training_step = model.training_step_result_obj
+    model.training_step = model.training_step__result_obj
     model.training_step_end = None
     model.training_epoch_end = None
 
-    model.validation_step = model.validation_step_result_obj
+    model.validation_step = model.validation_step__result_obj
     model.validation_step_end = None
     model.validation_epoch_end = None
 

@@ -47,7 +47,7 @@ class ValidationStepVariations(ABC):
         })
         return output
 
-    def validation_step_no_monitor(self, batch, batch_idx, *args, **kwargs):
+    def validation_step__no_monitor(self, batch, batch_idx, *args, **kwargs):
         """
         Lightning calls this inside the validation loop
         :param batch:
@@ -71,7 +71,7 @@ class ValidationStepVariations(ABC):
         })
         return output
 
-    def validation_step_result_obj(self, batch, batch_idx, *args, **kwargs):
+    def validation_step__result_obj(self, batch, batch_idx, *args, **kwargs):
         x, y = batch
         x = x.view(x.size(0), -1)
         y_hat = self(x)
@@ -90,7 +90,7 @@ class ValidationStepVariations(ABC):
         })
         return result
 
-    def validation_step_result_obj_dp(self, batch, batch_idx, *args, **kwargs):
+    def validation_step__result_obj_dp(self, batch, batch_idx, *args, **kwargs):
         x, y = batch
         x = x.view(x.size(0), -1)
         y_hat = self(x.to(self.device))

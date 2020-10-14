@@ -59,7 +59,7 @@ class TestStepVariations(ABC):
                                   'test_dic': {'test_loss_a': loss_test}})
             return output
 
-    def test_step_result_obj(self, batch, batch_idx, *args, **kwargs):
+    def test_step__result_obj(self, batch, batch_idx, *args, **kwargs):
         """
         Default, baseline test_step
         :param batch:
@@ -131,7 +131,7 @@ class TestStepVariations(ABC):
     def test_step__empty(self, batch, batch_idx, *args, **kwargs):
         return {}
 
-    def test_step_result_preds(self, batch, batch_idx, optimizer_idx=None):
+    def test_step__result_preds(self, batch, batch_idx, optimizer_idx=None):
         x, y = batch
         x = x.view(x.size(0), -1)
         y_hat = self(x)

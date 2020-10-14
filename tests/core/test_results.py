@@ -100,7 +100,7 @@ def test_result_obj_predictions(tmpdir, test_option, do_train, gpus):
     model = EvalModelTemplate()
     model.test_option = test_option
     model.prediction_file = prediction_file.as_posix()
-    model.test_step = model.test_step_result_preds
+    model.test_step = model.test_step__result_preds
     model.test_step_end = None
     model.test_epoch_end = None
     model.test_end = None

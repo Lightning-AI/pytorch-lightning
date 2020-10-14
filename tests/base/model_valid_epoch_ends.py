@@ -20,7 +20,7 @@ class ValidationEpochEndVariations(ABC):
     """
     Houses all variations of validation_epoch_end steps
     """
-    def validation_epoch_end_no_monitor(self, outputs):
+    def validation_epoch_end__no_monitor(self, outputs):
         """
         Called at the end of validation to aggregate outputs
 
@@ -68,7 +68,7 @@ class ValidationEpochEndVariations(ABC):
         results = {'progress_bar': metrics_dict, 'log': metrics_dict}
         return results
 
-    def validation_epoch_end_return_none(self, outputs):
+    def validation_epoch_end__return_none(self, outputs):
         """
         Called at the end of validation to aggregate outputs
 
