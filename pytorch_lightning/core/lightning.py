@@ -1527,17 +1527,23 @@ class LightningModule(
         torch.onnx.export(self, input_data, file_path, **kwargs)
 
     def to_torchscript(
-        self, file_path: Optional[str] = None, **kwargs
+        self, file_path: Optional[str] = None, method: Optional[str] = 'script',
+            example_inputs: Optional[torch.Tensor] = None, **kwargs
     ) -> Union[ScriptModule, Dict[str, ScriptModule]]:
         """
         By default compiles the whole model to a :class:`~torch.jit.ScriptModule`.
-        If you would like to customize the modules that are scripted or you want to use tracing
-        you should override this method. In case you want to return multiple modules, we
-        recommend using a dictionary.
+        If you want to use tracing, please provided the argument `method='trace'` and make sure that either the
+        example_inputs argument is provided, or the model has self.example_input_array set.
+        If you would like to customize the modules that are scripted you should override this method.
+        In case you want to return multiple modules, we recommend using a dictionary.
 
         Args:
             file_path: Path where to save the torchscript. Default: None (no file saved).
-            **kwargs: Additional arguments that will be passed to the :func:`torch.jit.save` function.
+            method: Whether to use TorchScript's script or trace method. Default: 'script'
+            example_inputs: Tensor to be used to do tracing when method is set to 'trace'.
+              Default: None (Use self.example_input_array)
+            **kwargs: Additional arguments that will be passed to the :func:`torch.jit.script` or
+              :func:`torch.jit.trace` function.
 
         Note:
             - Requires the implementation of the
@@ -1568,13 +1574,24 @@ class LightningModule(
 
         mode = self.training
         with torch.no_grad():
-            scripted_module = torch.jit.script(self.eval(), **kwargs)
+            if method == 'script':
+                torchscript_module = torch.jit.script(self.eval(), **kwargs)
+            elif method == 'trace':
+                # if no example inputs are provided, try to see if model has example_input_array set
+                if example_inputs is None:
+                    example_inputs = self.example_input_array
+                # automatically send example inputs to the right device and use trace
+                torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs.to(self.device),
+                                                  **kwargs)
+            else:
+                raise ValueError(f"The 'method' parameter only supports 'script' or 'trace', but value given was:"
+                                 f"{method}")
         self.train(mode)
 
         if file_path is not None:
-            torch.jit.save(scripted_module, file_path)
+            torch.jit.save(torchscript_module, file_path)
 
-        return scripted_module
+        return torchscript_module
 
     @property
     def hparams(self) -> Union[AttributeDict, str]:
