@@ -153,7 +153,7 @@ class EarlyStopping(Callback):
             # turn off early stopping in on_train_epoch_end
             self.based_on_eval_results = True
 
-    def on_train_epoch_end(self, trainer, pl_module):
+    def on_train_epoch_end(self, trainer, pl_module, outputs):
         # disable early stopping in train loop when there's a val loop
         if self.based_on_eval_results:
             return
@@ -203,10 +203,3 @@ class EarlyStopping(Callback):
         # stop every ddp process if any world process decides to stop
         should_stop = trainer.accelerator_backend.early_stopping_should_stop(pl_module)
         trainer.should_stop = should_stop
-
-    def on_train_end(self, trainer, pl_module):
-        if self.stopped_epoch > 0 and self.verbose > 0:
-            # todo: remove this old warning
-            rank_zero_warn('Displayed epoch numbers by `EarlyStopping` start from "1" until v0.6.x,'
-                           ' but will start from "0" in v0.8.0.', DeprecationWarning)
-            log.info(f'Epoch {self.stopped_epoch + 1:05d}: early stopping triggered.')

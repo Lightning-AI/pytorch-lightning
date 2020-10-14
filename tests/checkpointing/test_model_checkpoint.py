@@ -1,4 +1,18 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import os
+from distutils.version import LooseVersion
 from unittest.mock import MagicMock, Mock
 
 import yaml
@@ -17,6 +31,30 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests.base import EvalModelTemplate, BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+
+@pytest.mark.parametrize('save_top_k', [-1])
+def test_model_checkpoint_correct_score(tmpdir, save_top_k):
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    """Test that when a model checkpoint is saved, it saves with the correct score appended to ckpt_path"""
+    tutils.reset_seed()
+
+    model = EvalModelTemplate()
+
+    filepath = os.path.join(tmpdir, "{val_acc:.4f}-{epoch}")
+
+    checkpoint = ModelCheckpoint(filepath=filepath, monitor='val_acc', save_top_k=save_top_k)
+
+    trainer = Trainer(default_root_dir=tmpdir, checkpoint_callback=checkpoint, overfit_batches=0.20, max_epochs=2)
+    trainer.fit(model)
+
+    ckpt_files = list(Path(tmpdir).glob('*.ckpt'))
+
+    metrics = trainer.dev_debugger.logged_metrics
+    expected_filenames = {f'val_acc={metric["val_acc"]:.4f}-epoch={metric["epoch"]}.ckpt' for metric in metrics}
+    for ckpt_file in ckpt_files:
+        assert os.path.basename(ckpt_file) in expected_filenames
 
 
 @pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
@@ -129,7 +167,6 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
         distributed_backend="ddp_cpu",
         num_processes=2,
         default_root_dir=tmpdir,
-        early_stop_callback=False,
         checkpoint_callback=model_checkpoint,
         max_epochs=num_epochs,
     )
@@ -185,7 +222,6 @@ def test_model_checkpoint_save_last(tmpdir):
     model_checkpoint = ModelCheckpoint(monitor='early_stop_on', filepath=tmpdir, save_top_k=-1, save_last=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
-        early_stop_callback=False,
         checkpoint_callback=model_checkpoint,
         max_epochs=epochs,
         logger=False,
@@ -237,7 +273,6 @@ def test_model_checkpoint_none_monitor(tmpdir):
     checkpoint_callback = ModelCheckpoint(monitor=None, filepath=tmpdir, save_top_k=-1)
     trainer = Trainer(
         default_root_dir=tmpdir,
-        early_stop_callback=False,
         checkpoint_callback=checkpoint_callback,
         max_epochs=epochs,
         logger=False,
@@ -263,7 +298,6 @@ def test_model_checkpoint_period(tmpdir, period):
     checkpoint_callback = ModelCheckpoint(filepath=tmpdir, save_top_k=-1, period=period)
     trainer = Trainer(
         default_root_dir=tmpdir,
-        early_stop_callback=False,
         checkpoint_callback=checkpoint_callback,
         max_epochs=epochs,
         limit_train_batches=0.1,
@@ -283,7 +317,6 @@ def test_model_checkpoint_topk_zero(tmpdir):
     checkpoint_callback = ModelCheckpoint(filepath=tmpdir, save_top_k=0)
     trainer = Trainer(
         default_root_dir=tmpdir,
-        early_stop_callback=False,
         checkpoint_callback=checkpoint_callback,
         max_epochs=2,
         logger=False,
@@ -307,7 +340,6 @@ def test_model_checkpoint_topk_all(tmpdir):
     checkpoint_callback = ModelCheckpoint(filepath=tmpdir, monitor="early_stop_on", save_top_k=-1)
     trainer = Trainer(
         default_root_dir=tmpdir,
-        early_stop_callback=False,
         checkpoint_callback=checkpoint_callback,
         max_epochs=epochs,
         logger=False,
@@ -430,7 +462,6 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
-        early_stop_callback=False,
         checkpoint_callback=model_checkpoint,
         max_epochs=num_epochs,
     )

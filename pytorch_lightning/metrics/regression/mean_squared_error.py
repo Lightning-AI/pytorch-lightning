@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import torch
 from typing import Any, Callable, Optional, Union
 
@@ -7,6 +20,15 @@ from pytorch_lightning.metrics.metric import Metric
 class MeanSquaredError(Metric):
     """
     Computes mean squared error.
+
+    Args:
+        compute_on_step:
+            Forward only calls ``update()`` and return None if this is set to False. default: True
+        dist_sync_on_step:
+            Synchronize metric state across processes at each ``forward()``
+            before returning the value at the step. default: False
+        process_group:
+            Specify the process group on which synchronization is called. default: None (which selects the entire world)
 
     Example:
 
@@ -22,12 +44,12 @@ class MeanSquaredError(Metric):
     def __init__(
         self,
         compute_on_step: bool = True,
-        ddp_sync_on_step: bool = False,
+        dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
     ):
         super().__init__(
             compute_on_step=compute_on_step,
-            ddp_sync_on_step=ddp_sync_on_step,
+            dist_sync_on_step=dist_sync_on_step,
             process_group=process_group,
         )
 
@@ -42,7 +64,7 @@ class MeanSquaredError(Metric):
             preds: Predictions from model
             target: Ground truth values
         """
-        assert preds.shape == target.shape
+        self._check_same_shape(preds, target)
         squared_error = torch.pow(preds - target, 2)
 
         self.sum_squared_error += torch.sum(squared_error)

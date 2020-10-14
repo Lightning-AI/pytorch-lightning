@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import glob
 import math
 import os
@@ -290,7 +303,7 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_bat
         def on_before_zero_grad(self, optimizer):
             self.opt_step = self.state_dict()
 
-        def on_train_batch_end(self, batch, batch_idx, dataloader_idx):
+        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
             _exclude_keys = ['num_batches_tracked', 'running_mean', 'running_var']
 
             if (batch_idx + 1) == self.trainer.num_training_batches:
@@ -511,7 +524,6 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         limit_val_batches=1,
         checkpoint_callback=ModelCheckpoint(tmpdir, monitor='early_stop_on', save_top_k=-1),
         default_root_dir=tmpdir,
-        early_stop_callback=False,
         val_check_interval=1.,
     )
 
@@ -601,7 +613,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     # define callback for stopping the model and default epochs
     trainer_options.update(
         default_root_dir=tmpdir,
-        early_stop_callback=EarlyStopping(monitor='early_stop_on', min_delta=1.0),
+        callbacks=[EarlyStopping(monitor='early_stop_on', min_delta=1.0)],
         val_check_interval=2,
         min_epochs=1,
         max_epochs=7,

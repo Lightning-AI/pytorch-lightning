@@ -22,7 +22,7 @@ class SLURMConnector:
         # extract SLURM flag vars
         # whenever we have the correct number of tasks, we let slurm manage processes
         # otherwise we launch the required number of processes
-        if self.trainer.use_ddp:
+        if self.trainer.use_ddp or self.trainer.use_ddp2:
             self.trainer.num_requested_gpus = self.trainer.num_gpus * num_gpu_nodes
             self.trainer.num_slurm_tasks = 0
             try:

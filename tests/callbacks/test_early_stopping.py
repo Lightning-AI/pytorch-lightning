@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import os
 from copy import deepcopy
 import pickle
@@ -42,7 +55,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         checkpoint_callback=checkpoint_callback,
-        early_stop_callback=early_stop_callback,
+        callbacks=[early_stop_callback],
         num_sanity_val_steps=0,
         max_epochs=4,
     )
@@ -62,7 +75,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         resume_from_checkpoint=checkpoint_filepath,
-        early_stop_callback=early_stop_callback,
+        callbacks=[early_stop_callback],
     )
 
     with pytest.raises(MisconfigurationException, match=r'.*you restored a checkpoint with current_epoch*'):
@@ -106,7 +119,7 @@ def test_early_stopping_patience(tmpdir, loss_values, patience, expected_stop_ep
     early_stop_callback = EarlyStopping(monitor="test_val_loss", patience=patience, verbose=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
-        early_stop_callback=early_stop_callback,
+        callbacks=[early_stop_callback],
         val_check_interval=1.0,
         num_sanity_val_steps=0,
         max_epochs=10,
@@ -143,7 +156,7 @@ def test_early_stopping_no_val_step(tmpdir):
     stopping = EarlyStopping(monitor='my_train_metric', min_delta=0.1, patience=0)
     trainer = Trainer(
         default_root_dir=tmpdir,
-        early_stop_callback=stopping,
+        callbacks=[stopping],
         overfit_batches=0.20,
         max_epochs=10,
     )
@@ -165,7 +178,7 @@ def test_early_stopping_functionality(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        early_stop_callback=EarlyStopping(monitor='abc'),
+        callbacks=[EarlyStopping(monitor='abc')],
         overfit_batches=0.20,
         max_epochs=20,
     )
@@ -186,7 +199,7 @@ def test_early_stopping_functionality_arbitrary_key(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        early_stop_callback=EarlyStopping(monitor='jiraffe'),
+        callbacks=[EarlyStopping(monitor='jiraffe')],
         overfit_batches=0.20,
         max_epochs=20,
     )

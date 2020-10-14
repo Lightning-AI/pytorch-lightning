@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import inspect
 import pickle
 import sys
@@ -95,7 +108,7 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
 
 @pytest.mark.parametrize(['cli_args', 'expected'], [
     pytest.param('--auto_lr_find --auto_scale_batch_size power',
-                 {'auto_lr_find': True, 'auto_scale_batch_size': 'power', 'early_stop_callback': False}),
+                 {'auto_lr_find': True, 'auto_scale_batch_size': 'power'}),
     pytest.param('--auto_lr_find any_string --auto_scale_batch_size',
                  {'auto_lr_find': 'any_string', 'auto_scale_batch_size': True}),
     pytest.param('--auto_lr_find TRUE --auto_scale_batch_size FALSE',
@@ -104,8 +117,6 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
                  {'auto_lr_find': True, 'auto_scale_batch_size': True}),
     pytest.param('--auto_lr_find 0 --auto_scale_batch_size n',
                  {'auto_lr_find': False, 'auto_scale_batch_size': False}),
-    pytest.param('--early_stop_callback',
-                 {'auto_lr_find': False, 'early_stop_callback': True, 'auto_scale_batch_size': False}),
     pytest.param('--tpu_cores=8',
                  {'tpu_cores': 8}),
     pytest.param("--tpu_cores=1,",

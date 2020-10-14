@@ -133,7 +133,6 @@ def __scale_batch_dump_params(trainer):
         'logger': trainer.logger,
         'callbacks': trainer.callbacks,
         'checkpoint_callback': trainer.checkpoint_callback,
-        'early_stop_callback': trainer.early_stop_callback,
         'auto_scale_batch_size': trainer.auto_scale_batch_size,
         'limit_train_batches': trainer.limit_train_batches,
         'model': trainer.model,
@@ -149,7 +148,6 @@ def __scale_batch_reset_params(trainer, model, steps_per_trial):
     trainer.logger = DummyLogger()
     trainer.callbacks = []  # not needed before full run
     trainer.checkpoint_callback = False  # required for saving
-    trainer.early_stop_callback = None
     trainer.limit_train_batches = 1.0
     trainer.optimizers, trainer.schedulers = [], []  # required for saving
     trainer.model = model  # required for saving
@@ -164,7 +162,6 @@ def __scale_batch_restore_params(trainer):
     trainer.callbacks = trainer.__dumped_params['callbacks']
     trainer.checkpoint_callback = trainer.__dumped_params['checkpoint_callback']
     trainer.auto_scale_batch_size = trainer.__dumped_params['auto_scale_batch_size']
-    trainer.early_stop_callback = trainer.__dumped_params['early_stop_callback']
     trainer.limit_train_batches = trainer.__dumped_params['limit_train_batches']
     trainer.model = trainer.__dumped_params['model']
     del trainer.__dumped_params

@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import pytest
 
 from pytorch_lightning import Trainer
@@ -157,21 +170,21 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate):
             super().on_train_batch_start(trainer, pl_module, batch, batch_idx, dataloader_idx)
             assert self.train_batch_idx == trainer.batch_idx
 
-        def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-            super().on_train_batch_end(trainer, pl_module, batch, batch_idx, dataloader_idx)
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+            super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
             assert self.train_batch_idx == trainer.batch_idx + 1
             if not self.is_disabled and self.train_batch_idx % self.refresh_rate == 0:
                 assert self.main_progress_bar.n == self.train_batch_idx
             self.train_batches_seen += 1
 
-        def on_validation_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-            super().on_validation_batch_end(trainer, pl_module, batch, batch_idx, dataloader_idx)
+        def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+            super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
             if not self.is_disabled and self.val_batch_idx % self.refresh_rate == 0:
                 assert self.val_progress_bar.n == self.val_batch_idx
             self.val_batches_seen += 1
 
-        def on_test_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-            super().on_test_batch_end(trainer, pl_module, batch, batch_idx, dataloader_idx)
+        def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+            super().on_test_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
             if not self.is_disabled and self.test_batch_idx % self.refresh_rate == 0:
                 assert self.test_progress_bar.n == self.test_batch_idx
             self.test_batches_seen += 1
@@ -223,7 +236,6 @@ def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches, expected):
         callbacks=[progress_bar],
         logger=False,
         checkpoint_callback=False,
-        early_stop_callback=False,
     )
     trainer.fit(model)
     assert trainer.progress_bar_callback.val_progress_bar_total == expected

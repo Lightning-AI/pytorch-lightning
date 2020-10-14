@@ -127,38 +127,31 @@ class ModelHooks:
         """
         # do something when the batch starts
 
-    def on_train_batch_end(
-        self, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_train_batch_end(self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the training loop after the batch.
 
         Args:
+            outputs: The outputs of validation_step_end(validation_step(x))
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
         """
         # do something when the batch ends
 
-    def on_validation_model_eval(
-            self
-    ) -> None:
+    def on_validation_model_eval(self) -> None:
         """
         Sets the model to eval during the val loop
         """
         self.eval()
 
-    def on_validation_model_train(
-            self
-    ) -> None:
+    def on_validation_model_train(self) -> None:
         """
         Sets the model to train during the val loop
         """
         self.train()
 
-    def on_validation_batch_start(
-        self, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_validation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the validation loop before anything happens for that batch.
 
@@ -169,22 +162,19 @@ class ModelHooks:
         """
         # do something when the batch starts
 
-    def on_validation_batch_end(
-        self, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_validation_batch_end(self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the validation loop after the batch.
 
         Args:
+            outputs: The outputs of validation_step_end(validation_step(x))
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
         """
         # do something when the batch ends
 
-    def on_test_batch_start(
-        self, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_test_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the test loop before anything happens for that batch.
 
@@ -195,55 +185,29 @@ class ModelHooks:
         """
         # do something when the batch starts
 
-    def on_test_batch_end(
-        self, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_test_batch_end(self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the test loop after the batch.
 
         Args:
+            outputs: The outputs of test_step_end(test_step(x))
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
         """
         # do something when the batch ends
 
-    def on_test_model_eval(
-            self
-    ) -> None:
+    def on_test_model_eval(self) -> None:
         """
         Sets the model to eval during the test loop
         """
         self.eval()
 
-    def on_test_model_train(
-            self
-    ) -> None:
+    def on_test_model_train(self) -> None:
         """
         Sets the model to train during the test loop
         """
         self.train()
-
-    def on_batch_start(self, batch: Any) -> None:
-        """
-        Called in the training loop before anything happens for that batch.
-
-        If you return -1 here, you will skip training for the rest of the current epoch.
-
-        Args:
-            batch: The batched data as it is returned by the training DataLoader.
-
-        .. warning:: Deprecated in 0.9.0 will remove 1.0.0 (use `on_train_batch_start` instead)
-        """
-        # do something when the batch starts
-
-    def on_batch_end(self) -> None:
-        """
-        Called in the training loop after the batch.
-
-        .. warning:: Deprecated in 0.9.0 will remove 1.0.0 (use `on_train_batch_end` instead)
-        """
-        # do something when the batch ends
 
     def on_epoch_start(self) -> None:
         """
@@ -263,7 +227,7 @@ class ModelHooks:
         """
         # do something when the epoch starts
 
-    def on_train_epoch_end(self) -> None:
+    def on_train_epoch_end(self, outputs) -> None:
         """
         Called in the training loop at the very end of the epoch.
         """
@@ -330,45 +294,6 @@ class ModelHooks:
                                                              global_step=self.trainer.global_step)
 
         """
-
-    def backward(
-        self, trainer, loss: Tensor, optimizer: Optimizer, optimizer_idx: int
-    ) -> None:
-        """
-        Override backward with your own implementation if you need to.
-
-        Args:
-            trainer: Pointer to the trainer
-            loss: Loss is already scaled by accumulated grads
-            optimizer: Current optimizer being used
-            optimizer_idx: Index of the current optimizer being used
-
-        Called to perform backward step.
-        Feel free to override as needed.
-
-        The loss passed in has already been scaled for accumulated gradients if requested.
-
-        Example::
-
-            def backward(self, trainer, loss, optimizer, optimizer_idx):
-                loss.backward()
-
-        """
-        loss.backward()
-
-    def amp_scale_loss(
-        self,
-        unscaled_loss: Tensor,
-        optimizer: Optimizer,
-        optimizer_idx: int,
-        amp_backend: AMPType,
-    ):
-        if amp_backend == AMPType.NATIVE:
-            scaled_loss = self.trainer.scaler.scale(unscaled_loss)
-        else:
-            scaled_loss = amp.scale_loss(unscaled_loss, optimizer)
-
-        return scaled_loss
 
 
 class DataHooks:
