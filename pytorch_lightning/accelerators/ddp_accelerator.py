@@ -136,8 +136,9 @@ class DDPAccelerator(Accelerator):
         model = self.trainer.model
 
         results = self.ddp_train(process_idx=self.task_idx, model=model)
-        if 'WORLD_SIZE' in os.environ:
-            del os.environ['WORLD_SIZE']
+        # TODO: try this skip
+        # if 'WORLD_SIZE' in os.environ:
+        #     del os.environ['WORLD_SIZE']
         return results
 
     def training_step(self, args):

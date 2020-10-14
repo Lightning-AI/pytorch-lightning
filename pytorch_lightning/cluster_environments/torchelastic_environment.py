@@ -44,4 +44,4 @@ class TorchElasticEnvironment(ClusterEnvironment):
         return port
 
     def world_size(self):
-        return os.environ.get('WORLD_SIZE', None)
+        return os.environ.get('WORLD_SIZE')
