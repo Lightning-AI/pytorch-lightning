@@ -36,7 +36,7 @@ class ApexPlugin:
         output = fx(args)
         return output
 
-    def backward(self, closure_loss, optimizer, *args, **kwargs):
+    def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         closure_loss = amp.scale_loss(closure_loss, optimizer)
 
         # enter apex context
@@ -45,7 +45,11 @@ class ApexPlugin:
         closure_loss = closure_loss.__enter__()
 
         # do backward pass
-        closure_loss.backward(*args, **kwargs)
+        if self.trainer.train_loop.automatic_optimization:
+            model = self.trainer.get_model()
+            model.backward(closure_loss, optimizer, opt_idx)
+        else:
+            closure_loss.backward(*args, **kwargs)
 
         # exit amp context
         a, b, c = None, None, None

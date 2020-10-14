@@ -16,7 +16,7 @@ from contextlib import ExitStack
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
-from pytorch_lightning.accelerators.base_accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
@@ -28,7 +28,7 @@ else:
     HOROVOD_AVAILABLE = True
 
 
-class HorovodBackend(Accelerator):
+class HorovodAccelerator(Accelerator):
     amp_backend: AMPType
 
     def __init__(self, trainer, cluster_environment=None):
@@ -151,7 +151,7 @@ class HorovodBackend(Accelerator):
         return output
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
-        super().backward(closure_loss, optimizer, opt_idx, *args, **kwargs)
+        super().backward(closure_loss, optimizer, opt_idx,  *args, **kwargs)
         optimizer.synchronize()
 
     def on_train_epoch_end(self, outputs):

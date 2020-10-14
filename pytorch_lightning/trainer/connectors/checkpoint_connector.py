@@ -32,7 +32,7 @@ from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
-from pytorch_lightning.accelerators.base_accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:

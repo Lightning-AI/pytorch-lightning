@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from pytorch_lightning import Trainer
 from tests.base.boring_model import BoringModel
 import torch
@@ -61,17 +74,17 @@ def test_multiple_optimizers_manual(tmpdir):
 
         def training_step(self, batch, batch_idx, optimizer_idx):
             # manual
-            (opt_a, opt_b) = self.trainer.optimizers
+            (opt_a, opt_b) = self.optimizers()
             loss_1 = self.step(batch[0])
 
             # fake generator
-            loss_1.backward()
+            self.manual_backward(loss_1, opt_a)
             opt_a.step()
             opt_a.zero_grad()
 
             # fake discriminator
             loss_2 = self.step(batch[0])
-            loss_2.backward()
+            self.manual_backward(loss_2, opt_b)
             opt_b.step()
             opt_b.zero_grad()
 
@@ -88,6 +101,7 @@ def test_multiple_optimizers_manual(tmpdir):
     model.val_dataloader = None
 
     trainer = Trainer(
+        automatic_optimization=False,
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,

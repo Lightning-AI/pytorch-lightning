@@ -44,8 +44,9 @@ class TrainLoop:
         self.warning_cache = WarningCache()
         self._teardown_already_run = False
         self.running_loss = TensorRunningAccum(window_length=20)
+        self.automatic_optimization = True
 
-    def on_trainer_init(self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps):
+    def on_trainer_init(self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps, automatic_optimization):
         self.trainer.global_step = 0
         self.trainer.current_epoch = 0
         self.trainer.interrupted = False
@@ -56,6 +57,7 @@ class TrainLoop:
         self.trainer.batch_idx = 0
         self.trainer.num_training_batches = 0
         self.trainer.train_dataloader = None
+        self.automatic_optimization = automatic_optimization
 
         self.trainer.max_epochs = max_epochs
         self.trainer.min_epochs = min_epochs
@@ -275,7 +277,7 @@ class TrainLoop:
 
         # find optimzier index by looking for the first {item > current_place} in the cumsum list
         opt_idx = np.argmax(optimizer_freq_cumsum > current_place_in_loop)
-        return [(opt_idx, self.trainer.optimizers[opt_idx])]
+        return [[opt_idx, self.trainer.optimizers[opt_idx]]]
 
     def on_after_backward(self, training_step_output, batch_idx, untouched_loss):
         is_result_obj = isinstance(training_step_output, Result)
@@ -311,17 +313,22 @@ class TrainLoop:
             if training_step_output_for_epoch_end is None:
                 return None
 
-        # accumulate loss
-        # (if accumulate_grad_batches = 1 no effect)
-        if is_result_obj:
-            closure_loss = training_step_output.minimize
-        else:
-            closure_loss = training_step_output.batch_loss
+        # enable empty loss when using manual opt
+        closure_loss = None
+        untouched_loss = None
 
-        closure_loss = closure_loss / self.trainer.accumulate_grad_batches
+        if self.trainer.train_loop.automatic_optimization:
+            # accumulate loss
+            # (if accumulate_grad_batches = 1 no effect)
+            if is_result_obj:
+                closure_loss = training_step_output.minimize
+            else:
+                closure_loss = training_step_output.batch_loss
 
-        # the loss will get scaled for amp. avoid any modifications to it
-        untouched_loss = closure_loss.detach().clone()
+            closure_loss = closure_loss / self.trainer.accumulate_grad_batches
+
+            # the loss will get scaled for amp. avoid any modifications to it
+            untouched_loss = closure_loss.detach().clone()
 
         # result
         result = AttributeDict(
@@ -640,16 +647,18 @@ class TrainLoop:
         for split_idx, split_batch in enumerate(splits):
             self.trainer.split_idx = split_idx
 
+            # in manual optimization we loop over all optimizers at once
+            optimizers = self.get_optimizers_iterable()
+            if not self.automatic_optimization:
+                optimizers = [optimizers[0]]
+
             # loop over optimizers
-            for opt_idx, optimizer in self.get_optimizers_iterable():
+            for opt_idx, optimizer in optimizers:
                 # make sure only the gradients of the current optimizer's parameters are calculated
                 # in the training step to prevent dangling gradients in multiple-optimizer setup.
-                if len(self.trainer.optimizers) > 1:
-                    for param in self.trainer.get_model().parameters():
-                        param.requires_grad = False
-                    for group in optimizer.param_groups:
-                        for param in group['params']:
-                            param.requires_grad = True
+                if self.automatic_optimization and len(self.trainer.optimizers) > 1:
+                    model = self.trainer.get_model()
+                    model.toggle_optimizer(optimizer, opt_idx)
 
                 # -------------------
                 # calculate loss (train step + train step end)
@@ -677,12 +686,15 @@ class TrainLoop:
                 if self.trainer.terminate_on_nan:
                     self.trainer.detect_nan_tensors(opt_closure_result.loss)
 
-                # track total loss for logging (avoid mem leaks)
-                self.accumulated_loss.append(opt_closure_result.loss)
-
                 # track all the outputs across all steps
                 batch_opt_idx = opt_idx if len(batch_outputs) > 1 else 0
                 batch_outputs[batch_opt_idx].append(opt_closure_result.training_step_output_for_epoch_end)
+
+                if not self.automatic_optimization:
+                    continue
+
+                # track total loss for logging (avoid mem leaks)
+                self.accumulated_loss.append(opt_closure_result.loss)
 
                 # ------------------------------
                 # BACKWARD PASS
@@ -744,14 +756,30 @@ class TrainLoop:
             self.warning_cache.warn('training_step returned None if it was on purpose, ignore this warning...')
             return None
 
-        # backward pass
-        with self.trainer.profiler.profile('model_backward'):
-            result.closure_loss = self.trainer.accelerator_backend.backward(result.closure_loss, optimizer, opt_idx)
+        if self.trainer.train_loop.automatic_optimization:
+            # backward pass
+            with self.trainer.profiler.profile('model_backward'):
+                self.backward(result, optimizer, opt_idx)
 
-        # hook
-        self.on_after_backward(result.training_step_output, batch_idx, result.loss)
+            # hook
+            self.on_after_backward(result.training_step_output, batch_idx, result.loss)
 
         return result
+
+    def backward(self, result, optimizer, opt_idx, *args, **kwargs):
+        self.trainer.dev_debugger.track_event('backward_call')
+
+        # backward can be called manually in the training loop
+        if isinstance(result, torch.Tensor):
+            self.trainer.accelerator_backend.backward(result, optimizer, opt_idx, *args, **kwargs)
+        else:
+            result.closure_loss = self.trainer.accelerator_backend.backward(
+                result.closure_loss,
+                optimizer,
+                opt_idx,
+                *args,
+                **kwargs
+            )
 
     def update_train_loop_lr_schedulers(self, monitor_metrics=None):
         num_accumulated_batches_reached = (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
