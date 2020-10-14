@@ -120,7 +120,7 @@ Step 1: Define LightningModule
             optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
             return optimizer
 
-**SYTEM VS MODEL**
+**SYSTEM VS MODEL**
 
 A :ref:`lightning_module` defines a *system* not a model.
 
@@ -143,7 +143,7 @@ Under the hood a LightningModule is still just a :class:`torch.nn.Module` that g
 - The Train loop
 - The Validation loop
 - The Test loop
-- The Model + system architecture
+- The Model or system of Models
 - The Optimizer
 
 You can customize any part of training (such as the backward pass) by overriding any
