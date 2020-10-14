@@ -160,7 +160,17 @@ class LightningDistributedDataParallel(DistributedDataParallel):
         return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
 
     def forward(self, *inputs, **kwargs):  # pragma: no-cover
-        self._sync_params()
+
+        # --------------
+        # LIGHTNING MOD
+        # --------------
+        # normal
+        # self._sync_params()
+        #
+        # not necessary, when parameters did not change. 
+        # this is true, if the last step was doing backward
+        if self.module.trainer.batch_idx % self.module.trainer.accumulate_grad_batches == 0:
+            self._sync_params()
         fx_called: str = ''
 
         if self.device_ids:
