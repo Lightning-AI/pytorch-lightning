@@ -10,7 +10,7 @@ from tests.metrics.classification.utils import (_binary_inputs, _binary_prob_inp
                                                 _multiclass_prob_inputs, _multidim_multiclass_inputs,
                                                 _multidim_multiclass_prob_inputs, _multilabel_inputs,
                                                 _multilabel_prob_inputs)
-from tests.metrics.utils import NUM_CLASSES, THRESHOLD, compute_batch
+from tests.metrics.utils import NUM_CLASSES, THRESHOLD, MetricTester
 
 torch.manual_seed(42)
 
@@ -94,15 +94,15 @@ def _multidim_multiclass_sk_metric(preds, target, normalize=None):
         NUM_CLASSES
     )
 ])
-def test_confusion_matrix(ddp, dist_sync_on_step, normalize, preds, target, sk_metric, num_classes):
-    compute_batch(
-        preds,
-        target,
-        ConfusionMatrix,
-        partial(sk_metric, normalize=normalize),
-        dist_sync_on_step,
-        ddp,
-        metric_args={"num_classes": num_classes,
-                     "threshold": THRESHOLD,
-                     "normalize": normalize},
-    )
+class TestConfusionMatrix(MetricTester):
+    def test_confusion_matrix(self, ddp, dist_sync_on_step, normalize, preds, target, sk_metric, num_classes):
+        self.run_metric_test(ddp=ddp,
+                             preds=preds,
+                             target=target,
+                             metric_class=ConfusionMatrix,
+                             sk_metric=partial(sk_metric, normalize=normalize),
+                             dist_sync_on_step=dist_sync_on_step,
+                             metric_args={"num_classes": num_classes,
+                                          "threshold": THRESHOLD,
+                                          "normalize": normalize}
+                             )

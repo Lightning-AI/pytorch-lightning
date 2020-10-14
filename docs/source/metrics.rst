@@ -182,6 +182,12 @@ Fbeta
 .. autoclass:: pytorch_lightning.metrics.classification.Fbeta
     :noindex:
 
+ConfusionMatrix
+~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.ConfusionMatrix
+    :noindex:
+
 Regression Metrics
 ------------------
 
