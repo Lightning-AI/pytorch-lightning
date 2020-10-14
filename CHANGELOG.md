@@ -23,6 +23,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 
+## [1.0.1] - 2020-10-14
+
+### Added
+
+- Added getstate/setstate method for torch.save serialization ([#4127](https://github.com/PyTorchLightning/pytorch-lightning/pull/4127))
+
+
 ## [1.0.0] - 2020-10-13
 
 ### Added
