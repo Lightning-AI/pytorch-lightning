@@ -98,7 +98,7 @@ class GPUStatsMonitor(Callback):
             'temperature': temperature
         })
 
-    def on_train_start(self, trainer, pl_module):
+    def on_train_start(self, trainer, *args, **kwargs):
         if not trainer.logger:
             raise MisconfigurationException(
                 'Cannot use GPUStatsMonitor callback with Trainer that has no logger.'
@@ -112,16 +112,16 @@ class GPUStatsMonitor(Callback):
 
         self._gpu_ids = ','.join(map(str, trainer.data_parallel_device_ids))
 
-    def on_train_epoch_start(self, trainer, pl_module):
+    def on_train_epoch_start(self, *args, **kwargs):
         self._snap_intra_step_time = None
         self._snap_inter_step_time = None
 
     @rank_zero_only
-    def on_train_batch_start(self, trainer, pl_module, *_):
+    def on_train_batch_start(self, trainer, *args, **kwargs):
         if self._log_stats.intra_step_time:
             self._snap_intra_step_time = time.time()
 
-        if not GPUStatsMonitor._should_log(trainer):
+        if not self._should_log(trainer):
             return
 
         gpu_stat_keys = self._get_gpu_stat_keys()
@@ -135,7 +135,7 @@ class GPUStatsMonitor(Callback):
         trainer.logger.log_metrics(logs, step=trainer.global_step)
 
     @rank_zero_only
-    def on_train_batch_end(self, trainer, pl_module, *_):
+    def on_train_batch_end(self, trainer, *args, **kwargs):
         if self._log_stats.inter_step_time:
             self._snap_inter_step_time = time.time()
 
