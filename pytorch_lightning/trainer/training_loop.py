@@ -181,16 +181,16 @@ class TrainLoop:
         # hook
         self.trainer.call_hook('on_train_end')
 
-        # kill loggers
-        if self.trainer.logger is not None:
-            self.trainer.logger.finalize("success")
-
         # summarize profile results
         if self.trainer.global_rank == 0:
             self.trainer.profiler.describe()
 
         # give accelerators a chance to finish
         self.trainer.accelerator_backend.on_train_end()
+
+        # kill loggers
+        if self.trainer.logger is not None:
+            self.trainer.logger.finalize("success")
 
         # clear mem
         if self.trainer.on_gpu:

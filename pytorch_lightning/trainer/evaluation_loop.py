@@ -108,6 +108,10 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_end', *args, **kwargs)
 
+        # kill loggers
+        if self.trainer.logger is not None:
+            self.trainer.logger.finalize("success")
+
     def reload_evaluation_dataloaders(self):
         model = self.trainer.get_model()
         if self.testing:
