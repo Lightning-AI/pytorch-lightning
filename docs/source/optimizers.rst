@@ -20,9 +20,9 @@ Manual optimization
 ===================
 For advanced research topics like reinforcement learning, sparse coding, or GAN research, it may be desirable
 to manually manage the optimization process. To do so, do the following:
-
-* Ignore the optimizer_idx argument
-* So we can scale the loss automatically for you use self.manual_backward(loss) instead of loss.backward()
+* Disable automatic optimization in Trainer:  Trainer(automatic_optimization=False)
+* Drop or ignore the optimizer_idx argument
+* Use `self.manual_backward(loss)` instead of `loss.backward()` to automatically scale your loss
 
 .. code-block:: python
 
