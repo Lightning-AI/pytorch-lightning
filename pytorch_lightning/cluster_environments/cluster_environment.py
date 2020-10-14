@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 class ClusterEnvironment:
 
     def __init__(self):
@@ -23,4 +24,6 @@ class ClusterEnvironment:
         pass
 
     def world_size(self):
+        # todo
+        print ("ClusterEnvironment\n" * 10)
         return self._world_size
