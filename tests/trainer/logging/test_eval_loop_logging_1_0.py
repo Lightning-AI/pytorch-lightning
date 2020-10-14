@@ -14,7 +14,7 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, Callback
 from pytorch_lightning import callbacks
 from tests.base.deterministic_model import DeterministicModel
 from tests.base import SimpleModule, BoringModel
@@ -255,5 +255,30 @@ def test_monitor_val_epoch_end(tmpdir):
         max_epochs=epoch_min_loss_override + 2,
         logger=False,
         checkpoint_callback=checkpoint_callback,
+    )
+    trainer.fit(model)
+
+
+def test__callback__validation__batch_end__epoch_end__log(tmpdir):
+
+    class TestCallback(Callback):
+        def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+            acc = pl_module.step(batch)
+            acc = acc + batch_idx
+            pl_module.log('c', acc)
+            pl_module.log('d', acc, on_step=True, on_epoch=True)
+            return acc
+
+        def on_validation_epoch_end(self, trainer, pl_module):
+            pl_module.log('g', torch.tensor(2, device=pl_module.device), on_epoch=True)
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=2,
+        max_epochs=1,
+        weights_summary=None,
+        callbacks=[TestCallback()]
     )
     trainer.fit(model)
