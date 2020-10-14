@@ -199,7 +199,6 @@ inside your LightningModule
 .. autoclass:: pytorch_lightning.metrics.MetricCollection
     :noindex:
 
-
 **********
 Metric API
 **********
@@ -234,24 +233,6 @@ Recall
 
 Fbeta
 ~~~~~
-
-.. autoclass:: pytorch_lightning.metrics.classification.Fbeta
-    :noindex:
-
-Precision
-^^^^^^^^^
-
-.. autoclass:: pytorch_lightning.metrics.classification.Precision
-    :noindex:
-
-Recall
-^^^^^^
-
-.. autoclass:: pytorch_lightning.metrics.classification.Recall
-    :noindex:
-
-Fbeta
-^^^^^
 
 .. autoclass:: pytorch_lightning.metrics.classification.Fbeta
     :noindex:
