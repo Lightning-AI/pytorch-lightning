@@ -850,13 +850,14 @@ def auc_decorator(reorder: bool = True) -> Callable:
 
 def multiclass_auc_decorator(reorder: bool = True) -> Callable:
     def wrapper(func_to_decorate: Callable) -> Callable:
+        @wraps(func_to_decorate)
         def new_func(*args, **kwargs) -> torch.Tensor:
             results = []
             for class_result in func_to_decorate(*args, **kwargs):
                 x, y = class_result[:2]
                 results.append(auc(x, y, reorder=reorder))
 
-            return torch.cat(results)
+            return torch.stack(results)
 
         return new_func
 
@@ -891,13 +892,69 @@ def auroc(
     if any(target > 1):
         raise ValueError('AUROC metric is meant for binary classification, but'
                          ' target tensor contains value different from 0 and 1.'
-                         ' Multiclass is currently not supported.')
+                         ' Use `multiclass_auroc` for multi class classification.')
 
     @auc_decorator(reorder=True)
     def _auroc(pred, target, sample_weight, pos_label):
         return roc(pred, target, sample_weight, pos_label)
 
     return _auroc(pred=pred, target=target, sample_weight=sample_weight, pos_label=pos_label)
+
+
+def multiclass_auroc(
+        pred: torch.Tensor,
+        target: torch.Tensor,
+        sample_weight: Optional[Sequence] = None,
+        num_classes: Optional[int] = None,
+) -> torch.Tensor:
+    """
+    Compute Area Under the Receiver Operating Characteristic Curve (ROC AUC) from multiclass
+        prediction scores
+
+    Args:
+        pred: estimated probabilities
+        target: ground-truth labels
+        sample_weight: sample weights
+        num_classes: number of classes (default: None, computes automatically from data)
+
+    Return:
+        Tensor containing ROCAUC score
+
+    Example:
+
+        >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
+        ...                      [0.05, 0.85, 0.05, 0.05],
+        ...                      [0.05, 0.05, 0.85, 0.05],
+        ...                      [0.05, 0.05, 0.05, 0.85]])
+        >>> target = torch.tensor([0, 1, 3, 2])
+        >>> multiclass_auroc(pred, target)   # doctest: +NORMALIZE_WHITESPACE
+        tensor(0.6667)
+    """
+    if not torch.allclose(pred.sum(dim=1), torch.tensor(1.0)):
+        raise ValueError(
+            "Multiclass AUROC metric expects the target scores to be "
+            "probabilities, i.e. they should sum up to 1.0 over classes")
+
+    if torch.unique(target).size(0) != pred.size(1):
+        raise ValueError(
+            f"Number of classes found in in 'target' ({torch.unique(target).size(0)}) "
+            f"does not equal the number of columns in 'pred' ({pred.size(1)}). "
+            "Multiclass AUROC is not defined when all of the classes do not "
+            "occur in the target labels.")
+
+    if num_classes is not None and num_classes != pred.size(1):
+        raise ValueError(
+            f"Number of classes deduced from 'pred' ({pred.size(1)}) does not equal "
+            f"the number of classes passed in 'num_classes' ({num_classes}).")
+
+    @multiclass_auc_decorator(reorder=False)
+    def _multiclass_auroc(pred, target, sample_weight, num_classes):
+        return multiclass_roc(pred, target, sample_weight, num_classes)
+
+    class_aurocs = _multiclass_auroc(pred=pred, target=target,
+                                     sample_weight=sample_weight,
+                                     num_classes=num_classes)
+    return torch.mean(class_aurocs)
 
 
 def average_precision(
