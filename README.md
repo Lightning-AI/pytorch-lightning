@@ -6,9 +6,6 @@
 **The lightweight PyTorch wrapper for high-performance AI research.    
 Scale your models, not the boilerplate.**
 
-```diff
-- NEWS: Lightning 1.0 is currently in rc and is being released for GA Oct 11!
-```
 ---
 
 <p align="center">
@@ -18,6 +15,7 @@ Scale your models, not the boilerplate.**
   <a href="https://pytorch-lightning.readthedocs.io/en/stable/">Docs</a> •
   <a href="#examples">Examples</a> •
   <a href="#community">Community</a> •
+  <a href="#grid-ai">Grid AI</a> •
   <a href="#licence">Licence</a>
 </p>
 
@@ -33,7 +31,7 @@ Scale your models, not the boilerplate.**
 [![Slack](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A)
 [![Discourse status](https://img.shields.io/discourse/status?server=https%3A%2F%2Fforums.pytorchlightning.ai)](https://forums.pytorchlightning.ai/)
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/PytorchLightning/pytorch-lightning/blob/master/LICENSE)
-[![Next Release](https://img.shields.io/badge/Next%20Release-Sep%2014-<COLOR>.svg)](https://shields.io/)
+[![Next Release](https://img.shields.io/badge/Next%20Release-Nov%2021-<COLOR>.svg)](https://shields.io/)
 
 <!--
 [![CodeFactor](https://www.codefactor.io/repository/github/pytorchlightning/pytorch-lightning/badge)](https://www.codefactor.io/repository/github/pytorchlightning/pytorch-lightning)
@@ -41,28 +39,6 @@ Scale your models, not the boilerplate.**
 </div>
 
 ###### *Codecov is > 90%+ but build delays may show less
-
----
-
-## Just launched GridAI
-Our native platform for training models at scale on the cloud!    
-
-**Sign up for [early access here](https://www.grid.ai/)**
-
-To use grid, take your regular command:
-
-```
-    python my_model.py --learning_rate 1e-6 --layers 2 --gpus 4
-```
-
-And change it to use the grid train command:
-
-```
-    grid train --grid_gpus 4 my_model.py --learning_rate 'uniform(1e-6, 1e-1, 20)' --layers '[2, 4, 8, 16]'
-```
-
-The above command will launch (20 * 4) experiments each running on 4 GPUs (320 GPUs!) - by making ZERO changes to
-your code.
 
 ---
 
@@ -207,22 +183,30 @@ trainer = pl.Trainer()
 trainer.fit(autoencoder, DataLoader(train), DataLoader(val))
 ```
 
-#### And without changing a single line of code, you could run on GPUs
+#### And without changing a single line of code, you could run on GPU/TPUss
 ```python
 # 8 GPUs
 trainer = Trainer(max_epochs=1, gpus=8)
 
 # 256 GPUs
 trainer = Trainer(max_epochs=1, gpus=8, num_nodes=32)
+
+# TPUs
+trainer = Trainer(tpu_cores=8)
 ```
 
-Or TPUs
+#### And even export for production via onnx or torchscript
 ```python
-# Distributes TPU core training
-trainer = Trainer(tpu_cores=8)
+# torchscript
+autoencoder = LitAutoEncoder()
+torch.jit.save(autoencoder.to_torchscript(), "model.pt") 
 
-# Single TPU core training
-trainer = Trainer(tpu_cores=[1])
+# onnx
+with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
+    autoencoder = LitAutoEncoder()
+    input_sample = torch.randn((1, 64))
+    autoencoder.to_onnx(tmpfile.name, input_sample, export_params=True)
+    os.path.isfile(tmpfile.name)
 ```
 
 #### For advanced users, you can still own complex training loops
@@ -242,7 +226,6 @@ class LitAutoEncoder(pl.LightningModule):
         self.manual_backward(loss_b, opt_b)
         opt_b.step()
         opt_b.zero_grad()
-
 ```
 ---
 
@@ -326,6 +309,28 @@ Their funding ensures we can continue to build awesome tooling like Grid, give y
 hire a full-time staff, attend conferences, and move faster through implementing features you request.
 
 To supercharge your research and production work, visit our [Grid.ai platform](https://www.grid.ai/)
+
+---
+
+## Grid AI
+Grid AI is our native platform for training models at scale on the cloud!    
+
+**Sign up for [early access here](https://www.grid.ai/)**
+
+To use grid, take your regular command:
+
+```
+    python my_model.py --learning_rate 1e-6 --layers 2 --gpus 4
+```
+
+And change it to use the grid train command:
+
+```
+    grid train --grid_gpus 4 my_model.py --learning_rate 'uniform(1e-6, 1e-1, 20)' --layers '[2, 4, 8, 16]'
+```
+
+The above command will launch (20 * 4) experiments each running on 4 GPUs (320 GPUs!) - by making ZERO changes to
+your code.
 
 ---
 

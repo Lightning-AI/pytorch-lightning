@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import os
 import math
 from enum import Enum
@@ -118,19 +131,25 @@ class Accelerator(object):
         model_ref = self.trainer.get_model()
         model_ref.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
-    def clip_gradients(self, optimizer):
+    def clip_gradients(self, optimizer, clip_val=None):
 
         if self.trainer.amp_backend == AMPType.NATIVE:
             self.trainer.scaler.unscale_(optimizer)
 
         # apply clip gradients
         # TODO: separate TPU case from here
-        self._clip_gradients(optimizer)
+        self._clip_gradients(optimizer, clip_val)
 
-    def _clip_gradients(self, optimizer):
+    def _clip_gradients(self, optimizer, clip_val=None):
+        # use the trainer's clip val if none passed
+        grad_clip_val = self.trainer.gradient_clip_val
+        if clip_val is not None:
+            grad_clip_val = clip_val
+        grad_clip_val = float(grad_clip_val)
+
         # this code is a modification of torch.nn.utils.clip_grad_norm_
         # with TPU support based on https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md
-        if self.trainer.gradient_clip_val <= 0:
+        if grad_clip_val <= 0:
             return
 
         model = self.trainer.get_model()
@@ -139,7 +158,7 @@ class Accelerator(object):
         else:
             parameters = model.parameters()
 
-        max_norm = float(self.trainer.gradient_clip_val)
+        max_norm = grad_clip_val
         norm_type = float(2.0)
 
         if isinstance(parameters, torch.Tensor):
@@ -194,6 +213,20 @@ class Accelerator(object):
             torch_distrib.init_process_group(
                 torch_backend, rank=global_rank, world_size=world_size
             )
+
+    def __getstate__(self):
+        return {
+            'trainer': self.trainer,
+            'nickname': self.nickname,
+            'cluster_environment': self.cluster_environment,
+            'dist': self.dist
+        }
+
+    def __setstate__(self, d):
+        self.trainer = d['trainer']
+        self.nickname = d['nickname']
+        self.cluster_environment = d['cluster_environment']
+        self.dist = d['dist']
 
 
 # TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...

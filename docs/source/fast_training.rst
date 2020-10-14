@@ -39,7 +39,7 @@ It can be useful to force training for a minimum number of epochs or limit to a 
 Set validation check frequency within 1 training epoch
 ------------------------------------------------------
 For large datasets it's often desirable to check validation multiple times within a training loop.
-Pass in a float to check that often within 1 training epoch. Pass in an int k to check every k training batches.
+Pass in a float to check that often within 1 training epoch. Pass in an int `k` to check every `k` training batches.
 Must use an `int` if using an `IterableDataset`.
 
 .. testcode::
@@ -55,8 +55,8 @@ Must use an `int` if using an `IterableDataset`.
 
 ----------------
 
-Use data subset for training, validation and test
--------------------------------------------------
+Use data subset for training, validation, and test
+--------------------------------------------------
 If you don't want to check 100% of the training/validation/test set (for debugging or if it's huge), set these flags.
 
 .. testcode::

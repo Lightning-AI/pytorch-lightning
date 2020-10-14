@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
@@ -21,6 +34,8 @@ def test__validation_step__log(tmpdir):
             acc = self.step(batch, batch_idx)
             acc = acc + batch_idx
             self.log('a', acc, on_step=True, on_epoch=True)
+            self.log('a2', 2)
+
             self.training_step_called = True
             return acc
 
@@ -50,6 +65,7 @@ def test__validation_step__log(tmpdir):
     # make sure all the metrics are available for callbacks
     expected_logged_metrics = {
         'a',
+        'a2',
         'a_step',
         'a_epoch',
         'b',
@@ -65,7 +81,7 @@ def test__validation_step__log(tmpdir):
     # on purpose DO NOT allow step_b... it's silly to monitor val step metrics
     callback_metrics = set(trainer.callback_metrics.keys())
     callback_metrics.remove('debug_epoch')
-    expected_cb_metrics = {'a', 'b', 'a_epoch', 'b_epoch', 'a_step'}
+    expected_cb_metrics = {'a', 'a2', 'b', 'a_epoch', 'b_epoch', 'a_step'}
     assert expected_cb_metrics == callback_metrics
 
 
