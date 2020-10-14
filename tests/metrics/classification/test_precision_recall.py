@@ -108,7 +108,7 @@ def _multidim_multiclass_sk_metric(preds, target, sk_fn=precision_score, average
     ],
 )
 @pytest.mark.parametrize(
-    "metric_class, sk_fn", [(Precision, precision_score), (Recall, recall_score),],
+    "metric_class, sk_fn", [(Precision, precision_score), (Recall, recall_score)],
 )
 class TestPrecisionRecall(MetricTester):
     def test_precision_recall(
