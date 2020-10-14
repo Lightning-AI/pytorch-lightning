@@ -25,7 +25,7 @@ from unittest import mock
 def test_accelerator_choice_cpu(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator_backend, accelerators.CPUBackend)
+            assert isinstance(trainer.accelerator_backend, accelerators.CPUAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
 
     model = BoringModel()
@@ -40,7 +40,7 @@ def test_accelerator_choice_ddp_cpu(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer.use_ddp
-            assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUSpawnBackend)
+            assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUSpawnAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
             raise SystemExit()
 
@@ -61,7 +61,7 @@ def test_accelerator_choice_ddp(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer.use_ddp
-            assert isinstance(trainer.accelerator_backend, accelerators.DDPBackend)
+            assert isinstance(trainer.accelerator_backend, accelerators.DDPAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
             raise SystemExit()
 
@@ -83,7 +83,7 @@ def test_accelerator_choice_ddp_spawn(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer.use_ddp
-            assert isinstance(trainer.accelerator_backend, accelerators.DDPSpawnBackend)
+            assert isinstance(trainer.accelerator_backend, accelerators.DDPSpawnAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
             raise SystemExit()
 
@@ -111,7 +111,7 @@ def test_accelerator_choice_ddp_slurm(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer.use_ddp
-            assert isinstance(trainer.accelerator_backend, accelerators.DDPSLURMBackend)
+            assert isinstance(trainer.accelerator_backend, accelerators.DDPSLURMAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, SLURMEnvironment)
             raise SystemExit()
 
@@ -140,7 +140,7 @@ def test_accelerator_choice_ddp2_slurm(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer.use_ddp2
-            assert isinstance(trainer.accelerator_backend, accelerators.DDP2Backend)
+            assert isinstance(trainer.accelerator_backend, accelerators.DDP2Accelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, SLURMEnvironment)
             raise SystemExit()
 
@@ -167,7 +167,7 @@ def test_accelerator_choice_ddp_te(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer.use_ddp
-            assert isinstance(trainer.accelerator_backend, accelerators.DDPTorchElasticBackend)
+            assert isinstance(trainer.accelerator_backend, accelerators.DDPTorchElasticAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
             raise SystemExit()
 
@@ -194,7 +194,7 @@ def test_accelerator_choice_ddp2_te(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer.use_ddp2
-            assert isinstance(trainer.accelerator_backend, accelerators.DDP2Backend)
+            assert isinstance(trainer.accelerator_backend, accelerators.DDP2Accelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
             raise SystemExit()
 
@@ -220,7 +220,7 @@ def test_accelerator_choice_ddp_cpu_te(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer.use_ddp
-            assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUTorchElasticBackend)
+            assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUTorchElasticAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
             raise SystemExit()
 
@@ -248,7 +248,7 @@ def test_accelerator_choice_ddp_cpu_slurm(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer.use_ddp
-            assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUSLURMBackend)
+            assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUSLURMAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, SLURMEnvironment)
             raise SystemExit()
 
@@ -283,7 +283,7 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer.use_ddp
-            assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUSLURMBackend)
+            assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUSLURMAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, CustomCluster)
             raise SystemExit()
 
@@ -343,7 +343,7 @@ def test_custom_accelerator(tmpdir):
 def test_dist_backend_accelerator_mapping(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUSLURMBackend)
+            assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUSLURMAccelerator)
             raise SystemExit()
 
     model = BoringModel()

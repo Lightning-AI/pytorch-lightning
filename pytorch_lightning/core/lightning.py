@@ -107,8 +107,19 @@ class LightningModule(
         # optionally can be set by user
         self._example_input_array = None
         self._datamodule = None
-        self._results: Result = None
+        self._results: Optional[Result] = None
         self._current_fx_name = ''
+
+    def optimizers(self):
+        opts = self.trainer.optimizers
+
+        # single optimizer
+        if isinstance(opts, list) and len(opts) == 1 and isinstance(opts[0], Optimizer):
+            return opts[0]
+
+        # multiple opts
+        else:
+            return opts
 
     @property
     def example_input_array(self) -> Any:
@@ -399,7 +410,11 @@ class LightningModule(
                 :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0.
 
         Return:
-            roch.Tensor or a dictionary with anything you want (must include the keyword 'loss')
+            Any of.
+
+            - :class:`~torch.Tensor` - The loss tensor
+            - `dict` - A dictionary. Can include any keys, but must include the key 'loss'
+            - `None` - Training will skip to the next batch
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
         You can also do fancier things like multiple forward passes or something model specific.
@@ -438,7 +453,7 @@ class LightningModule(
                 ...
                 return {'loss': loss, 'hiddens': hiddens}
 
-        Notes:
+        Note:
             The loss value shown in the progress bar is smoothed (averaged) over the last values,
             so it differs from the actual loss returned in train/validation step.
         """
@@ -571,7 +586,10 @@ class LightningModule(
                 (only if multiple val datasets used)
 
         Return:
-            None or whatever you want
+           Any of.
+
+            - Any object or value
+            - `None` - Validation will skip to the next batch
 
         .. code-block:: python
 
@@ -755,7 +773,10 @@ class LightningModule(
                 (only if multiple test datasets used).
 
         Return:
-            None or anything
+           Any of.
+
+            - Any object or value
+            - `None` - Testing will skip to the next batch
 
         .. code-block:: python
 
@@ -1034,6 +1055,73 @@ class LightningModule(
             "`configure_optimizers` must be implemented to be used with the Lightning Trainer"
         )
 
+    def manual_backward(self, loss: Tensor, optimizer: Optimizer, *args, **kwargs) -> None:
+        """
+        Call this directly from your training_step when doing optimizations manually.
+        By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
+
+        This function forwards all args to the .backward() call as well.
+
+        .. tip:: In manual mode we still automatically clip grads if Trainer(gradient_clip_val=x) is set
+
+        Example::
+
+            def training_step(...):
+                (opt_a, opt_b) = self.optimizers()
+                loss = ...
+                # automatically applies scaling, etc...
+                self.manual_backward(loss, opt_a)
+        """
+        # make sure we're using manual opt
+        self._verify_is_manual_optimization('manual_backward')
+
+        # backward
+        self.trainer.train_loop.backward(loss, optimizer, -1, *args, **kwargs)
+
+        # clip grads after backward
+        self.trainer.accelerator_backend.clip_gradients(optimizer)
+
+    def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int) -> None:
+        """
+        Override backward with your own implementation if you need to.
+
+        Args:
+            loss: Loss is already scaled by accumulated grads
+            optimizer: Current optimizer being used
+            optimizer_idx: Index of the current optimizer being used
+
+        Called to perform backward step.
+        Feel free to override as needed.
+        The loss passed in has already been scaled for accumulated gradients if requested.
+
+        Example::
+
+            def backward(self, loss, optimizer, optimizer_idx):
+                loss.backward()
+
+        """
+        loss.backward()
+
+    def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):
+        """
+        Makes sure only the gradients of the current optimizer's parameters are calculated
+        in the training step to prevent dangling gradients in multiple-optimizer setup.
+
+        .. note:: Only called when using multiple optimizers
+
+        Override for your own behavior
+
+        Args:
+            optimizer:
+            optimizer_idx:
+        """
+        for param in self.parameters():
+            param.requires_grad = False
+
+        for group in optimizer.param_groups:
+            for param in group['params']:
+                param.requires_grad = True
+
     def optimizer_step(
         self,
         epoch: int,
@@ -1274,6 +1362,11 @@ class LightningModule(
 
         return tqdm_dict
 
+    def _verify_is_manual_optimization(self, fn_name):
+        if self.trainer.train_loop.automatic_optimization:
+            m = f'to use {fn_name}, please disable automatic optimization: Trainer(automatic_optimization=False)'
+            raise MisconfigurationException(m)
+
     @classmethod
     def _auto_collect_arguments(cls, frame=None) -> Tuple[Dict, Dict]:
         """"""
@@ -1434,17 +1527,23 @@ class LightningModule(
         torch.onnx.export(self, input_data, file_path, **kwargs)
 
     def to_torchscript(
-        self, file_path: Optional[str] = None, **kwargs
+        self, file_path: Optional[str] = None, method: Optional[str] = 'script',
+            example_inputs: Optional[torch.Tensor] = None, **kwargs
     ) -> Union[ScriptModule, Dict[str, ScriptModule]]:
         """
         By default compiles the whole model to a :class:`~torch.jit.ScriptModule`.
-        If you would like to customize the modules that are scripted or you want to use tracing
-        you should override this method. In case you want to return multiple modules, we
-        recommend using a dictionary.
+        If you want to use tracing, please provided the argument `method='trace'` and make sure that either the
+        example_inputs argument is provided, or the model has self.example_input_array set.
+        If you would like to customize the modules that are scripted you should override this method.
+        In case you want to return multiple modules, we recommend using a dictionary.
 
         Args:
             file_path: Path where to save the torchscript. Default: None (no file saved).
-            **kwargs: Additional arguments that will be passed to the :func:`torch.jit.save` function.
+            method: Whether to use TorchScript's script or trace method. Default: 'script'
+            example_inputs: Tensor to be used to do tracing when method is set to 'trace'.
+              Default: None (Use self.example_input_array)
+            **kwargs: Additional arguments that will be passed to the :func:`torch.jit.script` or
+              :func:`torch.jit.trace` function.
 
         Note:
             - Requires the implementation of the
@@ -1475,13 +1574,24 @@ class LightningModule(
 
         mode = self.training
         with torch.no_grad():
-            scripted_module = torch.jit.script(self.eval(), **kwargs)
+            if method == 'script':
+                torchscript_module = torch.jit.script(self.eval(), **kwargs)
+            elif method == 'trace':
+                # if no example inputs are provided, try to see if model has example_input_array set
+                if example_inputs is None:
+                    example_inputs = self.example_input_array
+                # automatically send example inputs to the right device and use trace
+                torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs.to(self.device),
+                                                     **kwargs)
+            else:
+                raise ValueError(f"The 'method' parameter only supports 'script' or 'trace', but value given was:"
+                                 f"{method}")
         self.train(mode)
 
         if file_path is not None:
-            torch.jit.save(scripted_module, file_path)
+            torch.jit.save(torchscript_module, file_path)
 
-        return scripted_module
+        return torchscript_module
 
     @property
     def hparams(self) -> Union[AttributeDict, str]:

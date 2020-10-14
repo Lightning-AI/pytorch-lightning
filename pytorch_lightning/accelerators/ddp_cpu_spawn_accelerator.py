@@ -15,18 +15,17 @@ import os
 import re
 
 import torch
-import torch.multiprocessing as mp
 import torch.distributed as torch_distrib
 import torch.distributed as dist
+import torch.multiprocessing as mp
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.base_accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.cloud_io import atomic_save, load as pl_load
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
-from pytorch_lightning.utilities.seed import seed_everything
-from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.utilities.distributed import find_free_network_port
+from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from torch.nn.parallel import DistributedDataParallel
 from typing import List
@@ -40,14 +39,14 @@ else:
     HYDRA_AVAILABLE = True
 
 
-class DDPSpawnBackend(Accelerator):
+class DDPCPUSpawnAccelerator(Accelerator):
 
     def __init__(self, trainer, nprocs, cluster_environment=None):
         super().__init__(trainer, cluster_environment)
         self.mp_queue = None
         self.nprocs = nprocs
         self.dist = LightningDistributed()
-        self.nickname = 'ddp'
+        self.nickname = 'ddp_cpu'
 
     def setup(self, model):
         os.environ['MASTER_PORT'] = os.environ.get('MASTER_PORT', str(find_free_network_port()))
@@ -67,31 +66,20 @@ class DDPSpawnBackend(Accelerator):
         # restore main state with best weights
         best_path = self.mp_queue.get()
         results = self.mp_queue.get()
-        last_path = self.mp_queue.get()
 
         # recover the weights of the processes trained in the children
-        self.__recover_child_process_weights(model, best_path, last_path)
+        self.__recover_child_process_weights(model, best_path)
         return results
 
-    def ddp_train(self, process_idx, mp_queue, model, is_master=False, proc_offset=0):
+    def ddp_train(self, process_idx, mp_queue, model):
         """
         Entry point for ddp
-
         Args:
             process_idx:
             mp_queue: multiprocessing queue
             model:
-
         Returns:
-
         """
-        seed = os.environ.get("PL_GLOBAL_SEED")
-        if seed is not None:
-            seed_everything(int(seed))
-
-        # offset the process id if requested
-        process_idx = process_idx + proc_offset
-
         # show progressbar only on progress_rank 0
         if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:
             self.trainer.progress_bar_callback.disable()
@@ -127,7 +115,7 @@ class DDPSpawnBackend(Accelerator):
             model = self.configure_sync_batchnorm(model)
 
         # move the model to the correct device
-        self.model_to_device(model, process_idx, is_master)
+        self.model_to_device(model, process_idx)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
@@ -139,7 +127,7 @@ class DDPSpawnBackend(Accelerator):
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
 
-        # device ids change depending on the DDP setup
+        # DDP spawn already spawned off each process... no need to do anything
         device_ids = self.get_device_ids()
 
         # allow user to configure ddp
@@ -159,21 +147,6 @@ class DDPSpawnBackend(Accelerator):
 
         # clean up memory
         torch.cuda.empty_cache()
-
-    def set_world_ranks(self, process_idx):
-        self.trainer.local_rank = process_idx
-        self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
-        self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
-
-    def model_to_device(self, model, process_idx, is_master):
-        gpu_idx = process_idx
-        self.trainer.root_gpu = gpu_idx
-        torch.cuda.set_device(self.trainer.root_gpu)
-        model.cuda(self.trainer.root_gpu)
-
-    def get_device_ids(self):
-        device_ids = [self.trainer.root_gpu]
-        return device_ids
 
     def training_step(self, args):
         if self.trainer.amp_backend == AMPType.NATIVE:
@@ -195,6 +168,9 @@ class DDPSpawnBackend(Accelerator):
         if torch_distrib.is_initialized():
             torch_distrib.barrier()
 
+    def broadcast(self, obj, src=0):
+        return self.dist.broadcast(obj)
+
     def early_stopping_should_stop(self, pl_module):
         stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device)
         dist.all_reduce(stop, op=dist.reduce_op.SUM)
@@ -202,23 +178,27 @@ class DDPSpawnBackend(Accelerator):
         should_stop = stop == self.trainer.world_size
         return should_stop
 
-    def broadcast(self, obj, src=0):
-        return self.dist.broadcast(obj)
+    def set_world_ranks(self, process_idx):
+        self.trainer.local_rank = process_idx
+        self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
+        self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
-    def __recover_child_process_weights(self, model, best_path, last_path):
+    def model_to_device(self, model, process_idx):
+        model.cpu()
+
+    def get_device_ids(self):
+        device_ids = None
+        return device_ids
+
+    def __recover_child_process_weights(self, model, best_path):
         # transfer back the best path to the trainer
         if self.trainer.checkpoint_callback:
             self.trainer.checkpoint_callback.best_model_path = best_path
-        # todo, pass also best score
-
-        # load last weights
-        if last_path is not None and not self.trainer.testing:
-            ckpt = pl_load(last_path, map_location=lambda storage, loc: storage)
-            model.load_state_dict(ckpt)
 
         self.trainer.model = model
 
     def transfer_distrib_spawn_state_on_fit_end(self, model, mp_queue, results):
+        # track the best model path
         best_model_path = None
         if self.trainer.checkpoint_callback is not None:
             best_model_path = self.trainer.checkpoint_callback.best_model_path
@@ -228,13 +208,6 @@ class DDPSpawnBackend(Accelerator):
             # todo, pass complete checkpoint as state dictionary
             mp_queue.put(best_model_path)
             mp_queue.put(results)
-
-            # save the last weights
-            last_path = None
-            if not self.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
-                last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
-                atomic_save(model.state_dict(), last_path)
-            mp_queue.put(last_path)
 
     def configure_ddp(
         self, model: "LightningModule", device_ids: List[int]

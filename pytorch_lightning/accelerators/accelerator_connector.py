@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from pytorch_lightning import accelerators
 import os
 import torch
@@ -9,7 +22,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning import _logger as log
 from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.cluster_environments.torchelastic_environment import TorchElasticEnvironment
-from pytorch_lightning.accelerators.base_accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator
 
 try:
     import torch_xla
@@ -47,14 +60,8 @@ class AcceleratorConnector:
             replace_sampler_ddp,
             deterministic,
     ):
-        # temporary mapping until we remove all the distributed_backend references
-        if accelerator is not None:
-            self.accelerator = accelerator
-            if isinstance(accelerator, Accelerator):
-                self.accelerator.trainer = self
-                distributed_backend = self.accelerator.nickname
-            else:
-                distributed_backend = accelerator
+        # temp until we remove all dist backend references
+        distributed_backend = self._map_deprecated_dist_backend(accelerator, distributed_backend)
 
         self.trainer.deterministic = deterministic
 
@@ -138,6 +145,21 @@ class AcceleratorConnector:
 
         self.trainer.replace_sampler_ddp = replace_sampler_ddp
 
+    def _map_deprecated_dist_backend(self, accelerator, distributed_backend):
+        if distributed_backend is not None:
+            rank_zero_warn(DeprecationWarning('distributed_backend has been renamed to accelerator. '
+                                              'Deprecated in 1.0.0, will be removed in 1.2.0'))
+
+        # temporary mapping until we remove all the distributed_backend references
+        if accelerator is not None:
+            self.accelerator = accelerator
+            if isinstance(accelerator, Accelerator):
+                self.accelerator.trainer = self
+                distributed_backend = self.accelerator.nickname
+            else:
+                distributed_backend = accelerator
+        return distributed_backend
+
     def _select_environment(self):
         if self.trainer.plugin_connector.cloud_environment:
             env = self.trainer.plugin_connector.cloud_environment
@@ -190,51 +212,51 @@ class AcceleratorConnector:
 
         # choose the appropriate accelerator backend
         if self.trainer.use_ddp2:
-            accelerator_backend = accelerators.DDP2Backend(self.trainer, cluster_env)
+            accelerator_backend = accelerators.DDP2Accelerator(self.trainer, cluster_env)
 
         elif use_ddp_cpu_slurm:
-            accelerator_backend = accelerators.DDPCPUSLURMBackend(self.trainer, cluster_env)
+            accelerator_backend = accelerators.DDPCPUSLURMAccelerator(self.trainer, cluster_env)
 
         elif use_slurm_ddp:
-            accelerator_backend = accelerators.DDPSLURMBackend(self.trainer, cluster_env)
+            accelerator_backend = accelerators.DDPSLURMAccelerator(self.trainer, cluster_env)
 
         elif use_ddp_cpu_torch_elastic:
-            accelerator_backend = accelerators.DDPCPUTorchElasticBackend(self.trainer, cluster_env)
+            accelerator_backend = accelerators.DDPCPUTorchElasticAccelerator(self.trainer, cluster_env)
 
         elif use_torchelastic_ddp:
-            accelerator_backend = accelerators.DDPTorchElasticBackend(self.trainer, cluster_env)
+            accelerator_backend = accelerators.DDPTorchElasticAccelerator(self.trainer, cluster_env)
 
         elif use_ddp_spawn:
-            accelerator_backend = accelerators.DDPSpawnBackend(
+            accelerator_backend = accelerators.DDPSpawnAccelerator(
                 self.trainer,
                 nprocs=self.trainer.num_processes,
                 cluster_environment=cluster_env
             )
 
         elif use_ddp_cpu_spawn:
-            accelerator_backend = accelerators.DDPCPUSpawnBackend(
+            accelerator_backend = accelerators.DDPCPUSpawnAccelerator(
                 self.trainer,
                 nprocs=self.trainer.num_processes,
                 cluster_environment=cluster_env
             )
 
         elif self.trainer.distributed_backend == "ddp":
-            accelerator_backend = accelerators.DDPBackend(self.trainer, cluster_env)
+            accelerator_backend = accelerators.DDPAccelerator(self.trainer, cluster_env)
 
         elif self.trainer.use_dp:
-            accelerator_backend = accelerators.DataParallelBackend(self.trainer, cluster_env)
+            accelerator_backend = accelerators.DataParallelAccelerator(self.trainer, cluster_env)
 
         elif self.trainer.use_horovod:
-            accelerator_backend = accelerators.HorovodBackend(self.trainer, cluster_env)
+            accelerator_backend = accelerators.HorovodAccelerator(self.trainer, cluster_env)
 
         elif self.trainer.use_single_gpu:
-            accelerator_backend = accelerators.GPUBackend(self.trainer, cluster_env)
+            accelerator_backend = accelerators.GPUAccelerator(self.trainer, cluster_env)
 
         elif self.trainer.use_tpu:
-            accelerator_backend = accelerators.TPUBackend(self.trainer, cluster_env)
+            accelerator_backend = accelerators.TPUAccelerator(self.trainer, cluster_env)
 
         elif self.trainer.distributed_backend is None:
-            accelerator_backend = accelerators.CPUBackend(self.trainer, cluster_env)
+            accelerator_backend = accelerators.CPUAccelerator(self.trainer, cluster_env)
         else:
             raise MisconfigurationException(
                 f'Trainer(distributed_backend={self.trainer.distributed_backend} is not a supported backend'

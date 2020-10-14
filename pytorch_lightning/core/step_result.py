@@ -23,6 +23,7 @@ import os
 from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 from pytorch_lightning.metrics import Metric
 
+
 class Result(Dict):
     def __init__(
         self,
@@ -88,6 +89,12 @@ class Result(Dict):
             val = val.detach()
 
         self[key] = val
+
+    def __getstate__(self):
+        return self
+
+    def __setstate__(self, d):
+        self.update(d)
 
     def _assert_tensor_metric(self, name: str, potential_metric: Union[bool, Tensor, None, Any]):
         if potential_metric is not None and not isinstance(potential_metric, bool):
@@ -476,6 +483,9 @@ class Result(Dict):
             else:
                 tbptt_reduce_fx = meta[k]['tbptt_reduce_fx']
 
+            if isinstance(value, list):
+                value = torch.tensor(value)
+
             if isinstance(value, dict):
                 # TODO: recursive reduce:
                 _recursive_fx_apply(value, tbptt_reduce_fx)
@@ -527,6 +537,10 @@ def recursive_gather(outputs: Sequence[dict], result: Optional[MutableMapping] =
             del out['meta']
 
         for k, v in out.items():
+            # support manual opt where the user does not return a minimize key
+            if k == 'minimize' and v is None:
+                continue
+
             if isinstance(v, dict):
                 in_d = result.get(k, {})
                 v = recursive_gather([v], in_d)

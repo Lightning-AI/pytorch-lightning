@@ -13,7 +13,7 @@ Callback
 
 .. raw:: html
 
-    <video width="50%" max-width="400px" controls
+    <video width="100%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/callbacks.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/callbacks.mp4"></video>
 
@@ -22,13 +22,13 @@ Callback
 A callback is a self-contained program that can be reused across projects.
 
 Lightning has a callback system to execute callbacks when needed. Callbacks should capture NON-ESSENTIAL
-logic that is NOT required for your :class:`~pytorch_lightning.core.LightningModule` to run.
+logic that is NOT required for your :ref:`lightning_module` to run.
 
 Here's the flow of how the callback hooks are executed:
 
 .. raw:: html
 
-    <video width="50%" max-width="400px" controls autoplay muted playsinline src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_callbacks_mov.m4v"></video>
+    <video width="100%" max-width="400px" controls autoplay muted playsinline src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_callbacks_mov.m4v"></video>
 
 An overall Lightning system should have:
 
@@ -41,6 +41,8 @@ An overall Lightning system should have:
 Example:
 
 .. testcode::
+
+    from pytorch_lightning.callbacks import Callback
 
     class MyPrintingCallback(Callback):
 
@@ -61,7 +63,7 @@ Example:
     trainer is init now
 
 We successfully extended functionality without polluting our super clean
-:class:`~pytorch_lightning.core.LightningModule` research code.
+:ref:`lightning_module` research code.
 
 -----------
 
@@ -124,3 +126,178 @@ The following are best practices when using/designing callbacks.
 3. Do not manually call methods from the callback.
 4. Directly calling methods (eg. `on_validation_end`) is strongly discouraged.
 5. Whenever possible, your callbacks should not depend on the order in which they are executed.
+
+-----------
+
+.. _hooks:
+
+Available Callback hooks
+------------------------
+
+on_epoch_start
+^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_epoch_start
+    :noindex:
+
+on_epoch_end
+^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_epoch_end
+    :noindex:
+
+on_fit_start
+^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_fit_start
+    :noindex:
+
+on_fit_end
+^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_fit_end
+    :noindex:
+
+on_save_checkpoint
+^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.CheckpointHooks.on_save_checkpoint
+    :noindex:
+
+on_load_checkpoint
+^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.CheckpointHooks.on_load_checkpoint
+    :noindex:
+
+on_pretrain_routine_start
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_pretrain_routine_start
+    :noindex:
+
+on_pretrain_routine_end
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_pretrain_routine_end
+    :noindex:
+
+on_test_batch_start
+^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_batch_start
+    :noindex:
+
+on_test_batch_end
+^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_batch_end
+    :noindex:
+
+on_test_epoch_start
+^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_epoch_start
+    :noindex:
+
+on_test_epoch_end
+^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_epoch_end
+    :noindex:
+
+on_test_model_train
+^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_model_train
+    :noindex:
+
+on_test_model_eval
+^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_model_eval
+    :noindex:
+
+on_train_batch_start
+^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_train_batch_start
+    :noindex:
+
+on_train_batch_end
+^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_train_batch_end
+    :noindex:
+
+on_train_start
+^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_train_start
+    :noindex:
+
+on_train_end
+^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_train_end
+    :noindex:
+
+on_train_epoch_start
+^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_train_epoch_start
+    :noindex:
+
+on_train_epoch_end
+^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_train_epoch_end
+    :noindex:
+
+on_validation_batch_start
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_batch_start
+    :noindex:
+
+on_validation_batch_end
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_batch_end
+    :noindex:
+
+on_validation_epoch_start
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_epoch_start
+    :noindex:
+
+on_validation_epoch_end
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_epoch_end
+    :noindex:
+
+on_validation_model_eval
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_model_eval
+    :noindex:
+
+on_validation_model_train
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_model_train
+    :noindex:
+
+setup
+^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.setup
+    :noindex:
+
+teardown
+^^^^^^^^
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.teardown
+    :noindex:

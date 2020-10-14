@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
@@ -20,7 +33,7 @@ def test__training_step__flow_dict(tmpdir):
             self.training_step_called = True
             return {'loss': acc, 'random_things': [1, 'a', torch.tensor(2)]}
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
     model = TestModel()
@@ -62,7 +75,7 @@ def test__training_step__tr_step_end__flow_dict(tmpdir):
             self.training_step_end_called = True
             return tr_step_output
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
     model = TestModel()
@@ -110,7 +123,7 @@ def test__training_step__epoch_end__flow_dict(tmpdir):
                 assert self.count_num_graphs(b) == 0
                 assert {'random_things', 'loss'} == set(b.keys())
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
     model = TestModel()
@@ -164,7 +177,7 @@ def test__training_step__step_end__epoch_end__flow_dict(tmpdir):
                 assert self.count_num_graphs(b) == 0
                 assert {'random_things', 'loss'} == set(b.keys())
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
     model = TestModel()

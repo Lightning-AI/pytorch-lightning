@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """
 .. testsetup:: *
 
@@ -209,7 +222,7 @@ You can also modify hardware behavior by subclassing an existing accelerator to 
 
 Example::
 
-    class MyOwnDDP(DDPBackend):
+    class MyOwnDDP(DDPAccelerator):
         ...
 
     Trainer(accelerator=MyOwnDDP())
@@ -284,6 +297,41 @@ Example::
 
     # default used by the Trainer
     trainer = Trainer(amp_level='O2')
+
+automatic_optimization
+^^^^^^^^^^^^^^^^^^^^^^
+When set to False, Lightning does not automate the optimization process. This means you are responsible for your own
+optimizer behavior
+
+Example::
+
+    def training_step(self, batch, batch_idx):
+        opt = self.optimizers()
+
+        loss = ...
+        self.manual_backward(loss, opt)
+        opt.step()
+        opt.zero_grad()
+
+This is not recommended when using a single optimizer, instead it's recommended when using 2+ optimizers
+AND you are an expert user. Most useful for research like RL, sparse coding and GAN research.
+
+In the multi-optimizer case, ignore the optimizer_idx flag and use the optimizers directly
+
+Example::
+
+    def training_step(self, batch, batch_idx, optimizer_idx):
+        (opt_a, opt_b) = self.optimizers()
+
+        gen_loss = ...
+        self.manual_backward(gen_loss, opt_a)
+        opt_a.step()
+        opt_a.zero_grad()
+
+        disc_loss = ...
+        self.manual_backward(disc_loss, opt_b)
+        opt_b.step()
+        opt_b.zero_grad()
 
 auto_scale_batch_size
 ^^^^^^^^^^^^^^^^^^^^^

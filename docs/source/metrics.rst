@@ -7,8 +7,9 @@
 
 .. _metrics:
 
+#######
 Metrics
-=======
+#######
 
 ``pytorch_lightning.metrics`` is a Metrics API created for easy metric development and usage in
 PyTorch and PyTorch Lightning. It is rigorously tested for all edge cases and includes a growing list of
@@ -104,8 +105,9 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
     # total accuracy over all validation batches
     total_valid_accuracy = valid_accuracy.compute()
 
+*********************
 Implementing a Metric
----------------------
+*********************
 
 To implement your custom metric, subclass the base ``Metric`` class and implement the following methods:
 
@@ -142,11 +144,16 @@ Example implementation:
         def compute(self):
             return self.correct.float() / self.total
 
-Metric
-^^^^^^
+**********
+Metric API
+**********
 
 .. autoclass:: pytorch_lightning.metrics.Metric
     :noindex:
+
+*************
+Class metrics
+*************
 
 
 MetricCollection
@@ -208,9 +215,27 @@ Classification Metrics
 ----------------------
 
 Accuracy
-^^^^^^^^
+~~~~~~~~
 
 .. autoclass:: pytorch_lightning.metrics.classification.Accuracy
+    :noindex:
+
+Precision
+~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.Precision
+    :noindex:
+
+Recall
+~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.Recall
+    :noindex:
+
+Fbeta
+~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.Fbeta
     :noindex:
 
 Precision
@@ -235,35 +260,35 @@ Regression Metrics
 ------------------
 
 MeanSquaredError
-^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~
 
 .. autoclass:: pytorch_lightning.metrics.regression.MeanSquaredError
     :noindex:
 
 
 MeanAbsoluteError
-^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~
 
 .. autoclass:: pytorch_lightning.metrics.regression.MeanAbsoluteError
     :noindex:
 
 
 MeanSquaredLogError
-^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: pytorch_lightning.metrics.regression.MeanSquaredLogError
     :noindex:
 
 
 ExplainedVariance
-^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~
 
 .. autoclass:: pytorch_lightning.metrics.regression.ExplainedVariance
     :noindex:
 
-
+******************
 Functional Metrics
-==================
+******************
 
 The functional metrics follow the simple paradigm input in, output out. This means, they don't provide any advanced mechanisms for syncing across DDP nodes or aggregation over batches. They simply compute the metric value based on the given inputs.
 
@@ -274,133 +299,133 @@ Classification
 --------------
 
 accuracy [func]
-^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.accuracy
     :noindex:
 
 
 auc [func]
-^^^^^^^^^^
+~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.auc
     :noindex:
 
 
 auroc [func]
-^^^^^^^^^^^^
+~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.auroc
     :noindex:
 
 
 average_precision [func]
-^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.average_precision
     :noindex:
 
 
 confusion_matrix [func]
-^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.confusion_matrix
     :noindex:
 
 
 dice_score [func]
-^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.dice_score
     :noindex:
 
 
 f1_score [func]
-^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.f1_score
     :noindex:
 
 
 fbeta_score [func]
-^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.fbeta_score
     :noindex:
 
 
 iou [func]
-^^^^^^^^^^
+~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.iou
     :noindex:
 
 
 multiclass_roc [func]
-^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.multiclass_roc
     :noindex:
 
 
 precision [func]
-^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.precision
     :noindex:
 
 
 precision_recall [func]
-^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.precision_recall
     :noindex:
 
 
 precision_recall_curve [func]
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.precision_recall_curve
     :noindex:
 
 
 recall [func]
-^^^^^^^^^^^^^
+~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.recall
     :noindex:
 
 
 roc [func]
-^^^^^^^^^^
+~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.roc
     :noindex:
 
 
 stat_scores [func]
-^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.stat_scores
     :noindex:
 
 
 stat_scores_multiple_classes [func]
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.stat_scores_multiple_classes
     :noindex:
 
 
 to_categorical [func]
-^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.to_categorical
     :noindex:
 
 
 to_onehot [func]
-^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.to_onehot
     :noindex:
@@ -410,42 +435,42 @@ Regression
 ----------
 
 mae [func]
-^^^^^^^^^^
+~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.regression.mae
     :noindex:
 
 
 mse [func]
-^^^^^^^^^^
+~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.regression.mse
     :noindex:
 
 
 psnr [func]
-^^^^^^^^^^^
+~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.regression.psnr
     :noindex:
 
 
 rmse [func]
-^^^^^^^^^^^
+~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.regression.rmse
     :noindex:
 
 
 rmsle [func]
-^^^^^^^^^^^^
+~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.regression.rmsle
     :noindex:
 
 
 ssim [func]
-^^^^^^^^^^^
+~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.regression.mae
     :noindex:
@@ -455,17 +480,17 @@ NLP
 ---
 
 bleu_score [func]
-^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.nlp.bleu_score
     :noindex:
 
 
-Self-Supervised
----------------
+Pairwise
+--------
 
 embedding_similarity [func]
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.self_supervised.embedding_similarity
     :noindex:
