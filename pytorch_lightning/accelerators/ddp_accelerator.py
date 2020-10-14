@@ -143,8 +143,8 @@ class DDPAccelerator(Accelerator):
 
         results = self.ddp_train(process_idx=self.task_idx, model=model)
         # todo: this does not make much sense, right?
-        # if 'WORLD_SIZE' in os.environ:
-        #     del os.environ['WORLD_SIZE']
+        if 'WORLD_SIZE' in os.environ:
+            os.environ['WORLD_SIZE'] = "0"
         return results
 
     def training_step(self, args):
