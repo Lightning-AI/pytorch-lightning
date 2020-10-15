@@ -15,6 +15,7 @@ import torch
 from typing import Any, Callable, Optional, Union
 
 from pytorch_lightning.metrics.metric import Metric
+from pytorch_lightning.metrics.utils import _check_same_shape
 
 
 class MeanAbsoluteError(Metric):
@@ -63,7 +64,7 @@ class MeanAbsoluteError(Metric):
             preds: Predictions from model
             target: Ground truth values
         """
-        self._check_same_shape(preds, target)
+        _check_same_shape(preds, target)
         abs_error = torch.abs(preds - target)
 
         self.sum_abs_error += torch.sum(abs_error)
