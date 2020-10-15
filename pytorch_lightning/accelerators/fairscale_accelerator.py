@@ -11,10 +11,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Dict, Any
 
 from fairscale.optim import OSS
 
 from pytorch_lightning.accelerators import DDPAccelerator
+from pytorch_lightning.utilities import rank_zero_only
+
+
+class LightningOSS(OSS):
+
+    @rank_zero_only
+    def state_dict(self) -> Dict[str, Any]:
+        """
+        Ensure we only call state_dict using rank zero.
+        """
+
+        assert (
+                len(self._all_states) > 0
+        ), "The optimizer state is not materialized, please call consolidate_state_dict on every replica beforehand"
+
+        return {"state": self._all_states}
 
 
 class FairScaleAccelerator(DDPAccelerator):
@@ -44,7 +61,7 @@ class FairScaleAccelerator(DDPAccelerator):
         fairscale_zero_optimizers = []
         for optimizer in optimizers:
             optim_class = type(optimizer)
-            zero_optimizer = OSS(
+            zero_optimizer = LightningOSS(
                 params=optimizer.param_groups,
                 optim=optim_class,
                 **optimizer.defaults
