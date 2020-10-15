@@ -108,8 +108,8 @@ class LoggerConnector:
 
         self.trainer.dev_debugger.track_pbar_metrics_history(metrics)
 
+
     def on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, using_eval_result, test_mode):
-        self._track_callback_metrics(deprecated_eval_results, using_eval_result)
         self._log_on_evaluation_epoch_end_metrics(epoch_logs)
 
         # TODO: deprecate parts of this for 1.0 (when removing results)
@@ -212,10 +212,30 @@ class LoggerConnector:
         result = {f'{k}/dataloader_idx_{dataloader_idx}': v for k, v in metrics.items()}
         return result
 
+    def _track_callback_metrics_1_0(self, epoch_logs):
+        if self.trainer.running_sanity_check:
+            return
+
+        step_metrics = self.trainer.evaluation_loop.step_metrics
+
+        num_loaders = len(step_metrics)
+        
+        # ---------------------------
+        # UPDATE EPOCH LOGGED METRICS
+        # ---------------------------
+        # (ie: in methods at the val_epoch_end level)
+        # union the epoch logs with whatever was returned from loaders and reduced
+        epoch_logger_metrics = epoch_logs.get_epoch_log_metrics()
+        epoch_pbar_metrics = epoch_logs.get_epoch_pbar_metrics()
+
+        # enable the metrics to be monitored
+        self.callback_metrics.update(epoch_logger_metrics)
+        self.callback_metrics.update(epoch_pbar_metrics)
+
     def _track_callback_metrics(self, eval_results, using_eval_result):
         if (
                 len(eval_results) > 0 and
-                (eval_results[0] is None or not isinstance(eval_results[0], Result))
+                (eval_results[0] is None or isinstance(eval_results[0], Result))
         ):
             return
 
