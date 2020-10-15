@@ -130,7 +130,7 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
-        plugins: list = None,
+        plugins: Optional[list] = None,
         amp_backend: str = 'native',
         amp_level: str = 'O2',
         distributed_backend: Optional[str] = None,
