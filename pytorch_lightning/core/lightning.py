@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import collections
+import copy
 import inspect
 import os
 import re
@@ -1448,9 +1449,11 @@ class LightningModule(
         init_args = get_init_args(frame)
         assert init_args, "failed to inspect the self init"
         if not args:
+            # take all arguments
             hp = init_args
             self._hparams_name = "kwargs" if hp else None
         else:
+            # take only listed arguments in `save_hparams`
             isx_non_str = [i for i, arg in enumerate(args) if not isinstance(arg, str)]
             if len(isx_non_str) == 1:
                 hp = args[isx_non_str[0]]
@@ -1463,6 +1466,8 @@ class LightningModule(
         # `hparams` are expected here
         if hp:
             self._set_hparams(hp)
+        # make deep copy so  there is not other runtime changes reflected
+        self._hparams_initial = copy.deepcopy(self._hparams)
 
     def _set_hparams(self, hp: Union[dict, Namespace, str]) -> None:
         if isinstance(hp, Namespace):
@@ -1594,10 +1599,17 @@ class LightningModule(
         return torchscript_module
 
     @property
-    def hparams(self) -> Union[AttributeDict, str]:
+    def hparams(self) -> Union[AttributeDict, dict, Namespace]:
         if not hasattr(self, "_hparams"):
             self._hparams = AttributeDict()
         return self._hparams
+
+    @property
+    def hparams_initial(self) -> AttributeDict:
+        if not hasattr(self, "_hparams_initial"):
+            self._hparams_initial = AttributeDict()
+        # prevent any change
+        return copy.deepcopy(self._hparams_initial)
 
     @hparams.setter
     def hparams(self, hp: Union[dict, Namespace, Any]):

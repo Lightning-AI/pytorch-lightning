@@ -25,7 +25,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.core.saving import save_hparams_to_yaml, load_hparams_from_yaml
 from pytorch_lightning.utilities import AttributeDict, is_picklable
-from tests.base import EvalModelTemplate, TrialMNIST
+from tests.base import EvalModelTemplate, TrialMNIST, BoringModel
 
 
 class SaveHparamsModel(EvalModelTemplate):
@@ -554,3 +554,28 @@ def test_args(tmpdir):
     with pytest.raises(TypeError, match="__init__\(\) got an unexpected keyword argument 'test'"):
         SubClassVarArgs.load_from_checkpoint(raw_checkpoint_path)
 
+
+class RuntimeParamChangeModel(BoringModel):
+    def __init__(self, running_arg):
+        super().__init__()
+        self.save_hyperparameters()
+
+
+def test_init_arg_with_runtime_change(tmpdir):
+    model = RuntimeParamChangeModel(123)
+    assert model.hparams.running_arg == 123
+    model.hparams.running_arg = -1
+    assert model.hparams.running_arg == -1
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        max_epochs=1,
+    )
+    trainer.fit(model)
+
+    path_yaml = os.path.join(trainer.logger.log_dir, trainer.logger.NAME_HPARAMS_FILE)
+    hparams = load_hparams_from_yaml(path_yaml)
+    assert hparams.get('running_arg') == 123
