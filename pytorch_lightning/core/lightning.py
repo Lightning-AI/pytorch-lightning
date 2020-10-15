@@ -1599,13 +1599,13 @@ class LightningModule(
         return torchscript_module
 
     @property
-    def hparams(self) -> Union[AttributeDict, str]:
+    def hparams(self) -> Union[AttributeDict, dict, Namespace]:
         if not hasattr(self, "_hparams"):
             self._hparams = AttributeDict()
         return self._hparams
 
     @property
-    def hparams_initial(self) -> Union[AttributeDict, str]:
+    def hparams_initial(self) -> AttributeDict:
         if not hasattr(self, "_hparams_initial"):
             self._hparams_initial = AttributeDict()
         return self._hparams_initial
