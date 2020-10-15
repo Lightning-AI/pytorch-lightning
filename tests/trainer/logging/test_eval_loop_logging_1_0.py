@@ -295,7 +295,6 @@ def test_log_works_in_validation_callback(tmpdir):
         max_epochs=max_epochs,
         log_every_n_steps=1,
         weights_summary=None,
-        #logger=pl.loggers.CSVLogger(os.getcwd()),
         callbacks=[scripted_callback]
     )
     trainer.fit(model)
@@ -304,7 +303,5 @@ def test_log_works_in_validation_callback(tmpdir):
                [f"on_validation_epoch_start/epoch_{e}" for e in range(max_epochs)] + \
                [f"on_validation_start/epoch_{e}" for e in range(max_epochs)] + \
                ["c"])
-    # make sure all the metrics are available for callbacks
     logged_metrics = set(trainer.logged_metrics.keys())
-    breakpoint()
     assert logged_metrics == expected_logged_metrics, logged_metrics
