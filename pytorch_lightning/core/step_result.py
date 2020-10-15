@@ -276,6 +276,9 @@ class Result(Dict):
             if k == '_internal':
                 continue
 
+            if options['forked']:
+                continue
+
             if options['logger'] and options['on_epoch']:
                 if isinstance(self[k], Metric):
                     result[k] = self[k].compute()
@@ -299,6 +302,9 @@ class Result(Dict):
             if k == '_internal':
                 continue
 
+            if options['forked']:
+                continue
+
             if options['prog_bar'] and options['on_epoch']:
                 if isinstance(self[k], Metric):
                     result[k] = self[k].compute()
@@ -308,6 +314,22 @@ class Result(Dict):
             if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
                 # compute metric on epoch anyway so state does not accumulate
                 self[k].compute()
+
+        return result
+
+    def get_forked_metrics(self):
+        """
+        Gets the metrics to log at the end of epoch
+        """
+        result = {}
+
+        meta = self['meta']
+        for k, options in meta.items():
+            if k == '_internal':
+                continue
+
+            if options['forked']:
+                result[k] = self[k]
 
         return result
 
@@ -441,6 +463,11 @@ class Result(Dict):
 
         for k, option in meta.items():
             if k == '_internal' or isinstance(result[k], Metric):
+                continue
+
+            # for forked metrics don't reduce, just take the last val
+            if option['forked']:
+                result[k] = result[k][-1]
                 continue
 
             if option['on_epoch']:

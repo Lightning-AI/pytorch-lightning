@@ -15,7 +15,7 @@
 Tests to ensure that the training loop works with a dict (1.0)
 """
 from pytorch_lightning import Trainer
-from pytorch_lightning import callbacks
+from pytorch_lightning import callbacks, seed_everything
 from tests.base.deterministic_model import DeterministicModel
 from tests.base import SimpleModule, BoringModel
 import os
@@ -245,6 +245,75 @@ def test_eval_float_logging(tmpdir):
         'a',
     }
     assert logged_metrics == expected_logged_metrics
+
+
+def test_eval_logging_auto_reduce(tmpdir):
+    """
+    Tests that only training_step can be used
+    """
+    seed_everything(1234)
+
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    class TestModel(BoringModel):
+        def on_pretrain_routine_end(self) -> None:
+            self.seen_vals = []
+            self.manual_epoch_end_mean = None
+
+        def on_validation_epoch_start(self) -> None:
+            self.seen_vals = []
+
+        def validation_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.seen_vals.append(loss)
+            self.log('val_loss', loss, on_epoch=True, on_step=True, prog_bar=True)
+            return {"x": loss}
+
+        def validation_epoch_end(self, outputs) -> None:
+            for passed_in, manually_tracked in zip(outputs, self.seen_vals):
+                assert passed_in['x'] == manually_tracked
+            self.manual_epoch_end_mean = torch.stack([x['x'] for x in outputs]).mean()
+
+    model = TestModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=3,
+        limit_val_batches=3,
+        max_epochs=1,
+        log_every_n_steps=1,
+        weights_summary=None,
+        checkpoint_callback=callbacks.ModelCheckpoint('val_loss')
+    )
+    trainer.fit(model)
+
+    # make sure all the metrics are available for callbacks
+    manual_mean = model.manual_epoch_end_mean
+    callback_metrics = set(trainer.callback_metrics.keys())
+    assert callback_metrics == {'debug_epoch', 'val_loss', 'val_loss_epoch'}
+
+    # make sure values are correct
+    assert trainer.logged_metrics['val_loss_epoch'] == manual_mean
+    assert trainer.callback_metrics['val_loss'] == trainer.logged_metrics['val_loss_step/epoch_0']
+
+    # make sure correct values were logged
+    logged_val = trainer.dev_debugger.logged_metrics
+
+    # sanity check
+    assert logged_val[0]['global_step'] == 0
+    assert logged_val[1]['global_step'] == 0
+
+    # 3 val batches
+    assert logged_val[2]['val_loss_step/epoch_0'] == model.seen_vals[0]
+    assert logged_val[3]['val_loss_step/epoch_0'] == model.seen_vals[1]
+    assert logged_val[4]['val_loss_step/epoch_0'] == model.seen_vals[2]
+
+    # epoch mean
+    assert logged_val[5]['val_loss_epoch'] == model.manual_epoch_end_mean
+
+    # only those logged
+    assert len(logged_val) == 6
 
 
 def test_monitor_val_epoch_end(tmpdir):
