@@ -292,7 +292,6 @@ class EvaluationLoop(object):
     def on_evaluation_batch_start(self, *args, **kwargs):
         # reset the result of the PL module
         model = self.trainer.get_model()
-        model._results = Result()
         model._current_fx_name = 'evaluation_step'
 
         if self.testing:
