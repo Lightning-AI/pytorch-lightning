@@ -398,7 +398,7 @@ mean_squared_log_error [func]
 ssim [func]
 ~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.regression.mae
+.. autofunction:: pytorch_lightning.metrics.functional.regression.ssim
     :noindex:
 
 
