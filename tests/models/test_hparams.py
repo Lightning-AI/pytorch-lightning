@@ -18,6 +18,7 @@ from argparse import Namespace
 import cloudpickle
 import pytest
 import torch
+from fsspec.implementations.local import LocalFileSystem
 from omegaconf import OmegaConf, Container
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
@@ -579,3 +580,22 @@ def test_init_arg_with_runtime_change(tmpdir):
     path_yaml = os.path.join(trainer.logger.log_dir, trainer.logger.NAME_HPARAMS_FILE)
     hparams = load_hparams_from_yaml(path_yaml)
     assert hparams.get('running_arg') == 123
+
+
+class UnsafeParamModel(BoringModel):
+    def __init__(self, my_path, any_param=123):
+        super().__init__()
+        self.save_hyperparameters()
+
+
+def test_model_with_fsspec_as_parameter(tmpdir):
+    model = UnsafeParamModel(LocalFileSystem(tmpdir))
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        max_epochs=1,
+    )
+    trainer.fit(model)
+    trainer.test()
