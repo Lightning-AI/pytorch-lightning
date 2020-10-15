@@ -113,6 +113,7 @@ def test_early_stopping_patience(tmpdir, loss_values, patience, expected_stop_ep
         def validation_epoch_end(self, outputs):
             loss = self.validation_return_values[self.count]
             self.count += 1
+            self.log("test_val_loss", loss)
             return {"test_val_loss": loss}
 
     model = ModelOverrideValidationReturn()
