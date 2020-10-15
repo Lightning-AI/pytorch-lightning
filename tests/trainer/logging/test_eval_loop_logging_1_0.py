@@ -326,20 +326,25 @@ def test_log_works_in_validation_callback(tmpdir):
     """
     Tests that log can be called within callback
     """
+    import pytorch_lightning as pl
+
     os.environ['PL_DEV_DEBUG'] = '1'
 
     funcs_name = [f for f in dir(callbacks.Callback) if ("val" in f)]
 
-    def f(x):
+    def logic_func(x):
         func_idx, func_name, args = x
         return f"""pl_module = locals().get('pl_module')\n  try:\n      pl_module.log('{func_name}', {func_idx})\n  except Exception as e:\n        print('{func_name}', e)""" \
             if "pl_module" in args else "pass"
     
-    logic_func = lambda x : f(x)
-
     scripted_callback = create_scriptable_callback(funcs_name, logic_func)
 
+    loss_values, patience, expected_stop_epoch = ([6, 5, 5, 5, 5, 5], 3, 4)
+
     class TestModel(BoringModel):
+
+        validation_return_values = torch.Tensor(loss_values)
+        count = 0
 
         def validation_step(self, batch, batch_idx):
             output = self.layer(batch)
@@ -347,19 +352,24 @@ def test_log_works_in_validation_callback(tmpdir):
             self.log('c', 12.0)
             return {"x": loss}
 
-    model = TestModel()
+        def validation_epoch_end(self, outputs):
+            loss = self.validation_return_values[self.count]
+            self.count += 1
+            return {"test_val_loss": loss}
 
-    max_epochs = 2
+    max_epochs = 10
+    model = TestModel()
+    early_stop_callback = pl.callbacks.EarlyStopping(monitor="test_val_loss", patience=3, verbose=True)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=0,
         limit_val_batches=2,
         limit_test_batches=0,
+        val_check_interval=1.0,
+        num_sanity_val_steps=0,
         max_epochs=max_epochs,
-        log_every_n_steps=1,
-        weights_summary=None,
-        callbacks=[scripted_callback]
+        callbacks=[early_stop_callback, scripted_callback]
     )
     trainer.fit(model)
 
