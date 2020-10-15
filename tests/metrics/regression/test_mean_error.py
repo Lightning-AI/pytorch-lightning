@@ -60,7 +60,8 @@ def _multi_target_sk_metric(preds, target, sk_fn=mean_squared_error):
 class TestMeanError(MetricTester):
     @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
-    def test_mean_error_class(self, preds, target, sk_metric, metric_class, metric_functional, sk_fn, ddp, dist_sync_on_step):
+    def test_mean_error_class(self, preds, target, sk_metric, metric_class,
+                              metric_functional, sk_fn, ddp, dist_sync_on_step):
         self.run_class_metric_test(
             ddp=ddp,
             preds=preds,

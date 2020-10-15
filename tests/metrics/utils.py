@@ -170,8 +170,7 @@ class MetricTester:
                          target=target,
                          metric_functional=metric_functional,
                          sk_metric=sk_metric,
-                         metric_args=metric_args
-        )
+                         metric_args=metric_args)
 
     def run_class_metric_test(
         self,

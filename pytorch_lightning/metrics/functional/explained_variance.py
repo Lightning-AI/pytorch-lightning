@@ -16,9 +16,11 @@ from typing import Union, Tuple, Sequence
 import torch
 from pytorch_lightning.metrics.utils import _check_same_shape
 
+
 def _explained_variance_update(preds: torch.Tensor, target: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     _check_same_shape(preds, target)
     return preds, target
+
 
 def _explained_variance_compute(preds: torch.Tensor,
                                 target: torch.Tensor,
@@ -47,6 +49,7 @@ def _explained_variance_compute(preds: torch.Tensor,
     if multioutput == 'variance_weighted':
         denom_sum = torch.sum(denominator)
         return torch.sum(denominator / denom_sum * output_scores)
+
 
 def explained_variance(preds: torch.Tensor,
                        target: torch.Tensor,
