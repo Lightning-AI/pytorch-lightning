@@ -64,7 +64,6 @@ def test__validation_step__log(tmpdir):
 
     # make sure all the metrics are available for callbacks
     expected_logged_metrics = {
-        'a',
         'a2',
         'a_step',
         'a_epoch',
@@ -137,7 +136,6 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
     expected_logged_metrics = {
         'epoch',
         'a',
-        'b',
         'b_step',
         'b_epoch',
         'c',
