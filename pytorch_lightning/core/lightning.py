@@ -65,6 +65,7 @@ class LightningModule(
         "datamodule",
         "example_input_array",
         "hparams",
+        "hparams_initial",
         "on_gpu",
         "current_epoch",
         "global_step",
