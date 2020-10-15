@@ -1608,7 +1608,8 @@ class LightningModule(
     def hparams_initial(self) -> AttributeDict:
         if not hasattr(self, "_hparams_initial"):
             self._hparams_initial = AttributeDict()
-        return self._hparams_initial
+        # prevent any change
+        return copy.deepcopy(self._hparams_initial)
 
     @hparams.setter
     def hparams(self, hp: Union[dict, Namespace, Any]):
