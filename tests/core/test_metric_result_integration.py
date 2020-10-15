@@ -83,7 +83,6 @@ def _ddp_test_fn(rank, worldsize):
 
         epoch_expected = {
             "b": cumulative_sum * worldsize,
-            "a": cumulative_sum * worldsize,
             "a_epoch": cumulative_sum * worldsize
         }
 
