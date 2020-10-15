@@ -129,7 +129,7 @@ class TrainLoop:
         # log hyper-parameters
         if self.trainer.logger is not None:
             # save exp to get started (this is where the first experiment logs are written)
-            self.trainer.logger.log_hyperparams(ref_model.hparams)
+            self.trainer.logger.log_hyperparams(ref_model.hparams_initial)
             self.trainer.logger.log_graph(ref_model)
             self.trainer.logger.save()
 
