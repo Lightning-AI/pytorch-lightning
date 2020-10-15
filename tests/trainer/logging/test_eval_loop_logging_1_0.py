@@ -17,7 +17,7 @@ Tests to ensure that the training loop works with a dict (1.0)
 from pytorch_lightning import Trainer
 from pytorch_lightning import callbacks, seed_everything
 from tests.base.deterministic_model import DeterministicModel
-from tests.base import SimpleModule, BoringModel
+from tests.base import SimpleModule, BoringModel, create_scriptable_callback
 import os
 import torch
 import pytest
@@ -321,3 +321,54 @@ def test_monitor_val_epoch_end(tmpdir):
         checkpoint_callback=checkpoint_callback,
     )
     trainer.fit(model)
+
+def test_log_works_in_validation_callback(tmpdir):
+    """
+    Tests that log can be called within callback
+    """
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    funcs_name = [f for f in dir(callbacks.Callback) if ("val" in f)]
+
+    def f(x):
+        func_idx, func_name, args = x
+        return f"""pl_module = locals().get('pl_module')\n  try:\n      pl_module.log('{func_name}', {func_idx})\n  except Exception as e:\n        print('{func_name}', e)""" \
+            if "pl_module" in args else "pass"
+    
+    logic_func = lambda x : f(x)
+
+    scripted_callback = create_scriptable_callback(funcs_name, logic_func)
+
+    class TestModel(BoringModel):
+
+        def validation_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log('c', 12.0)
+            return {"x": loss}
+
+    model = TestModel()
+
+    max_epochs = 2
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=0,
+        limit_val_batches=2,
+        limit_test_batches=0,
+        max_epochs=max_epochs,
+        log_every_n_steps=1,
+        weights_summary=None,
+        #logger=pl.loggers.CSVLogger(os.getcwd()),
+        callbacks=[scripted_callback]
+    )
+    trainer.fit(model)
+
+    expected_logged_metrics = set([f for f in funcs_name if f not in ["on_validation_epoch_start", "on_validation_start"]] + \
+               [f"on_validation_epoch_start/epoch_{e}" for e in range(max_epochs)] + \
+               [f"on_validation_start/epoch_{e}" for e in range(max_epochs)] + \
+               ["c"])
+    # make sure all the metrics are available for callbacks
+    logged_metrics = set(trainer.logged_metrics.keys())
+    breakpoint()
+    assert logged_metrics == expected_logged_metrics, logged_metrics

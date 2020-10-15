@@ -23,7 +23,7 @@ from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.core.step_result import EvalResult
+from pytorch_lightning.core.step_result import Result, EvalResult
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import BaseProfiler
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
@@ -530,6 +530,7 @@ class Trainer(
 
         # enable eval mode + no grads
         model = self.get_model()
+        model._results = Result()
         self.evaluation_loop.on_evaluation_model_eval()
 
         model.zero_grad()
@@ -595,19 +596,18 @@ class Trainer(
             num_dataloaders=len(dataloaders)
         )
 
+        # hook
+        self.evaluation_loop.on_evaluation_epoch_end()
+        # hook
+        self.evaluation_loop.on_evaluation_end()
+
         # bookkeeping
         eval_loop_results = self.evaluation_loop.log_epoch_metrics(deprecated_eval_results, epoch_logs, test_mode)
         self.evaluation_loop.predictions.to_disk()
 
-        # hook
-        self.evaluation_loop.on_evaluation_epoch_end()
-
         # enable train mode again
         self.evaluation_loop.on_evaluation_model_train()
         torch.set_grad_enabled(True)
-
-        # hook
-        self.evaluation_loop.on_evaluation_end()
 
         return eval_loop_results, deprecated_eval_results
 
