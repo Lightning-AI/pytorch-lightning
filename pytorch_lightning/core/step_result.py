@@ -467,7 +467,7 @@ class Result(Dict):
 
             # for forked metrics don't reduce, just take the last val
             if option['forked']:
-                result[k] = result[k][-1]
+                result[k] = choose_last(result[k])
                 continue
 
             if option['on_epoch']:
@@ -556,6 +556,14 @@ class Result(Dict):
             # map meta
             meta[dest] = meta[source]
             del meta[source]
+
+
+def choose_last(x):
+    if isinstance(x, (torch.Tensor, list)):
+        return x[-1]
+    if isinstance(x, dict):
+        for k, v in x.items():
+            x[k] = x[k][-1]
 
 
 def recursive_gather(outputs: Sequence[dict], result: Optional[MutableMapping] = None) -> Optional[MutableMapping]:
