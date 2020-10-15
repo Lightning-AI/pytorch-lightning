@@ -6,7 +6,7 @@ import torch
 from sklearn.metrics import fbeta_score
 
 from pytorch_lightning.metrics import Fbeta
-from tests.metrics.classification.utils import (
+from tests.metrics.classification.inputs import (
     _binary_inputs,
     _binary_prob_inputs,
     _multiclass_inputs,
@@ -16,61 +16,61 @@ from tests.metrics.classification.utils import (
     _multilabel_inputs,
     _multilabel_prob_inputs,
 )
-from tests.metrics.utils import BATCH_SIZE, NUM_BATCHES, NUM_CLASSES, NUM_PROCESSES, THRESHOLD, MetricTester
+from tests.metrics.utils import NUM_CLASSES, THRESHOLD, MetricTester
 
 torch.manual_seed(42)
 
 
-def _binary_prob_sk_metric(preds, target, average='micro', beta=1.0):
+def _sk_fbeta_binary_prob(preds, target, average='micro', beta=1.0):
     sk_preds = (preds.view(-1).numpy() >= THRESHOLD).astype(np.uint8)
     sk_target = target.view(-1).numpy()
 
     return fbeta_score(y_true=sk_target, y_pred=sk_preds, average='binary', beta=beta)
 
 
-def _binary_sk_metric(preds, target, average='micro', beta=1.0):
+def _sk_fbeta_binary(preds, target, average='micro', beta=1.0):
     sk_preds = preds.view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
     return fbeta_score(y_true=sk_target, y_pred=sk_preds, average='binary', beta=beta)
 
 
-def _multilabel_prob_sk_metric(preds, target, average='micro', beta=1.0):
+def _sk_fbeta_multilabel_prob(preds, target, average='micro', beta=1.0):
     sk_preds = (preds.view(-1, NUM_CLASSES).numpy() >= THRESHOLD).astype(np.uint8)
     sk_target = target.view(-1, NUM_CLASSES).numpy()
 
     return fbeta_score(y_true=sk_target, y_pred=sk_preds, average=average, beta=beta)
 
 
-def _multilabel_sk_metric(preds, target, average='micro', beta=1.0):
+def _sk_fbeta_multilabel(preds, target, average='micro', beta=1.0):
     sk_preds = preds.view(-1, NUM_CLASSES).numpy()
     sk_target = target.view(-1, NUM_CLASSES).numpy()
 
     return fbeta_score(y_true=sk_target, y_pred=sk_preds, average=average, beta=beta)
 
 
-def _multiclass_prob_sk_metric(preds, target, average='micro', beta=1.0):
+def _sk_fbeta_multiclass_prob(preds, target, average='micro', beta=1.0):
     sk_preds = torch.argmax(preds, dim=len(preds.shape) - 1).view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
     return fbeta_score(y_true=sk_target, y_pred=sk_preds, average=average, beta=beta)
 
 
-def _multiclass_sk_metric(preds, target, average='micro', beta=1.0):
+def _sk_fbeta_multiclass(preds, target, average='micro', beta=1.0):
     sk_preds = preds.view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
     return fbeta_score(y_true=sk_target, y_pred=sk_preds, average=average, beta=beta)
 
 
-def _multidim_multiclass_prob_sk_metric(preds, target, average='micro', beta=1.0):
+def _sk_fbeta_multidim_multiclass_prob(preds, target, average='micro', beta=1.0):
     sk_preds = torch.argmax(preds, dim=len(preds.shape) - 2).view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
     return fbeta_score(y_true=sk_target, y_pred=sk_preds, average=average, beta=beta)
 
 
-def _multidim_multiclass_sk_metric(preds, target, average='micro', beta=1.0):
+def _sk_fbeta_multidim_multiclass(preds, target, average='micro', beta=1.0):
     sk_preds = preds.view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
@@ -83,25 +83,25 @@ def _multidim_multiclass_sk_metric(preds, target, average='micro', beta=1.0):
 @pytest.mark.parametrize(
     "preds, target, sk_metric, num_classes, multilabel",
     [
-        (_binary_prob_inputs.preds, _binary_prob_inputs.target, _binary_prob_sk_metric, 1, False),
-        (_binary_inputs.preds, _binary_inputs.target, _binary_sk_metric, 1, False),
-        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target, _multilabel_prob_sk_metric, NUM_CLASSES, True),
-        (_multilabel_inputs.preds, _multilabel_inputs.target, _multilabel_sk_metric, NUM_CLASSES, True),
-        (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, _multiclass_prob_sk_metric, NUM_CLASSES, False),
-        (_multiclass_inputs.preds, _multiclass_inputs.target, _multiclass_sk_metric, NUM_CLASSES, False),
+        (_binary_prob_inputs.preds, _binary_prob_inputs.target, _sk_fbeta_binary_prob, 1, False),
+        (_binary_inputs.preds, _binary_inputs.target, _sk_fbeta_binary, 1, False),
+        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target, _sk_fbeta_multilabel_prob, NUM_CLASSES, True),
+        (_multilabel_inputs.preds, _multilabel_inputs.target, _sk_fbeta_multilabel, NUM_CLASSES, True),
+        (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, _sk_fbeta_multiclass_prob, NUM_CLASSES, False),
+        (_multiclass_inputs.preds, _multiclass_inputs.target, _sk_fbeta_multiclass, NUM_CLASSES, False),
         (
-            _multidim_multiclass_prob_inputs.preds,
-            _multidim_multiclass_prob_inputs.target,
-            _multidim_multiclass_prob_sk_metric,
-            NUM_CLASSES,
-            False,
+                _multidim_multiclass_prob_inputs.preds,
+                _multidim_multiclass_prob_inputs.target,
+                _sk_fbeta_multidim_multiclass_prob,
+                NUM_CLASSES,
+                False,
         ),
         (
-            _multidim_multiclass_inputs.preds,
-            _multidim_multiclass_inputs.target,
-            _multidim_multiclass_sk_metric,
-            NUM_CLASSES,
-            False,
+                _multidim_multiclass_inputs.preds,
+                _multidim_multiclass_inputs.target,
+                _sk_fbeta_multidim_multiclass,
+                NUM_CLASSES,
+                False,
         ),
     ],
 )

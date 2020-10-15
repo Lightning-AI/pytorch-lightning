@@ -4,7 +4,7 @@ import torch
 from sklearn.metrics import accuracy_score
 
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
-from tests.metrics.classification.utils import (
+from tests.metrics.classification.inputs import (
     _binary_inputs,
     _binary_prob_inputs,
     _multiclass_inputs,
@@ -19,56 +19,56 @@ from tests.metrics.utils import THRESHOLD, MetricTester
 torch.manual_seed(42)
 
 
-def _binary_prob_sk_metric(preds, target):
+def _sk_accuracy_binary_prob(preds, target):
     sk_preds = (preds.view(-1).numpy() >= THRESHOLD).astype(np.uint8)
     sk_target = target.view(-1).numpy()
 
     return accuracy_score(y_true=sk_target, y_pred=sk_preds)
 
 
-def _binary_sk_metric(preds, target):
+def _sk_accuracy_binary(preds, target):
     sk_preds = preds.view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
     return accuracy_score(y_true=sk_target, y_pred=sk_preds)
 
 
-def _multilabel_prob_sk_metric(preds, target):
+def _sk_accuracy_multilabel_prob(preds, target):
     sk_preds = (preds.view(-1).numpy() >= THRESHOLD).astype(np.uint8)
     sk_target = target.view(-1).numpy()
 
     return accuracy_score(y_true=sk_target, y_pred=sk_preds)
 
 
-def _multilabel_sk_metric(preds, target):
+def _sk_accuracy_multilabel(preds, target):
     sk_preds = preds.view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
     return accuracy_score(y_true=sk_target, y_pred=sk_preds)
 
 
-def _multiclass_prob_sk_metric(preds, target):
+def _sk_accuracy_multiclass_prob(preds, target):
     sk_preds = torch.argmax(preds, dim=len(preds.shape) - 1).view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
     return accuracy_score(y_true=sk_target, y_pred=sk_preds)
 
 
-def _multiclass_sk_metric(preds, target):
+def _sk_accuracy_multiclass(preds, target):
     sk_preds = preds.view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
     return accuracy_score(y_true=sk_target, y_pred=sk_preds)
 
 
-def _multidim_multiclass_prob_sk_metric(preds, target):
+def _sk_accuracy_multidim_multiclass_prob(preds, target):
     sk_preds = torch.argmax(preds, dim=len(preds.shape) - 2).view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
     return accuracy_score(y_true=sk_target, y_pred=sk_preds)
 
 
-def _multidim_multiclass_sk_metric(preds, target):
+def _sk_accuracy_multidim_multiclass(preds, target):
     sk_preds = preds.view(-1).numpy()
     sk_target = target.view(-1).numpy()
 
@@ -86,18 +86,18 @@ def test_accuracy_invalid_shape():
 @pytest.mark.parametrize(
     "preds, target, sk_metric",
     [
-        (_binary_prob_inputs.preds, _binary_prob_inputs.target, _binary_prob_sk_metric),
-        (_binary_inputs.preds, _binary_inputs.target, _binary_sk_metric),
-        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target, _multilabel_prob_sk_metric),
-        (_multilabel_inputs.preds, _multilabel_inputs.target, _multilabel_sk_metric),
-        (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, _multiclass_prob_sk_metric),
-        (_multiclass_inputs.preds, _multiclass_inputs.target, _multiclass_sk_metric),
+        (_binary_prob_inputs.preds, _binary_prob_inputs.target, _sk_accuracy_binary_prob),
+        (_binary_inputs.preds, _binary_inputs.target, _sk_accuracy_binary),
+        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target, _sk_accuracy_multilabel_prob),
+        (_multilabel_inputs.preds, _multilabel_inputs.target, _sk_accuracy_multilabel),
+        (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, _sk_accuracy_multiclass_prob),
+        (_multiclass_inputs.preds, _multiclass_inputs.target, _sk_accuracy_multiclass),
         (
-            _multidim_multiclass_prob_inputs.preds,
-            _multidim_multiclass_prob_inputs.target,
-            _multidim_multiclass_prob_sk_metric,
+                _multidim_multiclass_prob_inputs.preds,
+                _multidim_multiclass_prob_inputs.target,
+                _sk_accuracy_multidim_multiclass_prob,
         ),
-        (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target, _multidim_multiclass_sk_metric),
+        (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target, _sk_accuracy_multidim_multiclass),
     ],
 )
 class TestAccuracy(MetricTester):

@@ -1,16 +1,12 @@
-import os
-import pytest
-import numpy as np
+from collections import namedtuple
+
 import torch
 
-from collections import namedtuple
 from tests.metrics.utils import (
     NUM_BATCHES,
-    NUM_PROCESSES,
     BATCH_SIZE,
     NUM_CLASSES,
-    EXTRA_DIM,
-    THRESHOLD
+    EXTRA_DIM
 )
 
 Input = namedtuple('Input', ["preds", "target"])
