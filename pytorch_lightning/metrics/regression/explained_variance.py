@@ -16,7 +16,7 @@ from typing import Any, Optional
 
 from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.metrics.utils import METRIC_EPS
+from pytorch_lightning.metrics.utils import METRIC_EPS, _check_same_shape
 
 
 class ExplainedVariance(Metric):
@@ -98,7 +98,7 @@ class ExplainedVariance(Metric):
             preds: Predictions from model
             target: Ground truth values
         """
-        self._check_same_shape(preds, target)
+        _check_same_shape(preds, target)
         self.y.append(target)
         self.y_pred.append(preds)
 
