@@ -69,8 +69,6 @@ class EvaluationLoop(object):
         if max_batches is None:
             max_batches = new_max_batches
 
-        self.num_dataloaders = len(dataloaders)
-
         return dataloaders, max_batches
 
     def should_skip_evaluation(self, dataloaders, max_batches):
@@ -82,6 +80,8 @@ class EvaluationLoop(object):
         should_skip = sum(max_batches) == 0
         if should_skip:
             return True
+
+        self.num_dataloaders = len(dataloaders)
 
         return False
 

@@ -239,6 +239,9 @@ class LoggerConnector:
         ):
             return
 
+        if isinstance(eval_results[0], list) and len(eval_results[0]) == 0:
+            return
+
         if using_eval_result:
             if isinstance(eval_results, list):
                 for eval_result in eval_results:
