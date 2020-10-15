@@ -21,8 +21,25 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed `hparams` saving - save the state when `save_hyperparameters()` is called [in `__init__`] ([#4163](https://github.com/PyTorchLightning/pytorch-lightning/pull/4163))
 
+## [1.0.2] - 2020-10-15
+
+### Added
+
+- Added trace functionality to the function `to_torchscript` ([#4142](https://github.com/PyTorchLightning/pytorch-lightning/pull/4142))
+
+### Changed
+
+- Called `on_load_checkpoint` before loading `state_dict` ([#4057](https://github.com/PyTorchLightning/pytorch-lightning/pull/4057))
+
+### Removed
+
+- Removed duplicate metric vs step log for train loop ([#4173](https://github.com/PyTorchLightning/pytorch-lightning/pull/4173))
+
+### Fixed
+
+- Fixed the self.log problem in validation_step() ([#4169](https://github.com/PyTorchLightning/pytorch-lightning/pull/4169))
+- Fixed `hparams` saving - save the state when `save_hyperparameters()` is called [in `__init__`] ([#4163](https://github.com/PyTorchLightning/pytorch-lightning/pull/4163))
 - Fixed runtime failure while exporting `hparams` to yaml ([#4158](https://github.com/PyTorchLightning/pytorch-lightning/pull/4158))
 
 
