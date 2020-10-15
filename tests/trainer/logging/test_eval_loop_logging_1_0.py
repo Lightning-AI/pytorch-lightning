@@ -285,22 +285,23 @@ def test_log_works_in_validation_callback(tmpdir):
         def validation_step(self, batch, batch_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)
-            self.log('c', 12.0)
+            self.log('c', self.count)
             return {"x": loss}
 
         def validation_epoch_end(self, outputs):
+
             loss = self.validation_return_values[self.count]
             self.count += 1
             return {"test_val_loss": loss}
 
-    max_epochs = 10
+    max_epochs = 2
     model = TestModel()
     early_stop_callback = pl.callbacks.EarlyStopping(monitor="test_val_loss", patience=3, verbose=True)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=0,
-        limit_val_batches=2,
+        limit_val_batches=4,
         limit_test_batches=0,
         val_check_interval=1.0,
         num_sanity_val_steps=0,

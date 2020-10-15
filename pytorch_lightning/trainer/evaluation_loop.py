@@ -29,6 +29,7 @@ class EvaluationLoop(object):
         self.predictions = None
         self.max_batches = None
         self.warning_cache = WarningCache()
+        self.num_dataloaders: int = None
 
     def on_trainer_init(self):
         self.trainer.num_val_batches = []
@@ -68,6 +69,8 @@ class EvaluationLoop(object):
         if max_batches is None:
             max_batches = new_max_batches
 
+        self.num_dataloaders = len(dataloaders)
+
         return dataloaders, max_batches
 
     def should_skip_evaluation(self, dataloaders, max_batches):
@@ -103,10 +106,13 @@ class EvaluationLoop(object):
             model_ref.on_validation_model_train()
 
     def on_evaluation_end(self, *args, **kwargs):
+        self.trainer.logger_connector._track_callback_metrics_1_0(self.trainer.get_model()._results)
         if self.testing:
             self.trainer.call_hook('on_test_end', *args, **kwargs)
         else:
             self.trainer.call_hook('on_validation_end', *args, **kwargs)
+        # 1.0
+        return self.trainer.get_model()._results
 
     def reload_evaluation_dataloaders(self):
         model = self.trainer.get_model()
@@ -189,21 +195,20 @@ class EvaluationLoop(object):
             output = self.trainer.call_hook('validation_step_end', *args, **kwargs)
         return output
 
-    def evaluation_epoch_end(self, num_dataloaders):
+    def evaluation_epoch_end(self):
         using_eval_result = self.is_using_eval_results()
 
         # call the model epoch end
-        deprecated_results = self.__run_eval_epoch_end(num_dataloaders, using_eval_result)
-
-        # 1.0
-        epoch_logs = self.trainer.get_model()._results
+        deprecated_results = self.__run_eval_epoch_end(self.num_dataloaders, using_eval_result)
 
         # enable returning anything
         for i, r in enumerate(deprecated_results):
             if not isinstance(r, (dict, Result, torch.Tensor)):
                 deprecated_results[i] = []
 
-        return deprecated_results, epoch_logs
+        self.trainer.logger_connector._track_callback_metrics(deprecated_results, using_eval_result)
+
+        return deprecated_results
 
     def log_epoch_metrics(self, deprecated_eval_results, epoch_logs, test_mode):
         using_eval_result = self.is_using_eval_results()
@@ -317,6 +322,7 @@ class EvaluationLoop(object):
 
     def on_evaluation_epoch_end(self, *args, **kwargs):
         # call the callback hook
+        self.trainer.logger_connector._track_callback_metrics_1_0(self.trainer.get_model()._results)
         if self.testing:
             self.trainer.call_hook('on_test_epoch_end', *args, **kwargs)
         else:
