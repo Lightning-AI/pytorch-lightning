@@ -356,6 +356,7 @@ def test_log_works_in_validation_callback(tmpdir):
 
             loss = self.validation_return_values[self.count]
             self.count += 1
+            self.log("test_val_loss", loss)
             return {"test_val_loss": loss}
 
     max_epochs = 2
@@ -377,6 +378,6 @@ def test_log_works_in_validation_callback(tmpdir):
     expected_logged_metrics = set([f for f in funcs_name if f not in ["on_validation_epoch_start", "on_validation_start"]] + \
                [f"on_validation_epoch_start/epoch_{e}" for e in range(max_epochs)] + \
                [f"on_validation_start/epoch_{e}" for e in range(max_epochs)] + \
-               ["c"])
+               ["c", "test_val_loss"])
     logged_metrics = set(trainer.logged_metrics.keys())
     assert logged_metrics == expected_logged_metrics, logged_metrics

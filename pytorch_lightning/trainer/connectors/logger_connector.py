@@ -233,13 +233,11 @@ class LoggerConnector:
         self.callback_metrics.update(epoch_pbar_metrics)
 
     def _track_callback_metrics(self, eval_results, using_eval_result):
+
         if (
                 len(eval_results) > 0 and
-                (eval_results[0] is None or isinstance(eval_results[0], Result))
+                (eval_results[0] is None or not isinstance(eval_results[0], Result))
         ):
-            return
-
-        if isinstance(eval_results[0], list) and len(eval_results[0]) == 0:
             return
 
         if using_eval_result:
