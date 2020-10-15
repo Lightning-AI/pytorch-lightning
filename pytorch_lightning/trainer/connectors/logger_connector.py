@@ -189,12 +189,16 @@ class LoggerConnector:
             self.callback_metrics.update(logger_metrics)
             self.callback_metrics.update(pbar_metrics)
 
+            # forked metrics were dropped, enable them for callbacks
+            forked_metrics = reduced_epoch_metrics.get_forked_metrics()
+            self.callback_metrics.update(forked_metrics)
+
             # track the final results for the dataloader
             self.eval_loop_results.append(deepcopy(self.callback_metrics))
 
             # actually log
-            if len(epoch_logger_metrics) > 0:
-                metrics_to_log.append(epoch_logger_metrics)
+            if len(logger_metrics) > 0:
+                metrics_to_log.append(logger_metrics)
 
         # log all the metrics as a s single dict
         metrics_to_log = dict(ChainMap(*metrics_to_log))

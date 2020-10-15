@@ -276,6 +276,9 @@ class Result(Dict):
             if k == '_internal':
                 continue
 
+            if options['forked']:
+                continue
+
             if options['logger'] and options['on_epoch']:
                 if isinstance(self[k], Metric):
                     result[k] = self[k].compute()
@@ -299,6 +302,9 @@ class Result(Dict):
             if k == '_internal':
                 continue
 
+            if options['forked']:
+                continue
+
             if options['prog_bar'] and options['on_epoch']:
                 if isinstance(self[k], Metric):
                     result[k] = self[k].compute()
@@ -308,6 +314,22 @@ class Result(Dict):
             if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
                 # compute metric on epoch anyway so state does not accumulate
                 self[k].compute()
+
+        return result
+
+    def get_forked_metrics(self):
+        """
+        Gets the metrics to log at the end of epoch
+        """
+        result = {}
+
+        meta = self['meta']
+        for k, options in meta.items():
+            if k == '_internal':
+                continue
+
+            if options['forked']:
+                result[k] = self[k]
 
         return result
 
@@ -443,6 +465,11 @@ class Result(Dict):
             if k == '_internal' or isinstance(result[k], Metric):
                 continue
 
+            # for forked metrics don't reduce, just take the last val
+            if option['forked']:
+                result[k] = choose_last(result[k])
+                continue
+
             if option['on_epoch']:
                 fx = option['reduce_fx']
                 if fx == torch.mean:
@@ -529,6 +556,14 @@ class Result(Dict):
             # map meta
             meta[dest] = meta[source]
             del meta[source]
+
+
+def choose_last(x):
+    if isinstance(x, (torch.Tensor, list)):
+        return x[-1]
+    if isinstance(x, dict):
+        for k, v in x.items():
+            x[k] = x[k][-1]
 
 
 def recursive_gather(outputs: Sequence[dict], result: Optional[MutableMapping] = None) -> Optional[MutableMapping]:
