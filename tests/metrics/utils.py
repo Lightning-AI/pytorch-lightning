@@ -28,7 +28,7 @@ def setup_ddp(rank, world_size):
         torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
 
 
-def _compute_batch(
+def _class_test(
     rank: int,
     worldsize: int,
     preds: torch.Tensor,
@@ -40,7 +40,7 @@ def _compute_batch(
     check_dist_sync_on_step: bool = True,
     check_batch: bool = True,
 ):
-    """ Utility function doing the actual comparison between lightning metric
+    """ Utility function doing the actual comparison between lightning class metric
         and reference metric.
 
         Args:
@@ -94,6 +94,33 @@ def _compute_batch(
     assert np.allclose(result.numpy(), sk_result)
 
 
+def _functional_test(
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    metric_functional: Callable,
+    sk_metric: Callable,
+    metric_args: dict = {},
+):
+    """ Utility function doing the actual comparison between lightning functional metric
+        and reference metric.
+
+        Args:
+            preds: torch tensor with predictions
+            target: torch tensor with targets
+            metric_functional: lightning metric functional that should be tested
+            sk_metric: callable function that is used for comparison
+            metric_args: dict with additional arguments used for class initialization
+    """
+    metric = partial(metric_functional, **metric_args)
+
+    for i in range(NUM_BATCHES):
+        lightning_result = metric(preds[i], target[i])
+        sk_result = sk_metric(preds[i], target[i])
+
+        # assert its the same
+        assert np.allclose(lightning_result.numpy(), sk_result)
+
+
 class MetricTester:
     """ Class used for efficiently run alot of parametrized tests in ddp mode.
         Makes sure that ddp is only setup once and that pool of processes are
@@ -121,7 +148,32 @@ class MetricTester:
         self.pool.close()
         self.pool.join()
 
-    def run_metric_test(
+    def run_functional_metric_test(
+        self,
+        preds: torch.Tensor,
+        target: torch.Tensor,
+        metric_functional: Callable,
+        sk_metric: Callable,
+        metric_args: dict = {}
+    ):
+        """ Main method that should be used for testing functions. Call this inside
+            testing method
+
+            Args:
+                preds: torch tensor with predictions
+                target: torch tensor with targets
+                metric_functional: lightning metric class that should be tested
+                sk_metric: callable function that is used for comparison
+                metric_args: dict with additional arguments used for class initialization
+        """
+        _functional_test(preds=preds,
+                         target=target,
+                         metric_functional=metric_functional,
+                         sk_metric=sk_metric,
+                         metric_args=metric_args
+        )
+
+    def run_class_metric_test(
         self,
         ddp: bool,
         preds: torch.Tensor,
@@ -133,7 +185,7 @@ class MetricTester:
         check_dist_sync_on_step: bool = True,
         check_batch: bool = True,
     ):
-        """ Main method that should be used for testing. Call this inside testing
+        """ Main method that should be used for testing class. Call this inside testing
             methods.
 
             Args:
@@ -156,7 +208,7 @@ class MetricTester:
 
             self.pool.starmap(
                 partial(
-                    _compute_batch,
+                    _class_test,
                     preds=preds,
                     target=target,
                     metric_class=metric_class,
@@ -169,7 +221,7 @@ class MetricTester:
                 [(rank, self.poolSize) for rank in range(self.poolSize)],
             )
         else:
-            _compute_batch(
+            _class_test(
                 0,
                 1,
                 preds=preds,

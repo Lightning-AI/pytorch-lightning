@@ -112,7 +112,7 @@ class TestFBeta(MetricTester):
     def test_fbeta(
         self, ddp, dist_sync_on_step, preds, target, sk_metric, metric_class, beta, num_classes, multilabel, average
     ):
-        self.run_metric_test(
+        self.run_class_metric_test(
             ddp=ddp,
             preds=preds,
             target=target,

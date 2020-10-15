@@ -112,7 +112,7 @@ class TestPrecisionRecall(MetricTester):
     def test_precision_recall(
         self, ddp, dist_sync_on_step, preds, target, sk_metric, metric_class, sk_fn, num_classes, multilabel, average
     ):
-        self.run_metric_test(
+        self.run_class_metric_test(
             ddp=ddp,
             preds=preds,
             target=target,
