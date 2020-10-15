@@ -64,11 +64,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Enabled passing in custom accelerators ([#4050](https://github.com/PyTorchLightning/pytorch-lightning/pull/4050))
 - Added `LightningModule.toggle_optimizer` ([#4058](https://github.com/PyTorchLightning/pytorch-lightning/pull/4058))
 - Added `LightningModule.manual_backward` ([#4063](https://github.com/PyTorchLightning/pytorch-lightning/pull/4063))
+- Added `output` argument to `*_batch_end` hooks ([#3965](https://github.com/PyTorchLightning/pytorch-lightning/pull/3965),
+    [#3966](https://github.com/PyTorchLightning/pytorch-lightning/pull/3966))
+- Added `output` argument to `*_epoch_end` hooks ([#3967](https://github.com/PyTorchLightning/pytorch-lightning/pull/3967))
 
 ### Changed
 
 - Integrated metrics API with self.log ([#3961](https://github.com/PyTorchLightning/pytorch-lightning/pull/3961))
-- Decoupled Appex ([#4052](https://github.com/PyTorchLightning/pytorch-lightning/pull/4052),
+- Decoupled Apex ([#4052](https://github.com/PyTorchLightning/pytorch-lightning/pull/4052),
         [#4054](https://github.com/PyTorchLightning/pytorch-lightning/pull/4054),
         [#4055](https://github.com/PyTorchLightning/pytorch-lightning/pull/4055),
         [#4056](https://github.com/PyTorchLightning/pytorch-lightning/pull/4056),
@@ -84,9 +87,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
-- Removed `output` argument from `*_batch_end` hooks ([#3965](https://github.com/PyTorchLightning/pytorch-lightning/pull/3965),
-    [#3966](https://github.com/PyTorchLightning/pytorch-lightning/pull/3966))
-- Removed `output` argument from `*_epoch_end` hooks ([#3967](https://github.com/PyTorchLightning/pytorch-lightning/pull/3967))
 - Removed support for EvalResult and TrainResult ([#3968](https://github.com/PyTorchLightning/pytorch-lightning/pull/3968))
 - Removed deprecated trainer flags: `overfit_pct`, `log_save_interval`, `row_log_interval` ([#3969](https://github.com/PyTorchLightning/pytorch-lightning/pull/3969))
 - Removed deprecated early_stop_callback ([#3982](https://github.com/PyTorchLightning/pytorch-lightning/pull/3982))
