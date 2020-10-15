@@ -19,7 +19,7 @@ import os
 import torch
 import pytest
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, callbacks
 from tests.base.deterministic_model import DeterministicModel
 from torch.utils.data import Dataset
 
@@ -80,6 +80,7 @@ def test__training_step__log(tmpdir):
         max_epochs=2,
         log_every_n_steps=1,
         weights_summary=None,
+        checkpoint_callback=callbacks.ModelCheckpoint(monitor='l_se')
     )
     trainer.fit(model)
 
@@ -95,7 +96,6 @@ def test__training_step__log(tmpdir):
         'default',
         'l_e',
         'l_s',
-        'l_se',
         'l_se_step',
         'l_se_epoch',
     }
@@ -105,7 +105,6 @@ def test__training_step__log(tmpdir):
     expected_pbar_metrics = {
         'p_e',
         'p_s',
-        'p_se',
         'p_se_step',
         'p_se_epoch',
     }
@@ -116,6 +115,7 @@ def test__training_step__log(tmpdir):
     expected_callback_metrics = set()
     expected_callback_metrics = expected_callback_metrics.union(logged_metrics)
     expected_callback_metrics = expected_callback_metrics.union(pbar_metrics)
+    expected_callback_metrics.update({'p_se', 'l_se'})
     expected_callback_metrics.remove('epoch')
     assert callback_metrics == expected_callback_metrics
 
