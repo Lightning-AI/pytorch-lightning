@@ -17,7 +17,7 @@ import torch
 from pytorch_lightning.metrics.utils import _check_same_shape
 
 
-def _mean_absolute_error_update(preds: torch.Tensor, target: torch.Tensor):
+def _mean_absolute_error_update(preds: torch.Tensor, target: torch.Tensor) -> Tuple[torch.Tensor, int]:
     _check_same_shape(preds, target)
     sum_abs_error = torch.sum(torch.abs(preds - target))
     n_obs = target.numel()
