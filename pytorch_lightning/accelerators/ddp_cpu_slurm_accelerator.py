@@ -24,7 +24,7 @@ from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from torch.nn.parallel import DistributedDataParallel
-from typing import List
+from typing import List, Optional
 
 
 try:
@@ -86,7 +86,7 @@ class DDPCPUSLURMAccelerator(Accelerator):
         output = self.training_step(args)
         return output
 
-    def barrier(self, name: str = None):
+    def barrier(self, name: Optional[str] = None):
         if torch_distrib.is_initialized():
             torch_distrib.barrier()
 

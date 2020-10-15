@@ -241,7 +241,7 @@ class ModelIO(object):
         """
 
 
-def _convert_loaded_hparams(model_args: dict, hparams_type: Union[Callable, str] = None) -> object:
+def _convert_loaded_hparams(model_args: dict, hparams_type: Optional[Union[Callable, str]] = None) -> object:
     """Convert hparams according given type in callable or string (past) format."""
     # if not hparams type define
     if not hparams_type:

@@ -14,6 +14,7 @@
 import io
 import os
 import re
+from typing import Optional
 
 import torch
 import torch.multiprocessing as mp
@@ -254,7 +255,7 @@ class TPUAccelerator(Accelerator):
         # TODO: separate TPU case from here
         self._clip_gradients(optimizer, clip_val)
 
-    def barrier(self, name: str = None):
+    def barrier(self, name: Optional[str] = None):
         torch_xla.core.xla_model.rendezvous(f"pl.Trainer.{name}")
 
     def early_stopping_should_stop(self, pl_module):

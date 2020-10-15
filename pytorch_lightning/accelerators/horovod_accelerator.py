@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import ExitStack
+from typing import Optional
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
@@ -157,7 +158,7 @@ class HorovodAccelerator(Accelerator):
     def on_train_epoch_end(self, outputs):
         hvd.join(hvd.local_rank() if self.trainer.on_gpu else -1)
 
-    def barrier(self, name: str = None):
+    def barrier(self, name: Optional[str] = None):
         hvd.join()
 
     def broadcast(self, obj, src=0):

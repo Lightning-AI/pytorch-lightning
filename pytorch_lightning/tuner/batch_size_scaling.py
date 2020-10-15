@@ -237,7 +237,7 @@ def _adjust_batch_size(trainer,
                        batch_arg_name: str = 'batch_size',
                        factor: float = 1.0,
                        value: Optional[int] = None,
-                       desc: str = None) -> Tuple[int, bool]:
+                       desc: Optional[str] = None) -> Tuple[int, bool]:
     """ Helper function for adjusting the batch size.
 
     Args:

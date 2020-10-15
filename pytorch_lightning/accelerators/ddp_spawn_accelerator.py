@@ -29,7 +29,7 @@ from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.utilities.distributed import find_free_network_port
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from torch.nn.parallel import DistributedDataParallel
-from typing import List
+from typing import List, Optional
 
 try:
     from hydra.core.hydra_config import HydraConfig
@@ -191,7 +191,7 @@ class DDPSpawnAccelerator(Accelerator):
         output = self.training_step(args)
         return output
 
-    def barrier(self, name: str = None):
+    def barrier(self, name: Optional[str] = None):
         if torch_distrib.is_initialized():
             torch_distrib.barrier()
 
