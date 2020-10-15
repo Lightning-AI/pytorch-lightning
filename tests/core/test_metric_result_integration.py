@@ -136,7 +136,7 @@ def test_result_metric_integration():
         assert metric_b.x == metric_b._defaults['x']
         assert metric_c.x == metric_c._defaults['x']
 
-        epoch_expected = {"b": cumulative_sum, "a": cumulative_sum, "a_epoch": cumulative_sum}
+        epoch_expected = {"b": cumulative_sum, "a_epoch": cumulative_sum}
 
         assert set(epoch_log.keys()) == set(epoch_expected.keys())
         for k in epoch_expected.keys():
