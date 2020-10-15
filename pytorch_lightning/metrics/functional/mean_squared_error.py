@@ -11,22 +11,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Tuple
+
 import torch
 from pytorch_lightning.metrics.utils import _check_same_shape
 
 
-def _mean_squared_error_update(preds: torch.Tensor, target: torch.Tensor):
+def _mean_squared_error_update(preds: torch.Tensor, target: torch.Tensor) -> Tuple[torch.Tensor, int]:
     _check_same_shape(preds, target)
     sum_squared_error = torch.sum(torch.pow(preds - target, 2))
     n_obs = target.numel()
     return sum_squared_error, n_obs
 
 
-def _mean_squared_error_compute(sum_squared_error: torch.Tensor, n_obs: torch.Tensor):
+def _mean_squared_error_compute(sum_squared_error: torch.Tensor, n_obs: int) -> torch.Tensor:
     return sum_squared_error / n_obs
 
 
-def mean_squared_error(preds: torch.Tensor, target: torch.Tensor):
+def mean_squared_error(preds: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     """
     Computes mean squared error
 

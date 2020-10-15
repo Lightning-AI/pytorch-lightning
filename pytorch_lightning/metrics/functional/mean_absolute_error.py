@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Tuple
+
 import torch
 from pytorch_lightning.metrics.utils import _check_same_shape
 
@@ -22,11 +24,11 @@ def _mean_absolute_error_update(preds: torch.Tensor, target: torch.Tensor):
     return sum_abs_error, n_obs
 
 
-def _mean_absolute_error_compute(sum_abs_error: torch.Tensor, n_obs: torch.Tensor):
+def _mean_absolute_error_compute(sum_abs_error: torch.Tensor, n_obs: int) -> torch.Tensor:
     return sum_abs_error / n_obs
 
 
-def mean_absolute_error(preds: torch.Tensor, target: torch.Tensor):
+def mean_absolute_error(preds: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     """
     Computes mean absolute error
 
