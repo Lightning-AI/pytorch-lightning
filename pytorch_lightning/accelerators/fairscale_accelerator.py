@@ -25,11 +25,13 @@ class LightningOSS(OSS):
     def state_dict(self) -> Dict[str, Any]:
         """
         Ensure we only call state_dict using rank zero.
+
+        Return the last known global optimizer state, which consist of a list of the shards.
         """
 
-        assert (
-                len(self._all_states) > 0
-        ), "The optimizer state is not materialized, please call consolidate_state_dict on every replica beforehand"
+        assert (len(self._all_states) > 0), \
+            "The optimizer state is not materialized, " \
+            "please call consolidate_state_dict on every replica beforehand"
 
         return {"state": self._all_states}
 
