@@ -163,7 +163,7 @@ def test__training_step__epoch_end__log(tmpdir):
 
     # make sure all the metrics are available for callbacks
     logged_metrics = set(trainer.logged_metrics.keys())
-    expected_logged_metrics = {'epoch', 'a', 'a_step', 'a_epoch', 'b', 'b1', 'a1', 'a2'}
+    expected_logged_metrics = {'epoch', 'a_step', 'a_epoch', 'b', 'b1', 'a1', 'a2'}
     assert logged_metrics == expected_logged_metrics
 
     pbar_metrics = set(trainer.progress_bar_metrics.keys())
@@ -178,6 +178,7 @@ def test__training_step__epoch_end__log(tmpdir):
     expected_callback_metrics = expected_callback_metrics.union(logged_metrics)
     expected_callback_metrics = expected_callback_metrics.union(pbar_metrics)
     expected_callback_metrics.remove('epoch')
+    expected_callback_metrics.add('a')
     assert callback_metrics == expected_callback_metrics
 
 
@@ -226,8 +227,8 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     # make sure all the metrics are available for callbacks
     logged_metrics = set(trainer.logged_metrics.keys())
     expected_logged_metrics = {
-        'a', 'a_step', 'a_epoch',
-        'b', 'b_step', 'b_epoch',
+        'a_step', 'a_epoch',
+        'b_step', 'b_epoch',
         'c',
         'd/e/f',
         'epoch'
@@ -235,7 +236,7 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     assert logged_metrics == expected_logged_metrics
 
     pbar_metrics = set(trainer.progress_bar_metrics.keys())
-    expected_pbar_metrics = {'b', 'c', 'b_epoch', 'b_step'}
+    expected_pbar_metrics = {'c', 'b_epoch', 'b_step'}
     assert pbar_metrics == expected_pbar_metrics
 
     callback_metrics = set(trainer.callback_metrics.keys())
@@ -243,6 +244,7 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     expected_callback_metrics = set()
     expected_callback_metrics = expected_callback_metrics.union(logged_metrics)
     expected_callback_metrics = expected_callback_metrics.union(pbar_metrics)
+    expected_callback_metrics.update({'a', 'b'})
     expected_callback_metrics.remove('epoch')
     assert callback_metrics == expected_callback_metrics
 
@@ -355,7 +357,7 @@ def test_tbptt_log(tmpdir):
     trainer.fit(model)
 
     generated = set(trainer.logged_metrics.keys())
-    expected = {'a', 'a_step', 'a_epoch', 'epoch'}
+    expected = {'a_step', 'a_epoch', 'epoch'}
     assert generated == expected
 
 
