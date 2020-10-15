@@ -33,8 +33,8 @@ class BaseProfiler(ABC):
 
     def __init__(self, output_streams: list = None):
         """
-        Params:
-            stream_out: callable
+        Args:
+            output_streams: callable
         """
         if output_streams:
             if not isinstance(output_streams, (list, tuple)):
@@ -119,7 +119,7 @@ class SimpleProfiler(BaseProfiler):
 
     def __init__(self, output_filename: str = None):
         """
-        Params:
+        Args:
             output_filename (str): optionally save profile results to file instead of printing
                 to std out when training is finished.
         """
