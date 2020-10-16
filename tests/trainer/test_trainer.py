@@ -602,20 +602,6 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     assert trainer.global_step == num_train_samples * trainer.max_epochs
     assert trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
 
-    # define only max steps
-    trainer_options.update(
-        max_epochs=None,
-        max_steps=num_train_samples + 10,
-    )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-    assert result == 1, "Training did not complete"
-
-    # check training stopped at max_steps
-    assert trainer.global_step == trainer.max_steps
-
 
 def test_trainer_min_steps_and_epochs(tmpdir):
     """Verify model trains according to specified min steps"""
@@ -655,6 +641,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     assert trainer.global_step >= math.floor(num_train_samples * 1.5) and \
         trainer.current_epoch > 0, "Model did not train for at least min_steps"
 
+<<<<<<< HEAD
     # define only min_steps less than 1 epoch
     trainer_options["min_epochs"] = None
     trainer_options.update(min_epochs=None, min_steps=math.floor(num_train_samples / 2))
@@ -689,6 +676,8 @@ def test_trainer_max_steps_accumulate_batches(tmpdir):
     # check training stopped at max_steps
     assert trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
 
+=======
+>>>>>>> moved tests
 
 def test_benchmark_option(tmpdir):
     """Verify benchmark option."""
