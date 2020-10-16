@@ -176,7 +176,7 @@ you can restore the model like this
     # uses in_dim=128, out_dim=10
     model = LitModel.load_from_checkpoint(PATH, in_dim=128, out_dim=10)
 
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.load_from_checkpoint
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.load_from_checkpoint
    :noindex:
 
 Restoring Training State
