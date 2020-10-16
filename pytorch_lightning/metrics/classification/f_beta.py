@@ -129,4 +129,5 @@ class Fbeta(Metric):
             precision = self.true_positives.float() / (self.predicted_positives + METRIC_EPS)
             recall = self.true_positives.float() / (self.actual_positives + METRIC_EPS)
 
-            return ((1 + self.beta ** 2) * (precision * recall) / (self.beta ** 2 * precision + recall + METRIC_EPS)).mean()
+            return ((1 + self.beta ** 2) * (precision * recall) / 
+                    (self.beta ** 2 * precision + recall + METRIC_EPS)).mean()
