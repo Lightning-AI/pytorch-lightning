@@ -690,20 +690,22 @@ class TrainLoop:
                 # gradient update with accumulated gradients
 
                 else:
-                    if not self.automatic_optimization:
-                        continue
 
-                    # wrap forward + backward pass in closure for 2nd order optimizers
-                    train_step_and_backward_closure = lambda: self.training_step_and_backward(
-                        split_batch,
-                        batch_idx,
-                        opt_idx,
-                        optimizer,
-                        self.trainer.hiddens,
-                    ).loss
+                    if self.automatic_optimization:
+                        # wrap forward + backward pass in closure for 2nd order optimizers
+                        train_step_and_backward_closure = lambda: self.training_step_and_backward(
+                            split_batch,
+                            batch_idx,
+                            opt_idx,
+                            optimizer,
+                            self.trainer.hiddens,
+                        ).loss
 
-                    # optimizer step
-                    self.optimizer_step(optimizer, opt_idx, batch_idx, train_step_and_backward_closure)
+                        # optimizer step
+                        self.optimizer_step(optimizer, opt_idx, batch_idx, train_step_and_backward_closure)
+
+                    else:
+                        self.training_step(split_batch, batch_idx, opt_idx, self.trainer.hiddens)
 
                     batch_outputs = self._process_closure_result(
                         batch_callback_metrics=batch_callback_metrics,
