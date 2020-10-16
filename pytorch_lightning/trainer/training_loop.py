@@ -692,20 +692,29 @@ class TrainLoop:
                 else:
 
                     if self.automatic_optimization:
-                        # wrap forward + backward pass in closure for 2nd order optimizers
-                        train_step_and_backward_closure = lambda: self.training_step_and_backward(
-                            split_batch,
-                            batch_idx,
-                            opt_idx,
-                            optimizer,
-                            self.trainer.hiddens,
-                        ).loss
+
+                        def train_step_and_backward_closure():
+                            result = self.training_step_and_backward(
+                                split_batch,
+                                batch_idx,
+                                opt_idx,
+                                optimizer,
+                                self.trainer.hiddens
+                            )
+                            return None if result is None else result.loss
 
                         # optimizer step
                         self.optimizer_step(optimizer, opt_idx, batch_idx, train_step_and_backward_closure)
 
                     else:
-                        self.training_step(split_batch, batch_idx, opt_idx, self.trainer.hiddens)
+                        self._curr_step_result = self.training_step(split_batch, batch_idx, opt_idx, self.trainer.hiddens)
+
+                    # TODO: we may also have to check current_result.loss if it is None
+                    # this can happen when manual optimization does not return a loss but
+                    # dict/result for logging
+                    if self._curr_step_result is None:
+                        # user decided to skip optimization
+                        continue
 
                     batch_outputs = self._process_closure_result(
                         batch_callback_metrics=batch_callback_metrics,
@@ -781,6 +790,7 @@ class TrainLoop:
         """
         # lightning module hook
         result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
+        self._curr_step_result = result
 
         if result is None:
             self.warning_cache.warn("training_step returned None if it was on purpose, ignore this warning...")
@@ -812,8 +822,6 @@ class TrainLoop:
             result.closure_loss = self.trainer.accelerator_backend.backward(
                 result.closure_loss, optimizer, opt_idx, *args, **kwargs
             )
-
-        self._curr_step_result = result
 
     def update_train_loop_lr_schedulers(self, monitor_metrics=None):
         num_accumulated_batches_reached = (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
