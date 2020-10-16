@@ -794,6 +794,10 @@ class TrainLoop:
             # hook
             self.on_after_backward(result.training_step_output, batch_idx, result.loss)
 
+            # check if loss or model weights are nan
+            if self.trainer.terminate_on_nan:
+                self.trainer.detect_nan_tensors(result.loss)
+
         return result
 
     def backward(self, result, optimizer, opt_idx, *args, **kwargs):
