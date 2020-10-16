@@ -131,7 +131,11 @@ class Metric(nn.Module, ABC):
             )
 
         if isinstance(default, torch.Tensor):
-            self.register_buffer(name, default, persistent=persistent)
+            try:
+                # persistent keyword is only supported in torch >= 1.6.0
+                self.register_buffer(name, default, persistent=persistent)
+            except TypeError:
+                self.register_buffer(name, default)
         else:
             setattr(self, name, default)
 
