@@ -203,7 +203,7 @@ class LoggerConnector:
                 if len(logger_metrics) > 0:
                     metrics_to_log.append(logger_metrics)
 
-    def log_metrics_log(self, metrics_to_log):
+    def log_on_evaluation_end(self, metrics_to_log):
         metrics_to_log = dict(ChainMap(*metrics_to_log))
         if len(metrics_to_log) > 0:
             self.log_metrics(metrics_to_log, {}, step=self.trainer.global_step)        
