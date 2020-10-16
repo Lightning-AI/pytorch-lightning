@@ -45,6 +45,7 @@ class TrainLoop:
         self.running_loss = TensorRunningAccum(window_length=20)
         self.automatic_optimization = True
         self._curr_step_result = None
+        self._cur_grad_norm_dict = None
 
     def on_trainer_init(
         self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps, automatic_optimization
@@ -459,13 +460,13 @@ class TrainLoop:
     def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
         self.trainer.accelerator_backend.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
-    def on_before_optimizer_step(self, batch_idx, optimizer):
+    def _track_and_norm_grad(self, batch_idx, optimizer):
         # track gradient norms
         grad_norm_dic = self._track_gradient_norm()
 
         # clip gradients
         self.trainer.accelerator_backend.clip_gradients(optimizer)
-        return grad_norm_dic
+        self._cur_grad_norm_dict = grad_norm_dic
 
     def _track_gradient_norm(self):
         grad_norm_dict = {}
@@ -692,9 +693,6 @@ class TrainLoop:
                     if not self.automatic_optimization:
                         continue
 
-                    # hook
-                    grad_norm_dic = self.on_before_optimizer_step(batch_idx, optimizer)
-
                     # wrap forward + backward pass in closure for 2nd order optimizers
                     train_step_and_backward_closure = lambda: self.training_step_and_backward(
                         split_batch,
@@ -713,6 +711,9 @@ class TrainLoop:
                         batch_outputs=batch_outputs,
                         opt_idx=opt_idx,
                     )
+
+                    grad_norm_dic = self._cur_grad_norm_dict
+                    self._cur_grad_norm_dict = None
 
                     # hook
                     self.on_before_zero_grad(optimizer)
@@ -787,6 +788,8 @@ class TrainLoop:
             # backward pass
             with self.trainer.profiler.profile("model_backward"):
                 self.backward(result, optimizer, opt_idx)
+
+            self._track_and_norm_grad(batch_idx=batch_idx, optimizer=optimizer)
 
             # hook
             self.on_after_backward(result.training_step_output, batch_idx, result.loss)
