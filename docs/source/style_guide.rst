@@ -181,7 +181,7 @@ Dataloaders
 Lightning uses dataloaders to handle all the data flow through the system. Whenever you structure dataloaders,
 make sure to tune the number of workers for maximum efficiency.
 
-.. warning:: Make sure not to use ddp_spawn with num_workers > 0 or your will bottleneck your code.
+.. warning:: Make sure not to use ddp_spawn with num_workers > 0 or you will bottleneck your code.
 
 DataModules
 ===========
@@ -190,7 +190,7 @@ because all these questions need to be answered:
 
 * What splits were used?
 * How many samples does this dataset have?
-* What transformes were used?
+* What transforms were used?
 * etc...
 
 It's for this reason that we recommend you use datamodules. This is specially important when collaborating because
