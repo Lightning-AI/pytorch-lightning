@@ -458,7 +458,7 @@ class TrainLoop:
     def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
         self.trainer.accelerator_backend.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
-    def on_before_backward(self, batch_idx, optimizer):
+    def on_before_optimizer_step(self, batch_idx, optimizer):
         # track gradient norms
         grad_norm_dic = self._track_gradient_norm()
 
@@ -648,6 +648,10 @@ class TrainLoop:
         if response == -1:
             return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
 
+        # checks if backward or backward + optimizer step (via closure)
+        accumulation_done = (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
+        is_final_batch = (self.trainer.batch_idx + 1) == self.trainer.num_training_batches
+
         # lightning module hook
         splits = self.tbptt_split_batch(batch)
 
@@ -667,51 +671,52 @@ class TrainLoop:
                     model = self.trainer.get_model()
                     model.toggle_optimizer(optimizer, opt_idx)
 
-                # -------------------
-                # calculate loss (train step + train step end)
-                # -------------------
-                opt_closure_result = self.training_step_and_backward(
-                    split_batch,
-                    batch_idx,
-                    opt_idx,
-                    optimizer,
-                    self.trainer.hiddens
-                )
+                if not (accumulation_done or is_final_batch):
 
-                if opt_closure_result is None:
-                    continue
+                    # -------------------
+                    # calculate loss (train step + train step end)
+                    # -------------------
+                    opt_closure_result = self.training_step_and_backward(
+                        split_batch,
+                        batch_idx,
+                        opt_idx,
+                        optimizer,
+                        self.trainer.hiddens
+                    )
 
-                using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
+                    if opt_closure_result is None:
+                        continue
 
-                # log metrics
-                self.log_training_step_metrics(opt_closure_result, batch_callback_metrics, batch_log_metrics)
+                    using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
 
-                # track hiddens
-                self.trainer.hiddens = self.process_hiddens(opt_closure_result)
+                    # log metrics
+                    self.log_training_step_metrics(opt_closure_result, batch_callback_metrics, batch_log_metrics)
 
-                # check if loss or model weights are nan
-                if self.trainer.terminate_on_nan:
-                    self.trainer.detect_nan_tensors(opt_closure_result.loss)
+                    # track hiddens
+                    self.trainer.hiddens = self.process_hiddens(opt_closure_result)
 
-                # track all the outputs across all steps
-                batch_opt_idx = opt_idx if len(batch_outputs) > 1 else 0
-                batch_outputs[batch_opt_idx].append(opt_closure_result.training_step_output_for_epoch_end)
+                    # check if loss or model weights are nan
+                    if self.trainer.terminate_on_nan:
+                        self.trainer.detect_nan_tensors(opt_closure_result.loss)
 
-                if not self.automatic_optimization:
-                    continue
+                    # track all the outputs across all steps
+                    batch_opt_idx = opt_idx if len(batch_outputs) > 1 else 0
+                    batch_outputs[batch_opt_idx].append(opt_closure_result.training_step_output_for_epoch_end)
 
-                # track total loss for logging (avoid mem leaks)
-                self.accumulated_loss.append(opt_closure_result.loss)
+                    if not self.automatic_optimization:
+                        continue
+
+                    # track total loss for logging (avoid mem leaks)
+                    self.accumulated_loss.append(opt_closure_result.loss)
 
                 # ------------------------------
                 # BACKWARD PASS
                 # ------------------------------
                 # gradient update with accumulated gradients
-                accumulation_done = (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
-                is_final_batch = (self.trainer.batch_idx + 1) == self.trainer.num_training_batches
-                if accumulation_done or is_final_batch:
+                
+                else:
                     # hook
-                    grad_norm_dic = self.on_before_backward(batch_idx, optimizer)
+                    grad_norm_dic = self.on_before_optimizer_step(batch_idx, optimizer)
 
                     # wrap forward + backward pass in closure for 2nd order optimizers
                     train_step_and_backward_closure = lambda: self.training_step_and_backward(
