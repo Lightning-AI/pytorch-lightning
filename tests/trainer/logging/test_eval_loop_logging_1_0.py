@@ -359,8 +359,9 @@ def test_log_works_in_validation_callback(tmpdir):
             self.log("test_val_loss", loss)
             return {"test_val_loss": loss}
 
-    max_epochs = 2
+    max_epochs = 5
     model = TestModel()
+    # using Early Stopping to make sure callback_metrics is correctly set for `on_validation_epoch_end` hook
     early_stop_callback = pl.callbacks.EarlyStopping(monitor="test_val_loss", patience=3, verbose=True)
 
     trainer = Trainer(
@@ -378,3 +379,4 @@ def test_log_works_in_validation_callback(tmpdir):
     expected_logged_metrics = set([f for f in funcs_name if f] + ["c", "test_val_loss"])
     logged_metrics = set(trainer.logged_metrics.keys())
     assert logged_metrics == expected_logged_metrics, logged_metrics
+    assert trainer.current_epoch == expected_stop_epoch
