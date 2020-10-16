@@ -69,7 +69,7 @@ def test_add_state_persistent():
     a.add_state("b", torch.tensor(0), "sum", persistent=False)
 
     if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
-        assert not "b" in a.state_dict()
+        assert "b" not in a.state_dict()
 
 
 
