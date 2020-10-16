@@ -134,4 +134,3 @@ class Fbeta(Metric):
             denom = self.beta ** 2 * precision + recall
 
             return class_reduce(num=num, denom=denom, weights=None, class_reduction='macro')
-
