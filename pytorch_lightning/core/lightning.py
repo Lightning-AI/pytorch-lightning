@@ -1204,11 +1204,14 @@ class LightningModule(
         if on_tpu:
             xm.optimizer_step(optimizer, {'closure': optimizer_closure})
         elif using_native_amp:
-            self.trainer.scaler.step(optimizer, optimizer_closure)
+            # native amp does not yet support closures.
+            # TODO: pass the closure to the step ASAP
+            optimizer_closure()
+            self.trainer.scaler.step(optimizer)
         # elif using_lbfgs:
         #     optimizer.step(second_order_closure)
         else:
-            optimizer.step(optimizer_closure)
+            optimizer.step(closure=optimizer_closure)
 
     def optimizer_zero_grad(
         self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int
