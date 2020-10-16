@@ -44,6 +44,7 @@ class TrainLoop:
         self._teardown_already_run = False
         self.running_loss = TensorRunningAccum(window_length=20)
         self.automatic_optimization = True
+        self._curr_step_result = None
 
     def on_trainer_init(
         self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps, automatic_optimization
@@ -674,34 +675,13 @@ class TrainLoop:
                     # -------------------
                     # calculate loss (train step + train step end)
                     # -------------------
-                    opt_closure_result = self.training_step_and_backward(
-                        split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
+                    self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens)
+                    batch_outputs = self._process_closure_result(
+                        batch_callback_metrics=batch_callback_metrics,
+                        batch_log_metrics=batch_log_metrics,
+                        batch_outputs=batch_outputs,
+                        opt_idx=opt_idx,
                     )
-
-                    if opt_closure_result is None:
-                        continue
-
-                    using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
-
-                    # log metrics
-                    self.log_training_step_metrics(opt_closure_result, batch_callback_metrics, batch_log_metrics)
-
-                    # track hiddens
-                    self.trainer.hiddens = self.process_hiddens(opt_closure_result)
-
-                    # check if loss or model weights are nan
-                    if self.trainer.terminate_on_nan:
-                        self.trainer.detect_nan_tensors(opt_closure_result.loss)
-
-                    # track all the outputs across all steps
-                    batch_opt_idx = opt_idx if len(batch_outputs) > 1 else 0
-                    batch_outputs[batch_opt_idx].append(opt_closure_result.training_step_output_for_epoch_end)
-
-                    if not self.automatic_optimization:
-                        continue
-
-                    # track total loss for logging (avoid mem leaks)
-                    self.accumulated_loss.append(opt_closure_result.loss)
 
                 # ------------------------------
                 # BACKWARD PASS
@@ -709,6 +689,9 @@ class TrainLoop:
                 # gradient update with accumulated gradients
 
                 else:
+                    if not self.automatic_optimization:
+                        continue
+
                     # hook
                     grad_norm_dic = self.on_before_optimizer_step(batch_idx, optimizer)
 
@@ -723,6 +706,13 @@ class TrainLoop:
 
                     # optimizer step
                     self.optimizer_step(optimizer, opt_idx, batch_idx, train_step_and_backward_closure)
+
+                    batch_outputs = self._process_closure_result(
+                        batch_callback_metrics=batch_callback_metrics,
+                        batch_log_metrics=batch_log_metrics,
+                        batch_outputs=batch_outputs,
+                        opt_idx=opt_idx,
+                    )
 
                     # hook
                     self.on_before_zero_grad(optimizer)
@@ -753,6 +743,35 @@ class TrainLoop:
         )
         return result
 
+    def _process_closure_result(
+        self, batch_callback_metrics: list, batch_log_metrics: list, batch_outputs: list, opt_idx: int
+    ) -> list:
+        opt_closure_result = self._curr_step_result
+
+        if opt_closure_result is not None:
+
+            # log metrics
+            self.log_training_step_metrics(opt_closure_result, batch_callback_metrics, batch_log_metrics)
+
+            # track hiddens
+            self.trainer.hiddens = self.process_hiddens(opt_closure_result)
+
+            # check if loss or model weights are nan
+            if self.trainer.terminate_on_nan:
+                self.trainer.detect_nan_tensors(opt_closure_result.loss)
+
+            # track all the outputs across all steps
+            batch_opt_idx = opt_idx if len(batch_outputs) > 1 else 0
+            batch_outputs[batch_opt_idx].append(opt_closure_result.training_step_output_for_epoch_end)
+
+            if self.automatic_optimization:
+                # track total loss for logging (avoid mem leaks)
+                self.accumulated_loss.append(opt_closure_result.loss)
+
+        self._curr_step_result = None
+
+        return batch_outputs
+
     def training_step_and_backward(self, split_batch, batch_idx, opt_idx, optimizer, hiddens):
         """
         wrap the forward step in a closure so second order methods work
@@ -772,6 +791,7 @@ class TrainLoop:
             # hook
             self.on_after_backward(result.training_step_output, batch_idx, result.loss)
 
+        self._curr_step_result = result
         return result
 
     def backward(self, result, optimizer, opt_idx, *args, **kwargs):
