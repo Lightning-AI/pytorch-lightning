@@ -110,7 +110,7 @@ class LoggerConnector:
 
     def on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, using_eval_result, test_mode):
         self._track_callback_metrics(deprecated_eval_results, using_eval_result)
-        self._track_callback_metrics_1_0(epoch_logs, self.trainer.evaluation_loop.metrics_to_log)
+        self._track_callback_metrics_1_0(epoch_logs, self.trainer.evaluation_loop.metrics_to_log, reduce_on_epoch=True)
 
         # TODO: deprecate parts of this for 1.0 (when removing results)
         self.__process_eval_epoch_end_results_and_log_legacy(deprecated_eval_results, test_mode)
@@ -118,19 +118,6 @@ class LoggerConnector:
         # get the final loop results
         eval_loop_results = self._get_evaluate_epoch_results(test_mode)
         return eval_loop_results
-
-    """
-    def on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, using_eval_result, test_mode):
-        self._track_callback_metrics(deprecated_eval_results, using_eval_result)
-        self._log_on_evaluation_epoch_end_metrics(epoch_logs)
-
-        # TODO: deprecate parts of this for 1.0 (when removing results)
-        self.__process_eval_epoch_end_results_and_log_legacy(deprecated_eval_results, test_mode)
-
-        # get the final loop results
-        eval_loop_results = self._get_evaluate_epoch_results(test_mode)
-        return eval_loop_results
-    """
 
     def _get_evaluate_epoch_results(self, test_mode):
         # log results of test
@@ -147,8 +134,12 @@ class LoggerConnector:
         self.eval_loop_results = []
         return results
 
-    def _track_callback_metrics_1_0(self, epoch_logs, metrics_to_log=[]):
-        is_metrics_to_log_empty = len(metrics_to_log) == 0
+    def _track_metrics_before_after_on_evaluation_epoch_start(self, logs, metrics_to_log=[]):
+        batch_logger_metrics  = logs.get_batch_log_metrics()
+        if len(batch_logger_metrics) > 0:
+            metrics_to_log.append(batch_logger_metrics)
+
+    def _track_callback_metrics_1_0(self, logs, metrics_to_log=[], reduce_on_epoch=False):
         step_metrics = self.trainer.evaluation_loop.step_metrics
 
         num_loaders = len(step_metrics)
@@ -164,8 +155,8 @@ class LoggerConnector:
         # ---------------------------
         # (ie: in methods at the val_epoch_end level)
         # union the epoch logs with whatever was returned from loaders and reduced
-        epoch_logger_metrics = epoch_logs.get_epoch_log_metrics()
-        epoch_pbar_metrics = epoch_logs.get_epoch_pbar_metrics()
+        epoch_logger_metrics = logs.get_epoch_log_metrics()
+        epoch_pbar_metrics = logs.get_epoch_pbar_metrics()
 
         self.logged_metrics.update(epoch_logger_metrics)
         self.add_progress_bar_metrics(epoch_pbar_metrics)
@@ -182,7 +173,7 @@ class LoggerConnector:
         # --------------------------------
         # each dataloader aggregated metrics
         # now we log all of them
-        if is_metrics_to_log_empty:
+        if reduce_on_epoch:
             for dl_idx, dl_metrics in enumerate(step_metrics):
                 if len(dl_metrics) == 0:
                     continue

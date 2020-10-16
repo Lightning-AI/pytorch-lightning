@@ -22,7 +22,8 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.step_result import EvalResult
+from pytorch_lightning.core.memory import ModelSummary
+from pytorch_lightning.core.step_result import Result, EvalResult
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import BaseProfiler
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
@@ -527,8 +528,11 @@ class Trainer(
         if self.evaluation_loop.should_skip_evaluation(dataloaders, max_batches):
             return [], []
 
-        # enable eval mode + no grads
+        # Load model and reset Result
         model = self.get_model()
+        # reset result
+        model._results = Result()
+        # enable eval mode + no grads
         self.evaluation_loop.on_evaluation_model_eval()
 
         model.zero_grad()
@@ -598,6 +602,7 @@ class Trainer(
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
+        
         # hook
         self.evaluation_loop.on_evaluation_end()
 
