@@ -98,7 +98,8 @@ class GAN(LightningModule):
     def forward(self, z):
         return self.generator(z)
 
-    def adversarial_loss(self, y_hat, y):
+    @staticmethod
+    def adversarial_loss(y_hat, y):
         return F.binary_cross_entropy(y_hat, y)
 
     def training_step(self, batch, batch_idx, optimizer_idx):
@@ -110,15 +111,6 @@ class GAN(LightningModule):
 
         # train generator
         if optimizer_idx == 0:
-
-            # generate images
-            self.generated_imgs = self(z)
-
-            # log sampled images
-            sample_imgs = self.generated_imgs[:6]
-            grid = torchvision.utils.make_grid(sample_imgs)
-            self.logger.experiment.add_image('generated_images', grid, 0)
-
             # ground truth result (ie: all fake)
             # put on GPU because we created this tensor inside training_loop
             valid = torch.ones(imgs.size(0), 1)
