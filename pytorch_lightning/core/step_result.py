@@ -291,6 +291,7 @@ class Result(Dict):
 
         return result
 
+
     def get_epoch_pbar_metrics(self):
         """
         Gets the metrics to log at the end of epoch

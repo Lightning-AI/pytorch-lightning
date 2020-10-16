@@ -334,8 +334,8 @@ def test_log_works_in_validation_callback(tmpdir):
 
     def logic_func(x):
         func_idx, func_name, args = x
-        return f"""pl_module = locals().get('pl_module')\n  try:\n      pl_module.log('{func_name}', {func_idx})\n  except Exception as e:\n        print('{func_name}', e)""" \
-            if "pl_module" in args else "pass"
+        return f"""trainer = locals().get('trainer')\n  try:\n      trainer.get_model().log('{func_name}', {func_idx})\n  except Exception as e:\n        print('{func_name}', e)""" \
+            if "trainer" in args else "pass"
     
     scripted_callback = create_scriptable_callback(funcs_name, logic_func)
 
@@ -375,6 +375,6 @@ def test_log_works_in_validation_callback(tmpdir):
     )
     trainer.fit(model)
 
-    expected_logged_metrics = set([f for f in funcs_name if f not in ["on_validation_epoch_start", "on_validation_start"]] + ["c", "test_val_loss"])
+    expected_logged_metrics = set([f for f in funcs_name if f] + ["c", "test_val_loss"])
     logged_metrics = set(trainer.logged_metrics.keys())
     assert logged_metrics == expected_logged_metrics, logged_metrics

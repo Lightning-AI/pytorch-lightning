@@ -84,6 +84,7 @@ class EvaluationLoop(object):
         return False
 
     def on_evaluation_start(self, *args, **kwargs):
+        self.metrics_to_log = []
         if self.testing:
             self.trainer.call_hook('on_test_start', *args, **kwargs)
         else:
@@ -103,16 +104,22 @@ class EvaluationLoop(object):
         else:
             model_ref.on_validation_model_train()
 
-    def _update_metrics_to_log(self):
-        return self.trainer.logger_connector._track_callback_metrics_1_0(self.trainer.get_model()._results, \
-            metrics_to_log=self.metrics_to_log)        
+    def _update_metrics_to_log_after_evaluation_epoch_end(self):
+        if not self.trainer.running_sanity_check:
+            self.trainer.logger_connector._track_callback_metrics_1_0(self.trainer.get_model()._results, \
+                metrics_to_log=self.metrics_to_log)       
+
+    def _update_metrics_to_log_after_on_evaluation_epoch_start(self):
+        if not self.trainer.running_sanity_check:
+            self.trainer.logger_connector._track_metrics_before_after_on_evaluation_epoch_start(self.trainer.get_model()._results, \
+                metrics_to_log=self.metrics_to_log)  
 
     def on_evaluation_end(self, *args, **kwargs):
         if self.testing:
             self.trainer.call_hook('on_test_end', *args, **kwargs)
         else:
             self.trainer.call_hook('on_validation_end', *args, **kwargs)
-        self._update_metrics_to_log()
+        self._update_metrics_to_log_after_evaluation_epoch_end()
 
     def reload_evaluation_dataloaders(self):
         model = self.trainer.get_model()
@@ -145,6 +152,7 @@ class EvaluationLoop(object):
             self.trainer.call_hook('on_test_epoch_start', *args, **kwargs)
         else:
             self.trainer.call_hook('on_validation_epoch_start', *args, **kwargs)
+        self._update_metrics_to_log_after_on_evaluation_epoch_start()
 
     def build_args(self, test_mode, batch, batch_idx, dataloader_idx):
         # make dataloader_idx arg in validation_step optional
@@ -336,7 +344,7 @@ class EvaluationLoop(object):
             self.trainer.call_hook('on_test_epoch_end', *args, **kwargs)
         else:
             self.trainer.call_hook('on_validation_epoch_end', *args, **kwargs)
-        self._update_metrics_to_log()
+        self._update_metrics_to_log_after_evaluation_epoch_end()
 
     def log_evaluation_step_metrics(self, batch, batch_idx):
         results = self.trainer.get_model()._results
