@@ -14,10 +14,11 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
+import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning import callbacks, seed_everything
 from tests.base.deterministic_model import DeterministicModel
-from tests.base import SimpleModule, BoringModel, create_scriptable_callback
+from tests.base import SimpleModule, BoringModel
 import os
 import torch
 import pytest
@@ -326,20 +327,45 @@ def test_log_works_in_validation_callback(tmpdir):
     """
     Tests that log can be called within callback
     """
-    import pytorch_lightning as pl
-
     os.environ['PL_DEV_DEBUG'] = '1'
 
-    funcs_name = [f for f in dir(callbacks.Callback) if ("val" in f)]
-
-    def logic_func(x):
-        func_idx, func_name, args = x
-        return f"""trainer = locals().get('trainer')\n  try:\n      trainer.get_model().log('{func_name}', {func_idx})\n  except Exception as e:\n        print('{func_name}', e)""" \
-            if "trainer" in args else "pass"
-    
-    scripted_callback = create_scriptable_callback(funcs_name, logic_func)
-
     loss_values, patience, expected_stop_epoch = ([6, 5, 5, 5, 5, 5], 3, 4)
+
+    class TestCallback(callbacks.Callback):
+
+        callback_funcs_called = []
+
+        def on_validation_start(self, trainer, pl_module):
+            func_name = 'on_validation_start'
+            pl_module.log(func_name, 0)
+            self.callback_funcs_called.append(func_name)
+
+        def on_validation_epoch_start(self, trainer, pl_module):
+            func_name = 'on_validation_epoch_start'
+            pl_module.log(func_name, 0)
+            self.callback_funcs_called.append(func_name)
+
+        def on_validation_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+            func_name = 'on_validation_batch_start'
+            pl_module.log(func_name, 0)
+            self.callback_funcs_called.append(func_name)
+
+        def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+            func_name = 'on_validation_batch_end'
+            pl_module.log(func_name, 0)
+            self.callback_funcs_called.append(func_name)
+
+        def on_validation_epoch_end(self, trainer, pl_module):
+            func_name = 'on_validation_epoch_end'
+            pl_module.log(func_name, 0)
+            self.callback_funcs_called.append(func_name)
+
+        def on_validation_end(self, trainer, pl_module):
+            func_name = 'on_validation_end'
+            pl_module.log(func_name, 0)
+            self.callback_funcs_called.append(func_name)
+
+
 
     class TestModel(BoringModel):
 
@@ -363,6 +389,7 @@ def test_log_works_in_validation_callback(tmpdir):
     model = TestModel()
     # using Early Stopping to make sure callback_metrics is correctly set for `on_validation_epoch_end` hook
     early_stop_callback = pl.callbacks.EarlyStopping(monitor="test_val_loss", patience=3, verbose=True)
+    test_callback = TestCallback()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -372,11 +399,11 @@ def test_log_works_in_validation_callback(tmpdir):
         val_check_interval=1.0,
         num_sanity_val_steps=0,
         max_epochs=max_epochs,
-        callbacks=[early_stop_callback, scripted_callback]
+        callbacks=[early_stop_callback, test_callback]
     )
     trainer.fit(model)
 
-    expected_logged_metrics = set([f for f in funcs_name if f] + ["c", "test_val_loss"])
+    expected_logged_metrics = set(test_callback.callback_funcs_called + ["c", "test_val_loss"])
     logged_metrics = set(trainer.logged_metrics.keys())
     assert logged_metrics == expected_logged_metrics, logged_metrics
     assert trainer.current_epoch == expected_stop_epoch
