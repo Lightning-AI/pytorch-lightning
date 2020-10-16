@@ -29,6 +29,7 @@ class EvaluationLoop(object):
         self.predictions = None
         self.max_batches = None
         self.warning_cache = WarningCache()
+        self.metrics_to_log = []
 
     def on_trainer_init(self):
         self.trainer.num_val_batches = []
@@ -102,11 +103,16 @@ class EvaluationLoop(object):
         else:
             model_ref.on_validation_model_train()
 
+    def _update_metrics_to_log(self):
+        return self.trainer.logger_connector._track_callback_metrics_1_0(self.trainer.get_model()._results, \
+            metrics_to_log=self.metrics_to_log)        
+
     def on_evaluation_end(self, *args, **kwargs):
         if self.testing:
             self.trainer.call_hook('on_test_end', *args, **kwargs)
         else:
             self.trainer.call_hook('on_validation_end', *args, **kwargs)
+        self._update_metrics_to_log()
 
     def reload_evaluation_dataloaders(self):
         model = self.trainer.get_model()
@@ -205,7 +211,7 @@ class EvaluationLoop(object):
 
         return deprecated_results, epoch_logs
 
-    def log_epoch_metrics(self, deprecated_eval_results, epoch_logs, test_mode):
+    def track_metrics_on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, test_mode):
         using_eval_result = self.is_using_eval_results()
         eval_loop_results = self.trainer.logger_connector.on_evaluation_epoch_end(
             deprecated_eval_results,
@@ -214,6 +220,11 @@ class EvaluationLoop(object):
             test_mode
         )
         return eval_loop_results
+
+
+    def log_metrics_on_evaluation_end(self):
+        self.trainer.logger_connector.log_metrics_log(self.metrics_to_log)
+        self.metrics_to_log = []
 
     def __run_eval_epoch_end(self, num_dataloaders, using_eval_result):
         model = self.trainer.get_model()
@@ -325,6 +336,7 @@ class EvaluationLoop(object):
             self.trainer.call_hook('on_test_epoch_end', *args, **kwargs)
         else:
             self.trainer.call_hook('on_validation_epoch_end', *args, **kwargs)
+        self._update_metrics_to_log()
 
     def log_evaluation_step_metrics(self, batch, batch_idx):
         results = self.trainer.get_model()._results

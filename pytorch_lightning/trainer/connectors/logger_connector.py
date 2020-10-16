@@ -110,6 +110,18 @@ class LoggerConnector:
 
     def on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, using_eval_result, test_mode):
         self._track_callback_metrics(deprecated_eval_results, using_eval_result)
+        self._track_callback_metrics_1_0(epoch_logs, self.trainer.evaluation_loop.metrics_to_log)
+
+        # TODO: deprecate parts of this for 1.0 (when removing results)
+        self.__process_eval_epoch_end_results_and_log_legacy(deprecated_eval_results, test_mode)
+
+        # get the final loop results
+        eval_loop_results = self._get_evaluate_epoch_results(test_mode)
+        return eval_loop_results
+
+    """
+    def on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, using_eval_result, test_mode):
+        self._track_callback_metrics(deprecated_eval_results, using_eval_result)
         self._log_on_evaluation_epoch_end_metrics(epoch_logs)
 
         # TODO: deprecate parts of this for 1.0 (when removing results)
@@ -118,6 +130,7 @@ class LoggerConnector:
         # get the final loop results
         eval_loop_results = self._get_evaluate_epoch_results(test_mode)
         return eval_loop_results
+    """
 
     def _get_evaluate_epoch_results(self, test_mode):
         # log results of test
@@ -134,7 +147,8 @@ class LoggerConnector:
         self.eval_loop_results = []
         return results
 
-    def _log_on_evaluation_epoch_end_metrics(self, epoch_logs):
+    def _track_callback_metrics_1_0(self, epoch_logs, metrics_to_log=[]):
+        is_metrics_to_log_empty = len(metrics_to_log) == 0
         step_metrics = self.trainer.evaluation_loop.step_metrics
 
         num_loaders = len(step_metrics)
@@ -144,9 +158,6 @@ class LoggerConnector:
 
         if self.trainer.running_sanity_check:
             return
-
-        # track all metrics we want to log
-        metrics_to_log = []
 
         # ---------------------------
         # UPDATE EPOCH LOGGED METRICS
@@ -171,39 +182,40 @@ class LoggerConnector:
         # --------------------------------
         # each dataloader aggregated metrics
         # now we log all of them
-        for dl_idx, dl_metrics in enumerate(step_metrics):
-            if len(dl_metrics) == 0:
-                continue
+        if is_metrics_to_log_empty:
+            for dl_idx, dl_metrics in enumerate(step_metrics):
+                if len(dl_metrics) == 0:
+                    continue
 
-            reduced_epoch_metrics = dl_metrics[0].__class__.reduce_on_epoch_end(dl_metrics)
-            # make the keys 'k/dl'
-            reduced_epoch_metrics = self.__rename_keys_by_dataloader_idx(reduced_epoch_metrics, dl_idx, num_loaders)
+                reduced_epoch_metrics = dl_metrics[0].__class__.reduce_on_epoch_end(dl_metrics)
+                # make the keys 'k/dl'
+                reduced_epoch_metrics = self.__rename_keys_by_dataloader_idx(reduced_epoch_metrics, dl_idx, num_loaders)
 
-            # track the metrics
-            logger_metrics = reduced_epoch_metrics.get_epoch_log_metrics()
-            pbar_metrics = reduced_epoch_metrics.get_epoch_pbar_metrics()
-            self.logged_metrics.update(logger_metrics)
-            self.add_progress_bar_metrics(pbar_metrics)
+                # track the metrics
+                logger_metrics = reduced_epoch_metrics.get_epoch_log_metrics()
+                pbar_metrics = reduced_epoch_metrics.get_epoch_pbar_metrics()
+                self.logged_metrics.update(logger_metrics)
+                self.add_progress_bar_metrics(pbar_metrics)
 
-            # enable the metrics to be monitored
-            self.callback_metrics.update(logger_metrics)
-            self.callback_metrics.update(pbar_metrics)
+                # enable the metrics to be monitored
+                self.callback_metrics.update(logger_metrics)
+                self.callback_metrics.update(pbar_metrics)
 
-            # forked metrics were dropped, enable them for callbacks
-            forked_metrics = reduced_epoch_metrics.get_forked_metrics()
-            self.callback_metrics.update(forked_metrics)
+                # forked metrics were dropped, enable them for callbacks
+                forked_metrics = reduced_epoch_metrics.get_forked_metrics()
+                self.callback_metrics.update(forked_metrics)
 
-            # track the final results for the dataloader
-            self.eval_loop_results.append(deepcopy(self.callback_metrics))
+                # track the final results for the dataloader
+                self.eval_loop_results.append(deepcopy(self.callback_metrics))
 
-            # actually log
-            if len(logger_metrics) > 0:
-                metrics_to_log.append(logger_metrics)
+                # actually log
+                if len(logger_metrics) > 0:
+                    metrics_to_log.append(logger_metrics)
 
-        # log all the metrics as a s single dict
+    def log_metrics_log(self, metrics_to_log):
         metrics_to_log = dict(ChainMap(*metrics_to_log))
         if len(metrics_to_log) > 0:
-            self.log_metrics(metrics_to_log, {}, step=self.trainer.global_step)
+            self.log_metrics(metrics_to_log, {}, step=self.trainer.global_step)        
 
     def __rename_keys_by_dataloader_idx(self, metrics, dataloader_idx, num_loaders):
         if num_loaders == 1:
