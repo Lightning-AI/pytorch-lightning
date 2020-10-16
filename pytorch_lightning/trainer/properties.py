@@ -192,5 +192,6 @@ class TrainerProperties(ABC):
     def get_model(self):
         return self.model_connector.get_model()
 
+
 # Used to represent the concrete type TrainerProperties class methods are called on.
 _T = TypeVar('T', bound=TrainerProperties)
