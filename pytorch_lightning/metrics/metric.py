@@ -78,7 +78,9 @@ class Metric(nn.Module, ABC):
         self._reductions = {}
         self._defaults = {}
 
-    def add_state(self, name: str, default, dist_reduce_fx: Optional[Union[str, Callable]] = None, persistent: bool = True):
+    def add_state(
+        self, name: str, default, dist_reduce_fx: Optional[Union[str, Callable]] = None, persistent: bool = True
+    ):
         """
         Adds metric state variable. Only used by subclasses.
 
