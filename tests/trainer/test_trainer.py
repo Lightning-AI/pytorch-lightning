@@ -1372,8 +1372,3 @@ def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, l
     trainer.fit(model)
     expected_calls = [call(metrics=ANY, step=s) for s in range(log_interval - 1, max_steps, log_interval)]
     log_metrics_mock.assert_has_calls(expected_calls)
-
-
-import tempfile
-
-test_gradient_accumulation_scheduling(tempfile.mkdtemp(), {1: 2, 3: 4}, [1, 2, 4])
