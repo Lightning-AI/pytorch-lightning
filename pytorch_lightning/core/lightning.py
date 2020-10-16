@@ -1130,7 +1130,7 @@ class LightningModule(
         batch_idx: int,
         optimizer: Optimizer,
         optimizer_idx: int,
-        second_order_closure: Optional[Callable] = None,
+        optimizer_closure: Optional[Callable] = None,
         on_tpu: bool = False,
         using_native_amp: bool = False,
         using_lbfgs: bool = False,
@@ -1146,7 +1146,7 @@ class LightningModule(
             batch_idx: Index of current batch
             optimizer: A PyTorch optimizer
             optimizer_idx: If you used multiple optimizers this indexes into that list.
-            second_order_closure: closure for second order methods
+            optimizer_closure: closure for all optimizers
             on_tpu: true if TPU backward is required
             using_native_amp: True if using native amp
             using_lbfgs: True if the matching optimizer is lbfgs
@@ -1156,12 +1156,12 @@ class LightningModule(
 
                 # DEFAULT
                 def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
-                                   second_order_closure, on_tpu, using_native_amp, using_lbfgs):
+                                   optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
                     optimizer.step()
 
                 # Alternating schedule for optimizer steps (i.e.: GANs)
                 def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
-                                   second_order_closure, on_tpu, using_native_amp, using_lbfgs):
+                                   optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
                     # update generator opt every 2 steps
                     if optimizer_idx == 0:
                         if batch_idx % 2 == 0 :
@@ -1185,7 +1185,7 @@ class LightningModule(
 
                 # learning rate warm-up
                 def optimizer_step(self, current_epoch, batch_idx, optimizer,
-                                    optimizer_idx, second_order_closure, on_tpu, using_native_amp, using_lbfgs):
+                                    optimizer_idx, optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
                     # warm up lr
                     if self.trainer.global_step < 500:
                         lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
@@ -1202,13 +1202,13 @@ class LightningModule(
 
         """
         if on_tpu:
-            xm.optimizer_step(optimizer)
+            xm.optimizer_step(optimizer, {'closure': optimizer_closure})
         elif using_native_amp:
-            self.trainer.scaler.step(optimizer)
-        elif using_lbfgs:
-            optimizer.step(second_order_closure)
+            self.trainer.scaler.step(optimizer, optimizer_closure)
+        # elif using_lbfgs:
+        #     optimizer.step(second_order_closure)
         else:
-            optimizer.step()
+            optimizer.step(optimizer_closure)
 
     def optimizer_zero_grad(
         self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int
