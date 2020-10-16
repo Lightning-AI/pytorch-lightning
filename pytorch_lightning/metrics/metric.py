@@ -17,6 +17,7 @@ from typing import Any, Callable, Optional, Union
 from collections.abc import Mapping, Sequence
 from collections import namedtuple
 from copy import deepcopy
+from distutils.version import LooseVersion
 
 import os
 import torch
@@ -133,10 +134,10 @@ class Metric(nn.Module, ABC):
             )
 
         if isinstance(default, torch.Tensor):
-            try:
+            if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
                 # persistent keyword is only supported in torch >= 1.6.0
                 self.register_buffer(name, default, persistent=persistent)
-            except TypeError:
+            else:
                 self.register_buffer(name, default)
         else:
             setattr(self, name, default)
