@@ -118,7 +118,7 @@ class TrainerProperties(ABC):
         return depr_arg_names
 
     @classmethod
-    def from_argparse_args(cls: Type['T'], args: Union[Namespace, ArgumentParser], **kwargs) -> 'T':
+    def from_argparse_args(cls: Type['_T'], args: Union[Namespace, ArgumentParser], **kwargs) -> '_T':
         return argparse_utils.from_argparse_args(cls, args, **kwargs)
 
     @classmethod
@@ -194,4 +194,4 @@ class TrainerProperties(ABC):
 
 
 # Used to represent the concrete type TrainerProperties class methods are called on.
-_T = TypeVar('T', bound=TrainerProperties)
+_T = TypeVar('_T', bound=TrainerProperties)
