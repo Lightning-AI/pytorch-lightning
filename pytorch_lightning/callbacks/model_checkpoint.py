@@ -239,18 +239,20 @@ class ModelCheckpoint(Callback):
         if filepath:
             if (dirpath or filename):
                 raise MisconfigurationException('add some message')
+            
+            rank_zero_warn(
+                'Please use dirpath and filename. filepath is deprecated and'
+                ' will be removed in 1.x?'
+            )
+            
+            _fs = get_filesystem(filepath)
+            
+            if _fs.isdir(filepath):
+                dirpath, filename = filepath, None
             else:
-                _fs = get_filesystem(filepath)
-                rank_zero_warn(
-                    'Please use dirpath and filename. filepath is deprecated and'
-                    ' will be removed in 1.x?'
-                )
-                if _fs.isdir(filepath):
-                    dirpath, filename = filepath, None
-                else:
-                    if _fs.protocol == 'file':
-                        filepath = os.path.realpath(filepath)
-                    dirpath, filename = os.path.split(filepath)
+                if _fs.protocol == 'file':
+                    filepath = os.path.realpath(filepath)
+                dirpath, filename = os.path.split(filepath)
 
         self._fs = get_filesystem(dirpath or '')
         if (
