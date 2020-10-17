@@ -14,7 +14,7 @@
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.states import TrainerState
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Type, TypeVar
 from pytorch_lightning.utilities import argparse_utils
 from argparse import ArgumentParser, Namespace
 from abc import ABC
@@ -118,7 +118,7 @@ class TrainerProperties(ABC):
         return depr_arg_names
 
     @classmethod
-    def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
+    def from_argparse_args(cls: Type['_T'], args: Union[Namespace, ArgumentParser], **kwargs) -> '_T':
         return argparse_utils.from_argparse_args(cls, args, **kwargs)
 
     @classmethod
@@ -191,3 +191,7 @@ class TrainerProperties(ABC):
 
     def get_model(self):
         return self.model_connector.get_model()
+
+
+# Used to represent the concrete type TrainerProperties class methods are called on.
+_T = TypeVar('_T', bound=TrainerProperties)
