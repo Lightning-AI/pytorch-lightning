@@ -70,7 +70,7 @@ class ModelCheckpoint(Callback):
                 ... )
 
         filepath: path to save the model file.
-            Deprecated and will be removed in 1.x.
+            Deprecated and will be removed in v1.3.0.
 
         monitor: quantity to monitor. By default it is None which saves a checkpoint only for the last epoch
         verbose: verbosity mode. Default: ``False``.
@@ -247,11 +247,13 @@ class ModelCheckpoint(Callback):
     def __init_ckpt_dir(self, filepath, dirpath, filename, save_top_k):
         if filepath:
             if (dirpath or filename):
-                raise MisconfigurationException('add some message')
+                raise MisconfigurationException(
+                    'add some message'
+                )
 
             rank_zero_warn(
-                'Please use dirpath and filename. filepath is deprecated and'
-                ' will be removed in 1.x?'
+                'Please use `dirpath` and `filename`. `filepath` is now deprecated'
+                ' and will be removed in v1.3.0', DeprecationWarning
             )
 
             _fs = get_filesystem(filepath)
@@ -371,18 +373,19 @@ class ModelCheckpoint(Callback):
         Example::
 
             >>> tmpdir = os.path.dirname(__file__)
-            >>> ckpt = ModelCheckpoint(os.path.join(tmpdir, '{epoch}'))
+            >>> ckpt = ModelCheckpoint(dirpath=tmpdir, filename='{epoch}')
             >>> os.path.basename(ckpt.format_checkpoint_name(0, {}))
             'epoch=0.ckpt'
-            >>> ckpt = ModelCheckpoint(os.path.join(tmpdir, '{epoch:03d}'))
+            >>> ckpt = ModelCheckpoint(dirpath=tmpdir, filename='{epoch:03d}')
             >>> os.path.basename(ckpt.format_checkpoint_name(5, {}))
             'epoch=005.ckpt'
-            >>> ckpt = ModelCheckpoint(os.path.join(tmpdir, '{epoch}-{val_loss:.2f}'))
+            >>> ckpt = ModelCheckpoint(dirpath=tmpdir, filename='{epoch}-{val_loss:.2f}')
             >>> os.path.basename(ckpt.format_checkpoint_name(2, dict(val_loss=0.123456)))
             'epoch=2-val_loss=0.12.ckpt'
-            >>> ckpt = ModelCheckpoint(os.path.join(tmpdir, '{missing:d}'))
+            >>> ckpt = ModelCheckpoint(dirpath=tmpdir, filename='{missing:d}')
             >>> os.path.basename(ckpt.format_checkpoint_name(0, {}))
             'missing=0.ckpt'
+
         """
         filename = self._format_checkpoint_name(
             self.filename, epoch, metrics, prefix=self.prefix
