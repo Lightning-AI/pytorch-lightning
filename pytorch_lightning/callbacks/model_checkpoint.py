@@ -121,6 +121,8 @@ class ModelCheckpoint(Callback):
     def __init__(
         self,
         filepath: Optional[str] = None,
+        dirpath: Optional[Union[str, Path]] = None,
+        filename: Optional[str] = None,
         monitor: Optional[str] = None,
         verbose: bool = False,
         save_last: Optional[bool] = None,
@@ -151,7 +153,7 @@ class ModelCheckpoint(Callback):
             self.save_top_k = 1
 
         self.__init_monitor_mode(monitor, mode)
-        self.__init_ckpt_dir(filepath, save_top_k)
+        self.__init_ckpt_dir2(filepath, dirpath, filename, save_top_k)
         self.__validate_init_configuration()
 
     def on_pretrain_routine_start(self, trainer, pl_module):
@@ -233,8 +235,41 @@ class ModelCheckpoint(Callback):
                     ' You can save the last checkpoint with ModelCheckpoint(save_top_k=None, monitor=None)'
                 )
 
-    def __init_ckpt_dir(self, filepath, save_top_k):
-        self._fs = get_filesystem(filepath if filepath is not None else "")
+    def __init_ckpt_dir2(self, filepath, dirpath, filename, save_top_k):
+        if filepath:
+            if (dirpath or filename):
+                raise MisconfigurationException('add some message')
+            else:
+                _fs = get_filesystem(filepath)
+                rank_zero_warn(
+                    'Please use dirpath and filename. filepath is deprecated and'
+                    ' will be removed in 1.x?'
+                )
+                if _fs.isdir(filepath):
+                    dirpath, filename = filepath, None
+                else:
+                    if _fs.protocol == 'file':
+                        filepath = os.path.realpath(filepath)
+                    dirpath, filename = os.path.split(filepath)
+
+        self._fs = get_filesystem(dirpath or '')
+        if (
+            save_top_k is not None
+            and save_top_k > 0
+            and dirpath is not None
+            and self._fs.isdir(dirpath)
+            and len(self._fs.ls(dirpath)) > 0
+        ):
+            rank_zero_warn(
+                f"Checkpoint directory {dirpath} exists and is not empty. With save_top_k={save_top_k},"
+                " all files in this directory will be deleted when a checkpoint is saved!"
+            )
+
+        self.dirpath = dirpath or None
+        self.filename = filename or None
+
+    def __init_ckpt_dir(self, filepath, dirpath, filename, save_top_k):
+        self._fs = get_filesystem(filepath or "")
         if (
             save_top_k is not None
             and save_top_k > 0
