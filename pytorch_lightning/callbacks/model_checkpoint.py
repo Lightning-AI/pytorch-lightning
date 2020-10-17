@@ -44,26 +44,33 @@ class ModelCheckpoint(Callback):
     best checkpoint file and :attr:`best_model_score` to retrieve its score.
 
     Args:
-        filepath: path to save the model file.
-            Can contain named formatting options to be auto-filled.
+        dirpath: directory to save the model file.
 
             Example::
 
                 # custom path
                 # saves a file like: my/path/epoch=0.ckpt
-                >>> checkpoint_callback = ModelCheckpoint('my/path/')
+                >>> checkpoint_callback = ModelCheckpoint(dirpath='my/path/')
 
-                # save any arbitrary metrics like `val_loss`, etc. in name
-                # saves a file like: my/path/epoch=2-val_loss=0.02-other_metric=0.03.ckpt
-                >>> checkpoint_callback = ModelCheckpoint(
-                ...     filepath='my/path/{epoch}-{val_loss:.2f}-{other_metric:.2f}'
-                ... )
-
-            By default, filepath is `None` and will be set at runtime to the location
+            By default, dirpath is `None` and will be set at runtime to the location
             specified by :class:`~pytorch_lightning.trainer.trainer.Trainer`'s
             :paramref:`~pytorch_lightning.trainer.trainer.Trainer.default_root_dir` or
             :paramref:`~pytorch_lightning.trainer.trainer.Trainer.weights_save_path` arguments,
             and if the Trainer uses a logger, the path will also contain logger name and version.
+
+        filename: model filename. Can contain named formatting options to be auto-filled.
+
+            Example::
+
+                # save any arbitrary metrics like `val_loss`, etc. in name
+                # saves a file like: my/path/epoch=2-val_loss=0.02-other_metric=0.03.ckpt
+                >>> checkpoint_callback = ModelCheckpoint(
+                ...     dirpath='my/path',
+                ...     filename='{epoch}-{val_loss:.2f}-{other_metric:.2f}'
+                ... )
+
+        filepath: path to save the model file.
+            Deprecated and will be removed in 1.x.
 
         monitor: quantity to monitor. By default it is None which saves a checkpoint only for the last epoch
         verbose: verbosity mode. Default: ``False``.
@@ -96,17 +103,19 @@ class ModelCheckpoint(Callback):
         >>> from pytorch_lightning.callbacks import ModelCheckpoint
 
         # saves checkpoints to 'my/path/' at every epoch
-        >>> checkpoint_callback = ModelCheckpoint(filepath='my/path/')
+        >>> checkpoint_callback = ModelCheckpoint(dirpath='my/path/')
         >>> trainer = Trainer(checkpoint_callback=checkpoint_callback)
 
         # save epoch and val_loss in name
         # saves a file like: my/path/sample-mnist-epoch=02-val_loss=0.32.ckpt
-        >>> checkpoint_callback = ModelCheckpoint(monitor='val_loss',
-        ...     filepath='my/path/sample-mnist-{epoch:02d}-{val_loss:.2f}'
+        >>> checkpoint_callback = ModelCheckpoint(
+        ...     monitor='val_loss',
+        ...     dirpath='my/path/',
+        ...     filename='sample-mnist-{epoch:02d}-{val_loss:.2f}'
         ... )
 
         # retrieve the best checkpoint after training
-        checkpoint_callback = ModelCheckpoint(filepath='my/path/')
+        checkpoint_callback = ModelCheckpoint(dirpath='my/path/')
         trainer = Trainer(checkpoint_callback=checkpoint_callback)
         model = ...
         trainer.fit(model)
