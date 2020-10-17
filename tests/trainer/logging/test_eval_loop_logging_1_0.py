@@ -314,7 +314,7 @@ def test_eval_logging_auto_reduce(tmpdir):
 def test_monitor_val_epoch_end(tmpdir):
     epoch_min_loss_override = 0
     model = SimpleModule()
-    checkpoint_callback = callbacks.ModelCheckpoint(save_top_k=1, monitor="avg_val_loss")
+    checkpoint_callback = callbacks.ModelCheckpoint(tmpdir, save_top_k=1, monitor="avg_val_loss")
     trainer = Trainer(
         max_epochs=epoch_min_loss_override + 2,
         logger=False,

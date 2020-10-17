@@ -55,7 +55,7 @@ def test_resume_from_checkpoint(tmpdir):
     """ Test that properties like `current_epoch` and `global_step`
     in model and trainer are always the same. """
     model = EvalModelTemplate()
-    checkpoint_callback = ModelCheckpoint(filepath=tmpdir, monitor="early_stop_on", save_last=True)
+    checkpoint_callback = ModelCheckpoint(tmpdir, monitor="early_stop_on", save_last=True)
     trainer_args = dict(
         default_root_dir=tmpdir,
         max_epochs=2,

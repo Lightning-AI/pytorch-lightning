@@ -42,9 +42,9 @@ def test_model_checkpoint_correct_score(tmpdir, save_top_k):
 
     model = EvalModelTemplate()
 
-    filepath = os.path.join(tmpdir, "{val_acc:.4f}-{epoch}")
+    filename = "{val_acc:.4f}-{epoch}"
 
-    checkpoint = ModelCheckpoint(filepath=filepath, monitor='val_acc', save_top_k=save_top_k)
+    checkpoint = ModelCheckpoint(dirpath=tmpdir, filename=filename, monitor='val_acc', save_top_k=save_top_k)
 
     trainer = Trainer(default_root_dir=tmpdir, checkpoint_callback=checkpoint, overfit_batches=0.20, max_epochs=2)
     trainer.fit(model)
@@ -63,7 +63,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
     tutils.reset_seed()
     model = EvalModelTemplate()
 
-    checkpoint = ModelCheckpoint(monitor='early_stop_on', filepath=None, save_top_k=save_top_k)
+    checkpoint = ModelCheckpoint(monitor='early_stop_on', dirpath=None, save_top_k=save_top_k)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -83,7 +83,7 @@ def test_model_checkpoint_to_yaml(tmpdir, save_top_k):
     tutils.reset_seed()
     model = EvalModelTemplate()
 
-    checkpoint = ModelCheckpoint(filepath=tmpdir, monitor='early_stop_on', save_top_k=save_top_k)
+    checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_top_k=save_top_k)
 
     trainer = Trainer(default_root_dir=tmpdir, checkpoint_callback=checkpoint, overfit_batches=0.20, max_epochs=2)
     trainer.fit(model)
@@ -178,39 +178,48 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     # empty filename:
     ckpt_name = ModelCheckpoint._format_checkpoint_name('', 3, {})
     assert ckpt_name == 'epoch=3'
+
     ckpt_name = ModelCheckpoint._format_checkpoint_name(None, 3, {}, prefix='test')
     assert ckpt_name == 'test-epoch=3'
+
     # no groups case:
     ckpt_name = ModelCheckpoint._format_checkpoint_name('ckpt', 3, {}, prefix='test')
     assert ckpt_name == 'test-ckpt'
+
     # no prefix
     ckpt_name = ModelCheckpoint._format_checkpoint_name('{epoch:03d}-{acc}', 3, {'acc': 0.03})
     assert ckpt_name == 'epoch=003-acc=0.03'
+
     # prefix
     char_org = ModelCheckpoint.CHECKPOINT_JOIN_CHAR
     ModelCheckpoint.CHECKPOINT_JOIN_CHAR = '@'
     ckpt_name = ModelCheckpoint._format_checkpoint_name('{epoch},{acc:.5f}', 3, {'acc': 0.03}, prefix='test')
     assert ckpt_name == 'test@epoch=3,acc=0.03000'
     ModelCheckpoint.CHECKPOINT_JOIN_CHAR = char_org
-    # no filepath set
-    ckpt_name = ModelCheckpoint(monitor='early_stop_on', filepath=None).format_checkpoint_name(3, {})
+
+    # no dirpath set
+    ckpt_name = ModelCheckpoint(monitor='early_stop_on', dirpath=None).format_checkpoint_name(3, {})
     assert ckpt_name == 'epoch=3.ckpt'
-    ckpt_name = ModelCheckpoint(monitor='early_stop_on', filepath='').format_checkpoint_name(5, {})
+    ckpt_name = ModelCheckpoint(monitor='early_stop_on', dirpath='').format_checkpoint_name(5, {})
     assert ckpt_name == 'epoch=5.ckpt'
+
     # CWD
-    ckpt_name = ModelCheckpoint(monitor='early_stop_on', filepath='.').format_checkpoint_name(3, {})
+    ckpt_name = ModelCheckpoint(monitor='early_stop_on', dirpath='.').format_checkpoint_name(3, {})
     assert Path(ckpt_name) == Path('.') / 'epoch=3.ckpt'
+
     # dir does not exist so it is used as filename
-    filepath = tmpdir / 'dir'
-    ckpt_name = ModelCheckpoint(monitor='early_stop_on', filepath=filepath, prefix='test').format_checkpoint_name(3, {})
+    ckpt_name = ModelCheckpoint(monitor='early_stop_on', dirpath=tmpdir, filename='dir', prefix='test').format_checkpoint_name(3, {})
     assert ckpt_name == tmpdir / 'test-dir.ckpt'
+
     # now, dir exists
+    filepath = tmpdir / 'dir'
     os.mkdir(filepath)
-    ckpt_name = ModelCheckpoint(monitor='early_stop_on', filepath=filepath, prefix='test').format_checkpoint_name(3, {})
+    ckpt_name = ModelCheckpoint(monitor='early_stop_on', dirpath=filepath, prefix='test').format_checkpoint_name(3, {})
     assert ckpt_name == filepath / 'test-epoch=3.ckpt'
+
     # with ver
     ckpt_name = ModelCheckpoint(monitor='early_stop_on',
-                                filepath=tmpdir / 'name', prefix='test').format_checkpoint_name(3, {}, ver=3)
+                                dirpath=tmpdir, filename='name', prefix='test').format_checkpoint_name(3, {}, ver=3)
     assert ckpt_name == tmpdir / 'test-name-v3.ckpt'
 
 
@@ -219,7 +228,7 @@ def test_model_checkpoint_save_last(tmpdir):
     model = EvalModelTemplate()
     epochs = 3
     ModelCheckpoint.CHECKPOINT_NAME_LAST = 'last-{epoch}'
-    model_checkpoint = ModelCheckpoint(monitor='early_stop_on', filepath=tmpdir, save_top_k=-1, save_last=True)
+    model_checkpoint = ModelCheckpoint(monitor='early_stop_on', dirpath=tmpdir, save_top_k=-1, save_last=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         checkpoint_callback=model_checkpoint,
@@ -237,7 +246,7 @@ def test_model_checkpoint_save_last(tmpdir):
 def test_invalid_top_k(tmpdir):
     """ Make sure that a MisconfigurationException is raised for a negative save_top_k argument. """
     with pytest.raises(MisconfigurationException, match=r'.*Must be None or >= -1'):
-        ModelCheckpoint(filepath=tmpdir, save_top_k=-3)
+        ModelCheckpoint(dirpath=tmpdir, save_top_k=-3)
 
 
 def test_none_monitor_top_k(tmpdir):
@@ -245,11 +254,11 @@ def test_none_monitor_top_k(tmpdir):
     with pytest.raises(
         MisconfigurationException, match=r'ModelCheckpoint\(save_top_k=3, monitor=None\) is not a valid*'
     ):
-        ModelCheckpoint(filepath=tmpdir, save_top_k=3)
+        ModelCheckpoint(dirpath=tmpdir, save_top_k=3)
     # These should not fail
-    ModelCheckpoint(filepath=tmpdir, save_top_k=None)
-    ModelCheckpoint(filepath=tmpdir, save_top_k=-1)
-    ModelCheckpoint(filepath=tmpdir, save_top_k=0)
+    ModelCheckpoint(dirpath=tmpdir, save_top_k=None)
+    ModelCheckpoint(dirpath=tmpdir, save_top_k=-1)
+    ModelCheckpoint(dirpath=tmpdir, save_top_k=0)
 
 
 def test_none_monitor_save_last(tmpdir):
@@ -257,10 +266,10 @@ def test_none_monitor_save_last(tmpdir):
     with pytest.raises(
         MisconfigurationException, match=r'ModelCheckpoint\(save_last=True, monitor=None\) is not a valid.*'
     ):
-        ModelCheckpoint(filepath=tmpdir, save_last=True)
+        ModelCheckpoint(dirpath=tmpdir, save_last=True)
     # These should not fail
-    ModelCheckpoint(filepath=tmpdir, save_last=None)
-    ModelCheckpoint(filepath=tmpdir, save_last=False)
+    ModelCheckpoint(dirpath=tmpdir, save_last=None)
+    ModelCheckpoint(dirpath=tmpdir, save_last=False)
 
 
 def test_model_checkpoint_none_monitor(tmpdir):
@@ -270,7 +279,7 @@ def test_model_checkpoint_none_monitor(tmpdir):
     model.validation_epoch_end = model.validation_epoch_end_no_monitor
 
     epochs = 2
-    checkpoint_callback = ModelCheckpoint(monitor=None, filepath=tmpdir, save_top_k=-1)
+    checkpoint_callback = ModelCheckpoint(monitor=None, dirpath=tmpdir, save_top_k=-1)
     trainer = Trainer(
         default_root_dir=tmpdir,
         checkpoint_callback=checkpoint_callback,
@@ -295,7 +304,7 @@ def test_model_checkpoint_none_monitor(tmpdir):
 def test_model_checkpoint_period(tmpdir, period):
     model = EvalModelTemplate()
     epochs = 5
-    checkpoint_callback = ModelCheckpoint(filepath=tmpdir, save_top_k=-1, period=period)
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, period=period)
     trainer = Trainer(
         default_root_dir=tmpdir,
         checkpoint_callback=checkpoint_callback,
@@ -314,7 +323,7 @@ def test_model_checkpoint_period(tmpdir, period):
 def test_model_checkpoint_topk_zero(tmpdir):
     """ Test that no checkpoints are saved when save_top_k=0. """
     model = EvalModelTemplate()
-    checkpoint_callback = ModelCheckpoint(filepath=tmpdir, save_top_k=0)
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_top_k=0)
     trainer = Trainer(
         default_root_dir=tmpdir,
         checkpoint_callback=checkpoint_callback,
@@ -337,7 +346,7 @@ def test_model_checkpoint_topk_all(tmpdir):
     seed_everything(1000)
     epochs = 2
     model = EvalModelTemplate()
-    checkpoint_callback = ModelCheckpoint(filepath=tmpdir, monitor="early_stop_on", save_top_k=-1)
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_top_k=-1)
     trainer = Trainer(
         default_root_dir=tmpdir,
         checkpoint_callback=checkpoint_callback,
@@ -362,7 +371,7 @@ def test_ckpt_metric_names(tmpdir):
         progress_bar_refresh_rate=0,
         limit_train_batches=0.01,
         limit_val_batches=0.01,
-        checkpoint_callback=ModelCheckpoint(monitor='early_stop_on', filepath=tmpdir + "/{val_loss:.2f}"),
+        checkpoint_callback=ModelCheckpoint(monitor='early_stop_on', dirpath=tmpdir, filename="{val_loss:.2f}"),
     )
 
     trainer.fit(model)
@@ -422,7 +431,7 @@ def test_ckpt_metric_names_results(tmpdir):
         progress_bar_refresh_rate=0,
         limit_train_batches=0.01,
         limit_val_batches=0.01,
-        checkpoint_callback=ModelCheckpoint(monitor='early_stop_on', filepath=tmpdir + "/{val_loss:.2f}"),
+        checkpoint_callback=ModelCheckpoint(monitor='early_stop_on', dirpath=tmpdir, filename="{val_loss:.2f}"),
     )
 
     trainer.fit(model)
@@ -445,7 +454,7 @@ def test_model_checkpoint_save_last_warning(tmpdir, caplog, max_epochs, should_v
         model.validation_step = None
     trainer = Trainer(
         default_root_dir=tmpdir,
-        checkpoint_callback=ModelCheckpoint(monitor='early_stop_on', filepath=tmpdir, save_top_k=0, save_last=save_last),
+        checkpoint_callback=ModelCheckpoint(monitor='early_stop_on', dirpath=tmpdir, save_top_k=0, save_last=save_last),
         max_epochs=max_epochs,
     )
     trainer.fit(model)
@@ -458,7 +467,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     model = EvalModelTemplate()
     num_epochs = 3
     model_checkpoint = ModelCheckpoint(
-        monitor='early_stop_on', filepath=tmpdir, save_top_k=num_epochs, save_last=True
+        monitor='early_stop_on', dirpath=tmpdir, save_top_k=num_epochs, save_last=True
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -504,7 +513,7 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
     model = CurrentModel()
 
     trainer = Trainer(
-        checkpoint_callback=ModelCheckpoint(monitor='abc', mode=mode, save_top_k=1, filepath=tmpdir),
+        checkpoint_callback=ModelCheckpoint(monitor='abc', mode=mode, save_top_k=1, dirpath=tmpdir),
         default_root_dir=tmpdir,
         val_check_interval=1.0,
         max_epochs=len(monitor),

@@ -120,9 +120,9 @@ class ModelCheckpoint(Callback):
 
     def __init__(
         self,
-        filepath: Optional[str] = None,
         dirpath: Optional[Union[str, Path]] = None,
         filename: Optional[str] = None,
+        filepath: Optional[str] = None,
         monitor: Optional[str] = None,
         verbose: bool = False,
         save_last: Optional[bool] = None,
@@ -239,14 +239,14 @@ class ModelCheckpoint(Callback):
         if filepath:
             if (dirpath or filename):
                 raise MisconfigurationException('add some message')
-            
+
             rank_zero_warn(
                 'Please use dirpath and filename. filepath is deprecated and'
                 ' will be removed in 1.x?'
             )
-            
+
             _fs = get_filesystem(filepath)
-            
+
             if _fs.isdir(filepath):
                 dirpath, filename = filepath, None
             else:
