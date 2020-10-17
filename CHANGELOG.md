@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Added `dirpath` and `filename` parameter in `ModelCheckpoint`([#4213](https://github.com/PyTorchLightning/pytorch-lightning/pull/4213))
 
 ### Changed
 
