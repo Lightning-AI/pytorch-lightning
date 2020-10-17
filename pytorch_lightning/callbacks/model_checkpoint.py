@@ -153,7 +153,7 @@ class ModelCheckpoint(Callback):
             self.save_top_k = 1
 
         self.__init_monitor_mode(monitor, mode)
-        self.__init_ckpt_dir2(filepath, dirpath, filename, save_top_k)
+        self.__init_ckpt_dir(filepath, dirpath, filename, save_top_k)
         self.__validate_init_configuration()
 
     def on_pretrain_routine_start(self, trainer, pl_module):
@@ -235,7 +235,7 @@ class ModelCheckpoint(Callback):
                     ' You can save the last checkpoint with ModelCheckpoint(save_top_k=None, monitor=None)'
                 )
 
-    def __init_ckpt_dir2(self, filepath, dirpath, filename, save_top_k):
+    def __init_ckpt_dir(self, filepath, dirpath, filename, save_top_k):
         if filepath:
             if (dirpath or filename):
                 raise MisconfigurationException('add some message')
@@ -267,30 +267,6 @@ class ModelCheckpoint(Callback):
 
         self.dirpath = dirpath or None
         self.filename = filename or None
-
-    def __init_ckpt_dir(self, filepath, dirpath, filename, save_top_k):
-        self._fs = get_filesystem(filepath or "")
-        if (
-            save_top_k is not None
-            and save_top_k > 0
-            and filepath is not None
-            and self._fs.isdir(filepath)
-            and len(self._fs.ls(filepath)) > 0
-        ):
-            rank_zero_warn(
-                f"Checkpoint directory {filepath} exists and is not empty with save_top_k={save_top_k}"
-                " All files in this directory will be deleted when a checkpoint is saved!"
-            )
-
-        if not filepath:  # will be determined by trainer at runtime
-            self.dirpath, self.filename = None, None
-        else:
-            if self._fs.isdir(filepath):
-                self.dirpath, self.filename = filepath, None
-            else:
-                if self._fs.protocol == "file":  # dont normalize remote paths
-                    filepath = os.path.realpath(filepath)
-                self.dirpath, self.filename = os.path.split(filepath)
 
     def __init_monitor_mode(self, monitor, mode):
         torch_inf = torch.tensor(np.Inf)
