@@ -9,8 +9,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Added persistent flag to Metric.add_state ([#4195](https://github.com/PyTorchLightning/pytorch-lightning/pull/4195))
+
 
 ### Changed
+
+- Used checkpoint_connector.hpc_save in SLURM ([#4217](https://github.com/PyTorchLightning/pytorch-lightning/pull/4217))
 
 
 ### Deprecated
@@ -20,6 +24,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 ### Fixed
+
+- Fixed `hparams` assign in init ([#4189](https://github.com/PyTorchLightning/pytorch-lightning/pull/4189))
 
 
 ## [1.0.2] - 2020-10-15
