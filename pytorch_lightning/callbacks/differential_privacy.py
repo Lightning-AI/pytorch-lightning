@@ -19,12 +19,16 @@ Differential Privacy
 Train your model with differential privacy using Opacus (https://github.com/pytorch/opacus).
 
 """
-
-from opacus import PrivacyEngine
-from opacus.dp_model_inspector import DPModelInspector
-from opacus.utils import module_modification
+import importlib
 
 from pytorch_lightning.callbacks.base import Callback
+
+OPACUS_INSTALLED = importlib.util.find_spec("opacus")
+
+if OPACUS_INSTALLED:
+    from opacus import PrivacyEngine
+    from opacus.dp_model_inspector import DPModelInspector
+    from opacus.utils import module_modification
 
 
 class DifferentialPrivacy(Callback):
@@ -55,6 +59,11 @@ class DifferentialPrivacy(Callback):
         max_grad_norm=0.1,
         **kwargs,
     ):
+        if not OPACUS_INSTALLED:
+            raise ImportError(
+                "This callback requires `opacus` which is not installed yet,"
+                " install it with `pip install opacus`."
+            )
         super().__init__()
         self.alphas = alphas
         self.noise_multiplier = noise_multiplier
