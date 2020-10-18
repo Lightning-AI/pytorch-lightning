@@ -27,6 +27,7 @@ jobs:
 
       - name: Create package
         run: |
+          check-manifest
           # python setup.py check --metadata --strict
           python setup.py sdist
 
