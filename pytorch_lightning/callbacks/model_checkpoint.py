@@ -74,7 +74,8 @@ class ModelCheckpoint(Callback):
         filepath: path to save the model file.
 
             .. warning:: .. deprecated:: 1.0.0
-                Use ``dirpath`` + ``filename`` instead. Will be removed in v1.2.0.
+
+               Use ``dirpath`` + ``filename`` instead. Will be removed in v1.2.0.
 
         monitor: quantity to monitor. By default it is ``None`` which saves a checkpoint only for the last epoch.
         verbose: verbosity mode. Default: ``False``.
