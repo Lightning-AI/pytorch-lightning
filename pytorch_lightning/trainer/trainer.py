@@ -464,7 +464,6 @@ class Trainer(
         # enable train mode
         model = self.get_model()
         model.train()
-        model._results = Result()
         torch.set_grad_enabled(True)
 
         # reload data when needed

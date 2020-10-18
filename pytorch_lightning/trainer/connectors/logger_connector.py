@@ -373,6 +373,8 @@ class LoggerConnector:
         # add metrics to callbacks
         self.callback_metrics.update(epoch_callback_metrics)
 
+        breakpoint()
+
         # add metrics to progress_bar and callbacks
         if len(epoch_progress_bar_metrics) > 0:
             self.add_progress_bar_metrics(epoch_progress_bar_metrics)

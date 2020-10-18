@@ -126,7 +126,7 @@ class CallbackConnectorLoggingMixin(ABC):
     @staticmethod
     def _on_train_end_log():
         """Called when the train ends."""
-        return {"on_step" : [False], "on_epoch" : [False, True]}
+        return None
     
     @staticmethod
     def _on_pretrain_routine_start_log():

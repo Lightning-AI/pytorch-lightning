@@ -102,6 +102,8 @@ class TrainLoop:
                 torch.cuda.empty_cache()
 
         # hook
+        model_ref = self.trainer.get_model()
+        model_ref._results = Result()
         self.internal_metrics = InternalMetrics()
         self.trainer.call_hook('on_train_start')
 
@@ -259,8 +261,6 @@ class TrainLoop:
         # hook
         self.trainer.call_hook('on_epoch_start')
         self.trainer.call_hook('on_train_epoch_start')
-
-        # bookkeeping metrics
         self._update_internal_metrics()
 
     def _update_internal_metrics(self):
@@ -275,16 +275,14 @@ class TrainLoop:
         self.internal_metrics.append("batch_pbar_metrics", model._results.get_batch_pbar_metrics())
 
     def on_train_batch_end(self, batch_output, epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx):
-        # figure out what to track for epoch end
-        self.track_epoch_end_reduce_metrics(epoch_output, epoch_end_outputs)
-
         # hook
+        model_ref = self.trainer.get_model()
+        model_ref._results = Result()
         self.trainer.call_hook('on_batch_end')
         self.trainer.call_hook('on_train_batch_end', epoch_end_outputs, batch, batch_idx, dataloader_idx)
-        
-        # catch latest logged metrics
-        self._update_internal_metrics()
-        batch_output.batch_log_metrics.update(self.internal_metrics.batch_log_metrics)
+
+        # figure out what to track for epoch end
+        self.track_epoch_end_reduce_metrics(epoch_output, epoch_end_outputs)
 
     def reset_train_val_dataloaders(self, model):
         if not self.trainer.reload_dataloaders_every_epoch:
@@ -293,12 +291,26 @@ class TrainLoop:
         if self.trainer.val_dataloaders is None and not self.trainer.reload_dataloaders_every_epoch:
             self.trainer.reset_val_dataloader(model)
 
+    def _merge_results(self, opt_outputs):
+            model_ref = self.trainer.get_model()
+            valid_keys = model_ref._results.epoch_log_metrics
+            for opt_output in opt_outputs:
+                opt_output.update(valid_keys)
+
+                _internal = {k:v for k,v in model_ref._results["meta"]["_internal"].items() if k in valid_keys}
+                meta = {k:v for k,v in model_ref._results["meta"].items() if k in valid_keys}
+
+                opt_output["meta"]["_internal"].update(_internal)
+                opt_output["meta"].update(meta)
+
+    
     def track_epoch_end_reduce_metrics(self, epoch_output, epoch_end_outputs):
         # track the outputs to reduce at the end of the epoch
         for opt_idx, opt_outputs in enumerate(epoch_end_outputs):
             # with 1 step (no tbptt) don't use a sequence at epoch end
             if isinstance(opt_outputs, list) and len(opt_outputs) == 1 and not isinstance(opt_outputs[0], Result):
                 opt_outputs = opt_outputs[0]
+            self._merge_results(opt_outputs)
             epoch_output[opt_idx].append(opt_outputs)
 
     def get_optimizers_iterable(self):
@@ -678,9 +690,6 @@ class TrainLoop:
         # track all metrics for callbacks
         batch_callback_metrics = []
 
-        # track metrics to log
-        batch_log_metrics = [self.internal_metrics.batch_log_metrics]
-
         # bookkeeping
         using_results_obj = False
         self.trainer.hiddens = None
@@ -700,6 +709,11 @@ class TrainLoop:
         response = self.trainer.call_hook('on_train_batch_start', batch, batch_idx, dataloader_idx)
         if response == -1:
             return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
+
+        # track metrics to log
+        batch_log_metrics = {}
+        batch_log_metrics.update(model._results.batch_log_metrics)
+        batch_log_metrics = [batch_log_metrics]
 
         # lightning module hook
         splits = self.tbptt_split_batch(batch)

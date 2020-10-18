@@ -597,7 +597,7 @@ def test_log_works_in_train_callback(tmpdir):
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
             self.make_logging(pl_module, 'on_train_batch_end', 7, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
             
-            # used to make sure aggregation works fine. We should obtain (value * limit_train_batches) / 2
+            # used to make sure aggregation works fine. We should obtain np.mean([value * c for c in range(1, max_epochs * limit_train_batches)])
             self.count += 1
 
         def on_epoch_end(self, trainer, pl_module):
@@ -605,9 +605,6 @@ def test_log_works_in_train_callback(tmpdir):
 
         def on_train_epoch_end(self, trainer, pl_module, outputs):
             self.make_logging(pl_module, 'on_train_epoch_end', 9, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices)
-
-        def on_train_end(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_train_end', 10, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices)
 
     class TestModel(BoringModel):
 
@@ -635,6 +632,17 @@ def test_log_works_in_train_callback(tmpdir):
 
     wrong_func_names = {}
 
+    # Make sure the func_name exists within callback_metrics. If not, we missed some
+    callback_metrics_keys = [*trainer.callback_metrics.keys()]
+    for func_name in test_callback.callback_funcs_called.keys():
+        is_in = False
+        for callback_metrics_key in callback_metrics_keys:
+            if func_name in callback_metrics_key:
+                is_in = True
+        assert is_in, (func_name, callback_metrics_keys)
+
+    # Make sure the func_name output equals the average from all logged values
+    breakpoint()
     for func_name, orginal_values in test_callback.callback_funcs_called.items():
         original_value = np.mean(orginal_values)
         for f_name, output_value in trainer.callback_metrics.items():
