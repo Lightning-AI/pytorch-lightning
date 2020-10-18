@@ -105,7 +105,7 @@ RUN \
     # filter only Horovod
     python -c "fname = 'requirements-extra.txt' ; req = open(fname).readlines() ; open(fname, 'w').writelines([l for l in req if 'horovod' in l])" && \
     # Install all requirements
-    MAKEFLAGS="-j$(nproc)" ; pip install -r requirements-extra.txt && \
+    MAKEFLAGS="-j$(nproc)" ; pip install -r requirements-extra.txt -v --no-cache-dir && \
     pip install -r requirements-tests.txt --upgrade-strategy only-if-needed && \
     rm requirements*
 
