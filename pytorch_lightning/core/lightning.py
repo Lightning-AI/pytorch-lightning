@@ -247,7 +247,9 @@ class LightningModule(
             on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
             if self._current_hook_fx_name != '':
-                Callback._validate_callback_logging_arguments(self._current_hook_fx_name, on_step=on_step, on_epoch=on_epoch)
+                self.trainer.callback_connector.validate_callback_logging_arguments(self._current_hook_fx_name, 
+                on_step=on_step, 
+                on_epoch=on_epoch)
 
             self._results.log(
                 name,

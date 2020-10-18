@@ -17,9 +17,10 @@ Subclass this class and override any of the relevant hooks
 
 """
 
-from pytorch_lightning.callbacks.logging import LoggingCallbackMixin
+import abc
 
-class Callback(LoggingCallbackMixin):
+
+class Callback(abc.ABC):
     r"""
     Abstract base class used to build new callbacks.
 

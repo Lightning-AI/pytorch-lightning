@@ -16,10 +16,12 @@ Tests to ensure that the training loop works with a dict (1.0)
 """
 from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
 import os
+import collections
 import torch
 import pytest
 import itertools
 import pytorch_lightning as pl
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning import Trainer, callbacks
 from tests.base.deterministic_model import DeterministicModel
 from torch.utils.data import Dataset
@@ -490,17 +492,79 @@ def test_nested_datasouce_batch(tmpdir):
     )
     trainer.fit(model, train_data, val_data)
 
+def test_misconfiguration_error_for_training_step(tmpdir):
+    """
+    Tests that log can be called within callback
+    """
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            return {"train_loss": 0}
+
+    max_epochs = 1
+    model = TestModel()
+    model.training_step_end = None
+
+    with pytest.raises(MisconfigurationException)  as excinfo:
+
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            limit_train_batches=4,
+            limit_val_batches=0,
+            limit_test_batches=0,
+            val_check_interval=1.0,
+            num_sanity_val_steps=0,
+            max_epochs=max_epochs,
+        )
+        trainer.fit(model)
+
+    assert "The key `loss` should be present within training_step output. Existing keys: ['train_loss']"  == str(excinfo.value)
+
+def test_misconfiguration_error_for_training_step_end(tmpdir):
+    """
+    Tests that log can be called within callback
+    """
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            return {"loss": 0}
+
+        def training_step_end(self, out):
+            d = {"train_loss": out["loss"]}
+            return d
+
+    max_epochs = 1
+    model = TestModel()
+
+    with pytest.raises(MisconfigurationException) as excinfo:
+
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            limit_train_batches=4,
+            limit_val_batches=0,
+            limit_test_batches=0,
+            val_check_interval=1.0,
+            num_sanity_val_steps=0,
+            max_epochs=max_epochs,
+        )
+        trainer.fit(model)
+
+    assert "The key `loss` should be present within training_step_end output. Existing keys: ['train_loss']"  == str(excinfo.value)
+
+
 def test_log_works_in_train_callback(tmpdir):
     """
     Tests that log can be called within callback
     """
     os.environ['PL_DEV_DEBUG'] = '1'
 
-    loss_values, patience, expected_stop_epoch = ([6, 5, 5, 5, 5, 5], 3, 4)
-
     class TestCallback(callbacks.Callback):
 
-        callback_funcs_called = []
+        callback_funcs_called = collections.defaultdict(list)
         choices = [False, True]
 
         def make_logging(self, pl_module: pl.LightningModule, func_name, func_idx, on_steps=[], on_epochs=[], prob_bars=[]):
@@ -508,7 +572,7 @@ def test_log_works_in_train_callback(tmpdir):
                 on_step, on_epoch, prog_bar = t
                 custom_func_name = f"{func_idx}_{idx}_{func_name}"
                 pl_module.log(custom_func_name, func_idx, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
-                self.callback_funcs_called.append(custom_func_name)
+                self.callback_funcs_called[f"{on_step}_{on_epoch}_{prog_bar}"].append(custom_func_name)
 
         def on_train_start(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_train_start', 0, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
@@ -525,14 +589,20 @@ def test_log_works_in_train_callback(tmpdir):
         def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
             self.make_logging(pl_module, 'on_train_batch_start', 4, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
 
+        def on_batch_end(self, trainer, pl_module):
+            self.make_logging(pl_module, 'on_batch_end', 5, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-            self.make_logging(pl_module, 'on_train_batch_end', 5, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(pl_module, 'on_train_batch_end', 6, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+
+        def on_epoch_end(self, trainer, pl_module, outputs):
+            self.make_logging(pl_module, 'on_epoch_end', 8, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices)
 
         def on_train_epoch_end(self, trainer, pl_module, outputs):
-            self.make_logging(pl_module, 'on_train_epoch_end', 6, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(pl_module, 'on_train_epoch_end', 9, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices)
 
         def on_train_end(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_train_end', 7, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(pl_module, 'on_train_end', 10, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices)
 
     class TestModel(BoringModel):
 
@@ -540,7 +610,7 @@ def test_log_works_in_train_callback(tmpdir):
             output = self.layer(batch)
             loss = self.loss(batch, output)
             self.log('train_loss', loss)
-            return loss
+            return {"loss": loss}
 
     max_epochs = 5
     model = TestModel()
