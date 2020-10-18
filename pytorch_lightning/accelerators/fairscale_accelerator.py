@@ -11,29 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, Any
+from typing import List
 
-from fairscale.optim import OSS
+import torch
 
 from pytorch_lightning.accelerators import DDPAccelerator
-from pytorch_lightning.utilities import rank_zero_only
-
-
-class LightningOSS(OSS):
-
-    @rank_zero_only
-    def state_dict(self) -> Dict[str, Any]:
-        """
-        Ensure we only call state_dict using rank zero.
-
-        Return the last known global optimizer state, which consist of a list of the shards.
-        """
-
-        assert (len(self._all_states) > 0), \
-            "The optimizer state is not materialized, " \
-            "please call consolidate_state_dict on every replica beforehand"
-
-        return {"state": self._all_states}
+from pytorch_lightning.overrides.fairscale import LightningOSS, LightningShardedDataParallel
+from pytorch_lightning.utilities import AMPType
 
 
 class FairScaleAccelerator(DDPAccelerator):
@@ -75,3 +59,31 @@ class FairScaleAccelerator(DDPAccelerator):
     def sync_optim_state(self):
         for optimizer in self.trainer.optimizers:
             optimizer.consolidate_state_dict()
+
+    def configure_ddp(
+            self, model: "LightningModule", device_ids: List[int]
+    ):
+        model = LightningShardedDataParallel(model, sharded_optimizer=self.trainer.optimizers)
+        return model
+
+    def training_step(self, args):
+        return self._trainer_step(args)
+
+    def validation_step(self, args):
+        return self._trainer_step(args)
+
+    def test_step(self, args):
+        return self._trainer_step(args)
+
+    def _trainer_step(self, args):
+        if self.trainer.on_gpu:
+            batch = args[0]
+            batch = self.batch_to_device(batch, self.trainer.root_gpu)
+            args[0] = batch
+
+        if self.trainer.amp_backend == AMPType.NATIVE:
+            with torch.cuda.amp.autocast():
+                output = self.trainer.model(*args)
+        else:
+            output = self.trainer.model(*args)
+        return output
