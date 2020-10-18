@@ -47,6 +47,7 @@ recursive-include docs/source/_images/general/ pl_overview* tf_* tutorial_* PTL1
 
 # Include the Requirements
 recursive-include requirements *.txt
+include requirements.txt
 
 # Exclude build configs
 exclude *.yml
