@@ -24,6 +24,4 @@ class ClusterEnvironment:
         pass
 
     def world_size(self):
-        # todo
-        print ("ClusterEnvironment\n" * 10)
         return self._world_size

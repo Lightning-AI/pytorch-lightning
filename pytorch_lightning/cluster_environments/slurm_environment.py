@@ -65,8 +65,6 @@ class SLURMEnvironment(ClusterEnvironment):
         return default_port
 
     def world_size(self):
-        # todo
-        print ("SLURMEnvironment\n" * 10)
         return self._world_size
 
     def _resolve_root_node_address(self, root_node):

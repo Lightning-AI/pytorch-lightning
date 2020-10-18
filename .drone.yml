@@ -23,10 +23,6 @@ steps:
   image: pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.6
 
   environment:
-    WORLD_SIZE: 2
-    LOCAL_RANK: 0
-    NODE_RANK: 0
-    SLURM_LOCALID: 0
     CODECOV_TOKEN:
       from_secret: codecov_token
     MKL_THREADING_LAYER: GNU
@@ -35,8 +31,7 @@ steps:
     - python --version
     - pip --version
     - nvidia-smi
-    - pip install -r ./requirements/devel.txt --upgrade-strategy only-if-needed
-    - pip install -r ./requirements/examples.txt --upgrade-strategy only-if-needed
+    - pip install -r ./requirements/devel.txt --upgrade-strategy only-if-needed -v  --no-cache-dir
     - pip list
     - coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --color=yes --durations=25 # --flake8
     - python -m pytest benchmarks pl_examples -v --color=yes --maxfail=2 --durations=0 # --flake8
