@@ -108,7 +108,7 @@ class LoggerConnector:
 
         self.trainer.dev_debugger.track_pbar_metrics_history(metrics)
 
-    def on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, using_eval_result, test_mode):
+    def before_on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, using_eval_result, test_mode):
         self._track_callback_metrics(deprecated_eval_results, using_eval_result)
         self._track_callback_metrics_1_0(epoch_logs, self.trainer.evaluation_loop.metrics_to_log, reduce_on_epoch=True)
 
@@ -134,7 +134,7 @@ class LoggerConnector:
         self.eval_loop_results = []
         return results
 
-    def _track_metrics_before_after_on_evaluation_epoch_start(self, logs, metrics_to_log=[]):
+    def track_metrics_on_evaluation_epoch_start(self, logs, metrics_to_log=[]):
         batch_logger_metrics  = logs.get_batch_log_metrics()
         if len(batch_logger_metrics) > 0:
             metrics_to_log.append(batch_logger_metrics)

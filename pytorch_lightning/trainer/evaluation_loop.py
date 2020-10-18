@@ -109,9 +109,9 @@ class EvaluationLoop(object):
             self.trainer.logger_connector._track_callback_metrics_1_0(self.trainer.get_model()._results, \
                 metrics_to_log=self.metrics_to_log)       
 
-    def _update_metrics_to_log_after_on_evaluation_epoch_start(self):
+    def _update_metrics_to_log_on_evaluation_epoch_start(self):
         if not self.trainer.running_sanity_check:
-            self.trainer.logger_connector._track_metrics_before_after_on_evaluation_epoch_start(self.trainer.get_model()._results, \
+            self.trainer.logger_connector.track_metrics_on_evaluation_epoch_start(self.trainer.get_model()._results, \
                 metrics_to_log=self.metrics_to_log)  
 
     def on_evaluation_end(self, *args, **kwargs):
@@ -152,7 +152,7 @@ class EvaluationLoop(object):
             self.trainer.call_hook('on_test_epoch_start', *args, **kwargs)
         else:
             self.trainer.call_hook('on_validation_epoch_start', *args, **kwargs)
-        self._update_metrics_to_log_after_on_evaluation_epoch_start()
+        self._update_metrics_to_log_on_evaluation_epoch_start()
 
     def build_args(self, test_mode, batch, batch_idx, dataloader_idx):
         # make dataloader_idx arg in validation_step optional
@@ -219,9 +219,9 @@ class EvaluationLoop(object):
 
         return deprecated_results, epoch_logs
 
-    def track_metrics_on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, test_mode):
+    def track_metrics_before_on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, test_mode):
         using_eval_result = self.is_using_eval_results()
-        eval_loop_results = self.trainer.logger_connector.on_evaluation_epoch_end(
+        eval_loop_results = self.trainer.logger_connector.before_on_evaluation_epoch_end(
             deprecated_eval_results,
             epoch_logs,
             using_eval_result,

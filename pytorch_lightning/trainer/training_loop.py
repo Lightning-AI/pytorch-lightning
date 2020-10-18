@@ -45,6 +45,7 @@ class TrainLoop:
         self._teardown_already_run = False
         self.running_loss = TensorRunningAccum(window_length=20)
         self.automatic_optimization = True
+        self.metrics_to_log = []
 
     def on_trainer_init(self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps, automatic_optimization):
         self.trainer.global_step = 0
@@ -83,6 +84,7 @@ class TrainLoop:
                 torch.cuda.empty_cache()
 
         # hook
+        self.metrics_to_log = []
         self.trainer.call_hook('on_train_start')
 
     def setup_fit(self, model, train_dataloader, val_dataloaders, datamodule):
@@ -240,6 +242,9 @@ class TrainLoop:
         self.trainer.call_hook('on_epoch_start')
         self.trainer.call_hook('on_train_epoch_start')
 
+        # bookkeeping metrics to log (epoch only).
+        self.metrics_to_log.append(model._results.get_epoch_log_metrics())
+
     def on_train_batch_end(self, epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx):
         # figure out what to track for epoch end
         self.track_epoch_end_reduce_metrics(epoch_output, epoch_end_outputs)
@@ -296,7 +301,6 @@ class TrainLoop:
     def training_step(self, split_batch, batch_idx, opt_idx, hiddens):
         # give the PL module a result for logging
         model = self.trainer.get_model()
-        model._results = Result()
         model._current_fx_name = 'training_step'
 
         with self.trainer.profiler.profile('model_forward'):
@@ -395,6 +399,10 @@ class TrainLoop:
             loss = training_step_output.pop('loss', None)
             hiddens = training_step_output.pop('hiddens', None)
             result['extra'] = training_step_output
+
+            if loss is None:
+                m = f'The key `loss` should be present within training_step output. Existing keys: {[*training_step_output]}'
+                raise MisconfigurationException(m)            
 
         # handle scalar return
         elif isinstance(training_step_output, torch.Tensor):
@@ -619,6 +627,11 @@ class TrainLoop:
         self.increment_accumulated_grad_global_step()
 
     def run_training_batch(self, batch, batch_idx, dataloader_idx):
+
+        # reset results
+        model = self.trainer.get_model()
+        model._results = Result()
+
         # track grad norms
         grad_norm_dic = {}
 

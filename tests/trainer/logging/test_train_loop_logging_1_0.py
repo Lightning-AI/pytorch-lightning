@@ -18,7 +18,8 @@ from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictSt
 import os
 import torch
 import pytest
-
+import itertools
+import pytorch_lightning as pl
 from pytorch_lightning import Trainer, callbacks
 from tests.base.deterministic_model import DeterministicModel
 from torch.utils.data import Dataset
@@ -488,3 +489,77 @@ def test_nested_datasouce_batch(tmpdir):
         weights_summary=None,
     )
     trainer.fit(model, train_data, val_data)
+
+def test_log_works_in_train_callback(tmpdir):
+    """
+    Tests that log can be called within callback
+    """
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    loss_values, patience, expected_stop_epoch = ([6, 5, 5, 5, 5, 5], 3, 4)
+
+    class TestCallback(callbacks.Callback):
+
+        callback_funcs_called = []
+        choices = [False, True]
+
+        def make_logging(self, pl_module: pl.LightningModule, func_name, func_idx, on_steps=[], on_epochs=[], prob_bars=[]):
+            for idx, t in enumerate(list(itertools.product(*[on_steps, on_epochs, prob_bars]))):
+                on_step, on_epoch, prog_bar = t
+                custom_func_name = f"{func_idx}_{idx}_{func_name}"
+                pl_module.log(custom_func_name, func_idx, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
+                self.callback_funcs_called.append(custom_func_name)
+
+        def on_train_start(self, trainer, pl_module):
+            self.make_logging(pl_module, 'on_train_start', 0, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+
+        def on_epoch_start(self, trainer, pl_module):
+            self.make_logging(pl_module, 'on_epoch_start', 1, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+
+        def on_train_epoch_start(self, trainer, pl_module):
+            self.make_logging(pl_module, 'on_train_epoch_start', 2, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+
+        def on_batch_start(self, trainer, pl_module):
+            self.make_logging(pl_module, 'on_batch_start', 3, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+
+        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+            self.make_logging(pl_module, 'on_train_batch_start', 4, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+            self.make_logging(pl_module, 'on_train_batch_end', 5, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+
+        def on_train_epoch_end(self, trainer, pl_module, outputs):
+            self.make_logging(pl_module, 'on_train_epoch_end', 6, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+
+        def on_train_end(self, trainer, pl_module):
+            self.make_logging(pl_module, 'on_train_end', 7, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log('train_loss', loss)
+            return loss
+
+    max_epochs = 5
+    model = TestModel()
+    test_callback = TestCallback()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=4,
+        limit_val_batches=0,
+        limit_test_batches=0,
+        val_check_interval=1.0,
+        num_sanity_val_steps=0,
+        max_epochs=max_epochs,
+        callbacks=[test_callback]
+    )
+    trainer.fit(model)
+
+    expected_logged_metrics = set(test_callback.callback_funcs_called)
+    logged_metrics = set(trainer.logged_metrics.keys())
+    breakpoint()
+    assert logged_metrics == expected_logged_metrics, logged_metrics
+

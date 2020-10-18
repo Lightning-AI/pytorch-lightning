@@ -464,6 +464,7 @@ class Trainer(
         # enable train mode
         model = self.get_model()
         model.train()
+        model._results = Result()
         torch.set_grad_enabled(True)
 
         # reload data when needed
@@ -598,7 +599,7 @@ class Trainer(
             num_dataloaders=len(dataloaders)
         )
 
-        eval_loop_results = self.evaluation_loop.track_metrics_on_evaluation_epoch_end(deprecated_eval_results, epoch_logs, test_mode)
+        eval_loop_results = self.evaluation_loop.track_metrics_before_on_evaluation_epoch_end(deprecated_eval_results, epoch_logs, test_mode)
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
@@ -824,8 +825,13 @@ class Trainer(
 
             # first call trainer hook
             if hasattr(self, hook_name):
+                model_ref = self.get_model()
+                # used to detect inside of callback model manipulation
+                model_ref._current_hook_fx_name = hook_name
                 trainer_hook = getattr(self, hook_name)
                 trainer_hook(*args, **kwargs)
+                # set back current_hook_fx_name to default
+                model_ref._current_hook_fx_name = ''
 
             # next call hook in lightningModule
             output = None

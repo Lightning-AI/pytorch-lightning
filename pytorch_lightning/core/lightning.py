@@ -28,16 +28,17 @@ from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
+from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities.parsing import (
     AttributeDict,
     collect_init_args,
     get_init_args,
 )
+from pytorch_lightning.callbacks import Callback
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
@@ -111,6 +112,7 @@ class LightningModule(
         self._datamodule = None
         self._results: Optional[Result] = None
         self._current_fx_name = ''
+        self._current_hook_fx_name = ''
 
     def optimizers(self):
         opts = self.trainer.optimizers
@@ -243,6 +245,9 @@ class LightningModule(
             # set the default depending on the fx_name
             on_step = self.__auto_choose_log_on_step(on_step)
             on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
+
+            if self._current_hook_fx_name != '':
+                Callback._validate_callback_logging_arguments(self._current_hook_fx_name, on_step=on_step, on_epoch=on_epoch)
 
             self._results.log(
                 name,
