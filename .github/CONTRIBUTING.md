@@ -60,7 +60,7 @@ Have a favorite feature from other libraries like fast.ai or transformers? Those
 
 We are always looking for help implementing new features or fixing bugs.
 
-A lot of good work has already been done in project mechanics (requirements/base.txt, setup.py, pep8, badges, ci, etc...) so we're in a good state there thanks to all the early contributors (even pre-beta release)!
+A lot of good work has already been done in project mechanics (requirements.txt, setup.py, pep8, badges, ci, etc...) so we're in a good state there thanks to all the early contributors (even pre-beta release)!
 
 ### Bug Fixes:
 
