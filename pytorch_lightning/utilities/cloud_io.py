@@ -14,11 +14,13 @@
 
 import io
 from distutils.version import LooseVersion
-from typing import Union, IO
 from pathlib import Path
-from urllib.parse import urlparse
-import torch
+from typing import IO, Union
+
 import fsspec
+import torch
+
+from pytorch_lightning.utilities import move_data_to_device
 
 
 def load(path_or_url: Union[str, IO, Path], map_location=None):
@@ -53,9 +55,7 @@ def atomic_save(checkpoint, filepath: str):
             This points to the file that the checkpoint will be stored in.
     """
 
-    for key, value in checkpoint:
-        if isinstance(value, torch.Tensor) and 'xka' in value.device:
-            checkpoint[key] = value.cpu()
+    checkpoint = move_data_to_device(checkpoint, torch.device("cpu"))
 
     bytesbuffer = io.BytesIO()
     # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
