@@ -46,10 +46,10 @@ class DifferentialPrivacy(Callback):
 
     Example::
 
-        >>> from pytorch_lightning import Trainer
-        >>> from pytorch_lightning.callbacks import DifferentialPrivacy
-        >>> differential_privacy = DifferentialPrivacy(noise_multiplier=0.3, max_grad_norm=0.1)
-        >>> trainer = Trainer(callbacks=[differential_privacy])
+        from pytorch_lightning import Trainer
+        from pytorch_lightning.callbacks import DifferentialPrivacy
+        differential_privacy = DifferentialPrivacy(noise_multiplier=0.3, max_grad_norm=0.1)
+        trainer = Trainer(differential_privacy_callback=differential_privacy)
     """
 
     def __init__(
