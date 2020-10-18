@@ -39,4 +39,4 @@ python:
   version: 3.7
   install:
     - requirements: requirements/docs.txt
-    #- requirements: requirements/requirements.txt
+    #- requirements: requirements.txt
