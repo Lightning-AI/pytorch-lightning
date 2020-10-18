@@ -850,8 +850,13 @@ class TrainLoop:
             self.trainer.optimizer_connector.update_learning_rates(interval='step', monitor_metrics=monitor_metrics)
 
     def run_on_epoch_end_hook(self, epoch_output):
+        # reset result + internal metris to catch epoch end logging
+        model_ref = self.trainer.get_model()
+        model_ref._results = Result()
+        self.internal_metrics = InternalMetrics()
         self.trainer.call_hook('on_epoch_end')
         self.trainer.call_hook('on_train_epoch_end', epoch_output)
+        self._update_internal_metrics()
 
     def increment_accumulated_grad_global_step(self):
         num_accumulated_batches_reached = (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0

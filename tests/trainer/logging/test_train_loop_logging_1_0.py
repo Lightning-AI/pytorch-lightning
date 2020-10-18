@@ -16,6 +16,7 @@ Tests to ensure that the training loop works with a dict (1.0)
 """
 from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
 import os
+import numpy as np
 import collections
 import torch
 import pytest
@@ -566,36 +567,40 @@ def test_log_works_in_train_callback(tmpdir):
 
         callback_funcs_called = collections.defaultdict(list)
         choices = [False, True]
+        count = 1
 
         def make_logging(self, pl_module: pl.LightningModule, func_name, func_idx, on_steps=[], on_epochs=[], prob_bars=[]):
             for idx, t in enumerate(list(itertools.product(*[on_steps, on_epochs, prob_bars]))):
                 on_step, on_epoch, prog_bar = t
                 custom_func_name = f"{func_idx}_{idx}_{func_name}"
-                pl_module.log(custom_func_name, func_idx, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
-                self.callback_funcs_called[f"{on_step}_{on_epoch}_{prog_bar}"].append(custom_func_name)
+                pl_module.log(custom_func_name, self.count * func_idx, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
+                self.callback_funcs_called[func_name].append([self.count * func_idx])
 
         def on_train_start(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_train_start', 0, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(pl_module, 'on_train_start', 1, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
 
         def on_epoch_start(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_epoch_start', 1, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(pl_module, 'on_epoch_start', 2, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
 
         def on_train_epoch_start(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_train_epoch_start', 2, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(pl_module, 'on_train_epoch_start', 3, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
 
         def on_batch_start(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_batch_start', 3, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(pl_module, 'on_batch_start', 4, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
 
         def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-            self.make_logging(pl_module, 'on_train_batch_start', 4, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(pl_module, 'on_train_batch_start', 5, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
 
         def on_batch_end(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_batch_end', 5, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(pl_module, 'on_batch_end', 6, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
 
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-            self.make_logging(pl_module, 'on_train_batch_end', 6, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(pl_module, 'on_train_batch_end', 7, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+            
+            # used to make sure aggregation works fine. We should obtain (value * limit_train_batches) / 2
+            self.count += 1
 
-        def on_epoch_end(self, trainer, pl_module, outputs):
+        def on_epoch_end(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_epoch_end', 8, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices)
 
         def on_train_epoch_end(self, trainer, pl_module, outputs):
@@ -612,24 +617,34 @@ def test_log_works_in_train_callback(tmpdir):
             self.log('train_loss', loss)
             return {"loss": loss}
 
-    max_epochs = 5
+    max_epochs = 1
     model = TestModel()
     test_callback = TestCallback()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        limit_train_batches=4,
+        limit_train_batches=2,
         limit_val_batches=0,
         limit_test_batches=0,
-        val_check_interval=1.0,
+        val_check_interval=0.,
         num_sanity_val_steps=0,
         max_epochs=max_epochs,
         callbacks=[test_callback]
     )
     trainer.fit(model)
 
-    expected_logged_metrics = set(test_callback.callback_funcs_called)
-    logged_metrics = set(trainer.logged_metrics.keys())
-    breakpoint()
-    assert logged_metrics == expected_logged_metrics, logged_metrics
+    wrong_func_names = {}
+
+    for func_name, orginal_values in test_callback.callback_funcs_called.items():
+        original_value = np.mean(orginal_values)
+        for f_name, output_value in trainer.callback_metrics.items():
+            if func_name in f_name:
+                if torch.is_tensor(output_value):
+                    output_value = output_value.item()
+                if original_value != output_value:
+                    wrong_func_names[func_name] = [original_value, output_value]
+    
+    # TODO Test is still failing !
+    assert len(wrong_func_names) == 0, wrong_func_names
+
 
