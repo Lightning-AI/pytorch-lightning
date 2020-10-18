@@ -52,7 +52,7 @@ class ModelCheckpoint(Callback):
                 # saves a file like: my/path/epoch=0.ckpt
                 >>> checkpoint_callback = ModelCheckpoint(dirpath='my/path/')
 
-            By default, dirpath is `None` and will be set at runtime to the location
+            By default, dirpath is ``None`` and will be set at runtime to the location
             specified by :class:`~pytorch_lightning.trainer.trainer.Trainer`'s
             :paramref:`~pytorch_lightning.trainer.trainer.Trainer.default_root_dir` or
             :paramref:`~pytorch_lightning.trainer.trainer.Trainer.weights_save_path` arguments,
@@ -69,12 +69,16 @@ class ModelCheckpoint(Callback):
                 ...     filename='{epoch}-{val_loss:.2f}-{other_metric:.2f}'
                 ... )
 
-        filepath: path to save the model file.
-            Deprecated and will be removed in v1.3.0.
+            By default, filename is ``None`` and will be set to ``'{epoch}'``.
 
-        monitor: quantity to monitor. By default it is None which saves a checkpoint only for the last epoch
+        filepath: path to save the model file.
+
+            .. warning:: .. deprecated:: 1.0.0
+                Use ``dirpath`` + ``filename`` instead. Will be removed in v1.2.0.
+
+        monitor: quantity to monitor. By default it is ``None`` which saves a checkpoint only for the last epoch.
         verbose: verbosity mode. Default: ``False``.
-        save_last: When `True`, always saves the model at the end of the epoch to a file `last.ckpt`. Default: ``None``.
+        save_last: When ``True``, always saves the model at the end of the epoch to a file `last.ckpt`. Default: ``None``.
         save_top_k: if ``save_top_k == k``,
             the best k models according to
             the quantity monitored will be saved.
@@ -248,12 +252,13 @@ class ModelCheckpoint(Callback):
         if filepath:
             if (dirpath or filename):
                 raise MisconfigurationException(
-                    'add some message'
+                    f'filepath={filepath}, dirpath={dirpath} and'
+                    f' filename={filename} is not a valid configuration.'
                 )
 
             rank_zero_warn(
-                'Please use `dirpath` and `filename`. `filepath` is now deprecated'
-                ' and will be removed in v1.3.0', DeprecationWarning
+                'Please use dirpath and filename. filepath is now deprecated'
+                ' and will be removed in v1.2.0', DeprecationWarning
             )
 
             _fs = get_filesystem(filepath)
@@ -264,7 +269,6 @@ class ModelCheckpoint(Callback):
                 if _fs.protocol == 'file':
                     filepath = os.path.realpath(filepath)
                 dirpath, filename = os.path.split(filepath)
-
 
         dirpath = str(dirpath) if dirpath else dirpath
         self._fs = get_filesystem(dirpath or '')
