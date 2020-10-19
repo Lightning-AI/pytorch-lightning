@@ -16,9 +16,9 @@ import os
 
 import torch
 import torch.distributed as torch_distrib
-from pytorch_lightning.core.lightning import LightningModule
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning import _logger as log

@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from typing import Union
+
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.datamodule import LightningDataModule
-from typing import Union
 
 
 def is_overridden(method_name: str, model: Union[LightningModule, LightningDataModule]) -> bool:
