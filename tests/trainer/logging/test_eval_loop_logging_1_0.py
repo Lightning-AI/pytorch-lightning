@@ -15,6 +15,7 @@
 Tests to ensure that the training loop works with a dict (1.0)
 """
 import os
+from copy import copy
 import collections
 import itertools
 import pytest
@@ -26,7 +27,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning import callbacks, seed_everything
 
 from tests.base.deterministic_model import DeterministicModel
-from tests.base import SimpleModule, BoringModel
+from tests.base import SimpleModule, BoringModel, RandomDataset
 
 
 def test__validation_step__log(tmpdir):
@@ -478,6 +479,9 @@ def test_log_works_in_val_callback(tmpdir):
             loss = self.loss(batch, output)
             self.log('val_loss', loss)
 
+        def val_dataloader(self):
+            return [torch.utils.data.DataLoader(RandomDataset(32, 64)), torch.utils.data.DataLoader(RandomDataset(32, 64))]
+
     max_epochs = 1
     model = TestModel()
     model.validation_epoch_end = None
@@ -555,12 +559,20 @@ def test_log_works_in_test_callback(tmpdir):
         funcs_attr = {}
 
         def make_logging(self, pl_module: pl.LightningModule, func_name, func_idx, on_steps=[], on_epochs=[], prob_bars=[]):
+            original_func_name = func_name
             for idx, t in enumerate(list(itertools.product(*[on_steps, on_epochs, prob_bars]))):
                 # run logging
+                func_name = original_func_name
                 on_step, on_epoch, prog_bar = t
                 custom_func_name = f"{func_idx}_{idx}_{func_name}"
+
                 pl_module.log(custom_func_name, self.count * func_idx, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
                 
+                if pl_module._current_dataloader_idx is not None:
+                    dl_idx = pl_module._current_dataloader_idx
+                    custom_func_name += f"/dataloader_idx_{dl_idx}"
+                    func_name += f"/dataloader_idx_{dl_idx}"
+
                 # catch information for verification
                 self.callback_funcs_called[func_name].append([self.count * func_idx])
                 self.funcs_attr[custom_func_name] = {"on_step":on_step, "on_epoch":on_epoch, "prog_bar":prog_bar, "is_created":False, "func_name":func_name}
@@ -599,14 +611,22 @@ def test_log_works_in_test_callback(tmpdir):
         def on_test_epoch_end(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_test_epoch_end', 9, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices)
 
+    max_epochs = 1
+    num_dataloaders = 2
+
     class TestModel(BoringModel):
 
-        def test_step(self, batch, batch_idx):
+        manual_mean = collections.defaultdict(list)
+
+        def test_step(self, batch, batch_idx, dataloader_idx=None):
             output = self.layer(batch)
             loss = self.loss(batch, output)
             self.log('test_loss', loss)
+            self.manual_mean[str(dataloader_idx)].append(loss)
 
-    max_epochs = 1
+        def test_dataloader(self):
+            return [torch.utils.data.DataLoader(RandomDataset(32, 64)) for _ in range(num_dataloaders)]
+
     model = TestModel()
     model.test_epoch_end = None
     test_callback = TestCallback()
@@ -623,8 +643,6 @@ def test_log_works_in_test_callback(tmpdir):
     )
     trainer.fit(model)
     trainer.test()
-
-    wrong_func_names = {}
 
     # Make sure the func_name exists within callback_metrics. If not, we missed some
     callback_metrics_keys = [*trainer.callback_metrics.keys()]
@@ -645,20 +663,33 @@ def test_log_works_in_test_callback(tmpdir):
 
     # Make sure the func_name output equals the average from all logged values when on_epoch true
     # pop extra keys
+    assert "debug_epoch" in trainer.callback_metrics
     trainer.callback_metrics.pop("debug_epoch")
-    trainer.callback_metrics.pop("test_loss")
+    for dl_idx in range(num_dataloaders):
+        key = f"test_loss/dataloader_idx_{dl_idx}"
+        assert key in trainer.callback_metrics
+        assert torch.stack(model.manual_mean[str(dl_idx)]).mean() == trainer.callback_metrics[key]
+        trainer.callback_metrics.pop(key)
+
     for func_name, output_value in trainer.callback_metrics.items():
         if torch.is_tensor(output_value):
             output_value = output_value.item()
         # get creation attr
-        func_attr = test_callback.funcs_attr[func_name]
+        if func_name in test_callback.funcs_attr:
+            func_attr = test_callback.funcs_attr[func_name]
         
-        # retrived orginal logged values
-        original_values = test_callback.callback_funcs_called[func_attr["func_name"]]
+            # retrived orginal logged values
+            original_values = test_callback.callback_funcs_called[func_attr["func_name"]]
+            
+            # compute expected output and compare to actual one
+            expected_output = get_expected_output(func_attr, original_values)
+            try:
+                assert float(output_value) == float(expected_output)   
+            except:
+                print(func_name, func_attr, original_values, output_value, expected_output)
         
-        # compute expected output and compare to actual one
-        expected_output = get_expected_output(func_attr, original_values)
-        assert float(output_value) == float(expected_output)   
+        else:
+            print(func_name, output_value)
 
     for func_name, func_attr in test_callback.funcs_attr.items():
         if func_attr["prog_bar"] and (func_attr["on_step"] or func_attr["on_epoch"]):

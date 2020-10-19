@@ -178,14 +178,18 @@ class LoggerConnector:
             for dl_idx, dl_metrics in enumerate(step_metrics):
                 if len(dl_metrics) == 0:
                     continue
-
+                
                 reduced_epoch_metrics = dl_metrics[0].__class__.reduce_on_epoch_end(dl_metrics)
-                # make the keys 'k/dl'
-                reduced_epoch_metrics = self.__rename_keys_by_dataloader_idx(reduced_epoch_metrics, dl_idx, num_loaders)
-
-                # track the metrics
                 logger_metrics = reduced_epoch_metrics.get_epoch_log_metrics()
                 pbar_metrics = reduced_epoch_metrics.get_epoch_pbar_metrics()
+                forked_metrics = reduced_epoch_metrics.get_forked_metrics()
+                
+                # make the keys 'k/dl'
+                logger_metrics = self.__rename_keys_by_dataloader_idx(logger_metrics, dl_idx, num_loaders)
+                pbar_metrics = self.__rename_keys_by_dataloader_idx(pbar_metrics, dl_idx, num_loaders)
+                forked_metrics = self.__rename_keys_by_dataloader_idx(forked_metrics, dl_idx, num_loaders)
+
+                # track the metrics
                 self.logged_metrics.update(logger_metrics)
                 self.add_progress_bar_metrics(pbar_metrics)
 
@@ -194,7 +198,6 @@ class LoggerConnector:
                 self.callback_metrics.update(pbar_metrics)
 
                 # forked metrics were dropped, enable them for callbacks
-                forked_metrics = reduced_epoch_metrics.get_forked_metrics()
                 self.callback_metrics.update(forked_metrics)
 
                 # track the final results for the dataloader

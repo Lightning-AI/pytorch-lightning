@@ -495,7 +495,7 @@ def test_nested_datasouce_batch(tmpdir):
 
 def test_misconfiguration_error_for_training_step(tmpdir):
     """
-    Tests that log can be called within callback
+    Tests that MisconfigurationException is raised when training_step return dict without loss.
     """
     os.environ['PL_DEV_DEBUG'] = '1'
 
@@ -525,7 +525,7 @@ def test_misconfiguration_error_for_training_step(tmpdir):
 
 def test_misconfiguration_error_for_training_step_end(tmpdir):
     """
-    Tests that log can be called within callback
+    Tests that MisconfigurationException is raised when training_step_end return dict without loss.
     """
     os.environ['PL_DEV_DEBUG'] = '1'
 

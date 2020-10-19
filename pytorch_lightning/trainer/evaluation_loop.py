@@ -30,6 +30,7 @@ class EvaluationLoop(object):
         self.predictions = None
         self.max_batches = None
         self.warning_cache = WarningCache()
+        self.num_dataloaders = None
         self.cache_internal_metrics = CacheInternalMetrics()
 
     def on_trainer_init(self):
@@ -145,6 +146,7 @@ class EvaluationLoop(object):
             max_batches = [max_batches] * len(dataloaders)
 
         self.max_batches = max_batches
+        self.num_dataloaders = len(dataloaders)
 
     def _update_logger_connector_metrics(self):
         model = self.trainer.get_model()
@@ -229,6 +231,7 @@ class EvaluationLoop(object):
         return output
 
     def evaluation_epoch_end(self, num_dataloaders):
+        self._unset_dataloader_idx()
         using_eval_result = self.is_using_eval_results()
 
         # call the model epoch end
@@ -335,6 +338,16 @@ class EvaluationLoop(object):
             eval_results.append(result)
 
         return eval_results
+
+    def _unset_dataloader_idx(self):
+        # reset the result of the PL module
+        model = self.trainer.get_model()
+        model._current_dataloader_idx = None
+
+    def set_dataloader_idx(self, dl_idx):
+        # reset the result of the PL module
+        model = self.trainer.get_model() 
+        model._current_dataloader_idx = dl_idx if self.num_dataloaders > 1 else None       
 
     def on_evaluation_batch_start(self, *args, **kwargs):
         # reset the result of the PL module

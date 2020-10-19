@@ -559,6 +559,9 @@ class Trainer(
             dl_step_metrics = []
             dataloader = self.accelerator_backend.process_dataloader(dataloader)
             dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
+            
+            # set dataloader idx inside model, so we can properly log
+            self.evaluation_loop.set_dataloader_idx(dataloader_idx)
 
             for batch_idx, batch in enumerate(dataloader):
                 if batch is None:

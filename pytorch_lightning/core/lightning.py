@@ -113,6 +113,7 @@ class LightningModule(
         self._results: Optional[Result] = None
         self._current_fx_name = ''
         self._current_hook_fx_name = ''
+        self._current_dataloader_idx = None
 
     def optimizers(self):
         opts = self.trainer.optimizers
