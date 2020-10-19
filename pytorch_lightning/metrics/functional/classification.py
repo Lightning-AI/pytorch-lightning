@@ -912,8 +912,8 @@ def multiclass_auroc(
         prediction scores
 
     Args:
-        pred: estimated probabilities
-        target: ground-truth labels
+        pred: estimated probabilities, with shape [N, C]
+        target: ground-truth labels, with shape [N,]
         sample_weight: sample weights
         num_classes: number of classes (default: None, computes automatically from data)
 
@@ -951,9 +951,7 @@ def multiclass_auroc(
     def _multiclass_auroc(pred, target, sample_weight, num_classes):
         return multiclass_roc(pred, target, sample_weight, num_classes)
 
-    class_aurocs = _multiclass_auroc(pred=pred, target=target,
-                                     sample_weight=sample_weight,
-                                     num_classes=num_classes)
+    class_aurocs = _multiclass_auroc(pred=pred, target=target, sample_weight=sample_weight, num_classes=num_classes)
     return torch.mean(class_aurocs)
 
 
