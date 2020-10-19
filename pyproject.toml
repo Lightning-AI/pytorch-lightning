@@ -13,3 +13,8 @@ ignore = ["W504", "W504", "E402", "E731", "C40", "E741", "F40", "F841"]
 line-length = 120
 target-version = ["py38"]
 exclude = "(.eggs|.git|.hg|.mypy_cache|.nox|.tox|.venv|.svn|_build|buck-out|build|dist)"
+
+[tool.isort]
+known_first_party = ["pytorch_lightning","tests","pl_examples"]
+profile = "black"
+line_length = 120
