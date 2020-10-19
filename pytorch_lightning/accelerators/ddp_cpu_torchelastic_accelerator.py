@@ -107,9 +107,6 @@ class DDPCPUTorchElasticAccelerator(Accelerator):
             process_idx:
             mp_queue: multiprocessing queue
             model:
-
-        Returns:
-
         """
         # determine which process we are and world size
         self.set_world_ranks(process_idx)

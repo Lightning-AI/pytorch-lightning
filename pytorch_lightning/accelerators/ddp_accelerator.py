@@ -210,9 +210,6 @@ class DDPAccelerator(Accelerator):
             process_idx:
             mp_queue: multiprocessing queue
             model:
-
-        Returns:
-
         """
         seed = os.environ.get("PL_GLOBAL_SEED")
         if seed is not None:
