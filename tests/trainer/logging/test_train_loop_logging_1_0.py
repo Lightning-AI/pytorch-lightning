@@ -562,7 +562,6 @@ def test_log_works_in_train_callback(tmpdir):
     Tests that log can be called within callback
     """
     os.environ['PL_DEV_DEBUG'] = '1'
-
     class TestCallback(callbacks.Callback):
 
         # helpers
@@ -684,4 +683,6 @@ def test_log_works_in_train_callback(tmpdir):
             assert func_name in trainer.logger_connector.progress_bar_metrics
         else:
             assert func_name not in trainer.logger_connector.progress_bar_metrics
+
+
 

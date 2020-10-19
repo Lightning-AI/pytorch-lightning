@@ -275,13 +275,14 @@ class TrainLoop:
         model_ref = self.trainer.get_model()
         valid_keys = model_ref._results.epoch_log_metrics
         for opt_output in opt_outputs:
-            opt_output.update(valid_keys)
+            if isinstance(opt_output, dict):
+                opt_output.update(valid_keys)
 
-            _internal = {k:v for k,v in model_ref._results["meta"]["_internal"].items() if k in valid_keys}
-            meta = {k:v for k,v in model_ref._results["meta"].items() if k in valid_keys}
+                _internal = {k:v for k,v in model_ref._results["meta"]["_internal"].items() if k in valid_keys}
+                meta = {k:v for k,v in model_ref._results["meta"].items() if k in valid_keys}
 
-            opt_output["meta"]["_internal"].update(_internal)
-            opt_output["meta"].update(meta)
+                opt_output["meta"]["_internal"].update(_internal)
+                opt_output["meta"].update(meta)
 
     
     def track_epoch_end_reduce_metrics(self, epoch_output, epoch_end_outputs):
