@@ -184,11 +184,6 @@ class LoggerConnector:
                 pbar_metrics = reduced_epoch_metrics.get_epoch_pbar_metrics()
                 forked_metrics = reduced_epoch_metrics.get_forked_metrics()
                 
-                # make the keys 'k/dl'
-                logger_metrics = self.__rename_keys_by_dataloader_idx(logger_metrics, dl_idx, num_loaders)
-                pbar_metrics = self.__rename_keys_by_dataloader_idx(pbar_metrics, dl_idx, num_loaders)
-                forked_metrics = self.__rename_keys_by_dataloader_idx(forked_metrics, dl_idx, num_loaders)
-
                 # track the metrics
                 self.logged_metrics.update(logger_metrics)
                 self.add_progress_bar_metrics(pbar_metrics)
@@ -201,23 +196,27 @@ class LoggerConnector:
                 self.callback_metrics.update(forked_metrics)
 
                 # track the final results for the dataloader
-                self.eval_loop_results.append(deepcopy(self.callback_metrics))
+                self.add_to_eval_loop_results(dl_idx)
 
                 # actually log
                 if len(logger_metrics) > 0:
                     metrics_to_log.append(logger_metrics)
 
+    def add_to_eval_loop_results(self, dl_idx):
+        callback_metrics = deepcopy(self.callback_metrics)
+        for key in list(callback_metrics.keys()):
+            if "/dataloader_idx_" in key:
+                dl_idx_in_key = int(key.split("_")[-1])
+                # remove dl_idx from self.callback_metrics not belonging to this dataset.
+                if dl_idx_in_key != dl_idx:
+                    del callback_metrics[key]
+        self.eval_loop_results.append(callback_metrics)
+
+
     def log_on_evaluation_end(self, metrics_to_log):
         metrics_to_log = dict(ChainMap(*metrics_to_log))
         if len(metrics_to_log) > 0:
             self.log_metrics(metrics_to_log, {}, step=self.trainer.global_step)        
-
-    def __rename_keys_by_dataloader_idx(self, metrics, dataloader_idx, num_loaders):
-        if num_loaders == 1:
-            return metrics
-
-        result = {f'{k}/dataloader_idx_{dataloader_idx}': v for k, v in metrics.items()}
-        return result
 
     def _track_callback_metrics(self, eval_results, using_eval_result):
         if (

@@ -251,6 +251,10 @@ class LightningModule(
                 self.trainer.callback_connector.validate_callback_logging_arguments(self._current_hook_fx_name, 
                 on_step=on_step, 
                 on_epoch=on_epoch)
+            
+            # make sure user doesn't introduce logic for multi-dataloaders
+            if "/dataloader_idx_" in name:
+                raise MisconfigurationException(f"Logged key: {name} should not contain information about dataloader_idx.")
 
             self._results.log(
                 name,
@@ -265,7 +269,8 @@ class LightningModule(
                 enable_graph,
                 sync_dist,
                 sync_dist_op,
-                sync_dist_group
+                sync_dist_group,
+                self._current_dataloader_idx,
             )
 
     def log_dict(

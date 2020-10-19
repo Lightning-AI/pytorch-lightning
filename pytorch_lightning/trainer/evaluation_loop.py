@@ -347,7 +347,7 @@ class EvaluationLoop(object):
     def set_dataloader_idx(self, dl_idx):
         # reset the result of the PL module
         model = self.trainer.get_model() 
-        model._current_dataloader_idx = dl_idx if self.num_dataloaders > 1 else None       
+        model._current_dataloader_idx = dl_idx if self.num_dataloaders > 1 else None    
 
     def on_evaluation_batch_start(self, *args, **kwargs):
         # reset the result of the PL module

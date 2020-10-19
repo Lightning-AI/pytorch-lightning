@@ -589,27 +589,21 @@ def test_log_works_in_test_callback(tmpdir):
         def on_test_epoch_start(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_test_epoch_start', 3, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
 
-        def on_batch_start(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_batch_start', 4, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
-
         def on_test_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-            self.make_logging(pl_module, 'on_test_batch_start', 5, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
-
-        def on_batch_end(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_batch_end', 6, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(pl_module, 'on_test_batch_start', 4, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
 
         def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-            self.make_logging(pl_module, 'on_test_batch_end', 7, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(pl_module, 'on_test_batch_end', 5, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
             
             # used to make sure aggregation works fine. 
             # we should obtain func[value * c for c in range(1, max_epochs * limit_test_batches)]) with func = np.mean if on_epoch else func = np.max 
             self.count += 1
 
         def on_epoch_end(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_epoch_end', 8, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(pl_module, 'on_epoch_end', 6, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices)
 
         def on_test_epoch_end(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_test_epoch_end', 9, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(pl_module, 'on_test_epoch_end', 7, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices)
 
     max_epochs = 1
     num_dataloaders = 2
@@ -644,6 +638,8 @@ def test_log_works_in_test_callback(tmpdir):
     trainer.fit(model)
     trainer.test()
 
+
+    breakpoint()
     # Make sure the func_name exists within callback_metrics. If not, we missed some
     callback_metrics_keys = [*trainer.callback_metrics.keys()]
     for func_name in test_callback.callback_funcs_called.keys():

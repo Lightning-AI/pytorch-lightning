@@ -109,6 +109,11 @@ class Result(Dict):
                 m += f' {additional_err}'
             assert x.grad_fn is not None, m
 
+    def add_dl_idx(self, name, dl_idx):
+        if dl_idx is not None:
+            name += f"/dataloader_idx_{dl_idx}"
+        return name
+
     def log(
         self,
         name: str,
@@ -124,6 +129,7 @@ class Result(Dict):
         sync_dist: bool = False,
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
+        current_dataloader_idx: Optional[int] = None,
     ):
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
@@ -143,7 +149,7 @@ class Result(Dict):
             was_forked = True
 
             # set step version
-            step_name = f'{name}_step'
+            step_name = self.add_dl_idx(f'{name}_step', current_dataloader_idx)
             self.__set_meta(
                 step_name,
                 value,
@@ -159,7 +165,7 @@ class Result(Dict):
             self.__setitem__(step_name, value)
 
             # set epoch version
-            epoch_name = f'{name}_epoch'
+            epoch_name = self.add_dl_idx(f'{name}_epoch', current_dataloader_idx)
             self.__set_meta(
                 epoch_name,
                 value,
@@ -173,6 +179,8 @@ class Result(Dict):
                 forked=False
             )
             self.__setitem__(epoch_name, value)
+
+        name = self.add_dl_idx(name, current_dataloader_idx)
 
         # always log the original metric
         self.__set_meta(
