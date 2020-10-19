@@ -185,7 +185,8 @@ class CometLogger(LightningLoggerBase):
         if self._experiment is not None:
             return self._experiment
 
-        if self._future_experiment_key is not None:
+        manual_set_experiment_key_environment_variable = self._future_experiment_key is not None
+        if manual_set_experiment_key_environment_variable:
             os.environ["COMET_EXPERIMENT_KEY"] = self._future_experiment_key
             self._future_experiment_key = None
 
@@ -212,12 +213,14 @@ class CometLogger(LightningLoggerBase):
                     **self._kwargs,
                 )
         finally:
-            os.environ.pop("COMET_EXPERIMENT_KEY", None)
+            if manual_set_experiment_key_environment_variable:
+                os.environ.pop("COMET_EXPERIMENT_KEY", None)
 
         if self._experiment_name:
             self._experiment.set_name(self._experiment_name)
 
         return self._experiment
+
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
@@ -278,6 +281,9 @@ class CometLogger(LightningLoggerBase):
         if self._experiment_key is not None:
             return self._experiment_key
 
+        if "COMET_EXPERIMENT_KEY" in os.environ:
+            return os.environ["COMET_EXPERIMENT_KEY"]
+
         if self._future_experiment_key is not None:
             return self._future_experiment_key
 
@@ -285,6 +291,7 @@ class CometLogger(LightningLoggerBase):
         self._future_experiment_key = comet_ml.generate_guid()
 
         return self._future_experiment_key
+
 
     def __getstate__(self):
         state = self.__dict__.copy()
