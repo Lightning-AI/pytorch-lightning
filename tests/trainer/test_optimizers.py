@@ -15,7 +15,6 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer, Callback
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel

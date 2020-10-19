@@ -66,8 +66,8 @@ class OptimizerConnector:
                             )
                         rank_zero_warn(
                             f'ReduceLROnPlateau conditioned on metric {monitor_key}'
-                            f' which is not available but strict is set to `False`.'
-                            f' Skipping learning rate update.',
+                            ' which is not available but strict is set to `False`.'
+                            ' Skipping learning rate update.',
                             RuntimeWarning,
                         )
                         continue
