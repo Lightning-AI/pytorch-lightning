@@ -214,7 +214,7 @@ class CometLogger(LightningLoggerBase):
                 )
         finally:
             if manual_set_experiment_key_environment_variable:
-                os.environ.pop("COMET_EXPERIMENT_KEY", None)
+                os.environ.pop("COMET_EXPERIMENT_KEY")
 
         if self._experiment_name:
             self._experiment.set_name(self._experiment_name)
