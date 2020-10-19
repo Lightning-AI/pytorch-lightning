@@ -28,6 +28,8 @@ FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel-ubuntu16.04
 # FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
 # FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu16.04
 
+MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
+
 ARG PYTHON_VERSION=3.7
 ARG PYTORCH_VERSION=1.6
 ARG PYTORCH_CHANNEL=pytorch
