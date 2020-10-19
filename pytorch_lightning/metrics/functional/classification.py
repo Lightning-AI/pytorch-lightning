@@ -909,7 +909,7 @@ def multiclass_auroc(
 ) -> torch.Tensor:
     """
     Compute Area Under the Receiver Operating Characteristic Curve (ROC AUC) from multiclass
-        prediction scores
+    prediction scores
 
     Args:
         pred: estimated probabilities, with shape [N, C]
@@ -951,7 +951,9 @@ def multiclass_auroc(
     def _multiclass_auroc(pred, target, sample_weight, num_classes):
         return multiclass_roc(pred, target, sample_weight, num_classes)
 
-    class_aurocs = _multiclass_auroc(pred=pred, target=target, sample_weight=sample_weight, num_classes=num_classes)
+    class_aurocs = _multiclass_auroc(pred=pred, target=target,
+                                     sample_weight=sample_weight,
+                                     num_classes=num_classes)
     return torch.mean(class_aurocs)
 
 
