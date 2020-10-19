@@ -12,23 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 import os
-import re
+from typing import List, Optional
 
 import torch
 import torch.distributed as torch_distrib
 import torch.distributed as dist
 import torch.multiprocessing as mp
+from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities.cloud_io import atomic_save, load as pl_load
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.distributed import find_free_network_port
 from pytorch_lightning.distributed.dist import LightningDistributed
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
-from torch.nn.parallel import DistributedDataParallel
-from typing import List, Optional
 
 try:
     from hydra.core.hydra_config import HydraConfig
@@ -210,14 +209,14 @@ class DDPCPUSpawnAccelerator(Accelerator):
             mp_queue.put(results)
 
     def configure_ddp(
-        self, model: "LightningModule", device_ids: List[int]
+        self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
         model = LightningDistributedDataParallel(
             model, device_ids=device_ids, find_unused_parameters=True
         )
         return model
 
-    def configure_sync_batchnorm(self, model: "LightningModule") -> "LightningModule":
+    def configure_sync_batchnorm(self, model: LightningModule) -> LightningModule:
         """
         Add global batchnorm for a model spread across multiple GPUs and nodes.
 

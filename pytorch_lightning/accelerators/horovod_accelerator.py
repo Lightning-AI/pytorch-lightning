@@ -152,7 +152,7 @@ class HorovodAccelerator(Accelerator):
         return output
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
-        super().backward(closure_loss, optimizer, opt_idx,  *args, **kwargs)
+        super().backward(closure_loss, optimizer, opt_idx, *args, **kwargs)
         optimizer.synchronize()
 
     def on_train_epoch_end(self, outputs):

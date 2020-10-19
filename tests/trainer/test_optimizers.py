@@ -147,6 +147,7 @@ def test_reduce_lr_on_plateau_scheduling_missing_monitor(tmpdir):
 
 def test_reduce_lr_on_plateau_scheduling(tmpdir):
     hparams = EvalModelTemplate.get_default_hparams()
+
     class TestModel(EvalModelTemplate):
 
         def configure_optimizers(self):
