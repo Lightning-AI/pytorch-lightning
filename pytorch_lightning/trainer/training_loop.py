@@ -49,10 +49,7 @@ class CacheInternalMetrics():
         self._internal_dict[key].append(value)
 
     def __getattr__(self, key: str) -> dict:
-        try:
-            return dict(ChainMap(*self._internal_dict[key]))
-        except KeyError:
-            return None
+        return dict(ChainMap(*self._internal_dict[key]))
 
     def __repr__(self):
         return self._internal_dict.__repr__()
@@ -292,6 +289,11 @@ class TrainLoop:
 
         # figure out what to track for epoch end
         self.track_epoch_end_reduce_metrics(epoch_output, epoch_end_outputs)
+
+        batch_pbar_metrics = model_ref._results.get_batch_pbar_metrics()
+        if len(batch_pbar_metrics) > 0:
+            self.trainer.logger_connector.add_progress_bar_metrics(batch_pbar_metrics)
+
 
     def reset_train_val_dataloaders(self, model):
         if not self.trainer.reload_dataloaders_every_epoch:
@@ -691,6 +693,24 @@ class TrainLoop:
         # progress global step according to grads progress
         self.increment_accumulated_grad_global_step()
 
+    def _update_logger_connector_progress_bar_metrics(self):
+        model = self.trainer.get_model()
+
+        # set batch_pbar_metrics cached from "on_train_start" to "on_train_epoch_start"
+        batch_pbar_metrics = self.cache_internal_metrics.batch_pbar_metrics
+        if len(batch_pbar_metrics) > 0:
+            self.trainer.logger_connector.add_progress_bar_metrics(batch_pbar_metrics)
+
+        # set epoch_pbar_metrics cached from "on_train_start" to "on_train_epoch_start"
+        epoch_pbar_metrics = self.cache_internal_metrics.epoch_pbar_metrics
+        if len(epoch_pbar_metrics) > 0:
+            self.trainer.logger_connector.add_progress_bar_metrics(epoch_pbar_metrics)
+
+        # set batch_pbar_metrics cached from "on_batch_start" to "on_train_batch_start"
+        batch_pbar_metrics = model._results.batch_pbar_metrics
+        if len(batch_pbar_metrics) > 0:
+            self.trainer.logger_connector.add_progress_bar_metrics(batch_pbar_metrics)
+
     def run_training_batch(self, batch, batch_idx, dataloader_idx):
 
         # reset results
@@ -722,6 +742,9 @@ class TrainLoop:
         response = self.trainer.call_hook('on_train_batch_start', batch, batch_idx, dataloader_idx)
         if response == -1:
             return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
+
+        # update progress bar metrics with pbar called within callback
+        self._update_logger_connector_progress_bar_metrics()
 
         # track metrics to log
         batch_log_metrics = {}

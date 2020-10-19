@@ -347,9 +347,8 @@ class LoggerConnector:
             epoch_log_metrics.update(epoch_end_log_result.get_epoch_log_metrics())
             epoch_progress_bar_metrics.update(epoch_end_log_result.get_epoch_pbar_metrics())
 
-            # update with run_on_epoch_end_hook hooks log
             epoch_log_metrics.update(self.trainer.train_loop.cache_internal_metrics.epoch_log_metrics)
-            epoch_progress_bar_metrics.update(self.trainer.train_loop.cache_internal_metrics.epoch_bar_metrics)            
+            epoch_progress_bar_metrics.update(self.trainer.train_loop.cache_internal_metrics.epoch_pbar_metrics)   
 
         # TODO: deprecate 1.0
         else:

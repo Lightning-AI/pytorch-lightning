@@ -608,7 +608,8 @@ def test_log_works_in_train_callback(tmpdir):
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
             self.make_logging(pl_module, 'on_train_batch_end', 7, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
             
-            # used to make sure aggregation works fine. We should obtain np.mean([value * c for c in range(1, max_epochs * limit_train_batches)])
+            # used to make sure aggregation works fine. 
+            # we should obtain func[value * c for c in range(1, max_epochs * limit_train_batches)]) with func = np.mean if on_epoch else func = np.max 
             self.count += 1
 
         def on_epoch_end(self, trainer, pl_module):
@@ -680,8 +681,4 @@ def test_log_works_in_train_callback(tmpdir):
 
     for func_name, func_attr in test_callback.funcs_attr.items():
         if func_attr["prog_bar"] and (func_attr["on_step"] or func_attr["on_epoch"]):
-            try:
-                assert func_name in trainer.logger_connector.progress_bar_metrics
-            except:
-                print(func_name, func_attr)
-
+            assert func_name in trainer.logger_connector.progress_bar_metrics
