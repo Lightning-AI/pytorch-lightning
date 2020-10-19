@@ -15,6 +15,7 @@ import os
 import torch
 import torch.distributed as torch_distrib
 import torch.distributed as dist
+from pytorch_lightning.core.lightning import LightningModule
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning import _logger as log
@@ -176,14 +177,14 @@ class DDPCPUTorchElasticAccelerator(Accelerator):
         return results
 
     def configure_ddp(
-        self, model: "LightningModule", device_ids: List[int]
+        self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
         model = LightningDistributedDataParallel(
             model, device_ids=device_ids, find_unused_parameters=True
         )
         return model
 
-    def configure_sync_batchnorm(self, model: "LightningModule") -> "LightningModule":
+    def configure_sync_batchnorm(self, model: LightningModule) -> LightningModule:
         """
         Add global batchnorm for a model spread across multiple GPUs and nodes.
 
