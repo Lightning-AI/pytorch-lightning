@@ -58,7 +58,7 @@ class ModelCheckpoint(Callback):
             :paramref:`~pytorch_lightning.trainer.trainer.Trainer.weights_save_path` arguments,
             and if the Trainer uses a logger, the path will also contain logger name and version.
 
-        filename: model filename. Can contain named formatting options to be auto-filled.
+        filename: checkpoint filename. Can contain named formatting options to be auto-filled.
 
             Example::
 
@@ -287,6 +287,9 @@ class ModelCheckpoint(Callback):
                 " all files in this directory will be deleted when a checkpoint is saved!"
             )
 
+        if dirpath and self._fs.protocol == 'file':
+            dirpath = os.path.realpath(dirpath)
+
         self.dirpath = dirpath or None
         self.filename = filename or None
 
@@ -420,8 +423,6 @@ class ModelCheckpoint(Callback):
         """
         if self.dirpath is not None:
             return  # short circuit
-
-        self.filename = None
 
         if trainer.logger is not None:
             if trainer.weights_save_path != trainer.default_root_dir:
