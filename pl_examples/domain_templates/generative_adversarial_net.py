@@ -18,7 +18,7 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 
-from pytorch_lightning.core import LightningModule
+from pytorch_lightning.core import LightningModule, LightningDataModule
 from pytorch_lightning.trainer import Trainer
 
 
@@ -70,9 +70,8 @@ class Discriminator(nn.Module):
 
 class GAN(LightningModule):
     @staticmethod
-    def add_model_specific_args(parent_parser: ArgumentParser):
+    def add_argparse_args(parent_parser: ArgumentParser):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
         parser.add_argument("--lr", type=float, default=0.0002, help="adam: learning rate")
         parser.add_argument("--b1", type=float, default=0.5,
                             help="adam: decay of first order momentum of gradient")
@@ -80,8 +79,6 @@ class GAN(LightningModule):
                             help="adam: decay of first order momentum of gradient")
         parser.add_argument("--latent_dim", type=int, default=100,
                             help="dimensionality of the latent space")
-        parser.add_argument("--num_workers", type=int, default=4,
-                            help="Number of worker for data loading.")
 
         return parser
 
@@ -159,12 +156,6 @@ class GAN(LightningModule):
         opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr, betas=(b1, b2))
         return [opt_g, opt_d], []
 
-    def train_dataloader(self):
-        transform = transforms.Compose([transforms.ToTensor(),
-                                        transforms.Normalize([0.5], [0.5])])
-        dataset = MNIST(self.hparams.data_path, train=True, download=True, transform=transform)
-        return DataLoader(dataset, batch_size=self.hparams.batch_size, num_workers=self.hparams.num_workers)
-
     def on_epoch_end(self):
         z = self.validation_z.type_as(self.generator.model[0].weight)
 
@@ -172,6 +163,31 @@ class GAN(LightningModule):
         sample_imgs = self(z)
         grid = torchvision.utils.make_grid(sample_imgs)
         self.logger.experiment.add_image('generated_images', grid, self.current_epoch)
+
+
+class MNISTDataModule(LightningDataModule):
+    def __init__(self, batch_size: int = 64, data_path: str = os.getcwd(), num_workers: int = 4):
+        super().__init__()
+        self.batch_size = batch_size
+        self.data_path = data_path
+        self.num_workers = num_workers
+
+        self.transform = transforms.Compose([transforms.ToTensor(),
+                                             transforms.Normalize([0.5], [0.5])])
+        self.dims = (1, 28, 28)
+
+    def prepare_data(self, stage=None):
+        # Use this method to do things that might write to disk or that need to be done only from a single GPU
+        # in distributed settings. Like downloading the dataset for the first time.
+        MNIST(self.data_path, train=True, download=True, transform=transforms.ToTensor())
+
+    def setup(self, stage=None):
+        # There are also data operations you might want to perform on every GPU, such as applying transforms
+        # defined explicitly in your datamodule or assigned in init.
+        self.mnist_train = MNIST(self.data_path, train=True, transform=self.transform)
+
+    def train_dataloader(self):
+        return DataLoader(self.mnist_train, batch_size=self.batch_size, num_workers=self.num_workers)
 
 
 def main(args: Namespace) -> None:
@@ -185,21 +201,24 @@ def main(args: Namespace) -> None:
     # ------------------------
     # If use distubuted training  PyTorch recommends to use DistributedDataParallel.
     # See: https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel
+    dm = MNISTDataModule.from_argparse_args(args)
     trainer = Trainer.from_argparse_args(args)
 
     # ------------------------
     # 3 START TRAINING
     # ------------------------
-    trainer.fit(model)
+    trainer.fit(model, dm)
 
 
 if __name__ == '__main__':
     parser = ArgumentParser()
 
     # Add pogram level args, if any.
-    parser.add_argument("--data_path", type=str, default=os.getcwd(), help="Path to save downloaded dataset.")
+    # ------------------------
+    # Add LightningDataLoader args
+    parser = MNISTDataModule.add_argparse_args(parser)
     # Add model specific args
-    parser = GAN.add_model_specific_args(parser)
+    parser = GAN.add_argparse_args(parser)
     # Add trainer args
     parser = Trainer.add_argparse_args(parser)
     # Parse all arguments
