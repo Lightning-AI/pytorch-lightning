@@ -185,10 +185,8 @@ class CometLogger(LightningLoggerBase):
         if self._experiment is not None:
             return self._experiment
 
-        manual_set_experiment_key_environment_variable = self._future_experiment_key is not None
-        if manual_set_experiment_key_environment_variable:
+        if self._future_experiment_key is not None:
             os.environ["COMET_EXPERIMENT_KEY"] = self._future_experiment_key
-            self._future_experiment_key = None
 
         try:
             if self.mode == "online":
@@ -213,14 +211,14 @@ class CometLogger(LightningLoggerBase):
                     **self._kwargs,
                 )
         finally:
-            if manual_set_experiment_key_environment_variable:
+            if self._future_experiment_key is not None:
                 os.environ.pop("COMET_EXPERIMENT_KEY")
+                self._future_experiment_key = None
 
         if self._experiment_name:
             self._experiment.set_name(self._experiment_name)
 
         return self._experiment
-
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
