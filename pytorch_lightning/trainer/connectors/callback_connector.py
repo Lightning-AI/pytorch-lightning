@@ -101,12 +101,12 @@ class CallbackConnectorLoggingMixin(ABC):
     @staticmethod
     def _on_test_epoch_start_log():
         """Called when the epoch begins."""
-        return None
+        return {"on_step" : [False, True], "on_epoch" : [False, True]}
     
     @staticmethod
     def _on_test_epoch_end_log():
         """Called when the epoch ends."""
-        return None
+        return {"on_step" : [False], "on_epoch" : [False, True]}
     
     @staticmethod
     def _on_epoch_start_log():
@@ -191,7 +191,7 @@ class CallbackConnectorLoggingMixin(ABC):
     @staticmethod
     def _on_test_start_log():
         """Called when the test begins."""
-        return None
+        return {"on_step" : [False, True], "on_epoch" : [False, True]}
     
     @staticmethod
     def _on_test_end_log():

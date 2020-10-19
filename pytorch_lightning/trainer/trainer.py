@@ -231,6 +231,8 @@ class Trainer(
 
             num_nodes: number of GPU nodes for distributed training.
 
+            num_processes: number of processes for distributed training with distributed_backend="ddp_cpu"
+
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders. Default: 2
 
@@ -530,8 +532,10 @@ class Trainer(
 
         # Load model and reset Result
         model = self.get_model()
+        
         # reset result
         model._results = Result()
+        
         # enable eval mode + no grads
         self.evaluation_loop.on_evaluation_model_eval()
 

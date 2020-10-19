@@ -682,3 +682,6 @@ def test_log_works_in_train_callback(tmpdir):
     for func_name, func_attr in test_callback.funcs_attr.items():
         if func_attr["prog_bar"] and (func_attr["on_step"] or func_attr["on_epoch"]):
             assert func_name in trainer.logger_connector.progress_bar_metrics
+        else:
+            assert func_name not in trainer.logger_connector.progress_bar_metrics
+

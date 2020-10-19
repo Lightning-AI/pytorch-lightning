@@ -14,8 +14,6 @@
 
 import subprocess
 from copy import copy, deepcopy
-from collections import defaultdict
-from collections import ChainMap
 
 import numpy as np
 import torch
@@ -34,25 +32,7 @@ from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.warning_utils import WarningCache
-
-class CacheInternalMetrics():
-    """
-    This class is an helper to cache model._results logged values before entering batch loop.
-    As on every `run_training_batch`, we apply model._results = Result() 
-    and therefore delete any previously logged values
-    """
-
-    def __init__(self):
-        self._internal_dict = defaultdict(list)
-
-    def append(self, key, value):
-        self._internal_dict[key].append(value)
-
-    def __getattr__(self, key: str) -> dict:
-        return dict(ChainMap(*self._internal_dict[key]))
-
-    def __repr__(self):
-        return self._internal_dict.__repr__()
+from pytorch_lightning.utilities.loop import CacheInternalMetrics
 
 class TrainLoop:
 
@@ -263,22 +243,7 @@ class TrainLoop:
         # hook
         self.trainer.call_hook('on_epoch_start')
         self.trainer.call_hook('on_train_epoch_start')
-        self._update_cache_internal_metrics()
-
-    def _update_cache_internal_metrics(self):
-        """
-        This function is used to cache any logged information 
-        between "on_train_start" to "on_train_epoch_start" callback hooks
-        """
-        model = self.trainer.get_model()
-
-        # save epoch metrics
-        self.cache_internal_metrics.append("epoch_log_metrics", model._results.get_epoch_log_metrics())
-        self.cache_internal_metrics.append("epoch_pbar_metrics", model._results.get_epoch_pbar_metrics())
-        
-        # save step/batch metrics
-        self.cache_internal_metrics.append("batch_log_metrics", model._results.get_batch_log_metrics())
-        self.cache_internal_metrics.append("batch_pbar_metrics", model._results.get_batch_pbar_metrics())
+        self.cache_internal_metrics.update(self.trainer, "before_on_batch_start")
 
     def on_train_batch_end(self, batch_output, epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx):
         # hook
@@ -567,9 +532,10 @@ class TrainLoop:
         batch_log_metrics.append(metrics_to_log)
 
         # add initially computed step metrics.
-        if len(self.cache_internal_metrics.batch_pbar_metrics) > 0:
-            self.trainer.logger_connector.add_progress_bar_metrics(self.cache_internal_metrics.batch_pbar_metrics)
-            self.trainer.logger_connector.callback_metrics.update(self.cache_internal_metrics.batch_pbar_metrics)
+        cache_internal_batch_pbar_metrics = self.cache_internal_metrics.get_as_dict("before_on_batch_start", "batch_pbar_metrics")
+        if len(cache_internal_batch_pbar_metrics) > 0:
+            self.trainer.logger_connector.add_progress_bar_metrics(cache_internal_batch_pbar_metrics)
+            self.trainer.logger_connector.callback_metrics.update(cache_internal_batch_pbar_metrics)
 
         # track progress bar metrics
         if len(step_pbar_metrics) > 0:
@@ -697,14 +663,14 @@ class TrainLoop:
         model = self.trainer.get_model()
 
         # set batch_pbar_metrics cached from "on_train_start" to "on_train_epoch_start"
-        batch_pbar_metrics = self.cache_internal_metrics.batch_pbar_metrics
-        if len(batch_pbar_metrics) > 0:
-            self.trainer.logger_connector.add_progress_bar_metrics(batch_pbar_metrics)
+        cache_internal_batch_pbar_metrics = self.cache_internal_metrics.get_as_dict("before_on_batch_start", "batch_pbar_metrics")
+        if len(cache_internal_batch_pbar_metrics) > 0:
+            self.trainer.logger_connector.add_progress_bar_metrics(cache_internal_batch_pbar_metrics)
 
         # set epoch_pbar_metrics cached from "on_train_start" to "on_train_epoch_start"
-        epoch_pbar_metrics = self.cache_internal_metrics.epoch_pbar_metrics
-        if len(epoch_pbar_metrics) > 0:
-            self.trainer.logger_connector.add_progress_bar_metrics(epoch_pbar_metrics)
+        cache_internal_epoch_pbar_metrics = self.cache_internal_metrics.get_as_dict("before_on_batch_start", "epoch_pbar_metrics")
+        if len(cache_internal_epoch_pbar_metrics) > 0:
+            self.trainer.logger_connector.add_progress_bar_metrics(cache_internal_epoch_pbar_metrics)
 
         # set batch_pbar_metrics cached from "on_batch_start" to "on_train_batch_start"
         batch_pbar_metrics = model._results.batch_pbar_metrics
@@ -903,10 +869,9 @@ class TrainLoop:
         # reset result + internal metris to catch epoch end logging
         model_ref = self.trainer.get_model()
         model_ref._results = Result()
-        self.cache_internal_metrics = CacheInternalMetrics()
         self.trainer.call_hook('on_epoch_end')
         self.trainer.call_hook('on_train_epoch_end', epoch_output)
-        self._update_cache_internal_metrics()
+        self.cache_internal_metrics.update(self.trainer, "after_on_batch_end")
 
     def increment_accumulated_grad_global_step(self):
         num_accumulated_batches_reached = (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0

@@ -110,8 +110,9 @@ class LoggerConnector:
 
     def before_on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, using_eval_result, test_mode):
         self._track_callback_metrics(deprecated_eval_results, using_eval_result)
-        self._track_callback_metrics_1_0(epoch_logs, self.trainer.evaluation_loop.metrics_to_log, reduce_on_epoch=True)
-
+        
+        metrics_to_log = self.trainer.evaluation_loop.cache_internal_metrics.get_as_list("before_on_batch_start", "epoch_log_metrics")
+        self._track_callback_metrics_1_0(epoch_logs, metrics_to_log, reduce_on_epoch=True)
         # TODO: deprecate parts of this for 1.0 (when removing results)
         self.__process_eval_epoch_end_results_and_log_legacy(deprecated_eval_results, test_mode)
 
@@ -347,8 +348,11 @@ class LoggerConnector:
             epoch_log_metrics.update(epoch_end_log_result.get_epoch_log_metrics())
             epoch_progress_bar_metrics.update(epoch_end_log_result.get_epoch_pbar_metrics())
 
-            epoch_log_metrics.update(self.trainer.train_loop.cache_internal_metrics.epoch_log_metrics)
-            epoch_progress_bar_metrics.update(self.trainer.train_loop.cache_internal_metrics.epoch_pbar_metrics)   
+            cache_internal_epoch_log_metrics = self.trainer.train_loop.cache_internal_metrics.get_as_dict("after_on_batch_end", "epoch_log_metrics")
+            epoch_log_metrics.update(cache_internal_epoch_log_metrics)
+
+            cache_internal_epoch_pbar_metrics = self.trainer.train_loop.cache_internal_metrics.get_as_dict("after_on_batch_end", "epoch_pbar_metrics")
+            epoch_progress_bar_metrics.update(cache_internal_epoch_pbar_metrics)   
 
         # TODO: deprecate 1.0
         else:

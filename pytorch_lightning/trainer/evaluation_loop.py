@@ -18,6 +18,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.warning_utils import WarningCache
+from pytorch_lightning.utilities.loop import CacheInternalMetrics
 
 
 class EvaluationLoop(object):
@@ -29,7 +30,7 @@ class EvaluationLoop(object):
         self.predictions = None
         self.max_batches = None
         self.warning_cache = WarningCache()
-        self.metrics_to_log = []
+        self.cache_internal_metrics = CacheInternalMetrics()
 
     def on_trainer_init(self):
         self.trainer.num_val_batches = []
@@ -84,7 +85,7 @@ class EvaluationLoop(object):
         return False
 
     def on_evaluation_start(self, *args, **kwargs):
-        self.metrics_to_log = []
+        self.cache_internal_metrics = CacheInternalMetrics()
         if self.testing:
             self.trainer.call_hook('on_test_start', *args, **kwargs)
         else:
@@ -106,19 +107,17 @@ class EvaluationLoop(object):
 
     def _update_metrics_to_log_after_evaluation_epoch_end(self):
         if not self.trainer.running_sanity_check:
+            self.cache_internal_metrics.update(self.trainer, "after_on_batch_end")
+            metrics_to_log = self.cache_internal_metrics.get_as_list("after_on_batch_end", "epoch_log_metrics")
             self.trainer.logger_connector._track_callback_metrics_1_0(self.trainer.get_model()._results, \
-                metrics_to_log=self.metrics_to_log)       
-
-    def _update_metrics_to_log_on_evaluation_epoch_start(self):
-        if not self.trainer.running_sanity_check:
-            self.trainer.logger_connector.track_metrics_on_evaluation_epoch_start(self.trainer.get_model()._results, \
-                metrics_to_log=self.metrics_to_log)  
+                metrics_to_log=metrics_to_log)       
 
     def on_evaluation_end(self, *args, **kwargs):
         if self.testing:
             self.trainer.call_hook('on_test_end', *args, **kwargs)
         else:
             self.trainer.call_hook('on_validation_end', *args, **kwargs)
+        
         self._update_metrics_to_log_after_evaluation_epoch_end()
 
     def reload_evaluation_dataloaders(self):
@@ -147,12 +146,38 @@ class EvaluationLoop(object):
 
         self.max_batches = max_batches
 
+    def _update_logger_connector_metrics(self):
+        model = self.trainer.get_model()
+
+        # set batch_pbar_metrics cached from "on_train_start" to "on_train_epoch_start"
+        cache_internal_batch_pbar_metrics = self.cache_internal_metrics.get_as_dict("before_on_batch_start", "batch_pbar_metrics")
+        if len(cache_internal_batch_pbar_metrics) > 0:
+            self.trainer.logger_connector.add_progress_bar_metrics(cache_internal_batch_pbar_metrics)
+
+        # set epoch_pbar_metrics cached from "on_train_start" to "on_train_epoch_start"
+        cache_internal_batch_log_metrics = self.cache_internal_metrics.get_as_dict("before_on_batch_start", "batch_log_metrics")
+        if len(cache_internal_batch_log_metrics) > 0:
+            self.trainer.logger_connector.callback_metrics.update(cache_internal_batch_log_metrics)
+
+        # set batch_pbar_metrics cached from "on_train_start" to "on_train_epoch_start"
+        cache_internal_epoch_pbar_metrics = self.cache_internal_metrics.get_as_dict("before_on_batch_start", "epoch_pbar_metrics")
+        if len(cache_internal_epoch_pbar_metrics) > 0:
+            self.trainer.logger_connector.add_progress_bar_metrics(cache_internal_epoch_pbar_metrics)
+
+        # set epoch_pbar_metrics cached from "on_train_start" to "on_train_epoch_start"
+        cache_internal_epoch_log_metrics = self.cache_internal_metrics.get_as_dict("before_on_batch_start", "epoch_log_metrics")
+        if len(cache_internal_epoch_log_metrics) > 0:
+            self.trainer.logger_connector.callback_metrics.update(cache_internal_epoch_log_metrics)
+
     def on_evaluation_epoch_start(self, *args, **kwargs):
         if self.testing:
             self.trainer.call_hook('on_test_epoch_start', *args, **kwargs)
         else:
             self.trainer.call_hook('on_validation_epoch_start', *args, **kwargs)
-        self._update_metrics_to_log_on_evaluation_epoch_start()
+        
+        # cache model._results logged values as it will be reset in next hook
+        self.cache_internal_metrics.update(self.trainer, "before_on_batch_start")
+        self._update_logger_connector_metrics()
 
     def build_args(self, test_mode, batch, batch_idx, dataloader_idx):
         # make dataloader_idx arg in validation_step optional
@@ -229,10 +254,10 @@ class EvaluationLoop(object):
         )
         return eval_loop_results
 
-
     def log_metrics_on_evaluation_end(self):
-        self.trainer.logger_connector.log_on_evaluation_end(self.metrics_to_log)
-        self.metrics_to_log = []
+        metrics_to_log = self.cache_internal_metrics.get_as_list("before_on_batch_start", "epoch_log_metrics")
+        metrics_to_log += self.cache_internal_metrics.get_as_list("after_on_batch_end", "epoch_log_metrics")
+        self.trainer.logger_connector.log_on_evaluation_end(metrics_to_log)
 
     def __run_eval_epoch_end(self, num_dataloaders, using_eval_result):
         model = self.trainer.get_model()
@@ -339,12 +364,17 @@ class EvaluationLoop(object):
         self.trainer.dev_debugger.track_eval_loss_history(self.testing, batch_idx, dataloader_idx, output)
 
     def on_evaluation_epoch_end(self, *args, **kwargs):
+        # reset model result
+        model_ref = self.trainer.get_model()
+        model_ref._results = Result()
         # call the callback hook
         if self.testing:
             self.trainer.call_hook('on_test_epoch_end', *args, **kwargs)
         else:
             self.trainer.call_hook('on_validation_epoch_end', *args, **kwargs)
+
         self._update_metrics_to_log_after_evaluation_epoch_end()
+        
 
     def log_evaluation_step_metrics(self, batch, batch_idx):
         results = self.trainer.get_model()._results
@@ -367,6 +397,9 @@ class EvaluationLoop(object):
     def __log_result_step_metrics(self, output, batch_idx):
         step_log_metrics = output.get_batch_log_metrics(include_forked_originals=False)
         step_pbar_metrics = output.get_batch_pbar_metrics(include_forked_originals=False)
+
+        batch_pbar_metrics = self.trainer.get_model()._results.batch_pbar_metrics
+        step_pbar_metrics.update(batch_pbar_metrics)
 
         if len(step_log_metrics) > 0:
             # make the metrics appear as a different line in the same graph
