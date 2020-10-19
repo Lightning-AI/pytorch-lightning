@@ -85,7 +85,7 @@ class SLURMConnector:
         if self.trainer.is_global_zero:
             # save weights
             log.info('handling SIGUSR1')
-            self.trainer.hpc_save(self.trainer.weights_save_path, self.trainer.logger)
+            self.trainer.checkpoint_connector.hpc_save(self.trainer.weights_save_path, self.trainer.logger)
 
             # find job id
             job_id = os.environ['SLURM_JOB_ID']

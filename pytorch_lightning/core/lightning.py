@@ -1608,7 +1608,7 @@ class LightningModule(
     @property
     def hparams_initial(self) -> AttributeDict:
         if not hasattr(self, "_hparams_initial"):
-            self._hparams_initial = AttributeDict()
+            return AttributeDict()
         # prevent any change
         return copy.deepcopy(self._hparams_initial)
 
@@ -1617,6 +1617,9 @@ class LightningModule(
         hparams_assignment_name = self.__get_hparams_assignment_variable()
         self._hparams_name = hparams_assignment_name
         self._set_hparams(hp)
+        # this resolves case when user does not uses `save_hyperparameters` and do hard assignement in init
+        if not hasattr(self, "_hparams_initial"):
+            self._hparams_initial = copy.deepcopy(self._hparams)
 
     def __get_hparams_assignment_variable(self):
         """"""

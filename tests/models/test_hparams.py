@@ -556,17 +556,27 @@ def test_args(tmpdir):
         SubClassVarArgs.load_from_checkpoint(raw_checkpoint_path)
 
 
-class RuntimeParamChangeModel(BoringModel):
-    def __init__(self, running_arg):
+class RuntimeParamChangeModelSaving(BoringModel):
+    def __init__(self, **kwargs):
         super().__init__()
         self.save_hyperparameters()
 
 
-def test_init_arg_with_runtime_change(tmpdir):
-    model = RuntimeParamChangeModel(123)
+class RuntimeParamChangeModelAssign(BoringModel):
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.hparams = kwargs
+
+
+@pytest.mark.parametrize("cls", [RuntimeParamChangeModelSaving, RuntimeParamChangeModelAssign])
+def test_init_arg_with_runtime_change(tmpdir, cls):
+    """Test that we save/export only the initial hparams, no other runtime change allowed"""
+    model = cls(running_arg=123)
     assert model.hparams.running_arg == 123
     model.hparams.running_arg = -1
     assert model.hparams.running_arg == -1
+    model.hparams = Namespace(abc=42)
+    assert model.hparams.abc == 42
 
     trainer = Trainer(
         default_root_dir=tmpdir,
