@@ -194,9 +194,6 @@ def main(args: Namespace) -> None:
 
 
 if __name__ == '__main__':
-    # ------------------------
-    # 0 PARSE COMMAND LINE ARGUMENTS
-    # ------------------------
     parser = ArgumentParser()
 
     # Add pogram level args, if any.
