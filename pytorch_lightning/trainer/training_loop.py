@@ -35,7 +35,12 @@ from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.warning_utils import WarningCache
 
-class InternalMetrics():
+class CacheInternalMetrics():
+    """
+    This class is an helper to cache model._results logged values before entering batch loop.
+    As on every `run_training_batch`, we apply model._results = Result() 
+    and therefore delete any previously logged values
+    """
 
     def __init__(self):
         self._internal_dict = defaultdict(list)
@@ -63,7 +68,7 @@ class TrainLoop:
         self._teardown_already_run = False
         self.running_loss = TensorRunningAccum(window_length=20)
         self.automatic_optimization = True
-        self.internal_metrics = InternalMetrics()
+        self.cache_internal_metrics = CacheInternalMetrics()
 
     def on_trainer_init(self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps, automatic_optimization):
         self.trainer.global_step = 0
@@ -104,7 +109,7 @@ class TrainLoop:
         # hook
         model_ref = self.trainer.get_model()
         model_ref._results = Result()
-        self.internal_metrics = InternalMetrics()
+        self.cache_internal_metrics = CacheInternalMetrics()
         self.trainer.call_hook('on_train_start')
 
     def setup_fit(self, model, train_dataloader, val_dataloaders, datamodule):
@@ -261,18 +266,22 @@ class TrainLoop:
         # hook
         self.trainer.call_hook('on_epoch_start')
         self.trainer.call_hook('on_train_epoch_start')
-        self._update_internal_metrics()
+        self._update_cache_internal_metrics()
 
-    def _update_internal_metrics(self):
+    def _update_cache_internal_metrics(self):
+        """
+        This function is used to cache any logged information 
+        between "on_train_start" to "on_train_epoch_start" callback hooks
+        """
         model = self.trainer.get_model()
 
         # save epoch metrics
-        self.internal_metrics.append("epoch_log_metrics", model._results.get_epoch_log_metrics())
-        self.internal_metrics.append("epoch_pbar_metrics", model._results.get_epoch_pbar_metrics())
+        self.cache_internal_metrics.append("epoch_log_metrics", model._results.get_epoch_log_metrics())
+        self.cache_internal_metrics.append("epoch_pbar_metrics", model._results.get_epoch_pbar_metrics())
         
         # save step/batch metrics
-        self.internal_metrics.append("batch_log_metrics", model._results.get_batch_log_metrics())
-        self.internal_metrics.append("batch_pbar_metrics", model._results.get_batch_pbar_metrics())
+        self.cache_internal_metrics.append("batch_log_metrics", model._results.get_batch_log_metrics())
+        self.cache_internal_metrics.append("batch_pbar_metrics", model._results.get_batch_pbar_metrics())
 
     def on_train_batch_end(self, batch_output, epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx):
         # hook
@@ -291,17 +300,21 @@ class TrainLoop:
         if self.trainer.val_dataloaders is None and not self.trainer.reload_dataloaders_every_epoch:
             self.trainer.reset_val_dataloader(model)
 
-    def _merge_results(self, opt_outputs):
-            model_ref = self.trainer.get_model()
-            valid_keys = model_ref._results.epoch_log_metrics
-            for opt_output in opt_outputs:
-                opt_output.update(valid_keys)
+    def _extend_epoch_end_outputs(self, opt_outputs):
+        """
+        This function extend `opt_outputs` from `epoch_end_outputs` with any extra `epoch_log_metrics` 
+        from 'on_batch_end' or 'on_train_batch_end' hooks.
+        """
+        model_ref = self.trainer.get_model()
+        valid_keys = model_ref._results.epoch_log_metrics
+        for opt_output in opt_outputs:
+            opt_output.update(valid_keys)
 
-                _internal = {k:v for k,v in model_ref._results["meta"]["_internal"].items() if k in valid_keys}
-                meta = {k:v for k,v in model_ref._results["meta"].items() if k in valid_keys}
+            _internal = {k:v for k,v in model_ref._results["meta"]["_internal"].items() if k in valid_keys}
+            meta = {k:v for k,v in model_ref._results["meta"].items() if k in valid_keys}
 
-                opt_output["meta"]["_internal"].update(_internal)
-                opt_output["meta"].update(meta)
+            opt_output["meta"]["_internal"].update(_internal)
+            opt_output["meta"].update(meta)
 
     
     def track_epoch_end_reduce_metrics(self, epoch_output, epoch_end_outputs):
@@ -310,7 +323,7 @@ class TrainLoop:
             # with 1 step (no tbptt) don't use a sequence at epoch end
             if isinstance(opt_outputs, list) and len(opt_outputs) == 1 and not isinstance(opt_outputs[0], Result):
                 opt_outputs = opt_outputs[0]
-            self._merge_results(opt_outputs)
+            self._extend_epoch_end_outputs(opt_outputs)
             epoch_output[opt_idx].append(opt_outputs)
 
     def get_optimizers_iterable(self):
@@ -552,9 +565,9 @@ class TrainLoop:
         batch_log_metrics.append(metrics_to_log)
 
         # add initially computed step metrics.
-        if len(self.internal_metrics.batch_pbar_metrics) > 0:
-            self.trainer.logger_connector.add_progress_bar_metrics(self.internal_metrics.batch_pbar_metrics)
-            self.trainer.logger_connector.callback_metrics.update(self.internal_metrics.batch_pbar_metrics)
+        if len(self.cache_internal_metrics.batch_pbar_metrics) > 0:
+            self.trainer.logger_connector.add_progress_bar_metrics(self.cache_internal_metrics.batch_pbar_metrics)
+            self.trainer.logger_connector.callback_metrics.update(self.cache_internal_metrics.batch_pbar_metrics)
 
         # track progress bar metrics
         if len(step_pbar_metrics) > 0:
@@ -867,10 +880,10 @@ class TrainLoop:
         # reset result + internal metris to catch epoch end logging
         model_ref = self.trainer.get_model()
         model_ref._results = Result()
-        self.internal_metrics = InternalMetrics()
+        self.cache_internal_metrics = CacheInternalMetrics()
         self.trainer.call_hook('on_epoch_end')
         self.trainer.call_hook('on_train_epoch_end', epoch_output)
-        self._update_internal_metrics()
+        self._update_cache_internal_metrics()
 
     def increment_accumulated_grad_global_step(self):
         num_accumulated_batches_reached = (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
