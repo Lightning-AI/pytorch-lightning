@@ -233,7 +233,7 @@ class LightningModule(
                 m = f'on_step=True cannot be used on {self._current_fx_name} method'
                 raise MisconfigurationException(m)
 
-            if 'epoch_end' in self._current_fx_name and on_epoch == False:
+            if 'epoch_end' in self._current_fx_name and on_epoch is False:
                 m = f'on_epoch cannot be False when called from the {self._current_fx_name} method'
                 raise MisconfigurationException(m)
 

@@ -93,9 +93,9 @@ def test_accuracy_invalid_shape():
         (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, _sk_accuracy_multiclass_prob),
         (_multiclass_inputs.preds, _multiclass_inputs.target, _sk_accuracy_multiclass),
         (
-                _multidim_multiclass_prob_inputs.preds,
-                _multidim_multiclass_prob_inputs.target,
-                _sk_accuracy_multidim_multiclass_prob,
+            _multidim_multiclass_prob_inputs.preds,
+            _multidim_multiclass_prob_inputs.target,
+            _sk_accuracy_multidim_multiclass_prob,
         ),
         (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target, _sk_accuracy_multidim_multiclass),
     ],

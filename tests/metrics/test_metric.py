@@ -72,7 +72,6 @@ def test_add_state_persistent():
         assert "b" not in a.state_dict()
 
 
-
 def test_reset():
     class A(Dummy):
         pass
