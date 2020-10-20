@@ -110,7 +110,7 @@ class LoggerConnector:
 
     def before_on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, using_eval_result, test_mode):
         self._track_callback_metrics(deprecated_eval_results, using_eval_result)
-        
+
         metrics_to_log = self.trainer.evaluation_loop.cache_internal_metrics.get_as_list("before_on_batch_start", "epoch_log_metrics")
         self._track_callback_metrics_1_0(epoch_logs, metrics_to_log, reduce_on_epoch=True)
         # TODO: deprecate parts of this for 1.0 (when removing results)
@@ -136,7 +136,7 @@ class LoggerConnector:
         return results
 
     def track_metrics_on_evaluation_epoch_start(self, logs, metrics_to_log=[]):
-        batch_logger_metrics  = logs.get_batch_log_metrics()
+        batch_logger_metrics = logs.get_batch_log_metrics()
         if len(batch_logger_metrics) > 0:
             metrics_to_log.append(batch_logger_metrics)
 
@@ -178,12 +178,12 @@ class LoggerConnector:
             for dl_idx, dl_metrics in enumerate(step_metrics):
                 if len(dl_metrics) == 0:
                     continue
-                
+
                 reduced_epoch_metrics = dl_metrics[0].__class__.reduce_on_epoch_end(dl_metrics)
                 logger_metrics = reduced_epoch_metrics.get_epoch_log_metrics()
                 pbar_metrics = reduced_epoch_metrics.get_epoch_pbar_metrics()
                 forked_metrics = reduced_epoch_metrics.get_forked_metrics()
-                
+
                 # track the metrics
                 self.logged_metrics.update(logger_metrics)
                 self.add_progress_bar_metrics(pbar_metrics)
@@ -212,11 +212,11 @@ class LoggerConnector:
                     del callback_metrics[key]
         self.eval_loop_results.append(callback_metrics)
 
-
     def log_epoch_metrics_on_evaluation_end(self, metrics_to_log):
         metrics_to_log = dict(ChainMap(*metrics_to_log))
+
         if len(metrics_to_log) > 0:
-            self.log_metrics(metrics_to_log, {}, step=self.trainer.global_step)        
+            self.log_metrics(metrics_to_log, {}, step=self.trainer.global_step)
 
     def _track_callback_metrics(self, eval_results, using_eval_result):
         if (
@@ -354,8 +354,7 @@ class LoggerConnector:
             epoch_log_metrics.update(cache_internal_epoch_log_metrics)
 
             cache_internal_epoch_pbar_metrics = self.trainer.train_loop.cache_internal_metrics.get_as_dict("after_on_batch_end", "epoch_pbar_metrics")
-            epoch_progress_bar_metrics.update(cache_internal_epoch_pbar_metrics)   
-
+            epoch_progress_bar_metrics.update(cache_internal_epoch_pbar_metrics)
         # TODO: deprecate 1.0
         else:
             out = self.__run_legacy_training_epoch_end(

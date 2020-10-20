@@ -493,6 +493,7 @@ def test_nested_datasouce_batch(tmpdir):
     )
     trainer.fit(model, train_data, val_data)
 
+
 def test_misconfiguration_error_for_training_step(tmpdir):
     """
     Tests that MisconfigurationException is raised when training_step return dict without loss.
@@ -508,7 +509,7 @@ def test_misconfiguration_error_for_training_step(tmpdir):
     model = TestModel()
     model.training_step_end = None
 
-    with pytest.raises(MisconfigurationException)  as excinfo:
+    with pytest.raises(MisconfigurationException) as excinfo:
 
         trainer = Trainer(
             default_root_dir=tmpdir,
@@ -521,7 +522,8 @@ def test_misconfiguration_error_for_training_step(tmpdir):
         )
         trainer.fit(model)
 
-    assert "The key `loss` should be present within training_step output. Existing keys: ['train_loss']"  == str(excinfo.value)
+    assert "The key `loss` should be present within training_step output. Existing keys: ['train_loss']" == str(excinfo.value)
+
 
 def test_misconfiguration_error_for_training_step_end(tmpdir):
     """
@@ -554,21 +556,22 @@ def test_misconfiguration_error_for_training_step_end(tmpdir):
         )
         trainer.fit(model)
 
-    assert "The key `loss` should be present within training_step_end output. Existing keys: ['train_loss']"  == str(excinfo.value)
+    assert "The key `loss` should be present within training_step_end output. Existing keys: ['train_loss']" == str(excinfo.value)
 
 
 def test_log_works_in_train_callback(tmpdir):
     """
     Tests that log can be called within callback
     """
+
     os.environ['PL_DEV_DEBUG'] = '1'
+
     class TestCallback(callbacks.Callback):
 
         # helpers
         count = 1
         choices = [False, True]
-
-        # used to compute expected values        
+        # used to compute expected values
         callback_funcs_called = collections.defaultdict(list)
         funcs_called_count = collections.defaultdict(int)
         funcs_attr = {}
@@ -580,7 +583,6 @@ def test_log_works_in_train_callback(tmpdir):
                 on_step, on_epoch, prog_bar = t
                 custom_func_name = f"{func_idx}_{idx}_{func_name}"
                 pl_module.log(custom_func_name, self.count * func_idx, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
-                
                 # catch information for verification
                 self.callback_funcs_called[func_name].append([self.count * func_idx])
                 self.funcs_attr[custom_func_name] = {"on_step":on_step, "on_epoch":on_epoch, "prog_bar":prog_bar, "is_created":False, "func_name":func_name}
@@ -608,9 +610,8 @@ def test_log_works_in_train_callback(tmpdir):
 
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
             self.make_logging(pl_module, 'on_train_batch_end', 7, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
-            
-            # used to make sure aggregation works fine. 
-            # we should obtain func[value * c for c in range(1, max_epochs * limit_train_batches)]) with func = np.mean if on_epoch else func = np.max 
+            # used to make sure aggregation works fine.
+            # we should obtain func[value * c for c in range(1, max_epochs * limit_train_batches)]) with func = np.mean if on_epoch else func = np.max
             self.count += 1
 
         def on_epoch_end(self, trainer, pl_module):
@@ -665,29 +666,31 @@ def test_log_works_in_train_callback(tmpdir):
 
     # function used to describe expected return logic
     def get_expected_output(func_attr, original_values):
-        if func_attr["on_epoch"] and not func_attr["on_step"]: # Apply mean on values
+        if func_attr["on_epoch"] and not func_attr["on_step"]:
+            # Apply mean on values
             expected_output = np.mean(original_values)
-        else: # Keep the latest value
-            expected_output = np.max(original_values) 
-        return expected_output       
+        else:
+            # Keep the latest value
+            expected_output = np.max(original_values)
+        return expected_output
 
     # Make sure the func_name output equals the average from all logged values when on_epoch true
     # pop extra keys
     trainer.callback_metrics.pop("debug_epoch")
     trainer.callback_metrics.pop("train_loss")
-    
+
     for func_name, output_value in trainer.callback_metrics.items():
         if torch.is_tensor(output_value):
             output_value = output_value.item()
         # get creation attr
         func_attr = test_callback.funcs_attr[func_name]
-        
+
         # retrived orginal logged values
         original_values = test_callback.callback_funcs_called[func_attr["func_name"]]
-        
+
         # compute expected output and compare to actual one
         expected_output = get_expected_output(func_attr, original_values)
-        assert float(output_value) == float(expected_output)   
+        assert float(output_value) == float(expected_output)
 
     for func_name, func_attr in test_callback.funcs_attr.items():
         if func_attr["prog_bar"] and (func_attr["on_step"] or func_attr["on_epoch"]):

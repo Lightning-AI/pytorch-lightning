@@ -152,8 +152,9 @@ class Result(Dict):
             was_forked = True
 
             # set step version
-            # add possibly dataloader_idx 
+            # add possibly dataloader_idx
             step_name = self.add_dl_idx(f'{name}_step', current_dataloader_idx)
+
             self.__set_meta(
                 step_name,
                 value,
@@ -166,11 +167,13 @@ class Result(Dict):
                 tbptt_pad_token=tbptt_pad_token,
                 forked=False
             )
+
             self.__setitem__(step_name, value)
 
             # set epoch version
-            # add possibly dataloader_idx 
+            # add possibly dataloader_idx
             epoch_name = self.add_dl_idx(f'{name}_epoch', current_dataloader_idx)
+
             self.__set_meta(
                 epoch_name,
                 value,
@@ -185,7 +188,7 @@ class Result(Dict):
             )
             self.__setitem__(epoch_name, value)
 
-        # add possibly dataloader_idx 
+        # add possibly dataloader_idx
         name = self.add_dl_idx(name, current_dataloader_idx)
 
         # always log the original metric
@@ -304,7 +307,6 @@ class Result(Dict):
                 self[k].compute()
 
         return result
-
 
     def get_epoch_pbar_metrics(self):
         """

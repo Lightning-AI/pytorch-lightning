@@ -59,6 +59,7 @@ class LearningRateMonitor(Callback):
             return [optimizer], [lr_scheduler]
 
     """
+
     def __init__(self, logging_interval: Optional[str] = None):
         if logging_interval not in (None, 'step', 'epoch'):
             raise MisconfigurationException(

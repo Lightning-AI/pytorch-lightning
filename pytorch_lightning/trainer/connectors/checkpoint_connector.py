@@ -12,12 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import io
 import os
 import re
-import signal
-from abc import ABC
-from subprocess import call
 
 import torch
 import torch.distributed as torch_distrib

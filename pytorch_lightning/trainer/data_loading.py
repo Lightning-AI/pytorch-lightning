@@ -14,7 +14,7 @@
 
 import multiprocessing
 import platform
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Union, List, Tuple, Callable, Optional
 
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler

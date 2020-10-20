@@ -110,15 +110,15 @@ class EvaluationLoop(object):
         if not self.trainer.running_sanity_check:
             self.cache_internal_metrics.update(self.trainer, "after_on_batch_end")
             metrics_to_log = self.cache_internal_metrics.get_as_list("after_on_batch_end", "epoch_log_metrics")
-            self.trainer.logger_connector._track_callback_metrics_1_0(self.trainer.get_model()._results, \
-                metrics_to_log=metrics_to_log)       
+            self.trainer.logger_connector._track_callback_metrics_1_0(self.trainer.get_model()._results,
+                                                                      metrics_to_log=metrics_to_log)
 
     def on_evaluation_end(self, *args, **kwargs):
         if self.testing:
             self.trainer.call_hook('on_test_end', *args, **kwargs)
         else:
             self.trainer.call_hook('on_validation_end', *args, **kwargs)
-        
+
         self._update_metrics_to_log_after_evaluation_epoch_end()
 
     def reload_evaluation_dataloaders(self):
@@ -152,22 +152,26 @@ class EvaluationLoop(object):
         model = self.trainer.get_model()
 
         # set batch_pbar_metrics cached from "on_train_start" to "on_train_epoch_start"
-        cache_internal_batch_pbar_metrics = self.cache_internal_metrics.get_as_dict("before_on_batch_start", "batch_pbar_metrics")
+        cache_internal_batch_pbar_metrics = self.cache_internal_metrics.get_as_dict(
+            "before_on_batch_start", "batch_pbar_metrics")
         if len(cache_internal_batch_pbar_metrics) > 0:
             self.trainer.logger_connector.add_progress_bar_metrics(cache_internal_batch_pbar_metrics)
 
         # set epoch_pbar_metrics cached from "on_train_start" to "on_train_epoch_start"
-        cache_internal_batch_log_metrics = self.cache_internal_metrics.get_as_dict("before_on_batch_start", "batch_log_metrics")
+        cache_internal_batch_log_metrics = self.cache_internal_metrics.get_as_dict(
+            "before_on_batch_start", "batch_log_metrics")
         if len(cache_internal_batch_log_metrics) > 0:
             self.trainer.logger_connector.callback_metrics.update(cache_internal_batch_log_metrics)
 
         # set batch_pbar_metrics cached from "on_train_start" to "on_train_epoch_start"
-        cache_internal_epoch_pbar_metrics = self.cache_internal_metrics.get_as_dict("before_on_batch_start", "epoch_pbar_metrics")
+        cache_internal_epoch_pbar_metrics = self.cache_internal_metrics.get_as_dict(
+            "before_on_batch_start", "epoch_pbar_metrics")
         if len(cache_internal_epoch_pbar_metrics) > 0:
             self.trainer.logger_connector.add_progress_bar_metrics(cache_internal_epoch_pbar_metrics)
 
         # set epoch_pbar_metrics cached from "on_train_start" to "on_train_epoch_start"
-        cache_internal_epoch_log_metrics = self.cache_internal_metrics.get_as_dict("before_on_batch_start", "epoch_log_metrics")
+        cache_internal_epoch_log_metrics = self.cache_internal_metrics.get_as_dict(
+            "before_on_batch_start", "epoch_log_metrics")
         if len(cache_internal_epoch_log_metrics) > 0:
             self.trainer.logger_connector.callback_metrics.update(cache_internal_epoch_log_metrics)
 
@@ -176,7 +180,7 @@ class EvaluationLoop(object):
             self.trainer.call_hook('on_test_epoch_start', *args, **kwargs)
         else:
             self.trainer.call_hook('on_validation_epoch_start', *args, **kwargs)
-        
+
         # cache model._results logged values as it will be reset in next hook
         self.cache_internal_metrics.update(self.trainer, "before_on_batch_start")
         self._update_logger_connector_metrics()
@@ -346,8 +350,8 @@ class EvaluationLoop(object):
 
     def set_dataloader_idx(self, dl_idx):
         # reset the result of the PL module
-        model = self.trainer.get_model() 
-        model._current_dataloader_idx = dl_idx if self.num_dataloaders > 1 else None    
+        model = self.trainer.get_model()
+        model._current_dataloader_idx = dl_idx if self.num_dataloaders > 1 else None
 
     def on_evaluation_batch_start(self, *args, **kwargs):
         # reset the result of the PL module
@@ -387,7 +391,6 @@ class EvaluationLoop(object):
             self.trainer.call_hook('on_validation_epoch_end', *args, **kwargs)
 
         self._update_metrics_to_log_after_evaluation_epoch_end()
-        
 
     def log_evaluation_step_metrics(self, batch, batch_idx):
         results = self.trainer.get_model()._results

@@ -16,7 +16,6 @@ import io
 from distutils.version import LooseVersion
 from typing import Union
 from pathlib import Path
-from urllib.parse import urlparse
 import torch
 import fsspec
 

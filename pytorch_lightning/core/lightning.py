@@ -11,16 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os
+import tempfile
 import collections
 import copy
 import inspect
-import os
 import re
-import tempfile
 from abc import ABC
 from argparse import Namespace
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from pytorch_lightning import _logger as log
@@ -248,13 +247,14 @@ class LightningModule(
             on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
             if self._current_hook_fx_name != '':
-                self.trainer.callback_connector.validate_callback_logging_arguments(self._current_hook_fx_name, 
-                on_step=on_step, 
-                on_epoch=on_epoch)
-            
+                self.trainer.callback_connector.validate_callback_logging_arguments(self._current_hook_fx_name,
+                                                                                    on_step=on_step,
+                                                                                    on_epoch=on_epoch)
+
             # make sure user doesn't introduce logic for multi-dataloaders
             if "/dataloader_idx_" in name:
-                raise MisconfigurationException(f"Logged key: {name} should not contain information about dataloader_idx.")
+                raise MisconfigurationException(
+                    f"Logged key: {name} should not contain information about dataloader_idx.")
 
             self._results.log(
                 name,
@@ -1286,11 +1286,11 @@ class LightningModule(
             batch_split = []
             for i, x in enumerate(batch):
                 if isinstance(x, torch.Tensor):
-                    split_x = x[:, t : t + split_size]
+                    split_x = x[:, t: t + split_size]
                 elif isinstance(x, collections.Sequence):
                     split_x = [None] * len(x)
                     for batch_idx in range(len(x)):
-                        split_x[batch_idx] = x[batch_idx][t : t + split_size]
+                        split_x[batch_idx] = x[batch_idx][t: t + split_size]
 
                 batch_split.append(split_x)
 

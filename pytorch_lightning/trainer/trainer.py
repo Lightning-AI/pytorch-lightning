@@ -532,10 +532,10 @@ class Trainer(
 
         # Load model and reset Result
         model = self.get_model()
-        
+
         # reset result
         model._results = Result()
-        
+
         # enable eval mode + no grads
         self.evaluation_loop.on_evaluation_model_eval()
 
@@ -559,7 +559,7 @@ class Trainer(
             dl_step_metrics = []
             dataloader = self.accelerator_backend.process_dataloader(dataloader)
             dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
-            
+
             # set dataloader idx in pl_model, so we can handle multi dataloaders logging.
             self.evaluation_loop.set_dataloader_idx(dataloader_idx)
 
@@ -605,11 +605,12 @@ class Trainer(
             num_dataloaders=len(dataloaders)
         )
 
-        eval_loop_results = self.evaluation_loop.track_metrics_before_on_evaluation_epoch_end(deprecated_eval_results, epoch_logs, test_mode)
+        eval_loop_results = self.evaluation_loop.track_metrics_before_on_evaluation_epoch_end(
+            deprecated_eval_results, epoch_logs, test_mode)
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
-        
+
         # hook
         self.evaluation_loop.on_evaluation_end()
 

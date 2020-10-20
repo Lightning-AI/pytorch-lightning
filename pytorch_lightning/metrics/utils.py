@@ -13,9 +13,6 @@
 # limitations under the License.
 import torch
 
-from typing import Any, Callable, Optional, Union
-
-
 METRIC_EPS = 1e-6
 
 

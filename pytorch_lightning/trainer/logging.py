@@ -14,7 +14,7 @@
 
 from abc import ABC
 import inspect
-from typing import Union, Iterable
+from typing import Union
 
 import torch
 

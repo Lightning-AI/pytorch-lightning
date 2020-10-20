@@ -242,6 +242,7 @@ class _LRFinder(object):
         # Get suggestion
         lr = lr_finder.suggestion()
     """
+
     def __init__(self, mode: str, lr_min: float, lr_max: float, num_training: int):
         assert mode in ('linear', 'exponential'), \
             'mode should be either `linear` or `exponential`'
@@ -366,6 +367,7 @@ class _LRCallback(Callback):
             if ``beta=0`` all past information is ignored.
 
     """
+
     def __init__(self, num_training: int,
                  early_stop_threshold: float = 4.0,
                  progress_bar_refresh_rate: int = 0,

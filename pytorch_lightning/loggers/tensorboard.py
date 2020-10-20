@@ -20,7 +20,6 @@ TensorBoard
 import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
-from warnings import warn
 
 import torch
 from torch.utils.tensorboard import SummaryWriter

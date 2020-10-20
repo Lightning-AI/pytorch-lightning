@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess
 from copy import copy, deepcopy
 
 import numpy as np
@@ -33,6 +32,7 @@ from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.warning_utils import WarningCache
 from pytorch_lightning.utilities.loop import CacheInternalMetrics
+
 
 class TrainLoop:
 
@@ -259,7 +259,6 @@ class TrainLoop:
         if len(batch_pbar_metrics) > 0:
             self.trainer.logger_connector.add_progress_bar_metrics(batch_pbar_metrics)
 
-
     def reset_train_val_dataloaders(self, model):
         if not self.trainer.reload_dataloaders_every_epoch:
             self.trainer.reset_train_dataloader(model)
@@ -269,7 +268,7 @@ class TrainLoop:
 
     def _extend_epoch_end_outputs(self, opt_outputs):
         """
-        This function extend `opt_outputs` from `epoch_end_outputs` with any extra `epoch_log_metrics` 
+        This function extend `opt_outputs` from `epoch_end_outputs` with any extra `epoch_log_metrics`
         from 'on_batch_end' or 'on_train_batch_end' hooks.
         """
         model_ref = self.trainer.get_model()
@@ -278,13 +277,12 @@ class TrainLoop:
             if isinstance(opt_output, dict):
                 opt_output.update(valid_keys)
 
-                _internal = {k:v for k,v in model_ref._results["meta"]["_internal"].items() if k in valid_keys}
-                meta = {k:v for k,v in model_ref._results["meta"].items() if k in valid_keys}
+                _internal = {k: v for k, v in model_ref._results["meta"]["_internal"].items() if k in valid_keys}
+                meta = {k: v for k, v in model_ref._results["meta"].items() if k in valid_keys}
 
                 opt_output["meta"]["_internal"].update(_internal)
                 opt_output["meta"].update(meta)
 
-    
     def track_epoch_end_reduce_metrics(self, epoch_output, epoch_end_outputs):
         # track the outputs to reduce at the end of the epoch
         for opt_idx, opt_outputs in enumerate(epoch_end_outputs):
@@ -430,7 +428,7 @@ class TrainLoop:
             if loss is None:
                 func_name = "training_step_end" if is_overridden('training_step_end', model_ref) else "training_step"
                 m = f'The key `loss` should be present within {func_name} output. Existing keys: {[*training_step_output]}'
-                raise MisconfigurationException(m)            
+                raise MisconfigurationException(m)
 
         # handle scalar return
         elif isinstance(training_step_output, torch.Tensor):
@@ -533,7 +531,8 @@ class TrainLoop:
         batch_log_metrics.append(metrics_to_log)
 
         # add initially computed step metrics.
-        cache_internal_batch_pbar_metrics = self.cache_internal_metrics.get_as_dict("before_on_batch_start", "batch_pbar_metrics")
+        cache_internal_batch_pbar_metrics = self.cache_internal_metrics.get_as_dict(
+            "before_on_batch_start", "batch_pbar_metrics")
         if len(cache_internal_batch_pbar_metrics) > 0:
             self.trainer.logger_connector.add_progress_bar_metrics(cache_internal_batch_pbar_metrics)
             self.trainer.logger_connector.callback_metrics.update(cache_internal_batch_pbar_metrics)
@@ -664,12 +663,14 @@ class TrainLoop:
         model = self.trainer.get_model()
 
         # set batch_pbar_metrics cached from "on_train_start" to "on_train_epoch_start"
-        cache_internal_batch_pbar_metrics = self.cache_internal_metrics.get_as_dict("before_on_batch_start", "batch_pbar_metrics")
+        cache_internal_batch_pbar_metrics = self.cache_internal_metrics.get_as_dict(
+            "before_on_batch_start", "batch_pbar_metrics")
         if len(cache_internal_batch_pbar_metrics) > 0:
             self.trainer.logger_connector.add_progress_bar_metrics(cache_internal_batch_pbar_metrics)
 
         # set epoch_pbar_metrics cached from "on_train_start" to "on_train_epoch_start"
-        cache_internal_epoch_pbar_metrics = self.cache_internal_metrics.get_as_dict("before_on_batch_start", "epoch_pbar_metrics")
+        cache_internal_epoch_pbar_metrics = self.cache_internal_metrics.get_as_dict(
+            "before_on_batch_start", "epoch_pbar_metrics")
         if len(cache_internal_epoch_pbar_metrics) > 0:
             self.trainer.logger_connector.add_progress_bar_metrics(cache_internal_epoch_pbar_metrics)
 
@@ -810,7 +811,6 @@ class TrainLoop:
 
         # collapse all metrics into one dict
         batch_log_metrics = {k: v for d in batch_log_metrics for k, v in d.items()}
-
 
         # track all metrics for callbacks
         self.trainer.logger_connector.callback_metrics.update(batch_log_metrics)
