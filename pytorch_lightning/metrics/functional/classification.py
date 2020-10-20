@@ -932,20 +932,20 @@ def multiclass_auroc(
     """
     if not torch.allclose(pred.sum(dim=1), torch.tensor(1.0)):
         raise ValueError(
-            "Multiclass AUROC metric expects the target scores to be "
-            "probabilities, i.e. they should sum up to 1.0 over classes")
+            "Multiclass AUROC metric expects the target scores to be"
+            " probabilities, i.e. they should sum up to 1.0 over classes")
 
     if torch.unique(target).size(0) != pred.size(1):
         raise ValueError(
-            f"Number of classes found in in 'target' ({torch.unique(target).size(0)}) "
-            f"does not equal the number of columns in 'pred' ({pred.size(1)}). "
-            "Multiclass AUROC is not defined when all of the classes do not "
-            "occur in the target labels.")
+            f"Number of classes found in in 'target' ({torch.unique(target).size(0)})"
+            f" does not equal the number of columns in 'pred' ({pred.size(1)})."
+            " Multiclass AUROC is not defined when all of the classes do not"
+            " occur in the target labels.")
 
     if num_classes is not None and num_classes != pred.size(1):
         raise ValueError(
-            f"Number of classes deduced from 'pred' ({pred.size(1)}) does not equal "
-            f"the number of classes passed in 'num_classes' ({num_classes}).")
+            f"Number of classes deduced from 'pred' ({pred.size(1)}) does not equal"
+            f" the number of classes passed in 'num_classes' ({num_classes}).")
 
     @multiclass_auc_decorator(reorder=False)
     def _multiclass_auroc(pred, target, sample_weight, num_classes):
