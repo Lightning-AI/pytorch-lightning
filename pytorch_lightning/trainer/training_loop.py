@@ -749,6 +749,9 @@ class TrainLoop:
                 )
 
                 if opt_closure_result is None:
+                    results = self.trainer.get_model()._results
+                    batch_log_metrics.append(results.get_batch_log_metrics(include_forked_originals=False))
+                    batch_log_metrics.append(self.trainer.metrics_to_scalars(results.epoch_log_metrics))
                     continue
 
                 using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
@@ -807,6 +810,7 @@ class TrainLoop:
 
         # collapse all metrics into one dict
         batch_log_metrics = {k: v for d in batch_log_metrics for k, v in d.items()}
+
 
         # track all metrics for callbacks
         self.trainer.logger_connector.callback_metrics.update(batch_log_metrics)
