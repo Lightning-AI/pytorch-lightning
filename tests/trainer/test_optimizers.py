@@ -1,8 +1,23 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, Callback
 from tests.base import EvalModelTemplate
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.base.boring_model import BoringModel
 
 
 def test_optimizer_with_scheduling(tmpdir):
@@ -111,7 +126,7 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
         'lr for optimizer 2 not adjusted correctly'
 
 
-def test_reduce_lr_on_plateau_scheduling(tmpdir):
+def test_reduce_lr_on_plateau_scheduling_missing_monitor(tmpdir):
 
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
@@ -124,11 +139,36 @@ def test_reduce_lr_on_plateau_scheduling(tmpdir):
         limit_val_batches=0.1,
         limit_train_batches=0.2,
     )
+
+    m = '.*ReduceLROnPlateau requires returning a dict from configure_optimizers.*'
+    with pytest.raises(MisconfigurationException, match=m):
+        trainer.fit(model)
+
+
+def test_reduce_lr_on_plateau_scheduling(tmpdir):
+    hparams = EvalModelTemplate.get_default_hparams()
+
+    class TestModel(EvalModelTemplate):
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+            lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+            return {'optimizer': optimizer, 'lr_scheduler': lr_scheduler, 'monitor': 'early_stop_on'}
+
+    model = TestModel(**hparams)
+
+    # fit model
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_val_batches=0.1,
+        limit_train_batches=0.2,
+    )
     results = trainer.fit(model)
     assert results == 1
 
     assert trainer.lr_schedulers[0] == \
-        dict(scheduler=trainer.lr_schedulers[0]['scheduler'], monitor='val_loss',
+        dict(scheduler=trainer.lr_schedulers[0]['scheduler'], monitor='early_stop_on',
              interval='epoch', frequency=1, reduce_on_plateau=True), \
         'lr schduler was not correctly converted to dict'
 
@@ -167,7 +207,7 @@ def test_optimizer_return_options():
     assert len(optim) == 1 and len(lr_sched) == 1 and len(freq) == 0
     assert optim[0] == opt_a
     assert lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch',
-                               frequency=1, reduce_on_plateau=False, monitor='val_loss')
+                               frequency=1, reduce_on_plateau=False)
 
     # opt single dictionary
     model.configure_optimizers = lambda: {"optimizer": opt_a, "lr_scheduler": scheduler_a}
@@ -175,7 +215,7 @@ def test_optimizer_return_options():
     assert len(optim) == 1 and len(lr_sched) == 1 and len(freq) == 0
     assert optim[0] == opt_a
     assert lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch',
-                               frequency=1, reduce_on_plateau=False, monitor='val_loss')
+                               frequency=1, reduce_on_plateau=False)
 
     # opt multiple dictionaries with frequencies
     model.configure_optimizers = lambda: (
@@ -186,7 +226,7 @@ def test_optimizer_return_options():
     assert len(optim) == 2 and len(lr_sched) == 2 and len(freq) == 2
     assert optim[0] == opt_a
     assert lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch',
-                               frequency=1, reduce_on_plateau=False, monitor='val_loss')
+                               frequency=1, reduce_on_plateau=False)
     assert freq == [1, 5]
 
 
@@ -273,3 +313,50 @@ def test_init_optimizers_during_testing(tmpdir):
     assert len(trainer.lr_schedulers) == 0
     assert len(trainer.optimizers) == 0
     assert len(trainer.optimizer_frequencies) == 0
+
+
+def test_multiple_optimizers_callbacks(tmpdir):
+    """
+    Tests that multiple optimizers can be used with callbacks
+    """
+    class CB(Callback):
+
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+            pass
+
+        def on_train_epoch_start(self, trainer, pl_module):
+            pass
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.layer_1 = torch.nn.Linear(32, 2)
+            self.layer_2 = torch.nn.Linear(32, 2)
+
+        def training_step(self, batch, batch_idx, optimizer_idx):
+            if optimizer_idx == 0:
+                a = batch[0]
+                acc = self.layer_1(a)
+            else:
+                a = batch[0]
+                acc = self.layer_2(a)
+
+            acc = self.loss(acc, acc)
+            return acc
+
+        def configure_optimizers(self):
+            a = torch.optim.RMSprop(self.layer_1.parameters(), 1e-2)
+            b = torch.optim.RMSprop(self.layer_2.parameters(), 1e-2)
+            return a, b
+
+    model = TestModel()
+    model.training_epoch_end = None
+    trainer = Trainer(
+        callbacks=[CB()],
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=2,
+        max_epochs=1,
+        weights_summary=None,
+    )
+    trainer.fit(model)

@@ -11,7 +11,7 @@ from tests.base.models import ParityModuleRNN, ParityModuleMNIST
 
 @pytest.mark.parametrize('cls_model,max_diff', [
     (ParityModuleRNN, 0.05),
-    (ParityModuleMNIST, 0.5)
+    (ParityModuleMNIST, 0.70)
 ])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_pytorch_parity(tmpdir, cls_model, max_diff):
@@ -99,7 +99,6 @@ def lightning_loop(cls_model, num_runs=10, num_epochs=10):
             progress_bar_refresh_rate=0,
             weights_summary=None,
             gpus=1,
-            early_stop_callback=False,
             checkpoint_callback=False,
             deterministic=True,
             logger=False,

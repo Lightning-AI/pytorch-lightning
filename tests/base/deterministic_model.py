@@ -1,8 +1,21 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
 
-from pytorch_lightning import TrainResult, EvalResult
+from pytorch_lightning.core.step_result import TrainResult, EvalResult
 from pytorch_lightning.core.lightning import LightningModule
 
 
@@ -186,23 +199,23 @@ class DeterministicModel(LightningModule):
             # only saw 4 batches
             assert isinstance(result, TrainResult)
 
-        result.step_epoch_log_acc2 = result.step_step_epoch_log_acc2.prod()
-        result.step_epoch_pbar_acc3 = result.step_step_epoch_pbar_acc3.prod()
-        result.step_epoch_log_and_pbar_acc1 = result.step_epoch_log_and_pbar_acc1.prod()
+        result.step_epoch_log_acc2 = result.step_epoch_log_acc2_step.prod()
+        result.step_epoch_pbar_acc3 = result.step_epoch_pbar_acc3_step.prod()
+        result.step_epoch_log_and_pbar_acc1 = result.step_epoch_log_and_pbar_acc1_step.prod()
         result.minimize = result.minimize.mean()
         result.checkpoint_on = result.checkpoint_on.mean()
 
-        result.step_step_epoch_log_and_pbar_acc1 = result.step_step_epoch_log_and_pbar_acc1.prod()
-        result.epoch_step_epoch_log_and_pbar_acc1 = result.epoch_step_epoch_log_and_pbar_acc1.prod()
-        result.step_step_epoch_log_acc2 = result.step_step_epoch_log_acc2.prod()
-        result.epoch_step_epoch_log_acc2 = result.epoch_step_epoch_log_acc2.prod()
-        result.step_step_epoch_pbar_acc3 = result.step_step_epoch_pbar_acc3.prod()
-        result.epoch_step_epoch_pbar_acc3 = result.epoch_step_epoch_pbar_acc3.prod()
-        result.log('epoch_end_log_acc', torch.tensor(1212).type_as(result.epoch_step_epoch_log_acc2),
+        result.step_epoch_log_and_pbar_acc1_step = result.step_epoch_log_and_pbar_acc1_step.prod()
+        result.step_epoch_log_and_pbar_acc1_epoch = result.step_epoch_log_and_pbar_acc1_epoch.prod()
+        result.step_epoch_log_acc2_step = result.step_epoch_log_acc2_step.prod()
+        result.step_epoch_log_acc2_epoch = result.step_epoch_log_acc2_epoch.prod()
+        result.step_epoch_pbar_acc3_step = result.step_epoch_pbar_acc3_step.prod()
+        result.step_epoch_pbar_acc3_epoch = result.step_epoch_pbar_acc3_epoch.prod()
+        result.log('epoch_end_log_acc', torch.tensor(1212).type_as(result.step_epoch_log_acc2_epoch),
                    logger=True, on_epoch=True)
-        result.log('epoch_end_pbar_acc', torch.tensor(1213).type_as(result.epoch_step_epoch_log_acc2),
+        result.log('epoch_end_pbar_acc', torch.tensor(1213).type_as(result.step_epoch_log_acc2_epoch),
                    logger=False, prog_bar=True, on_epoch=True)
-        result.log('epoch_end_log_pbar_acc', torch.tensor(1214).type_as(result.epoch_step_epoch_log_acc2),
+        result.log('epoch_end_log_pbar_acc', torch.tensor(1214).type_as(result.step_epoch_log_acc2_epoch),
                    logger=True, prog_bar=True, on_epoch=True)
         return result
 
@@ -472,7 +485,7 @@ class DeterministicModel(LightningModule):
         scheduler = {'scheduler': lr_scheduler, 'interval': 'step', 'monitor': 'pbar_acc1'}
         return [optimizer], [scheduler]
 
-    def backward(self, trainer, loss, optimizer, optimizer_idx):
+    def backward(self, loss, optimizer, optimizer_idx):
         if self.assert_backward:
             if self.trainer.precision == 16:
                 assert loss > 171 * 1000

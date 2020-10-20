@@ -22,11 +22,9 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 try:
     import neptune
     from neptune.experiments import Experiment
-    _NEPTUNE_AVAILABLE = True
 except ImportError:  # pragma: no-cover
     neptune = None
     Experiment = None
-    _NEPTUNE_AVAILABLE = False
 
 import torch
 from torch import is_tensor
@@ -50,52 +48,57 @@ class NeptuneLogger(LightningLoggerBase):
 
     **ONLINE MODE**
 
-    Example:
-        >>> from pytorch_lightning import Trainer
-        >>> from pytorch_lightning.loggers import NeptuneLogger
-        >>> # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
-        >>> # We are using an api_key for the anonymous user "neptuner" but you can use your own.
-        >>> neptune_logger = NeptuneLogger(
-        ...     api_key='ANONYMOUS',
-        ...     project_name='shared/pytorch-lightning-integration',
-        ...     experiment_name='default',  # Optional,
-        ...     params={'max_epochs': 10},  # Optional,
-        ...     tags=['pytorch-lightning', 'mlp']  # Optional,
-        ... )
-        >>> trainer = Trainer(max_epochs=10, logger=neptune_logger)
+    .. code-block:: python
+
+        from pytorch_lightning import Trainer
+        from pytorch_lightning.loggers import NeptuneLogger
+
+        # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
+        # We are using an api_key for the anonymous user "neptuner" but you can use your own.
+        neptune_logger = NeptuneLogger(
+            api_key='ANONYMOUS',
+            project_name='shared/pytorch-lightning-integration',
+            experiment_name='default',  # Optional,
+            params={'max_epochs': 10},  # Optional,
+            tags=['pytorch-lightning', 'mlp']  # Optional,
+        )
+        trainer = Trainer(max_epochs=10, logger=neptune_logger)
 
     **OFFLINE MODE**
 
-    Example:
-        >>> from pytorch_lightning.loggers import NeptuneLogger
-        >>> # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
-        >>> neptune_logger = NeptuneLogger(
-        ...     offline_mode=True,
-        ...     project_name='USER_NAME/PROJECT_NAME',
-        ...     experiment_name='default',  # Optional,
-        ...     params={'max_epochs': 10},  # Optional,
-        ...     tags=['pytorch-lightning', 'mlp']  # Optional,
-        ... )
-        >>> trainer = Trainer(max_epochs=10, logger=neptune_logger)
+    .. code-block:: python
+
+        from pytorch_lightning.loggers import NeptuneLogger
+
+        # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
+        neptune_logger = NeptuneLogger(
+            offline_mode=True,
+            project_name='USER_NAME/PROJECT_NAME',
+            experiment_name='default',  # Optional,
+            params={'max_epochs': 10},  # Optional,
+            tags=['pytorch-lightning', 'mlp']  # Optional,
+        )
+        trainer = Trainer(max_epochs=10, logger=neptune_logger)
 
     Use the logger anywhere in you :class:`~pytorch_lightning.core.lightning.LightningModule` as follows:
 
-    >>> from pytorch_lightning import LightningModule
-    >>> class LitModel(LightningModule):
-    ...     def training_step(self, batch, batch_idx):
-    ...         # log metrics
-    ...         self.logger.experiment.log_metric('acc_train', ...)
-    ...         # log images
-    ...         self.logger.experiment.log_image('worse_predictions', ...)
-    ...         # log model checkpoint
-    ...         self.logger.experiment.log_artifact('model_checkpoint.pt', ...)
-    ...         self.logger.experiment.whatever_neptune_supports(...)
-    ...
-    ...     def any_lightning_module_function_or_hook(self):
-    ...         self.logger.experiment.log_metric('acc_train', ...)
-    ...         self.logger.experiment.log_image('worse_predictions', ...)
-    ...         self.logger.experiment.log_artifact('model_checkpoint.pt', ...)
-    ...         self.logger.experiment.whatever_neptune_supports(...)
+    .. code-block:: python
+
+        class LitModel(LightningModule):
+            def training_step(self, batch, batch_idx):
+                # log metrics
+                self.logger.experiment.log_metric('acc_train', ...)
+                # log images
+                self.logger.experiment.log_image('worse_predictions', ...)
+                # log model checkpoint
+                self.logger.experiment.log_artifact('model_checkpoint.pt', ...)
+                self.logger.experiment.whatever_neptune_supports(...)
+
+            def any_lightning_module_function_or_hook(self):
+                self.logger.experiment.log_metric('acc_train', ...)
+                self.logger.experiment.log_image('worse_predictions', ...)
+                self.logger.experiment.log_artifact('model_checkpoint.pt', ...)
+                self.logger.experiment.whatever_neptune_supports(...)
 
     If you want to log objects after the training is finished use ``close_after_fit=False``:
 
@@ -171,7 +174,7 @@ class NeptuneLogger(LightningLoggerBase):
         experiment_name: Optional[str] = None,
         **kwargs
     ):
-        if not _NEPTUNE_AVAILABLE:
+        if neptune is None:
             raise ImportError('You want to use `neptune` logger which is not installed yet,'
                               ' install it with `pip install neptune-client`.')
         super().__init__()

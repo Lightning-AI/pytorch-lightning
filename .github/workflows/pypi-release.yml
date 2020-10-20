@@ -7,10 +7,10 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
   release:
     types: [created]
 
-# based on https://github.com/pypa/gh-action-pypi-publish
 
 jobs:
-  build:
+  # based on https://github.com/pypa/gh-action-pypi-publish
+  build-publish:
     runs-on: ubuntu-20.04
 
     steps:

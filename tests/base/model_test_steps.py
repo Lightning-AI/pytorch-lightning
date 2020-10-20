@@ -1,10 +1,23 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import random
 from abc import ABC
 from collections import OrderedDict
 
 import torch
 
-from pytorch_lightning import EvalResult
+from pytorch_lightning.core.step_result import EvalResult
 
 
 class TestStepVariations(ABC):
@@ -151,38 +164,41 @@ class TestStepVariations(ABC):
 
         # Base
         if option == 0:
-            result.write('idxs', lazy_ids, prediction_file)
-            result.write('preds', labels_hat, prediction_file)
+            self.write_prediction('idxs', lazy_ids, prediction_file)
+            self.write_prediction('preds', labels_hat, prediction_file)
 
         # Check mismatching tensor len
         elif option == 1:
-            result.write('idxs', torch.cat((lazy_ids, lazy_ids)), prediction_file)
-            result.write('preds', labels_hat, prediction_file)
+            self.write_prediction('idxs', torch.cat((lazy_ids, lazy_ids)), prediction_file)
+            self.write_prediction('preds', labels_hat, prediction_file)
 
         # write multi-dimension
         elif option == 2:
-            result.write('idxs', lazy_ids, prediction_file)
-            result.write('preds', labels_hat, prediction_file)
-            result.write('x', x, prediction_file)
+            self.write_prediction('idxs', lazy_ids, prediction_file)
+            self.write_prediction('preds', labels_hat, prediction_file)
+            self.write_prediction('x', x, prediction_file)
 
         # write str list
         elif option == 3:
-            result.write('idxs', lazy_ids, prediction_file)
-            result.write('vals', lst_of_str, prediction_file)
+            self.write_prediction('idxs', lazy_ids, prediction_file)
+            self.write_prediction('vals', lst_of_str, prediction_file)
 
         # write int list
         elif option == 4:
-            result.write('idxs', lazy_ids, prediction_file)
-            result.write('vals', lst_of_int, prediction_file)
+            self.write_prediction('idxs', lazy_ids, prediction_file)
+            self.write_prediction('vals', lst_of_int, prediction_file)
 
         # write nested list
         elif option == 5:
-            result.write('idxs', lazy_ids, prediction_file)
-            result.write('vals', lst_of_lst, prediction_file)
+            self.write_prediction('idxs', lazy_ids, prediction_file)
+            self.write_prediction('vals', lst_of_lst, prediction_file)
 
         # write dict list
         elif option == 6:
-            result.write('idxs', lazy_ids, prediction_file)
-            result.write('vals', lst_of_dict, prediction_file)
+            self.write_prediction('idxs', lazy_ids, prediction_file)
+            self.write_prediction('vals', lst_of_dict, prediction_file)
+
+        elif option == 7:
+            self.write_prediction_dict({'idxs': lazy_ids, 'preds': labels_hat}, prediction_file)
 
         return result

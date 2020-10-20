@@ -1,10 +1,23 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from unittest.mock import MagicMock
 
 import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.gpu_backend import GPUBackend
+from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator
 from tests.base import EvalModelTemplate
 
 
@@ -101,10 +114,31 @@ def test_transfer_batch_hook():
     batch = CustomBatch((torch.zeros(5, 28), torch.ones(5, 1, dtype=torch.long)))
 
     trainer = Trainer(gpus=1)
-    trainer.accelerator_backend = GPUBackend(trainer)
+    trainer.accelerator_backend = GPUAccelerator(trainer)
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
     trainer.get_model = MagicMock(return_value=model)
     batch_gpu = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
     expected = torch.device('cuda', 0)
     assert model.hook_called
     assert batch_gpu.samples.device == batch_gpu.targets.device == expected
+
+
+@pytest.mark.parametrize(
+    'max_epochs,batch_idx_',
+    [(2, 5), (3, 8), (4, 12)]
+)
+def test_on_train_batch_start_hook(max_epochs, batch_idx_):
+    class CurrentModel(EvalModelTemplate):
+        def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
+            if batch_idx == batch_idx_:
+                return -1
+
+    model = CurrentModel()
+    trainer = Trainer(max_epochs=max_epochs)
+    trainer.fit(model)
+    if batch_idx_ > len(model.val_dataloader()) - 1:
+        assert trainer.batch_idx == len(model.val_dataloader()) - 1
+        assert trainer.global_step == len(model.val_dataloader()) * max_epochs
+    else:
+        assert trainer.batch_idx == batch_idx_
+        assert trainer.global_step == (batch_idx_ + 1) * max_epochs

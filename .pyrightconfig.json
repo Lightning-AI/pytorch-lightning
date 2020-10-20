@@ -35,6 +35,8 @@
     "pytorch_lightning/trainer/connectors/checkpoint_connector.py",
     "pytorch_lightning/trainer/connectors/data_connector.py",
     "pytorch_lightning/trainer/connectors/logger_connector.py",
+    "pytorch_lightning/trainer/connectors/slurm_connector.py",
+    "pytorch_lightning/distributed/dist.py",
     "pytorch_lightning/tuner",
     "pytorch_lightning/plugins"
   ],

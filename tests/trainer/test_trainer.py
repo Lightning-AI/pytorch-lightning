@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import glob
 import math
 import os
@@ -23,6 +36,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
 from tests.base import EvalModelTemplate
 
 
@@ -289,7 +303,7 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_bat
         def on_before_zero_grad(self, optimizer):
             self.opt_step = self.state_dict()
 
-        def on_train_batch_end(self, batch, batch_idx, dataloader_idx):
+        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
             _exclude_keys = ['num_batches_tracked', 'running_mean', 'running_var']
 
             if (batch_idx + 1) == self.trainer.num_training_batches:
@@ -408,6 +422,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, ex
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
         trainer.current_epoch = i
+        trainer.global_step = i
         trainer.logger_connector.callback_metrics = {'checkpoint_on': torch.tensor(loss)}
         checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
@@ -431,7 +446,7 @@ def test_model_checkpoint_only_weights(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        checkpoint_callback=ModelCheckpoint(tmpdir, save_weights_only=True),
+        checkpoint_callback=ModelCheckpoint(tmpdir, monitor='early_stop_on', save_weights_only=True),
     )
     # fit model
     result = trainer.fit(model)
@@ -507,9 +522,8 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         max_epochs=2,
         limit_train_batches=0.65,
         limit_val_batches=1,
-        checkpoint_callback=ModelCheckpoint(tmpdir, monitor='val_loss', save_top_k=-1),
+        checkpoint_callback=ModelCheckpoint(tmpdir, monitor='early_stop_on', save_top_k=-1),
         default_root_dir=tmpdir,
-        early_stop_callback=False,
         val_check_interval=1.,
     )
 
@@ -599,7 +613,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     # define callback for stopping the model and default epochs
     trainer_options.update(
         default_root_dir=tmpdir,
-        early_stop_callback=EarlyStopping(monitor='early_stop_on', min_delta=1.0),
+        callbacks=[EarlyStopping(monitor='early_stop_on', min_delta=1.0)],
         val_check_interval=2,
         min_epochs=1,
         max_epochs=7,
@@ -664,7 +678,7 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
         max_epochs=2,
         progress_bar_refresh_rate=0,
         default_root_dir=tmpdir,
-        checkpoint_callback=ModelCheckpoint(monitor='val_loss', save_top_k=save_top_k),
+        checkpoint_callback=ModelCheckpoint(monitor='early_stop_on', save_top_k=save_top_k),
     )
     trainer.fit(model)
     if ckpt_path == 'best':
@@ -867,6 +881,37 @@ def test_gradient_clipping(tmpdir):
     trainer.fit(model)
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@pytest.mark.skipif(not NATIVE_AMP_AVALAIBLE, reason="test requires native AMP.")
+def test_gradient_clipping_fp16(tmpdir):
+    """
+    Test gradient clipping with fp16
+    """
+
+    model = EvalModelTemplate()
+
+    # test that gradient is clipped correctly
+    def _optimizer_step(*args, **kwargs):
+        parameters = model.parameters()
+        grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
+        assert (grad_norm - 1.0).abs() < 0.01, "Gradient norm != 1.0: {grad_norm}".format(grad_norm=grad_norm)
+
+    trainer = Trainer(
+        max_steps=1,
+        max_epochs=1,
+        precision=16,
+        gpus=1,
+        gradient_clip_val=1.0,
+        default_root_dir=tmpdir,
+    )
+
+    # for the test
+    model.optimizer_step = _optimizer_step
+    model.prev_called_batch_idx = 0
+
+    trainer.fit(model)
+
+
 def test_gpu_choice(tmpdir):
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -912,7 +957,9 @@ def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
     pytest.param(5),
 ])
 def test_num_sanity_val_steps(tmpdir, limit_val_batches):
-    """ Test that the number of sanity check batches is clipped to limit_val_batches. """
+    """
+    Test that the number of sanity check batches is clipped to `limit_val_batches`.
+    """
     model = EvalModelTemplate()
     model.validation_step = model.validation_step__multiple_dataloaders
     model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
@@ -925,7 +972,16 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
         max_steps=1,
     )
     assert trainer.num_sanity_val_steps == num_sanity_val_steps
-    val_dataloaders = model.val_dataloader__multiple_mixed_length()
+
+    with patch.object(
+        trainer.evaluation_loop, 'evaluation_step', wraps=trainer.evaluation_loop.evaluation_step
+    ) as mocked:
+        val_dataloaders = model.val_dataloader__multiple_mixed_length()
+        trainer.fit(model, val_dataloaders=val_dataloaders)
+
+        assert mocked.call_count == sum(
+            min(num_sanity_val_steps, num_batches) for num_batches in trainer.num_val_batches
+        )
 
 
 @pytest.mark.parametrize(['limit_val_batches'], [
@@ -936,8 +992,8 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
 ])
 def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
     """
-    Test that num_sanity_val_steps=-1 runs through all validation data once, and as many batches as
-    limited by "limit_val_batches" Trainer argument.
+    Test that `num_sanity_val_steps=-1` runs through all validation data once, and as many batches as
+    limited by `limit_val_batches` Trainer argument.
     """
     model = EvalModelTemplate()
     model.validation_step = model.validation_step__multiple_dataloaders
@@ -949,7 +1005,14 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
         max_steps=1,
     )
     assert trainer.num_sanity_val_steps == float('inf')
-    val_dataloaders = model.val_dataloader__multiple()
+
+    with patch.object(
+        trainer.evaluation_loop, 'evaluation_step', wraps=trainer.evaluation_loop.evaluation_step
+    ) as mocked:
+        val_dataloaders = model.val_dataloader__multiple()
+        trainer.fit(model, val_dataloaders=val_dataloaders)
+
+        assert mocked.call_count == sum(trainer.num_val_batches)
 
 
 @pytest.mark.parametrize("trainer_kwargs,expected", [
@@ -1135,12 +1198,12 @@ def test_trainer_setup_call(tmpdir):
     pytest.param(3, 10, 5),
 ])
 @patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_metrics")
-def test_row_log_interval(log_metrics_mock, tmpdir, train_batches, max_steps, log_interval):
+def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, log_interval):
     model = EvalModelTemplate()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        row_log_interval=log_interval,
-        log_save_interval=log_interval,
+        log_every_n_steps=log_interval,
+        flush_logs_every_n_steps=log_interval,
         limit_train_batches=train_batches,
         limit_val_batches=0,
         max_steps=max_steps,

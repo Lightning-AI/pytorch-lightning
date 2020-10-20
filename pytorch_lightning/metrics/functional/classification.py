@@ -1,11 +1,24 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from functools import wraps
 from typing import Callable, Optional, Sequence, Tuple
 
 import torch
+from pytorch_lightning.metrics.functional.reduction import class_reduce, reduce
 from torch.nn import functional as F
 
-from pytorch_lightning.metrics.functional.reduction import class_reduce, reduce
-from pytorch_lightning.utilities import FLOAT16_EPSILON, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 def to_onehot(
@@ -87,8 +100,10 @@ def get_num_classes(
     if num_classes is None:
         num_classes = num_all_classes
     elif num_classes != num_all_classes:
-        rank_zero_warn(f'You have set {num_classes} number of classes if different from'
-                       f' predicted ({num_pred_classes}) and target ({num_target_classes}) number of classes')
+        rank_zero_warn(f'You have set {num_classes} number of classes which is'
+                       f' different from predicted ({num_pred_classes}) and'
+                       f' target ({num_target_classes}) number of classes',
+                       RuntimeWarning)
     return num_classes
 
 
@@ -239,7 +254,8 @@ def accuracy(
         pred: torch.Tensor,
         target: torch.Tensor,
         num_classes: Optional[int] = None,
-        class_reduction: str = 'micro'
+        class_reduction: str = 'micro',
+        return_state: bool = False
 ) -> torch.Tensor:
     """
     Computes the accuracy classification score
@@ -254,7 +270,8 @@ def accuracy(
             - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
             - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
             - ``'none'``: returns calculated metric per class
-
+        return_state: returns a internal state that can be ddp reduced
+            before doing the final calculation
     Return:
          A Tensor with the accuracy score.
 
@@ -266,13 +283,21 @@ def accuracy(
         tensor(0.7500)
 
     """
-    if not (target > 0).any() and num_classes is None:
-        raise RuntimeError("cannot infer num_classes when target is all zero")
-
     tps, fps, tns, fns, sups = stat_scores_multiple_classes(
         pred=pred, target=target, num_classes=num_classes)
-
+    if return_state:
+        return {'tps': tps, 'sups': sups}
     return class_reduce(tps, sups, sups, class_reduction=class_reduction)
+
+
+def _confmat_normalize(cm):
+    """ Normalization function for confusion matrix """
+    cm = cm / cm.sum(-1, keepdim=True)
+    nan_elements = cm[torch.isnan(cm)].nelement()
+    if nan_elements != 0:
+        cm[torch.isnan(cm)] = 0
+        rank_zero_warn(f'{nan_elements} nan values found in confusion matrix have been replaced with zeros.')
+    return cm
 
 
 def confusion_matrix(
@@ -312,11 +337,7 @@ def confusion_matrix(
     cm = bins.reshape(num_classes, num_classes).squeeze().float()
 
     if normalize:
-        cm = cm / cm.sum(-1, keepdim=True)
-        nan_elements = cm[torch.isnan(cm)].nelement()
-        if nan_elements != 0:
-            cm[torch.isnan(cm)] = 0
-            rank_zero_warn(f'{nan_elements} nan values found in confusion matrix have been replaced with zeros.')
+        cm = _confmat_normalize(cm)
 
     return cm
 
@@ -326,7 +347,8 @@ def precision_recall(
         target: torch.Tensor,
         num_classes: Optional[int] = None,
         class_reduction: str = 'micro',
-        return_support: bool = False
+        return_support: bool = False,
+        return_state: bool = False
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Computes precision and recall for different thresholds
@@ -343,6 +365,8 @@ def precision_recall(
             - ``'none'``: returns calculated metric per class
 
         return_support: returns the support for each class, need for fbeta/f1 calculations
+        return_state: returns a internal state that can be ddp reduced
+            before doing the final calculation
 
     Return:
         Tensor with precision and recall
@@ -359,6 +383,8 @@ def precision_recall(
 
     precision = class_reduce(tps, tps + fps, sups, class_reduction=class_reduction)
     recall = class_reduce(tps, tps + fns, sups, class_reduction=class_reduction)
+    if return_state:
+        return {'tps': tps, 'fps': fps, 'fns': fns, 'sups': sups}
     if return_support:
         return precision, recall, sups
     return precision, recall

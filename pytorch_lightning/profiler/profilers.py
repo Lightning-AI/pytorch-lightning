@@ -20,6 +20,7 @@ import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
+from typing import Optional, Union
 
 import numpy as np
 
@@ -31,10 +32,10 @@ class BaseProfiler(ABC):
     If you wish to write a custom profiler, you should inhereit from this class.
     """
 
-    def __init__(self, output_streams: list = None):
+    def __init__(self, output_streams: Optional[Union[list, tuple]] = None):
         """
-        Params:
-            stream_out: callable
+        Args:
+            output_streams: callable
         """
         if output_streams:
             if not isinstance(output_streams, (list, tuple)):
@@ -117,9 +118,9 @@ class SimpleProfiler(BaseProfiler):
     the mean duration of each action and the total time spent over the entire training run.
     """
 
-    def __init__(self, output_filename: str = None):
+    def __init__(self, output_filename: Optional[str] = None):
         """
-        Params:
+        Args:
             output_filename (str): optionally save profile results to file instead of printing
                 to std out when training is finished.
         """
@@ -183,7 +184,7 @@ class AdvancedProfiler(BaseProfiler):
     verbose and you should only use this if you want very detailed reports.
     """
 
-    def __init__(self, output_filename: str = None, line_count_restriction: float = 1.0):
+    def __init__(self, output_filename: Optional[str] = None, line_count_restriction: float = 1.0):
         """
         Args:
             output_filename: optionally save profile results to file instead of printing

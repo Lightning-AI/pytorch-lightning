@@ -4,8 +4,6 @@ Community Examples
 - `Contextual Emotion Detection (DoubleDistilBert) <https://github.com/PyTorchLightning/emotion_transformer>`_.
 - `Cotatron: Transcription-Guided Speech Encoder <https://github.com/mindslab-ai/cotatron>`_.
 - `FasterRCNN object detection + Hydra <https://github.com/PyTorchLightning/wheat>`_.
-- `Hyperparameter optimization with Optuna <https://github.com/optuna/optuna/blob/master/examples/pytorch_lightning_simple.py>`_.
-- `Hyperparameter optimization with Ray Tune <https://docs.ray.io/en/master/tune/tutorials/tune-pytorch-lightning.html>`_.
 - `Image Inpainting using Partial Convolutions <https://github.com/ryanwongsa/Image-Inpainting>`_.
 - `MNIST on TPU <https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3#scrollTo=BHBz1_AnamN_>`_.
 - `NER (transformers, TPU) <https://colab.research.google.com/drive/1dBN-wwYUngLYVt985wGs_OKPlK_ANB9D>`_.

@@ -1,4 +1,16 @@
-import atexit
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import inspect
 import os
 import pickle
@@ -19,6 +31,8 @@ from pytorch_lightning.loggers import (
 )
 from pytorch_lightning.loggers.base import DummyExperiment
 from tests.base import EvalModelTemplate
+from tests.loggers.test_comet import _patch_comet_atexit
+from tests.loggers.test_mlflow import mock_mlflow_run_creation
 
 
 def _get_logger_args(logger_class, save_dir):
@@ -32,24 +46,32 @@ def _get_logger_args(logger_class, save_dir):
     return logger_args
 
 
-@pytest.mark.parametrize("logger_class", [
-    TensorBoardLogger,
-    CometLogger,
-    MLFlowLogger,
-    NeptuneLogger,
-    TestTubeLogger,
-    WandbLogger,
-])
-@mock.patch('pytorch_lightning.loggers.wandb.wandb')
-def test_loggers_fit_test(wandb, tmpdir, monkeypatch, logger_class):
-    """Verify that basic functionality of all loggers."""
+def test_loggers_fit_test_all(tmpdir, monkeypatch):
+    """ Verify that basic functionality of all loggers. """
+
+    _test_loggers_fit_test(tmpdir, TensorBoardLogger)
+
+    with mock.patch('pytorch_lightning.loggers.comet.comet_ml'), \
+         mock.patch('pytorch_lightning.loggers.comet.CometOfflineExperiment'):
+        _patch_comet_atexit(monkeypatch)
+        _test_loggers_fit_test(tmpdir, CometLogger)
+
+    with mock.patch('pytorch_lightning.loggers.mlflow.mlflow'), \
+         mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient'):
+        _test_loggers_fit_test(tmpdir, MLFlowLogger)
+
+    with mock.patch('pytorch_lightning.loggers.neptune.neptune'):
+        _test_loggers_fit_test(tmpdir, NeptuneLogger)
+
+    with mock.patch('pytorch_lightning.loggers.test_tube.Experiment'):
+        _test_loggers_fit_test(tmpdir, TestTubeLogger)
+
+    with mock.patch('pytorch_lightning.loggers.wandb.wandb'):
+        _test_loggers_fit_test(tmpdir, WandbLogger)
+
+
+def _test_loggers_fit_test(tmpdir, logger_class):
     os.environ['PL_DEV_DEBUG'] = '0'
-
-    if logger_class == CometLogger:
-        # prevent comet logger from trying to print at exit, since
-        # pytest's stdout/stderr redirection breaks it
-        monkeypatch.setattr(atexit, 'register', lambda _: None)
-
     model = EvalModelTemplate()
 
     class StoreHistoryLogger(logger_class):
@@ -69,6 +91,17 @@ def test_loggers_fit_test(wandb, tmpdir, monkeypatch, logger_class):
         logger.experiment.id = 'foo'
         logger.experiment.project_name.return_value = 'bar'
 
+    if logger_class == CometLogger:
+        logger.experiment.id = 'foo'
+        logger.experiment.project_name = 'bar'
+
+    if logger_class == TestTubeLogger:
+        logger.experiment.version = 'foo'
+        logger.experiment.name = 'bar'
+
+    if logger_class == MLFlowLogger:
+        logger = mock_mlflow_run_creation(logger, experiment_id="foo", run_id="bar")
+
     trainer = Trainer(
         max_epochs=1,
         logger=logger,
@@ -82,31 +115,45 @@ def test_loggers_fit_test(wandb, tmpdir, monkeypatch, logger_class):
 
     log_metric_names = [(s, sorted(m.keys())) for s, m in logger.history]
     if logger_class == TensorBoardLogger:
-        assert log_metric_names == [(0, ['hp_metric']),
-                                    (0, ['epoch', 'val_acc', 'val_loss']),
-                                    (0, ['epoch', 'train_some_val']),
-                                    (0, ['hp_metric']),
-                                    (1, ['epoch', 'test_acc', 'test_loss'])]
+        expected = [
+            (0, ['hp_metric']),
+            (0, ['epoch', 'train_some_val']),
+            (0, ['early_stop_on', 'epoch', 'val_acc']),
+            (0, ['hp_metric']),
+            (1, ['epoch', 'test_acc', 'test_loss'])
+        ]
+        assert log_metric_names == expected
     else:
-        assert log_metric_names == [(0, ['epoch', 'val_acc', 'val_loss']),
-                                    (0, ['epoch', 'train_some_val']),
-                                    (1, ['epoch', 'test_acc', 'test_loss'])]
+        expected = [
+            (0, ['epoch', 'train_some_val']),
+            (0, ['early_stop_on', 'epoch', 'val_acc']),
+            (1, ['epoch', 'test_acc', 'test_loss'])
+        ]
+        assert log_metric_names == expected
 
 
-@pytest.mark.parametrize("logger_class", [
-    TensorBoardLogger,
-    CometLogger,
-    MLFlowLogger,
-    TestTubeLogger,
-    WandbLogger,
-])
-@mock.patch('pytorch_lightning.loggers.wandb.wandb')
-def test_loggers_save_dir_and_weights_save_path(wandb, tmpdir, monkeypatch, logger_class):
+def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch):
     """ Test the combinations of save_dir, weights_save_path and default_root_dir.  """
-    if logger_class == CometLogger:
-        # prevent comet logger from trying to print at exit, since
-        # pytest's stdout/stderr redirection breaks it
-        monkeypatch.setattr(atexit, 'register', lambda _: None)
+
+    _test_loggers_save_dir_and_weights_save_path(tmpdir, TensorBoardLogger)
+
+    with mock.patch('pytorch_lightning.loggers.comet.comet_ml'), \
+         mock.patch('pytorch_lightning.loggers.comet.CometOfflineExperiment'):
+        _patch_comet_atexit(monkeypatch)
+        _test_loggers_save_dir_and_weights_save_path(tmpdir, CometLogger)
+
+    with mock.patch('pytorch_lightning.loggers.mlflow.mlflow'), \
+         mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient'):
+        _test_loggers_save_dir_and_weights_save_path(tmpdir, MLFlowLogger)
+
+    with mock.patch('pytorch_lightning.loggers.test_tube.Experiment'):
+        _test_loggers_save_dir_and_weights_save_path(tmpdir, TestTubeLogger)
+
+    with mock.patch('pytorch_lightning.loggers.wandb.wandb'):
+        _test_loggers_save_dir_and_weights_save_path(tmpdir, WandbLogger)
+
+
+def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
 
     class TestLogger(logger_class):
         # for this test it does not matter what these attributes are
@@ -156,19 +203,25 @@ def test_loggers_save_dir_and_weights_save_path(wandb, tmpdir, monkeypatch, logg
 
 
 @pytest.mark.parametrize("logger_class", [
-    TensorBoardLogger,
     CometLogger,
     MLFlowLogger,
     NeptuneLogger,
+    TensorBoardLogger,
     TestTubeLogger,
     # The WandbLogger gets tested for pickling in its own test.
 ])
-def test_loggers_pickle(tmpdir, monkeypatch, logger_class):
+def test_loggers_pickle_all(tmpdir, monkeypatch, logger_class):
+    """ Test that the logger objects can be pickled. This test only makes sense if the packages are installed. """
+    _patch_comet_atexit(monkeypatch)
+    try:
+        _test_loggers_pickle(tmpdir, monkeypatch, logger_class)
+    except (ImportError, ModuleNotFoundError):
+        pytest.xfail(f"pickle test requires {logger_class.__class__} dependencies to be installed.")
+
+
+def _test_loggers_pickle(tmpdir, monkeypatch, logger_class):
     """Verify that pickling trainer with logger works."""
-    if logger_class == CometLogger:
-        # prevent comet logger from trying to print at exit, since
-        # pytest's stdout/stderr redirection breaks it
-        monkeypatch.setattr(atexit, 'register', lambda _: None)
+    _patch_comet_atexit(monkeypatch)
 
     logger_args = _get_logger_args(logger_class, tmpdir)
     logger = logger_class(**logger_args)
@@ -232,20 +285,24 @@ class RankZeroLoggerCheck(Callback):
             assert pl_module.logger.experiment.something(foo="bar") is None
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.parametrize("logger_class", [
-    TensorBoardLogger,
+    CometLogger,
     MLFlowLogger,
     NeptuneLogger,
+    TensorBoardLogger,
     TestTubeLogger,
 ])
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
-    """ Test that loggers get replaced by dummy logges on global rank > 0"""
-    if logger_class == CometLogger:
-        # prevent comet logger from trying to print at exit, since
-        # pytest's stdout/stderr redirection breaks it
-        monkeypatch.setattr(atexit, 'register', lambda _: None)
+    """ Test that loggers get replaced by dummy loggers on global rank > 0"""
+    _patch_comet_atexit(monkeypatch)
+    try:
+        _test_logger_created_on_rank_zero_only(tmpdir, logger_class)
+    except (ImportError, ModuleNotFoundError):
+        pytest.xfail(f"multi-process test requires {logger_class.__class__} dependencies to be installed.")
 
+
+def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
     logger_args = _get_logger_args(logger_class, tmpdir)
     logger = logger_class(**logger_args)
     model = EvalModelTemplate()
