@@ -15,6 +15,12 @@
 
 import os
 from io import open
+import re
+
+from urllib.error import URLError
+from urllib.error import HTTPError
+from urllib.request import Request, urlopen
+import warnings
 
 # Always prefer setuptools over distutils
 from setuptools import find_packages, setup
@@ -85,7 +91,7 @@ def _parse_README_for_badge(text):
                 saved_badge_name = _download_badges(badge_url, badge_name)
 
                 # replace url with local file path
-                replace_string =  f'[![{badge_name}]({saved_badge_name})]'
+                replace_string = f'[![{badge_name}]({saved_badge_name})]'
                 text = re.sub(search_string, replace_string, text)
 
     return text
@@ -93,7 +99,7 @@ def _parse_README_for_badge(text):
 
 def _download_badges(url_badge, badge_name):
 
-    base_path = f'docs/source/_images/badges'
+    base_path = 'docs/source/_images/badges'
     os.makedirs(base_path, exist_ok=True)
 
     headers = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:81.0) Gecko/20100101 Firefox/81.0',
@@ -128,7 +134,7 @@ def _download_badges(url_badge, badge_name):
             # save the `.svg`
             url_badge = url_badge.replace('.png', '.svg')
             _save_file(url_badge, save_path, extension='.svg')
-            return save_path +'.svg'
+            return save_path + '.svg'
 
 
 def load_long_description():
