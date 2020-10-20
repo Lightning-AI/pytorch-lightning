@@ -125,12 +125,11 @@ class Fbeta(Metric):
             precision = self.true_positives.sum().float() / (self.predicted_positives.sum() + METRIC_EPS)
             recall = self.true_positives.sum().float() / (self.actual_positives.sum() + METRIC_EPS)
 
-            return (1 + self.beta ** 2) * (precision * recall) / (self.beta ** 2 * precision + recall)
         elif self.average == 'macro':
             precision = self.true_positives.float() / (self.predicted_positives + METRIC_EPS)
             recall = self.true_positives.float() / (self.actual_positives + METRIC_EPS)
 
-            num = (1 + self.beta ** 2) * precision * recall
-            denom = self.beta ** 2 * precision + recall
+        num = (1 + self.beta ** 2) * precision * recall
+        denom = self.beta ** 2 * precision + recall
 
-            return class_reduce(num=num, denom=denom, weights=None, class_reduction='macro')
+        return class_reduce(num=num, denom=denom, weights=None, class_reduction='macro')
