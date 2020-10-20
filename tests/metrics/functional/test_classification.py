@@ -349,23 +349,18 @@ def test_auroc(pred, target, expected):
 
 def test_multiclass_auroc():
     with pytest.raises(ValueError,
-                       match="Multiclass AUROC metric expects the target scores to be "
-                             "probabilities, i.e. they should sum up to 1.0 over classes"):
+                       match=r".*probabilities, i.e. they should sum up to 1.0 over classes"):
         _ = multiclass_auroc(pred=torch.tensor([[0.9, 0.9],
                                                 [1.0, 0]]),
                              target=torch.tensor([0, 1]))
 
     with pytest.raises(ValueError,
-                       match=r"Number of classes found in in 'target' (.*) "
-                             r"does not equal the number of columns in 'pred' (.*). "
-                             r"Multiclass AUROC is not defined when all of the classes do not "
-                             r"occur in the target labels."):
+                       match=r".*not defined when all of the classes do not occur in the target.*"):
         _ = multiclass_auroc(pred=torch.rand((4, 3)).softmax(dim=1),
                              target=torch.tensor([1, 0, 1, 0]))
 
     with pytest.raises(ValueError,
-                       match=r"Number of classes deduced from 'pred' (.*) does not equal "
-                             r"the number of classes passed in 'num_classes' (.*)."):
+                       match=r".*does not equal the number of classes passed in 'num_classes'.*"):
         _ = multiclass_auroc(pred=torch.rand((5, 4)).softmax(dim=1),
                              target=torch.tensor([0, 1, 2, 2, 3]),
                              num_classes=6)
