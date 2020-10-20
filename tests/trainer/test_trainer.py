@@ -414,8 +414,10 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, ex
     # simulated losses
     losses = [10, 9, 2.8, 5, 2.5]
 
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor='checkpoint_on', save_top_k=save_top_k, save_last=save_last,
-                                          prefix=file_prefix, verbose=1)
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=tmpdir, monitor='checkpoint_on', save_top_k=save_top_k,
+        save_last=save_last, prefix=file_prefix, verbose=1
+    )
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
 
