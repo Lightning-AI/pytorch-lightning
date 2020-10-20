@@ -329,88 +329,6 @@ def test_monitor_val_epoch_end(tmpdir):
     )
     trainer.fit(model)
 
-def test_log_works_in_validation_callback(tmpdir):
-    """
-    Tests that log can be called within callback
-    """
-    os.environ['PL_DEV_DEBUG'] = '1'
-
-    loss_values, patience, expected_stop_epoch = ([6, 5, 5, 5, 5, 5], 3, 4)
-
-    class TestCallback(callbacks.Callback):
-
-        callback_funcs_called = []
-
-        def on_validation_start(self, trainer, pl_module):
-            func_name = 'on_validation_start'
-            pl_module.log(func_name, 0)
-            self.callback_funcs_called.append(func_name)
-
-        def on_validation_epoch_start(self, trainer, pl_module):
-            func_name = 'on_validation_epoch_start'
-            pl_module.log(func_name, 0)
-            self.callback_funcs_called.append(func_name)
-
-        def on_validation_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-            func_name = 'on_validation_batch_start'
-            pl_module.log(func_name, 0)
-            self.callback_funcs_called.append(func_name)
-
-        def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-            func_name = 'on_validation_batch_end'
-            pl_module.log(func_name, 0)
-            self.callback_funcs_called.append(func_name)
-
-        def on_validation_epoch_end(self, trainer, pl_module):
-            func_name = 'on_validation_epoch_end'
-            pl_module.log(func_name, 0)
-            self.callback_funcs_called.append(func_name)
-
-        def on_validation_end(self, trainer, pl_module):
-            func_name = 'on_validation_end'
-            pl_module.log(func_name, 0)
-            self.callback_funcs_called.append(func_name)
-
-    class TestModel(BoringModel):
-
-        validation_return_values = torch.Tensor(loss_values)
-        count = 0
-
-        def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            self.log('c', self.count)
-            return {"x": loss}
-
-        def validation_epoch_end(self, outputs):
-            loss = self.validation_return_values[self.count]
-            self.count += 1
-            self.log("val_loss", loss)
-            return {"val_loss": loss}
-
-    max_epochs = 5
-    model = TestModel()
-    # using Early Stopping to make sure callback_metrics is correctly set for `on_validation_epoch_end` hook
-    early_stop_callback = pl.callbacks.EarlyStopping(monitor="val_loss", patience=3, verbose=True)
-    test_callback = TestCallback()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=0,
-        limit_val_batches=4,
-        limit_test_batches=0,
-        val_check_interval=1.0,
-        num_sanity_val_steps=0,
-        max_epochs=max_epochs,
-        callbacks=[early_stop_callback, test_callback]
-    )
-    trainer.fit(model)
-
-    expected_callback_metrics = set(test_callback.callback_funcs_called + ["c", "val_loss", "debug_epoch"])
-    callback_metrics = set([*trainer.callback_metrics.keys()])
-    assert callback_metrics == expected_callback_metrics
-    assert trainer.current_epoch == expected_stop_epoch
-
 def test_log_works_in_val_callback(tmpdir):
     """
     Tests that log can be called within callback
@@ -425,9 +343,11 @@ def test_log_works_in_val_callback(tmpdir):
 
         # used to compute expected values        
         callback_funcs_called = collections.defaultdict(list)
+        funcs_called_count = collections.defaultdict(int)
         funcs_attr = {}
 
         def make_logging(self, pl_module: pl.LightningModule, func_name, func_idx, on_steps=[], on_epochs=[], prob_bars=[]):
+            self.funcs_called_count[func_name] += 1
             for idx, t in enumerate(list(itertools.product(*[on_steps, on_epochs, prob_bars]))):
                 # run logging
                 on_step, on_epoch, prog_bar = t
@@ -487,7 +407,7 @@ def test_log_works_in_val_callback(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=0,
-        limit_val_batches=2,
+        limit_val_batches=4,
         limit_test_batches=0,
         val_check_interval=0.,
         num_sanity_val_steps=0,
@@ -497,7 +417,15 @@ def test_log_works_in_val_callback(tmpdir):
     trainer.fit(model)
     trainer.test()
 
-    wrong_func_names = {}
+    assert test_callback.funcs_called_count["on_epoch_start"] == 1
+    assert test_callback.funcs_called_count["on_batch_start"] == 1 #TODO This should be 4
+    assert test_callback.funcs_called_count["on_batch_end"] == 1 #TODO This should be 4
+    assert test_callback.funcs_called_count["on_validation_start"] == 1
+    assert test_callback.funcs_called_count["on_validation_epoch_start"] == 1
+    assert test_callback.funcs_called_count["on_validation_batch_start"] == 4
+    assert test_callback.funcs_called_count["on_validation_batch_end"] == 4
+    assert test_callback.funcs_called_count["on_validation_epoch_end"] == 1
+    assert test_callback.funcs_called_count["on_epoch_end"] == 1
 
     # Make sure the func_name exists within callback_metrics. If not, we missed some
     callback_metrics_keys = [*trainer.callback_metrics.keys()]
@@ -553,10 +481,12 @@ def test_log_works_in_test_callback(tmpdir):
 
         # used to compute expected values        
         callback_funcs_called = collections.defaultdict(list)
+        funcs_called_count = collections.defaultdict(int)
         funcs_attr = {}
 
         def make_logging(self, pl_module: pl.LightningModule, func_name, func_idx, on_steps=[], on_epochs=[], prob_bars=[]):
             original_func_name = func_name[:]
+            self.funcs_called_count[original_func_name] += 1
             for idx, t in enumerate(list(itertools.product(*[on_steps, on_epochs, prob_bars]))):
                 # run logging
                 func_name = original_func_name[:]
@@ -636,6 +566,15 @@ def test_log_works_in_test_callback(tmpdir):
     trainer.fit(model)
     trainer.test()
 
+    assert test_callback.funcs_called_count["on_epoch_start"] == 1
+    assert test_callback.funcs_called_count["on_test_start"] == 1
+    assert test_callback.funcs_called_count["on_test_epoch_start"] == 1
+    assert test_callback.funcs_called_count["on_test_batch_start"] == 4
+    assert test_callback.funcs_called_count["on_test_batch_end"] == 4
+    assert test_callback.funcs_called_count["on_test_epoch_end"] == 1
+    assert test_callback.funcs_called_count["on_epoch_end"] == 1
+
+
     # Make sure the func_name exists within callback_metrics. If not, we missed some
     callback_metrics_keys = [*trainer.callback_metrics.keys()]
 
@@ -676,10 +615,7 @@ def test_log_works_in_test_callback(tmpdir):
         
         # compute expected output and compare to actual one
         expected_output = get_expected_output(func_attr, original_values)
-        try:
-            assert float(output_value) == float(expected_output)   
-        except:
-            print(func_name, func_attr, original_values, output_value, expected_output)
+        assert float(output_value) == float(expected_output)   
 
     for func_name, func_attr in test_callback.funcs_attr.items():
         if func_attr["prog_bar"] and (func_attr["on_step"] or func_attr["on_epoch"]):

@@ -570,9 +570,11 @@ def test_log_works_in_train_callback(tmpdir):
 
         # used to compute expected values        
         callback_funcs_called = collections.defaultdict(list)
+        funcs_called_count = collections.defaultdict(int)
         funcs_attr = {}
 
         def make_logging(self, pl_module: pl.LightningModule, func_name, func_idx, on_steps=[], on_epochs=[], prob_bars=[]):
+            self.funcs_called_count[func_name] += 1
             for idx, t in enumerate(list(itertools.product(*[on_steps, on_epochs, prob_bars]))):
                 # run logging
                 on_step, on_epoch, prog_bar = t
@@ -626,12 +628,13 @@ def test_log_works_in_train_callback(tmpdir):
             return {"loss": loss}
 
     max_epochs = 1
+    limit_train_batches = 2
     model = TestModel()
     test_callback = TestCallback()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        limit_train_batches=2,
+        limit_train_batches=limit_train_batches,
         limit_val_batches=0,
         limit_test_batches=0,
         val_check_interval=0.,
@@ -641,7 +644,15 @@ def test_log_works_in_train_callback(tmpdir):
     )
     trainer.fit(model)
 
-    wrong_func_names = {}
+    assert test_callback.funcs_called_count["on_train_start"] == 1
+    assert test_callback.funcs_called_count["on_epoch_start"] == 1
+    assert test_callback.funcs_called_count["on_train_epoch_start"] == 1
+    assert test_callback.funcs_called_count["on_batch_start"] == 2
+    assert test_callback.funcs_called_count["on_train_batch_start"] == 2
+    assert test_callback.funcs_called_count["on_batch_end"] == 2
+    assert test_callback.funcs_called_count["on_train_batch_end"] == 2
+    assert test_callback.funcs_called_count["on_epoch_end"] == 1
+    assert test_callback.funcs_called_count["on_train_epoch_end"] == 1
 
     # Make sure the func_name exists within callback_metrics. If not, we missed some
     callback_metrics_keys = [*trainer.callback_metrics.keys()]
@@ -683,6 +694,3 @@ def test_log_works_in_train_callback(tmpdir):
             assert func_name in trainer.logger_connector.progress_bar_metrics
         else:
             assert func_name not in trainer.logger_connector.progress_bar_metrics
-
-
-

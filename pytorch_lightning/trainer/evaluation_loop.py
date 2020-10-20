@@ -257,10 +257,10 @@ class EvaluationLoop(object):
         )
         return eval_loop_results
 
-    def log_metrics_on_evaluation_end(self):
+    def log_epoch_metrics_on_evaluation_end(self):
         metrics_to_log = self.cache_internal_metrics.get_as_list("before_on_batch_start", "epoch_log_metrics")
         metrics_to_log += self.cache_internal_metrics.get_as_list("after_on_batch_end", "epoch_log_metrics")
-        self.trainer.logger_connector.log_on_evaluation_end(metrics_to_log)
+        self.trainer.logger_connector.log_epoch_metrics_on_evaluation_end(metrics_to_log)
 
     def __run_eval_epoch_end(self, num_dataloaders, using_eval_result):
         model = self.trainer.get_model()

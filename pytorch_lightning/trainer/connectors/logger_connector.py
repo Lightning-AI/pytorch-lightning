@@ -213,7 +213,7 @@ class LoggerConnector:
         self.eval_loop_results.append(callback_metrics)
 
 
-    def log_on_evaluation_end(self, metrics_to_log):
+    def log_epoch_metrics_on_evaluation_end(self, metrics_to_log):
         metrics_to_log = dict(ChainMap(*metrics_to_log))
         if len(metrics_to_log) > 0:
             self.log_metrics(metrics_to_log, {}, step=self.trainer.global_step)        
