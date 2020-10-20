@@ -366,26 +366,26 @@ def test_multiclass_auroc():
                              num_classes=6)
 
 
-def test_multiclass_auroc_against_sklearn():
+@pytest.mark.parametrize('n_cls', [2, 5, 10, 50])
+def test_multiclass_auroc_against_sklearn(n_cls):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     n_samples = 300
-    for n_cls in [2, 5, 10, 50]:
-        pred = torch.rand(n_samples, n_cls, device=device).softmax(dim=1)
-        target = torch.randint(n_cls, (n_samples,), device=device)
-        # Make sure target includes all class labels so that multiclass AUROC is defined
-        target[10:10 + n_cls] = torch.arange(n_cls)
+    pred = torch.rand(n_samples, n_cls, device=device).softmax(dim=1)
+    target = torch.randint(n_cls, (n_samples,), device=device)
+    # Make sure target includes all class labels so that multiclass AUROC is defined
+    target[10:10 + n_cls] = torch.arange(n_cls)
 
-        pl_score = multiclass_auroc(pred, target)
-        # For the binary case, sklearn expects an (n_samples,) array of probabilities of
-        # the positive class
-        pred = pred[:, 1] if n_cls == 2 else pred
-        sk_score = sk_roc_auc_score(target.cpu().detach().numpy(),
-                                    pred.cpu().detach().numpy(),
-                                    multi_class="ovr")
+    pl_score = multiclass_auroc(pred, target)
+    # For the binary case, sklearn expects an (n_samples,) array of probabilities of
+    # the positive class
+    pred = pred[:, 1] if n_cls == 2 else pred
+    sk_score = sk_roc_auc_score(target.cpu().detach().numpy(),
+                                pred.cpu().detach().numpy(),
+                                multi_class="ovr")
 
-        sk_score = torch.tensor(sk_score, dtype=torch.float, device=device)
-        assert torch.allclose(sk_score, pl_score)
+    sk_score = torch.tensor(sk_score, dtype=torch.float, device=device)
+    assert torch.allclose(sk_score, pl_score)
 
 
 @pytest.mark.parametrize(['x', 'y', 'expected'], [
