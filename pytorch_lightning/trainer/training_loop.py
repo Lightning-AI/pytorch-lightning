@@ -678,6 +678,9 @@ class TrainLoop:
                 )
 
                 if opt_closure_result is None:
+                    results = self.trainer.get_model()._results
+                    batch_log_metrics.append(results.get_batch_log_metrics(include_forked_originals=False))
+                    batch_log_metrics.append(self.trainer.metrics_to_scalars(results.epoch_log_metrics))
                     continue
 
                 using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
