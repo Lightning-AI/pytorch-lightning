@@ -33,7 +33,6 @@ from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.warning_utils import WarningCache
 
-
 class TrainLoop:
     def __init__(self, trainer):
         self.trainer = trainer
@@ -429,6 +428,11 @@ class TrainLoop:
                 m = f'The key `loss` should be present within {func_name} output. Existing keys: {[*training_step_output]}'
                 raise MisconfigurationException(m)
 
+            if loss is None:
+                func_name = "training_step_end" if is_overridden('training_step_end', model_ref) else "training_step"
+                m = f'The key `loss` should be present within {func_name} output. Existing keys: {[*training_step_output]}'
+                raise MisconfigurationException(m)
+
         # handle scalar return
         elif isinstance(training_step_output, torch.Tensor):
             loss = training_step_output
@@ -647,11 +651,14 @@ class TrainLoop:
 
         # log epoch metrics
         self.trainer.logger_connector.log_train_epoch_end_metrics(
-            epoch_output, self.checkpoint_accumulator, self.early_stopping_accumulator, self.num_optimizers
+            epoch_output,
+            self.checkpoint_accumulator,
+            self.early_stopping_accumulator,
+            self.num_optimizers
         )
 
         # when no val loop is present or fast-dev-run still need to call checkpoints
-        self.check_checkpoint_callback(not (should_check_val or is_overridden("validation_step", model)))
+        self.check_checkpoint_callback(not (should_check_val or is_overridden('validation_step', model)))
 
         # increment the global step once
         # progress global step according to grads progress
