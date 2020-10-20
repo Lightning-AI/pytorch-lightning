@@ -56,7 +56,7 @@ class TestExplainedVariance(MetricTester):
             metric_args=dict(multioutput=multioutput),
         )
 
-    def test_mean_error_functional(self, multioutput, preds, target, sk_metric):
+    def test_explained_variance_functional(self, multioutput, preds, target, sk_metric):
         self.run_functional_metric_test(
             preds,
             target,
