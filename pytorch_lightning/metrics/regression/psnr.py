@@ -75,7 +75,7 @@ class PSNR(Metric):
             self.add_state("min_target", default=torch.tensor(0.0), dist_reduce_fx=torch.min)
             self.add_state("max_target", default=torch.tensor(0.0), dist_reduce_fx=torch.max)
         else:
-            self.data_range = data_range
+            self.register_buffer("data_range", torch.tensor(float(data_range)))
         self.base = base
         self.reduction = reduction
 
@@ -93,7 +93,7 @@ class PSNR(Metric):
             self.max_target = max(target.max(), self.max_target)
 
         sum_squared_error, n_obs = _psnr_update(preds, target)
-        self.sum_squared_log_error += sum_squared_log_error
+        self.sum_squared_error += sum_squared_error
         self.total += n_obs
 
     def compute(self):
