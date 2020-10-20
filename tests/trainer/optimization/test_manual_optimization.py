@@ -183,8 +183,6 @@ def test_multiple_optimizers_manual_return_and_log(tmpdir):
             opt_b.zero_grad()
             assert torch.all(self.layer.weight.grad == 0)
 
-            return {'something': 'else'}
-
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
             assert len(outputs) == 2
