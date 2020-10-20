@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Sequence
+from typing import Optional, Sequence
 
 import torch
 from pytorch_lightning.metrics.functional.reduction import reduce
@@ -21,7 +21,7 @@ from torch.nn import functional as F
 def psnr(
     pred: torch.Tensor,
     target: torch.Tensor,
-    data_range: float = None,
+    data_range: Optional[float] = None,
     base: float = 10.0,
     reduction: str = 'elementwise_mean',
     return_state: bool = False
@@ -93,7 +93,7 @@ def ssim(
     kernel_size: Sequence[int] = (11, 11),
     sigma: Sequence[float] = (1.5, 1.5),
     reduction: str = "elementwise_mean",
-    data_range: float = None,
+    data_range: Optional[float] = None,
     k1: float = 0.01,
     k2: float = 0.03
 ) -> torch.Tensor:

@@ -14,7 +14,7 @@
 import os
 import math
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 
 import torch
 
@@ -53,7 +53,7 @@ class Accelerator(object):
     def teardown(self):
         pass
 
-    def barrier(self, name: str = None):
+    def barrier(self, name: Optional[str] = None):
         pass
 
     def broadcast(self, obj, src=0):

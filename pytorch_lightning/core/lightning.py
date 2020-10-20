@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import collections
+import copy
 import inspect
 import os
 import re
@@ -64,6 +65,7 @@ class LightningModule(
         "datamodule",
         "example_input_array",
         "hparams",
+        "hparams_initial",
         "on_gpu",
         "current_epoch",
         "global_step",
@@ -180,8 +182,8 @@ class LightningModule(
         value: Any,
         prog_bar: bool = False,
         logger: bool = True,
-        on_step: Union[None, bool] = None,
-        on_epoch: Union[None, bool] = None,
+        on_step: Optional[bool] = None,
+        on_epoch: Optional[bool] = None,
         reduce_fx: Callable = torch.mean,
         tbptt_reduce_fx: Callable = torch.mean,
         tbptt_pad_token: int = 0,
@@ -231,7 +233,7 @@ class LightningModule(
                 m = f'on_step=True cannot be used on {self._current_fx_name} method'
                 raise MisconfigurationException(m)
 
-            if 'epoch_end' in self._current_fx_name and on_epoch == False:
+            if 'epoch_end' in self._current_fx_name and on_epoch is False:
                 m = f'on_epoch cannot be False when called from the {self._current_fx_name} method'
                 raise MisconfigurationException(m)
 
@@ -263,8 +265,8 @@ class LightningModule(
         dictionary: dict,
         prog_bar: bool = False,
         logger: bool = True,
-        on_step: Union[None, bool] = None,
-        on_epoch: Union[None, bool] = None,
+        on_step: Optional[bool] = None,
+        on_epoch: Optional[bool] = None,
         reduce_fx: Callable = torch.mean,
         tbptt_reduce_fx: Callable = torch.mean,
         tbptt_pad_token: int = 0,
@@ -1448,9 +1450,11 @@ class LightningModule(
         init_args = get_init_args(frame)
         assert init_args, "failed to inspect the self init"
         if not args:
+            # take all arguments
             hp = init_args
             self._hparams_name = "kwargs" if hp else None
         else:
+            # take only listed arguments in `save_hparams`
             isx_non_str = [i for i, arg in enumerate(args) if not isinstance(arg, str)]
             if len(isx_non_str) == 1:
                 hp = args[isx_non_str[0]]
@@ -1463,6 +1467,8 @@ class LightningModule(
         # `hparams` are expected here
         if hp:
             self._set_hparams(hp)
+        # make deep copy so  there is not other runtime changes reflected
+        self._hparams_initial = copy.deepcopy(self._hparams)
 
     def _set_hparams(self, hp: Union[dict, Namespace, str]) -> None:
         if isinstance(hp, Namespace):
@@ -1594,16 +1600,26 @@ class LightningModule(
         return torchscript_module
 
     @property
-    def hparams(self) -> Union[AttributeDict, str]:
+    def hparams(self) -> Union[AttributeDict, dict, Namespace]:
         if not hasattr(self, "_hparams"):
             self._hparams = AttributeDict()
         return self._hparams
+
+    @property
+    def hparams_initial(self) -> AttributeDict:
+        if not hasattr(self, "_hparams_initial"):
+            return AttributeDict()
+        # prevent any change
+        return copy.deepcopy(self._hparams_initial)
 
     @hparams.setter
     def hparams(self, hp: Union[dict, Namespace, Any]):
         hparams_assignment_name = self.__get_hparams_assignment_variable()
         self._hparams_name = hparams_assignment_name
         self._set_hparams(hp)
+        # this resolves case when user does not uses `save_hyperparameters` and do hard assignement in init
+        if not hasattr(self, "_hparams_initial"):
+            self._hparams_initial = copy.deepcopy(self._hparams)
 
     def __get_hparams_assignment_variable(self):
         """"""

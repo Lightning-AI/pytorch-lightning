@@ -129,7 +129,7 @@ class TrainLoop:
         # log hyper-parameters
         if self.trainer.logger is not None:
             # save exp to get started (this is where the first experiment logs are written)
-            self.trainer.logger.log_hyperparams(ref_model.hparams)
+            self.trainer.logger.log_hyperparams(ref_model.hparams_initial)
             self.trainer.logger.log_graph(ref_model)
             self.trainer.logger.save()
 
@@ -477,13 +477,18 @@ class TrainLoop:
     def log_training_step_metrics(self, opt_closure_result, batch_callback_metrics, batch_log_metrics):
         # track callback metrics
         callback_metrics = opt_closure_result.training_step_output.callback_metrics
-        batch_callback_metrics.append(callback_metrics)
 
         # decide which metrics to log (results vs dict return)
         using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
         if using_results_obj:
-            metrics_to_log = opt_closure_result.training_step_output.batch_log_metrics
-            step_pbar_metrics = opt_closure_result.training_step_output.batch_pbar_metrics
+            metrics_to_log = opt_closure_result.training_step_output.get_batch_log_metrics(
+                include_forked_originals=False
+            )
+            step_pbar_metrics = opt_closure_result.training_step_output.get_batch_pbar_metrics(
+                include_forked_originals=False
+            )
+            forked_metrics = opt_closure_result.training_step_output.get_forked_metrics()
+            callback_metrics.update(forked_metrics)
         else:
             metrics_to_log = opt_closure_result.training_step_output.log_metrics
             step_pbar_metrics = opt_closure_result.training_step_output.pbar_on_batch_end
@@ -495,6 +500,8 @@ class TrainLoop:
         if len(step_pbar_metrics) > 0:
             self.trainer.logger_connector.add_progress_bar_metrics(step_pbar_metrics)
             self.trainer.logger_connector.callback_metrics.update(step_pbar_metrics)
+
+        batch_callback_metrics.append(callback_metrics)
 
     def process_hiddens(self, opt_closure_result):
         hiddens = opt_closure_result.hiddens

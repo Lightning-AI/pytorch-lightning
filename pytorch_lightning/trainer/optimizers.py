@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import ABC
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import torch
 from torch import optim
@@ -95,7 +95,7 @@ class TrainerOptimizersMixin(ABC):
                 '    a list of `torch.optim.lr_scheduler`'
                 ' * multiple outputs, dictionaries as described with an optional `frequency` key (int)')
 
-    def configure_schedulers(self, schedulers: list, monitor: str = None):
+    def configure_schedulers(self, schedulers: list, monitor: Optional[str] = None):
         # Convert each scheduler into dict structure with relevant information
         lr_schedulers = []
         default_config = {

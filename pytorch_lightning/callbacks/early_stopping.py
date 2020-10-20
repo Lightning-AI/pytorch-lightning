@@ -35,8 +35,6 @@ TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 torch_inf = torch.tensor(np.Inf)
 
 
-
-
 class EarlyStopping(Callback):
     r"""
     Monitor a validation metric and stop training when it stops improving.
