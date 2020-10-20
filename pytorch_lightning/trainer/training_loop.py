@@ -33,6 +33,7 @@ from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.warning_utils import WarningCache
 
+
 class TrainLoop:
     def __init__(self, trainer):
         self.trainer = trainer
