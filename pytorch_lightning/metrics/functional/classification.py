@@ -1031,6 +1031,12 @@ def iou(
         tensor(0.4914)
 
     """
+    if pred.size() != target.size():
+        raise ValueError(f"'pred' shape ({pred.size()}) must equal 'target' shape ({target.size()})")
+
+    if not torch.allclose(pred.float(), pred.int().float()):
+        raise ValueError("'pred' must contain integer targets.")
+
     num_classes = get_num_classes(pred=pred, target=target, num_classes=num_classes)
 
     tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred, target, num_classes)
