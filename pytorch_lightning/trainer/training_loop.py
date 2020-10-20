@@ -33,6 +33,7 @@ from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.warning_utils import WarningCache
 
+
 class TrainLoop:
     def __init__(self, trainer):
         self.trainer = trainer
@@ -85,14 +86,10 @@ class TrainLoop:
                 torch.cuda.empty_cache()
 
         # hook
-<<<<<<< HEAD
-        self.trainer.call_hook("on_train_start")
-=======
         model_ref = self.trainer.get_model()
         model_ref._results = Result()
-        self.trainer.logger_connector.cache_internal_metrics["train"] = CacheInternalMetrics()
+        self.trainer.logger_connector.reset_cache_internal_metrics("train")
         self.trainer.call_hook('on_train_start')
->>>>>>> release only training callback
 
     def setup_fit(self, model, train_dataloader, val_dataloaders, datamodule):
         # bind logger and other properties
@@ -244,26 +241,16 @@ class TrainLoop:
         self.checkpoint_accumulator = Accumulator()
 
         # hook
-<<<<<<< HEAD
-        self.trainer.call_hook("on_epoch_start")
-        self.trainer.call_hook("on_train_epoch_start")
-=======
         self.trainer.call_hook('on_epoch_start')
         self.trainer.call_hook('on_train_epoch_start')
         self.trainer.logger_connector.cache_internal_metrics["train"].update(self.trainer, "before_on_batch_start")
->>>>>>> release only training callback
 
     def on_train_batch_end(self, batch_output, epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx):
         # hook
-<<<<<<< HEAD
-        self.trainer.call_hook("on_batch_end")
-        self.trainer.call_hook("on_train_batch_end", epoch_end_outputs, batch, batch_idx, dataloader_idx)
-=======
         model_ref = self.trainer.get_model()
         model_ref._results = Result()
         self.trainer.call_hook('on_batch_end')
         self.trainer.call_hook('on_train_batch_end', epoch_end_outputs, batch, batch_idx, dataloader_idx)
->>>>>>> release only training callback
 
         # figure out what to track for epoch end
         self.track_epoch_end_reduce_metrics(epoch_output, epoch_end_outputs)
@@ -338,12 +325,7 @@ class TrainLoop:
     def training_step(self, split_batch, batch_idx, opt_idx, hiddens):
         # give the PL module a result for logging
         model = self.trainer.get_model()
-<<<<<<< HEAD
-        model._results = Result()
-        model._current_fx_name = "training_step"
-=======
         model._current_fx_name = 'training_step'
->>>>>>> release only training callback
 
         with self.trainer.profiler.profile("model_forward"):
             args = self.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
@@ -727,11 +709,6 @@ class TrainLoop:
         if response == -1:
             return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
 
-<<<<<<< HEAD
-        # checks if backward or backward + optimizer step (via closure)
-        accumulation_done = (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
-        is_final_batch = (self.trainer.batch_idx + 1) == self.trainer.num_training_batches
-=======
         # update progress bar metrics with pbar called within callback
         self._update_logger_connector_progress_bar_metrics()
 
@@ -739,7 +716,6 @@ class TrainLoop:
         batch_log_metrics = {}
         batch_log_metrics.update(model._results.batch_log_metrics)
         batch_log_metrics = [batch_log_metrics]
->>>>>>> release only training callback
 
         # lightning module hook
         splits = self.tbptt_split_batch(batch)
@@ -760,21 +736,6 @@ class TrainLoop:
                     model = self.trainer.get_model()
                     model.toggle_optimizer(optimizer, opt_idx)
 
-<<<<<<< HEAD
-                if not (accumulation_done or is_final_batch):
-                    # For gradient accumulation
-
-                    # -------------------
-                    # calculate loss (train step + train step end)
-                    # -------------------
-                    self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens)
-                    batch_outputs = self._process_closure_result(
-                        batch_callback_metrics=batch_callback_metrics,
-                        batch_log_metrics=batch_log_metrics,
-                        batch_outputs=batch_outputs,
-                        opt_idx=opt_idx,
-                    )
-=======
                 # -------------------
                 # calculate loss (train step + train step end)
                 # -------------------
@@ -793,7 +754,6 @@ class TrainLoop:
                     continue
 
                 using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
->>>>>>> release only training callback
 
                 # ------------------------------
                 # BACKWARD PASS
@@ -941,17 +901,12 @@ class TrainLoop:
             self.trainer.optimizer_connector.update_learning_rates(interval="step", monitor_metrics=monitor_metrics)
 
     def run_on_epoch_end_hook(self, epoch_output):
-<<<<<<< HEAD
-        self.trainer.call_hook("on_epoch_end")
-        self.trainer.call_hook("on_train_epoch_end", epoch_output)
-=======
         # reset result + internal metris to catch epoch end logging
         model_ref = self.trainer.get_model()
         model_ref._results = Result()
         self.trainer.call_hook('on_epoch_end')
         self.trainer.call_hook('on_train_epoch_end', epoch_output)
         self.trainer.logger_connector.cache_internal_metrics["train"].update(self.trainer, "after_on_batch_end")
->>>>>>> release only training callback
 
     def increment_accumulated_grad_global_step(self):
         num_accumulated_batches_reached = (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
