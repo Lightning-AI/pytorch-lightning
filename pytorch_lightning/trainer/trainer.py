@@ -22,7 +22,8 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.step_result import EvalResult
+from pytorch_lightning.core.memory import ModelSummary
+from pytorch_lightning.core.step_result import Result, EvalResult
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import BaseProfiler
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
@@ -230,6 +231,7 @@ class Trainer(
 
             num_nodes: number of GPU nodes for distributed training.
 
+            num_processes: number of processes for distributed training with distributed_backend="ddp_cpu"
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders. Default: 2
 
@@ -818,8 +820,15 @@ class Trainer(
 
             # first call trainer hook
             if hasattr(self, hook_name):
+                model_ref = self.get_model()
+                if model_ref is not None:
+                    # used to track current hook name called
+                    model_ref._current_hook_fx_name = hook_name
                 trainer_hook = getattr(self, hook_name)
                 trainer_hook(*args, **kwargs)
+                if model_ref is not None:
+                    # set back current_hook_fx_name to its default value
+                    model_ref._current_hook_fx_name = ''
 
             # next call hook in lightningModule
             output = None
