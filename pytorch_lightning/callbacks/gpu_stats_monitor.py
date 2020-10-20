@@ -80,7 +80,7 @@ class GPUStatsMonitor(Callback):
         intra_step_time: bool = False,
         inter_step_time: bool = False,
         fan_speed: bool = False,
-        temperature: bool = False
+        temperature: bool = False,
     ):
         super().__init__()
 
@@ -89,20 +89,20 @@ class GPUStatsMonitor(Callback):
                 'Cannot use GPUStatsMonitor callback because NVIDIA driver is not installed.'
             )
 
-        self._log_stats = AttributeDict({
-            'memory_utilization': memory_utilization,
-            'gpu_utilization': gpu_utilization,
-            'intra_step_time': intra_step_time,
-            'inter_step_time': inter_step_time,
-            'fan_speed': fan_speed,
-            'temperature': temperature
-        })
+        self._log_stats = AttributeDict(
+            {
+                'memory_utilization': memory_utilization,
+                'gpu_utilization': gpu_utilization,
+                'intra_step_time': intra_step_time,
+                'inter_step_time': inter_step_time,
+                'fan_speed': fan_speed,
+                'temperature': temperature,
+            }
+        )
 
     def on_train_start(self, trainer, pl_module):
         if not trainer.logger:
-            raise MisconfigurationException(
-                'Cannot use GPUStatsMonitor callback with Trainer that has no logger.'
-            )
+            raise MisconfigurationException('Cannot use GPUStatsMonitor callback with Trainer that has no logger.')
 
         if not trainer.on_gpu:
             raise MisconfigurationException(
@@ -154,14 +154,14 @@ class GPUStatsMonitor(Callback):
             encoding="utf-8",
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
-            check=True
+            check=True,
         )
 
         def _to_float(x: str) -> float:
             try:
                 return float(x)
             except ValueError:
-                return 0.
+                return 0.0
 
         stats = result.stdout.strip().split(os.linesep)
         stats = [[_to_float(x) for x in s.split(', ')] for s in stats]

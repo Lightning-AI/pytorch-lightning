@@ -55,7 +55,6 @@ class RandomDataset(Dataset):
 
 
 class BoringModel(LightningModule):
-
     def __init__(self):
         """
         Testing PL Module

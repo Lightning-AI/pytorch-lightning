@@ -217,9 +217,7 @@ class ModelCheckpoint(Callback):
 
     def __validate_init_configuration(self):
         if self.save_top_k is not None and self.save_top_k < -1:
-            raise MisconfigurationException(
-                f'Invalid value for save_top_k={self.save_top_k}. Must be None or >= -1'
-            )
+            raise MisconfigurationException(f'Invalid value for save_top_k={self.save_top_k}. Must be None or >= -1')
         if self.monitor is None:
             # None: save last epoch, -1: save all epochs, 0: nothing is saved
             if self.save_top_k not in [None, -1, 0]:
@@ -341,9 +339,7 @@ class ModelCheckpoint(Callback):
             filename = filename.format(**metrics)
         return cls.CHECKPOINT_JOIN_CHAR.join([txt for txt in (prefix, filename) if txt])
 
-    def format_checkpoint_name(
-        self, epoch: int, metrics: Dict[str, Any], ver: Optional[int] = None
-    ) -> str:
+    def format_checkpoint_name(self, epoch: int, metrics: Dict[str, Any], ver: Optional[int] = None) -> str:
         """Generate a filename according to the defined template.
 
         Example::
@@ -362,9 +358,7 @@ class ModelCheckpoint(Callback):
             >>> os.path.basename(ckpt.format_checkpoint_name(0, {}))
             'missing=0.ckpt'
         """
-        filename = self._format_checkpoint_name(
-            self.filename, epoch, metrics, prefix=self.prefix
-        )
+        filename = self._format_checkpoint_name(self.filename, epoch, metrics, prefix=self.prefix)
         if ver is not None:
             filename = self.CHECKPOINT_JOIN_CHAR.join((filename, f"v{ver}"))
         ckpt_name = f"{filename}.ckpt"
@@ -404,9 +398,7 @@ class ModelCheckpoint(Callback):
 
             version, name = trainer.accelerator_backend.broadcast((version, trainer.logger.name))
 
-            ckpt_path = os.path.join(
-                save_dir, name, version, "checkpoints"
-            )
+            ckpt_path = os.path.join(save_dir, name, version, "checkpoints")
         else:
             ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")
 
@@ -444,9 +436,7 @@ class ModelCheckpoint(Callback):
         filepath = self.format_checkpoint_name(epoch, ckpt_name_metrics)
         version_cnt = 0
         while self._fs.exists(filepath):
-            filepath = self.format_checkpoint_name(
-                epoch, ckpt_name_metrics, ver=version_cnt
-            )
+            filepath = self.format_checkpoint_name(epoch, ckpt_name_metrics, ver=version_cnt)
             # this epoch called before
             version_cnt += 1
         return filepath
@@ -473,10 +463,10 @@ class ModelCheckpoint(Callback):
 
         self._save_model(last_filepath, trainer, pl_module)
         if (
-                self.last_model_path
-                and self.last_model_path != last_filepath
-                and (self.save_top_k != -1 or self.save_last)
-                and trainer.is_global_zero
+            self.last_model_path
+            and self.last_model_path != last_filepath
+            and (self.save_top_k != -1 or self.save_last)
+            and trainer.is_global_zero
         ):
             self._del_model(self.last_model_path)
         self.last_model_path = last_filepath
@@ -493,9 +483,7 @@ class ModelCheckpoint(Callback):
         if self.check_monitor_top_k(current):
             self._update_best_and_save(filepath, current, epoch, trainer, pl_module)
         elif self.verbose:
-            rank_zero_info(
-                f"Epoch {epoch:d}: {self.monitor} was not in top {self.save_top_k}"
-            )
+            rank_zero_info(f"Epoch {epoch:d}: {self.monitor} was not in top {self.save_top_k}")
 
     def _is_valid_monitor_key(self, metrics):
         return self.monitor in metrics or len(metrics) == 0
@@ -525,9 +513,7 @@ class ModelCheckpoint(Callback):
         if len(self.best_k_models) == k:
             # monitor dict has reached k elements
             _op = max if self.mode == "min" else min
-            self.kth_best_model_path = _op(
-                self.best_k_models, key=self.best_k_models.get
-            )
+            self.kth_best_model_path = _op(self.best_k_models, key=self.best_k_models.get)
             self.kth_value = self.best_k_models[self.kth_best_model_path]
 
         _op = min if self.mode == "min" else max

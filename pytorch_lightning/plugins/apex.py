@@ -26,7 +26,6 @@ except ImportError:
 
 
 class ApexPlugin:
-
     def __init__(self, trainer):
         self.trainer = trainer
 

@@ -19,10 +19,7 @@ from torch.nn import functional as F
 
 
 def mse(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        reduction: str = 'elementwise_mean',
-        return_state: bool = False
+    pred: torch.Tensor, target: torch.Tensor, reduction: str = 'elementwise_mean', return_state: bool = False
 ) -> torch.Tensor:
     """
     Computes mean squared error
@@ -57,10 +54,7 @@ def mse(
 
 
 def rmse(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        reduction: str = 'elementwise_mean',
-        return_state: bool = False
+    pred: torch.Tensor, target: torch.Tensor, reduction: str = 'elementwise_mean', return_state: bool = False
 ) -> torch.Tensor:
     """
     Computes root mean squared error
@@ -88,16 +82,12 @@ def rmse(
     """
     mean_squared_error = mse(pred, target, reduction=reduction)
     if return_state:
-        return {'squared_error': mean_squared_error.sum(),
-                'n_observations': torch.tensor(mean_squared_error.numel())}
+        return {'squared_error': mean_squared_error.sum(), 'n_observations': torch.tensor(mean_squared_error.numel())}
     return torch.sqrt(mean_squared_error)
 
 
 def mae(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        reduction: str = 'elementwise_mean',
-        return_state: bool = False
+    pred: torch.Tensor, target: torch.Tensor, reduction: str = 'elementwise_mean', return_state: bool = False
 ) -> torch.Tensor:
     """
     Computes mean absolute error
@@ -131,11 +121,7 @@ def mae(
     return mae
 
 
-def rmsle(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        reduction: str = 'elementwise_mean'
-) -> torch.Tensor:
+def rmsle(pred: torch.Tensor, target: torch.Tensor, reduction: str = 'elementwise_mean') -> torch.Tensor:
     """
     Computes root mean squared log error
 
@@ -169,7 +155,7 @@ def psnr(
     data_range: Optional[float] = None,
     base: float = 10.0,
     reduction: str = 'elementwise_mean',
-    return_state: bool = False
+    return_state: bool = False,
 ) -> torch.Tensor:
     """
     Computes the peak signal-to-noise ratio
@@ -204,9 +190,11 @@ def psnr(
         data_range = torch.tensor(float(data_range))
 
     if return_state:
-        return {'data_range': data_range,
-                'sum_squared_error': F.mse_loss(pred, target, reduction='none').sum(),
-                'n_obs': torch.tensor(target.numel())}
+        return {
+            'data_range': data_range,
+            'sum_squared_error': F.mse_loss(pred, target, reduction='none').sum(),
+            'n_obs': torch.tensor(target.numel()),
+        }
 
     mse_score = mse(pred.view(-1), target.view(-1), reduction=reduction)
     psnr_base_e = 2 * torch.log(data_range) - torch.log(mse_score)
@@ -217,10 +205,7 @@ def psnr(
 def _gaussian_kernel(channel, kernel_size, sigma, device):
     def _gaussian(kernel_size, sigma, device):
         gauss = torch.arange(
-            start=(1 - kernel_size) / 2, end=(1 + kernel_size) / 2,
-            step=1,
-            dtype=torch.float32,
-            device=device
+            start=(1 - kernel_size) / 2, end=(1 + kernel_size) / 2, step=1, dtype=torch.float32, device=device
         )
         gauss = torch.exp(-gauss.pow(2) / (2 * pow(sigma, 2)))
         return (gauss / gauss.sum()).unsqueeze(dim=0)  # (1, kernel_size)
@@ -240,7 +225,7 @@ def ssim(
     reduction: str = "elementwise_mean",
     data_range: Optional[float] = None,
     k1: float = 0.01,
-    k2: float = 0.03
+    k2: float = 0.03,
 ) -> torch.Tensor:
     """
     Computes Structual Similarity Index Measure
@@ -285,8 +270,7 @@ def ssim(
 
     if len(pred.shape) != 4 or len(target.shape) != 4:
         raise ValueError(
-            "Expected `pred` and `target` to have BxCxHxW shape."
-            f" Got pred: {pred.shape} and target: {target.shape}."
+            "Expected `pred` and `target` to have BxCxHxW shape." f" Got pred: {pred.shape} and target: {target.shape}."
         )
 
     if len(kernel_size) != 2 or len(sigma) != 2:
@@ -319,7 +303,7 @@ def ssim(
     # pred * target for sigma_pred_target
     input_list = torch.cat([pred, target, pred * pred, target * target, pred * target])  # (5 * B, C, H, W)
     outputs = F.conv2d(input_list, kernel, groups=channel)
-    output_list = [outputs[x * pred.size(0): (x + 1) * pred.size(0)] for x in range(len(outputs))]
+    output_list = [outputs[x * pred.size(0) : (x + 1) * pred.size(0)] for x in range(len(outputs))]
 
     mu_pred_sq = output_list[0].pow(2)
     mu_target_sq = output_list[1].pow(2)

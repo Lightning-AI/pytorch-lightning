@@ -116,15 +116,15 @@ class CometLogger(LightningLoggerBase):
     """
 
     def __init__(
-            self,
-            api_key: Optional[str] = None,
-            save_dir: Optional[str] = None,
-            project_name: Optional[str] = None,
-            rest_api_key: Optional[str] = None,
-            experiment_name: Optional[str] = None,
-            experiment_key: Optional[str] = None,
-            offline: bool = False,
-            **kwargs
+        self,
+        api_key: Optional[str] = None,
+        save_dir: Optional[str] = None,
+        project_name: Optional[str] = None,
+        rest_api_key: Optional[str] = None,
+        experiment_name: Optional[str] = None,
+        experiment_key: Optional[str] = None,
+        offline: bool = False,
+        **kwargs,
     ):
         if comet_ml is None:
             raise ImportError(

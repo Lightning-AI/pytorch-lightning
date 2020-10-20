@@ -18,7 +18,6 @@ from pytorch_lightning.trainer import Trainer
 
 @pytest.mark.parametrize('max_epochs', [1, 2, 3])
 def test_val_check_interval_1(tmpdir, max_epochs):
-
     class TestModel(SimpleModule):
         def __init__(self):
             super().__init__()
@@ -45,7 +44,6 @@ def test_val_check_interval_1(tmpdir, max_epochs):
 
 @pytest.mark.parametrize('max_epochs', [1, 2, 3])
 def test_val_check_interval_quarter(tmpdir, max_epochs):
-
     class TestModel(SimpleModule):
         def __init__(self):
             super().__init__()
@@ -72,7 +70,6 @@ def test_val_check_interval_quarter(tmpdir, max_epochs):
 
 @pytest.mark.parametrize('max_epochs', [1, 2, 3])
 def test_val_check_interval_third(tmpdir, max_epochs):
-
     class TestModel(SimpleModule):
         def __init__(self):
             super().__init__()

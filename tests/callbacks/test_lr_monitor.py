@@ -39,10 +39,10 @@ def test_lr_monitor_single_lr(tmpdir):
     assert result
 
     assert lr_monitor.lrs, 'No learning rates logged'
-    assert len(lr_monitor.lrs) == len(trainer.lr_schedulers), \
-        'Number of learning rates logged does not match number of lr schedulers'
-    assert all([k in ['lr-Adam'] for k in lr_monitor.lrs.keys()]), \
-        'Names of learning rates not set correctly'
+    assert len(lr_monitor.lrs) == len(
+        trainer.lr_schedulers
+    ), 'Number of learning rates logged does not match number of lr schedulers'
+    assert all([k in ['lr-Adam'] for k in lr_monitor.lrs.keys()]), 'Names of learning rates not set correctly'
 
 
 def test_lr_monitor_no_lr_scheduler(tmpdir):
@@ -70,12 +70,7 @@ def test_lr_monitor_no_logger(tmpdir):
     model = EvalModelTemplate()
 
     lr_monitor = LearningRateMonitor()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        callbacks=[lr_monitor],
-        logger=False
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=[lr_monitor], logger=False)
 
     with pytest.raises(MisconfigurationException, match='Trainer that has no logger'):
         trainer.fit(model)
@@ -101,18 +96,21 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval):
     assert result
 
     assert lr_monitor.lrs, 'No learning rates logged'
-    assert len(lr_monitor.lrs) == len(trainer.lr_schedulers), \
-        'Number of learning rates logged does not match number of lr schedulers'
-    assert all([k in ['lr-Adam', 'lr-Adam-1'] for k in lr_monitor.lrs.keys()]), \
-        'Names of learning rates not set correctly'
+    assert len(lr_monitor.lrs) == len(
+        trainer.lr_schedulers
+    ), 'Number of learning rates logged does not match number of lr schedulers'
+    assert all(
+        [k in ['lr-Adam', 'lr-Adam-1'] for k in lr_monitor.lrs.keys()]
+    ), 'Names of learning rates not set correctly'
 
     if logging_interval == 'step':
         expected_number_logged = trainer.global_step
     if logging_interval == 'epoch':
         expected_number_logged = trainer.max_epochs
 
-    assert all(len(lr) == expected_number_logged for lr in lr_monitor.lrs.values()), \
-        'Length of logged learning rates do not match the expected number'
+    assert all(
+        len(lr) == expected_number_logged for lr in lr_monitor.lrs.values()
+    ), 'Length of logged learning rates do not match the expected number'
 
 
 def test_lr_monitor_param_groups(tmpdir):
@@ -134,7 +132,9 @@ def test_lr_monitor_param_groups(tmpdir):
     assert result
 
     assert lr_monitor.lrs, 'No learning rates logged'
-    assert len(lr_monitor.lrs) == 2 * len(trainer.lr_schedulers), \
-        'Number of learning rates logged does not match number of param groups'
-    assert all([k in ['lr-Adam/pg1', 'lr-Adam/pg2'] for k in lr_monitor.lrs.keys()]), \
-        'Names of learning rates not set correctly'
+    assert len(lr_monitor.lrs) == 2 * len(
+        trainer.lr_schedulers
+    ), 'Number of learning rates logged does not match number of param groups'
+    assert all(
+        [k in ['lr-Adam/pg1', 'lr-Adam/pg2'] for k in lr_monitor.lrs.keys()]
+    ), 'Names of learning rates not set correctly'

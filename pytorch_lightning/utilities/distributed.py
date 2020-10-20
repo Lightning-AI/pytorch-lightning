@@ -23,12 +23,12 @@ from typing import Union, Optional, Any
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
 else:
+
     class ReduceOp:
         SUM = None
 
 
 def rank_zero_only(fn):
-
     @wraps(fn)
     def wrapped_fn(*args, **kwargs):
         if rank_zero_only.rank == 0:
@@ -65,6 +65,7 @@ def find_free_network_port() -> int:
     have to set the `MASTER_PORT` environment variable.
     """
     import socket
+
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(("", 0))
     s.listen(1)

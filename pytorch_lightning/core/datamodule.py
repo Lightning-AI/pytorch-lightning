@@ -32,9 +32,9 @@ class _DataModuleWrapper(type):
     def __call__(cls, *args, **kwargs):
         """A wrapper for LightningDataModule that:
 
-            1. Runs user defined subclass's __init__
-            2. Assures prepare_data() runs on rank 0
-            3. Lets you check prepare_data and setup to see if they've been called
+        1. Runs user defined subclass's __init__
+        2. Assures prepare_data() runs on rank 0
+        3. Lets you check prepare_data and setup to see if they've been called
         """
         if not cls.__has_added_checks:
             cls.__has_added_checks = True
@@ -263,8 +263,7 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
 
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
-        r"""Extends existing argparse by default `LightningDataModule` attributes.
-        """
+        r"""Extends existing argparse by default `LightningDataModule` attributes."""
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
         added_args = [x.dest for x in parser._actions]
 
@@ -276,9 +275,7 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
 
         # TODO: get "help" from docstring :)
         for arg, arg_types, arg_default in (
-            at
-            for at in cls.get_init_arguments_and_types()
-            if at[0] not in depr_arg_names
+            at for at in cls.get_init_arguments_and_types() if at[0] not in depr_arg_names
         ):
             arg_types = [at for at in allowed_types if at in arg_types]
             if not arg_types:
@@ -337,9 +334,7 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
 
         # we only want to pass in valid DataModule args, the rest may be user specific
         valid_kwargs = inspect.signature(cls.__init__).parameters
-        datamodule_kwargs = dict(
-            (name, params[name]) for name in valid_kwargs if name in params
-        )
+        datamodule_kwargs = dict((name, params[name]) for name in valid_kwargs if name in params)
         datamodule_kwargs.update(**kwargs)
 
         return cls(**datamodule_kwargs)

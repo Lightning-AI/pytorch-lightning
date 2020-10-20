@@ -19,8 +19,8 @@ def test_train_step_no_return(tmpdir):
     """
     Tests that only training_step can be used
     """
-    class CB(Callback):
 
+    class CB(Callback):
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
             d = outputs[0][0]
             assert 'minimize' in d

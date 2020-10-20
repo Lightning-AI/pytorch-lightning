@@ -243,7 +243,7 @@ def test_dm_checkpoint_save(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=3,
         weights_summary=None,
-        checkpoint_callback=ModelCheckpoint(monitor='early_stop_on')
+        checkpoint_callback=ModelCheckpoint(monitor='early_stop_on'),
     )
 
     # fit model
@@ -374,7 +374,6 @@ def test_full_loop_dp(tmpdir):
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires multi-GPU machine")
 def test_dm_transfer_batch_to_device(tmpdir):
     class CustomBatch:
-
         def __init__(self, data):
             self.samples = data[0]
             self.targets = data[1]
@@ -410,7 +409,6 @@ def test_dm_transfer_batch_to_device(tmpdir):
 
 
 class CustomMNISTDataModule(LightningDataModule):
-
     def __init__(self, data_dir: str = "./"):
         super().__init__()
         self.data_dir = data_dir
@@ -421,9 +419,7 @@ class CustomMNISTDataModule(LightningDataModule):
 
     def setup(self, stage: Optional[str] = None):
 
-        mnist_full = TrialMNIST(
-            root=self.data_dir, train=True, num_samples=64, download=True
-        )
+        mnist_full = TrialMNIST(root=self.data_dir, train=True, num_samples=64, download=True)
         self.mnist_train, self.mnist_val = random_split(mnist_full, [128, 64])
         self.dims = self.mnist_train[0][0].shape
 

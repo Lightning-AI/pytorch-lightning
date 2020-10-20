@@ -19,13 +19,16 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
-@pytest.mark.parametrize('callbacks,refresh_rate', [
-    ([], 1),
-    ([], 2),
-    ([ProgressBar(refresh_rate=1)], 0),
-    ([ProgressBar(refresh_rate=2)], 0),
-    ([ProgressBar(refresh_rate=2)], 1),
-])
+@pytest.mark.parametrize(
+    'callbacks,refresh_rate',
+    [
+        ([], 1),
+        ([], 2),
+        ([ProgressBar(refresh_rate=1)], 0),
+        ([ProgressBar(refresh_rate=2)], 0),
+        ([ProgressBar(refresh_rate=2)], 1),
+    ],
+)
 def test_progress_bar_on(tmpdir, callbacks, refresh_rate):
     """Test different ways the progress bar can be turned on."""
 
@@ -43,11 +46,14 @@ def test_progress_bar_on(tmpdir, callbacks, refresh_rate):
     assert progress_bars[0] is trainer.progress_bar_callback
 
 
-@pytest.mark.parametrize('callbacks,refresh_rate', [
-    ([], 0),
-    ([], False),
-    ([ModelCheckpoint('../trainer')], 0),
-])
+@pytest.mark.parametrize(
+    'callbacks,refresh_rate',
+    [
+        ([], 0),
+        ([], False),
+        ([ModelCheckpoint('../trainer')], 0),
+    ],
+)
 def test_progress_bar_off(tmpdir, callbacks, refresh_rate):
     """Test different ways the progress bar can be turned off."""
 
@@ -208,14 +214,18 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate):
     assert progress_bar.test_batches_seen == progress_bar.total_test_batches
 
 
-@pytest.mark.parametrize(['limit_val_batches', 'expected'], [
-    pytest.param(0, 0),
-    pytest.param(5, 7),
-])
+@pytest.mark.parametrize(
+    ['limit_val_batches', 'expected'],
+    [
+        pytest.param(0, 0),
+        pytest.param(5, 7),
+    ],
+)
 def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches, expected):
     """
     Test val_progress_bar total with 'num_sanity_val_steps' Trainer argument.
     """
+
     class CurrentProgressBar(ProgressBar):
         def __init__(self):
             super().__init__()

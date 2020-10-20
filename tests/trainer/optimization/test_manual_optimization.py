@@ -26,6 +26,7 @@ def test_multiple_optimizers_manual(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
             # manual
@@ -89,6 +90,7 @@ def test_multiple_optimizers_manual_return(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
             # manual
@@ -154,6 +156,7 @@ def test_multiple_optimizers_manual_return_and_log(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
             # manual
@@ -225,6 +228,7 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
             # manual
@@ -275,7 +279,7 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
         log_every_n_steps=1,
         weights_summary=None,
         precision=16,
-        gpus=1
+        gpus=1,
     )
 
     trainer.fit(model)
@@ -292,6 +296,7 @@ def test_multiple_optimizers_manual_apex(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
             # manual
@@ -348,7 +353,7 @@ def test_multiple_optimizers_manual_apex(tmpdir):
         precision=16,
         amp_level='O2',
         amp_backend='apex',
-        gpus=1
+        gpus=1,
     )
 
     trainer.fit(model)

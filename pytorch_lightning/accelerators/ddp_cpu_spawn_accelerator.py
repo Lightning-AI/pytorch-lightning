@@ -39,7 +39,6 @@ else:
 
 
 class DDPCPUSpawnAccelerator(Accelerator):
-
     def __init__(self, trainer, nprocs, cluster_environment=None):
         super().__init__(trainer, cluster_environment)
         self.mp_queue = None
@@ -60,7 +59,14 @@ class DDPCPUSpawnAccelerator(Accelerator):
         model = self.trainer.model
 
         # train in children process
-        mp.spawn(self.ddp_train, nprocs=self.nprocs, args=(self.mp_queue, model,))
+        mp.spawn(
+            self.ddp_train,
+            nprocs=self.nprocs,
+            args=(
+                self.mp_queue,
+                model,
+            ),
+        )
 
         # restore main state with best weights
         best_path = self.mp_queue.get()
@@ -94,9 +100,7 @@ class DDPCPUSpawnAccelerator(Accelerator):
         # where to store ip_table
         model.trainer = self.trainer
         self.init_ddp_connection(
-            self.trainer.global_rank,
-            self.trainer.world_size,
-            self.trainer.is_slurm_managing_tasks
+            self.trainer.global_rank, self.trainer.world_size, self.trainer.is_slurm_managing_tasks
         )
 
         # call setup after the ddp process has connected
@@ -208,12 +212,8 @@ class DDPCPUSpawnAccelerator(Accelerator):
             mp_queue.put(best_model_path)
             mp_queue.put(results)
 
-    def configure_ddp(
-        self, model: LightningModule, device_ids: List[int]
-    ) -> DistributedDataParallel:
-        model = LightningDistributedDataParallel(
-            model, device_ids=device_ids, find_unused_parameters=True
-        )
+    def configure_ddp(self, model: LightningModule, device_ids: List[int]) -> DistributedDataParallel:
+        model = LightningDistributedDataParallel(model, device_ids=device_ids, find_unused_parameters=True)
         return model
 
     def configure_sync_batchnorm(self, model: LightningModule) -> LightningModule:

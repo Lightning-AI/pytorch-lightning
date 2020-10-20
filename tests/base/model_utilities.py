@@ -17,7 +17,6 @@ from tests.base.datasets import TrialMNIST
 
 
 class ModelTemplateData:
-
     def dataloader(self, train: bool, num_samples: int = 100):
         dataset = TrialMNIST(root=self.data_root, train=train, num_samples=num_samples, download=True)
 
@@ -31,7 +30,6 @@ class ModelTemplateData:
 
 
 class ModelTemplateUtils:
-
     def get_output_metric(self, output, name):
         if isinstance(output, dict):
             val = output[name]

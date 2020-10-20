@@ -257,7 +257,7 @@ class LightningModule(
                 enable_graph,
                 sync_dist,
                 sync_dist_op,
-                sync_dist_group
+                sync_dist_group,
             )
 
     def log_dict(
@@ -325,8 +325,12 @@ class LightningModule(
         if on_step is None:
             if self._current_fx_name in {'training_step', 'training_step_end'}:
                 on_step = True
-            elif self._current_fx_name in {'evaluation_step', 'evaluation_step_end',
-                                           'evaluation_epoch_end', 'training_epoch_end'}:
+            elif self._current_fx_name in {
+                'evaluation_step',
+                'evaluation_step_end',
+                'evaluation_epoch_end',
+                'training_epoch_end',
+            }:
                 on_step = False
             else:
                 on_step = False
@@ -337,8 +341,12 @@ class LightningModule(
         if on_epoch is None:
             if self._current_fx_name in {'training_step', 'training_step_end'}:
                 on_epoch = False
-            elif self._current_fx_name in {'evaluation_step', 'evaluation_step_end',
-                                           'evaluation_epoch_end', 'training_epoch_end'}:
+            elif self._current_fx_name in {
+                'evaluation_step',
+                'evaluation_step_end',
+                'evaluation_epoch_end',
+                'training_epoch_end',
+            }:
                 on_epoch = True
             else:
                 on_epoch = True
@@ -459,9 +467,7 @@ class LightningModule(
             The loss value shown in the progress bar is smoothed (averaged) over the last values,
             so it differs from the actual loss returned in train/validation step.
         """
-        rank_zero_warn(
-            "`training_step` must be implemented to be used with the Lightning Trainer"
-        )
+        rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
     def training_step_end(self, *args, **kwargs):
         """
@@ -705,9 +711,7 @@ class LightningModule(
             See the :ref:`multi_gpu` guide for more details.
         """
 
-    def validation_epoch_end(
-        self, outputs: List[Any]
-    ) -> None:
+    def validation_epoch_end(self, outputs: List[Any]) -> None:
         """
         Called at the end of the validation epoch with the outputs of all validation steps.
 
@@ -884,9 +888,7 @@ class LightningModule(
             See the :ref:`multi_gpu` guide for more details.
         """
 
-    def test_epoch_end(
-        self, outputs: List[Any]
-    ) -> None:
+    def test_epoch_end(self, outputs: List[Any]) -> None:
         """
         Called at the end of a test epoch with the output of all test steps.
 
@@ -938,7 +940,7 @@ class LightningModule(
         """
 
     def configure_optimizers(
-            self,
+        self,
     ):
         r"""
         Choose what optimizers and learning-rate schedulers to use in your optimization.
@@ -1053,9 +1055,7 @@ class LightningModule(
                   }
 
         """
-        rank_zero_warn(
-            "`configure_optimizers` must be implemented to be used with the Lightning Trainer"
-        )
+        rank_zero_warn("`configure_optimizers` must be implemented to be used with the Lightning Trainer")
 
     def manual_backward(self, loss: Tensor, optimizer: Optimizer, *args, **kwargs) -> None:
         """
@@ -1210,9 +1210,7 @@ class LightningModule(
         else:
             optimizer.step()
 
-    def optimizer_zero_grad(
-        self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int
-    ):
+    def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int):
         optimizer.zero_grad()
 
     def tbptt_split_batch(self, batch: Tensor, split_size: int) -> list:
@@ -1258,15 +1256,9 @@ class LightningModule(
             Each returned batch split is passed separately to :meth:`training_step`.
 
         """
-        time_dims = [
-            len(x[0])
-            for x in batch
-            if isinstance(x, (torch.Tensor, collections.Sequence))
-        ]
+        time_dims = [len(x[0]) for x in batch if isinstance(x, (torch.Tensor, collections.Sequence))]
         assert len(time_dims) >= 1, "Unable to determine batch time dimension"
-        assert all(
-            x == time_dims[0] for x in time_dims
-        ), "Batch time dimension length is ambiguous"
+        assert all(x == time_dims[0] for x in time_dims), "Batch time dimension length is ambiguous"
 
         splits = []
         for t in range(0, time_dims[0], split_size):
@@ -1346,11 +1338,7 @@ class LightningModule(
         """
         # call .item() only once but store elements without graphs
         running_train_loss = self.trainer.train_loop.running_loss.mean()
-        avg_training_loss = (
-            running_train_loss.cpu().item()
-            if running_train_loss is not None
-            else float("NaN")
-        )
+        avg_training_loss = running_train_loss.cpu().item() if running_train_loss is not None else float("NaN")
         tqdm_dict = {"loss": "{:.3f}".format(avg_training_loss)}
 
         if self.trainer.truncated_bptt_steps is not None:
@@ -1516,9 +1504,7 @@ class LightningModule(
             input_data = self.example_input_array
         else:
             if input_sample is not None:
-                raise ValueError(
-                    f"Received `input_sample` of type {type(input_sample)}. Expected type is `Tensor`"
-                )
+                raise ValueError(f"Received `input_sample` of type {type(input_sample)}. Expected type is `Tensor`")
             else:
                 raise ValueError(
                     "Could not export to ONNX since neither `input_sample` nor"
@@ -1533,8 +1519,11 @@ class LightningModule(
         torch.onnx.export(self, input_data, file_path, **kwargs)
 
     def to_torchscript(
-        self, file_path: Optional[str] = None, method: Optional[str] = 'script',
-            example_inputs: Optional[torch.Tensor] = None, **kwargs
+        self,
+        file_path: Optional[str] = None,
+        method: Optional[str] = 'script',
+        example_inputs: Optional[torch.Tensor] = None,
+        **kwargs,
     ) -> Union[ScriptModule, Dict[str, ScriptModule]]:
         """
         By default compiles the whole model to a :class:`~torch.jit.ScriptModule`.
@@ -1587,11 +1576,13 @@ class LightningModule(
                 if example_inputs is None:
                     example_inputs = self.example_input_array
                 # automatically send example inputs to the right device and use trace
-                torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs.to(self.device),
-                                                     **kwargs)
+                torchscript_module = torch.jit.trace(
+                    func=self.eval(), example_inputs=example_inputs.to(self.device), **kwargs
+                )
             else:
-                raise ValueError(f"The 'method' parameter only supports 'script' or 'trace', but value given was:"
-                                 f"{method}")
+                raise ValueError(
+                    f"The 'method' parameter only supports 'script' or 'trace', but value given was:" f"{method}"
+                )
         self.train(mode)
 
         if file_path is not None:

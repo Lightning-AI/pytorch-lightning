@@ -6,7 +6,7 @@
 
 .. role:: hidden
     :class: hidden-section
-    
+
 .. _logging:
 
 
@@ -134,7 +134,7 @@ decorator to make sure that only the first process in DDP training logs data.
         def experiment(self):
             # Return the experiment object associated with this logger.
             pass
-          
+
         def version(self):
             # Return the experiment version, int or str.
             return '0.1'
@@ -226,7 +226,7 @@ if you are using a logger. These defaults can be customized by overriding the
 :func:`~pytorch_lightning.core.lightning.LightningModule.get_progress_bar_dict` hook in your module.
 
 .. code-block:: python
-    
+
     def get_progress_bar_dict(self):
         # don't show the version number
         items = super().get_progress_bar_dict()

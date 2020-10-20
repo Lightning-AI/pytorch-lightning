@@ -81,7 +81,7 @@ class TensorBoardLogger(LightningLoggerBase):
         version: Optional[Union[int, str]] = None,
         log_graph: bool = False,
         default_hp_metric: bool = True,
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
         self._save_dir = save_dir
@@ -145,8 +145,9 @@ class TensorBoardLogger(LightningLoggerBase):
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace],
-                        metrics: Optional[Dict[str, Any]] = None) -> None:
+    def log_hyperparams(
+        self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
+    ) -> None:
         params = self._convert_params(params)
 
         # store params to output
@@ -200,10 +201,12 @@ class TensorBoardLogger(LightningLoggerBase):
                 input_array = model.transfer_batch_to_device(input_array, model.device)
                 self.experiment.add_graph(model, input_array)
             else:
-                rank_zero_warn('Could not log computational graph since the'
-                               ' `model.example_input_array` attribute is not set'
-                               ' or `input_array` was not given',
-                               UserWarning)
+                rank_zero_warn(
+                    'Could not log computational graph since the'
+                    ' `model.example_input_array` attribute is not set'
+                    ' or `input_array` was not given',
+                    UserWarning,
+                )
 
     @rank_zero_only
     def save(self) -> None:

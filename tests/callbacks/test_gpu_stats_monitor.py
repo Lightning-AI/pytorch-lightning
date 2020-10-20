@@ -32,13 +32,7 @@ def test_gpu_stats_monitor(tmpdir):
     gpu_stats = GPUStatsMonitor()
     logger = CSVLogger(tmpdir)
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        gpus=1,
-        callbacks=[gpu_stats],
-        logger=logger
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=1, callbacks=[gpu_stats], logger=logger)
 
     results = trainer.fit(model)
     assert results
@@ -49,12 +43,7 @@ def test_gpu_stats_monitor(tmpdir):
 
     header = lines[0].split()
 
-    fields = [
-        'utilization.gpu',
-        'memory.used',
-        'memory.free',
-        'utilization.memory'
-    ]
+    fields = ['utilization.gpu', 'memory.used', 'memory.free', 'utilization.memory']
 
     for f in fields:
         assert any([f in h for h in header])
@@ -77,13 +66,7 @@ def test_gpu_stats_monitor_no_logger(tmpdir):
     model = EvalModelTemplate()
     gpu_stats = GPUStatsMonitor()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=[gpu_stats],
-        max_epochs=1,
-        gpus=1,
-        logger=False
-    )
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=[gpu_stats], max_epochs=1, gpus=1, logger=False)
 
     with pytest.raises(MisconfigurationException, match='Trainer that has no logger.'):
         trainer.fit(model)
@@ -97,12 +80,7 @@ def test_gpu_stats_monitor_no_gpu_warning(tmpdir):
     model = EvalModelTemplate()
     gpu_stats = GPUStatsMonitor()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=[gpu_stats],
-        max_steps=1,
-        gpus=None
-    )
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=[gpu_stats], max_steps=1, gpus=None)
 
     with pytest.raises(MisconfigurationException, match='not running on GPU'):
         trainer.fit(model)

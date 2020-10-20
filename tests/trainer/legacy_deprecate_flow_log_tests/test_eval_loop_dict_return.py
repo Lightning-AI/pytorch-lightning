@@ -58,11 +58,7 @@ def test_validation_step_scalar_return(tmpdir):
     model.validation_epoch_end = None
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        weights_summary=None,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=2
+        default_root_dir=tmpdir, weights_summary=None, limit_train_batches=2, limit_val_batches=2, max_epochs=2
     )
     trainer.fit(model)
 
@@ -90,11 +86,7 @@ def test_validation_step_arbitrary_dict_return(tmpdir):
     model.validation_epoch_end = None
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        weights_summary=None,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=2
+        default_root_dir=tmpdir, weights_summary=None, limit_train_batches=2, limit_val_batches=2, max_epochs=2
     )
     trainer.fit(model)
 
@@ -127,11 +119,7 @@ def test_validation_step_dict_return(tmpdir):
     model.validation_epoch_end = None
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        weights_summary=None,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=2
+        default_root_dir=tmpdir, weights_summary=None, limit_train_batches=2, limit_val_batches=2, max_epochs=2
     )
     trainer.fit(model)
 
@@ -168,11 +156,7 @@ def test_val_step_step_end_no_return(tmpdir):
     model.validation_epoch_end = None
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        weights_summary=None,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=2
+        default_root_dir=tmpdir, weights_summary=None, limit_train_batches=2, limit_val_batches=2, max_epochs=2
     )
     trainer.fit(model)
 
@@ -199,11 +183,7 @@ def test_val_step_step_end(tmpdir):
     model.validation_epoch_end = None
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        weights_summary=None,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=2
+        default_root_dir=tmpdir, weights_summary=None, limit_train_batches=2, limit_val_batches=2, max_epochs=2
     )
     trainer.fit(model)
 
@@ -248,7 +228,7 @@ def test_no_val_step_end(tmpdir):
         limit_train_batches=2,
         limit_val_batches=3,
         num_sanity_val_steps=0,
-        max_epochs=2
+        max_epochs=2,
     )
     trainer.fit(model)
 
@@ -291,7 +271,7 @@ def test_full_val_loop(tmpdir):
         limit_train_batches=2,
         limit_val_batches=3,
         num_sanity_val_steps=0,
-        max_epochs=2
+        max_epochs=2,
     )
     trainer.fit(model)
 

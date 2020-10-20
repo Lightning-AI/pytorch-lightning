@@ -86,9 +86,11 @@ class ExplainedVariance(Metric):
         self.add_state("y", default=[], dist_reduce_fx=None)
         self.add_state("y_pred", default=[], dist_reduce_fx=None)
 
-        rank_zero_warn('Metric `ExplainedVariance` will save all targets and'
-                       ' predictions in buffer. For large datasets this may lead'
-                       ' to large memory footprint.')
+        rank_zero_warn(
+            'Metric `ExplainedVariance` will save all targets and'
+            ' predictions in buffer. For large datasets this may lead'
+            ' to large memory footprint.'
+        )
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
@@ -121,7 +123,7 @@ class ExplainedVariance(Metric):
         valid_score = nonzero_numerator & nonzero_denominator
         output_scores = torch.ones_like(y_diff_avg)
         output_scores[valid_score] = 1.0 - (numerator[valid_score] / denominator[valid_score])
-        output_scores[nonzero_numerator & ~nonzero_denominator] = 0.
+        output_scores[nonzero_numerator & ~nonzero_denominator] = 0.0
 
         # Decide what to do in multioutput case
         # Todo: allow user to pass in tensor with weights

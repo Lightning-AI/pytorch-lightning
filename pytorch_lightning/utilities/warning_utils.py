@@ -15,7 +15,6 @@ from pytorch_lightning.utilities.distributed import rank_zero_warn
 
 
 class WarningCache:
-
     def __init__(self):
         self.warnings = set()
 

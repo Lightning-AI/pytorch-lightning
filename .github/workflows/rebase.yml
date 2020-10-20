@@ -1,7 +1,7 @@
 name: Automatic Rebase
 # https://github.com/marketplace/actions/automatic-rebase
 
-on: 
+on:
   issue_comment:
     types: [created]
 

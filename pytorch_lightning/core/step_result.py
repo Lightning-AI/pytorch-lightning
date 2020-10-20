@@ -154,7 +154,7 @@ class Result(Dict):
                 reduce_fx=reduce_fx,
                 tbptt_reduce_fx=tbptt_reduce_fx,
                 tbptt_pad_token=tbptt_pad_token,
-                forked=False
+                forked=False,
             )
             self.__setitem__(step_name, value)
 
@@ -170,7 +170,7 @@ class Result(Dict):
                 reduce_fx=reduce_fx,
                 tbptt_reduce_fx=tbptt_reduce_fx,
                 tbptt_pad_token=tbptt_pad_token,
-                forked=False
+                forked=False,
             )
             self.__setitem__(epoch_name, value)
 
@@ -185,7 +185,7 @@ class Result(Dict):
             reduce_fx,
             tbptt_reduce_fx=tbptt_reduce_fx,
             tbptt_pad_token=tbptt_pad_token,
-            forked=was_forked
+            forked=was_forked,
         )
 
         # set the value
@@ -202,7 +202,7 @@ class Result(Dict):
         reduce_fx: Callable,
         tbptt_pad_token: int,
         tbptt_reduce_fx: Callable,
-        forked: bool
+        forked: bool,
     ):
         # set the meta for the item
         meta_value = value
@@ -215,7 +215,7 @@ class Result(Dict):
             value=meta_value,
             tbptt_reduce_fx=tbptt_reduce_fx,
             tbptt_pad_token=tbptt_pad_token,
-            forked=forked
+            forked=forked,
         )
 
         self['meta'][name] = meta
@@ -1014,7 +1014,7 @@ def weighted_mean(result, weights):
         if isinstance(result, list):
             result = torch.tensor(result)
 
-        weights = weights.to(result.device)[:result.size(0)]
+        weights = weights.to(result.device)[: result.size(0)]
         numerator = torch.dot(result.float(), weights.transpose(-1, 0).float())
         result = numerator / weights.sum().float()
     return result
@@ -1039,7 +1039,7 @@ def _process_dataloader_aggregated_steps(result, weights):
             moved = True
 
         # move weights to same device as value to reduce
-        weights_t = weights[:v.size(0)]
+        weights_t = weights[: v.size(0)]
 
         # weighted mean
         numerator = torch.dot(v.float(), weights_t.transpose(-1, 0).float())

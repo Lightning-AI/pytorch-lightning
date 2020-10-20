@@ -40,15 +40,17 @@ def test_optimizer_with_scheduling(tmpdir):
     init_lr = hparams.get('learning_rate')
     adjusted_lr = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
 
-    assert len(trainer.lr_schedulers) == 1, \
-        'lr scheduler not initialized properly, it has %i elements instread of 1' % len(trainer.lr_schedulers)
+    assert (
+        len(trainer.lr_schedulers) == 1
+    ), 'lr scheduler not initialized properly, it has %i elements instread of 1' % len(trainer.lr_schedulers)
 
-    assert all(a == adjusted_lr[0] for a in adjusted_lr), \
-        'Lr not equally adjusted for all param groups'
+    assert all(a == adjusted_lr[0] for a in adjusted_lr), 'Lr not equally adjusted for all param groups'
     adjusted_lr = adjusted_lr[0]
 
-    assert init_lr * 0.1 == adjusted_lr, \
-        'Lr not adjusted correctly, expected %f but got %f' % (init_lr * 0.1, adjusted_lr)
+    assert init_lr * 0.1 == adjusted_lr, 'Lr not adjusted correctly, expected %f but got %f' % (
+        init_lr * 0.1,
+        adjusted_lr,
+    )
 
 
 def test_multi_optimizer_with_scheduling(tmpdir):
@@ -72,19 +74,23 @@ def test_multi_optimizer_with_scheduling(tmpdir):
     adjusted_lr1 = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
     adjusted_lr2 = [pg['lr'] for pg in trainer.optimizers[1].param_groups]
 
-    assert len(trainer.lr_schedulers) == 2, \
-        'all lr scheduler not initialized properly, it has %i elements instread of 1' % len(trainer.lr_schedulers)
+    assert (
+        len(trainer.lr_schedulers) == 2
+    ), 'all lr scheduler not initialized properly, it has %i elements instread of 1' % len(trainer.lr_schedulers)
 
-    assert all(a == adjusted_lr1[0] for a in adjusted_lr1), \
-        'Lr not equally adjusted for all param groups for optimizer 1'
+    assert all(
+        a == adjusted_lr1[0] for a in adjusted_lr1
+    ), 'Lr not equally adjusted for all param groups for optimizer 1'
     adjusted_lr1 = adjusted_lr1[0]
 
-    assert all(a == adjusted_lr2[0] for a in adjusted_lr2), \
-        'Lr not equally adjusted for all param groups for optimizer 2'
+    assert all(
+        a == adjusted_lr2[0] for a in adjusted_lr2
+    ), 'Lr not equally adjusted for all param groups for optimizer 2'
     adjusted_lr2 = adjusted_lr2[0]
 
-    assert init_lr * 0.1 == adjusted_lr1 and init_lr * 0.1 == adjusted_lr2, \
-        'Lr not adjusted correctly, expected %f but got %f' % (init_lr * 0.1, adjusted_lr1)
+    assert (
+        init_lr * 0.1 == adjusted_lr1 and init_lr * 0.1 == adjusted_lr2
+    ), 'Lr not adjusted correctly, expected %f but got %f' % (init_lr * 0.1, adjusted_lr1)
 
 
 def test_multi_optimizer_with_scheduling_stepping(tmpdir):
@@ -107,23 +113,22 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
     adjusted_lr1 = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
     adjusted_lr2 = [pg['lr'] for pg in trainer.optimizers[1].param_groups]
 
-    assert len(trainer.lr_schedulers) == 2, \
-        'all lr scheduler not initialized properly'
+    assert len(trainer.lr_schedulers) == 2, 'all lr scheduler not initialized properly'
 
-    assert all(a == adjusted_lr1[0] for a in adjusted_lr1), \
-        'lr not equally adjusted for all param groups for optimizer 1'
+    assert all(
+        a == adjusted_lr1[0] for a in adjusted_lr1
+    ), 'lr not equally adjusted for all param groups for optimizer 1'
     adjusted_lr1 = adjusted_lr1[0]
 
-    assert all(a == adjusted_lr2[0] for a in adjusted_lr2), \
-        'lr not equally adjusted for all param groups for optimizer 2'
+    assert all(
+        a == adjusted_lr2[0] for a in adjusted_lr2
+    ), 'lr not equally adjusted for all param groups for optimizer 2'
     adjusted_lr2 = adjusted_lr2[0]
 
     # Called ones after end of epoch
-    assert init_lr * 0.1 ** 1 == adjusted_lr1, \
-        'lr for optimizer 1 not adjusted correctly'
+    assert init_lr * 0.1 ** 1 == adjusted_lr1, 'lr for optimizer 1 not adjusted correctly'
     # Called every 3 steps, meaning for 1 epoch of 11 batches, it is called 3 times
-    assert init_lr * 0.1 == adjusted_lr2, \
-        'lr for optimizer 2 not adjusted correctly'
+    assert init_lr * 0.1 == adjusted_lr2, 'lr for optimizer 2 not adjusted correctly'
 
 
 def test_reduce_lr_on_plateau_scheduling_missing_monitor(tmpdir):
@@ -149,7 +154,6 @@ def test_reduce_lr_on_plateau_scheduling(tmpdir):
     hparams = EvalModelTemplate.get_default_hparams()
 
     class TestModel(EvalModelTemplate):
-
         def configure_optimizers(self):
             optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
             lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
@@ -167,10 +171,13 @@ def test_reduce_lr_on_plateau_scheduling(tmpdir):
     results = trainer.fit(model)
     assert results == 1
 
-    assert trainer.lr_schedulers[0] == \
-        dict(scheduler=trainer.lr_schedulers[0]['scheduler'], monitor='early_stop_on',
-             interval='epoch', frequency=1, reduce_on_plateau=True), \
-        'lr schduler was not correctly converted to dict'
+    assert trainer.lr_schedulers[0] == dict(
+        scheduler=trainer.lr_schedulers[0]['scheduler'],
+        monitor='early_stop_on',
+        interval='epoch',
+        frequency=1,
+        reduce_on_plateau=True,
+    ), 'lr schduler was not correctly converted to dict'
 
 
 def test_optimizer_return_options():
@@ -206,16 +213,14 @@ def test_optimizer_return_options():
     optim, lr_sched, freq = trainer.init_optimizers(model)
     assert len(optim) == 1 and len(lr_sched) == 1 and len(freq) == 0
     assert optim[0] == opt_a
-    assert lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch',
-                               frequency=1, reduce_on_plateau=False)
+    assert lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch', frequency=1, reduce_on_plateau=False)
 
     # opt single dictionary
     model.configure_optimizers = lambda: {"optimizer": opt_a, "lr_scheduler": scheduler_a}
     optim, lr_sched, freq = trainer.init_optimizers(model)
     assert len(optim) == 1 and len(lr_sched) == 1 and len(freq) == 0
     assert optim[0] == opt_a
-    assert lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch',
-                               frequency=1, reduce_on_plateau=False)
+    assert lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch', frequency=1, reduce_on_plateau=False)
 
     # opt multiple dictionaries with frequencies
     model.configure_optimizers = lambda: (
@@ -225,8 +230,7 @@ def test_optimizer_return_options():
     optim, lr_sched, freq = trainer.init_optimizers(model)
     assert len(optim) == 2 and len(lr_sched) == 2 and len(freq) == 2
     assert optim[0] == opt_a
-    assert lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch',
-                               frequency=1, reduce_on_plateau=False)
+    assert lr_sched[0] == dict(scheduler=scheduler_a, interval='epoch', frequency=1, reduce_on_plateau=False)
     assert freq == [1, 5]
 
 
@@ -265,9 +269,7 @@ def test_configure_optimizer_from_dict(tmpdir):
 
     class CurrentModel(EvalModelTemplate):
         def configure_optimizers(self):
-            config = {
-                'optimizer': torch.optim.SGD(params=self.parameters(), lr=1e-03)
-            }
+            config = {'optimizer': torch.optim.SGD(params=self.parameters(), lr=1e-03)}
             return config
 
     hparams = EvalModelTemplate.get_default_hparams()
@@ -289,10 +291,7 @@ def test_configure_optimizers_with_frequency(tmpdir):
     model = EvalModelTemplate()
     model.configure_optimizers = model.configure_optimizers__multiple_optimizers_frequency
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     result = trainer.fit(model)
     assert result
 
@@ -304,10 +303,7 @@ def test_init_optimizers_during_testing(tmpdir):
     model = EvalModelTemplate()
     model.configure_optimizers = model.configure_optimizers__multiple_schedulers
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_test_batches=10
-    )
+    trainer = Trainer(default_root_dir=tmpdir, limit_test_batches=10)
     trainer.test(model, ckpt_path=None)
 
     assert len(trainer.lr_schedulers) == 0
@@ -319,8 +315,8 @@ def test_multiple_optimizers_callbacks(tmpdir):
     """
     Tests that multiple optimizers can be used with callbacks
     """
-    class CB(Callback):
 
+    class CB(Callback):
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
             pass
 

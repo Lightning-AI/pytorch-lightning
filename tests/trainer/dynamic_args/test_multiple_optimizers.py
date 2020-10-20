@@ -20,6 +20,7 @@ def test_multiple_optimizers(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
         def on_train_epoch_start(self) -> None:
             self.opt_0_seen = False
@@ -67,6 +68,7 @@ def test_multiple_optimizers_manual(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
         def on_train_epoch_start(self) -> None:
             self.opt_0_seen = False

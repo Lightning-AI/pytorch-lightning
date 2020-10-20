@@ -205,6 +205,7 @@ def test_train_step_no_return(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             self.training_step_called = True

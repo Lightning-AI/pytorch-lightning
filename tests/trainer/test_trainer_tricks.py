@@ -173,8 +173,9 @@ def test_model_reset_correctly(tmpdir):
     after_state_dict = model.state_dict()
 
     for key in before_state_dict.keys():
-        assert torch.all(torch.eq(before_state_dict[key], after_state_dict[key])), \
-            'Model was not reset correctly after scaling batch size'
+        assert torch.all(
+            torch.eq(before_state_dict[key], after_state_dict[key])
+        ), 'Model was not reset correctly after scaling batch size'
 
 
 def test_trainer_reset_correctly(tmpdir):
@@ -189,13 +190,15 @@ def test_trainer_reset_correctly(tmpdir):
         max_epochs=1,
     )
 
-    changed_attributes = ['max_steps',
-                          'weights_summary',
-                          'logger',
-                          'callbacks',
-                          'checkpoint_callback',
-                          'limit_train_batches',
-                          'current_epoch']
+    changed_attributes = [
+        'max_steps',
+        'weights_summary',
+        'logger',
+        'callbacks',
+        'checkpoint_callback',
+        'limit_train_batches',
+        'current_epoch',
+    ]
 
     attributes_before = {}
     for ca in changed_attributes:
@@ -208,8 +211,9 @@ def test_trainer_reset_correctly(tmpdir):
         attributes_after[ca] = getattr(trainer, ca)
 
     for key in changed_attributes:
-        assert attributes_before[key] == attributes_after[key], \
-            f'Attribute {key} was not reset correctly after learning rate finder'
+        assert (
+            attributes_before[key] == attributes_after[key]
+        ), f'Attribute {key} was not reset correctly after learning rate finder'
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
@@ -220,14 +224,10 @@ def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
     before_batch_size = hparams.get('batch_size')
-    trainer = Trainer(default_root_dir=tmpdir,
-                      max_epochs=1,
-                      auto_scale_batch_size=scale_arg,
-                      gpus=1)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=scale_arg, gpus=1)
     trainer.tune(model)
     after_batch_size = model.batch_size
-    assert before_batch_size != after_batch_size, \
-        'Batch size was not altered after running auto scaling of batch size'
+    assert before_batch_size != after_batch_size, 'Batch size was not altered after running auto scaling of batch size'
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
@@ -240,7 +240,6 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
     before_batch_size = hparams.get('batch_size')
 
     class HparamsEvalModelTemplate(EvalModelTemplate):
-
         def dataloader(self, *args, **kwargs):
             # artificially set batch_size so we can get a dataloader
             # remove it immediately after, because we want only self.hparams.batch_size
@@ -256,10 +255,7 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
     model = model_class(**hparams)
     model.datamodule = datamodule_model  # unused when another module gets passed to .tune() / .fit()
 
-    trainer = Trainer(default_root_dir=tmpdir,
-                      max_epochs=1,
-                      auto_scale_batch_size=True,
-                      gpus=1)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=True, gpus=1)
     trainer.tune(model, datamodule_fit)
     after_batch_size = model.hparams.batch_size if use_hparams else model.batch_size
     assert trainer.datamodule == datamodule_fit
@@ -301,13 +297,12 @@ def test_call_to_trainer_method(tmpdir, scale_method):
     model.batch_size = after_batch_size
     trainer.fit(model)
 
-    assert before_batch_size != after_batch_size, \
-        'Batch size was not altered after running auto scaling of batch size'
+    assert before_batch_size != after_batch_size, 'Batch size was not altered after running auto scaling of batch size'
 
 
 def test_error_on_dataloader_passed_to_fit(tmpdir):
     """Verify that when the auto scale batch size feature raises an error
-       if a train dataloader is passed to fit """
+    if a train dataloader is passed to fit"""
 
     # only train passed to fit
     model = EvalModelTemplate()
@@ -329,13 +324,7 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
 def test_auto_scale_batch_size_with_amp(tmpdir):
     model = EvalModelTemplate()
     batch_size_before = model.batch_size
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_steps=1,
-        auto_scale_batch_size=True,
-        gpus=1,
-        precision=16
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, auto_scale_batch_size=True, gpus=1, precision=16)
     trainer.tune(model)
     batch_size_after = model.batch_size
     assert trainer.amp_backend == AMPType.NATIVE

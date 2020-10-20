@@ -26,7 +26,6 @@ from collections import ChainMap
 
 
 class LoggerConnector:
-
     def __init__(self, trainer):
         self.trainer = trainer
         self.callback_metrics = {}
@@ -48,9 +47,7 @@ class LoggerConnector:
 
             # default logger
             self.trainer.logger = TensorBoardLogger(
-                save_dir=self.trainer.default_root_dir,
-                version=version,
-                name='lightning_logs'
+                save_dir=self.trainer.default_root_dir, version=version, name='lightning_logs'
             )
         elif logger is False:
             self.trainer.logger = None
@@ -213,10 +210,7 @@ class LoggerConnector:
         return result
 
     def _track_callback_metrics(self, eval_results, using_eval_result):
-        if (
-                len(eval_results) > 0 and
-                (eval_results[0] is None or not isinstance(eval_results[0], Result))
-        ):
+        if len(eval_results) > 0 and (eval_results[0] is None or not isinstance(eval_results[0], Result)):
             return
 
         if using_eval_result:
@@ -295,11 +289,9 @@ class LoggerConnector:
     def on_train_epoch_end(self, epoch_output):
         pass
 
-    def log_train_epoch_end_metrics(self,
-                                    epoch_output,
-                                    checkpoint_accumulator,
-                                    early_stopping_accumulator,
-                                    num_optimizers):
+    def log_train_epoch_end_metrics(
+        self, epoch_output, checkpoint_accumulator, early_stopping_accumulator, num_optimizers
+    ):
         # epoch output is a list. Each item in that list has all the outputs per optimizer
         # epoch_output[optimizer_idx][training_step_idx][tbptt_index]
         # remember that not using truncated backprop is equivalent with truncated back prop of len(1)
@@ -347,11 +339,7 @@ class LoggerConnector:
         # TODO: deprecate 1.0
         else:
             out = self.__run_legacy_training_epoch_end(
-                num_optimizers,
-                epoch_output,
-                model,
-                is_result_obj,
-                epoch_callback_metrics
+                num_optimizers, epoch_output, model, is_result_obj, epoch_callback_metrics
             )
             epoch_log_metrics, epoch_progress_bar_metrics, epoch_callback_metrics = out
 
@@ -391,20 +379,17 @@ class LoggerConnector:
         model._current_fx_name = ''
 
         if epoch_output is not None:
-            raise MisconfigurationException('training_epoch_end expects a return of None. '
-                                            'HINT: remove the return statement in training_epoch_end')
+            raise MisconfigurationException(
+                'training_epoch_end expects a return of None. '
+                'HINT: remove the return statement in training_epoch_end'
+            )
 
         # user can ALSO log at the end of an epoch
         new_epoch_end_logs = model._results
         return new_epoch_end_logs
 
     def __run_legacy_training_epoch_end(
-            self,
-            num_optimizers,
-            epoch_output,
-            model,
-            is_result_obj,
-            epoch_callback_metrics
+        self, num_optimizers, epoch_output, model, is_result_obj, epoch_callback_metrics
     ):
 
         epoch_log_metrics = {}
@@ -523,8 +508,8 @@ class LoggerConnector:
     def log_train_step_metrics(self, batch_output):
         # when metrics should be logged
         should_log_metrics = (
-            (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0 or self.trainer.should_stop
-        )
+            self.trainer.global_step + 1
+        ) % self.trainer.log_every_n_steps == 0 or self.trainer.should_stop
         if should_log_metrics or self.trainer.fast_dev_run:
             # logs user requested information to logger
             metrics = batch_output.batch_log_metrics

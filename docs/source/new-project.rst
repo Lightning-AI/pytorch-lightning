@@ -134,7 +134,7 @@ Examples of systems are:
 - `DQN <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=IAlT0-75T_Kv>`_
 - `GAN <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/gans/basic/basic_gan_module.py>`_
 - `Image classifier <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=gEulmrbxwaYL>`_
-- Seq2seq 
+- Seq2seq
 - `SimCLR <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/self_supervised/simclr/simclr_module.py>`_
 - `VAE <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_vae/basic_vae_module.py>`_
 
@@ -197,7 +197,7 @@ First, define the data however you want. Lightning just needs a :class:`~torch.u
 
     dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
     train_loader = DataLoader(dataset)
-    
+
 Next, init the :ref:`lightning_module` and the PyTorch Lightning :class:`~pytorch_lightning.trainer.Trainer`,
 then call fit with both the data and model.
 
@@ -324,8 +324,8 @@ You can also add a forward method to do predictions however you want.
 
     autoencoder = LitAutoencoder()
     autoencoder = autoencoder(torch.rand(1, 28 * 28))
-    
-    
+
+
 .. code-block:: python
 
     # ----------------------------------
@@ -394,7 +394,7 @@ It's trivial to use CPUs, GPUs or TPUs in Lightning. There's **NO NEED** to chan
 
     # train on 1 GPU
     trainer = pl.Trainer(gpus=1)
-    
+
 .. code-block:: python
 
     # train on multiple GPUs across nodes (32 gpus here)
@@ -402,7 +402,7 @@ It's trivial to use CPUs, GPUs or TPUs in Lightning. There's **NO NEED** to chan
         gpus=4,
         num_nodes=8
     )
-    
+
 .. code-block:: python
 
     # train on gpu 1, 3, 5 (3 gpus total)
@@ -430,7 +430,7 @@ Without changing a SINGLE line of your code, you can now do the following with t
         limit_train_batches=0.5,
         val_check_interval=0.25
     )
-    
+
 -----------
 
 Checkpoints
@@ -608,7 +608,7 @@ Here's an example adding a not-so-fancy learning rate decay rule:
                     new_lr_group.append(new_lr)
                     param_group['lr'] = new_lr
                  self.old_lrs[opt_idx] = new_lr_group
-                 
+
 
 Things you can do with a callback:
 
@@ -707,7 +707,7 @@ Lightning has many tools for debugging. Here is an example of just a few of them
 
 .. code-block:: python
 
-    # Automatically overfit the sane batch of your model for a sanity test 
+    # Automatically overfit the sane batch of your model for a sanity test
     trainer = pl.Trainer(overfit_batches=1)
 
 .. code-block:: python
@@ -717,7 +717,7 @@ Lightning has many tools for debugging. Here is an example of just a few of them
     trainer = pl.Trainer(fast_dev_run=True)
 
 .. code-block:: python
-   
+
    # train only 20% of an epoch
    trainer = pl. Trainer(limit_train_batches=0.2)
 
@@ -727,10 +727,10 @@ Lightning has many tools for debugging. Here is an example of just a few of them
     trainer = pl.Trainer(val_check_interval=0.25)
 
 .. code-block:: python
-    
+
     # Profile your code to find speed/memory bottlenecks
     Trainer(profiler=True)
- 
+
 ---------------
 
 ********************

@@ -45,7 +45,6 @@ else:
 
 
 class CheckpointConnector:
-
     def __init__(self, trainer):
         self.trainer = trainer
 
@@ -271,7 +270,11 @@ class CheckpointConnector:
             checkpoint['lr_schedulers'] = lr_schedulers
 
             # save native amp scaling
-            if self.trainer.amp_backend == AMPType.NATIVE and not self.trainer.use_tpu and self.trainer.scaler is not None:
+            if (
+                self.trainer.amp_backend == AMPType.NATIVE
+                and not self.trainer.use_tpu
+                and self.trainer.scaler is not None
+            ):
                 checkpoint['native_amp_scaling_state'] = self.trainer.scaler.state_dict()
             elif self.trainer.amp_backend == AMPType.APEX:
                 checkpoint['amp_scaling_state'] = amp.state_dict()

@@ -14,8 +14,7 @@
 import torch
 
 from pytorch_lightning import Trainer
-from tests.base.develop_utils import load_model_from_checkpoint, get_default_logger, \
-    reset_seed
+from tests.base.develop_utils import load_model_from_checkpoint, get_default_logger, reset_seed
 
 
 def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50):
@@ -83,8 +82,9 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
         if trainer.use_ddp or trainer.use_ddp2:
             # on hpc this would work fine... but need to hack it for the purpose of the test
             trainer.model = pretrained_model
-            trainer.optimizers, trainer.lr_schedulers, trainer.optimizer_frequencies = \
-                trainer.init_optimizers(pretrained_model)
+            trainer.optimizers, trainer.lr_schedulers, trainer.optimizer_frequencies = trainer.init_optimizers(
+                pretrained_model
+            )
 
         # test HPC loading / saving
         trainer.checkpoint_connector.hpc_save(save_dir, logger)

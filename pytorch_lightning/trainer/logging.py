@@ -73,7 +73,8 @@ class TrainerLoggingMixin(ABC):
                         # log on a step or aggregate epoch metric to the logger and/or progress bar
                         # (inside LightningModule)
                         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
-                    """)
+                    """
+                    )
                     rank_zero_warn(m)
 
         # --------------------------

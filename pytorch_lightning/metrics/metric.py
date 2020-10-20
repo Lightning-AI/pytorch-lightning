@@ -57,6 +57,7 @@ class Metric(nn.Module, ABC):
         process_group:
             Specify the process group on which synchronization is called. default: None (which selects the entire world)
     """
+
     def __init__(
         self,
         compute_on_step: bool = True,
@@ -115,12 +116,10 @@ class Metric(nn.Module, ABC):
         """
         if (
             not isinstance(default, torch.Tensor)
-            and not isinstance(default, list)                     # noqa: W503
+            and not isinstance(default, list)  # noqa: W503
             or (isinstance(default, list) and len(default) != 0)  # noqa: W503
         ):
-            raise ValueError(
-                "state variable must be a tensor or any empty list (where you can append tensors)"
-            )
+            raise ValueError("state variable must be a tensor or any empty list (where you can append tensors)")
 
         if dist_reduce_fx == "sum":
             dist_reduce_fx = dim_zero_sum
@@ -129,9 +128,7 @@ class Metric(nn.Module, ABC):
         elif dist_reduce_fx == "cat":
             dist_reduce_fx = dim_zero_cat
         elif dist_reduce_fx is not None and not isinstance(dist_reduce_fx, Callable):
-            raise ValueError(
-                "`dist_reduce_fx` must be callable or one of ['mean', 'sum', 'cat', None]"
-            )
+            raise ValueError("`dist_reduce_fx` must be callable or one of ['mean', 'sum', 'cat', None]")
 
         if isinstance(default, torch.Tensor):
             if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
@@ -197,6 +194,7 @@ class Metric(nn.Module, ABC):
         def wrapped_func(*args, **kwargs):
             self._computed = None
             return update(*args, **kwargs)
+
         return wrapped_func
 
     def _wrap_compute(self, compute):

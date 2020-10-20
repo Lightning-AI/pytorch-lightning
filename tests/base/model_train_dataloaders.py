@@ -18,7 +18,6 @@ from tests.base.dataloaders import CustomNotImplementedErrorDataloader
 
 
 class TrainDataloaderVariations(ABC):
-
     @abstractmethod
     def dataloader(self, train: bool):
         """placeholder"""

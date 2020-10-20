@@ -14,10 +14,14 @@ num_targets = 5
 
 Input = namedtuple('Input', ["preds", "target"])
 
-_single_target_inputs = Input(preds=torch.rand(NUM_BATCHES, BATCH_SIZE), target=torch.rand(NUM_BATCHES, BATCH_SIZE),)
+_single_target_inputs = Input(
+    preds=torch.rand(NUM_BATCHES, BATCH_SIZE),
+    target=torch.rand(NUM_BATCHES, BATCH_SIZE),
+)
 
 _multi_target_inputs = Input(
-    preds=torch.rand(NUM_BATCHES, BATCH_SIZE, num_targets), target=torch.rand(NUM_BATCHES, BATCH_SIZE, num_targets),
+    preds=torch.rand(NUM_BATCHES, BATCH_SIZE, num_targets),
+    target=torch.rand(NUM_BATCHES, BATCH_SIZE, num_targets),
 )
 
 
@@ -66,4 +70,11 @@ class TestMeanError(MetricTester):
 def test_error_on_different_shape(metric_class):
     metric = metric_class()
     with pytest.raises(RuntimeError, match='Predictions and targets are expected to have the same shape'):
-        metric(torch.randn(100,), torch.randn(50,))
+        metric(
+            torch.randn(
+                100,
+            ),
+            torch.randn(
+                50,
+            ),
+        )

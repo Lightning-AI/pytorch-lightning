@@ -31,6 +31,7 @@ from tests.base import EvalModelTemplate, TrialMNIST, BoringModel
 
 class SaveHparamsModel(EvalModelTemplate):
     """ Tests that a model can take an object """
+
     def __init__(self, hparams):
         super().__init__()
         self.save_hyperparameters(hparams)
@@ -38,6 +39,7 @@ class SaveHparamsModel(EvalModelTemplate):
 
 class AssignHparamsModel(EvalModelTemplate):
     """ Tests that a model can take an object with explicit setter """
+
     def __init__(self, hparams):
         super().__init__()
         self.hparams = hparams
@@ -188,13 +190,13 @@ def test_explicit_missing_args_hparams(tmpdir):
 
     return raw_checkpoint_path
 
+
 # -------------------------
 # SPECIFIC TESTS
 # -------------------------
 
 
 def test_class_nesting():
-
     class MyModule(LightningModule):
         def forward(self):
             ...
@@ -233,7 +235,6 @@ class SubSubClassEvalModel(SubClassEvalModel):
 
 
 class AggSubClassEvalModel(SubClassEvalModel):
-
     def __init__(self, *args, my_loss=torch.nn.CrossEntropyLoss(), **kwargs):
         super().__init__(*args, **kwargs)
         self.save_hyperparameters()
@@ -254,14 +255,17 @@ class DictConfSubClassEvalModel(SubClassEvalModel):
         self.save_hyperparameters()
 
 
-@pytest.mark.parametrize("cls", [
-    EvalModelTemplate,
-    SubClassEvalModel,
-    SubSubClassEvalModel,
-    AggSubClassEvalModel,
-    UnconventionalArgsEvalModel,
-    DictConfSubClassEvalModel,
-])
+@pytest.mark.parametrize(
+    "cls",
+    [
+        EvalModelTemplate,
+        SubClassEvalModel,
+        SubSubClassEvalModel,
+        AggSubClassEvalModel,
+        UnconventionalArgsEvalModel,
+        DictConfSubClassEvalModel,
+    ],
+)
 def test_collect_init_arguments(tmpdir, cls):
     """ Test that the model automatically saves the arguments passed into the constructor """
     extra_args = {}
@@ -337,10 +341,13 @@ class LocalVariableModelSuperFirst(EvalModelTemplate):
         self.save_hyperparameters()  # this is intentionally here at the end
 
 
-@pytest.mark.parametrize("cls", [
-    LocalVariableModelSuperFirst,
-    # LocalVariableModelSuperLast,
-])
+@pytest.mark.parametrize(
+    "cls",
+    [
+        LocalVariableModelSuperFirst,
+        # LocalVariableModelSuperLast,
+    ],
+)
 def test_collect_init_arguments_with_local_vars(cls):
     """ Tests that only the arguments are collected and not local variables. """
     model = cls(arg1=1, arg2=2)
@@ -386,10 +393,13 @@ class OtherArgsModel(EvalModelTemplate):
         self.save_hyperparameters(arg1, arg2)
 
 
-@pytest.mark.parametrize("cls,config", [
-    (AnotherArgModel, dict(arg1=42)),
-    (OtherArgsModel, dict(arg1=3.14, arg2='abc')),
-])
+@pytest.mark.parametrize(
+    "cls,config",
+    [
+        (AnotherArgModel, dict(arg1=42)),
+        (OtherArgsModel, dict(arg1=3.14, arg2='abc')),
+    ],
+)
 def test_single_config_models_fail(tmpdir, cls, config):
     """ Test fail on passing unsupported config type. """
     with pytest.raises(ValueError):
@@ -445,8 +455,9 @@ def test_hparams_pickle_warning(tmpdir):
 
 
 def test_hparams_save_yaml(tmpdir):
-    hparams = dict(batch_size=32, learning_rate=0.001, data_root='./any/path/here',
-                   nasted=dict(any_num=123, anystr='abcd'))
+    hparams = dict(
+        batch_size=32, learning_rate=0.001, data_root='./any/path/here', nasted=dict(any_num=123, anystr='abcd')
+    )
     path_yaml = os.path.join(tmpdir, 'testing-hparams.yaml')
 
     save_hparams_to_yaml(path_yaml, hparams)
@@ -489,10 +500,13 @@ class SimpleNoArgsModel(LightningModule):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
 
-@pytest.mark.parametrize("cls", [
-    SimpleNoArgsModel,
-    NoArgsSubClassEvalModel,
-])
+@pytest.mark.parametrize(
+    "cls",
+    [
+        SimpleNoArgsModel,
+        NoArgsSubClassEvalModel,
+    ],
+)
 def test_model_nohparams_train_test(tmpdir, cls):
     """Test models that do not tae any argument in init."""
 
@@ -531,7 +545,6 @@ def test_model_ignores_non_exist_kwargument(tmpdir):
 
 
 class SuperClassPositionalArgs(EvalModelTemplate):
-
     def __init__(self, hparams):
         super().__init__()
         self._hparams = None  # pretend EvalModelTemplate did not call self.save_hyperparameters()
@@ -540,6 +553,7 @@ class SuperClassPositionalArgs(EvalModelTemplate):
 
 class SubClassVarArgs(SuperClassPositionalArgs):
     """ Loading this model should accept hparams and init in the super class """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

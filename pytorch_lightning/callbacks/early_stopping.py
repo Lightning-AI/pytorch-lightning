@@ -70,8 +70,15 @@ class EarlyStopping(Callback):
         'max': torch.gt,
     }
 
-    def __init__(self, monitor: str = 'early_stop_on', min_delta: float = 0.0, patience: int = 3,
-                 verbose: bool = False, mode: str = 'auto', strict: bool = True):
+    def __init__(
+        self,
+        monitor: str = 'early_stop_on',
+        min_delta: float = 0.0,
+        patience: int = 3,
+        verbose: bool = False,
+        mode: str = 'auto',
+        strict: bool = True,
+    ):
         super().__init__()
         self.monitor = monitor
         self.patience = patience
@@ -105,9 +112,11 @@ class EarlyStopping(Callback):
     def _validate_condition_metric(self, logs):
         monitor_val = logs.get(self.monitor)
 
-        error_msg = (f'Early stopping conditioned on metric `{self.monitor}`'
-                     f' which is not available. Pass in or modify your `EarlyStopping` callback to use any of the'
-                     f' following: `{"`, `".join(list(logs.keys()))}`')
+        error_msg = (
+            f'Early stopping conditioned on metric `{self.monitor}`'
+            f' which is not available. Pass in or modify your `EarlyStopping` callback to use any of the'
+            f' following: `{"`, `".join(list(logs.keys()))}`'
+        )
 
         if monitor_val is None:
             if self.strict:
@@ -128,7 +137,7 @@ class EarlyStopping(Callback):
             'wait_count': self.wait_count,
             'stopped_epoch': self.stopped_epoch,
             'best_score': self.best_score,
-            'patience': self.patience
+            'patience': self.patience,
         }
 
     def on_load_checkpoint(self, checkpointed_state):

@@ -106,7 +106,8 @@ def _sk_fbeta_multidim_multiclass(preds, target, average='micro', beta=1.0):
     ],
 )
 @pytest.mark.parametrize(
-    "metric_class, beta", [(Fbeta, 0.5), (Fbeta, 1.0)],
+    "metric_class, beta",
+    [(Fbeta, 0.5), (Fbeta, 1.0)],
 )
 class TestFBeta(MetricTester):
     def test_fbeta(

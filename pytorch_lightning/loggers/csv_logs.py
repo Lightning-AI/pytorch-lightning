@@ -67,6 +67,7 @@ class ExperimentWriter(object):
 
     def log_metrics(self, metrics_dict: Dict[str, float], step: Optional[int] = None) -> None:
         """Record metrics"""
+
         def _handle_value(value):
             if isinstance(value, torch.Tensor):
                 return value.item()
@@ -116,12 +117,7 @@ class CSVLogger(LightningLoggerBase):
             directory for existing versions, then automatically assigns the next available version.
     """
 
-    def __init__(
-        self,
-        save_dir: str,
-        name: Optional[str] = "default",
-        version: Optional[Union[int, str]] = None
-    ):
+    def __init__(self, save_dir: str, name: Optional[str] = "default", version: Optional[Union[int, str]] = None):
         super().__init__()
         self._save_dir = save_dir
         self._name = name or ''

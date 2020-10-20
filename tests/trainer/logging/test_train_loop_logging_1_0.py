@@ -80,7 +80,7 @@ def test__training_step__log(tmpdir):
         max_epochs=2,
         log_every_n_steps=1,
         weights_summary=None,
-        checkpoint_callback=callbacks.ModelCheckpoint(monitor='l_se')
+        checkpoint_callback=callbacks.ModelCheckpoint(monitor='l_se'),
     )
     trainer.fit(model)
 
@@ -226,13 +226,7 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
 
     # make sure all the metrics are available for callbacks
     logged_metrics = set(trainer.logged_metrics.keys())
-    expected_logged_metrics = {
-        'a_step', 'a_epoch',
-        'b_step', 'b_epoch',
-        'c',
-        'd/e/f',
-        'epoch'
-    }
+    expected_logged_metrics = {'a_step', 'a_epoch', 'b_step', 'b_epoch', 'c', 'd/e/f', 'epoch'}
     assert logged_metrics == expected_logged_metrics
 
     pbar_metrics = set(trainer.progress_bar_metrics.keys())
@@ -257,6 +251,7 @@ def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
     """
     Tests that log works correctly with different tensor types
     """
+
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             acc = self.step(batch[0])
@@ -323,8 +318,7 @@ def test_tbptt_log(tmpdir):
             assert y_tensor.shape[1] == truncated_bptt_steps, "tbptt split list failed"
 
             pred = self(x_tensor.view(batch_size, truncated_bptt_steps))
-            loss_val = torch.nn.functional.mse_loss(
-                pred, y_tensor.view(batch_size, truncated_bptt_steps))
+            loss_val = torch.nn.functional.mse_loss(pred, y_tensor.view(batch_size, truncated_bptt_steps))
 
             self.log('a', loss_val, on_epoch=True)
 
@@ -362,7 +356,6 @@ def test_tbptt_log(tmpdir):
 
 
 def test_different_batch_types_for_sizing(tmpdir):
-
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             assert isinstance(batch, dict)
@@ -396,11 +389,7 @@ def test_different_batch_types_for_sizing(tmpdir):
     trainer.fit(model)
 
     generated = set(trainer.logger_connector.logged_metrics)
-    expected = {
-        'a_epoch',
-        'n_step/epoch_0', 'n_epoch',
-        'epoch'
-    }
+    expected = {'a_epoch', 'n_step/epoch_0', 'n_epoch', 'epoch'}
 
     assert generated == expected
 
@@ -438,7 +427,6 @@ def test_validation_step_with_string_data_logging():
 
 
 def test_nested_datasouce_batch(tmpdir):
-
     class NestedDictStringDataset(Dataset):
         def __init__(self, size, length):
             self.len = length
@@ -452,7 +440,7 @@ def test_nested_datasouce_batch(tmpdir):
                     torch.tensor([1, 1], dtype=torch.uint8),
                 ],
                 'post_id': ['115', '116'],
-                'label': [torch.tensor([0, 1]), torch.tensor([1, 1], dtype=torch.uint8)]
+                'label': [torch.tensor([0, 1]), torch.tensor([1, 1], dtype=torch.uint8)],
             }
             return x
 

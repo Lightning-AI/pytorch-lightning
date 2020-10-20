@@ -341,12 +341,7 @@ class Trainer(
 
         # init train loop related flags
         self.train_loop.on_trainer_init(
-            max_epochs,
-            min_epochs,
-            max_steps,
-            min_steps,
-            num_sanity_val_steps,
-            automatic_optimization
+            max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps, automatic_optimization
         )
         self.evaluation_loop.on_trainer_init()
 

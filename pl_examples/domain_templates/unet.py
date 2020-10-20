@@ -16,12 +16,7 @@ class UNet(nn.Module):
             convolutions for upsampling.
     """
 
-    def __init__(
-            self, num_classes: int = 19,
-            num_layers: int = 5,
-            features_start: int = 64,
-            bilinear: bool = False
-    ):
+    def __init__(self, num_classes: int = 19, num_layers: int = 5, features_start: int = 64, bilinear: bool = False):
         super().__init__()
         self.num_layers = num_layers
 
@@ -43,10 +38,10 @@ class UNet(nn.Module):
     def forward(self, x):
         xi = [self.layers[0](x)]
         # Down path
-        for layer in self.layers[1:self.num_layers]:
+        for layer in self.layers[1 : self.num_layers]:
             xi.append(layer(xi[-1]))
         # Up path
-        for i, layer in enumerate(self.layers[self.num_layers:-1]):
+        for i, layer in enumerate(self.layers[self.num_layers : -1]):
             xi[-1] = layer(xi[-1], xi[-2 - i])
         return self.layers[-1](xi[-1])
 
@@ -65,7 +60,7 @@ class DoubleConv(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv2d(out_ch, out_ch, kernel_size=3, padding=1),
             nn.BatchNorm2d(out_ch),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=True),
         )
 
     def forward(self, x):
@@ -79,10 +74,7 @@ class Down(nn.Module):
 
     def __init__(self, in_ch: int, out_ch: int):
         super().__init__()
-        self.net = nn.Sequential(
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            DoubleConv(in_ch, out_ch)
-        )
+        self.net = nn.Sequential(nn.MaxPool2d(kernel_size=2, stride=2), DoubleConv(in_ch, out_ch))
 
     def forward(self, x):
         return self.net(x)

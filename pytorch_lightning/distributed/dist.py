@@ -18,7 +18,6 @@ from torch import distributed as torch_distrib
 
 
 class LightningDistributed:
-
     def __init__(self, rank=None, device=None):
         self.rank = rank
         self.device = device

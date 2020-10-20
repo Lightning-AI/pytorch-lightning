@@ -35,7 +35,6 @@ from pytorch_lightning.utilities.warning_utils import WarningCache
 
 
 class TrainLoop:
-
     def __init__(self, trainer):
         self.trainer = trainer
         self.early_stopping_accumulator = None
@@ -46,7 +45,9 @@ class TrainLoop:
         self.running_loss = TensorRunningAccum(window_length=20)
         self.automatic_optimization = True
 
-    def on_trainer_init(self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps, automatic_optimization):
+    def on_trainer_init(
+        self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps, automatic_optimization
+    ):
         self.trainer.global_step = 0
         self.trainer.current_epoch = 0
         self.trainer.interrupted = False
@@ -228,9 +229,7 @@ class TrainLoop:
         self.trainer.accumulation_scheduler.on_epoch_start(self.trainer, self.trainer.get_model())
 
         # stores accumulated grad fractions per batch
-        self.accumulated_loss = TensorRunningAccum(
-            window_length=self.trainer.accumulate_grad_batches
-        )
+        self.accumulated_loss = TensorRunningAccum(window_length=self.trainer.accumulate_grad_batches)
 
         # structured result accumulators for callbacks
         self.early_stopping_accumulator = Accumulator()
@@ -305,8 +304,7 @@ class TrainLoop:
             training_step_output = self.trainer.call_hook('training_step_end', training_step_output)
 
             training_step_output_for_epoch_end, training_step_output = self._process_training_step_output(
-                training_step_output,
-                split_batch
+                training_step_output, split_batch
             )
             is_result_obj = isinstance(training_step_output, Result)
 
@@ -437,8 +435,9 @@ class TrainLoop:
 
         # don't allow EvalResult in the training_step
         if isinstance(training_step_output, EvalResult):
-            raise MisconfigurationException('training_step cannot return EvalResult, '
-                                            'use a dict or TrainResult instead')
+            raise MisconfigurationException(
+                'training_step cannot return EvalResult, ' 'use a dict or TrainResult instead'
+            )
 
         training_step_output_for_epoch_end = copy(training_step_output)
         training_step_output_for_epoch_end.detach()
@@ -448,8 +447,9 @@ class TrainLoop:
     def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):
         with self.trainer.profiler.profile('optimizer_step'):
             # optimizer step lightningModule hook
-            self.trainer.accelerator_backend.optimizer_step(optimizer, batch_idx, opt_idx,
-                                                            train_step_and_backward_closure)
+            self.trainer.accelerator_backend.optimizer_step(
+                optimizer, batch_idx, opt_idx, train_step_and_backward_closure
+            )
 
     def on_before_zero_grad(self, optimizer):
         model = self.trainer.get_model()
@@ -549,7 +549,7 @@ class TrainLoop:
             epoch_end_outputs = self.process_train_step_outputs(
                 batch_output.training_step_output_for_epoch_end,
                 self.early_stopping_accumulator,
-                self.checkpoint_accumulator
+                self.checkpoint_accumulator,
             )
 
             # hook
@@ -599,10 +599,7 @@ class TrainLoop:
 
         # log epoch metrics
         self.trainer.logger_connector.log_train_epoch_end_metrics(
-            epoch_output,
-            self.checkpoint_accumulator,
-            self.early_stopping_accumulator,
-            self.num_optimizers
+            epoch_output, self.checkpoint_accumulator, self.early_stopping_accumulator, self.num_optimizers
         )
 
         # hook
@@ -671,11 +668,7 @@ class TrainLoop:
                 # calculate loss (train step + train step end)
                 # -------------------
                 opt_closure_result = self.training_step_and_backward(
-                    split_batch,
-                    batch_idx,
-                    opt_idx,
-                    optimizer,
-                    self.trainer.hiddens
+                    split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
                 )
 
                 if opt_closure_result is None:
@@ -715,7 +708,11 @@ class TrainLoop:
 
                     # wrap forward + backward pass in closure for 2nd order optimizers
                     train_step_and_backward_closure = lambda: self.training_step_and_backward(
-                        split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens,
+                        split_batch,
+                        batch_idx,
+                        opt_idx,
+                        optimizer,
+                        self.trainer.hiddens,
                     ).loss
 
                     # optimizer step
@@ -728,9 +725,7 @@ class TrainLoop:
                     self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
                     # calculate running loss for display
-                    self.running_loss.append(
-                        self.accumulated_loss.mean() * self.trainer.accumulate_grad_batches
-                    )
+                    self.running_loss.append(self.accumulated_loss.mean() * self.trainer.accumulate_grad_batches)
 
                     # reset for next set of accumulated grads
                     self.accumulated_loss.reset()
@@ -748,7 +743,7 @@ class TrainLoop:
             signal=0,
             grad_norm_dic=grad_norm_dic,
             batch_log_metrics=batch_log_metrics,
-            training_step_output_for_epoch_end=batch_outputs
+            training_step_output_for_epoch_end=batch_outputs,
         )
         return result
 
@@ -781,11 +776,7 @@ class TrainLoop:
             self.trainer.accelerator_backend.backward(result, optimizer, opt_idx, *args, **kwargs)
         else:
             result.closure_loss = self.trainer.accelerator_backend.backward(
-                result.closure_loss,
-                optimizer,
-                opt_idx,
-                *args,
-                **kwargs
+                result.closure_loss, optimizer, opt_idx, *args, **kwargs
             )
 
     def update_train_loop_lr_schedulers(self, monitor_metrics=None):
@@ -842,8 +833,8 @@ class TrainLoop:
     def save_loggers_on_train_batch_end(self):
         # when loggers should save to disk
         should_save_log = (
-            (self.trainer.global_step + 1) % self.trainer.flush_logs_every_n_steps == 0 or self.trainer.should_stop
-        )
+            self.trainer.global_step + 1
+        ) % self.trainer.flush_logs_every_n_steps == 0 or self.trainer.should_stop
         if should_save_log or self.trainer.fast_dev_run:
             if self.trainer.is_global_zero and self.trainer.logger is not None:
                 self.trainer.logger.save()

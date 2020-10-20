@@ -23,7 +23,6 @@ from tests.base import EvalModelTemplate
 
 @pytest.mark.parametrize('max_steps', [1, 2, 3])
 def test_on_before_zero_grad_called(tmpdir, max_steps):
-
     class CurrentTestModel(EvalModelTemplate):
         on_before_zero_grad_called = 0
 
@@ -52,7 +51,6 @@ def test_training_epoch_end_metrics_collection(tmpdir):
     num_epochs = 3
 
     class CurrentModel(EvalModelTemplate):
-
         def training_step(self, *args, **kwargs):
             output = super().training_step(*args, **kwargs)
             output['progress_bar'].update({'step_metric': torch.tensor(-1)})
@@ -90,9 +88,7 @@ def test_training_epoch_end_metrics_collection(tmpdir):
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_transfer_batch_hook():
-
     class CustomBatch:
-
         def __init__(self, data):
             self.samples = data[0]
             self.targets = data[1]
@@ -123,10 +119,7 @@ def test_transfer_batch_hook():
     assert batch_gpu.samples.device == batch_gpu.targets.device == expected
 
 
-@pytest.mark.parametrize(
-    'max_epochs,batch_idx_',
-    [(2, 5), (3, 8), (4, 12)]
-)
+@pytest.mark.parametrize('max_epochs,batch_idx_', [(2, 5), (3, 8), (4, 12)])
 def test_on_train_batch_start_hook(max_epochs, batch_idx_):
     class CurrentModel(EvalModelTemplate):
         def on_train_batch_start(self, batch, batch_idx, dataloader_idx):

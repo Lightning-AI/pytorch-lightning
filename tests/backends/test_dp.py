@@ -55,7 +55,7 @@ def test_multi_gpu_model_dp(tmpdir):
         limit_val_batches=10,
         gpus=[0, 1],
         distributed_backend='dp',
-        progress_bar_refresh_rate=0
+        progress_bar_refresh_rate=0,
     )
 
     model = EvalModelTemplate()
@@ -71,6 +71,7 @@ def test_dp_test(tmpdir):
     tutils.set_random_master_port()
 
     import os
+
     os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
 
     model = EvalModelTemplate()

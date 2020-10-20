@@ -24,14 +24,15 @@ def has_iterable_dataset(dataloader: DataLoader):
 
 
 def has_len(dataloader: DataLoader) -> bool:
-    """ Checks if a given Dataloader has __len__ method implemented i.e. if
-    it is a finite dataloader or infinite dataloader. """
+    """Checks if a given Dataloader has __len__ method implemented i.e. if
+    it is a finite dataloader or infinite dataloader."""
 
     try:
         # try getting the length
         if len(dataloader) == 0:
-            raise ValueError('`Dataloader` returned 0 length.'
-                             ' Please make sure that your Dataloader at least returns 1 batch')
+            raise ValueError(
+                '`Dataloader` returned 0 length.' ' Please make sure that your Dataloader at least returns 1 batch'
+            )
         has_len = True
     except TypeError:
         has_len = False

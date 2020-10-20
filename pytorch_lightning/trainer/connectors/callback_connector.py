@@ -18,19 +18,18 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class CallbackConnector:
-
     def __init__(self, trainer):
         self.trainer = trainer
 
     def on_trainer_init(
-            self,
-            callbacks,
-            checkpoint_callback,
-            progress_bar_refresh_rate,
-            process_position,
-            default_root_dir,
-            weights_save_path,
-            resume_from_checkpoint
+        self,
+        callbacks,
+        checkpoint_callback,
+        progress_bar_refresh_rate,
+        process_position,
+        default_root_dir,
+        weights_save_path,
+        resume_from_checkpoint,
     ):
         self.trainer.resume_from_checkpoint = resume_from_checkpoint
 
@@ -52,9 +51,7 @@ class CallbackConnector:
         self.trainer.checkpoint_callback = checkpoint_callback
 
         # init progress bar
-        self.trainer._progress_bar_callback = self.configure_progress_bar(
-            progress_bar_refresh_rate, process_position
-        )
+        self.trainer._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
 
     def init_default_checkpoint_callback(self, checkpoint_callback):
         if checkpoint_callback is True:

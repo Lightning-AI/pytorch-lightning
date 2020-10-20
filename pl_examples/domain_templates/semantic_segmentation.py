@@ -39,6 +39,7 @@ class KITTI(Dataset):
     encoded using `encode_segmap`, and given `transform` (if any) are applied to the image only
     (mask does not usually require transforms, but they can be implemented in a similar way).
     """
+
     IMAGE_PATH = os.path.join('training', 'image_2')
     MASK_PATH = os.path.join('training', 'semantic')
 
@@ -49,7 +50,7 @@ class KITTI(Dataset):
         img_size: tuple = (1242, 376),
         void_labels: list = DEFAULT_VOID_LABELS,
         valid_labels: list = DEFAULT_VALID_LABELS,
-        transform=None
+        transform=None,
     ):
         self.img_size = img_size
         self.void_labels = void_labels
@@ -128,13 +129,9 @@ class SegModel(pl.LightningModule):
     Adam optimizer is used along with Cosine Annealing learning rate scheduler.
     """
 
-    def __init__(self,
-                 data_path: str,
-                 batch_size: int,
-                 lr: float,
-                 num_layers: int,
-                 features_start: int,
-                 bilinear: bool, **kwargs):
+    def __init__(
+        self, data_path: str, batch_size: int, lr: float, num_layers: int, features_start: int, bilinear: bool, **kwargs
+    ):
         super().__init__()
         self.data_path = data_path
         self.batch_size = batch_size
@@ -143,13 +140,17 @@ class SegModel(pl.LightningModule):
         self.features_start = features_start
         self.bilinear = bilinear
 
-        self.net = UNet(num_classes=19, num_layers=self.num_layers,
-                        features_start=self.features_start, bilinear=self.bilinear)
-        self.transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.35675976, 0.37380189, 0.3764753],
-                                 std=[0.32064945, 0.32098866, 0.32325324])
-        ])
+        self.net = UNet(
+            num_classes=19, num_layers=self.num_layers, features_start=self.features_start, bilinear=self.bilinear
+        )
+        self.transform = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.35675976, 0.37380189, 0.3764753], std=[0.32064945, 0.32098866, 0.32325324]
+                ),
+            ]
+        )
         self.trainset = KITTI(self.data_path, split='train', transform=self.transform)
         self.validset = KITTI(self.data_path, split='valid', transform=self.transform)
 
@@ -228,15 +229,21 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("--data_path", type=str, help="path where dataset is stored")
     parser.add_argument("--gpus", type=int, default=-1, help="number of available GPUs")
-    parser.add_argument('--distributed-backend', type=str, default='dp', choices=('dp', 'ddp', 'ddp2'),
-                        help='supports three options dp, ddp, ddp2')
+    parser.add_argument(
+        '--distributed-backend',
+        type=str,
+        default='dp',
+        choices=('dp', 'ddp', 'ddp2'),
+        help='supports three options dp, ddp, ddp2',
+    )
     parser.add_argument('--use_amp', action='store_true', help='if true uses 16 bit precision')
     parser.add_argument("--batch_size", type=int, default=4, help="size of the batches")
     parser.add_argument("--lr", type=float, default=0.001, help="adam: learning rate")
     parser.add_argument("--num_layers", type=int, default=5, help="number of layers on u-net")
     parser.add_argument("--features_start", type=float, default=64, help="number of features in first layer")
-    parser.add_argument("--bilinear", action='store_true', default=False,
-                        help="whether to use bilinear interpolation or transposed")
+    parser.add_argument(
+        "--bilinear", action='store_true', default=False, help="whether to use bilinear interpolation or transposed"
+    )
     parser.add_argument("--grad_batches", type=int, default=1, help="number of batches to accumulate")
     parser.add_argument("--epochs", type=int, default=20, help="number of epochs to train")
     parser.add_argument("--log_wandb", action='store_true', help="log training on Weights & Biases")

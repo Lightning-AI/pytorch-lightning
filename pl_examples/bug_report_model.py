@@ -38,7 +38,6 @@ class RandomDataset(Dataset):
 
 
 class BoringModel(LightningModule):
-
     def __init__(self):
         """
         Testing PL Module
@@ -107,7 +106,6 @@ class BoringModel(LightningModule):
 
 def run_test():
     class TestModel(BoringModel):
-
         def on_train_epoch_start(self) -> None:
             print('override any method to prove your bug')
 

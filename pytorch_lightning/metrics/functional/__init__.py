@@ -34,14 +34,5 @@ from pytorch_lightning.metrics.functional.classification import (
     iou,
 )
 from pytorch_lightning.metrics.functional.nlp import bleu_score
-from pytorch_lightning.metrics.functional.regression import (
-    mae,
-    mse,
-    psnr,
-    rmse,
-    rmsle,
-    ssim
-)
-from pytorch_lightning.metrics.functional.self_supervised import (
-    embedding_similarity
-)
+from pytorch_lightning.metrics.functional.regression import mae, mse, psnr, rmse, rmsle, ssim
+from pytorch_lightning.metrics.functional.self_supervised import embedding_similarity

@@ -52,9 +52,7 @@ class TrainerTrainingTricksMixin(ABC):
 
         # check if loss is nan
         if not torch.isfinite(loss).all():
-            raise ValueError(
-                'The loss returned in `training_step` is nan or inf.'
-            )
+            raise ValueError('The loss returned in `training_step` is nan or inf.')
         # check if a network weight is nan
         for name, param in model.named_parameters():
             if not torch.isfinite(param).all():

@@ -60,9 +60,12 @@ def _run_horovod(trainer_options, on_gpu=False):
     tutils.reset_seed()
     cmdline = [
         'horovodrun',
-        '-np', str(num_processes),
-        sys.executable, TEST_SCRIPT,
-        '--trainer-options', shlex.quote(json.dumps(trainer_options))
+        '-np',
+        str(num_processes),
+        sys.executable,
+        TEST_SCRIPT,
+        '--trainer-options',
+        shlex.quote(json.dumps(trainer_options)),
     ]
     if on_gpu:
         cmdline += ['--on-gpu']
@@ -118,7 +121,7 @@ def test_horovod_multi_gpu(tmpdir):
         limit_val_batches=0.2,
         gpus=2,
         deterministic=True,
-        distributed_backend='horovod'
+        distributed_backend='horovod',
     )
     _run_horovod(trainer_options, on_gpu=True)
 
@@ -172,7 +175,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
         limit_val_batches=0.2,
         gpus=1,
         deterministic=True,
-        distributed_backend='horovod'
+        distributed_backend='horovod',
     )
     tpipes.run_model_test_without_loggers(trainer_options, model)
 
@@ -207,6 +210,7 @@ def test_horovod_multi_optimizer(tmpdir):
     assert get_model_params(model.generator) != get_model_params(model.discriminator)
     assert get_model_params(model.generator) == get_optimizer_params(trainer.optimizers[0])
     assert get_model_params(model.discriminator) == get_optimizer_params(trainer.optimizers[1])
+
 
 # @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 # def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):

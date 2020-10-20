@@ -36,8 +36,8 @@ def _flatten(x):
 
 
 def to_onehot(
-        tensor: torch.Tensor,
-        num_classes: int,
+    tensor: torch.Tensor,
+    num_classes: int,
 ) -> torch.Tensor:
     """
     Converts a dense label tensor to one-hot format
@@ -57,7 +57,6 @@ def to_onehot(
                 [0, 0, 0, 1]])
     """
     dtype, device, shape = tensor.dtype, tensor.device, tensor.shape
-    tensor_onehot = torch.zeros(shape[0], num_classes, *shape[1:],
-                                dtype=dtype, device=device)
+    tensor_onehot = torch.zeros(shape[0], num_classes, *shape[1:], dtype=dtype, device=device)
     index = tensor.long().unsqueeze(1).expand_as(tensor_onehot)
     return tensor_onehot.scatter_(1, index, 1.0)

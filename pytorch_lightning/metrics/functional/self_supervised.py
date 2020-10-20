@@ -15,10 +15,7 @@ import torch
 
 
 def embedding_similarity(
-        batch: torch.Tensor,
-        similarity: str = 'cosine',
-        reduction: str = 'none',
-        zero_diagonal: bool = True
+    batch: torch.Tensor, similarity: str = 'cosine', reduction: str = 'none', zero_diagonal: bool = True
 ) -> torch.Tensor:
     """
     Computes representation similarity

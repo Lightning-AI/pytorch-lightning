@@ -54,7 +54,7 @@ def test_wrong_configure_optimizers(tmpdir):
 
 
 def test_val_loop_config(tmpdir):
-    """"
+    """ "
     When either val loop or val data are missing raise warning
     """
     tutils.reset_seed()
@@ -75,7 +75,7 @@ def test_val_loop_config(tmpdir):
 
 
 def test_test_loop_config(tmpdir):
-    """"
+    """ "
     When either test loop or test data are missing
     """
     hparams = EvalModelTemplate.get_default_hparams()

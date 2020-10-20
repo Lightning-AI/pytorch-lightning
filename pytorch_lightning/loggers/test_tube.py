@@ -82,11 +82,13 @@ class TestTubeLogger(LightningLoggerBase):
         debug: bool = False,
         version: Optional[int] = None,
         create_git_tag: bool = False,
-        log_graph: bool = False
+        log_graph: bool = False,
     ):
         if Experiment is None:
-            raise ImportError('You want to use `test_tube` logger which is not installed yet,'
-                              ' install it with `pip install test-tube`.')
+            raise ImportError(
+                'You want to use `test_tube` logger which is not installed yet,'
+                ' install it with `pip install test-tube`.'
+            )
         super().__init__()
         self._save_dir = save_dir
         self._name = name
@@ -146,15 +148,15 @@ class TestTubeLogger(LightningLoggerBase):
 
             if input_array is not None:
                 self.experiment.add_graph(
-                    model,
-                    model.transfer_batch_to_device(
-                        model.example_input_array, model.device)
+                    model, model.transfer_batch_to_device(model.example_input_array, model.device)
                 )
             else:
-                rank_zero_warn('Could not log computational graph since the'
-                               ' `model.example_input_array` attribute is not set'
-                               ' or `input_array` was not given',
-                               UserWarning)
+                rank_zero_warn(
+                    'Could not log computational graph since the'
+                    ' `model.example_input_array` attribute is not set'
+                    ' or `input_array` was not given',
+                    UserWarning,
+                )
 
     @rank_zero_only
     def save(self) -> None:

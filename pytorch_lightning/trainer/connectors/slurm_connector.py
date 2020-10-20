@@ -9,7 +9,6 @@ import torch
 
 
 class SLURMConnector:
-
     def __init__(self, trainer):
         self.trainer = trainer
 
@@ -147,9 +146,5 @@ class SLURMConnector:
         torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
 
         if not torch.distributed.is_initialized():
-            log.info(
-                f"initializing ddp (SLURM): GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}"
-            )
-            torch_distrib.init_process_group(
-                torch_backend, rank=global_rank, world_size=world_size
-            )
+            log.info(f"initializing ddp (SLURM): GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
+            torch_distrib.init_process_group(torch_backend, rank=global_rank, world_size=world_size)

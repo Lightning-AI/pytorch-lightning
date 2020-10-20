@@ -101,7 +101,11 @@ def test_early_stopping_no_extraneous_invocations(tmpdir):
 
 @pytest.mark.parametrize(
     "loss_values, patience, expected_stop_epoch",
-    [([6, 5, 5, 5, 5, 5], 3, 4), ([6, 5, 4, 4, 3, 3], 1, 3), ([6, 5, 6, 5, 5, 5], 3, 4),],
+    [
+        ([6, 5, 5, 5, 5, 5], 3, 4),
+        ([6, 5, 4, 4, 3, 3], 1, 3),
+        ([6, 5, 6, 5, 5, 5], 3, 4),
+    ],
 )
 def test_early_stopping_patience(tmpdir, loss_values, patience, expected_stop_epoch):
     """Test to ensure that early stopping is not triggered before patience is exhausted."""
@@ -167,7 +171,6 @@ def test_early_stopping_no_val_step(tmpdir):
 
 
 def test_early_stopping_functionality(tmpdir):
-
     class CurrentModel(EvalModelTemplate):
         def validation_epoch_end(self, outputs):
             losses = [8, 4, 2, 3, 4, 5, 8, 10]

@@ -37,10 +37,9 @@ def reduce(to_reduce: torch.Tensor, reduction: str) -> torch.Tensor:
     raise ValueError('Reduction parameter unknown.')
 
 
-def class_reduce(num: torch.Tensor,
-                 denom: torch.Tensor,
-                 weights: torch.Tensor,
-                 class_reduction: str = 'none') -> torch.Tensor:
+def class_reduce(
+    num: torch.Tensor, denom: torch.Tensor, weights: torch.Tensor, class_reduction: str = 'none'
+) -> torch.Tensor:
     """
     Function used to reduce classification metrics of the form `num / denom * weights`.
     For example for calculating standard accuracy the num would be number of
@@ -74,5 +73,6 @@ def class_reduce(num: torch.Tensor,
     elif class_reduction == 'none':
         return fraction
 
-    raise ValueError(f'Reduction parameter {class_reduction} unknown.'
-                     f' Choose between one of these: {valid_reduction}')
+    raise ValueError(
+        f'Reduction parameter {class_reduction} unknown.' f' Choose between one of these: {valid_reduction}'
+    )

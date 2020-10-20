@@ -52,7 +52,7 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
         limit_val_batches=10,
         gpus=[0, 1],
         distributed_backend='ddp_spawn',
-        progress_bar_refresh_rate=0
+        progress_bar_refresh_rate=0,
     )
 
     model = EvalModelTemplate()
@@ -69,8 +69,7 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     tutils.set_random_master_port()
 
     model = EvalModelTemplate()
-    fit_options = dict(train_dataloader=model.train_dataloader(),
-                       val_dataloaders=model.val_dataloader())
+    fit_options = dict(train_dataloader=model.train_dataloader(), val_dataloaders=model.val_dataloader())
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -79,7 +78,7 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
         limit_train_batches=0.2,
         limit_val_batches=0.2,
         gpus=[0, 1],
-        distributed_backend='ddp_spawn'
+        distributed_backend='ddp_spawn',
     )
     result = trainer.fit(model, **fit_options)
     assert result == 1, "DDP doesn't work with dataloaders passed to fit()."

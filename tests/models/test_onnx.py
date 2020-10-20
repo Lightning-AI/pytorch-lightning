@@ -14,9 +14,15 @@
 import os
 
 import numpy as np
-import onnxruntime
 import pytest
 import torch
+
+try:
+    import onnxruntime
+
+    HAS_ONNX_RUNTIME = True
+except ImportError:
+    HAS_ONNX_RUNTIME = False
 
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
@@ -34,7 +40,7 @@ def test_model_saves_with_input_sample(tmpdir):
     input_sample = torch.randn((1, 28 * 28))
     model.to_onnx(file_path, input_sample)
     assert os.path.isfile(file_path)
-    assert os.path.getsize(file_path) > 3e+06
+    assert os.path.getsize(file_path) > 3e06
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
@@ -48,7 +54,7 @@ def test_model_saves_on_gpu(tmpdir):
     input_sample = torch.randn((1, 28 * 28))
     model.to_onnx(file_path, input_sample)
     assert os.path.isfile(file_path)
-    assert os.path.getsize(file_path) > 3e+06
+    assert os.path.getsize(file_path) > 3e06
 
 
 def test_model_saves_with_example_output(tmpdir):
@@ -71,7 +77,7 @@ def test_model_saves_with_example_input_array(tmpdir):
     file_path = os.path.join(tmpdir, "model.onnx")
     model.to_onnx(file_path)
     assert os.path.exists(file_path) is True
-    assert os.path.getsize(file_path) > 3e+06
+    assert os.path.getsize(file_path) > 3e06
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -86,7 +92,7 @@ def test_model_saves_on_multi_gpu(tmpdir):
         limit_val_batches=10,
         gpus=[0, 1],
         distributed_backend='ddp_spawn',
-        progress_bar_refresh_rate=0
+        progress_bar_refresh_rate=0,
     )
 
     model = EvalModelTemplate()
@@ -112,8 +118,11 @@ def test_error_if_no_input(tmpdir):
     model = EvalModelTemplate()
     model.example_input_array = None
     file_path = os.path.join(tmpdir, "model.onnx")
-    with pytest.raises(ValueError, match=r'Could not export to ONNX since neither `input_sample` nor'
-                                         r' `model.example_input_array` attribute is set.'):
+    with pytest.raises(
+        ValueError,
+        match=r'Could not export to ONNX since neither `input_sample` nor'
+        r' `model.example_input_array` attribute is set.',
+    ):
         model.to_onnx(file_path)
 
 
@@ -123,11 +132,13 @@ def test_error_if_input_sample_is_not_tensor(tmpdir):
     model.example_input_array = None
     file_path = os.path.join(tmpdir, "model.onnx")
     input_sample = np.random.randn(1, 28 * 28)
-    with pytest.raises(ValueError, match=f'Received `input_sample` of type {type(input_sample)}. Expected type is '
-                                         f'`Tensor`'):
+    with pytest.raises(
+        ValueError, match=f'Received `input_sample` of type {type(input_sample)}. Expected type is ' f'`Tensor`'
+    ):
         model.to_onnx(file_path, input_sample)
 
 
+@pytest.mark.skipif(not HAS_ONNX_RUNTIME, reason="onnxruntime wrongly configured")
 def test_if_inference_output_is_valid(tmpdir):
     """Test that the output inferred from ONNX model is same as from PyTorch"""
     model = EvalModelTemplate()

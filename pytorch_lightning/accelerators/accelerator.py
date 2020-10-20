@@ -35,7 +35,6 @@ EPSILON_FP16 = 1e-5
 
 
 class Accelerator(object):
-
     def __init__(self, trainer=None, cluster_environment=None):
         self.trainer = trainer
         self.nickname = None
@@ -110,7 +109,8 @@ class Accelerator(object):
         if native_amp and is_lbfgs:
             raise MisconfigurationException(
                 'native PyTorch amp and lbfgs are not compatible.'
-                ' To request, please file a Github issue in PyTorch and tag @mcarilli')
+                ' To request, please file a Github issue in PyTorch and tag @mcarilli'
+            )
 
         # model hook
         model_ref.optimizer_step(
@@ -120,7 +120,7 @@ class Accelerator(object):
             opt_idx,
             lambda_closure,
             using_native_amp=native_amp,
-            using_lbfgs=is_lbfgs
+            using_lbfgs=is_lbfgs,
         )
 
         # scale when native amp
@@ -198,28 +198,22 @@ class Accelerator(object):
         self.trainer.lr_schedulers = lr_schedulers
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
-    def init_ddp_connection(
-        self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
-    ) -> None:
+    def init_ddp_connection(self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True) -> None:
         os.environ["MASTER_ADDR"] = str(self.cluster_environment.master_address())
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
         os.environ["WORLD_SIZE"] = str(self.cluster_environment.world_size())
         torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
 
         if not torch.distributed.is_initialized():
-            log.info(
-                f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}"
-            )
-            torch_distrib.init_process_group(
-                torch_backend, rank=global_rank, world_size=world_size
-            )
+            log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
+            torch_distrib.init_process_group(torch_backend, rank=global_rank, world_size=world_size)
 
     def __getstate__(self):
         return {
             'trainer': self.trainer,
             'nickname': self.nickname,
             'cluster_environment': self.cluster_environment,
-            'dist': self.dist
+            'dist': self.dist,
         }
 
     def __setstate__(self, d):

@@ -14,4 +14,3 @@ twine upload dist/*
 # to update docs
 # cd to root dir
 # mkdocs gh-deploy
-

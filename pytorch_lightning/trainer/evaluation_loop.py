@@ -144,8 +144,8 @@ class EvaluationLoop(object):
         # make dataloader_idx arg in validation_step optional
         args = [batch, batch_idx]
 
-        multiple_val_loaders = (not test_mode and self._get_num_dataloaders(self.trainer.val_dataloaders) > 1)
-        multiple_test_loaders = (test_mode and self._get_num_dataloaders(self.trainer.test_dataloaders) > 1)
+        multiple_val_loaders = not test_mode and self._get_num_dataloaders(self.trainer.val_dataloaders) > 1
+        multiple_test_loaders = test_mode and self._get_num_dataloaders(self.trainer.test_dataloaders) > 1
 
         if multiple_test_loaders or multiple_val_loaders:
             args.append(dataloader_idx)
@@ -208,10 +208,7 @@ class EvaluationLoop(object):
     def log_epoch_metrics(self, deprecated_eval_results, epoch_logs, test_mode):
         using_eval_result = self.is_using_eval_results()
         eval_loop_results = self.trainer.logger_connector.on_evaluation_epoch_end(
-            deprecated_eval_results,
-            epoch_logs,
-            using_eval_result,
-            test_mode
+            deprecated_eval_results, epoch_logs, using_eval_result, test_mode
         )
         return eval_loop_results
 
@@ -250,8 +247,10 @@ class EvaluationLoop(object):
         # depre warning
         if eval_results is not None and user_reduced:
             step = 'testing_epoch_end' if self.testing else 'validation_epoch_end'
-            m = f'The {step} should not return anything as of 9.1.' \
+            m = (
+                f'The {step} should not return anything as of 9.1.'
                 f'to log, use self.log(...) or self.write(...) directly in the LightningModule'
+            )
             self.warning_cache.warn(m)
 
         if using_eval_result and not user_reduced:

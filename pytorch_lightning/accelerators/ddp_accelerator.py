@@ -45,7 +45,6 @@ else:
 
 
 class DDPAccelerator(Accelerator):
-
     def __init__(self, trainer, cluster_environment=None):
         super().__init__(trainer, cluster_environment)
         self.task_idx = None
@@ -233,9 +232,7 @@ class DDPAccelerator(Accelerator):
         # where to store ip_table
         model.trainer = self.trainer
         self.init_ddp_connection(
-            self.trainer.global_rank,
-            self.trainer.world_size,
-            self.trainer.is_slurm_managing_tasks
+            self.trainer.global_rank, self.trainer.world_size, self.trainer.is_slurm_managing_tasks
         )
 
         # call setup after the ddp process has connected
@@ -283,12 +280,8 @@ class DDPAccelerator(Accelerator):
 
         return results
 
-    def configure_ddp(
-        self, model: LightningModule, device_ids: List[int]
-    ) -> DistributedDataParallel:
-        model = LightningDistributedDataParallel(
-            model, device_ids=device_ids, find_unused_parameters=True
-        )
+    def configure_ddp(self, model: LightningModule, device_ids: List[int]) -> DistributedDataParallel:
+        model = LightningDistributedDataParallel(model, device_ids=device_ids, find_unused_parameters=True)
         return model
 
     def configure_sync_batchnorm(self, model: LightningModule) -> LightningModule:

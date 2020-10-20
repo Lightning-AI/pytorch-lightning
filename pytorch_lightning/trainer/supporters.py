@@ -123,9 +123,7 @@ class PredictionCollection(object):
         elif name not in self.predictions[filename]:
             self.predictions[filename][name] = values
         elif isinstance(values, Tensor):
-            self.predictions[filename][name] = torch.cat(
-                (self.predictions[filename][name], values)
-            )
+            self.predictions[filename][name] = torch.cat((self.predictions[filename][name], values))
         elif isinstance(values, list):
             self.predictions[filename][name].extend(values)
 
@@ -139,8 +137,7 @@ class PredictionCollection(object):
                 self._add_prediction(feature_name, values, filename)
 
     def to_disk(self) -> None:
-        """Write predictions to file(s).
-        """
+        """Write predictions to file(s)."""
         for filepath, predictions in self.predictions.items():
             fs = get_filesystem(filepath)
             # normalize local filepaths only
@@ -153,17 +150,12 @@ class PredictionCollection(object):
             fs.mkdirs(dirpath, exist_ok=True)
 
             # Convert any tensor values to list
-            predictions = {
-                k: v if not isinstance(v, Tensor) else v.tolist()
-                for k, v in predictions.items()
-            }
+            predictions = {k: v if not isinstance(v, Tensor) else v.tolist() for k, v in predictions.items()}
 
             # Check if all features for this file add up to same length
             feature_lens = {k: len(v) for k, v in predictions.items()}
             if len(set(feature_lens.values())) != 1:
-                raise ValueError(
-                    "Mismatching feature column lengths found in stored EvalResult predictions."
-                )
+                raise ValueError("Mismatching feature column lengths found in stored EvalResult predictions.")
 
             # Switch predictions so each entry has its own dict
             outputs = []

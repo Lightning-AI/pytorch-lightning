@@ -72,10 +72,11 @@ class Fbeta(Metric):
         tensor(0.3333)
 
     """
+
     def __init__(
         self,
         num_classes: int = 1,
-        beta: float = 1.,
+        beta: float = 1.0,
         threshold: float = 0.5,
         average: str = 'micro',
         multilabel: bool = False,
@@ -95,8 +96,7 @@ class Fbeta(Metric):
         self.average = average
         self.multilabel = multilabel
 
-        assert self.average in ('micro', 'macro'), \
-            "average passed to the function must be either `micro` or `macro`"
+        assert self.average in ('micro', 'macro'), "average passed to the function must be either `micro` or `macro`"
 
         self.add_state("true_positives", default=torch.zeros(num_classes), dist_reduce_fx="sum")
         self.add_state("predicted_positives", default=torch.zeros(num_classes), dist_reduce_fx="sum")

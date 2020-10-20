@@ -16,7 +16,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class PluginConnector:
-
     def __init__(self, trainer):
         self.trainer = trainer
         self.plugins = []

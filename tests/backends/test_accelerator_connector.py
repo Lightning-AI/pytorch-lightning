@@ -29,10 +29,7 @@ def test_accelerator_choice_cpu(tmpdir):
             assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
 
     model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        callbacks=[CB()]
-    )
+    trainer = Trainer(fast_dev_run=True, callbacks=[CB()])
     trainer.fit(model)
 
 
@@ -45,11 +42,7 @@ def test_accelerator_choice_ddp_cpu(tmpdir):
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        distributed_backend='ddp_cpu',
-        callbacks=[CB()]
-    )
+    trainer = Trainer(fast_dev_run=True, distributed_backend='ddp_cpu', callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -66,12 +59,7 @@ def test_accelerator_choice_ddp(tmpdir):
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        distributed_backend='ddp',
-        gpus=1,
-        callbacks=[CB()]
-    )
+    trainer = Trainer(fast_dev_run=True, distributed_backend='ddp', gpus=1, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -88,24 +76,22 @@ def test_accelerator_choice_ddp_spawn(tmpdir):
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        distributed_backend='ddp_spawn',
-        gpus=1,
-        callbacks=[CB()]
-    )
+    trainer = Trainer(fast_dev_run=True, distributed_backend='ddp_spawn', gpus=1, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
 
-@mock.patch.dict(os.environ, {
-    "CUDA_VISIBLE_DEVICES": "0,1",
-    "SLURM_NTASKS": "2",
-    "SLURM_JOB_NAME": "SOME_NAME",
-    "SLURM_NODEID": "0",
-    "SLURM_LOCALID": "0"
-})
+@mock.patch.dict(
+    os.environ,
+    {
+        "CUDA_VISIBLE_DEVICES": "0,1",
+        "SLURM_NTASKS": "2",
+        "SLURM_JOB_NAME": "SOME_NAME",
+        "SLURM_NODEID": "0",
+        "SLURM_LOCALID": "0",
+    },
+)
 @mock.patch('torch.cuda.device_count', return_value=2)
 def test_accelerator_choice_ddp_slurm(tmpdir):
     class CB(Callback):
@@ -116,25 +102,23 @@ def test_accelerator_choice_ddp_slurm(tmpdir):
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        distributed_backend='ddp',
-        gpus=2,
-        callbacks=[CB()]
-    )
+    trainer = Trainer(fast_dev_run=True, distributed_backend='ddp', gpus=2, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
 
-@mock.patch.dict(os.environ, {
-    "CUDA_VISIBLE_DEVICES": "0,1",
-    "SLURM_NTASKS": "2",
-    "SLURM_JOB_NAME": "SOME_NAME",
-    "SLURM_NODEID": "0",
-    "LOCAL_RANK": "0",
-    "SLURM_LOCALID": "0"
-})
+@mock.patch.dict(
+    os.environ,
+    {
+        "CUDA_VISIBLE_DEVICES": "0,1",
+        "SLURM_NTASKS": "2",
+        "SLURM_JOB_NAME": "SOME_NAME",
+        "SLURM_NODEID": "0",
+        "LOCAL_RANK": "0",
+        "SLURM_LOCALID": "0",
+    },
+)
 @mock.patch('torch.cuda.device_count', return_value=2)
 def test_accelerator_choice_ddp2_slurm(tmpdir):
     class CB(Callback):
@@ -145,23 +129,13 @@ def test_accelerator_choice_ddp2_slurm(tmpdir):
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        distributed_backend='ddp2',
-        gpus=2,
-        callbacks=[CB()]
-    )
+    trainer = Trainer(fast_dev_run=True, distributed_backend='ddp2', gpus=2, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
 
-@mock.patch.dict(os.environ, {
-    "CUDA_VISIBLE_DEVICES": "0,1",
-    "WORLD_SIZE": "2",
-    "LOCAL_RANK": "0",
-    "NODE_RANK": "0"
-})
+@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "WORLD_SIZE": "2", "LOCAL_RANK": "0", "NODE_RANK": "0"})
 @mock.patch('torch.cuda.device_count', return_value=2)
 def test_accelerator_choice_ddp_te(tmpdir):
     class CB(Callback):
@@ -172,23 +146,13 @@ def test_accelerator_choice_ddp_te(tmpdir):
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        distributed_backend='ddp',
-        gpus=2,
-        callbacks=[CB()]
-    )
+    trainer = Trainer(fast_dev_run=True, distributed_backend='ddp', gpus=2, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
 
-@mock.patch.dict(os.environ, {
-    "CUDA_VISIBLE_DEVICES": "0,1",
-    "WORLD_SIZE": "2",
-    "LOCAL_RANK": "0",
-    "NODE_RANK": "0"
-})
+@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "WORLD_SIZE": "2", "LOCAL_RANK": "0", "NODE_RANK": "0"})
 @mock.patch('torch.cuda.device_count', return_value=2)
 def test_accelerator_choice_ddp2_te(tmpdir):
     class CB(Callback):
@@ -199,22 +163,13 @@ def test_accelerator_choice_ddp2_te(tmpdir):
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        distributed_backend='ddp2',
-        gpus=2,
-        callbacks=[CB()]
-    )
+    trainer = Trainer(fast_dev_run=True, distributed_backend='ddp2', gpus=2, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
 
-@mock.patch.dict(os.environ, {
-    "WORLD_SIZE": "1",
-    "LOCAL_RANK": "0",
-    "NODE_RANK": "0"
-})
+@mock.patch.dict(os.environ, {"WORLD_SIZE": "1", "LOCAL_RANK": "0", "NODE_RANK": "0"})
 @mock.patch('torch.cuda.device_count', return_value=0)
 def test_accelerator_choice_ddp_cpu_te(tmpdir):
     class CB(Callback):
@@ -225,24 +180,16 @@ def test_accelerator_choice_ddp_cpu_te(tmpdir):
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        distributed_backend='ddp_cpu',
-        num_processes=1,
-        callbacks=[CB()]
-    )
+    trainer = Trainer(fast_dev_run=True, distributed_backend='ddp_cpu', num_processes=1, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
 
-@mock.patch.dict(os.environ, {
-    "SLURM_NTASKS": "1",
-    "SLURM_JOB_NAME": "SOME_NAME",
-    "SLURM_NODEID": "0",
-    "LOCAL_RANK": "0",
-    "SLURM_LOCALID": "0"
-})
+@mock.patch.dict(
+    os.environ,
+    {"SLURM_NTASKS": "1", "SLURM_JOB_NAME": "SOME_NAME", "SLURM_NODEID": "0", "LOCAL_RANK": "0", "SLURM_LOCALID": "0"},
+)
 @mock.patch('torch.cuda.device_count', return_value=0)
 def test_accelerator_choice_ddp_cpu_slurm(tmpdir):
     class CB(Callback):
@@ -253,29 +200,22 @@ def test_accelerator_choice_ddp_cpu_slurm(tmpdir):
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        distributed_backend='ddp_cpu',
-        num_processes=1,
-        callbacks=[CB()]
-    )
+    trainer = Trainer(fast_dev_run=True, distributed_backend='ddp_cpu', num_processes=1, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
 
-@mock.patch.dict(os.environ, {
-    "SLURM_NTASKS": "1",
-    "SLURM_JOB_NAME": "SOME_NAME",
-    "SLURM_NODEID": "0",
-    "LOCAL_RANK": "0",
-    "SLURM_LOCALID": "0"
-})
+@mock.patch.dict(
+    os.environ,
+    {"SLURM_NTASKS": "1", "SLURM_JOB_NAME": "SOME_NAME", "SLURM_NODEID": "0", "LOCAL_RANK": "0", "SLURM_LOCALID": "0"},
+)
 @mock.patch('torch.cuda.device_count', return_value=0)
 def test_accelerator_choice_ddp_cpu_custom_cluster(tmpdir):
     """
     Test that we choose the custom cluster even when SLURM or TE flags are around
     """
+
     class CustomCluster(ClusterEnvironment):
         def master_address(self):
             return 'asdf'
@@ -289,24 +229,17 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
-        plugins=[CustomCluster()],
-        fast_dev_run=True,
-        distributed_backend='ddp_cpu',
-        num_processes=1,
-        callbacks=[CB()]
+        plugins=[CustomCluster()], fast_dev_run=True, distributed_backend='ddp_cpu', num_processes=1, callbacks=[CB()]
     )
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
 
-@mock.patch.dict(os.environ, {
-    "SLURM_NTASKS": "1",
-    "SLURM_JOB_NAME": "SOME_NAME",
-    "SLURM_NODEID": "0",
-    "LOCAL_RANK": "0",
-    "SLURM_LOCALID": "0"
-})
+@mock.patch.dict(
+    os.environ,
+    {"SLURM_NTASKS": "1", "SLURM_JOB_NAME": "SOME_NAME", "SLURM_NODEID": "0", "LOCAL_RANK": "0", "SLURM_LOCALID": "0"},
+)
 @mock.patch('torch.cuda.device_count', return_value=0)
 def test_custom_accelerator(tmpdir):
     class Accel(Accelerator):
@@ -319,24 +252,16 @@ def test_custom_accelerator(tmpdir):
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        accelerator=Accel(),
-        num_processes=1,
-        callbacks=[CB()]
-    )
+    trainer = Trainer(fast_dev_run=True, accelerator=Accel(), num_processes=1, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
 
-@mock.patch.dict(os.environ, {
-    "SLURM_NTASKS": "1",
-    "SLURM_JOB_NAME": "SOME_NAME",
-    "SLURM_NODEID": "0",
-    "LOCAL_RANK": "0",
-    "SLURM_LOCALID": "0"
-})
+@mock.patch.dict(
+    os.environ,
+    {"SLURM_NTASKS": "1", "SLURM_JOB_NAME": "SOME_NAME", "SLURM_NODEID": "0", "LOCAL_RANK": "0", "SLURM_LOCALID": "0"},
+)
 @mock.patch('torch.cuda.device_count', return_value=0)
 def test_dist_backend_accelerator_mapping(tmpdir):
     class CB(Callback):
@@ -345,12 +270,7 @@ def test_dist_backend_accelerator_mapping(tmpdir):
             raise SystemExit()
 
     model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        accelerator='ddp_cpu',
-        num_processes=1,
-        callbacks=[CB()]
-    )
+    trainer = Trainer(fast_dev_run=True, accelerator='ddp_cpu', num_processes=1, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
         trainer.fit(model)

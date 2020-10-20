@@ -141,10 +141,12 @@ def _sanitize_gpu_ids(gpus: List[int]) -> List[int]:
         if len(gpus) == len(all_available_gpus):
             gpus = all_available_gpus
         else:
-            raise MisconfigurationException(f"""
+            raise MisconfigurationException(
+                f"""
                 You requested GPUs: {gpus}
                 But your machine only has: {all_available_gpus}
-            """)
+            """
+            )
     return gpus
 
 
@@ -178,8 +180,9 @@ def _check_data_type(device_ids: Any) -> None:
     Args:
         device_ids: gpus/tpu_cores parameter as passed to the Trainer
     """
-    if device_ids is not None and \
-            (not isinstance(device_ids, (int, str, MutableSequence)) or isinstance(device_ids, bool)):
+    if device_ids is not None and (
+        not isinstance(device_ids, (int, str, MutableSequence)) or isinstance(device_ids, bool)
+    ):
         raise MisconfigurationException("Device ID's (GPU/TPU) must be int, string or sequence of ints or None.")
 
 

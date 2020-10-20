@@ -34,6 +34,7 @@ if TPU_AVAILABLE:
     import torch_xla
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp
+
     SERIAL_EXEC = xmp.MpSerialExecutor()
 
 
@@ -206,11 +207,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
 
     model = EvalModelTemplate()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        tpu_cores=8
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, tpu_cores=8)
     result = trainer.fit(model, train_dataloader=model.train_dataloader(), val_dataloaders=model.val_dataloader())
     assert result, "TPU doesn't work with dataloaders passed to fit()."
 
@@ -279,7 +276,7 @@ def test_result_obj_on_tpu(tmpdir):
         log_every_n_steps=2,
         limit_train_batches=batches,
         weights_summary=None,
-        tpu_cores=8
+        tpu_cores=8,
     )
 
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
@@ -289,6 +286,7 @@ def test_result_obj_on_tpu(tmpdir):
 @pl_multi_process_test
 def test_broadcast_on_tpu():
     """ Checks if an object from the master process is broadcasted to other processes correctly"""
+
     def test_broadcast(rank):
         trainer = Trainer(tpu_cores=8)
         backend = TPUAccelerator(trainer)

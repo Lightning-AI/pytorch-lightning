@@ -18,7 +18,6 @@ from pytorch_lightning.cluster_environments.cluster_environment import ClusterEn
 
 
 class SLURMEnvironment(ClusterEnvironment):
-
     def __init__(self):
         super().__init__()
 

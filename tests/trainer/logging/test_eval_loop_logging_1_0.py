@@ -215,7 +215,6 @@ def test_eval_float_logging(tmpdir):
     os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(BoringModel):
-
         def validation_step(self, batch, batch_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)
@@ -279,7 +278,7 @@ def test_eval_logging_auto_reduce(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         weights_summary=None,
-        checkpoint_callback=callbacks.ModelCheckpoint('val_loss')
+        checkpoint_callback=callbacks.ModelCheckpoint('val_loss'),
     )
     trainer.fit(model)
 

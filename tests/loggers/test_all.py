@@ -51,13 +51,15 @@ def test_loggers_fit_test_all(tmpdir, monkeypatch):
 
     _test_loggers_fit_test(tmpdir, TensorBoardLogger)
 
-    with mock.patch('pytorch_lightning.loggers.comet.comet_ml'), \
-         mock.patch('pytorch_lightning.loggers.comet.CometOfflineExperiment'):
+    with mock.patch('pytorch_lightning.loggers.comet.comet_ml'), mock.patch(
+        'pytorch_lightning.loggers.comet.CometOfflineExperiment'
+    ):
         _patch_comet_atexit(monkeypatch)
         _test_loggers_fit_test(tmpdir, CometLogger)
 
-    with mock.patch('pytorch_lightning.loggers.mlflow.mlflow'), \
-         mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient'):
+    with mock.patch('pytorch_lightning.loggers.mlflow.mlflow'), mock.patch(
+        'pytorch_lightning.loggers.mlflow.MlflowClient'
+    ):
         _test_loggers_fit_test(tmpdir, MLFlowLogger)
 
     with mock.patch('pytorch_lightning.loggers.neptune.neptune'):
@@ -120,14 +122,14 @@ def _test_loggers_fit_test(tmpdir, logger_class):
             (0, ['epoch', 'train_some_val']),
             (0, ['early_stop_on', 'epoch', 'val_acc']),
             (0, ['hp_metric']),
-            (1, ['epoch', 'test_acc', 'test_loss'])
+            (1, ['epoch', 'test_acc', 'test_loss']),
         ]
         assert log_metric_names == expected
     else:
         expected = [
             (0, ['epoch', 'train_some_val']),
             (0, ['early_stop_on', 'epoch', 'val_acc']),
-            (1, ['epoch', 'test_acc', 'test_loss'])
+            (1, ['epoch', 'test_acc', 'test_loss']),
         ]
         assert log_metric_names == expected
 
@@ -137,13 +139,15 @@ def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch):
 
     _test_loggers_save_dir_and_weights_save_path(tmpdir, TensorBoardLogger)
 
-    with mock.patch('pytorch_lightning.loggers.comet.comet_ml'), \
-         mock.patch('pytorch_lightning.loggers.comet.CometOfflineExperiment'):
+    with mock.patch('pytorch_lightning.loggers.comet.comet_ml'), mock.patch(
+        'pytorch_lightning.loggers.comet.CometOfflineExperiment'
+    ):
         _patch_comet_atexit(monkeypatch)
         _test_loggers_save_dir_and_weights_save_path(tmpdir, CometLogger)
 
-    with mock.patch('pytorch_lightning.loggers.mlflow.mlflow'), \
-         mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient'):
+    with mock.patch('pytorch_lightning.loggers.mlflow.mlflow'), mock.patch(
+        'pytorch_lightning.loggers.mlflow.MlflowClient'
+    ):
         _test_loggers_save_dir_and_weights_save_path(tmpdir, MLFlowLogger)
 
     with mock.patch('pytorch_lightning.loggers.test_tube.Experiment'):
@@ -154,7 +158,6 @@ def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch):
 
 
 def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
-
     class TestLogger(logger_class):
         # for this test it does not matter what these attributes are
         # so we standardize them to make testing easier
@@ -202,14 +205,17 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
     assert trainer.default_root_dir == tmpdir
 
 
-@pytest.mark.parametrize("logger_class", [
-    CometLogger,
-    MLFlowLogger,
-    NeptuneLogger,
-    TensorBoardLogger,
-    TestTubeLogger,
-    # The WandbLogger gets tested for pickling in its own test.
-])
+@pytest.mark.parametrize(
+    "logger_class",
+    [
+        CometLogger,
+        MLFlowLogger,
+        NeptuneLogger,
+        TensorBoardLogger,
+        TestTubeLogger,
+        # The WandbLogger gets tested for pickling in its own test.
+    ],
+)
 def test_loggers_pickle_all(tmpdir, monkeypatch, logger_class):
     """ Test that the logger objects can be pickled. This test only makes sense if the packages are installed. """
     _patch_comet_atexit(monkeypatch)
@@ -247,10 +253,13 @@ def _test_loggers_pickle(tmpdir, monkeypatch, logger_class):
     assert trainer2.logger.save_dir == logger.save_dir
 
 
-@pytest.mark.parametrize("extra_params", [
-    pytest.param(dict(max_epochs=1, auto_scale_batch_size=True), id='Batch-size-Finder'),
-    pytest.param(dict(max_epochs=3, auto_lr_find=True), id='LR-Finder'),
-])
+@pytest.mark.parametrize(
+    "extra_params",
+    [
+        pytest.param(dict(max_epochs=1, auto_scale_batch_size=True), id='Batch-size-Finder'),
+        pytest.param(dict(max_epochs=3, auto_lr_find=True), id='LR-Finder'),
+    ],
+)
 def test_logger_reset_correctly(tmpdir, extra_params):
     """ Test that the tuners do not alter the logger reference """
     tutils.reset_seed()
@@ -266,10 +275,8 @@ def test_logger_reset_correctly(tmpdir, extra_params):
     logger2 = trainer.logger
     logger3 = model.logger
 
-    assert logger1 == logger2, \
-        'Finder altered the logger of trainer'
-    assert logger2 == logger3, \
-        'Finder altered the logger of model'
+    assert logger1 == logger2, 'Finder altered the logger of trainer'
+    assert logger2 == logger3, 'Finder altered the logger of model'
 
 
 class RankZeroLoggerCheck(Callback):
@@ -285,13 +292,16 @@ class RankZeroLoggerCheck(Callback):
             assert pl_module.logger.experiment.something(foo="bar") is None
 
 
-@pytest.mark.parametrize("logger_class", [
-    CometLogger,
-    MLFlowLogger,
-    NeptuneLogger,
-    TensorBoardLogger,
-    TestTubeLogger,
-])
+@pytest.mark.parametrize(
+    "logger_class",
+    [
+        CometLogger,
+        MLFlowLogger,
+        NeptuneLogger,
+        TensorBoardLogger,
+        TestTubeLogger,
+    ],
+)
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
     """ Test that loggers get replaced by dummy loggers on global rank > 0"""

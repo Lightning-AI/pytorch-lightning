@@ -302,7 +302,7 @@ def _format_summary_table(*cols) -> str:
 
 
 def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
-    """ Get a profile of the current memory usage.
+    """Get a profile of the current memory usage.
 
     Args:
         mode: There are two modes:
@@ -348,9 +348,7 @@ def get_gpu_memory_map() -> Dict[str, int]:
 
     # Convert lines into a dictionary
     gpu_memory = [float(x) for x in result.stdout.strip().split(os.linesep)]
-    gpu_memory_map = {
-        f"gpu_id: {gpu_id}/memory.used (MB)": memory for gpu_id, memory in enumerate(gpu_memory)
-    }
+    gpu_memory_map = {f"gpu_id: {gpu_id}/memory.used (MB)": memory for gpu_id, memory in enumerate(gpu_memory)}
     return gpu_memory_map
 
 

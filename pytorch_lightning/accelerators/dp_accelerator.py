@@ -24,7 +24,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class DataParallelAccelerator(Accelerator):
-
     def __init__(self, trainer, cluster_environment=None):
         super().__init__(trainer, cluster_environment)
         self.model_autocast_original_forward = None
@@ -82,7 +81,8 @@ class DataParallelAccelerator(Accelerator):
             raise MisconfigurationException(
                 f'Amp level {self.trainer.amp_level} with DataParallel is not supported.'
                 f' See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.'
-                f' We recommend you switch to ddp if you want to use amp')
+                f' We recommend you switch to ddp if you want to use amp'
+            )
         else:
             model = self.trainer.precision_connector.connect(model)
 

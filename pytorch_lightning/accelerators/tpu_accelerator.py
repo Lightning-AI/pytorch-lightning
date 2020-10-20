@@ -37,7 +37,6 @@ if TPU_AVAILABLE:
 
 
 class TPUAccelerator(Accelerator):
-
     def __init__(self, trainer, cluster_environment=None):
         super().__init__(trainer, cluster_environment)
         self.start_method = None
@@ -95,7 +94,7 @@ class TPUAccelerator(Accelerator):
                 self.tpu_train_in_process,
                 args=(model, self.trainer, self.mp_queue),
                 nprocs=self.trainer.tpu_cores,
-                start_method=self.start_method
+                start_method=self.start_method,
             )
 
     def __load_weights_on_main_process(self):
@@ -174,8 +173,7 @@ class TPUAccelerator(Accelerator):
         """
         if not TPU_AVAILABLE:
             raise MisconfigurationException(
-                'Requested to transfer batch to TPU but XLA is not available.'
-                ' Are you sure this machine has TPUs?'
+                'Requested to transfer batch to TPU but XLA is not available.' ' Are you sure this machine has TPUs?'
             )
         device = xm.xla_device(self.trainer.tpu_id)
 
@@ -219,9 +217,11 @@ class TPUAccelerator(Accelerator):
         if trainer.precision == 16:
             os.environ['XLA_USE_BF16'] = str(1)
 
-        log.info(f'INIT TPU local core: {trainer.tpu_local_core_rank},'
-                 f' global rank: {trainer.tpu_global_core_rank}'
-                 f' with XLA_USE_BF16={os.environ.get("XLA_USE_BF16")}')
+        log.info(
+            f'INIT TPU local core: {trainer.tpu_local_core_rank},'
+            f' global rank: {trainer.tpu_global_core_rank}'
+            f' with XLA_USE_BF16={os.environ.get("XLA_USE_BF16")}'
+        )
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         # do backward pass
@@ -242,12 +242,7 @@ class TPUAccelerator(Accelerator):
 
         # model hook
         model_ref.optimizer_step(
-            self.trainer.current_epoch,
-            batch_idx, optimizer,
-            opt_idx,
-            lambda_closure,
-            on_tpu=True,
-            using_lbfgs=is_lbfgs
+            self.trainer.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure, on_tpu=True, using_lbfgs=is_lbfgs
         )
 
     def clip_gradients(self, optimizer, clip_val=None):

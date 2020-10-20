@@ -15,7 +15,6 @@ from pytorch_lightning.profiler import PassThroughProfiler, SimpleProfiler
 
 
 class ProfilerConnector:
-
     def __init__(self, trainer):
         self.trainer = trainer
 

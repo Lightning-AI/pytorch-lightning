@@ -72,9 +72,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
         max_epochs=2,
     )
     trainer.fit(model)
-    assert (
-        checkpoint.dirpath == tmpdir / trainer.logger.name / "version_0" / "checkpoints"
-    )
+    assert checkpoint.dirpath == tmpdir / trainer.logger.name / "version_0" / "checkpoints"
 
 
 @pytest.mark.parametrize('save_top_k', [-1, 0, 1, 2])
@@ -105,9 +103,7 @@ def test_model_checkpoint_path(tmpdir, logger_version, expected):
     model = EvalModelTemplate()
     logger = TensorBoardLogger(str(tmpdir), version=logger_version)
 
-    trainer = Trainer(
-        default_root_dir=tmpdir, overfit_batches=0.2, max_epochs=2, logger=logger
-    )
+    trainer = Trainer(default_root_dir=tmpdir, overfit_batches=0.2, max_epochs=2, logger=logger)
     trainer.fit(model)
 
     ckpt_version = Path(trainer.checkpoint_callback.dirpath).parent.name
@@ -209,8 +205,9 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     ckpt_name = ModelCheckpoint(monitor='early_stop_on', filepath=filepath, prefix='test').format_checkpoint_name(3, {})
     assert ckpt_name == filepath / 'test-epoch=3.ckpt'
     # with ver
-    ckpt_name = ModelCheckpoint(monitor='early_stop_on',
-                                filepath=tmpdir / 'name', prefix='test').format_checkpoint_name(3, {}, ver=3)
+    ckpt_name = ModelCheckpoint(
+        monitor='early_stop_on', filepath=tmpdir / 'name', prefix='test'
+    ).format_checkpoint_name(3, {}, ver=3)
     assert ckpt_name == tmpdir / 'test-name-v3.ckpt'
 
 
@@ -445,7 +442,9 @@ def test_model_checkpoint_save_last_warning(tmpdir, caplog, max_epochs, should_v
         model.validation_step = None
     trainer = Trainer(
         default_root_dir=tmpdir,
-        checkpoint_callback=ModelCheckpoint(monitor='early_stop_on', filepath=tmpdir, save_top_k=0, save_last=save_last),
+        checkpoint_callback=ModelCheckpoint(
+            monitor='early_stop_on', filepath=tmpdir, save_top_k=0, save_last=save_last
+        ),
         max_epochs=max_epochs,
     )
     trainer.fit(model)
@@ -457,9 +456,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     seed_everything(100)
     model = EvalModelTemplate()
     num_epochs = 3
-    model_checkpoint = ModelCheckpoint(
-        monitor='early_stop_on', filepath=tmpdir, save_top_k=num_epochs, save_last=True
-    )
+    model_checkpoint = ModelCheckpoint(monitor='early_stop_on', filepath=tmpdir, save_top_k=num_epochs, save_last=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         checkpoint_callback=model_checkpoint,
@@ -476,16 +473,16 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     assert all(ckpt_last_epoch[k] == ckpt_last[k] for k in ("epoch", "global_step"))
 
     ch_type = type(model_checkpoint)
-    assert all(list(
-        ckpt_last["callbacks"][ch_type][k] == ckpt_last_epoch["callbacks"][ch_type][k]
-        for k in ("best_model_score", "best_model_path")
-    ))
+    assert all(
+        list(
+            ckpt_last["callbacks"][ch_type][k] == ckpt_last_epoch["callbacks"][ch_type][k]
+            for k in ("best_model_score", "best_model_path")
+        )
+    )
 
     # it is easier to load the model objects than to iterate over the raw dict of tensors
     model_last_epoch = EvalModelTemplate.load_from_checkpoint(path_last_epoch)
-    model_last = EvalModelTemplate.load_from_checkpoint(
-        model_checkpoint.last_model_path
-    )
+    model_last = EvalModelTemplate.load_from_checkpoint(model_checkpoint.last_model_path)
     for w0, w1 in zip(model_last_epoch.parameters(), model_last.parameters()):
         assert w0.eq(w1).all()
 

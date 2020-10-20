@@ -21,7 +21,6 @@ from unittest import mock
 
 
 class TestModel(BoringModel):
-
     def on_pretrain_routine_end(self) -> None:
         with mock.patch('pytorch_lightning.loggers.base.LightningLoggerBase.agg_and_log_metrics') as m:
             self.trainer.logger_connector.log_metrics({'a': 2}, {})
@@ -30,11 +29,11 @@ class TestModel(BoringModel):
             assert logged_times == expected, 'actual logger called from non-global zero'
 
 
-@pytest.mark.skipif(platform.system() == "Windows",
-                    reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif((platform.system() == "Darwin" and
-                     LooseVersion(torch.__version__) < LooseVersion("1.3.0")),
-                    reason="Distributed training is not supported on MacOS before Torch 1.3.0")
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(
+    (platform.system() == "Darwin" and LooseVersion(torch.__version__) < LooseVersion("1.3.0")),
+    reason="Distributed training is not supported on MacOS before Torch 1.3.0",
+)
 def test_global_zero_only_logging_ddp_cpu(tmpdir):
     """
     Makes sure logging only happens from root zero

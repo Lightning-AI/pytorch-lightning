@@ -40,25 +40,24 @@ else:
 
 
 class AcceleratorConnector:
-
     def __init__(self, trainer):
         self.trainer = trainer
         self.accelerator = None
 
     def on_trainer_init(
-            self,
-            num_processes,
-            tpu_cores,
-            accelerator,
-            distributed_backend,
-            auto_select_gpus,
-            gpus,
-            num_nodes,
-            log_gpu_memory,
-            sync_batchnorm,
-            benchmark,
-            replace_sampler_ddp,
-            deterministic,
+        self,
+        num_processes,
+        tpu_cores,
+        accelerator,
+        distributed_backend,
+        auto_select_gpus,
+        gpus,
+        num_nodes,
+        log_gpu_memory,
+        sync_batchnorm,
+        benchmark,
+        replace_sampler_ddp,
+        deterministic,
     ):
         # temp until we remove all dist backend references
         distributed_backend = self._map_deprecated_dist_backend(accelerator, distributed_backend)
@@ -147,8 +146,12 @@ class AcceleratorConnector:
 
     def _map_deprecated_dist_backend(self, accelerator, distributed_backend):
         if distributed_backend is not None:
-            rank_zero_warn(DeprecationWarning('distributed_backend has been renamed to accelerator. '
-                                              'Deprecated in 1.0.0, will be removed in 1.2.0'))
+            rank_zero_warn(
+                DeprecationWarning(
+                    'distributed_backend has been renamed to accelerator. '
+                    'Deprecated in 1.0.0, will be removed in 1.2.0'
+                )
+            )
 
         # temporary mapping until we remove all the distributed_backend references
         if accelerator is not None:
@@ -228,16 +231,12 @@ class AcceleratorConnector:
 
         elif use_ddp_spawn:
             accelerator_backend = accelerators.DDPSpawnAccelerator(
-                self.trainer,
-                nprocs=self.trainer.num_processes,
-                cluster_environment=cluster_env
+                self.trainer, nprocs=self.trainer.num_processes, cluster_environment=cluster_env
             )
 
         elif use_ddp_cpu_spawn:
             accelerator_backend = accelerators.DDPCPUSpawnAccelerator(
-                self.trainer,
-                nprocs=self.trainer.num_processes,
-                cluster_environment=cluster_env
+                self.trainer, nprocs=self.trainer.num_processes, cluster_environment=cluster_env
             )
 
         elif self.trainer.distributed_backend == "ddp":

@@ -37,8 +37,7 @@ def test_model_torch_save(tmpdir):
     torch.save(trainer, temp_path)
 
 
-@pytest.mark.skipif(platform.system() == "Windows",
-                    reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 def test_model_torch_save_ddp_cpu(tmpdir):
     """Test to ensure torch save does not fail for model and trainer using cpu ddp."""
     model = EvalModelTemplate()
@@ -62,12 +61,7 @@ def test_model_torch_save_ddp_cuda(tmpdir):
     """Test to ensure torch save does not fail for model and trainer using gpu ddp."""
     model = EvalModelTemplate()
     num_epochs = 1
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=num_epochs,
-        accelerator="ddp_spawn",
-        gpus=2
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=num_epochs, accelerator="ddp_spawn", gpus=2)
     temp_path = os.path.join(tmpdir, 'temp.pt')
     trainer.fit(model)
 

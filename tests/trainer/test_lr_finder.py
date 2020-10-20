@@ -55,8 +55,9 @@ def test_model_reset_correctly(tmpdir):
     after_state_dict = model.state_dict()
 
     for key in before_state_dict.keys():
-        assert torch.all(torch.eq(before_state_dict[key], after_state_dict[key])), \
-            'Model was not reset correctly after learning rate finder'
+        assert torch.all(
+            torch.eq(before_state_dict[key], after_state_dict[key])
+        ), 'Model was not reset correctly after learning rate finder'
 
 
 def test_trainer_reset_correctly(tmpdir):
@@ -70,8 +71,14 @@ def test_trainer_reset_correctly(tmpdir):
         max_epochs=1,
     )
 
-    changed_attributes = ['callbacks', 'logger', 'max_steps', 'auto_lr_find',
-                          'accumulate_grad_batches', 'checkpoint_callback']
+    changed_attributes = [
+        'callbacks',
+        'logger',
+        'max_steps',
+        'auto_lr_find',
+        'accumulate_grad_batches',
+        'checkpoint_callback',
+    ]
     attributes_before = {}
     for ca in changed_attributes:
         attributes_before[ca] = getattr(trainer, ca)
@@ -83,8 +90,9 @@ def test_trainer_reset_correctly(tmpdir):
         attributes_after[ca] = getattr(trainer, ca)
 
     for key in changed_attributes:
-        assert attributes_before[key] == attributes_after[key], \
-            f'Attribute {key} was not reset correctly after learning rate finder'
+        assert (
+            attributes_before[key] == attributes_after[key]
+        ), f'Attribute {key} was not reset correctly after learning rate finder'
 
 
 @pytest.mark.parametrize('use_hparams', [False, True])
@@ -110,8 +118,7 @@ def test_trainer_arg_bool(tmpdir, use_hparams):
     else:
         after_lr = model.learning_rate
 
-    assert before_lr != after_lr, \
-        'Learning rate was not altered after running learning rate finder'
+    assert before_lr != after_lr, 'Learning rate was not altered after running learning rate finder'
 
 
 @pytest.mark.parametrize('use_hparams', [False, True])
@@ -139,8 +146,7 @@ def test_trainer_arg_str(tmpdir, use_hparams):
     else:
         after_lr = model.my_fancy_lr
 
-    assert before_lr != after_lr, \
-        'Learning rate was not altered after running learning rate finder'
+    assert before_lr != after_lr, 'Learning rate was not altered after running learning rate finder'
 
 
 @pytest.mark.parametrize('optimizer', ['Adam', 'Adagrad'])
@@ -164,8 +170,7 @@ def test_call_to_trainer_method(tmpdir, optimizer):
     model.learning_rate = after_lr
     trainer.tune(model)
 
-    assert before_lr != after_lr, \
-        'Learning rate was not altered after running learning rate finder'
+    assert before_lr != after_lr, 'Learning rate was not altered after running learning rate finder'
 
 
 def test_datamodule_parameter(tmpdir):
@@ -188,13 +193,12 @@ def test_datamodule_parameter(tmpdir):
     after_lr = lrfinder.suggestion()
     model.learning_rate = after_lr
 
-    assert before_lr != after_lr, \
-        'Learning rate was not altered after running learning rate finder'
+    assert before_lr != after_lr, 'Learning rate was not altered after running learning rate finder'
 
 
 def test_accumulation_and_early_stopping(tmpdir):
-    """ Test that early stopping of learning rate finder works, and that
-        accumulation also works for this feature """
+    """Test that early stopping of learning rate finder works, and that
+    accumulation also works for this feature"""
 
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
@@ -209,12 +213,9 @@ def test_accumulation_and_early_stopping(tmpdir):
     lrfinder = trainer.tuner.lr_find(model, early_stop_threshold=None)
     after_lr = lrfinder.suggestion()
 
-    assert before_lr != after_lr, \
-        'Learning rate was not altered after running learning rate finder'
-    assert len(lrfinder.results['lr']) == 99, \
-        'Early stopping for learning rate finder did not work'
-    assert lrfinder._total_batch_idx == 99 * 2, \
-        'Accumulation parameter did not work'
+    assert before_lr != after_lr, 'Learning rate was not altered after running learning rate finder'
+    assert len(lrfinder.results['lr']) == 99, 'Early stopping for learning rate finder did not work'
+    assert lrfinder._total_batch_idx == 99 * 2, 'Accumulation parameter did not work'
 
 
 def test_suggestion_parameters_work(tmpdir):
@@ -233,8 +234,7 @@ def test_suggestion_parameters_work(tmpdir):
     lr1 = lrfinder.suggestion(skip_begin=10)  # default
     lr2 = lrfinder.suggestion(skip_begin=80)  # way too high, should have an impact
 
-    assert lr1 != lr2, \
-        'Skipping parameter did not influence learning rate'
+    assert lr1 != lr2, 'Skipping parameter did not influence learning rate'
 
 
 def test_suggestion_with_non_finite_values(tmpdir):
@@ -254,5 +254,4 @@ def test_suggestion_with_non_finite_values(tmpdir):
     lrfinder.results['loss'][-1] = float('nan')
     after_lr = lrfinder.suggestion()
 
-    assert before_lr == after_lr, \
-        'Learning rate was altered because of non-finite loss values'
+    assert before_lr == after_lr, 'Learning rate was altered because of non-finite loss values'

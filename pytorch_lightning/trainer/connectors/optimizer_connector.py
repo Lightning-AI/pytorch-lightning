@@ -16,7 +16,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class OptimizerConnector:
-
     def __init__(self, trainer):
         self.trainer = trainer
 
@@ -46,9 +45,11 @@ class OptimizerConnector:
                     try:
                         monitor_key = lr_scheduler['monitor']
                     except KeyError as e:
-                        m = "ReduceLROnPlateau requires returning a dict from configure_optimizers with the keyword " \
-                            "monitor=. For example:" \
+                        m = (
+                            "ReduceLROnPlateau requires returning a dict from configure_optimizers with the keyword "
+                            "monitor=. For example:"
                             "return {'optimizer': optimizer, 'lr_scheduler': scheduler, 'monitor': 'your_loss'}"
+                        )
                         raise MisconfigurationException(m)
 
                     if monitor_metrics is not None:
@@ -85,8 +86,5 @@ class OptimizerConnector:
 
                     if self.trainer.dev_debugger.enabled:
                         self.trainer.dev_debugger.track_lr_schedulers_update(
-                            self.trainer.batch_idx,
-                            interval,
-                            scheduler_idx,
-                            old_lr, new_lr
+                            self.trainer.batch_idx, interval, scheduler_idx, old_lr, new_lr
                         )

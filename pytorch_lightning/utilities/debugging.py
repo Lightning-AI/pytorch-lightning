@@ -35,7 +35,6 @@ def enabled_only(fn: Callable):
 
 
 class InternalDebugger(object):
-
     def __init__(self, trainer):
 
         self.enabled = os.environ.get('PL_DEV_DEBUG', '0') == '1'
@@ -55,21 +54,23 @@ class InternalDebugger(object):
         self.dataloader_sequence_calls = []
 
     def track_event(
-            self,
-            evt_type: str,
-            evt_value: Any = None,
-            global_rank: Optional[int] = None,
-            local_rank: Optional[int] = None,
-            comment: str = ''
+        self,
+        evt_type: str,
+        evt_value: Any = None,
+        global_rank: Optional[int] = None,
+        local_rank: Optional[int] = None,
+        comment: str = '',
     ) -> None:
-        self.events.append({
-            "timestamp": time.time(),
-            "event": evt_type,
-            "value": evt_value,
-            "global_rank": global_rank,
-            "local_rank": local_rank,
-            "comment": comment,
-        })
+        self.events.append(
+            {
+                "timestamp": time.time(),
+                "event": evt_type,
+                "value": evt_value,
+                "global_rank": global_rank,
+                "local_rank": local_rank,
+                "comment": comment,
+            }
+        )
 
     def count_events(self, evt_type: str, strict=False) -> int:
         count = 0
@@ -97,7 +98,7 @@ class InternalDebugger(object):
             'epoch': self.trainer.current_epoch,
             'num_loaders': loader_counts,
             'lengths': lengths,
-            'name': name
+            'name': name,
         }
 
         # track the sequence in case we need to verify the sequence
@@ -129,7 +130,7 @@ class InternalDebugger(object):
             'epoch': self.trainer.current_epoch,
             'monitor_key': monitor_key,
             'old_lr': old_lr,
-            'new_lr': new_lr
+            'new_lr': new_lr,
         }
         self.saved_lr_scheduler_updates.append(loss_dict)
 
@@ -140,7 +141,7 @@ class InternalDebugger(object):
             'dataloader_idx': dataloader_idx,
             'batch_idx': batch_idx,
             'epoch': self.trainer.current_epoch,
-            'output': output
+            'output': output,
         }
 
         if test_mode:
@@ -161,7 +162,7 @@ class InternalDebugger(object):
             'rank': self.trainer.global_rank,
             'current': current,
             'best': callback.best_score,
-            'patience': callback.wait_count
+            'patience': callback.wait_count,
         }
         self.early_stopping_history.append(debug_dict)
 
@@ -173,7 +174,7 @@ class InternalDebugger(object):
             'global_step': self.trainer.global_step,
             'monitor': cb.monitor,
             'rank': self.trainer.global_rank,
-            'filepath': filepath
+            'filepath': filepath,
         }
         self.checkpoint_callback_history.append(debug_dict)
 

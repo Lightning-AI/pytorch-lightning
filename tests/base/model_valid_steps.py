@@ -22,6 +22,7 @@ class ValidationStepVariations(ABC):
     """
     Houses all variations of validation steps
     """
+
     def validation_step(self, batch, batch_idx, *args, **kwargs):
         """
         Lightning calls this inside the validation loop
@@ -40,11 +41,7 @@ class ValidationStepVariations(ABC):
         val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
         val_acc = torch.tensor(val_acc).type_as(x)
 
-        output = OrderedDict({
-            'val_loss': loss_val,
-            'val_acc': val_acc,
-            'test_dic': {'val_loss_a': loss_val}
-        })
+        output = OrderedDict({'val_loss': loss_val, 'val_acc': val_acc, 'test_dic': {'val_loss_a': loss_val}})
         return output
 
     def validation_step_no_monitor(self, batch, batch_idx, *args, **kwargs):
@@ -65,10 +62,7 @@ class ValidationStepVariations(ABC):
         val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
         val_acc = torch.tensor(val_acc).type_as(x)
 
-        output = OrderedDict({
-            'val_acc': val_acc,
-            'test_dic': {'val_loss_a': loss_val}
-        })
+        output = OrderedDict({'val_acc': val_acc, 'test_dic': {'val_loss_a': loss_val}})
         return output
 
     def validation_step_result_obj(self, batch, batch_idx, *args, **kwargs):
@@ -84,10 +78,12 @@ class ValidationStepVariations(ABC):
         val_acc = torch.tensor(val_acc).type_as(x)
 
         result = EvalResult(checkpoint_on=loss_val, early_stop_on=loss_val)
-        result.log_dict({
-            'val_loss': loss_val,
-            'val_acc': val_acc,
-        })
+        result.log_dict(
+            {
+                'val_loss': loss_val,
+                'val_acc': val_acc,
+            }
+        )
         return result
 
     def validation_step_result_obj_dp(self, batch, batch_idx, *args, **kwargs):
@@ -104,10 +100,12 @@ class ValidationStepVariations(ABC):
         val_acc = torch.tensor(val_acc).type_as(x)
 
         result = EvalResult(checkpoint_on=loss_val, early_stop_on=loss_val)
-        result.log_dict({
-            'val_loss': loss_val,
-            'val_acc': val_acc,
-        })
+        result.log_dict(
+            {
+                'val_loss': loss_val,
+                'val_acc': val_acc,
+            }
+        )
 
         self.validation_step_called = True
         return result
@@ -129,8 +127,10 @@ class ValidationStepVariations(ABC):
         val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
         val_acc = torch.tensor(val_acc).type_as(x)
 
-        output = OrderedDict({
-            f'val_loss_{dataloader_idx}': loss_val,
-            f'val_acc_{dataloader_idx}': val_acc,
-        })
+        output = OrderedDict(
+            {
+                f'val_loss_{dataloader_idx}': loss_val,
+                f'val_acc_{dataloader_idx}': val_acc,
+            }
+        )
         return output

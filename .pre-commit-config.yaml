@@ -22,6 +22,8 @@ repos:
       - id: trailing-whitespace
       - id: check-yaml
       - id: end-of-file-fixer
+      - id: check-added-large-files
+        args: [--maxkb=15000]
 
   - repo: local
     hooks:

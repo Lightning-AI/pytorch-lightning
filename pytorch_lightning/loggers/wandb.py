@@ -79,11 +79,13 @@ class WandbLogger(LightningLoggerBase):
         project: Optional[str] = None,
         log_model: bool = False,
         experiment=None,
-        **kwargs
+        **kwargs,
     ):
         if wandb is None:
-            raise ImportError('You want to use `wandb` logger which is not installed yet,'  # pragma: no-cover
-                              ' install it with `pip install wandb`.')
+            raise ImportError(
+                'You want to use `wandb` logger which is not installed yet,'  # pragma: no-cover
+                ' install it with `pip install wandb`.'
+            )
         super().__init__()
         self._name = name
         self._save_dir = save_dir
@@ -121,8 +123,15 @@ class WandbLogger(LightningLoggerBase):
             if self._offline:
                 os.environ['WANDB_MODE'] = 'dryrun'
             self._experiment = wandb.init(
-                name=self._name, dir=self._save_dir, project=self._project, anonymous=self._anonymous,
-                reinit=True, id=self._id, resume='allow', **self._kwargs)
+                name=self._name,
+                dir=self._save_dir,
+                project=self._project,
+                anonymous=self._anonymous,
+                reinit=True,
+                id=self._id,
+                resume='allow',
+                **self._kwargs,
+            )
             # save checkpoints in wandb dir to upload on W&B servers
             if self._log_model:
                 self._save_dir = self._experiment.dir

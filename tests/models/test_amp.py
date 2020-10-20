@@ -152,7 +152,7 @@ def test_cpu_model_with_amp(tmpdir):
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.4,
-        precision=16
+        precision=16,
     )
 
     model = EvalModelTemplate()

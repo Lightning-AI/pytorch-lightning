@@ -83,6 +83,7 @@ ddp_args = """
 #         cli_main()
 #
 
+
 @pytest.mark.parametrize('cli_args', [cpu_args])
 def test_examples_cpu(cli_args):
     from pl_examples.basic_examples.mnist import cli_main as mnist_cli

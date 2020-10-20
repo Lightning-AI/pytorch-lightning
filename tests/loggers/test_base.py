@@ -184,8 +184,7 @@ def test_adding_step_key(tmpdir):
         limit_val_batches=0.1,
         num_sanity_val_steps=0,
     )
-    trainer.logger.log_metrics = _log_metrics_decorator(
-        trainer.logger.log_metrics)
+    trainer.logger.log_metrics = _log_metrics_decorator(trainer.logger.log_metrics)
     trainer.fit(model)
 
 

@@ -26,9 +26,7 @@ from pytorch_lightning.metrics.utils import to_onehot, METRIC_EPS
 
 def _input_format(num_classes: int, preds: torch.Tensor, target: torch.Tensor, threshold=0.5, multilabel=False):
     if not (len(preds.shape) == len(target.shape) or len(preds.shape) == len(target.shape) + 1):
-        raise ValueError(
-            "preds and target must have same number of dimensions, or one additional dimension for preds"
-        )
+        raise ValueError("preds and target must have same number of dimensions, or one additional dimension for preds")
 
     if len(preds.shape) == len(target.shape) + 1:
         # multi class probabilites
@@ -98,6 +96,7 @@ class Precision(Metric):
         tensor(0.3333)
 
     """
+
     def __init__(
         self,
         num_classes: int = 1,
@@ -119,8 +118,7 @@ class Precision(Metric):
         self.average = average
         self.multilabel = multilabel
 
-        assert self.average in ('micro', 'macro'), \
-            "average passed to the function must be either `micro` or `macro`"
+        assert self.average in ('micro', 'macro'), "average passed to the function must be either `micro` or `macro`"
 
         self.add_state("true_positives", default=torch.zeros(num_classes), dist_reduce_fx="sum")
         self.add_state("predicted_positives", default=torch.zeros(num_classes), dist_reduce_fx="sum")
@@ -186,6 +184,7 @@ class Recall(Metric):
         tensor(0.3333)
 
     """
+
     def __init__(
         self,
         num_classes: int = 1,
@@ -207,8 +206,7 @@ class Recall(Metric):
         self.average = average
         self.multilabel = multilabel
 
-        assert self.average in ('micro', 'macro'), \
-            "average passed to the function must be either `micro` or `macro`"
+        assert self.average in ('micro', 'macro'), "average passed to the function must be either `micro` or `macro`"
 
         self.add_state("true_positives", default=torch.zeros(num_classes), dist_reduce_fx="sum")
         self.add_state("actual_positives", default=torch.zeros(num_classes), dist_reduce_fx="sum")

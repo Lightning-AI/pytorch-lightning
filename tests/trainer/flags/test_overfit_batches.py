@@ -21,8 +21,8 @@ def test_overfit_multiple_val_loaders(tmpdir):
     """
     Tests that only training_step can be used
     """
-    class TestModel(BoringModel):
 
+    class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx, dataloader_idx):
             output = self.layer(batch[0])
             loss = self.loss(batch, output)

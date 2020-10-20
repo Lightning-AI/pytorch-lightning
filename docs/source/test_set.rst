@@ -37,7 +37,7 @@ You can run the test set on multiple models using the same trainer instance.
 
     model1 = LitModel()
     model2 = GANModel()
-    
+
     trainer = Trainer()
     trainer.test(model1)
     trainer.test(model2)

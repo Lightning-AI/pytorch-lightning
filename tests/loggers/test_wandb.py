@@ -52,8 +52,10 @@ def test_wandb_pickle(wandb, tmpdir):
     Verify that pickling trainer with wandb logger works.
     Wandb doesn't work well with pytest so we have to mock it out here.
     """
+
     class Experiment:
         """ """
+
         id = 'the_id'
 
         def project_name(self):

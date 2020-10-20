@@ -20,6 +20,7 @@ class ValidationEpochEndVariations(ABC):
     """
     Houses all variations of validation_epoch_end steps
     """
+
     def validation_epoch_end_no_monitor(self, outputs):
         """
         Called at the end of validation to aggregate outputs

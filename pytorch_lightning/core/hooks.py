@@ -112,9 +112,7 @@ class ModelHooks:
         """
         # do something at the end of the pretrain routine
 
-    def on_train_batch_start(
-        self, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the training loop before anything happens for that batch.
 
@@ -387,9 +385,7 @@ class DataHooks:
                     return loader
 
         """
-        rank_zero_warn(
-            "`train_dataloader` must be implemented to be used with the Lightning Trainer"
-        )
+        rank_zero_warn("`train_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def test_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
         r"""
