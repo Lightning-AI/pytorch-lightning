@@ -5,27 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [unreleased] - YYYY-MM-DD
+## [1.0.3] - 2020-10-20
 
 ### Added
 
-- Added persistent flag to Metric.add_state ([#4195](https://github.com/PyTorchLightning/pytorch-lightning/pull/4195))
-
+- Added persistent flag to `Metric.add_state` ([#4195](https://github.com/PyTorchLightning/pytorch-lightning/pull/4195))
 
 ### Changed
 
-- Used checkpoint_connector.hpc_save in SLURM ([#4217](https://github.com/PyTorchLightning/pytorch-lightning/pull/4217))
-
-
-### Deprecated
-
-
-### Removed
-
+- Used `checkpoint_connector.hpc_save` in SLURM ([#4217](https://github.com/PyTorchLightning/pytorch-lightning/pull/4217))
+- Moved base req. to root ([#4219](https://github.com/PyTorchLightning/pytorch-lightning/pull/4219))
 
 ### Fixed
 
 - Fixed `hparams` assign in init ([#4189](https://github.com/PyTorchLightning/pytorch-lightning/pull/4189))
+- Fixed overwrite check for model hooks ([#4010](https://github.com/PyTorchLightning/pytorch-lightning/pull/4010))
 
 
 ## [1.0.2] - 2020-10-15
