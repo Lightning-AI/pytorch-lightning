@@ -33,6 +33,7 @@ from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.warning_utils import WarningCache
 
+
 class TrainLoop:
 
     def __init__(self, trainer):
@@ -44,7 +45,6 @@ class TrainLoop:
         self._teardown_already_run = False
         self.running_loss = TensorRunningAccum(window_length=20)
         self.automatic_optimization = True
-        self.trainer.logger_connector.cache_internal_metrics["train"] = CacheInternalMetrics()
 
     def on_trainer_init(self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps, automatic_optimization):
         self.trainer.global_step = 0
@@ -85,7 +85,7 @@ class TrainLoop:
         # hook
         model_ref = self.trainer.get_model()
         model_ref._results = Result()
-        self.trainer.logger_connector.cache_internal_metrics["train"] = CacheInternalMetrics()
+        self.trainer.logger_connector.reset_cache_internal_metrics("train")
         self.trainer.call_hook('on_train_start')
 
     def setup_fit(self, model, train_dataloader, val_dataloaders, datamodule):
