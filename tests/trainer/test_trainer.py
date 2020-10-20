@@ -55,7 +55,7 @@ def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
         default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir),
+        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
     )
     # fit model
     result = trainer.fit(model)
@@ -97,7 +97,7 @@ def test_no_val_end_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
         default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir),
+        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
     )
     result = trainer.fit(model)
 
@@ -137,7 +137,7 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
         default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir),
+        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
     )
     result = trainer.fit(model)
 
@@ -414,7 +414,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, ex
     # simulated losses
     losses = [10, 9, 2.8, 5, 2.5]
 
-    checkpoint_callback = ModelCheckpoint(tmpdir, monitor='checkpoint_on', save_top_k=save_top_k, save_last=save_last,
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor='checkpoint_on', save_top_k=save_top_k, save_last=save_last,
                                           prefix=file_prefix, verbose=1)
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
@@ -446,7 +446,7 @@ def test_model_checkpoint_only_weights(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        checkpoint_callback=ModelCheckpoint(tmpdir, monitor='early_stop_on', save_weights_only=True),
+        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_weights_only=True),
     )
     # fit model
     result = trainer.fit(model)
@@ -522,7 +522,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         max_epochs=2,
         limit_train_batches=0.65,
         limit_val_batches=1,
-        checkpoint_callback=ModelCheckpoint(tmpdir, monitor='early_stop_on', save_top_k=-1),
+        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_top_k=-1),
         default_root_dir=tmpdir,
         val_check_interval=1.,
     )

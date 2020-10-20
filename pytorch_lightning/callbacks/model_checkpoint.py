@@ -44,6 +44,38 @@ class ModelCheckpoint(Callback):
     best checkpoint file and :attr:`best_model_score` to retrieve its score.
 
     Args:
+        filepath: path to save the model file.
+
+            .. warning:: .. deprecated:: 1.0
+
+               Use ``dirpath`` + ``filename`` instead. Will be removed in v1.2
+
+        monitor: quantity to monitor. By default it is ``None`` which saves a checkpoint only for the last epoch.
+        verbose: verbosity mode. Default: ``False``.
+        save_last: When ``True``, always saves the model at the end of the epoch to
+            a file `last.ckpt`. Default: ``None``.
+        save_top_k: if ``save_top_k == k``,
+            the best k models according to
+            the quantity monitored will be saved.
+            if ``save_top_k == 0``, no models are saved.
+            if ``save_top_k == -1``, all models are saved.
+            Please note that the monitors are checked every `period` epochs.
+            if ``save_top_k >= 2`` and the callback is called multiple
+            times inside an epoch, the name of the saved file will be
+            appended with a version count starting with `v0`.
+        mode: one of {auto, min, max}.
+            If ``save_top_k != 0``, the decision
+            to overwrite the current save file is made
+            based on either the maximization or the
+            minimization of the monitored quantity. For `val_acc`,
+            this should be `max`, for `val_loss` this should
+            be `min`, etc. In `auto` mode, the direction is
+            automatically inferred from the name of the monitored quantity.
+        save_weights_only: if ``True``, then only the model's weights will be
+            saved (``model.save_weights(filepath)``), else the full model
+            is saved (``model.save(filepath)``).
+        period: Interval (number of epochs) between checkpoints.
+
         dirpath: directory to save the model file.
 
             Example::
@@ -71,37 +103,6 @@ class ModelCheckpoint(Callback):
 
             By default, filename is ``None`` and will be set to ``'{epoch}'``.
 
-        filepath: path to save the model file.
-
-            .. warning:: .. deprecated:: 1.0.0
-
-               Use ``dirpath`` + ``filename`` instead. Will be removed in v1.2.0.
-
-        monitor: quantity to monitor. By default it is ``None`` which saves a checkpoint only for the last epoch.
-        verbose: verbosity mode. Default: ``False``.
-        save_last: When ``True``, always saves the model at the end of the epoch to
-            a file `last.ckpt`. Default: ``None``.
-        save_top_k: if ``save_top_k == k``,
-            the best k models according to
-            the quantity monitored will be saved.
-            if ``save_top_k == 0``, no models are saved.
-            if ``save_top_k == -1``, all models are saved.
-            Please note that the monitors are checked every `period` epochs.
-            if ``save_top_k >= 2`` and the callback is called multiple
-            times inside an epoch, the name of the saved file will be
-            appended with a version count starting with `v0`.
-        mode: one of {auto, min, max}.
-            If ``save_top_k != 0``, the decision
-            to overwrite the current save file is made
-            based on either the maximization or the
-            minimization of the monitored quantity. For `val_acc`,
-            this should be `max`, for `val_loss` this should
-            be `min`, etc. In `auto` mode, the direction is
-            automatically inferred from the name of the monitored quantity.
-        save_weights_only: if ``True``, then only the model's weights will be
-            saved (``model.save_weights(filepath)``), else the full model
-            is saved (``model.save(filepath)``).
-        period: Interval (number of epochs) between checkpoints.
 
     Example::
 
@@ -135,8 +136,6 @@ class ModelCheckpoint(Callback):
 
     def __init__(
         self,
-        dirpath: Optional[Union[str, Path]] = None,
-        filename: Optional[str] = None,
         filepath: Optional[str] = None,
         monitor: Optional[str] = None,
         verbose: bool = False,
@@ -146,6 +145,8 @@ class ModelCheckpoint(Callback):
         mode: str = "auto",
         period: int = 1,
         prefix: str = "",
+        dirpath: Optional[Union[str, Path]] = None,
+        filename: Optional[str] = None,
     ):
         super().__init__()
         self.monitor = monitor
@@ -254,13 +255,14 @@ class ModelCheckpoint(Callback):
         if filepath:
             if (dirpath or filename):
                 raise MisconfigurationException(
-                    f'filepath={filepath}, dirpath={dirpath} and'
-                    f' filename={filename} is not a valid configuration.'
+                    f'You have set all three path/name inputs which are not feasible.'
+                    f' You have to choose either filepath={filepath} OR dirpath={dirpath}'
+                    f' and filename={filename} configuration.'
                 )
 
             rank_zero_warn(
-                'Please use dirpath and filename. filepath is now deprecated'
-                ' and will be removed in v1.2.0', DeprecationWarning
+                'Argument `filepath` is deprecated in v1.0 and will be removed in v1.2.'
+                ' Please use `dirpath` and `filename` instead.', DeprecationWarning
             )
 
             _fs = get_filesystem(filepath)

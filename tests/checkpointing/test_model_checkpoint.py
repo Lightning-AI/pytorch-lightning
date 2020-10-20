@@ -115,7 +115,7 @@ def test_model_checkpoint_path(tmpdir, logger_version, expected):
 
 
 def test_pickling(tmpdir):
-    ckpt = ModelCheckpoint(tmpdir)
+    ckpt = ModelCheckpoint(dirpath=tmpdir)
 
     ckpt_pickled = pickle.dumps(ckpt)
     ckpt_loaded = pickle.loads(ckpt_pickled)
@@ -205,13 +205,19 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
 
     # CWD
     ckpt_name = ModelCheckpoint(monitor='early_stop_on', dirpath='.').format_checkpoint_name(3, {})
-    assert Path(ckpt_name) == Path('.') / 'epoch=3.ckpt'
+    assert ckpt_name == os.path.join(os.path.realpath(Path('.')), 'epoch=3.ckpt')
 
     # with ver
     ckpt_name = ModelCheckpoint(
         monitor='early_stop_on', dirpath=tmpdir, filename='name', prefix='test'
     ).format_checkpoint_name(4, {}, ver=3)
     assert ckpt_name == tmpdir / 'test-name-v3.ckpt'
+
+    # with ver
+    ckpt_name = ModelCheckpoint(
+        monitor='early_stop_on', dirpath=None, filename='{epoch}_{val/loss:.5f}'
+    ).format_checkpoint_name(4, {'val/loss': 0.03})
+    assert ckpt_name == 'epoch=4_val/loss=0.03000.ckpt'
 
 
 def test_model_checkpoint_save_last(tmpdir):
@@ -513,3 +519,20 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
 
     # check that last one is also the best one
     assert trainer.dev_debugger.checkpoint_callback_history[-1]['epoch'] == len(monitor) - 1
+
+
+@pytest.mark.parametrize(
+    'filepath, dirpath, filename',
+    [
+        (None, None, None),
+        ('.', '.', None),
+        ('', None, None),
+        ('my/path/', 'my/path/', None),
+        ('my/path/{val_loss:.2f}', 'my/path/', '{val_loss:.2f}'),
+    ]
+)
+def test_filepath_decomposition_dirpath_filename(tmpdir, filepath, dirpath, filename):
+    mc_cb = ModelCheckpoint(filepath=filepath)
+    dirpath = os.path.realpath(dirpath) if dirpath else dirpath
+    assert mc_cb.dirpath == dirpath
+    assert mc_cb.filename == filename

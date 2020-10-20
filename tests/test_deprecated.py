@@ -11,10 +11,10 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def test_tbd_remove_in_v1_2_0():
-    with pytest.deprecated_call(match='will be removed in v1.2.0'):
+    with pytest.deprecated_call(match='will be removed in v1.2'):
         checkpoint_cb = ModelCheckpoint(filepath='.')
 
-    with pytest.raises(MisconfigurationException, match='not a valid configuration'):
+    with pytest.raises(MisconfigurationException, match='inputs which are not feasible'):
         checkpoint_cb = ModelCheckpoint(filepath='.', dirpath='.')
 
 
