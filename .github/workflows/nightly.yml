@@ -47,6 +47,7 @@ jobs:
         uses: actions/checkout@v2
 
       # https://github.com/docker/setup-buildx-action
+      # to use cache-from and cache-to argument of buildx command
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
@@ -96,6 +97,7 @@ jobs:
         uses: actions/checkout@v2
 
       # https://github.com/docker/setup-buildx-action
+      # to use cache-from and cache-to argument of buildx command
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
