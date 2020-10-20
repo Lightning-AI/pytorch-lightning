@@ -196,7 +196,7 @@ This is useful if you do not test against all required dependency versions.
 **Docker:** Another option is utilize the [pytorch lightning cuda base docker image](https://hub.docker.com/repository/docker/pytorchlightning/pytorch_lightning/tags?page=1&name=cuda). You can then run:
 
 ```bash
-python -m pytest pytorch_lightning tests pl_examples -v --flake8
+python -m pytest pytorch_lightning tests pl_examples -v --color=yes --flake8
 ```
 
 ### Pull Request
