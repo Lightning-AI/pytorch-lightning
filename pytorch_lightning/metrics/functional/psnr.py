@@ -3,6 +3,7 @@ from typing import Tuple, Optional
 
 import torch
 
+
 def _psnr_compute(
     sum_squared_error: torch.Tensor,
     n_obs: int,
@@ -13,6 +14,7 @@ def _psnr_compute(
     psnr_base_e = 2 * torch.log(data_range) - torch.log(sum_squared_error / n_obs)
     psnr = psnr_base_e * (10 / torch.log(torch.tensor(base)))
     return psnr
+
 
 def _psnr_update(preds: torch.Tensor, target: torch.Tensor) -> Tuple[torch.Tensor, int]:
     sum_squared_error = torch.sum(torch.pow(preds - target, 2))

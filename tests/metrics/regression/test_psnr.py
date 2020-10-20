@@ -29,6 +29,7 @@ def _sk_metric(preds, target, data_range):
     sk_target = target.view(-1).numpy()
     return peak_signal_noise_ratio(sk_target, sk_preds, data_range=data_range)
 
+
 def _base_e_sk_metric(preds, target, data_range):
     sk_preds = preds.view(-1).numpy()
     sk_target = target.view(-1).numpy()
@@ -72,4 +73,3 @@ class TestPSNR(MetricTester):
             partial(sk_metric, data_range=data_range),
             metric_args={"data_range": data_range, "base": base},
         )
-
