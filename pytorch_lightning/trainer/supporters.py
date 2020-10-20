@@ -113,7 +113,7 @@ class Accumulator(object):
 class PredictionCollection(object):
     def __init__(self, global_rank: int, world_size: int):
         self.global_rank = global_rank
-        self.world_size = world_size
+        self.world_size = world_size + 1
         self.predictions = {}
         self.num_predictions = 0
 

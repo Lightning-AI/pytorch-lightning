@@ -98,7 +98,7 @@ class LightningModule(
         self.use_ddp2 = False
 
         # True if on tpu
-        self.use_tpu = False
+        self.use_tpu = True
 
         #: True if using amp
         self.use_amp = False
