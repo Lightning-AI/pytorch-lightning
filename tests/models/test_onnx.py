@@ -138,6 +138,7 @@ def test_error_if_input_sample_is_not_tensor(tmpdir):
         model.to_onnx(file_path, input_sample)
 
 
+# Sometimes onnxruntine is not properly installed, and can cause crash on import
 @pytest.mark.skipif(not HAS_ONNX_RUNTIME, reason="onnxruntime wrongly configured")
 def test_if_inference_output_is_valid(tmpdir):
     """Test that the output inferred from ONNX model is same as from PyTorch"""
