@@ -18,7 +18,7 @@ from pytorch_lightning.metrics.functional import (
     pytest.param([4., 3., 2., 1.], [1., 4., 3., 2.]),
 ])
 def test_psnr_with_skimage(pred, target):
-    score = psnr(pred=torch.tensor(pred),
+    score = psnr(preds=torch.tensor(pred),
                  target=torch.tensor(target), data_range=3)
     sk_score = ski_psnr(np.array(pred), np.array(target), data_range=3)
     assert torch.allclose(score, torch.tensor(sk_score, dtype=torch.float), atol=1e-3)
@@ -29,7 +29,7 @@ def test_psnr_with_skimage(pred, target):
     pytest.param([4., 3., 2., 1.], [1., 4., 3., 2.]),
 ])
 def test_psnr_base_e_wider_range(pred, target):
-    score = psnr(pred=torch.tensor(pred),
+    score = psnr(preds=torch.tensor(pred),
                  target=torch.tensor(target),
                  data_range=4,
                  base=2.718281828459045)

@@ -18,57 +18,6 @@ from pytorch_lightning.metrics.functional.reduction import reduce
 from torch.nn import functional as F
 
 
-def psnr(
-    pred: torch.Tensor,
-    target: torch.Tensor,
-    data_range: Optional[float] = None,
-    base: float = 10.0,
-    reduction: str = 'elementwise_mean',
-    return_state: bool = False
-) -> torch.Tensor:
-    """
-    Computes the peak signal-to-noise ratio
-
-    Args:
-        pred: estimated signal
-        target: groun truth signal
-        data_range: the range of the data. If None, it is determined from the data (max - min)
-        base: a base of a logarithm to use (default: 10)
-        reduction: a method to reduce metric score over labels.
-
-            - ``'elementwise_mean'``: takes the mean (default)
-            - ``'sum'``: takes the sum
-            - ``'none'``: no reduction will be applied
-        return_state: returns a internal state that can be ddp reduced
-            before doing the final calculation
-
-    Return:
-        Tensor with PSNR score
-
-    Example:
-
-        >>> pred = torch.tensor([[0.0, 1.0], [2.0, 3.0]])
-        >>> target = torch.tensor([[3.0, 2.0], [1.0, 0.0]])
-        >>> psnr(pred, target)
-        tensor(2.5527)
-
-    """
-    if data_range is None:
-        data_range = target.max() - target.min()
-    else:
-        data_range = torch.tensor(float(data_range))
-
-    if return_state:
-        return {'data_range': data_range,
-                'sum_squared_error': F.mse_loss(pred, target, reduction='none').sum(),
-                'n_obs': torch.tensor(target.numel())}
-
-    mse_score = F.mse_loss(pred.view(-1), target.view(-1), reduction=reduction)
-    psnr_base_e = 2 * torch.log(data_range) - torch.log(mse_score)
-    psnr = psnr_base_e * (10 / torch.log(torch.tensor(base)))
-    return psnr
-
-
 def _gaussian_kernel(channel, kernel_size, sigma, device):
     def _gaussian(kernel_size, sigma, device):
         gauss = torch.arange(
