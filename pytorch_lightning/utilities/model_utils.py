@@ -23,9 +23,7 @@ def is_overridden(method_name: str, model: Union[LightningModule, LightningDataM
     # TODO - refector this function to accept model_name, instance, parent so it makes more sense
     super_object = LightningModule if not isinstance(model, LightningDataModule) else LightningDataModule
 
-    # assert model, 'no model passes'
-
-    if not hasattr(model, method_name):
+    if not hasattr(model, method_name) or not hasattr(super_object, method_name):
         # in case of calling deprecated method
         return False
 
