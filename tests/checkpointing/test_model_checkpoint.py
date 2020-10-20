@@ -527,7 +527,7 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
         (None, None, None),
         ('.', '.', None),
         ('', None, None),
-        ('my/path/', 'my/path/', None),
+        ('my/path/', 'my/', 'path'),
         ('my/path/{val_loss:.2f}', 'my/path/', '{val_loss:.2f}'),
     ]
 )
