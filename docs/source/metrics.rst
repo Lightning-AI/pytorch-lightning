@@ -212,6 +212,13 @@ ExplainedVariance
 .. autoclass:: pytorch_lightning.metrics.regression.ExplainedVariance
     :noindex:
 
+
+PSNR
+~~~~
+
+.. autoclass:: pytorch_lightning.metrics.regression.PSNR
+    :noindex:
+
 ******************
 Functional Metrics
 ******************
@@ -384,7 +391,7 @@ mean_squared_error [func]
 psnr [func]
 ~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.regression.psnr
+.. autofunction:: pytorch_lightning.metrics.functional.psnr
     :noindex:
 
 
