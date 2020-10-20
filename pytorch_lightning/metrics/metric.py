@@ -28,18 +28,23 @@ from pytorch_lightning.metrics.utils import _flatten, dim_zero_cat, dim_zero_mea
 class Metric(nn.Module, ABC):
     """
     Base class for all metrics present in the Metrics API.
+
     Implements ``add_state()``, ``forward()``, ``reset()`` and a few other things to
     handle distributed synchronization and per-step metric computation.
+
     Override ``update()`` and ``compute()`` functions to implement your own metric. Use
     ``add_state()`` to register metric state variables which keep track of state on each
     call of ``update()`` and are synchronized across processes when ``compute()`` is called.
+
     Note:
         Metric state variables can either be ``torch.Tensors`` or an empty list which can we used
         to store `torch.Tensors``.
+
     Note:
         Different metrics only override ``update()`` and not ``forward()``. A call to ``update()``
         is valid, but it won't return the metric value at the current step. A call to ``forward()``
         automatically calls ``update()`` and also returns the metric value at the current step.
+
     Args:
         compute_on_step:
             Forward only calls ``update()`` and returns None if this is set to False. default: True
@@ -76,6 +81,7 @@ class Metric(nn.Module, ABC):
     ):
         """
         Adds metric state variable. Only used by subclasses.
+
         Args:
             name: The name of the state variable. The variable will then be accessible at ``self.name``.
             default: Default value of the state; can either be a ``torch.Tensor`` or an empty list. The state will be
@@ -85,18 +91,24 @@ class Metric(nn.Module, ABC):
                 and ``torch.cat`` respectively, each with argument ``dim=0``. The user can also pass a custom
                 function in this parameter.
             persistent (Optional): whether the state will be saved as part of the modules ``state_dict``.
+
         Note:
             Setting ``dist_reduce_fx`` to None will return the metric state synchronized across different processes.
             However, there won't be any reduction function applied to the synchronized metric state.
+
             The metric states would be synced as follows
+
             - If the metric state is ``torch.Tensor``, the synced value will be a stacked ``torch.Tensor`` across
               the process dimension if the metric state was a ``torch.Tensor``. The original ``torch.Tensor`` metric
               state retains dimension and hence the synchronized output will be of shape ``(num_process, ...)``.
+
             - If the metric state is a ``list``, the synced value will be a ``list`` containing the
               combined elements from all processes.
+
         Note:
             When passing a custom function to ``dist_reduce_fx``, expect the synchronized metric state to follow
             the format discussed in the above note.
+
         """
         if (
             not isinstance(default, torch.Tensor)
