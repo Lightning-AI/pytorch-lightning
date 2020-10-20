@@ -20,20 +20,4 @@ repos:
     rev: v2.3.0
     hooks:
       - id: trailing-whitespace
-      - id: check-yaml
       - id: end-of-file-fixer
-
-  - repo: local
-    hooks:
-      - id: black
-        name: black
-        entry: python -m black
-        args: [--skip-string-normalization, --config, ./pyproject.toml]
-        language: system
-        types: [python]
-
-      - id: flake8
-        name: flake8
-        entry: python -m flake8
-        language: system
-        types: [python]
