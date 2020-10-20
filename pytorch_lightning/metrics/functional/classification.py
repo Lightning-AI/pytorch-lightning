@@ -1001,8 +1001,8 @@ def iou(
     Intersection over union, or Jaccard index calculation.
 
     Args:
-        pred: Tensor containing predictions
-        target: Tensor containing targets
+        pred: Tensor containing integer predictions, with shape [N, d1, d2, ...]
+        target: Tensor containing integer targets, with shape [N, d1, d2, ...]
         ignore_index: optional int specifying a target class to ignore. If given, this class index does not contribute
             to the returned score, regardless of reduction method. Has no effect if given an int that is not in the
             range [0, num_classes-1], where num_classes is either given or derived from pred and target. By default, no
