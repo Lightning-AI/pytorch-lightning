@@ -189,7 +189,7 @@ class Result(Dict):
             self.__setitem__(epoch_name, value)
 
         # add possibly dataloader_idx
-        name = self.add_dl_idx(name, current_dataloader_idx)
+        name = self.add_dataloader_idx(name, current_dataloader_idx)
 
         # always log the original metric
         self.__set_meta(
