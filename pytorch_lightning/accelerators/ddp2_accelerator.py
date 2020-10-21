@@ -25,10 +25,8 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from torch.nn.parallel import DistributedDataParallel
 from typing import List, Optional
-from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
