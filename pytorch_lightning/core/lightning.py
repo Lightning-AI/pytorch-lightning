@@ -224,7 +224,7 @@ class LightningModule(
             tbptt_pad_token: token to use for padding
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
-            sync_dist_op: the op to sync across
+            sync_dist_op: the op to sync across GPUs/TPUs
             sync_dist_group: the ddp group
         """
         if self._results is not None:
@@ -294,7 +294,7 @@ class LightningModule(
             tbptt_pad_token: token to use for padding
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
-            sync_dist_op: the op to sync across
+            sync_dist_op: the op to sync across GPUs/TPUs
             sync_dist_group: the ddp group:
         """
         for k, v in dictionary.items():
