@@ -399,6 +399,9 @@ class ModelCheckpoint(Callback):
             >>> ckpt = ModelCheckpoint(dirpath=tmpdir, filename='{missing:d}')
             >>> os.path.basename(ckpt.format_checkpoint_name(0, {}))
             'missing=0.ckpt'
+            >>> ckpt = ModelCheckpoint(filename='{epoch}')
+            >>> os.path.basename(ckpt.format_checkpoint_name(0, {}))
+            'epoch=0.ckpt'
 
         """
         filename = self._format_checkpoint_name(
