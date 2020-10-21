@@ -7,6 +7,14 @@ import os
 from unittest import mock
 
 
+@mock.patch.dict(os.environ, {
+    "CUDA_VISIBLE_DEVICES": "0,1",
+    "SLURM_NTASKS": "2",
+    "SLURM_JOB_NAME": "SOME_NAME",
+    "SLURM_NODEID": "0",
+    "LOCAL_RANK": "0",
+    "SLURM_LOCALID": "0"
+})
 @mock.patch('torch.cuda.device_count', return_value=2)
 @pytest.mark.parametrize(['ddp_backend', 'gpus', 'num_processes'],
                          [('ddp_cpu', None, None), ('ddp', 2, 0), ('ddp2', 2, 0), ('ddp_spawn', 2, 0)])
@@ -30,6 +38,14 @@ def test_ddp_choice_default_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
         trainer.fit(model)
 
 
+@mock.patch.dict(os.environ, {
+    "CUDA_VISIBLE_DEVICES": "0,1",
+    "SLURM_NTASKS": "2",
+    "SLURM_JOB_NAME": "SOME_NAME",
+    "SLURM_NODEID": "0",
+    "LOCAL_RANK": "0",
+    "SLURM_LOCALID": "0"
+})
 @mock.patch('torch.cuda.device_count', return_value=2)
 @pytest.mark.parametrize(['ddp_backend', 'gpus', 'num_processes'],
                          [('ddp_cpu', None, None), ('ddp', 2, 0), ('ddp2', 2, 0), ('ddp_spawn', 2, 0)])
