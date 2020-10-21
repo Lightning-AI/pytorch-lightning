@@ -536,7 +536,8 @@ def test_checkpoint_repeated_strategy(tmpdir):
     model = ExtendedBoringModel()
     model.validation_step_end = None
     model.validation_epoch_end = None
-    trainer = pl.Trainer(max_epochs=1,
+    trainer = pl.Trainer(default_root_dir=tmpdir,
+                         max_epochs=1,
                          limit_train_batches=2,
                          limit_val_batches=2,
                          limit_test_batches=2,
@@ -546,7 +547,9 @@ def test_checkpoint_repeated_strategy(tmpdir):
     trainer.fit(model)
     trainer.test(model)
     # test only one chechpoint
-    assert str(os.listdir(tmpdir)) == "['epoch=00.ckpt']"
+
+    assert str(os.listdir(tmpdir)) == "['epoch=00.ckpt', 'lightning_logs']"
+    assert str(os.listdir(osp.join(tmpdir, 'lightning_logs'))) == "['version_0']"
 
     assert [*model._func_called_count] == ['training_step', 'training_step_end', 'training_epoch_end', 'test_step', 'test_epoch_end']
 
@@ -560,6 +563,7 @@ def test_checkpoint_repeated_strategy(tmpdir):
     def get_last_checkpoint():
         ckpts = os.listdir(tmpdir)
         ckpts_map = {int(x.split("=")[1].split('.')[0]): osp.join(tmpdir, x) for x in ckpts if "epoch" in x}
+        print(ckpts_map)
         num_ckpts = len(ckpts_map) - 1
         return ckpts_map[num_ckpts]
 
@@ -567,18 +571,24 @@ def test_checkpoint_repeated_strategy(tmpdir):
         # load from checkpoint
         chk = get_last_checkpoint()
         model = BoringModel.load_from_checkpoint(chk)
-        trainer = pl.Trainer(max_epochs=1,
+        trainer = pl.Trainer(default_root_dir=tmpdir,
+                             max_epochs=1,
                              limit_train_batches=2,
                              limit_val_batches=2,
                              limit_test_batches=2,
-                             resume_from_checkpoint=chk
+                             resume_from_checkpoint=chk,
+                             checkpoint_callback=checkpoint_callback
                             )
         trainer.fit(model)
         trainer.test(model)
 
         assert [*model._func_called_count] == ['training_step', 'training_step_end', 'training_epoch_end', 'test_step', 'test_epoch_end', \
             'validation_step', 'validation_epoch_end']
-        assert str(os.listdir(tmpdir)) == "['epoch=00.ckpt']"
+
+        assert str(os.listdir(tmpdir)) == "['epoch=00.ckpt', 'lightning_logs']"
+        lightning_logs_path = osp.join(tmpdir, 'lightning_logs')
+
+        assert sorted(os.listdir(lightning_logs_path)) == [f"version_{i}" for i in range(idx + 1)]
 
         assert model.num_calls('training_step') == 2
         assert model.num_calls('training_step_end') == 2
