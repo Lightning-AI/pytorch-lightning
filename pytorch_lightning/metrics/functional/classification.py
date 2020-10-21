@@ -85,13 +85,13 @@ def get_num_classes(
     """
     Calculates the number of classes for a given prediction and target tensor.
 
-        Args:
-            pred: predicted values
-            target: true labels
-            num_classes: number of classes if known
+    Args:
+        pred: predicted values
+        target: true labels
+        num_classes: number of classes if known
 
-        Return:
-            An integer that represents the number of classes.
+    Return:
+        An integer that represents the number of classes.
     """
     num_target_classes = int(target.max().detach().item() + 1)
     num_pred_classes = int(pred.max().detach().item() + 1)
@@ -272,6 +272,7 @@ def accuracy(
             - ``'none'``: returns calculated metric per class
         return_state: returns a internal state that can be ddp reduced
             before doing the final calculation
+
     Return:
          A Tensor with the accuracy score.
 
