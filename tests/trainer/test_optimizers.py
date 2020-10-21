@@ -209,7 +209,8 @@ def test_optimizer_return_options():
     # opt tuple of 2 lists
     model.configure_optimizers = lambda: ([opt_a], [scheduler_a])
     optim, lr_sched, freq = trainer.init_optimizers(model)
-    assert len(optim) == len(lr_sched) == 1 and len(freq) == 0
+    assert len(optim) == len(lr_sched) == 1
+    assert len(freq) == 0
     assert optim[0] == opt_a
     assert lr_sched[0] == dict(
         scheduler=scheduler_a, interval='epoch', frequency=1, reduce_on_plateau=False, monitor=None, strict=True
@@ -218,7 +219,8 @@ def test_optimizer_return_options():
     # opt tuple of 1 list
     model.configure_optimizers = lambda: ([opt_a], scheduler_a)
     optim, lr_sched, freq = trainer.init_optimizers(model)
-    assert len(optim) == len(lr_sched) == 1 and len(freq) == 0
+    assert len(optim) == len(lr_sched) == 1
+    assert len(freq) == 0
     assert optim[0] == opt_a
     assert lr_sched[0] == dict(
         scheduler=scheduler_a, interval='epoch', frequency=1, reduce_on_plateau=False, monitor=None, strict=True
@@ -227,7 +229,8 @@ def test_optimizer_return_options():
     # opt single dictionary
     model.configure_optimizers = lambda: {"optimizer": opt_a, "lr_scheduler": scheduler_a}
     optim, lr_sched, freq = trainer.init_optimizers(model)
-    assert len(optim) == len(lr_sched) == 1 and len(freq) == 0
+    assert len(optim) == len(lr_sched) == 1
+    assert len(freq) == 0
     assert optim[0] == opt_a
     assert lr_sched[0] == dict(
         scheduler=scheduler_a, interval='epoch', frequency=1, reduce_on_plateau=False, monitor=None, strict=True

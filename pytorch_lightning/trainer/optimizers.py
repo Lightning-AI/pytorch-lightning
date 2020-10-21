@@ -97,7 +97,7 @@ class TrainerOptimizersMixin(ABC):
                     rank_zero_warn(f'Found unsupported keys in the lr scheduler dict: {extra_keys}', RuntimeWarning)
                 if 'scheduler' not in scheduler:
                     raise MisconfigurationException(
-                        'The lr scheduler dict must have the key "scheduler" with its item being a lr scheduler'
+                        'The lr scheduler dict must have the key "scheduler" with its item being an lr scheduler'
                     )
                 scheduler['reduce_on_plateau'] = isinstance(
                     scheduler['scheduler'], optim.lr_scheduler.ReduceLROnPlateau
@@ -113,7 +113,7 @@ class TrainerOptimizersMixin(ABC):
                 if monitor is None:
                     raise MisconfigurationException(
                         '`configure_optimizers` must include a monitor when a `ReduceLROnPlateau` scheduler is used.'
-                        ' For example: {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "your_loss"}'
+                        ' For example: {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "metric_to_track"}'
                     )
                 lr_schedulers.append(
                     {**default_config, 'scheduler': scheduler, 'reduce_on_plateau': True, 'monitor': monitor}
