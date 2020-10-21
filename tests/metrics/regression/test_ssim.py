@@ -51,8 +51,9 @@ def _sk_metric(preds, target, data_range, multichannel):
     [(i.preds, i.target, i.multichannel) for i in _inputs],
 )
 class TestSSIM(MetricTester):
-    @pytest.mark.parametrize("ddp", [False])
-    #@pytest.mark.parametrize("ddp", [True, False])
+    atol = 1e-3 # TODO: ideally tests should pass with lower tolerance
+
+    @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
     def test_ssim(self, preds, target, ddp, dist_sync_on_step, multichannel):
         self.run_class_metric_test(

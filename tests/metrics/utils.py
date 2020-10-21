@@ -39,6 +39,7 @@ def _class_test(
     metric_args: dict = {},
     check_dist_sync_on_step: bool = True,
     check_batch: bool = True,
+    atol: float = 1e-8,
 ):
     """ Utility function doing the actual comparison between lightning class metric
         and reference metric.
@@ -75,12 +76,12 @@ def _class_test(
                 sk_batch_result = sk_metric(ddp_preds, ddp_target)
                 # assert for dist_sync_on_step
                 if check_dist_sync_on_step:
-                    assert np.allclose(batch_result.numpy(), sk_batch_result)
+                    assert np.allclose(batch_result.numpy(), sk_batch_result, atol=atol)
         else:
             sk_batch_result = sk_metric(preds[i], target[i])
             # assert for batch
             if check_batch:
-                assert np.allclose(batch_result.numpy(), sk_batch_result)
+                assert np.allclose(batch_result.numpy(), sk_batch_result, atol=atol)
 
     # check on all batches on all ranks
     result = metric.compute()
@@ -91,7 +92,7 @@ def _class_test(
     sk_result = sk_metric(total_preds, total_target)
 
     # assert after aggregation
-    assert np.allclose(result.numpy(), sk_result)
+    assert np.allclose(result.numpy(), sk_result, atol=atol)
 
 
 def _functional_test(
@@ -100,6 +101,7 @@ def _functional_test(
     metric_functional: Callable,
     sk_metric: Callable,
     metric_args: dict = {},
+    atol: float = 1e-8
 ):
     """ Utility function doing the actual comparison between lightning functional metric
         and reference metric.
@@ -118,7 +120,7 @@ def _functional_test(
         sk_result = sk_metric(preds[i], target[i])
 
         # assert its the same
-        assert np.allclose(lightning_result.numpy(), sk_result)
+        assert np.allclose(lightning_result.numpy(), sk_result, atol=atol)
 
 
 class MetricTester:
@@ -130,6 +132,7 @@ class MetricTester:
             `test_metric_name`
         where the method `self.run_metric_test` is called inside.
     """
+    atol = 1e-8
 
     def setup_class(self):
         """ Setup the metric class. This will spawn the pool of workers that are
@@ -170,7 +173,8 @@ class MetricTester:
                          target=target,
                          metric_functional=metric_functional,
                          sk_metric=sk_metric,
-                         metric_args=metric_args)
+                         metric_args=metric_args,
+                         atol=self.atol)
 
     def run_class_metric_test(
         self,
@@ -216,6 +220,7 @@ class MetricTester:
                     metric_args=metric_args,
                     check_dist_sync_on_step=check_dist_sync_on_step,
                     check_batch=check_batch,
+                    atol=self.atol,
                 ),
                 [(rank, self.poolSize) for rank in range(self.poolSize)],
             )
@@ -231,4 +236,5 @@ class MetricTester:
                 metric_args=metric_args,
                 check_dist_sync_on_step=check_dist_sync_on_step,
                 check_batch=check_batch,
+                atol=self.atol,
             )
