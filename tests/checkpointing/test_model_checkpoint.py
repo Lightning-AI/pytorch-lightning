@@ -213,7 +213,7 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     ).format_checkpoint_name(4, {}, ver=3)
     assert ckpt_name == tmpdir / 'test-name-v3.ckpt'
 
-    # with ver
+    # using slashes
     ckpt_name = ModelCheckpoint(
         monitor='early_stop_on', dirpath=None, filename='{epoch}_{val/loss:.5f}'
     ).format_checkpoint_name(4, {'val/loss': 0.03})
