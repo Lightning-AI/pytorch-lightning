@@ -220,7 +220,8 @@ class Accelerator(object):
             'trainer': self.trainer,
             'nickname': self.nickname,
             'cluster_environment': self.cluster_environment,
-            'dist': self.dist
+            'dist': self.dist,
+            'ddp_plugin': self.ddp_plugin
         }
 
     def __setstate__(self, d):
@@ -228,6 +229,7 @@ class Accelerator(object):
         self.nickname = d['nickname']
         self.cluster_environment = d['cluster_environment']
         self.dist = d['dist']
+        self.ddp_plugin = d['ddp_plugin']
 
 
 # TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...
