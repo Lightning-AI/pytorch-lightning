@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from re import escape
-
 import pytest
 import torch
 
@@ -421,13 +419,7 @@ def test_unknown_configure_optimizers_raises(tmpdir):
     model = EvalModelTemplate()
     model.configure_optimizers = lambda: 1
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    msg = """Unknown configuration for model optimizers. Output from `model.configure_optimizers()` should either be:
- * `torch.optim.Optimizer`
- * [`torch.optim.Optimizer`]
- * ([`torch.optim.Optimizer`], [`torch.optim.lr_scheduler`])
- * {"optimizer": `torch.optim.Optimizer`, (optional) "lr_scheduler": `torch.optim.lr_scheduler`}
- * A list of the previously described dict format, with an optional "frequency" key (int)"""
-    with pytest.raises(MisconfigurationException, match=escape(msg)):
+    with pytest.raises(MisconfigurationException, match="Unknown configuration for model optimizers"):
         trainer.fit(model)
 
 
