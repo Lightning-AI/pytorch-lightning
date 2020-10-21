@@ -23,7 +23,6 @@ from torch import nn
 from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.metrics.functional.reduction import class_reduce
 from pytorch_lightning.metrics.classification.precision_recall import _input_format
-from pytorch_lightning.metrics.utils import METRIC_EPS
 
 
 class Fbeta(Metric):
@@ -122,12 +121,12 @@ class Fbeta(Metric):
         Computes accuracy over state.
         """
         if self.average == 'micro':
-            precision = self.true_positives.sum().float() / (self.predicted_positives.sum() + METRIC_EPS)
-            recall = self.true_positives.sum().float() / (self.actual_positives.sum() + METRIC_EPS)
+            precision = self.true_positives.sum().float() / (self.predicted_positives.sum())
+            recall = self.true_positives.sum().float() / (self.actual_positives.sum())
 
         elif self.average == 'macro':
-            precision = self.true_positives.float() / (self.predicted_positives + METRIC_EPS)
-            recall = self.true_positives.float() / (self.actual_positives + METRIC_EPS)
+            precision = self.true_positives.float() / (self.predicted_positives)
+            recall = self.true_positives.float() / (self.actual_positives)
 
         num = (1 + self.beta ** 2) * precision * recall
         denom = self.beta ** 2 * precision + recall
