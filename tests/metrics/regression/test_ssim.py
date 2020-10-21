@@ -4,7 +4,6 @@ from functools import partial
 import pytest
 import torch
 from skimage.metrics import structural_similarity
-import numpy as np
 
 from pytorch_lightning.metrics.regression import SSIM
 from pytorch_lightning.metrics.functional import ssim
@@ -20,8 +19,8 @@ _inputs = []
 for size, channel, coef, multichannel in [
     (16, 1, 0.9, False),
     (32, 3, 0.8, True),
-    #    (48, 4, 0.7, True),
-    #    (64, 5, 0.6, True),
+    (48, 4, 0.7, True),
+    (64, 5, 0.6, True),
 ]:
     preds = torch.rand(NUM_BATCHES, BATCH_SIZE, channel, size, size)
     _inputs.append(
@@ -55,7 +54,7 @@ class TestSSIM(MetricTester):
 
     @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
-    def test_ssim(self, preds, target, ddp, dist_sync_on_step, multichannel):
+    def test_ssim(self, preds, target, multichannel, ddp, dist_sync_on_step):
         self.run_class_metric_test(
             ddp,
             preds,

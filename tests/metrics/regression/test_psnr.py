@@ -54,7 +54,7 @@ def _base_e_sk_metric(preds, target, data_range):
 class TestPSNR(MetricTester):
     @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
-    def test_psnr(self, preds, target, sk_metric, ddp, dist_sync_on_step, data_range, base):
+    def test_psnr(self, preds, target, data_range, base, sk_metric, ddp, dist_sync_on_step):
         self.run_class_metric_test(
             ddp,
             preds,
