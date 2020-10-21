@@ -28,7 +28,7 @@ from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn, AMPType
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -1202,11 +1202,16 @@ class LightningModule(
         """
         if on_tpu:
             xm.optimizer_step(optimizer, optimizer_args={'closure': optimizer_closure})
-        elif using_native_amp:
+        elif self.trainer.amp_backend == AMPType.NATIVE:
             # native amp does not yet support closures.
             # TODO: pass the closure to the step ASAP
             optimizer_closure()
             self.trainer.scaler.step(optimizer)
+        elif self.trainer.amp_backend == AMPType.APEX:
+            # apex amp does not yet support closures.
+            # TODO: pass the closure to the step ASAP
+            optimizer_closure()
+            optimizer.step()
         else:
             optimizer.step(closure=optimizer_closure)
 
