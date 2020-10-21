@@ -972,7 +972,8 @@ class LightningModule(
                     'interval': 'epoch', # The unit of the scheduler's step size
                     'frequency': 1, # The frequency of the scheduler
                     'reduce_on_plateau': False, # For ReduceLROnPlateau scheduler
-                    'monitor': 'val_loss' # Metric to monitor
+                    'monitor': 'val_loss', # Metric for ReduceLROnPlateau to monitor
+                    'strict': True # Whether to crash the training if `monitor` is not found
                 }
 
             If user only provides LR schedulers, then their configuration will set to default as shown above.
