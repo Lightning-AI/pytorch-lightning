@@ -109,11 +109,7 @@ class Result(Dict):
                 m += f' {additional_err}'
             assert x.grad_fn is not None, m
 
-<<<<<<< HEAD
-    def add_dl_idx(self, name: str, dl_idx: Union[None, int]) -> str:
-=======
     def add_dataloader_idx(self, name: str, dl_idx: Union[None, int]) -> str:
->>>>>>> 0dfe8c91a2411784996bb8671479f47b4d4474cd
         """
         This function add dl_idx logic to logged key automatically if we have multiple dataloders
         """
@@ -157,11 +153,7 @@ class Result(Dict):
 
             # set step version
             # add possibly dataloader_idx
-<<<<<<< HEAD
-            step_name = self.add_dl_idx(f'{name}_step', current_dataloader_idx)
-=======
             step_name = self.add_dataloader_idx(f'{name}_step', current_dataloader_idx)
->>>>>>> 0dfe8c91a2411784996bb8671479f47b4d4474cd
 
             self.__set_meta(
                 step_name,
@@ -180,11 +172,7 @@ class Result(Dict):
 
             # set epoch version
             # add possibly dataloader_idx
-<<<<<<< HEAD
-            epoch_name = self.add_dl_idx(f'{name}_epoch', current_dataloader_idx)
-=======
             epoch_name = self.add_dataloader_idx(f'{name}_epoch', current_dataloader_idx)
->>>>>>> 0dfe8c91a2411784996bb8671479f47b4d4474cd
 
             self.__set_meta(
                 epoch_name,
@@ -201,11 +189,7 @@ class Result(Dict):
             self.__setitem__(epoch_name, value)
 
         # add possibly dataloader_idx
-<<<<<<< HEAD
-        name = self.add_dl_idx(name, current_dataloader_idx)
-=======
         name = self.add_dataloader_idx(name, current_dataloader_idx)
->>>>>>> 0dfe8c91a2411784996bb8671479f47b4d4474cd
 
         # always log the original metric
         self.__set_meta(
