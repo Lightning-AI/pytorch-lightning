@@ -120,9 +120,9 @@ class DDP2Accelerator(Accelerator):
         Entry point for ddp
 
         Args:
-            process_idx:
+            process_idx: current process rank
             mp_queue: multiprocessing queue
-            model:
+            model: pointer to current :class:`LightningModule`
         """
         # show progressbar only on progress_rank 0
         if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:
