@@ -14,6 +14,7 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
 import os
@@ -34,7 +35,7 @@ def test__training_step__flow_dict(tmpdir):
             return {'loss': acc, 'random_things': [1, 'a', torch.tensor(2)]}
 
         def backward(self, loss, optimizer, optimizer_idx):
-            loss.backward()
+            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
 
     model = TestModel()
     model.val_dataloader = None
@@ -76,7 +77,7 @@ def test__training_step__tr_step_end__flow_dict(tmpdir):
             return tr_step_output
 
         def backward(self, loss, optimizer, optimizer_idx):
-            loss.backward()
+            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
 
     model = TestModel()
     model.val_dataloader = None
@@ -124,7 +125,7 @@ def test__training_step__epoch_end__flow_dict(tmpdir):
                 assert {'random_things', 'loss'} == set(b.keys())
 
         def backward(self, loss, optimizer, optimizer_idx):
-            loss.backward()
+            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
 
     model = TestModel()
     model.val_dataloader = None
@@ -178,7 +179,7 @@ def test__training_step__step_end__epoch_end__flow_dict(tmpdir):
                 assert {'random_things', 'loss'} == set(b.keys())
 
         def backward(self, loss, optimizer, optimizer_idx):
-            loss.backward()
+            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
 
     model = TestModel()
     model.val_dataloader = None

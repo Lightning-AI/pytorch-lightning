@@ -126,6 +126,8 @@ jobs:
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
+      # see: https://github.com/actions/toolkit/issues/399
+      continue-on-error: true
       if: always()
       with:
         token: ${{ secrets.CODECOV_TOKEN }}

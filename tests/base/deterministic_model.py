@@ -492,7 +492,7 @@ class DeterministicModel(LightningModule):
             else:
                 assert loss == 171.0
 
-        loss.backward()
+        super().backward(loss, optimizer, optimizer_idx)
 
 
 class DummyDataset(Dataset):

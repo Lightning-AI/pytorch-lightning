@@ -233,7 +233,7 @@ class LightningModule(
                 m = f'on_step=True cannot be used on {self._current_fx_name} method'
                 raise MisconfigurationException(m)
 
-            if 'epoch_end' in self._current_fx_name and on_epoch == False:
+            if 'epoch_end' in self._current_fx_name and on_epoch is False:
                 m = f'on_epoch cannot be False when called from the {self._current_fx_name} method'
                 raise MisconfigurationException(m)
 
@@ -972,7 +972,8 @@ class LightningModule(
                     'interval': 'epoch', # The unit of the scheduler's step size
                     'frequency': 1, # The frequency of the scheduler
                     'reduce_on_plateau': False, # For ReduceLROnPlateau scheduler
-                    'monitor': 'val_loss' # Metric to monitor
+                    'monitor': 'val_loss', # Metric for ReduceLROnPlateau to monitor
+                    'strict': True # Whether to crash the training if `monitor` is not found
                 }
 
             If user only provides LR schedulers, then their configuration will set to default as shown above.
@@ -1080,10 +1081,7 @@ class LightningModule(
         # backward
         self.trainer.train_loop.backward(loss, optimizer, -1, *args, **kwargs)
 
-        # clip grads after backward
-        self.trainer.accelerator_backend.clip_gradients(optimizer)
-
-    def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int) -> None:
+    def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
         """
         Override backward with your own implementation if you need to.
 
@@ -1102,7 +1100,8 @@ class LightningModule(
                 loss.backward()
 
         """
-        loss.backward()
+        loss.backward(*args, **kwargs)
+        self.trainer.train_loop.track_and_norm_grad(optimizer=optimizer)
 
     def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):
         """
@@ -1130,7 +1129,7 @@ class LightningModule(
         batch_idx: int,
         optimizer: Optimizer,
         optimizer_idx: int,
-        second_order_closure: Optional[Callable] = None,
+        optimizer_closure: Optional[Callable] = None,
         on_tpu: bool = False,
         using_native_amp: bool = False,
         using_lbfgs: bool = False,
@@ -1146,7 +1145,7 @@ class LightningModule(
             batch_idx: Index of current batch
             optimizer: A PyTorch optimizer
             optimizer_idx: If you used multiple optimizers this indexes into that list.
-            second_order_closure: closure for second order methods
+            optimizer_closure: closure for all optimizers
             on_tpu: true if TPU backward is required
             using_native_amp: True if using native amp
             using_lbfgs: True if the matching optimizer is lbfgs
@@ -1156,12 +1155,12 @@ class LightningModule(
 
                 # DEFAULT
                 def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
-                                   second_order_closure, on_tpu, using_native_amp, using_lbfgs):
+                                   optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
                     optimizer.step()
 
                 # Alternating schedule for optimizer steps (i.e.: GANs)
                 def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
-                                   second_order_closure, on_tpu, using_native_amp, using_lbfgs):
+                                   optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
                     # update generator opt every 2 steps
                     if optimizer_idx == 0:
                         if batch_idx % 2 == 0 :
@@ -1185,7 +1184,7 @@ class LightningModule(
 
                 # learning rate warm-up
                 def optimizer_step(self, current_epoch, batch_idx, optimizer,
-                                    optimizer_idx, second_order_closure, on_tpu, using_native_amp, using_lbfgs):
+                                    optimizer_idx, optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
                     # warm up lr
                     if self.trainer.global_step < 500:
                         lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
@@ -1202,13 +1201,14 @@ class LightningModule(
 
         """
         if on_tpu:
-            xm.optimizer_step(optimizer)
+            xm.optimizer_step(optimizer, optimizer_args={'closure': optimizer_closure})
         elif using_native_amp:
+            # native amp does not yet support closures.
+            # TODO: pass the closure to the step ASAP
+            optimizer_closure()
             self.trainer.scaler.step(optimizer)
-        elif using_lbfgs:
-            optimizer.step(second_order_closure)
         else:
-            optimizer.step()
+            optimizer.step(closure=optimizer_closure)
 
     def optimizer_zero_grad(
         self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int

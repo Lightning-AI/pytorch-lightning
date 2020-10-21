@@ -11,20 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.states import TrainerState
-from typing import List, Optional, Union, Type, TypeVar
-from pytorch_lightning.utilities import argparse_utils
-from argparse import ArgumentParser, Namespace
-from abc import ABC
 import inspect
 import os
-from pytorch_lightning.utilities.model_utils import is_overridden
-from pytorch_lightning.core.lightning import LightningModule
+from abc import ABC
+from argparse import ArgumentParser, Namespace
+from typing import List, Optional, Union, Type, TypeVar
+
 from pytorch_lightning.callbacks import ProgressBarBase
-from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
+from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
+from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
+from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.utilities import argparse_utils
+from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.model_utils import is_overridden
 
 
 class TrainerProperties(ABC):
