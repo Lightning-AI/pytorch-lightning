@@ -19,9 +19,8 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.skipif(
-    torch.cuda.device_count() < 1, reason="test requires a number of GPU machine greater than 1"
+    torch.cuda.device_count() < 2, reason="test requires a number of GPU machine greater than 1"
 )
 @pytest.mark.parametrize(
     ["auto_select_gpus", "gpus", "expected_error"],
@@ -36,23 +35,32 @@ def test_combination_gpus_options(auto_select_gpus, gpus, expected_error):
     model = BoringModel()
 
     if expected_error:
-        with pytest.raises(expected_error):
+        with pytest.raises(
+            expected_error,
+            match=r"you selected `auto_select_gpus=True`. but did not set gpu resource `gpus=0`. Please set a GPU device.",
+        ):
             trainer = Trainer(auto_select_gpus=auto_select_gpus, gpus=gpus)
     else:
         trainer = Trainer(auto_select_gpus=auto_select_gpus, gpus=gpus)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.skipif(
-    torch.cuda.device_count() < 1, reason="test requires a number of GPU machine greater than 1"
+    torch.cuda.device_count() < 2, reason="test requires a number of GPU machine greater than 1"
 )
 @pytest.mark.parametrize(
-    ["nb", "expected_gpu_idxs"],
+    ["nb", "expected_gpu_idxs", "expected_error"],
     [
-        pytest.param(0, []),
-        pytest.param(-1, [i for i in range(torch.cuda.device_count())]),
-        pytest.param(1, [0]),
+        pytest.param(0, [], MisconfigurationException),
+        pytest.param(-1, [i for i in range(torch.cuda.device_count())], None),
+        pytest.param(1, [0], None),
     ],
 )
-def test_pick_multiple_gpus(nb, expected_gpu_idxs):
-    assert expected_gpu_idxs == pick_multiple_gpus(nb)
+def test_pick_multiple_gpus(nb, expected_gpu_idxs, expected_error):
+    if expected_error:
+        with pytest.raises(
+            expected_error,
+            match=r"you selected `auto_select_gpus=True`. but did not set gpu resource `gpus=0`. Please set a GPU device.",
+        ):
+            pick_multiple_gpus(nb)
+    else:
+        assert expected_gpu_idxs == pick_multiple_gpus(nb)

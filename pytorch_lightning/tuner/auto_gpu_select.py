@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def pick_multiple_gpus(nb):
     if nb == 0:
-        ResourceWarning(
-            "Set `auto_select_gpus=True, gpus=0` is misconfiguration. Please select gpu resources"
+        raise MisconfigurationException(
+            "you selected `auto_select_gpus=True`. but did not set gpu resource `gpus=0`. Please set a GPU device."
         )
 
     nb = torch.cuda.device_count() if nb == -1 else nb
