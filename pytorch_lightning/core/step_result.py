@@ -153,7 +153,7 @@ class Result(Dict):
 
             # set step version
             # add possibly dataloader_idx
-            step_name = self.add_dl_idx(f'{name}_step', current_dataloader_idx)
+            step_name = self.add_dataloader_idx(f'{name}_step', current_dataloader_idx)
 
             self.__set_meta(
                 step_name,
