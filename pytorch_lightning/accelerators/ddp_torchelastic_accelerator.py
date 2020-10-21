@@ -113,6 +113,7 @@ class DDPTorchElasticAccelerator(Accelerator):
             model:
 
         Returns:
+            Dict with evaluation results
 
         """
         # determine which process we are and world size
