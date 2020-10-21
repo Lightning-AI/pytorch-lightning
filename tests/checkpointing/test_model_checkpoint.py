@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import os.path as osp
+import pytorch_lightning as pl
 from distutils.version import LooseVersion
 from unittest.mock import MagicMock, Mock
 
@@ -515,7 +517,7 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
     assert trainer.dev_debugger.checkpoint_callback_history[-1]['epoch'] == len(monitor) - 1
 
 
-def test_checkpoint_within_callbacks_list(tmpdir):
+def test_checkpoint_repeated_strategy(tmpdir):
     """
     This test validates that the checkpoint can be called when provided to callacks list
     """
@@ -544,3 +546,82 @@ def test_checkpoint_within_callbacks_list(tmpdir):
 
     trainer.fit(model)
     assert os.listdir(tmpdir) == ['epoch=00.ckpt']
+
+    def get_last_checkpoint():
+        ckpts = os.listdir(tmpdir)
+        ckpts_map = {int(x.split("=")[1].split('.')[0]): osp.join(tmpdir, x) for x in ckpts if "epoch" in x}
+        num_ckpts = len(ckpts_map) - 1
+        return ckpts_map[num_ckpts]
+
+    for idx in range(1, 5):
+        # load from checkpoint
+        chk = get_last_checkpoint()
+        model = BoringModel.load_from_checkpoint(chk)
+        trainer = pl.Trainer(max_epochs=1,
+                             limit_train_batches=2,
+                             limit_val_batches=2,
+                             limit_test_batches=2,
+                             resume_from_checkpoint=chk
+                            )
+        trainer.fit(model)
+        trainer.test(model)
+
+        assert str(os.listdir(tmpdir)) == "['epoch=00.ckpt']"
+
+
+def test_checkpoint_repeated_strategy_tmpdir(tmpdir):
+    """
+    This test validates that the checkpoint can be called when provided to callacks list
+    """
+
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    checkpoint_callback = ModelCheckpoint(monitor='val_loss', filepath=os.path.join(tmpdir, "{epoch:02d}"))
+
+    class ExtendedBoringModel(BoringModel):
+
+        def validation_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            return {"val_loss": loss}
+
+    model = ExtendedBoringModel()
+    model.validation_step_end = None
+    model.validation_epoch_end = None
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        callbacks=[checkpoint_callback]
+    )
+
+    trainer.fit(model)
+    assert sorted(os.listdir(tmpdir)) == sorted(['epoch=00.ckpt', 'lightning_logs'])
+    path_to_lightning_logs = osp.join(tmpdir, 'lightning_logs')
+    assert sorted(os.listdir(path_to_lightning_logs)) == sorted(['version_0'])
+
+    def get_last_checkpoint():
+        ckpts = os.listdir(tmpdir)
+        ckpts_map = {int(x.split("=")[1].split('.')[0]): osp.join(tmpdir, x) for x in ckpts if "epoch" in x}
+        num_ckpts = len(ckpts_map) - 1
+        return ckpts_map[num_ckpts]
+
+    for idx in range(1, 5):
+
+        # load from checkpoint
+        chk = get_last_checkpoint()
+        model = BoringModel.load_from_checkpoint(chk)
+        trainer = pl.Trainer(default_root_dir=tmpdir,
+                             max_epochs=1,
+                             limit_train_batches=2,
+                             limit_val_batches=2,
+                             limit_test_batches=2,
+                             resume_from_checkpoint=chk
+                            )
+
+        trainer.fit(model)
+        trainer.test(model)
+        assert sorted(os.listdir(tmpdir)) == sorted(['epoch=00.ckpt', 'lightning_logs'])
+        assert sorted(os.listdir(path_to_lightning_logs)) == sorted([f'version_{i}' for i in range(idx + 1)])
