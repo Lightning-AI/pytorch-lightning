@@ -81,11 +81,6 @@ class ConfigureOptimizersPool(ABC):
         return [optimizer1, optimizer2], \
             [{'scheduler': lr_scheduler1, 'interval': 'step'}, lr_scheduler2]
 
-    def configure_optimizers__reduce_lr_on_plateau(self):
-        optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
-        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
-        return [optimizer], [lr_scheduler]
-
     def configure_optimizers__param_groups(self):
         param_groups = [
             {'params': list(self.parameters())[:2], 'lr': self.learning_rate * 0.1},
