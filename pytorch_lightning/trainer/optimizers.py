@@ -41,8 +41,10 @@ class TrainerOptimizersMixin(ABC):
         if isinstance(optim_conf, Optimizer):
             optimizers = [optim_conf]
         # two lists, optimizer + lr schedulers
-        elif isinstance(optim_conf, (list, tuple)) and len(optim_conf) == 2 and isinstance(optim_conf[0], list) and isinstance(optim_conf[1], list):
-            optimizers, lr_schedulers = optim_conf
+        elif isinstance(optim_conf, (list, tuple)) and len(optim_conf) == 2 and isinstance(optim_conf[0], list):
+            opt, sch = optim_conf
+            optimizers = opt
+            lr_schedulers = sch if isinstance(sch, list) else [sch]
         # single dictionary
         elif isinstance(optim_conf, dict):
             optimizers = [optim_conf["optimizer"]]
