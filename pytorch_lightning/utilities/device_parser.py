@@ -68,7 +68,7 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
 
     # We know user requested GPUs therefore if some of the
     # requested GPUs are not available an exception is thrown.
-
+    
     gpus = _normalize_parse_gpu_string_input(gpus)
     gpus = _normalize_parse_gpu_input_to_list(gpus)
     if not gpus:
@@ -129,18 +129,8 @@ def _sanitize_gpu_ids(gpus: List[int]) -> List[int]:
         unmodified gpus variable
     """
     all_available_gpus = _get_all_available_gpus()
-    misconfig = False
     for gpu in gpus:
         if gpu not in all_available_gpus:
-            misconfig = True
-
-    if misconfig:
-        # sometimes auto ddp might have different flags
-        # but this is not what the user intended
-        # correct for the user
-        if len(gpus) == len(all_available_gpus):
-            gpus = all_available_gpus
-        else:
             raise MisconfigurationException(f"""
                 You requested GPUs: {gpus}
                 But your machine only has: {all_available_gpus}

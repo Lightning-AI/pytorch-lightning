@@ -63,7 +63,7 @@ class DDPAccelerator(Accelerator):
             self._call_children_scripts()
 
         # set the task idx
-        self.task_idx = int(os.environ['PL_DDP_PID'])
+        self.task_idx = int(os.environ['LOCAL_RANK'])
 
     def _call_children_scripts(self):
         assert self.trainer.global_rank == 0
@@ -107,19 +107,14 @@ class DDPAccelerator(Accelerator):
         if self.trainer.logger is not None:
             os.environ['PL_EXP_VERSION'] = str(self.trainer.logger.version)
 
-        gpu_ids = os.environ.get('CUDA_VISIBLE_DEVICES', '')
-        if len(gpu_ids) == 1:
-            gpu_ids = f'{gpu_ids},'
-
-        num_gpus = max(1, len(gpu_ids.split(',')))
-
+        num_gpus = len(self.trainer.data_parallel_device_ids)
         os.environ['WORLD_SIZE'] = f'{num_gpus * self.trainer.num_nodes}'
 
         self.interactive_ddp_procs = []
         for local_rank in range(1, self.trainer.num_processes):
             env_copy = os.environ.copy()
             env_copy['LOCAL_RANK'] = f'{local_rank}'
-            env_copy['PL_DDP_PID'] = str(self.trainer.data_parallel_device_ids[local_rank])
+
             # remove env var if global seed not set
             if os.environ.get('PL_GLOBAL_SEED') is None and 'PL_GLOBAL_SEED' in env_copy:
                 del env_copy['PL_GLOBAL_SEED']
@@ -137,8 +132,6 @@ class DDPAccelerator(Accelerator):
             # with dataloaders delay between 1-10 seconds
             delay = np.random.uniform(1, 5, 1)[0]
             sleep(delay)
-
-        os.environ['PL_DDP_PID'] = str(0)
 
     def train(self):
         model = self.trainer.model
@@ -181,7 +174,7 @@ class DDPAccelerator(Accelerator):
         self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
     def model_to_device(self, model, process_idx):
-        self.trainer.root_gpu = process_idx
+        self.trainer.root_gpu = self.trainer.data_parallel_device_ids[self.trainer.local_rank]
         torch.cuda.set_device(self.trainer.root_gpu)
         model.cuda(self.trainer.root_gpu)
 
