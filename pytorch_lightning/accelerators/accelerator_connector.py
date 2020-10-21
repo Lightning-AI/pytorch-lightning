@@ -185,6 +185,7 @@ class AcceleratorConnector:
         # use the one the user passed in
         if self.accelerator is not None and isinstance(self.accelerator, Accelerator):
             self.accelerator.trainer = self.trainer
+            self.accelerator.ddp_plugin = self.trainer.plugin_connector.ddp_plugin
             acc = self.accelerator
             return acc
 

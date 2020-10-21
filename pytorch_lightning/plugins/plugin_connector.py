@@ -29,8 +29,8 @@ class PluginConnector:
         if self.plugins is None:
             self.plugins = []
 
-        self.__attach_cluster()
         self.__attach_ddp()
+        self.__attach_cluster()
 
     def __attach_ddp(self, limit=1):
         count = 0
