@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
+from functools import wraps
+from collections import defaultdict
+from typing import Callable
 from pytorch_lightning import LightningModule
 from torch.utils.data import Dataset
 
@@ -53,8 +56,23 @@ class RandomDataset(Dataset):
     def __len__(self):
         return self.len
 
+def count_calls(fn: Callable) -> Callable:
+    """
+    This dummy decorator allows to count function calls
+    """
+    @wraps(fn)
+    def set_counts(self, *args, **kwargs):
+        self._func_called_count[fn.__name__] += 1
+        return fn(self, *args, **kwargs)
+
+    return set_counts
 
 class BoringModel(LightningModule):
+
+    _func_called_count = defaultdict(int)
+
+    def num_calls(self, func_name):
+        return self._func_called_count[func_name]
 
     def __init__(self):
         """
@@ -89,30 +107,37 @@ class BoringModel(LightningModule):
         out = torch.nn.functional.mse_loss(x, torch.ones_like(x))
         return out
 
+    @count_calls
     def training_step(self, batch, batch_idx):
         output = self.layer(batch)
         loss = self.loss(batch, output)
         return {"loss": loss}
 
+    @count_calls
     def training_step_end(self, training_step_outputs):
         return training_step_outputs
 
+    @count_calls
     def training_epoch_end(self, outputs) -> None:
         torch.stack([x["loss"] for x in outputs]).mean()
 
+    @count_calls
     def validation_step(self, batch, batch_idx):
         output = self.layer(batch)
         loss = self.loss(batch, output)
         return {"x": loss}
 
+    @count_calls
     def validation_epoch_end(self, outputs) -> None:
         torch.stack([x['x'] for x in outputs]).mean()
 
+    @count_calls
     def test_step(self, batch, batch_idx):
         output = self.layer(batch)
         loss = self.loss(batch, output)
         return {"y": loss}
 
+    @count_calls
     def test_epoch_end(self, outputs) -> None:
         torch.stack([x["y"] for x in outputs]).mean()
 

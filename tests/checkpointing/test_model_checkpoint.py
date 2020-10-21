@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import os.path as osp
 from distutils.version import LooseVersion
 from unittest.mock import MagicMock, Mock
 
@@ -26,6 +27,7 @@ import pytest
 import torch
 
 import tests.base.develop_utils as tutils
+import pytorch_lightning as pl
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -513,3 +515,77 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
 
     # check that last one is also the best one
     assert trainer.dev_debugger.checkpoint_callback_history[-1]['epoch'] == len(monitor) - 1
+
+
+def test_checkpoint_repeated_strategy(tmpdir):
+    """
+    This test validates checkpoint can be called several times without increasing internally its global step if nothing run.
+    """
+
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    checkpoint_callback = ModelCheckpoint(monitor='val_loss', filepath=osp.join(tmpdir, "{epoch:02d}"))
+
+    class ExtendedBoringModel(BoringModel):
+
+        def validation_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            return {"val_loss": loss}
+
+    model = ExtendedBoringModel()
+    model.validation_step_end = None
+    model.validation_epoch_end = None
+    trainer = pl.Trainer(max_epochs=1,
+                         limit_train_batches=2,
+                         limit_val_batches=2,
+                         limit_test_batches=2,
+                         checkpoint_callback=checkpoint_callback
+                         )
+
+    trainer.fit(model)
+    trainer.test(model)
+    # test only one chechpoint
+    assert str(os.listdir(tmpdir)) == "['epoch=00.ckpt']"
+
+    assert [*model._func_called_count] == ['training_step', 'training_step_end', 'training_epoch_end', 'test_step', 'test_epoch_end']
+
+    assert model.num_calls('training_step') == 2
+    assert model.num_calls('training_step_end') == 2
+    assert model.num_calls('training_epoch_end') == 1
+
+    assert model.num_calls('test_step') == 2
+    assert model.num_calls('test_epoch_end') == 1
+
+    def get_last_checkpoint():
+        ckpts = os.listdir(tmpdir)
+        ckpts_map = {int(x.split("=")[1].split('.')[0]): osp.join(tmpdir, x) for x in ckpts if "epoch" in x}
+        num_ckpts = len(ckpts_map) - 1
+        return ckpts_map[num_ckpts]
+
+    for idx in range(1, 5):
+        # load from checkpoint
+        chk = get_last_checkpoint()
+        model = BoringModel.load_from_checkpoint(chk)
+        trainer = pl.Trainer(max_epochs=1,
+                             limit_train_batches=2,
+                             limit_val_batches=2,
+                             limit_test_batches=2,
+                             resume_from_checkpoint=chk
+                            )
+        trainer.fit(model)
+        trainer.test(model)
+
+        assert [*model._func_called_count] == ['training_step', 'training_step_end', 'training_epoch_end', 'test_step', 'test_epoch_end', \
+            'validation_step', 'validation_epoch_end']
+        assert str(os.listdir(tmpdir)) == "['epoch=00.ckpt']"
+
+        assert model.num_calls('training_step') == 2
+        assert model.num_calls('training_step_end') == 2
+        assert model.num_calls('training_epoch_end') == 1
+
+        assert model.num_calls('test_step') == 2 + idx * 2
+        assert model.num_calls('test_epoch_end') == 1 + idx * 1
+
+        assert model.num_calls('validation_step') == idx * 2
+        assert model.num_calls('validation_epoch_end') == idx * 1
