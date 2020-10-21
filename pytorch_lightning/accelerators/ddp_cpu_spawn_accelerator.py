@@ -40,7 +40,7 @@ else:
 class DDPCPUSpawnAccelerator(Accelerator):
 
     def __init__(self, trainer, nprocs, cluster_environment=None, ddp_plugin=None):
-        super().__init__(trainer, cluster_environment)
+        super().__init__(trainer, cluster_environment, ddp_plugin)
         self.mp_queue = None
         self.nprocs = nprocs
         self.dist = LightningDistributed()

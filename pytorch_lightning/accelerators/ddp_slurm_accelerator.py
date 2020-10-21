@@ -44,12 +44,11 @@ else:
 class DDPSLURMAccelerator(Accelerator):
 
     def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
-        super().__init__(trainer, cluster_environment)
+        super().__init__(trainer, cluster_environment, ddp_plugin)
         self.task_idx = None
         self._has_spawned_children = False
         self.dist = LightningDistributed()
         self.nickname = 'ddp'
-        self.ddp_plugin = ddp_plugin
 
     def setup(self, model):
         self.trainer.model = model

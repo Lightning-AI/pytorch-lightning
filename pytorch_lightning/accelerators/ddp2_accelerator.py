@@ -40,11 +40,10 @@ else:
 class DDP2Accelerator(Accelerator):
 
     def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
-        super().__init__(trainer, cluster_environment)
+        super().__init__(trainer, cluster_environment, ddp_plugin)
         self.task_idx = None
         self.dist = LightningDistributed()
         self.nickname = 'ddp2'
-        self.ddp_plugin = ddp_plugin
 
     def setup(self, model):
         self._resolve_task_idx()

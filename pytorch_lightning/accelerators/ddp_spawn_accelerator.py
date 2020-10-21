@@ -42,12 +42,11 @@ else:
 class DDPSpawnAccelerator(Accelerator):
 
     def __init__(self, trainer, nprocs, cluster_environment=None, ddp_plugin=None):
-        super().__init__(trainer, cluster_environment)
+        super().__init__(trainer, cluster_environment, ddp_plugin)
         self.mp_queue = None
         self.nprocs = nprocs
         self.dist = LightningDistributed()
         self.nickname = 'ddp'
-        self.ddp_plugin = ddp_plugin
 
     def setup(self, model):
         os.environ['MASTER_PORT'] = os.environ.get('MASTER_PORT', str(find_free_network_port()))
