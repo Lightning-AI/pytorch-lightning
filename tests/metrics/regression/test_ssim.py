@@ -20,8 +20,8 @@ _inputs = []
 for size, channel, coef, multichannel in [
     (16, 1, 0.9, False),
     (32, 3, 0.8, True),
-    (48, 4, 0.7, True),
-    (64, 5, 0.6, True),
+    #    (48, 4, 0.7, True),
+    #    (64, 5, 0.6, True),
 ]:
     preds = torch.rand(NUM_BATCHES, BATCH_SIZE, channel, size, size)
     _inputs.append(
