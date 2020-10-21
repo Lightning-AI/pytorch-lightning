@@ -1200,7 +1200,7 @@ class LightningModule(
 
         """
         if on_tpu:
-            xm.optimizer_step(optimizer, {'closure': optimizer_closure})
+            xm.optimizer_step(optimizer, optimizer_args={'closure': optimizer_closure})
         elif using_native_amp:
             # native amp does not yet support closures.
             # TODO: pass the closure to the step ASAP
