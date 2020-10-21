@@ -14,11 +14,12 @@
 import os
 import pickle
 import warnings
-from unittest import mock
 
 import cloudpickle
+import numpy as np
 import pytest
 import torch
+from unittest import mock
 
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
@@ -208,14 +209,20 @@ def test_early_stopping_functionality_arbitrary_key(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "step_freeze, min_steps, expected_stopped_step",
-    [(50, 100, 100),
-     (50, 50, 56),
-     (50, 53, 56),
-     (48, 53, 54),
-     (49, 53, 56)],
+    "step_freeze, min_steps, min_epochs",
+    [(5, 10, 1),
+     (5, 10, 2),
+     (5, 10, 3),
+     (5, 10, 4),
+     (5, 10, 5),
+     (5, 10, 6),
+     (5, 10, 7),
+     (5, 4, 1),
+     (5, 5, 1),
+     (5, 6, 1)
+    ],
 )
-def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, min_steps, expected_stopped_step):
+def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, min_steps, min_epochs):
     """Excepted Behaviour:
     IF `min_steps` was set to a higher value than the `trainer.global_step` when `early_stopping` is being triggered,
     THEN the trainer should continue until reaching `trainer.global_step` == `min_steps`, and stop.
@@ -237,33 +244,24 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, mi
 
             self._loss_value = 10.0
             self._eps = 1e-1
-            self._current_epoch = 0
-            self._current_step = 0
             self._count_decrease = 0
+            self._values = []
 
         def training_step(self, batch, batch_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)
-            self._current_step += 1
             return {"loss": loss}
 
         def validation_step(self, batch, batch_idx):
             return {"test_val_loss": self._loss_value}
 
         def validation_epoch_end(self, outputs):
-            if self._current_step == 0:
-                assert self._current_step == self.trainer.global_step
-            else:
-                assert self._current_step == self.trainer.global_step + 1
-            _mean = sum([x['test_val_loss'] for x in outputs]) / float(len(outputs))
-            if self._current_step < self._step_freeze:
+            _mean = np.mean([x['test_val_loss'] for x in outputs])
+            if self.trainer.global_step <= self._step_freeze:
                 self._count_decrease += 1
                 self._loss_value -= self._eps
-                print(self._loss_value)
+            self._values.append(_mean)
             return {"test_val_loss": _mean}
-
-        def on_epoch_end(self):
-            self._current_epoch += 1
 
     model = Model(step_freeze)
     model.training_step_end = None
@@ -273,10 +271,18 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, mi
         default_root_dir=tmpdir,
         callbacks=[early_stop_callback],
         limit_train_batches=limit_train_batches,
-        limit_val_batches=5,
+        limit_val_batches=2,
         min_steps=min_steps,
+        min_epochs=min_epochs
     )
     trainer.fit(model)
 
     assert abs(original_loss_value - (model._count_decrease) * model._eps - model._loss_value) < 1e-6
-    assert trainer.global_step == expected_stopped_step
+
+    latest_validation_epoch_end = limit_train_batches * ( step_freeze // limit_train_batches)
+    assert np.mean(model._values[latest_validation_epoch_end:]) == model._values[-1]
+    assert np.mean(model._values[latest_validation_epoch_end - 1:]) != model._values[-1]
+
+    by_early_stopping = latest_validation_epoch_end + limit_train_batches * (patience + 2)
+    by_min_epochs = min_epochs * limit_train_batches
+    assert trainer.global_step == max(min_steps, by_early_stopping, by_min_epochs)
