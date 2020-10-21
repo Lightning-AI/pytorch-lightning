@@ -219,6 +219,13 @@ PSNR
 .. autoclass:: pytorch_lightning.metrics.regression.PSNR
     :noindex:
 
+
+SSIM
+~~~~
+
+.. autoclass:: pytorch_lightning.metrics.regression.SSIM
+    :noindex:
+
 ******************
 Functional Metrics
 ******************
@@ -405,7 +412,7 @@ mean_squared_log_error [func]
 ssim [func]
 ~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.regression.ssim
+.. autofunction:: pytorch_lightning.metrics.functional.ssim
     :noindex:
 
 
