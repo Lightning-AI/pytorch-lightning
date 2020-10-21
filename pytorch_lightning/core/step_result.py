@@ -109,7 +109,7 @@ class Result(Dict):
                 m += f' {additional_err}'
             assert x.grad_fn is not None, m
 
-    def add_dl_idx(self, name: str, dl_idx: Union[None, int]) -> str:
+    def add_dataloader_idx(self, name: str, dl_idx: Union[None, int]) -> str:
         """
         This function add dl_idx logic to logged key automatically if we have multiple dataloders
         """
