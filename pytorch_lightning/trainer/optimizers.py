@@ -105,7 +105,8 @@ class TrainerOptimizersMixin(ABC):
                 if scheduler['reduce_on_plateau'] and scheduler.get('monitor', None) is None:
                     raise MisconfigurationException(
                         'The lr scheduler dict must include a monitor when a `ReduceLROnPlateau` scheduler is used.'
-                        ' For example: {"optimizer": optimizer, "lr_scheduler": {"scheduler": scheduler, "monitor": "your_loss"}}'
+                        ' For example: {"optimizer": optimizer, "lr_scheduler":'
+                        ' {"scheduler": scheduler, "monitor": "your_loss"}}'
                     )
                 lr_schedulers.append({**default_config, **scheduler})
             elif isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
