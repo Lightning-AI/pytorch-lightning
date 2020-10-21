@@ -213,7 +213,7 @@ def main(args: Namespace) -> None:
 if __name__ == '__main__':
     parser = ArgumentParser()
 
-    # Add pogram level args, if any.
+    # Add program level args, if any.
     # ------------------------
     # Add LightningDataLoader args
     parser = MNISTDataModule.add_argparse_args(parser)
