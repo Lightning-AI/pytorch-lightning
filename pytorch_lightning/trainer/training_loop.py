@@ -330,15 +330,15 @@ class TrainLoop:
             # the loss will get scaled for amp. avoid any modifications to it
             untouched_loss = closure_loss.detach().clone()
 
-            # result
-            result = AttributeDict(
-                closure_loss=closure_loss,
-                loss=untouched_loss,
-                training_step_output=training_step_output,
-                training_step_output_for_epoch_end=training_step_output_for_epoch_end,
-                hiddens=training_step_output.hiddens,
-            )
-            return result
+        # result
+        result = AttributeDict(
+            closure_loss=closure_loss,
+            loss=untouched_loss,
+            training_step_output=training_step_output,
+            training_step_output_for_epoch_end=training_step_output_for_epoch_end,
+            hiddens=training_step_output.hiddens,
+        )
+        return result
 
     def _process_training_step_output(self, training_step_output, split_batch):
         training_step_output_for_epoch_end = training_step_output
@@ -460,7 +460,7 @@ class TrainLoop:
     def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
         self.trainer.accelerator_backend.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
-    def _track_and_norm_grad(self, batch_idx, optimizer):
+    def track_and_norm_grad(self, optimizer):
         # track gradient norms
         grad_norm_dic = self._track_gradient_norm()
 
@@ -732,8 +732,11 @@ class TrainLoop:
                     # clear gradients
                     self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
-                    # calculate running loss for display
-                    self.running_loss.append(self.accumulated_loss.mean() * self.trainer.accumulate_grad_batches)
+                    accumulated_loss = self.accumulated_loss.mean()
+
+                    if accumulated_loss is not None:
+                        # calculate running loss for display
+                        self.running_loss.append(self.accumulated_loss.mean() * self.trainer.accumulate_grad_batches)
 
                     # reset for next set of accumulated grads
                     self.accumulated_loss.reset()
@@ -800,8 +803,6 @@ class TrainLoop:
             # backward pass
             with self.trainer.profiler.profile("model_backward"):
                 self.backward(result, optimizer, opt_idx)
-
-            self._track_and_norm_grad(batch_idx=batch_idx, optimizer=optimizer)
 
             # hook
             self.on_after_backward(result.training_step_output, batch_idx, result.loss)

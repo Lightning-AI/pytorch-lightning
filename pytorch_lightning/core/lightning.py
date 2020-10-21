@@ -1080,10 +1080,7 @@ class LightningModule(
         # backward
         self.trainer.train_loop.backward(loss, optimizer, -1, *args, **kwargs)
 
-        # clip grads after backward
-        self.trainer.accelerator_backend.clip_gradients(optimizer)
-
-    def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int) -> None:
+    def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
         """
         Override backward with your own implementation if you need to.
 
@@ -1102,7 +1099,8 @@ class LightningModule(
                 loss.backward()
 
         """
-        loss.backward()
+        loss.backward(*args, **kwargs)
+        self.trainer.train_loop.track_and_norm_grad(optimizer=optimizer)
 
     def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):
         """
