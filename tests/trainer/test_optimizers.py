@@ -147,6 +147,7 @@ def test_reduce_lr_on_plateau_scheduling_missing_monitor(tmpdir):
 
 def test_reduce_lr_on_plateau_scheduling(tmpdir):
     hparams = EvalModelTemplate.get_default_hparams()
+
     class TestModel(EvalModelTemplate):
 
         def configure_optimizers(self):
@@ -359,3 +360,36 @@ def test_multiple_optimizers_callbacks(tmpdir):
         weights_summary=None,
     )
     trainer.fit(model)
+
+
+def test_lr_scheduler_strict(tmpdir):
+    """
+    Test "strict" support in lr_scheduler dict
+    """
+    model = EvalModelTemplate()
+    optimizer = torch.optim.Adam(model.parameters())
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+
+    model.configure_optimizers = lambda: {
+        'optimizer': optimizer,
+        'lr_scheduler': {'scheduler': scheduler, 'monitor': 'giraffe', 'strict': True},
+    }
+    with pytest.raises(
+        MisconfigurationException,
+        match=r'ReduceLROnPlateau conditioned on metric .* which is not available\. Available metrics are:',
+    ):
+        trainer.fit(model)
+
+    model.configure_optimizers = lambda: {
+        'optimizer': optimizer,
+        'lr_scheduler': {
+            'scheduler': scheduler,
+            'monitor': 'giraffe',
+            'strict': False,
+        },
+    }
+    with pytest.warns(
+        RuntimeWarning, match=r'ReduceLROnPlateau conditioned on metric .* which is not available but strict'
+    ):
+        assert trainer.fit(model)

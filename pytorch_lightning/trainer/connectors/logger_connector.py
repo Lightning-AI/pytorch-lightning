@@ -173,6 +173,9 @@ class LoggerConnector:
         # now we log all of them
         for dl_idx, dl_metrics in enumerate(step_metrics):
             if len(dl_metrics) == 0:
+                # Ensure custom logged metrics are included if not included with step metrics
+                if len(epoch_logger_metrics) > 0:
+                    self.eval_loop_results.append(epoch_logger_metrics)
                 continue
 
             reduced_epoch_metrics = dl_metrics[0].__class__.reduce_on_epoch_end(dl_metrics)

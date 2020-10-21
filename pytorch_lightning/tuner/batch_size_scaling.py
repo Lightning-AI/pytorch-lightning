@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 import os
+from typing import Optional, Tuple
+
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_getattr, lightning_setattr
@@ -20,7 +22,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import is_oom_error, garbage_collection_cuda
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning import _logger as log
-from typing import Optional, Tuple
 
 
 def scale_batch_size(trainer,
