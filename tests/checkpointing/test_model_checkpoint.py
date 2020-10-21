@@ -561,8 +561,7 @@ def test_checkpoint_repeated_strategy(tmpdir):
                              limit_train_batches=2,
                              limit_val_batches=2,
                              limit_test_batches=2,
-                             resume_from_checkpoint=chk
-                            )
+                             resume_from_checkpoint=chk)
         trainer.fit(model)
         trainer.test(model)
 
@@ -594,8 +593,7 @@ def test_checkpoint_repeated_strategy_tmpdir(tmpdir):
         limit_train_batches=2,
         limit_val_batches=2,
         limit_test_batches=2,
-        callbacks=[checkpoint_callback]
-    )
+        callbacks=[checkpoint_callback])
 
     trainer.fit(model)
     assert sorted(os.listdir(tmpdir)) == sorted(['epoch=00.ckpt', 'lightning_logs'])
@@ -618,8 +616,7 @@ def test_checkpoint_repeated_strategy_tmpdir(tmpdir):
                              limit_train_batches=2,
                              limit_val_batches=2,
                              limit_test_batches=2,
-                             resume_from_checkpoint=chk
-                            )
+                             resume_from_checkpoint=chk)
 
         trainer.fit(model)
         trainer.test(model)
