@@ -275,8 +275,7 @@ class ModelCheckpoint(Callback):
                     filepath = os.path.realpath(filepath)
                 dirpath, filename = os.path.split(filepath)
 
-        dirpath = str(dirpath) if dirpath else dirpath
-        self._fs = get_filesystem(dirpath or '')
+        self._fs = get_filesystem(str(dirpath) if dirpath else '')
 
         if (
             save_top_k is not None

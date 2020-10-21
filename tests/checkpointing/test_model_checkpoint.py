@@ -205,7 +205,7 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
 
     # CWD
     ckpt_name = ModelCheckpoint(monitor='early_stop_on', dirpath='.').format_checkpoint_name(3, {})
-    assert ckpt_name == os.path.join(os.path.realpath(Path('.')), 'epoch=3.ckpt')
+    assert ckpt_name == str((Path('.') / 'epoch=3.ckpt').resolve())
 
     # with ver
     ckpt_name = ModelCheckpoint(
