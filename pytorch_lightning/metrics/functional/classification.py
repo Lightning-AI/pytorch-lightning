@@ -821,6 +821,11 @@ def auc(
     direction = 1.
 
     if reorder:
+        rank_zero_warn("The `reorder` parameter to `auc` has been deprecated and will be removed in v1.1"
+                       " Note that when `reorder` is True, the unstable algorithm of torch.argsort is"
+                       " used internally to sort 'x' which may in some cases cause inaccuracies"
+                       " in the result.",
+                       DeprecationWarning)
         # can't use lexsort here since it is not implemented for torch
         order = torch.argsort(x)
         x, y = x[order], y[order]
@@ -830,8 +835,9 @@ def auc(
             if (dx, 0).all():
                 direction = -1.
             else:
-                raise ValueError("Reordering is not turned on, and "
-                                 "the x array is not increasing: %s" % x)
+                # TODO: Update message on removing reorder
+                raise ValueError(f"Reorder is not turned on, and the 'x' array is"
+                                 " neither increasing or decreasing: {x}")
 
     return direction * torch.trapz(y, x)
 
