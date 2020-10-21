@@ -709,9 +709,6 @@ class TrainLoop:
                     else:
                         self._curr_step_result = self.training_step(split_batch, batch_idx, opt_idx, self.trainer.hiddens)
 
-                    # TODO: we may also have to check current_result.loss if it is None
-                    # this can happen when manual optimization does not return a loss but
-                    # dict/result for logging
                     if self._curr_step_result is None:
                         # user decided to skip optimization
                         continue

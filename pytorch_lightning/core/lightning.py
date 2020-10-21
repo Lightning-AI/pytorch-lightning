@@ -1206,8 +1206,6 @@ class LightningModule(
             # TODO: pass the closure to the step ASAP
             optimizer_closure()
             self.trainer.scaler.step(optimizer)
-        # elif using_lbfgs:
-        #     optimizer.step(second_order_closure)
         else:
             optimizer.step(closure=optimizer_closure)
 
