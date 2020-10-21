@@ -112,12 +112,11 @@ class TrainerDataLoadingMixin(ABC):
 
         if not is_dataloader or is_iterable_ds:
             return dataloader
-        need_dist_sampler = (self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu)
 
+        is_in_dist = self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu
+        need_dist_sampler = is_in_dist and not isinstance(dataloader.sampler, DistributedSampler)
         if self.replace_sampler_ddp and need_dist_sampler:
-            if isinstance(dataloader.sampler, DistributedSampler):
-                return dataloader
-            elif not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
+            if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
                 raise MisconfigurationException(
                     'You seem to have configured a sampler in your DataLoader. This will be replaced '
                     ' by `DistributedSampler` since `replace_sampler_ddp` is True and you are using'
