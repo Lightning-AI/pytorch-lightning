@@ -172,7 +172,7 @@ class Result(Dict):
 
             # set epoch version
             # add possibly dataloader_idx
-            epoch_name = self.add_dl_idx(f'{name}_epoch', current_dataloader_idx)
+            epoch_name = self.add_dataloader_idx(f'{name}_epoch', current_dataloader_idx)
 
             self.__set_meta(
                 epoch_name,
