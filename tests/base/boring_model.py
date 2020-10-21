@@ -56,6 +56,7 @@ class RandomDataset(Dataset):
     def __len__(self):
         return self.len
 
+
 def count_calls(fn: Callable) -> Callable:
     """
     This dummy decorator allows to count function calls
@@ -66,6 +67,7 @@ def count_calls(fn: Callable) -> Callable:
         return fn(self, *args, **kwargs)
 
     return set_counts
+
 
 class BoringModel(LightningModule):
 
