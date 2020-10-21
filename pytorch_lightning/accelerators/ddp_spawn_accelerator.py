@@ -42,12 +42,13 @@ else:
 
 class DDPSpawnAccelerator(Accelerator):
 
-    def __init__(self, trainer, nprocs, cluster_environment=None):
+    def __init__(self, trainer, nprocs, cluster_environment=None, ddp_plugin=None):
         super().__init__(trainer, cluster_environment)
         self.mp_queue = None
         self.nprocs = nprocs
         self.dist = LightningDistributed()
         self.nickname = 'ddp'
+        self.ddp_plugin = ddp_plugin
 
     def setup(self, model):
         os.environ['MASTER_PORT'] = os.environ.get('MASTER_PORT', str(find_free_network_port()))
@@ -236,9 +237,7 @@ class DDPSpawnAccelerator(Accelerator):
     def configure_ddp(
         self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
-        model = LightningDistributedDataParallel(
-            model, device_ids=device_ids, find_unused_parameters=True
-        )
+        model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model
 
     def configure_sync_batchnorm(self, model: LightningModule) -> LightningModule:

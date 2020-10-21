@@ -28,6 +28,7 @@ from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from torch.nn.parallel import DistributedDataParallel
 from typing import List, Optional
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -40,11 +41,12 @@ else:
 
 class DDP2Accelerator(Accelerator):
 
-    def __init__(self, trainer, cluster_environment=None):
+    def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
         super().__init__(trainer, cluster_environment)
         self.task_idx = None
         self.dist = LightningDistributed()
         self.nickname = 'ddp2'
+        self.ddp_plugin = ddp_plugin
 
     def setup(self, model):
         self._resolve_task_idx()
@@ -196,9 +198,7 @@ class DDP2Accelerator(Accelerator):
     def configure_ddp(
         self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
-        model = LightningDistributedDataParallel(
-            model, device_ids=device_ids, find_unused_parameters=True
-        )
+        model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model
 
     def configure_sync_batchnorm(self, model: LightningModule) -> LightningModule:

@@ -43,12 +43,13 @@ else:
 # -------------------------------------------
 class DDPCPUTorchElasticAccelerator(Accelerator):
 
-    def __init__(self, trainer, cluster_environment=None):
+    def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
         super().__init__(trainer, cluster_environment)
         self.task_idx = None
         self._has_spawned_children = False
         self.dist = LightningDistributed()
         self.nickname = 'ddp_cpu'
+        self.ddp_plugin = ddp_plugin
 
     def setup(self, model):
         self.trainer.model = model
@@ -180,9 +181,7 @@ class DDPCPUTorchElasticAccelerator(Accelerator):
     def configure_ddp(
         self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
-        model = LightningDistributedDataParallel(
-            model, device_ids=device_ids, find_unused_parameters=True
-        )
+        model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model
 
     def configure_sync_batchnorm(self, model: LightningModule) -> LightningModule:
