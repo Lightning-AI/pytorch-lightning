@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import re
+
 import pytest
 import torch
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base.boring_model import BoringModel
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 @pytest.mark.skipif(
@@ -25,19 +27,22 @@ from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 @pytest.mark.parametrize(
     ["auto_select_gpus", "gpus", "expected_error"],
     [
-        pytest.param(True, 0, MisconfigurationException),
-        pytest.param(True, -1, None),
-        pytest.param(False, 0, None),
-        pytest.param(False, -1, None),
+        (True, 0, MisconfigurationException),
+        (True, -1, None),
+        (False, 0, None),
+        (False, -1, None),
     ],
 )
-def test_combination_gpus_options(auto_select_gpus, gpus, expected_error):
-    model = BoringModel()
-
+def test_trainer_with_gpus_options_combination_at_available_gpus_env(
+    auto_select_gpus, gpus, expected_error
+):
     if expected_error:
         with pytest.raises(
             expected_error,
-            match=r"auto_select_gpus=True, gpus=0 is not a valid configuration. Please select a valid number of GPU resources when using auto_select_gpus.",
+            match=re.escape(
+                r"auto_select_gpus=True, gpus=0 is not a valid configuration.\
+            Please select a valid number of GPU resources when using auto_select_gpus."
+            ),
         ):
             trainer = Trainer(auto_select_gpus=auto_select_gpus, gpus=gpus)
     else:
@@ -50,16 +55,19 @@ def test_combination_gpus_options(auto_select_gpus, gpus, expected_error):
 @pytest.mark.parametrize(
     ["nb", "expected_gpu_idxs", "expected_error"],
     [
-        pytest.param(0, [], MisconfigurationException),
-        pytest.param(-1, [i for i in range(torch.cuda.device_count())], None),
-        pytest.param(1, [0], None),
+        (0, [], MisconfigurationException),
+        (-1, [i for i in range(torch.cuda.device_count())], None),
+        (1, [0], None),
     ],
 )
 def test_pick_multiple_gpus(nb, expected_gpu_idxs, expected_error):
     if expected_error:
         with pytest.raises(
             expected_error,
-            match=r"auto_select_gpus=True, gpus=0 is not a valid configuration. Please select a valid number of GPU resources when using auto_select_gpus.",
+            match=re.escape(
+                r"auto_select_gpus=True, gpus=0 is not a valid configuration.\
+            Please select a valid number of GPU resources when using auto_select_gpus."
+            ),
         ):
             pick_multiple_gpus(nb)
     else:

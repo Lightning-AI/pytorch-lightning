@@ -206,15 +206,7 @@ Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
     `auto_select_gpus=True` will automatically help you find `k` gpus that are not
     occupied by other processes. This is especially useful when GPUs are configured
     to be in "exclusive mode", such that only one process at a time can access them.
-
-.. testcode::
-    :skipif: torch.cuda.device_count() < 2
-
-    # specifies all GPUs regardless of its availability
-    Trainer(gpus=-1, auto_select_gpus=False)
-
-    # specifies all available GPUs (if only one GPU is not occupied, uses one gpu)
-    Trainer(gpus=-1, auto_select_gpus=True)
+    For more details see the :ref:`Trainer guide <trainer>`.
 
 
 Remove CUDA flags
