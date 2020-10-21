@@ -330,15 +330,15 @@ class TrainLoop:
             # the loss will get scaled for amp. avoid any modifications to it
             untouched_loss = closure_loss.detach().clone()
 
-        # result
-        result = AttributeDict(
-            closure_loss=closure_loss,
-            loss=untouched_loss,
-            training_step_output=training_step_output,
-            training_step_output_for_epoch_end=training_step_output_for_epoch_end,
-            hiddens=training_step_output.hiddens,
-        )
-        return result
+            # result
+            result = AttributeDict(
+                closure_loss=closure_loss,
+                loss=untouched_loss,
+                training_step_output=training_step_output,
+                training_step_output_for_epoch_end=training_step_output_for_epoch_end,
+                hiddens=training_step_output.hiddens,
+            )
+            return result
 
     def _process_training_step_output(self, training_step_output, split_batch):
         training_step_output_for_epoch_end = training_step_output
