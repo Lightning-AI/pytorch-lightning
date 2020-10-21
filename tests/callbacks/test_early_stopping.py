@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 import pickle
+import warnings
 from unittest import mock
 
 import cloudpickle
@@ -21,7 +22,7 @@ import torch
 
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from tests.base import EvalModelTemplate
+from tests.base import EvalModelTemplate, BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -204,3 +205,78 @@ def test_early_stopping_functionality_arbitrary_key(tmpdir):
     )
     trainer.fit(model)
     assert trainer.current_epoch >= 5, 'early_stopping failed'
+
+
+@pytest.mark.parametrize(
+    "step_freeze, min_steps, expected_stopped_step",
+    [(50, 100, 100),
+     (50, 50, 56),
+     (50, 53, 56),
+     (48, 53, 54),
+     (49, 53, 56)],
+)
+def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, min_steps, expected_stopped_step):
+    """Excepted Behaviour:
+    IF `min_steps` was set to a higher value than the `trainer.global_step` when `early_stopping` is being triggered,
+    THEN the trainer should continue until reaching `trainer.global_step` == `min_steps`, and stop.
+    This test validate this expected behaviour
+    """
+
+    warnings.filterwarnings("ignore")
+
+    original_loss_value = 10
+    limit_train_batches = 2
+    patience = 3
+
+    class Model(BoringModel):
+
+        def __init__(self, step_freeze):
+            super(Model, self).__init__()
+
+            self._step_freeze = step_freeze
+
+            self._loss_value = 10.0
+            self._eps = 1e-1
+            self._current_epoch = 0
+            self._current_step = 0
+            self._count_decrease = 0
+
+        def training_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self._current_step += 1
+            return {"loss": loss}
+
+        def validation_step(self, batch, batch_idx):
+            return {"test_val_loss": self._loss_value}
+
+        def validation_epoch_end(self, outputs):
+            if self._current_step == 0:
+                assert self._current_step == self.trainer.global_step
+            else:
+                assert self._current_step == self.trainer.global_step + 1
+            _mean = sum([x['test_val_loss'] for x in outputs]) / float(len(outputs))
+            if self._current_step < self._step_freeze:
+                self._count_decrease += 1
+                self._loss_value -= self._eps
+                print(self._loss_value)
+            return {"test_val_loss": _mean}
+
+        def on_epoch_end(self):
+            self._current_epoch += 1
+
+    model = Model(step_freeze)
+    model.training_step_end = None
+    model.test_dataloader = None
+    early_stop_callback = EarlyStopping(monitor="test_val_loss", patience=patience, verbose=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[early_stop_callback],
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=5,
+        min_steps=min_steps,
+    )
+    trainer.fit(model)
+
+    assert abs(original_loss_value - (model._count_decrease) * model._eps - model._loss_value) < 1e-6
+    assert trainer.global_step == expected_stopped_step
