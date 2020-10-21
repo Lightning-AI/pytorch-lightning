@@ -18,8 +18,9 @@ from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.metrics.functional.explained_variance import (
     _explained_variance_update,
-    _explained_variance_compute
+    _explained_variance_compute,
 )
+
 
 class ExplainedVariance(Metric):
     """
@@ -88,9 +89,11 @@ class ExplainedVariance(Metric):
         self.add_state("y", default=[], dist_reduce_fx=None)
         self.add_state("y_pred", default=[], dist_reduce_fx=None)
 
-        rank_zero_warn('Metric `ExplainedVariance` will save all targets and'
-                       ' predictions in buffer. For large datasets this may lead'
-                       ' to large memory footprint.')
+        rank_zero_warn(
+            'Metric `ExplainedVariance` will save all targets and'
+            ' predictions in buffer. For large datasets this may lead'
+            ' to large memory footprint.'
+        )
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
