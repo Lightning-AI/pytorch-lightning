@@ -551,15 +551,6 @@ def test_checkpoint_repeated_strategy(tmpdir):
     assert str(os.listdir(tmpdir)) == "['epoch=00.ckpt', 'lightning_logs']"
     assert str(os.listdir(osp.join(tmpdir, 'lightning_logs'))) == "['version_0']"
 
-    assert [*model._func_called_count] == ['training_step', 'training_step_end', 'training_epoch_end', 'test_step', 'test_epoch_end']
-
-    assert model.num_calls('training_step') == 2
-    assert model.num_calls('training_step_end') == 2
-    assert model.num_calls('training_epoch_end') == 1
-
-    assert model.num_calls('test_step') == 2
-    assert model.num_calls('test_epoch_end') == 1
-
     def get_last_checkpoint():
         ckpts = os.listdir(tmpdir)
         ckpts_map = {int(x.split("=")[1].split('.')[0]): osp.join(tmpdir, x) for x in ckpts if "epoch" in x}
@@ -580,14 +571,6 @@ def test_checkpoint_repeated_strategy(tmpdir):
                              checkpoint_callback=checkpoint_callback)
         trainer.fit(model)
         trainer.test(model)
-        assert [*model._func_called_count] == ['training_step', 'training_step_end', 'training_epoch_end', 'test_step', 'test_epoch_end', 'validation_step', 'validation_epoch_end']
         assert str(os.listdir(tmpdir)) == "['epoch=00.ckpt', 'lightning_logs']"
         lightning_logs_path = osp.join(tmpdir, 'lightning_logs')
         assert sorted(os.listdir(lightning_logs_path)) == [f"version_{i}" for i in range(idx + 1)]
-        assert model.num_calls('training_step') == 2
-        assert model.num_calls('training_step_end') == 2
-        assert model.num_calls('training_epoch_end') == 1
-        assert model.num_calls('test_step') == 2 + idx * 2
-        assert model.num_calls('test_epoch_end') == 1 + idx * 1
-        assert model.num_calls('validation_step') == idx * 2
-        assert model.num_calls('validation_epoch_end') == idx * 1
