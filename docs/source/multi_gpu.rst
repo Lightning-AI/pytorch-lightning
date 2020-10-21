@@ -202,10 +202,10 @@ Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
 
 .. note::
 
-    When specifying number of gpus as an integer `gpus=k`, setting the trainer flag 
-    `auto_select_gpus=True` will automatically help you find `k` gpus that are not 
+    When specifying number of gpus as an integer `gpus=k`, setting the trainer flag
+    `auto_select_gpus=True` will automatically help you find `k` gpus that are not
     occupied by other processes. This is especially useful when GPUs are configured
-    to be in “exclusive mode”, such that only one process at a time can access them.
+    to be in "exclusive mode", such that only one process at a time can access them.
 
 .. testcode::
     :skipif: torch.cuda.device_count() < 2
@@ -213,7 +213,7 @@ Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
     # specifies all GPUs regardless of its availability
     Trainer(gpus=-1, auto_select_gpus=False)
 
-    # specified all "available" GPUs. If only one GPU is not occupied, use one gpu.
+    # specifies all available GPUs (if only one GPU is not occupied, uses one gpu)
     Trainer(gpus=-1, auto_select_gpus=True)
 
 
