@@ -14,6 +14,7 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning import Trainer
 from pytorch_lightning import callbacks, seed_everything
 from tests.base.deterministic_model import DeterministicModel
@@ -46,7 +47,7 @@ def test__validation_step__log(tmpdir):
             self.training_step_called = True
 
         def backward(self, loss, optimizer, optimizer_idx):
-            loss.backward()
+            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
 
     model = TestModel()
     model.validation_step_end = None
@@ -117,7 +118,7 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
             self.validation_epoch_end_called = True
 
         def backward(self, loss, optimizer, optimizer_idx):
-            loss.backward()
+            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
 
     model = TestModel()
 
