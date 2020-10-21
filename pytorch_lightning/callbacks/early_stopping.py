@@ -88,7 +88,7 @@ class EarlyStopping(Callback):
 
         if mode not in self.mode_dict:
             if self.verbose > 0:
-                log.info('EarlyStopping mode not provided, fallback to auto mode.')
+                log.info("EarlyStopping mode not provided or set to 'auto'. Continuing with auto mode.")
             self.mode = 'auto'
 
         if self.mode == 'auto':
