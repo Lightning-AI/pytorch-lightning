@@ -208,20 +208,9 @@ def test_early_stopping_functionality_arbitrary_key(tmpdir):
     assert trainer.current_epoch >= 5, 'early_stopping failed'
 
 
-@pytest.mark.parametrize(
-    "step_freeze, min_steps, min_epochs",
-    [(5, 10, 1),
-     (5, 10, 2),
-     (5, 10, 3),
-     (5, 10, 4),
-     (5, 10, 5),
-     (5, 10, 6),
-     (5, 10, 7),
-     (5, 4, 1),
-     (5, 5, 1),
-     (5, 6, 1)
-    ],
-)
+@pytest.mark.parametrize('step_freeze', [5, 6, 7])
+@pytest.mark.parametrize('min_steps', list(range(4, 8)))
+@pytest.mark.parametrize('min_epochs', list(range(2, 3)))
 def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, min_steps, min_epochs):
     """Excepted Behaviour:
     IF `min_steps` was set to a higher value than the `trainer.global_step` when `early_stopping` is being triggered,
@@ -232,7 +221,7 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, mi
     warnings.filterwarnings("ignore")
 
     original_loss_value = 10
-    limit_train_batches = 2
+    limit_train_batches = 3
     patience = 3
 
     class Model(BoringModel):
@@ -277,12 +266,22 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, mi
     )
     trainer.fit(model)
 
+    # Make sure loss was properly decreased
     assert abs(original_loss_value - (model._count_decrease) * model._eps - model._loss_value) < 1e-6
 
-    latest_validation_epoch_end = limit_train_batches * ( step_freeze // limit_train_batches)
-    assert np.mean(model._values[latest_validation_epoch_end:]) == model._values[-1]
-    assert np.mean(model._values[latest_validation_epoch_end - 1:]) != model._values[-1]
+    pos_diff = (np.diff(model._values) == 0).nonzero()[0][0]
 
-    by_early_stopping = latest_validation_epoch_end + limit_train_batches * (patience + 2)
+    # Compute when the latest validation epoch end happened
+    latest_validation_epoch_end = (pos_diff // limit_train_batches) * limit_train_batches
+    if pos_diff % limit_train_batches == 0:
+        latest_validation_epoch_end += limit_train_batches
+
+    # Compute early stopping latest step
+    by_early_stopping = latest_validation_epoch_end + (1 + limit_train_batches) * patience
+
+    # Compute min_epochs latest step
     by_min_epochs = min_epochs * limit_train_batches
-    assert trainer.global_step == max(min_steps, by_early_stopping, by_min_epochs)
+
+    # Make sure the trainer stops for the max of all minimun requirements
+    assert trainer.global_step == max(min_steps, by_early_stopping, by_min_epochs), \
+        (trainer.global_step, max(min_steps, by_early_stopping, by_min_epochs), step_freeze, min_steps, min_epochs)
