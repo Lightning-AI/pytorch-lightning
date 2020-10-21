@@ -205,7 +205,7 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
 
     # CWD
     ckpt_name = ModelCheckpoint(monitor='early_stop_on', dirpath='.').format_checkpoint_name(3, {})
-    assert ckpt_name == str((Path('.') / 'epoch=3.ckpt').resolve())
+    assert ckpt_name == str(Path('.').resolve() / 'epoch=3.ckpt')
 
     # with ver
     ckpt_name = ModelCheckpoint(
@@ -528,7 +528,7 @@ def test_checkpoint_within_callbacks_list(tmpdir):
 
     os.environ['PL_DEV_DEBUG'] = '1'
 
-    checkpoint_callback = ModelCheckpoint(monitor='val_loss', filepath=os.path.join(tmpdir, "{epoch:02d}"))
+    checkpoint_callback = ModelCheckpoint(monitor='val_loss', dirpath=tmpdir, filename="{epoch:02d}")
 
     class ExtendedBoringModel(BoringModel):
 
