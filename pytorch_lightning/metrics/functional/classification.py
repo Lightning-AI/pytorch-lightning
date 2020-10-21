@@ -806,7 +806,9 @@ def auc(
     Args:
         x: x-coordinates
         y: y-coordinates
-        reorder: reorder coordinates, so they are increasing
+        reorder: reorder coordinates, so they are increasing. The unstable algorithm of torch.argsort is
+            used internally to sort `x` which may in some cases cause inaccuracies in the result.
+            WARNING: Deprecated and will be removed in v1.1.
 
     Return:
         Tensor containing AUC score (float)
