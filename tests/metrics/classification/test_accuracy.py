@@ -102,7 +102,7 @@ def test_accuracy_invalid_shape():
 )
 class TestAccuracy(MetricTester):
     def test_accuracy(self, ddp, dist_sync_on_step, preds, target, sk_metric):
-        self.run_metric_test(
+        self.run_class_metric_test(
             ddp=ddp,
             preds=preds,
             target=target,
