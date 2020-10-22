@@ -209,11 +209,14 @@ def test_accumulation_and_early_stopping(tmpdir):
     lrfinder = trainer.tuner.lr_find(model, early_stop_threshold=None)
     after_lr = lrfinder.suggestion()
 
+    expected_num_lrs = 100
+    expected_batch_idx = 200 - 1
+
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
-    assert len(lrfinder.results['lr']) == 99, \
+    assert len(lrfinder.results['lr']) == expected_num_lrs, \
         'Early stopping for learning rate finder did not work'
-    assert lrfinder._total_batch_idx == 99 * 2, \
+    assert lrfinder._total_batch_idx == expected_batch_idx, \
         'Accumulation parameter did not work'
 
 
