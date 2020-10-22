@@ -256,14 +256,20 @@ class Metric(nn.Module, ABC):
         self.update = self._wrap_update(self.update)
         self.compute = self._wrap_compute(self.compute)
 
+
 class MetricCollection(nn.Module, Mapping):
     """
     MetricCollection class can be used to chain metrics that have the same
     call pattern into one single class.
 
     Args:
-        *metrics: a sequence of metrics, all instances of the base class Metric
-
+        metrics: one of the following
+            * list or tuple: if metrics are passed in as a list, will use the metrics
+                class name as key for output dict. Therefore, two metrics of the
+                same class cannot be chained this way.
+            * dict: if metrics are passed in as a dict, will use each key in the dict
+                as key for output dict. Use this format if you want to chain together
+                multiple of the same metric with different parameters.
     Example:
 
         >>> from pytorch_lightning.metrics import MetricCollection, Accuracy, Precision, Recall
@@ -275,19 +281,33 @@ class MetricCollection(nn.Module, Mapping):
         >>> metrics(preds, target)
         {'Accuracy': tensor(0.1250), 'Precision': tensor(0.0667), 'Recall': tensor(0.1111)}
 
+        >>> metrics = MetricCollection({'micro_recall': Recall(num_classes=3, average='micro')},
+                                       {'weighted_recall': Recall(num_classes=3, average='macro')})
+        >>> metrics(preds, target)
+        {'micro_recall': tensor(0.1250), 'macro_recall': tensor(0.1111)}
+
     """
-    def __init__(self, *metrics):
+    def __init__(self, metrics):
         super().__init__()
         metric_dict = { }
-        for i,m in enumerate(metrics):
-            if not isinstance(m, Metric):
-                raise ValueError(f'Input {m} to `MetricCollection` is not a instance'
-                                 ' of `pl.metrics.Metric`')
-            name = m.__class__.__name__
-                raise ValueError(f'Encountered two metrics both named {name}')
-            if name in metric_dict:
-
-            metric_dict[name] = m
+        if isinstance(metrics, dict):
+            # Check all values are metrics
+            for name, metric in metrics.items():
+                if not isinstance(metric, Metric):
+                    raise ValueError(f'Value {metric} belonging to key {name}'
+                                      ' is not an instance of `pl.metrics.Metric`')
+            metric_dict = metrics
+        elif isinstance(metrics, (tuple, list)):
+            for i,m in enumerate(metrics):
+                if not isinstance(m, Metric):
+                    raise ValueError(f'Input {m} to `MetricCollection` is not a instance'
+                                     ' of `pl.metrics.Metric`')
+                name = m.__class__.__name__
+                if name in metric_dict:
+                    raise ValueError(f'Encountered two metrics both named {name}')
+                metric_dict[name] = m
+        else:
+            raise ValueError('Unknown input to MetricCollection.')
 
         self.metrics = nn.ModuleDict(metric_dict)
 

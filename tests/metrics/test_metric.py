@@ -178,11 +178,11 @@ def test_pickle(tmpdir):
     assert metric_loaded.compute() == 1
 
 
-def test_collection(tmpdir):
+def test_metric_collection(tmpdir):
     m1 = DummyMetric1()
     m2 = DummyMetric2()
 
-    metric_collection = MetricCollection(m1, m2)
+    metric_collection = MetricCollection([m1, m2])
 
     # Test correct dict structure
     assert len(metric_collection) == 2
@@ -213,3 +213,31 @@ def test_collection(tmpdir):
     metric_pickled = pickle.dumps(metric_collection)
     metric_loaded = pickle.loads(metric_pickled)
     assert isinstance(metric_loaded, MetricCollection)
+
+
+def test_metric_collection_wrong_input(tmpdir):
+    m1 = DummyMetric1()
+
+    # Not all input are metrics
+    with pytest.raises(ValueError, match='Input 5 to `MetricCollection` is'
+                                         ' not a instance of `pl.metrics.Metric`'):
+        metric_collection = MetricCollection([m1, 5])
+
+    with pytest.raises(ValueError, match=
+                       'Value 5 belonging to key metric2 is not an instance of'
+                       ' `pytorch_lightning.metrics.Metric`'):
+        metric_collection = MetricCollection({'metric1': m1,
+                                              'metric2': 5})
+
+    # Same metric passed in multiple times
+    with pytest.raises(ValueError, match='Encountered two metrics both named *.'):
+        metric_collection = MetricCollection([m1, m1])
+
+    # Not a list or dict passed in
+    with pytest.raises(ValueError, match='Unknown input to MetricCollection.'):
+        metric_collection = MetricCollection(m1)
+
+
+
+
+
