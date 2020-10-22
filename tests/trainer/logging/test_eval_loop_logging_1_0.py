@@ -14,6 +14,7 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning import Trainer
 from pytorch_lightning import callbacks, seed_everything
 from tests.base.deterministic_model import DeterministicModel
@@ -46,7 +47,7 @@ def test__validation_step__log(tmpdir):
             self.training_step_called = True
 
         def backward(self, loss, optimizer, optimizer_idx):
-            loss.backward()
+            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
 
     model = TestModel()
     model.validation_step_end = None
@@ -117,7 +118,7 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
             self.validation_epoch_end_called = True
 
         def backward(self, loss, optimizer, optimizer_idx):
-            loss.backward()
+            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
 
     model = TestModel()
 
@@ -190,6 +191,7 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     expected_logged_metrics = {
         'c',
         'd/e/f',
+        'epoch',
     }
     assert logged_metrics == expected_logged_metrics
 
@@ -198,10 +200,11 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     assert pbar_metrics == expected_pbar_metrics
 
     callback_metrics = set(trainer.callback_metrics.keys())
+    callback_metrics.remove('debug_epoch')
     expected_callback_metrics = set()
     expected_callback_metrics = expected_callback_metrics.union(logged_metrics)
     expected_callback_metrics = expected_callback_metrics.union(pbar_metrics)
-    callback_metrics.remove('debug_epoch')
+    expected_callback_metrics.remove('epoch')
     assert callback_metrics == expected_callback_metrics
 
     # assert the loggers received the expected number
@@ -238,6 +241,7 @@ def test_eval_float_logging(tmpdir):
     logged_metrics = set(trainer.logged_metrics.keys())
     expected_logged_metrics = {
         'a',
+        'epoch',
     }
     assert logged_metrics == expected_logged_metrics
 
