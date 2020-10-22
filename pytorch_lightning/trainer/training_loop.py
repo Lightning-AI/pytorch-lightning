@@ -721,6 +721,9 @@ class TrainLoop:
 
                     if self._curr_step_result is None:
                         # user decided to skip optimization
+                        results = self.trainer.get_model()._results
+                        batch_log_metrics.append(results.get_batch_log_metrics(include_forked_originals=False))
+                        batch_log_metrics.append(self.trainer.metrics_to_scalars(results.epoch_log_metrics))
                         continue
 
                     batch_outputs = self._process_closure_result(
