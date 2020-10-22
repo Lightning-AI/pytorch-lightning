@@ -28,7 +28,7 @@ from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn, AMPType
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -219,12 +219,12 @@ class LightningModule(
             logger: if True logs to the logger
             on_step: if True logs at this step. None auto-logs at the training_step but not validation/test_step
             on_epoch: if True logs epoch accumulated metrics. None auto-logs at the val/test step but not training_step
-            reduce_fx: Torch.mean by default
+            reduce_fx: reduction function over step values for end of epoch. Torch.mean by default
             tbptt_reduce_fx: function to reduce on truncated back prop
             tbptt_pad_token: token to use for padding
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
-            sync_dist_op: the op to sync across
+            sync_dist_op: the op to sync across GPUs/TPUs
             sync_dist_group: the ddp group
         """
         if self._results is not None:
@@ -289,12 +289,12 @@ class LightningModule(
             logger: if True logs to the logger
             on_step: if True logs at this step. None auto-logs for training_step but not validation/test_step
             on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
-            reduce_fx: Torch.mean by default
+            reduce_fx: reduction function over step values for end of epoch. Torch.mean by default
             tbptt_reduce_fx: function to reduce on truncated back prop
             tbptt_pad_token: token to use for padding
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
-            sync_dist_op: the op to sync across
+            sync_dist_op: the op to sync across GPUs/TPUs
             sync_dist_group: the ddp group:
         """
         for k, v in dictionary.items():
@@ -1202,11 +1202,16 @@ class LightningModule(
         """
         if on_tpu:
             xm.optimizer_step(optimizer, optimizer_args={'closure': optimizer_closure})
-        elif using_native_amp:
+        elif self.trainer.amp_backend == AMPType.NATIVE:
             # native amp does not yet support closures.
             # TODO: pass the closure to the step ASAP
             optimizer_closure()
             self.trainer.scaler.step(optimizer)
+        elif self.trainer.amp_backend == AMPType.APEX:
+            # apex amp does not yet support closures.
+            # TODO: pass the closure to the step ASAP
+            optimizer_closure()
+            optimizer.step()
         else:
             optimizer.step(closure=optimizer_closure)
 

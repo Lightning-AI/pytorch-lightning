@@ -21,111 +21,107 @@ from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class TrainerOptimizersMixin(ABC):
-
-    def init_optimizers(
-            self,
-            model: LightningModule
-    ) -> Tuple[List, List, List]:
+    def init_optimizers(self, model: LightningModule) -> Tuple[List, List, List]:
         optim_conf = model.configure_optimizers()
-
         if optim_conf is None:
-            rank_zero_warn('`LightningModule.configure_optimizers` returned `None`, '
-                           'this fit will run with no optimizer', UserWarning)
+            rank_zero_warn(
+                '`LightningModule.configure_optimizers` returned `None`, this fit will run with no optimizer',
+                UserWarning,
+            )
             optim_conf = _MockOptimizer()
+
+        optimizers, lr_schedulers, optimizer_frequencies = [], [], []
+        monitor = None
 
         # single output, single optimizer
         if isinstance(optim_conf, Optimizer):
-            return [optim_conf], [], []
-
+            optimizers = [optim_conf]
         # two lists, optimizer + lr schedulers
-        elif isinstance(optim_conf, (list, tuple)) and len(optim_conf) == 2 \
-                and isinstance(optim_conf[0], list):
-            optimizers, lr_schedulers = optim_conf
-            lr_schedulers = self.configure_schedulers(lr_schedulers)
-            return optimizers, lr_schedulers, []
-
+        elif isinstance(optim_conf, (list, tuple)) and len(optim_conf) == 2 and isinstance(optim_conf[0], list):
+            opt, sch = optim_conf
+            optimizers = opt
+            lr_schedulers = sch if isinstance(sch, list) else [sch]
         # single dictionary
         elif isinstance(optim_conf, dict):
-            optimizer = optim_conf["optimizer"]
+            optimizers = [optim_conf["optimizer"]]
             monitor = optim_conf.get('monitor', None)
-            lr_scheduler = optim_conf.get("lr_scheduler", [])
-            if lr_scheduler:
-                lr_schedulers = self.configure_schedulers([lr_scheduler], monitor)
-            else:
-                lr_schedulers = []
-            return [optimizer], lr_schedulers, []
-
+            lr_schedulers = [optim_conf["lr_scheduler"]] if "lr_scheduler" in optim_conf else []
         # multiple dictionaries
-        elif isinstance(optim_conf, (list, tuple)) and isinstance(optim_conf[0], dict):
+        elif isinstance(optim_conf, (list, tuple)) and all(isinstance(d, dict) for d in optim_conf):
             optimizers = [opt_dict["optimizer"] for opt_dict in optim_conf]
-            # take only lr wif exists and ot they are defined - not None
-            lr_schedulers = [
-                opt_dict["lr_scheduler"] for opt_dict in optim_conf if opt_dict.get("lr_scheduler")
-            ]
-            # take only freq wif exists and ot they are defined - not None
+            lr_schedulers = [opt_dict["lr_scheduler"] for opt_dict in optim_conf if "lr_scheduler" in opt_dict]
             optimizer_frequencies = [
-                opt_dict["frequency"] for opt_dict in optim_conf if opt_dict.get("frequency") is not None
+                opt_dict["frequency"] for opt_dict in optim_conf if opt_dict.get("frequency", None) is not None
             ]
-
-            # clean scheduler list
-            if lr_schedulers:
-                lr_schedulers = self.configure_schedulers(lr_schedulers)
             # assert that if frequencies are present, they are given for all optimizers
             if optimizer_frequencies and len(optimizer_frequencies) != len(optimizers):
                 raise ValueError("A frequency must be given to each optimizer.")
-            return optimizers, lr_schedulers, optimizer_frequencies
-
         # single list or tuple, multiple optimizer
         elif isinstance(optim_conf, (list, tuple)):
-            return list(optim_conf), [], []
-
+            optimizers = list(optim_conf)
         # unknown configuration
         else:
-            raise ValueError(
+            raise MisconfigurationException(
                 'Unknown configuration for model optimizers.'
-                ' Output from `model.configure_optimizers()` should either be:'
-                ' * single output, single `torch.optim.Optimizer`'
-                ' * single output, list of `torch.optim.Optimizer`'
-                ' * single output, a dictionary with `optimizer` key (`torch.optim.Optimizer`)'
-                '    and an optional `lr_scheduler` key (`torch.optim.lr_scheduler`)'
-                ' * two outputs, first being a list of `torch.optim.Optimizer` second being'
-                '    a list of `torch.optim.lr_scheduler`'
-                ' * multiple outputs, dictionaries as described with an optional `frequency` key (int)')
+                ' Output from `model.configure_optimizers()` should either be:\n'
+                ' * `torch.optim.Optimizer`\n'
+                ' * [`torch.optim.Optimizer`]\n'
+                ' * ([`torch.optim.Optimizer`], [`torch.optim.lr_scheduler`])\n'
+                ' * {"optimizer": `torch.optim.Optimizer`, (optional) "lr_scheduler": `torch.optim.lr_scheduler`}\n'
+                ' * A list of the previously described dict format, with an optional "frequency" key (int)'
+            )
+        lr_schedulers = self.configure_schedulers(lr_schedulers, monitor=monitor)
+
+        return optimizers, lr_schedulers, optimizer_frequencies
 
     def configure_schedulers(self, schedulers: list, monitor: Optional[str] = None):
         # Convert each scheduler into dict structure with relevant information
         lr_schedulers = []
         default_config = {
-            'interval': 'epoch',  # default every epoch
-            'frequency': 1,  # default every epoch/batch
-            'reduce_on_plateau': False
-        }  # most often not ReduceLROnPlateau scheduler
-
-        if monitor is not None:
-            default_config['monitor'] = monitor
-
+            'scheduler': None,
+            'interval': 'epoch',  # after epoch is over
+            'frequency': 1,  # every epoch/batch
+            'reduce_on_plateau': False,  # most often not ReduceLROnPlateau scheduler
+            'monitor': monitor,  # value to monitor for ReduceLROnPlateau
+            'strict': True,  # enforce that the monitor exists for ReduceLROnPlateau
+        }
         for scheduler in schedulers:
             if isinstance(scheduler, dict):
+                # check provided keys
+                extra_keys = [k for k in scheduler.keys() if k not in default_config.keys()]
+                if extra_keys:
+                    rank_zero_warn(f'Found unsupported keys in the lr scheduler dict: {extra_keys}', RuntimeWarning)
                 if 'scheduler' not in scheduler:
-                    raise ValueError('Lr scheduler should have key `scheduler`',
-                                     ' with item being a lr scheduler')
+                    raise MisconfigurationException(
+                        'The lr scheduler dict must have the key "scheduler" with its item being an lr scheduler'
+                    )
                 scheduler['reduce_on_plateau'] = isinstance(
-                    scheduler['scheduler'], optim.lr_scheduler.ReduceLROnPlateau)
-
+                    scheduler['scheduler'], optim.lr_scheduler.ReduceLROnPlateau
+                )
+                if scheduler['reduce_on_plateau'] and scheduler.get('monitor', None) is None:
+                    raise MisconfigurationException(
+                        'The lr scheduler dict must include a monitor when a `ReduceLROnPlateau` scheduler is used.'
+                        ' For example: {"optimizer": optimizer, "lr_scheduler":'
+                        ' {"scheduler": scheduler, "monitor": "your_loss"}}'
+                    )
                 lr_schedulers.append({**default_config, **scheduler})
-
             elif isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
-                lr_schedulers.append({**default_config, 'scheduler': scheduler,
-                                      'reduce_on_plateau': True})
-
+                if monitor is None:
+                    raise MisconfigurationException(
+                        '`configure_optimizers` must include a monitor when a `ReduceLROnPlateau` scheduler is used.'
+                        ' For example: {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "metric_to_track"}'
+                    )
+                lr_schedulers.append(
+                    {**default_config, 'scheduler': scheduler, 'reduce_on_plateau': True, 'monitor': monitor}
+                )
             elif isinstance(scheduler, optim.lr_scheduler._LRScheduler):
                 lr_schedulers.append({**default_config, 'scheduler': scheduler})
             else:
-                raise ValueError(f'Input {scheduler} to lr schedulers '
-                                 'is a invalid input.')
+                raise ValueError(f'The provided lr scheduler "{scheduler}" is invalid')
         return lr_schedulers
 
     def reinit_scheduler_properties(self, optimizers: list, schedulers: list):
@@ -138,10 +134,7 @@ class TrainerOptimizersMixin(ABC):
                 if scheduler.optimizer == optimizer:
                     # Find the mro belonging to the base lr scheduler class
                     for i, mro in enumerate(scheduler.__class__.__mro__):
-                        if (
-                            mro == optim.lr_scheduler._LRScheduler
-                            or mro == optim.lr_scheduler.ReduceLROnPlateau
-                        ):
+                        if mro in (optim.lr_scheduler._LRScheduler, optim.lr_scheduler.ReduceLROnPlateau):
                             idx = i
                             state = scheduler.state_dict()
                         else:
