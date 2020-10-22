@@ -661,6 +661,26 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     ), "Model did not train for at least min_steps"
 
 
+def test_trainer_max_steps_accumulate_batches(tmpdir):
+    """Verify model trains according to specified max steps with grad accumulated batches"""
+    model, trainer_options, num_train_samples = _init_steps_model()
+
+    # define less train steps than epochs
+    trainer_options.update(
+        default_root_dir=tmpdir,
+        max_steps=(num_train_samples + 10),
+        accumulate_grad_batches=10,
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+    assert result == 1, "Training did not complete"
+
+    # check training stopped at max_steps
+    assert trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
+
+
 def test_benchmark_option(tmpdir):
     """Verify benchmark option."""
 
