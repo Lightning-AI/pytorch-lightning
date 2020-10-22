@@ -756,14 +756,13 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
         def train_dataloader(self):
             dataloader = super().train_dataloader()
             dist_sampler = DistributedSampler(dataloader.dataset, shuffle=False)
-            dataloader = DataLoader(
+            return DataLoader(
                 dataset,
                 batch_size=self.batch_size,
                 drop_last=False,
                 sampler=dist_sampler,
                 shuffle=False
             )
-            return dataloader
 
     model = ModelWithDataLoaderDistributedSampler()
     trainer = Trainer(
