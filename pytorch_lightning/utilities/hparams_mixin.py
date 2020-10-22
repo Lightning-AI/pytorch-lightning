@@ -25,8 +25,8 @@ from pytorch_lightning.utilities.parsing import get_init_args
 class HyperparametersMixin:
 
     __jit_unused_properties__ = [
-            "hparams",
-            "hparams_initial"
+        "hparams",
+        "hparams_initial"
     ]
 
     def save_hyperparameters(self, *args, frame=None) -> None:
