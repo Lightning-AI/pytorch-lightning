@@ -34,14 +34,13 @@ from pytorch_lightning.metrics.functional.classification import (
     iou,
 )
 from pytorch_lightning.metrics.functional.nlp import bleu_score
-from pytorch_lightning.metrics.functional.regression import (
-    mae,
-    mse,
-    psnr,
-    rmse,
-    rmsle,
-    ssim
-)
 from pytorch_lightning.metrics.functional.self_supervised import (
     embedding_similarity
 )
+# TODO: unify metrics between class and functional, add below
+from pytorch_lightning.metrics.functional.explained_variance import explained_variance
+from pytorch_lightning.metrics.functional.mean_absolute_error import mean_absolute_error
+from pytorch_lightning.metrics.functional.mean_squared_error import mean_squared_error
+from pytorch_lightning.metrics.functional.mean_squared_log_error import mean_squared_log_error
+from pytorch_lightning.metrics.functional.psnr import psnr
+from pytorch_lightning.metrics.functional.ssim import ssim
