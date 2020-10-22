@@ -1513,6 +1513,10 @@ class LightningModule(
         return torchscript_module
 
     def add_datamodule_hparams(self, datamodule: LightningDataModule):
+        """Add the hparams of a LightningDataModule to the hparams and hparams_initial of this module."""
+        if not hasattr(datamodule, 'hparams'):
+            return
+
         hparams = self._to_hparams_dict(datamodule.hparams)
         if not hasattr(self, '_hparams'):
             self._hparams = hparams
