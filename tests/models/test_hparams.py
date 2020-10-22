@@ -688,8 +688,12 @@ def test_adding_datamodule_hparams(tmpdir):
     hparams.update(data.hparams)
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
     model = SaveHparamsModel.load_from_checkpoint(raw_checkpoint_path)
-    assert model.hparams == hparams
-    assert model.hparams_initial == hparams
+    assert hparams == model.hparams
+    assert hparams == model.hparams_initial
+
+    path_yaml = os.path.join(trainer.logger.log_dir, trainer.logger.NAME_HPARAMS_FILE)
+    logged_hparams = load_hparams_from_yaml(path_yaml)
+    assert hparams == logged_hparams
 
 
 def test_colliding_datamodule_hparams(tmpdir):
