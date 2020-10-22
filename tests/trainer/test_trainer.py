@@ -678,7 +678,7 @@ def test_trainer_max_steps_accumulate_batches(tmpdir):
     assert result == 1, "Training did not complete"
 
     # check training stopped at max_steps
-    assert trainer.global_step + 1 == trainer.max_steps, "Model did not stop at max_steps"
+    assert trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
 
 
 def test_benchmark_option(tmpdir):
