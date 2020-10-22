@@ -593,7 +593,7 @@ class LoggerConnector:
             # logs user requested information to logger
             metrics = batch_output.batch_log_metrics
             grad_norm_dic = batch_output.grad_norm_dic
-            if metric is not None and len(metric) > 0:
+            if metrics is not None and len(metrics) > 0:
                 self.callback_metrics.update(metrics)
                 if grad_norm_dic is not None and len(grad_norm_dic) > 0:
                     self.log_metrics(metrics, grad_norm_dic)
