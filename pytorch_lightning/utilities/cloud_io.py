@@ -26,7 +26,7 @@ pathlike = Union[Path, str]
 
 def load(path_or_url: str, map_location=None):
     if not isinstance(path_or_url, (str, Path)):
-        # any sort of BytesIO or similiar 
+        # any sort of BytesIO or similiar
         return torch.load(path_or_url, map_location=map_location)
     if path_or_url.startswith("http"):
         return torch.hub.load_state_dict_from_url(path_or_url, map_location=map_location)
