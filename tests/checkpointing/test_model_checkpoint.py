@@ -32,6 +32,7 @@ from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests.base import EvalModelTemplate, BoringModel
+from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -648,10 +649,14 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
                          limit_test_batches=2,
                          )
 
+    assert trainer.checkpoint_connector.has_trained == False
+    assert trainer.current_epoch == 0
     trainer.fit(model)
+    assert trainer.checkpoint_connector.has_trained == True
+    assert trainer.global_step == 2
+    assert trainer.current_epoch == 0
     trainer.test(model)
-    # test only one chechpoint
-
+    assert trainer.current_epoch == 0
     assert str(os.listdir(osp.join(tmpdir, 'lightning_logs'))) == "['version_0']"
 
     def get_last_checkpoint():
@@ -664,11 +669,20 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
 
         ckpts = os.listdir(ckpt_dir)
         ckpts.sort()
+
         return osp.join(ckpt_dir, ckpts[-1])
+
+    def assert_checkpoint_content():
+        chk = pl_load(get_last_checkpoint())
+        assert chk["epoch"] == 1
+        assert chk["global_step"] == 2
+
+    assert_checkpoint_content()
 
     for idx in range(1, 5):
         # load from checkpoint
         chk = get_last_checkpoint()
+        assert_checkpoint_content()
         model = BoringModel.load_from_checkpoint(chk)
         trainer = pl.Trainer(default_root_dir=tmpdir,
                              max_epochs=1,
@@ -676,7 +690,12 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
                              limit_val_batches=2,
                              limit_test_batches=2,
                              resume_from_checkpoint=chk)
-        trainer.fit(model)
+        assert trainer.checkpoint_connector.has_trained == False
+        assert trainer.global_step == 0
         trainer.test(model)
+        assert trainer.global_step == 2
+        trainer.fit(model)
+        assert trainer.global_step == 2
+        assert trainer.checkpoint_connector.has_trained == False
         lightning_logs_path = osp.join(tmpdir, 'lightning_logs')
         assert sorted(os.listdir(lightning_logs_path)) == [f"version_{i}" for i in range(idx + 1)]
