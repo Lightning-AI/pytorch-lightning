@@ -98,7 +98,7 @@ class TrainLoop:
         if hasattr(datamodule, 'hparams'):
             parsing.clean_namespace(datamodule.hparams)
             try:
-                model.extend_hparams(datamodule.hparams)
+                model.add_datamodule_hparams(datamodule.hparams)
             except ValueError as e:
                 raise ValueError(f'Error while adding data module hparams to model: {e}')
 

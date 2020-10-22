@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import copy
 import inspect
 import re
 from argparse import Namespace
@@ -24,7 +24,10 @@ from pytorch_lightning.utilities.parsing import get_init_args
 
 class HyperparametersMixin:
 
-    __jit_unused_properties__ = ["hparams"]
+    __jit_unused_properties__ = [
+            "hparams",
+            "hparams_initial"
+    ]
 
     def save_hyperparameters(self, *args, frame=None) -> None:
         """Save all model arguments.
@@ -77,9 +80,11 @@ class HyperparametersMixin:
         init_args = get_init_args(frame)
         assert init_args, "failed to inspect the self init"
         if not args:
+            # take all arguments
             hp = init_args
             self._hparams_name = "kwargs" if hp else None
         else:
+            # take only listed arguments in `save_hparams`
             isx_non_str = [i for i, arg in enumerate(args) if not isinstance(arg, str)]
             if len(isx_non_str) == 1:
                 hp = args[isx_non_str[0]]
@@ -92,17 +97,8 @@ class HyperparametersMixin:
         # `hparams` are expected here
         if hp:
             self._set_hparams(hp)
-
-    def extend_hparams(self, hparams):
-        hparams = self._to_hparams_dict(hparams)
-        if not hasattr(self, '_hparams'):
-            self._hparams_name = 'extended'
-            self._hparams = hparams
-        else:
-            colliding_keys = [key for key in hparams.keys() if key in self.hparams]
-            if colliding_keys:
-                raise ValueError(f'The keys {colliding_keys} are already present in the hparams.')
-            self.hparams.update(hparams)
+        # make deep copy so  there is not other runtime changes reflected
+        self._hparams_initial = copy.deepcopy(self._hparams)
 
     def _set_hparams(self, hp: Union[dict, Namespace, str]) -> None:
         hp = self._to_hparams_dict(hp)
@@ -121,6 +117,7 @@ class HyperparametersMixin:
             raise ValueError(f"Primitives {PRIMITIVE_TYPES} are not allowed.")
         elif not isinstance(hp, ALLOWED_CONFIG_TYPES):
             raise ValueError(f"Unsupported config type of {type(hp)}.")
+
         return hp
 
     @property
@@ -129,11 +126,21 @@ class HyperparametersMixin:
             self._hparams = AttributeDict()
         return self._hparams
 
+    @property
+    def hparams_initial(self) -> AttributeDict:
+        if not hasattr(self, "_hparams_initial"):
+            return AttributeDict()
+        # prevent any change
+        return copy.deepcopy(self._hparams_initial)
+
     @hparams.setter
     def hparams(self, hp: Union[dict, Namespace, Any]):
         hparams_assignment_name = self.__get_hparams_assignment_variable()
         self._hparams_name = hparams_assignment_name
         self._set_hparams(hp)
+        # this resolves case when user does not uses `save_hyperparameters` and do hard assignement in init
+        if not hasattr(self, "_hparams_initial"):
+            self._hparams_initial = copy.deepcopy(self._hparams)
 
     def __get_hparams_assignment_variable(self):
         """"""

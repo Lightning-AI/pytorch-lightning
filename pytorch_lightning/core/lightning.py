@@ -1514,3 +1514,14 @@ class LightningModule(
             torch.jit.save(torchscript_module, file_path)
 
         return torchscript_module
+
+    def add_datamodule_hparams(self, hparams):
+        hparams = self._to_hparams_dict(hparams)
+        if not hasattr(self, '_hparams'):
+            self._hparams_name = 'extended'
+            self._hparams = hparams
+        else:
+            colliding_keys = [key for key in hparams.keys() if key in self.hparams]
+            if colliding_keys:
+                raise ValueError(f'The keys {colliding_keys} are already present in the hparams.')
+            self.hparams.update(hparams)
