@@ -73,11 +73,11 @@ class DDPCPUSpawnAccelerator(Accelerator):
     def ddp_train(self, process_idx, mp_queue, model):
         """
         Entry point for ddp
+
         Args:
             process_idx:
             mp_queue: multiprocessing queue
             model:
-        Returns:
         """
         # show progressbar only on progress_rank 0
         if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:
