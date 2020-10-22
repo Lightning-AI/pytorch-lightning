@@ -11,12 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class OptimizerConnector:
-
     def __init__(self, trainer):
         self.trainer = trainer
 
@@ -41,52 +40,39 @@ class OptimizerConnector:
             # Take step if call to update_learning_rates matches the interval key and
             # the current step modulo the schedulers frequency is zero
             if lr_scheduler['interval'] == interval and current_idx % lr_scheduler['frequency'] == 0:
-                # If instance of ReduceLROnPlateau, we need to pass validation loss
+                # If instance of ReduceLROnPlateau, we need a monitor
+                monitor_key, monitor_val = None, None
                 if lr_scheduler['reduce_on_plateau']:
-                    try:
-                        monitor_key = lr_scheduler['monitor']
-                    except KeyError as e:
-                        m = "ReduceLROnPlateau requires returning a dict from configure_optimizers with the keyword " \
-                            "monitor=. For example:" \
-                            "return {'optimizer': optimizer, 'lr_scheduler': scheduler, 'monitor': 'your_loss'}"
-                        raise MisconfigurationException(m)
-
-                    if monitor_metrics is not None:
-                        monitor_val = monitor_metrics.get(monitor_key)
-                    else:
-                        monitor_val = self.trainer.logger_connector.callback_metrics.get(monitor_key)
-
+                    monitor_key = lr_scheduler['monitor']
+                    monitor_val = (
+                        monitor_metrics.get(monitor_key)
+                        if monitor_metrics is not None
+                        else self.trainer.logger_connector.callback_metrics.get(monitor_key)
+                    )
                     if monitor_val is None:
-                        avail_metrics = ','.join(list(self.trainer.logger_connector.callback_metrics.keys()))
-                        raise MisconfigurationException(
+                        if lr_scheduler.get('strict', True):
+                            avail_metrics = self.trainer.logger_connector.callback_metrics.keys()
+                            raise MisconfigurationException(
+                                f'ReduceLROnPlateau conditioned on metric {monitor_key}'
+                                f' which is not available. Available metrics are: {avail_metrics}.'
+                                ' Condition can be set using `monitor` key in lr scheduler dict'
+                            )
+                        rank_zero_warn(
                             f'ReduceLROnPlateau conditioned on metric {monitor_key}'
-                            f' which is not available. Available metrics are: [{avail_metrics}].'
-                            ' Condition can be set using `monitor` key in lr scheduler dict'
+                            ' which is not available but strict is set to `False`.'
+                            ' Skipping learning rate update.',
+                            RuntimeWarning,
                         )
-                    # update LR
-                    old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
+                        continue
+                # update LR
+                old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
+                if lr_scheduler['reduce_on_plateau']:
                     lr_scheduler['scheduler'].step(monitor_val)
-                    new_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
-
-                    if self.trainer.dev_debugger.enabled:
-                        self.trainer.dev_debugger.track_lr_schedulers_update(
-                            self.trainer.batch_idx,
-                            interval,
-                            scheduler_idx,
-                            old_lr,
-                            new_lr,
-                            monitor_key,
-                        )
                 else:
-                    # update LR
-                    old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
                     lr_scheduler['scheduler'].step()
-                    new_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
+                new_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
 
-                    if self.trainer.dev_debugger.enabled:
-                        self.trainer.dev_debugger.track_lr_schedulers_update(
-                            self.trainer.batch_idx,
-                            interval,
-                            scheduler_idx,
-                            old_lr, new_lr
-                        )
+                if self.trainer.dev_debugger.enabled:
+                    self.trainer.dev_debugger.track_lr_schedulers_update(
+                        self.trainer.batch_idx, interval, scheduler_idx, old_lr, new_lr, monitor_key=monitor_key
+                    )

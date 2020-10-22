@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/source/_images/logos/lightning-logo.png" width="400px">
+<img src="docs/source/_images/logos/lightning_logo-name.png" width="400px">
 
 
 **The lightweight PyTorch wrapper for high-performance AI research.    
