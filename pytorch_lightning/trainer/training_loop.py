@@ -779,8 +779,9 @@ class TrainLoop:
                         self._curr_step_result = self.training_step(split_batch, batch_idx, opt_idx, self.trainer.hiddens)
 
                     if self._curr_step_result is None:
-                        # user decided to skip optimization
-                        continue
+                        results = self.trainer.get_model()._results
+                        batch_log_metrics.append(results.get_batch_log_metrics(include_forked_originals=False))
+                        batch_log_metrics.append(self.trainer.metrics_to_scalars(results.epoch_log_metrics))
 
                     batch_outputs = self._process_closure_result(
                         batch_callback_metrics=batch_callback_metrics,
@@ -848,11 +849,6 @@ class TrainLoop:
             if self.automatic_optimization:
                 # track total loss for logging (avoid mem leaks)
                 self.accumulated_loss.append(opt_closure_result.loss)
-
-        else:
-            results = self.trainer.get_model()._results
-            batch_log_metrics.append(results.get_batch_log_metrics(include_forked_originals=False))
-            batch_log_metrics.append(self.trainer.metrics_to_scalars(results.epoch_log_metrics))
 
         self._curr_step_result = None
 
