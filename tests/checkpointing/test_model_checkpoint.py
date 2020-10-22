@@ -622,3 +622,61 @@ def test_checkpoint_repeated_strategy_tmpdir(tmpdir):
         trainer.test(model)
         assert sorted(os.listdir(tmpdir)) == sorted(['epoch=00.ckpt', 'lightning_logs'])
         assert sorted(os.listdir(path_to_lightning_logs)) == sorted([f'version_{i}' for i in range(idx + 1)])
+
+
+def test_checkpoint_repeated_strategy_extended(tmpdir):
+    """
+    This test validates checkpoint can be called several times without increasing internally its global step if nothing run.
+    """
+
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    class ExtendedBoringModel(BoringModel):
+
+        def validation_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            return {"val_loss": loss}
+
+    model = ExtendedBoringModel()
+    model.validation_step_end = None
+    model.validation_epoch_end = None
+    trainer = pl.Trainer(default_root_dir=tmpdir,
+                         max_epochs=1,
+                         limit_train_batches=2,
+                         limit_val_batches=2,
+                         limit_test_batches=2,
+                         )
+
+    trainer.fit(model)
+    trainer.test(model)
+    # test only one chechpoint
+
+    assert str(os.listdir(osp.join(tmpdir, 'lightning_logs'))) == "['version_0']"
+
+    def get_last_checkpoint():
+        logs_dir = osp.join(tmpdir, 'lightning_logs')
+        versions = os.listdir(logs_dir)
+        versions.sort()
+
+        last_version = versions[-1]
+        ckpt_dir = osp.join(logs_dir, last_version, "checkpoints")
+
+        ckpts = os.listdir(ckpt_dir)
+        ckpts.sort()
+        return osp.join(ckpt_dir, ckpts[-1])
+
+    for idx in range(1, 5):
+        # load from checkpoint
+        chk = get_last_checkpoint()
+        model = BoringModel.load_from_checkpoint(chk)
+        trainer = pl.Trainer(default_root_dir=tmpdir,
+                             max_epochs=1,
+                             limit_train_batches=2,
+                             limit_val_batches=2,
+                             limit_test_batches=2,
+                             resume_from_checkpoint=chk)
+        trainer.fit(model)
+        trainer.test(model)
+        lightning_logs_path = osp.join(tmpdir, 'lightning_logs')
+        assert sorted(os.listdir(lightning_logs_path)) == [f"version_{i}" for i in range(idx + 1)]
