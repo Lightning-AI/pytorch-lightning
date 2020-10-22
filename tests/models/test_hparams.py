@@ -632,6 +632,21 @@ class DataModuleWithHparams(LightningDataModule):
         return DataLoader(self._data, batch_size=10)
 
 
+class DataModuleWithoutHparams(LightningDataModule):
+    def __init__(self):
+        super().__init__()
+        self._data = None
+
+    def prepare_data(self, *args, **kwargs):
+        pass
+
+    def setup(self, stage: Optional[str] = None):
+        self._data = TensorDataset(torch.randn(100, 20))
+
+    def train_dataloader(self, *args, **kwargs) -> DataLoader:
+        return DataLoader(self._data, batch_size=10)
+
+
 def test_extending_existing_hparams(tmpdir):
     """Test that the new hparams are added to the existing ones."""
     hparams = {'arg1': 'abc'}
@@ -724,3 +739,12 @@ def test_colliding_datamodule_hparams(tmpdir):
 
     with pytest.raises(ValueError, match='Error while adding datamodule hparams: '):
         trainer.fit(model, datamodule=data)
+
+
+def test_adding_hparams_of_datamodule_without_hparams(tmpdir):
+    model = EvalModelTemplate()
+    hparams = copy.deepcopy(model.hparams)
+    model.add_datamodule_hparams(DataModuleWithoutHparams())
+
+    assert hparams == model.hparams
+    assert hparams == model.hparams_initial
