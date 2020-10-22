@@ -129,7 +129,8 @@ class LoggerConnector:
             metrics.update(mem_map)
 
         # add norms
-        metrics.update(grad_norm_dic)
+        if grad_norm_dic is not None:
+            metrics.update(grad_norm_dic)
 
         # turn all tensors to scalars
         scalar_metrics = self.trainer.metrics_to_scalars(metrics)
