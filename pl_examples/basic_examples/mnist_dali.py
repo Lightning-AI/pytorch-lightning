@@ -15,6 +15,7 @@ from argparse import ArgumentParser
 
 import numpy as np
 from random import shuffle
+import sys
 
 import torch
 import pytorch_lightning as pl
@@ -27,10 +28,13 @@ try:
 except Exception as e:
     from tests.base.datasets import MNIST
 
-from nvidia.dali.pipeline import Pipeline
-import nvidia.dali.ops as ops
-import nvidia.dali.types as types
-from nvidia.dali.plugin.pytorch import DALIClassificationIterator
+try:
+    from nvidia.dali.pipeline import Pipeline
+    import nvidia.dali.ops as ops
+    import nvidia.dali.types as types
+    from nvidia.dali.plugin.pytorch import DALIClassificationIterator
+except (ImportError, ModuleNotFoundError):
+    sys.exit('NVIDIA DALI is not available, exiting')
 
 
 class ExternalMNISTInputIterator(object):
