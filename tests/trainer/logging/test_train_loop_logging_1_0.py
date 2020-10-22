@@ -579,7 +579,7 @@ def test_log_works_in_train_callback(tmpdir):
         funcs_called_count = collections.defaultdict(int)
         funcs_attr = {}
 
-        def make_logging(self, pl_module: pl.LightningModule, func_name, func_idx, on_steps=[], on_epochs=[], prob_bars=[]):
+        def make_logging(self, pl_module, func_name, func_idx, on_steps=[], on_epochs=[], prob_bars=[]):
             self.funcs_called_count[func_name] += 1
             for idx, t in enumerate(list(itertools.product(*[on_steps, on_epochs, prob_bars]))):
                 # run logging
@@ -589,13 +589,19 @@ def test_log_works_in_train_callback(tmpdir):
                               on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
                 # catch information for verification
                 self.callback_funcs_called[func_name].append([self.count * func_idx])
-                self.funcs_attr[custom_func_name] = {"on_step": on_step, "on_epoch": on_epoch,
-                                                     "prog_bar": prog_bar, "is_created": False, "func_name": func_name}
+                self.funcs_attr[custom_func_name] = {"on_step": on_step,
+                                                     "on_epoch": on_epoch,
+                                                     "prog_bar": prog_bar,
+                                                     "func_name": func_name}
                 if on_step and on_epoch:
-                    self.funcs_attr[f"{custom_func_name}_step"] = {"on_step": True, "on_epoch": False,
-                                                                   "prog_bar": prog_bar, "is_created": True, "func_name": func_name}
-                    self.funcs_attr[f"{custom_func_name}_epoch"] = {"on_step": False, "on_epoch": True,
-                                                                    "prog_bar": prog_bar, "is_created": True, "func_name": func_name}
+                    self.funcs_attr[f"{custom_func_name}_step"] = {"on_step": True,
+                                                                   "on_epoch": False,
+                                                                   "prog_bar": prog_bar,
+                                                                   "func_name": func_name}
+                    self.funcs_attr[f"{custom_func_name}_epoch"] = {"on_step": False,
+                                                                    "on_epoch": True,
+                                                                    "prog_bar": prog_bar,
+                                                                    "func_name": func_name}
 
         def on_train_start(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_train_start', 1, on_steps=self.choices,
@@ -625,7 +631,8 @@ def test_log_works_in_train_callback(tmpdir):
             self.make_logging(pl_module, 'on_train_batch_end', 7, on_steps=self.choices,
                               on_epochs=self.choices, prob_bars=self.choices)
             # used to make sure aggregation works fine.
-            # we should obtain func[value * c for c in range(1, max_epochs * limit_train_batches)]) with func = np.mean if on_epoch else func = np.max
+            # we should obtain func[value * c for c in range(1, max_epochs * limit_train_batches)])
+            # with func = np.mean if on_epoch else func = np.max
             self.count += 1
 
         def on_epoch_end(self, trainer, pl_module):
