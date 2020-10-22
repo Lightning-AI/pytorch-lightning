@@ -232,6 +232,7 @@ class Trainer(
             num_nodes: number of GPU nodes for distributed training.
 
             num_processes: number of processes for distributed training with distributed_backend="ddp_cpu"
+
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders. Default: 2
 
@@ -529,8 +530,13 @@ class Trainer(
         if self.evaluation_loop.should_skip_evaluation(dataloaders, max_batches):
             return [], []
 
-        # enable eval mode + no grads
+        # Load model and reset Result
         model = self.get_model()
+
+        # reset result
+        model._results = Result()
+
+        # enable eval mode + no grads
         self.evaluation_loop.on_evaluation_model_eval()
 
         model.zero_grad()
@@ -553,6 +559,9 @@ class Trainer(
             dl_step_metrics = []
             dataloader = self.accelerator_backend.process_dataloader(dataloader)
             dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
+
+            # set dataloader idx in pl_model, so we can handle multi dataloaders logging.
+            self.evaluation_loop.set_dataloader_idx(dataloader_idx)
 
             for batch_idx, batch in enumerate(dataloader):
                 if batch is None:
@@ -596,19 +605,22 @@ class Trainer(
             num_dataloaders=len(dataloaders)
         )
 
-        # bookkeeping
-        eval_loop_results = self.evaluation_loop.log_epoch_metrics(deprecated_eval_results, epoch_logs, test_mode)
-        self.evaluation_loop.predictions.to_disk()
+        eval_loop_results = self.evaluation_loop.track_metrics_before_on_evaluation_epoch_end(
+            deprecated_eval_results, epoch_logs, test_mode)
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
 
+        # hook
+        self.evaluation_loop.on_evaluation_end()
+
+        # bookkeeping
+        self.evaluation_loop.log_epoch_metrics_on_evaluation_end()
+        self.evaluation_loop.predictions.to_disk()
+
         # enable train mode again
         self.evaluation_loop.on_evaluation_model_train()
         torch.set_grad_enabled(True)
-
-        # hook
-        self.evaluation_loop.on_evaluation_end()
 
         return eval_loop_results, deprecated_eval_results
 
