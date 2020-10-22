@@ -618,7 +618,7 @@ def test_extending_existing_hparams(tmpdir):
     hparams = {'arg1': 'abc'}
     model = EvalModelTemplate()
     old_hparams = copy.deepcopy(model.hparams)
-    model.extend_hparams(hparams)
+    model.add_datamodule_hparams(hparams)
 
     old_hparams.update(hparams)
     assert old_hparams == model.hparams
@@ -632,7 +632,7 @@ def test_extending_non_existing_hparams(tmpdir):
 
     hparams = {'arg1': 'abc'}
     model = DummyModel()
-    model.extend_hparams(hparams)
+    model.add_datamodule_hparams(hparams)
 
     assert hparams == model.hparams
 
@@ -642,7 +642,7 @@ def test_extending_with_namespace(tmpdir):
     hparams = Namespace(arg1='abc')
     model = EvalModelTemplate()
     old_hparams = copy.deepcopy(model.hparams)
-    model.extend_hparams(hparams)
+    model.add_datamodule_hparams(hparams)
 
     old_hparams.update(vars(hparams))
     assert old_hparams == model.hparams
@@ -654,7 +654,7 @@ def test_extend_with_unsupported_hparams(tmpdir):
     model = EvalModelTemplate()
 
     with pytest.raises(ValueError):
-        model.extend_hparams(hparams)
+        model.add_datamodule_hparams(hparams)
 
 
 def test_extend_with_primitive_hparams(tmpdir):
@@ -663,14 +663,14 @@ def test_extend_with_primitive_hparams(tmpdir):
     model = EvalModelTemplate()
 
     with pytest.raises(ValueError):
-        model.extend_hparams(hparams)
+        model.add_datamodule_hparams(hparams)
 
 
 def test_extend_with_collision(tmp_path):
     """Test that new hparams cannot collide with existing hparams."""
     model = EvalModelTemplate()
     with pytest.raises(ValueError):
-        model.extend_hparams({'batch_size': 5})
+        model.add_datamodule_hparams({'batch_size': 5})
 
 
 def test_adding_datamodule_hparams(tmpdir):
