@@ -13,6 +13,7 @@
 # limitations under the License.
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 
 
 class PluginConnector:
@@ -20,6 +21,7 @@ class PluginConnector:
     def __init__(self, trainer):
         self.trainer = trainer
         self.plugins = []
+        self.ddp_plugin = DDPPlugin()
         self.cloud_environment = None
 
     def on_trainer_init(self, plugins):
@@ -27,7 +29,22 @@ class PluginConnector:
         if self.plugins is None:
             self.plugins = []
 
+        self.__attach_ddp()
         self.__attach_cluster()
+
+    def __attach_ddp(self, limit=1):
+        count = 0
+        for plugin in self.plugins:
+            if isinstance(plugin, DDPPlugin):
+
+                # count the clusters
+                count += 1
+                if count > limit:
+                    m = f'you can only use one DDP plugin in plugins. You passed in: {count}'
+                    raise MisconfigurationException(m)
+
+                # set the ddp plugin
+                self.ddp_plugin = plugin
 
     def __attach_cluster(self, limit=1):
         num_clusters = 0
