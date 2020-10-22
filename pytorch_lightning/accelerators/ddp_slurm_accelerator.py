@@ -23,7 +23,6 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.seed import seed_everything
@@ -44,8 +43,8 @@ else:
 # -------------------------------------------
 class DDPSLURMAccelerator(Accelerator):
 
-    def __init__(self, trainer, cluster_environment=None):
-        super().__init__(trainer, cluster_environment)
+    def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
+        super().__init__(trainer, cluster_environment, ddp_plugin)
         self.task_idx = None
         self._has_spawned_children = False
         self.dist = LightningDistributed()
@@ -113,6 +112,7 @@ class DDPSLURMAccelerator(Accelerator):
             model:
 
         Returns:
+            Dict with evaluation results
 
         """
         seed = os.environ.get("PL_GLOBAL_SEED")
@@ -186,9 +186,7 @@ class DDPSLURMAccelerator(Accelerator):
     def configure_ddp(
         self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
-        model = LightningDistributedDataParallel(
-            model, device_ids=device_ids, find_unused_parameters=True
-        )
+        model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model
 
     def configure_sync_batchnorm(self, model: LightningModule) -> LightningModule:

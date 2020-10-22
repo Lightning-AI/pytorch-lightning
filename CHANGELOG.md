@@ -9,9 +9,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Added plugins docs and DDPPlugin to customize ddp across all accelerators([#4258](https://github.com/PyTorchLightning/pytorch-lightning/pull/4285))
+
+- Added `strict` option to the scheduler dictionary ([#3586](https://github.com/PyTorchLightning/pytorch-lightning/pull/3586))
 
 ### Changed
 
+- Improved error messages for invalid `configure_optimizers` returns ([#3587](https://github.com/PyTorchLightning/pytorch-lightning/pull/3587))
+- Allow changing the logged step value in `validation_step` ([#4130](https://github.com/PyTorchLightning/pytorch-lightning/pull/4130))
 
 ### Deprecated
 
@@ -20,6 +25,23 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 ### Fixed
+
+
+## [1.0.3] - 2020-10-20
+
+### Added
+
+- Added persistent flag to `Metric.add_state` ([#4195](https://github.com/PyTorchLightning/pytorch-lightning/pull/4195))
+
+### Changed
+
+- Used `checkpoint_connector.hpc_save` in SLURM ([#4217](https://github.com/PyTorchLightning/pytorch-lightning/pull/4217))
+- Moved base req. to root ([#4219](https://github.com/PyTorchLightning/pytorch-lightning/pull/4219))
+
+### Fixed
+
+- Fixed `hparams` assign in init ([#4189](https://github.com/PyTorchLightning/pytorch-lightning/pull/4189))
+- Fixed overwrite check for model hooks ([#4010](https://github.com/PyTorchLightning/pytorch-lightning/pull/4010))
 
 
 ## [1.0.2] - 2020-10-15
@@ -38,7 +60,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed the self.log problem in validation_step() ([#4169](https://github.com/PyTorchLightning/pytorch-lightning/pull/4169))
+- Fixed the `self.log` problem in `validation_step()` ([#4169](https://github.com/PyTorchLightning/pytorch-lightning/pull/4169))
 - Fixed `hparams` saving - save the state when `save_hyperparameters()` is called [in `__init__`] ([#4163](https://github.com/PyTorchLightning/pytorch-lightning/pull/4163))
 - Fixed runtime failure while exporting `hparams` to yaml ([#4158](https://github.com/PyTorchLightning/pytorch-lightning/pull/4158))
 
