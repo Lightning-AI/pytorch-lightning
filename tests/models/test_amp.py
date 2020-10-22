@@ -22,7 +22,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
+from tests.base import EvalModelTemplate, BoringModel
 from pytorch_lightning.utilities import APEX_AVAILABLE
 
 
@@ -202,3 +202,29 @@ def test_amp_with_apex(tmpdir):
     trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED
     assert trainer.dev_debugger.count_events('AMP') == 10
+
+
+def test_amp_without_apex_on_after_backward(tmpdir):
+    """Check that amp and precision=16. Gradient are nicely accesible within on_after_backward"""
+
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    class ExtendedBoringModel(BoringModel):
+
+        def on_after_backward(self):
+                with torch.no_grad():
+                    if (self.model.*****.weight.grad is not None):
+                        norm_value = self.model.*****.weight.grad.detach().norm(2).item()
+                        self.log("norm2", norm_value)
+
+    model = ExtendedBoringModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_test_batches=0,
+        limit_val_batches=0,
+        amp_backend='native',
+        precision=16
+    )
+    trainer.fit(model)
