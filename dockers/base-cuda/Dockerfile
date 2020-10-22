@@ -110,8 +110,6 @@ RUN \
     # Install all requirements
     MAKEFLAGS="-j$(nproc)" ; pip install -r requirements-extra.txt && \
     pip install -r requirements-tests.txt --upgrade-strategy only-if-needed && \
-    pip install -r requirements-examples.txt --upgrade-strategy only-if-needed && \
-    pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda-${CUDA_DALI_VERSION} \
     rm requirements*
 
 RUN \
