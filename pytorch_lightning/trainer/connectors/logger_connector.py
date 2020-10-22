@@ -20,7 +20,7 @@ from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pprint import pprint
-from typing import Iterable
+from typing import Iterable, Union
 from copy import deepcopy
 from collections import defaultdict, ChainMap
 
@@ -38,7 +38,7 @@ class CacheInternalMetrics:
     stages = ["before_on_batch_start", "after_on_batch_end"]
 
     def __init__(self):
-        self._internal_dict = {stage: defaultdict(list) for stage in self.stages}
+        self.reset()
 
     def append(self, stage: str, key: str, value) -> None:
         assert stage in self.stages, f"Provided stage {stage} should be within {self.stages}"
@@ -72,8 +72,13 @@ class CacheInternalMetrics:
             self.append(stage, "batch_log_metrics", model_ref._results.get_batch_log_metrics())
             self.append(stage, "batch_pbar_metrics", model_ref._results.get_batch_pbar_metrics())
 
+    def reset(self):
+        self._internal_dict = {stage: defaultdict(list) for stage in self.stages}
 
 class LoggerConnector:
+
+    __stages = ["train", "val", "test"]
+    __lookup_stages = {"0": "test", "1": "val", "True": "test", "False": "val"}
 
     def __init__(self, trainer):
         self.trainer = trainer
@@ -81,11 +86,19 @@ class LoggerConnector:
         self.logged_metrics = {}
         self.progress_bar_metrics = {}
         self.eval_loop_results = []
-        self.cache_internal_metrics = {"train": CacheInternalMetrics()}
+        self._cache_internal_metrics = {stage: CacheInternalMetrics() for stage in self.__stages}
 
-    def reset_cache_internal_metrics(self, stage):
-        assert stage in ["train"], f'Stage {stage} should be within ["train"]'
-        self.cache_internal_metrics[stage] = CacheInternalMetrics()
+    def cached_metrics(self, stage_or_testing: Union[str, bool]):
+        stage_or_testing = str(stage_or_testing)
+        if stage_or_testing in self.__stages:
+            return self._cache_internal_metrics[stage_or_testing]
+        else:
+            # Acces using trainer.testing
+            if stage_or_testing in self.__lookup_stages:
+                stage = self.__lookup_stages[stage_or_testing]
+                return self._cache_internal_metrics[stage]
+            else:
+                raise MisconfigurationException(f"Provide stage_or_testing {stage_or_testing} doesn't belong either to {self.__stages} or {self.__lookup_stages.keys()}")
 
     def on_trainer_init(self, logger, flush_logs_every_n_steps, log_every_n_steps):
         # logging
@@ -161,10 +174,11 @@ class LoggerConnector:
 
         self.trainer.dev_debugger.track_pbar_metrics_history(metrics)
 
-    def on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, using_eval_result, test_mode):
+    def before_on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, using_eval_result, test_mode):
         self._track_callback_metrics(deprecated_eval_results, using_eval_result)
-        self._log_on_evaluation_epoch_end_metrics(epoch_logs)
 
+        metrics_to_log = self.cached_metrics(self.trainer.testing).get_as_list("before_on_batch_start", "epoch_log_metrics")
+        self._track_callback_metrics_1_0(epoch_logs, metrics_to_log, reduce_on_epoch=True)
         # TODO: deprecate parts of this for 1.0 (when removing results)
         self.__process_eval_epoch_end_results_and_log_legacy(deprecated_eval_results, test_mode)
 
@@ -187,7 +201,12 @@ class LoggerConnector:
         self.eval_loop_results = []
         return results
 
-    def _log_on_evaluation_epoch_end_metrics(self, epoch_logs):
+    def track_metrics_on_evaluation_epoch_start(self, logs, metrics_to_log=[]):
+        batch_logger_metrics = logs.get_batch_log_metrics()
+        if len(batch_logger_metrics) > 0:
+            metrics_to_log.append(batch_logger_metrics)
+
+    def _track_callback_metrics_1_0(self, logs, metrics_to_log=[], reduce_on_epoch=False):
         step_metrics = self.trainer.evaluation_loop.step_metrics
 
         num_loaders = len(step_metrics)
@@ -198,16 +217,13 @@ class LoggerConnector:
         if self.trainer.running_sanity_check:
             return
 
-        # track all metrics we want to log
-        metrics_to_log = []
-
         # ---------------------------
         # UPDATE EPOCH LOGGED METRICS
         # ---------------------------
         # (ie: in methods at the val_epoch_end level)
         # union the epoch logs with whatever was returned from loaders and reduced
-        epoch_logger_metrics = epoch_logs.get_epoch_log_metrics()
-        epoch_pbar_metrics = epoch_logs.get_epoch_pbar_metrics()
+        epoch_logger_metrics = logs.get_epoch_log_metrics()
+        epoch_pbar_metrics = logs.get_epoch_pbar_metrics()
 
         self.logged_metrics.update(epoch_logger_metrics)
         self.add_progress_bar_metrics(epoch_pbar_metrics)
@@ -224,46 +240,49 @@ class LoggerConnector:
         # --------------------------------
         # each dataloader aggregated metrics
         # now we log all of them
-        for dl_idx, dl_metrics in enumerate(step_metrics):
-            if len(dl_metrics) == 0:
-                continue
+        if reduce_on_epoch:
+            for dl_idx, dl_metrics in enumerate(step_metrics):
+                if len(dl_metrics) == 0:
+                    continue
 
-            reduced_epoch_metrics = dl_metrics[0].__class__.reduce_on_epoch_end(dl_metrics)
-            # make the keys 'k/dl'
-            reduced_epoch_metrics = self.__rename_keys_by_dataloader_idx(reduced_epoch_metrics, dl_idx, num_loaders)
+                reduced_epoch_metrics = dl_metrics[0].__class__.reduce_on_epoch_end(dl_metrics)
+                logger_metrics = reduced_epoch_metrics.get_epoch_log_metrics()
+                pbar_metrics = reduced_epoch_metrics.get_epoch_pbar_metrics()
+                forked_metrics = reduced_epoch_metrics.get_forked_metrics()
 
-            # track the metrics
-            logger_metrics = reduced_epoch_metrics.get_epoch_log_metrics()
-            pbar_metrics = reduced_epoch_metrics.get_epoch_pbar_metrics()
-            self.logged_metrics.update(logger_metrics)
-            self.add_progress_bar_metrics(pbar_metrics)
+                # track the metrics
+                self.logged_metrics.update(logger_metrics)
+                self.add_progress_bar_metrics(pbar_metrics)
 
-            # enable the metrics to be monitored
-            self.callback_metrics.update(logger_metrics)
-            self.callback_metrics.update(pbar_metrics)
+                # enable the metrics to be monitored
+                self.callback_metrics.update(logger_metrics)
+                self.callback_metrics.update(pbar_metrics)
 
-            # forked metrics were dropped, enable them for callbacks
-            forked_metrics = reduced_epoch_metrics.get_forked_metrics()
-            self.callback_metrics.update(forked_metrics)
+                # forked metrics were dropped, enable them for callbacks
+                self.callback_metrics.update(forked_metrics)
 
-            # track the final results for the dataloader
-            self.eval_loop_results.append(deepcopy(self.callback_metrics))
+                # track the final results for the dataloader
+                self.add_to_eval_loop_results(dl_idx)
 
-            # actually log
-            if len(logger_metrics) > 0:
-                metrics_to_log.append(logger_metrics)
+                # actually log
+                if len(logger_metrics) > 0:
+                    metrics_to_log.append(logger_metrics)
 
-        # log all the metrics as a s single dict
+    def add_to_eval_loop_results(self, dl_idx):
+        callback_metrics = deepcopy(self.callback_metrics)
+        for key in list(callback_metrics.keys()):
+            if "/dataloader_idx_" in key:
+                dl_idx_in_key = int(key.split("_")[-1])
+                # remove dl_idx from self.callback_metrics not belonging to this dataset.
+                if dl_idx_in_key != dl_idx:
+                    del callback_metrics[key]
+        self.eval_loop_results.append(callback_metrics)
+
+    def log_epoch_metrics_on_evaluation_end(self, metrics_to_log):
         metrics_to_log = dict(ChainMap(*metrics_to_log))
+
         if len(metrics_to_log) > 0:
             self.log_metrics(metrics_to_log, {}, step=self.trainer.global_step)
-
-    def __rename_keys_by_dataloader_idx(self, metrics, dataloader_idx, num_loaders):
-        if num_loaders == 1:
-            return metrics
-
-        result = {f'{k}/dataloader_idx_{dataloader_idx}': v for k, v in metrics.items()}
-        return result
 
     def _track_callback_metrics(self, eval_results, using_eval_result):
         if (
@@ -397,12 +416,10 @@ class LoggerConnector:
             epoch_log_metrics.update(epoch_end_log_result.get_epoch_log_metrics())
             epoch_progress_bar_metrics.update(epoch_end_log_result.get_epoch_pbar_metrics())
 
-            cache_internal_epoch_log_metrics = self.trainer.logger_connector\
-                .cache_internal_metrics["train"].get_as_dict("after_on_batch_end", "epoch_log_metrics")
+            cache_internal_epoch_log_metrics = self.cached_metrics("train").get_as_dict("after_on_batch_end", "epoch_log_metrics")
             epoch_log_metrics.update(cache_internal_epoch_log_metrics)
 
-            cache_internal_epoch_pbar_metrics = self.trainer.logger_connector\
-                .cache_internal_metrics["train"].get_as_dict("after_on_batch_end", "epoch_pbar_metrics")
+            cache_internal_epoch_pbar_metrics = self.cached_metrics("train").get_as_dict("after_on_batch_end", "epoch_pbar_metrics")
             epoch_progress_bar_metrics.update(cache_internal_epoch_pbar_metrics)
         # TODO: deprecate 1.0
         else:
