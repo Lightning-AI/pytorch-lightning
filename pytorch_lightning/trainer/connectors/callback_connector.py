@@ -62,8 +62,6 @@ class CallbackConnector:
             checkpoint_callback = ModelCheckpoint(filepath=None)
         elif checkpoint_callback is False:
             checkpoint_callback = None
-        if checkpoint_callback:
-            checkpoint_callback.save_function = self.trainer.save_checkpoint
 
         return checkpoint_callback
 

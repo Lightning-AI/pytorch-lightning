@@ -24,7 +24,6 @@ from torch.nn.parallel import DistributedDataParallel
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.cloud_io import atomic_save, load as pl_load
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, find_free_network_port
@@ -42,8 +41,8 @@ else:
 
 class DDPSpawnAccelerator(Accelerator):
 
-    def __init__(self, trainer, nprocs, cluster_environment=None):
-        super().__init__(trainer, cluster_environment)
+    def __init__(self, trainer, nprocs, cluster_environment=None, ddp_plugin=None):
+        super().__init__(trainer, cluster_environment, ddp_plugin)
         self.mp_queue = None
         self.nprocs = nprocs
         self.dist = LightningDistributed()
@@ -81,9 +80,6 @@ class DDPSpawnAccelerator(Accelerator):
             process_idx:
             mp_queue: multiprocessing queue
             model:
-
-        Returns:
-
         """
         seed = os.environ.get("PL_GLOBAL_SEED")
         if seed is not None:
@@ -239,9 +235,7 @@ class DDPSpawnAccelerator(Accelerator):
     def configure_ddp(
         self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
-        model = LightningDistributedDataParallel(
-            model, device_ids=device_ids, find_unused_parameters=True
-        )
+        model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model
 
     def configure_sync_batchnorm(self, model: LightningModule) -> LightningModule:

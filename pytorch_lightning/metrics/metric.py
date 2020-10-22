@@ -255,8 +255,3 @@ class Metric(nn.Module, ABC):
         self.__dict__.update(state)
         self.update = self._wrap_update(self.update)
         self.compute = self._wrap_compute(self.compute)
-
-    def _check_same_shape(self, pred: torch.Tensor, target: torch.Tensor):
-        """ Check that predictions and target have the same shape, else raise error """
-        if pred.shape != target.shape:
-            raise RuntimeError('Predictions and targets are expected to have the same shape')
