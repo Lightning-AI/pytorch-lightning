@@ -219,13 +219,10 @@ def test_metric_collection_wrong_input(tmpdir):
     m1 = DummyMetric1()
 
     # Not all input are metrics
-    with pytest.raises(ValueError, match='Input 5 to `MetricCollection` is'
-                                         ' not a instance of `pl.metrics.Metric`'):
+    with pytest.raises(ValueError):
         metric_collection = MetricCollection([m1, 5])
 
-    with pytest.raises(ValueError, match=
-                       'Value 5 belonging to key metric2 is not an instance of'
-                       ' `pytorch_lightning.metrics.Metric`'):
+    with pytest.raises(ValueError):
         metric_collection = MetricCollection({'metric1': m1,
                                               'metric2': 5})
 

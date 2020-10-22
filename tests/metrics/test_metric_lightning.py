@@ -1,7 +1,7 @@
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.metrics import Metric
+from pytorch_lightning.metrics import Metric, MetricCollection
 from tests.base.boring_model import BoringModel
 
 
@@ -12,6 +12,18 @@ class SumMetric(Metric):
 
     def update(self, x):
         self.x += x
+
+    def compute(self):
+        return self.x
+
+
+class DiffMetric(Metric):
+    def __init__(self):
+        super().__init__()
+        self.add_state("x", torch.tensor(0.0), dist_reduce_fx="sum")
+
+    def update(self, x):
+        self.x -= x
 
     def compute(self):
         return self.x
@@ -78,3 +90,37 @@ def test_metric_lightning_log(tmpdir):
 
     logged = trainer.logged_metrics
     assert torch.allclose(torch.tensor(logged["sum"]), model.sum)
+
+
+def test_metric_collection_lightning_log(tmpdir):
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.metric = MetricCollection([SumMetric(), DiffMetric()])
+            self.sum = 0.0
+            self.diff = 0.0
+
+        def training_step(self, batch, batch_idx):
+            x = batch
+            self.metric(x.sum())
+            self.sum += x.sum()
+            self.diff -= x.sum()
+            self.log_dict(self.metric, on_epoch=True, on_step=False, prefix='train')
+            return self.step(x)
+
+    model = TestModel()
+    model.val_dataloader = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
+        log_every_n_steps=1,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    logged = trainer.logged_metrics
+    assert torch.allclose(torch.tensor(logged["train_SumMetric"]), model.sum)
+    assert torch.allclose(torch.tensor(logged["train_DiffMetric"]), model.diff)

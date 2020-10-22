@@ -762,7 +762,7 @@ class TrainResult(Result):
             sync_dist: if True, reduces the metric across GPUs/TPUs
             sync_dist_op: the op to sync across
             sync_dist_group: the ddp group:
-            prefix: string to append in front of each dictionary key
+            prefix: string to append in front of each dictionary key (seperated by underscore)
         """
         for k, v in dictionary.items():
             self.log(

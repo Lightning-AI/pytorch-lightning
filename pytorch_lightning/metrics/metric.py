@@ -257,7 +257,7 @@ class Metric(nn.Module, ABC):
         self.compute = self._wrap_compute(self.compute)
 
 
-class MetricCollection(nn.Module, Mapping):
+class MetricCollection(nn.ModuleDict):
     """
     MetricCollection class can be used to chain metrics that have the same
     call pattern into one single class.
@@ -289,27 +289,24 @@ class MetricCollection(nn.Module, Mapping):
     """
     def __init__(self, metrics):
         super().__init__()
-        metric_dict = { }
         if isinstance(metrics, dict):
             # Check all values are metrics
             for name, metric in metrics.items():
                 if not isinstance(metric, Metric):
                     raise ValueError(f'Value {metric} belonging to key {name}'
                                       ' is not an instance of `pl.metrics.Metric`')
-            metric_dict = metrics
+                self[name] = metric
         elif isinstance(metrics, (tuple, list)):
-            for i,m in enumerate(metrics):
-                if not isinstance(m, Metric):
-                    raise ValueError(f'Input {m} to `MetricCollection` is not a instance'
+            for metric in metrics:
+                if not isinstance(metric, Metric):
+                    raise ValueError(f'Input {metric} to `MetricCollection` is not a instance'
                                      ' of `pl.metrics.Metric`')
-                name = m.__class__.__name__
-                if name in metric_dict:
+                name = metric.__class__.__name__
+                if name in self:
                     raise ValueError(f'Encountered two metrics both named {name}')
-                metric_dict[name] = m
+                self[name] = metric
         else:
             raise ValueError('Unknown input to MetricCollection.')
-
-        self.metrics = nn.ModuleDict(metric_dict)
 
     def __getitem__(self, name):
         """ Returns a metric by its name """
