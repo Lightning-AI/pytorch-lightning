@@ -481,7 +481,7 @@ class Trainer(
                 # run train epoch
                 self.train_loop.run_training_epoch()
 
-                if self.max_steps and self.max_steps <= self.global_step + 1:
+                if self.max_steps and self.max_steps <= self.global_step:
 
                     # hook
                     self.train_loop.on_train_end()
