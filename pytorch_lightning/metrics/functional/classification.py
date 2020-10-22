@@ -838,8 +838,8 @@ def auc(
                 direction = -1.
             else:
                 # TODO: Update message on removing reorder
-                raise ValueError(f"Reorder is not turned on, and the 'x' array is"
-                                 " neither increasing or decreasing: {x}")
+                raise ValueError("Reorder is not turned on, and the 'x' array is"
+                                 f" neither increasing or decreasing: {x}")
 
     return direction * torch.trapz(y, x)
 
