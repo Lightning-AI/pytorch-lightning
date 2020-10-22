@@ -78,7 +78,7 @@ class ModelCheckpoint(Callback):
 
         dirpath: directory to save the model file.
 
-            Example::
+            Example:
 
                 # custom path
                 # saves a file like: my/path/epoch=0.ckpt
@@ -92,7 +92,7 @@ class ModelCheckpoint(Callback):
 
         filename: checkpoint filename. Can contain named formatting options to be auto-filled.
 
-            Example::
+            Example:
 
                 # save any arbitrary metrics like `val_loss`, etc. in name
                 # saves a file like: my/path/epoch=2-val_loss=0.02-other_metric=0.03.ckpt
@@ -104,7 +104,7 @@ class ModelCheckpoint(Callback):
             By default, filename is ``None`` and will be set to ``'{epoch}'``.
 
 
-    Example::
+    Example:
 
         >>> from pytorch_lightning import Trainer
         >>> from pytorch_lightning.callbacks import ModelCheckpoint
@@ -256,7 +256,7 @@ class ModelCheckpoint(Callback):
         if filepath:
             if (dirpath or filename):
                 raise MisconfigurationException(
-                    f'You have set all three path/name inputs which are not feasible.'
+                    'You have set all three path/name inputs which are not feasible.'
                     f' You have to choose either filepath={filepath} OR dirpath={dirpath}'
                     f' and filename={filename} configuration.'
                 )
