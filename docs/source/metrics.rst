@@ -145,9 +145,10 @@ Example implementation:
             return self.correct.float() / self.total
 
 Metrics support backpropergation, if all computations involved in the metric calculation
-are differentiable. However, note that cashed buffer is detached from the computational
-graph and cannot be backpropergated. Not due this would mean storing the computational
-graph for each update call. Concreatly, this means that:
+are differentiable. However, note that the cashed state is detached from the computational
+graph and cannot be backpropergated. Not doing this would mean storing the computational
+graph for each update call, which can lead to out-of-memory errors.
+In practise this means that:
 
 .. code-block:: python
     metric = MyMetric()
