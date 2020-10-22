@@ -212,6 +212,7 @@ class DDPAccelerator(Accelerator):
             model:
 
         Returns:
+            Dict with evaluation results
 
         """
         seed = os.environ.get("PL_GLOBAL_SEED")

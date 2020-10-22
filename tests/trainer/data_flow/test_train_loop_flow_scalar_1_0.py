@@ -14,6 +14,7 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
+from pytorch_lightning.core.lightning import LightningModule
 import pytest
 from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
@@ -36,7 +37,7 @@ def test__training_step__flow_scalar(tmpdir):
             return acc
 
         def backward(self, loss, optimizer, optimizer_idx):
-            loss.backward()
+            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
 
     model = TestModel()
     model.val_dataloader = None
@@ -78,7 +79,7 @@ def test__training_step__tr_step_end__flow_scalar(tmpdir):
             return tr_step_output
 
         def backward(self, loss, optimizer, optimizer_idx):
-            loss.backward()
+            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
 
     model = TestModel()
     model.val_dataloader = None
@@ -126,7 +127,7 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
                 assert isinstance(b, dict)
 
         def backward(self, loss, optimizer, optimizer_idx):
-            loss.backward()
+            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
 
     model = TestModel()
     model.val_dataloader = None
@@ -180,7 +181,7 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
                 assert isinstance(b, dict)
 
         def backward(self, loss, optimizer, optimizer_idx):
-            loss.backward()
+            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
 
     model = TestModel()
     model.val_dataloader = None
