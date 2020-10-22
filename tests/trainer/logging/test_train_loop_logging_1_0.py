@@ -523,7 +523,7 @@ def test_misconfiguration_error_for_training_step(tmpdir):
         )
         trainer.fit(model)
 
-    assert "The key `loss` should be present within training_step output. Existing keys: ['train_loss']" == str(
+    assert "The key `loss` should be present within training_step output. Found keys: ['train_loss']" == str(
         excinfo.value)
 
 
@@ -558,7 +558,7 @@ def test_misconfiguration_error_for_training_step_end(tmpdir):
         )
         trainer.fit(model)
 
-    assert "The key `loss` should be present within training_step_end output. Existing keys: ['train_loss']" == str(
+    assert "The key `loss` should be present within training_step_end output. Found keys: ['train_loss']" == str(
         excinfo.value)
 
 

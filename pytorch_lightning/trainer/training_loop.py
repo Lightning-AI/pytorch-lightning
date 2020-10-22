@@ -426,8 +426,7 @@ class TrainLoop:
 
             if loss is None:
                 func_name = "training_step_end" if is_overridden('training_step_end', model_ref) else "training_step"
-                m = f'The key `loss` should be present within {func_name} output. \
-                     Existing keys: {[*training_step_output]}'
+                m = f'The key `loss` should be present within {func_name} output. Found keys: {[*training_step_output]}'
                 raise MisconfigurationException(m)
 
         # handle scalar return
