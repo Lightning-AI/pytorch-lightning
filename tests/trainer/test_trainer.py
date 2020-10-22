@@ -668,7 +668,7 @@ def test_trainer_max_steps_accumulate_batches(tmpdir):
     # define less train steps than epochs
     trainer_options.update(
         default_root_dir=tmpdir,
-        max_steps=num_train_samples + 10,
+        max_steps=(num_train_samples + 10),
         accumulate_grad_batches=10,
     )
 
