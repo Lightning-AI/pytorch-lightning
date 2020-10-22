@@ -218,6 +218,9 @@ class EvaluationLoop(object):
     def __run_eval_epoch_end(self, num_dataloaders, using_eval_result):
         model = self.trainer.get_model()
 
+        # reset results
+        model._results = Result()
+
         # with a single dataloader don't pass an array
         outputs = self.outputs
         eval_results = outputs

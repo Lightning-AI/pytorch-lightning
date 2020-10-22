@@ -19,15 +19,15 @@ from typing import Dict, Iterable, List, Optional, Union
 import torch
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import EvalResult
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import BaseProfiler
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
+from pytorch_lightning.trainer.connectors.env_vars_connector import overwrite_by_env_vars
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
@@ -56,7 +56,9 @@ from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer.properties import TrainerProperties
-from pytorch_lightning.cluster_environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.plugin_connector import PluginConnector
+from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.cpu_accelerator import CPUAccelerator
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -79,6 +81,7 @@ class Trainer(
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
 ):
+    @overwrite_by_env_vars
     def __init__(
         self,
         logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
@@ -109,10 +112,10 @@ class Trainer(
         val_check_interval: Union[int, float] = 1.0,
         flush_logs_every_n_steps: int = 100,
         log_every_n_steps: int = 50,
-        distributed_backend: Optional[str] = None,
+        accelerator: Optional[Union[str, Accelerator]] = None,
         sync_batchnorm: bool = False,
         precision: int = 32,
-        weights_summary: Optional[str] = ModelSummary.MODE_DEFAULT,
+        weights_summary: Optional[str] = 'top',
         weights_save_path: Optional[str] = None,
         num_sanity_val_steps: int = 2,
         truncated_bptt_steps: Optional[int] = None,
@@ -126,14 +129,19 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
-        cluster_environment: ClusterEnvironment = None,
+        plugins: Optional[list] = None,
         amp_backend: str = 'native',
         amp_level: str = 'O2',
+        distributed_backend: Optional[str] = None,
+        automatic_optimization: bool = True,
     ):
         r"""
         Customize every aspect of training via flags
 
         Args:
+
+            accelerator: Previously known as distributed_backend (dp, ddp, ddp2, etc...).
+                Can also take in an accelerator object for custom hardware.
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
 
@@ -165,15 +173,13 @@ class Trainer(
 
             check_val_every_n_epoch: Check val every n train epochs.
 
-            cluster_environment: Environment config to link up arbitrary clusters
-
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
                 Default: ``os.getcwd()``.
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
 
             deterministic: If true enables cudnn.deterministic.
 
-            distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn, ddp_cpu)
+            distributed_backend: deprecated. Please use 'accelerator'
 
             fast_dev_run: runs 1 batch of train, test and val to find any bugs (ie: a sort of unit test).
 
@@ -195,6 +201,9 @@ class Trainer(
 
             log_every_n_steps: How often to log within steps (defaults to every 50 steps).
 
+            automatic_optimization: If False you are responsible for calling .backward, .step, zero_grad.
+                Meant to be used with multiple optimizers by advanced users.
+
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
 
@@ -206,6 +215,8 @@ class Trainer(
             profiler:  To profile individual steps during training and assist in identifying bottlenecks.
 
             overfit_batches: Overfit a percent of training data (float) or a set number of batches (int). Default: 0.0
+
+            plugins: Plugins allow modification of core behavior like ddp and amp.
 
             precision: Full precision (32), half precision (16). Can be used on CPU, GPU or TPUs.
 
@@ -276,6 +287,7 @@ class Trainer(
         self.accelerator_backend = None
         self.evaluation_loop = EvaluationLoop(self)
         self.train_loop = TrainLoop(self)
+        self.plugin_connector = PluginConnector(self)
 
         # training state
         self.weights_summary = weights_summary
@@ -315,6 +327,7 @@ class Trainer(
         self.accelerator_connector.on_trainer_init(
             num_processes,
             tpu_cores,
+            accelerator,
             distributed_backend,
             auto_select_gpus,
             gpus,
@@ -324,11 +337,17 @@ class Trainer(
             benchmark,
             replace_sampler_ddp,
             deterministic,
-            cluster_environment
         )
 
         # init train loop related flags
-        self.train_loop.on_trainer_init(max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps)
+        self.train_loop.on_trainer_init(
+            max_epochs,
+            min_epochs,
+            max_steps,
+            min_steps,
+            num_sanity_val_steps,
+            automatic_optimization
+        )
         self.evaluation_loop.on_trainer_init()
 
         # configure tuner
@@ -352,6 +371,9 @@ class Trainer(
 
         # set precision
         self.precision_connector.on_trainer_init(precision, amp_level, amp_backend)
+
+        # last thing are the plugins which override whatever the trainer used by default
+        self.plugin_connector.on_trainer_init(plugins)
 
         # Callback system
         self.on_init_end()

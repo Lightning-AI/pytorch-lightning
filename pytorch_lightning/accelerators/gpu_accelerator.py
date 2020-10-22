@@ -14,17 +14,18 @@
 
 import torch
 
-from pytorch_lightning.accelerators.base_accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.distributed.dist import LightningDistributed
 
 
-class GPUBackend(Accelerator):
+class GPUAccelerator(Accelerator):
     amp_backend: AMPType
 
     def __init__(self, trainer, cluster_environment=None):
         super().__init__(trainer, cluster_environment)
         self.dist = LightningDistributed()
+        self.nickname = None
 
     def setup(self, model):
 

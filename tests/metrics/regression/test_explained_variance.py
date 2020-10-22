@@ -1,13 +1,13 @@
-import torch
-import pytest
 from collections import namedtuple
 from functools import partial
 
-from pytorch_lightning.metrics.regression import ExplainedVariance
+import pytest
+import torch
 from sklearn.metrics import explained_variance_score
 
-from tests.metrics.utils import compute_batch, setup_ddp
-from tests.metrics.utils import NUM_BATCHES, NUM_PROCESSES, BATCH_SIZE
+from pytorch_lightning.metrics.regression import ExplainedVariance
+from pytorch_lightning.metrics.functional import explained_variance
+from tests.metrics.utils import BATCH_SIZE, NUM_BATCHES, MetricTester
 
 torch.manual_seed(42)
 
@@ -15,14 +15,10 @@ num_targets = 5
 
 Input = namedtuple('Input', ["preds", "target"])
 
-_single_target_inputs = Input(
-    preds=torch.rand(NUM_BATCHES, BATCH_SIZE),
-    target=torch.rand(NUM_BATCHES, BATCH_SIZE),
-)
+_single_target_inputs = Input(preds=torch.rand(NUM_BATCHES, BATCH_SIZE), target=torch.rand(NUM_BATCHES, BATCH_SIZE),)
 
 _multi_target_inputs = Input(
-    preds=torch.rand(NUM_BATCHES, BATCH_SIZE, num_targets),
-    target=torch.rand(NUM_BATCHES, BATCH_SIZE, num_targets),
+    preds=torch.rand(NUM_BATCHES, BATCH_SIZE, num_targets), target=torch.rand(NUM_BATCHES, BATCH_SIZE, num_targets),
 )
 
 
@@ -38,8 +34,7 @@ def _multi_target_sk_metric(preds, target, sk_fn=explained_variance_score):
     return sk_fn(sk_target, sk_preds)
 
 
-@pytest.mark.parametrize("ddp", [True, False])
-@pytest.mark.parametrize("dist_sync_on_step", [True, False])
+@pytest.mark.parametrize("multioutput", ['raw_values', 'uniform_average', 'variance_weighted'])
 @pytest.mark.parametrize(
     "preds, target, sk_metric",
     [
@@ -47,5 +42,31 @@ def _multi_target_sk_metric(preds, target, sk_fn=explained_variance_score):
         (_multi_target_inputs.preds, _multi_target_inputs.target, _multi_target_sk_metric),
     ],
 )
-def test_explained_variance(ddp, dist_sync_on_step, preds, target, sk_metric):
-    compute_batch(preds, target, ExplainedVariance, sk_metric, dist_sync_on_step, ddp)
+class TestExplainedVariance(MetricTester):
+    @pytest.mark.parametrize("ddp", [True, False])
+    @pytest.mark.parametrize("dist_sync_on_step", [True, False])
+    def test_explained_variance(self, multioutput, preds, target, sk_metric, ddp, dist_sync_on_step):
+        self.run_class_metric_test(
+            ddp,
+            preds,
+            target,
+            ExplainedVariance,
+            partial(sk_metric, sk_fn=partial(explained_variance_score, multioutput=multioutput)),
+            dist_sync_on_step,
+            metric_args=dict(multioutput=multioutput),
+        )
+
+    def test_explained_variance_functional(self, multioutput, preds, target, sk_metric):
+        self.run_functional_metric_test(
+            preds,
+            target,
+            explained_variance,
+            partial(sk_metric, sk_fn=partial(explained_variance_score, multioutput=multioutput)),
+            metric_args=dict(multioutput=multioutput),
+        )
+
+
+def test_error_on_different_shape(metric_class=ExplainedVariance):
+    metric = metric_class()
+    with pytest.raises(RuntimeError, match='Predictions and targets are expected to have the same shape'):
+        metric(torch.randn(100,), torch.randn(50,))

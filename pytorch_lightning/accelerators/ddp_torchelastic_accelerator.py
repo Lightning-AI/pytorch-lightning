@@ -12,19 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 import os
+from typing import List, Optional
+
 import torch
 import torch.distributed as torch_distrib
 import torch.distributed as dist
-
-from pytorch_lightning.accelerators.base_accelerator import Accelerator, ReduceOp
-from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities.distributed import rank_zero_only, sync_ddp_if_available
-from pytorch_lightning.utilities.seed import seed_everything
-from pytorch_lightning.distributed.dist import LightningDistributed
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from torch.nn.parallel import DistributedDataParallel
-from typing import List, Union, Optional, Any
+
+from pytorch_lightning import _logger as log
+from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities.distributed import rank_zero_only
 
 
 try:
@@ -38,20 +38,21 @@ else:
 
 # -------------------------------------------
 # !!!!!!!!!!!!!! NOTE !!!!!!!!!!!!!!!!!!!!!!
-# TEMP CLASS WHILE WE DECOUPLE TE FROM DDP
+# TEMP CLASS WHILE WE DECOUPLE SLURM FROM DDP
 # !!!!!!!!!!!!!! NOTE !!!!!!!!!!!!!!!!!!!!!!
 # -------------------------------------------
-class DDPCPUSLURMBackend(Accelerator):
+class DDPTorchElasticAccelerator(Accelerator):
 
-    def __init__(self, trainer, cluster_environment=None):
-        super().__init__(trainer, cluster_environment)
+    def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
+        super().__init__(trainer, cluster_environment, ddp_plugin)
         self.task_idx = None
         self._has_spawned_children = False
         self.dist = LightningDistributed()
+        self.nickname = 'ddp'
 
     def setup(self, model):
         self.trainer.model = model
-        self.task_idx = int(os.environ['SLURM_LOCALID'])
+        self.task_idx = int(os.environ['LOCAL_RANK'])
 
     def train(self):
         model = self.trainer.model
@@ -63,10 +64,12 @@ class DDPCPUSLURMBackend(Accelerator):
         self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
     def model_to_device(self, model, process_idx):
-        model.cpu()
+        self.trainer.root_gpu = process_idx
+        torch.cuda.set_device(self.trainer.root_gpu)
+        model.cuda(self.trainer.root_gpu)
 
     def get_device_ids(self):
-        device_ids = None
+        device_ids = [self.trainer.root_gpu]
         return device_ids
 
     def training_step(self, args):
@@ -85,7 +88,7 @@ class DDPCPUSLURMBackend(Accelerator):
         output = self.training_step(args)
         return output
 
-    def barrier(self, name: str = None):
+    def barrier(self, name: Optional[str] = None):
         if torch_distrib.is_initialized():
             torch_distrib.barrier()
 
@@ -109,6 +112,7 @@ class DDPCPUSLURMBackend(Accelerator):
             model:
 
         Returns:
+            Dict with evaluation results
 
         """
         # determine which process we are and world size
@@ -137,7 +141,7 @@ class DDPCPUSLURMBackend(Accelerator):
         # on world_size=0 let everyone know training is starting
         if self.trainer.is_global_zero and not torch.distributed.is_initialized():
             log.info('-' * 100)
-            log.info(f'distributed_backend={self.trainer.distributed_backend} (TORCH_ELASTIC)')
+            log.info(f'distributed_backend={self.trainer.distributed_backend} (on SLURM)')
             log.info(f'All DDP processes registered. Starting ddp with {self.trainer.world_size} processes')
             log.info('-' * 100)
 
@@ -176,14 +180,12 @@ class DDPCPUSLURMBackend(Accelerator):
         return results
 
     def configure_ddp(
-        self, model: "LightningModule", device_ids: List[int]
+        self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
-        model = LightningDistributedDataParallel(
-            model, device_ids=device_ids, find_unused_parameters=True
-        )
+        model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model
 
-    def configure_sync_batchnorm(self, model: "LightningModule") -> "LightningModule":
+    def configure_sync_batchnorm(self, model: LightningModule) -> LightningModule:
         """
         Add global batchnorm for a model spread across multiple GPUs and nodes.
 

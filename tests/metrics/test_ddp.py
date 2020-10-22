@@ -1,7 +1,7 @@
+import sys
+
 import pytest
 import torch
-import os
-import sys
 
 from pytorch_lightning.utilities.distributed import gather_all_tensors
 

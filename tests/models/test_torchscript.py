@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from distutils.version import LooseVersion
 
 import pytest
@@ -17,6 +30,22 @@ def test_torchscript_input_output(modelclass):
     """ Test that scripted LightningModule forward works. """
     model = modelclass()
     script = model.to_torchscript()
+    assert isinstance(script, torch.jit.ScriptModule)
+    model.eval()
+    model_output = model(model.example_input_array)
+    script_output = script(model.example_input_array)
+    assert torch.allclose(script_output, model_output)
+
+
+@pytest.mark.parametrize("modelclass", [
+    EvalModelTemplate,
+    ParityModuleRNN,
+    BasicGAN,
+])
+def test_torchscript_input_output_trace(modelclass):
+    """ Test that traced LightningModule forward works. """
+    model = modelclass()
+    script = model.to_torchscript(method='trace')
     assert isinstance(script, torch.jit.ScriptModule)
     model.eval()
     model_output = model(model.example_input_array)

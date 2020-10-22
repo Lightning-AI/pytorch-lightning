@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import pickle
 from argparse import ArgumentParser
 from unittest.mock import MagicMock
@@ -13,7 +26,7 @@ from tests.base.datasets import TrialMNIST
 from tests.base.datamodules import TrialMNISTDataModule
 from tests.base.develop_utils import reset_seed
 from pytorch_lightning.utilities.model_utils import is_overridden
-from pytorch_lightning.accelerators.gpu_backend import GPUBackend
+from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 
@@ -389,7 +402,7 @@ def test_dm_transfer_batch_to_device(tmpdir):
     if is_overridden('transfer_batch_to_device', dm):
         model.transfer_batch_to_device = dm.transfer_batch_to_device
 
-    trainer.accelerator_backend = GPUBackend(trainer)
+    trainer.accelerator_backend = GPUAccelerator(trainer)
     batch_gpu = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
     expected = torch.device('cuda', 0)
     assert dm.hook_called

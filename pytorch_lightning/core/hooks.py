@@ -295,37 +295,6 @@ class ModelHooks:
 
         """
 
-    def backward(self, trainer, loss: Tensor, optimizer: Optimizer, optimizer_idx: int) -> None:
-        """
-        Override backward with your own implementation if you need to.
-
-        Args:
-            trainer: Pointer to the trainer
-            loss: Loss is already scaled by accumulated grads
-            optimizer: Current optimizer being used
-            optimizer_idx: Index of the current optimizer being used
-
-        Called to perform backward step.
-        Feel free to override as needed.
-
-        The loss passed in has already been scaled for accumulated gradients if requested.
-
-        Example::
-
-            def backward(self, trainer, loss, optimizer, optimizer_idx):
-                loss.backward()
-
-        """
-        loss.backward()
-
-    def amp_scale_loss(self, unscaled_loss: Tensor, optimizer: Optimizer, optimizer_idx: int, amp_backend: AMPType):
-        if amp_backend == AMPType.NATIVE:
-            scaled_loss = self.trainer.scaler.scale(unscaled_loss)
-        else:
-            scaled_loss = amp.scale_loss(unscaled_loss, optimizer)
-
-        return scaled_loss
-
 
 class DataHooks:
     def prepare_data(self) -> None:

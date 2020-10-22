@@ -1,9 +1,23 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import functools
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Optional, Union
 from collections.abc import Mapping, Sequence
 from collections import namedtuple
 from copy import deepcopy
+from distutils.version import LooseVersion
 
 import os
 import torch
@@ -56,7 +70,6 @@ class Metric(nn.Module, ABC):
         super().__init__()
 
         self.dist_sync_on_step = dist_sync_on_step
-        self.dist_sync_fn = dist_sync_fn
         self.compute_on_step = compute_on_step
         self.process_group = process_group
         self._to_sync = True
@@ -70,7 +83,9 @@ class Metric(nn.Module, ABC):
         self._reductions = {}
         self._defaults = {}
 
-    def add_state(self, name: str, default, dist_reduce_fx: Optional[Union[str, Callable]] = None):
+    def add_state(
+        self, name: str, default, dist_reduce_fx: Optional[Union[str, Callable]] = None, persistent: bool = True
+    ):
         """
         Adds metric state variable. Only used by subclasses.
 
@@ -82,6 +97,7 @@ class Metric(nn.Module, ABC):
                 If value is ``"sum"``, ``"mean"``, or ``"cat"``, we will use ``torch.sum``, ``torch.mean``,
                 and ``torch.cat`` respectively, each with argument ``dim=0``. The user can also pass a custom
                 function in this parameter.
+            persistent (Optional): whether the state will be saved as part of the modules ``state_dict``.
 
         Note:
             Setting ``dist_reduce_fx`` to None will return the metric state synchronized across different processes.
@@ -122,7 +138,11 @@ class Metric(nn.Module, ABC):
             )
 
         if isinstance(default, torch.Tensor):
-            self.register_buffer(name, default)
+            if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+                # persistent keyword is only supported in torch >= 1.6.0
+                self.register_buffer(name, default, persistent=persistent)
+            else:
+                self.register_buffer(name, default)
         else:
             setattr(self, name, default)
 

@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import ExitStack
-from typing import Union, Optional, Any
+from typing import Optional
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
-from pytorch_lightning.accelerators.base_accelerator import Accelerator, ReduceOp
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
@@ -29,11 +29,12 @@ else:
     HOROVOD_AVAILABLE = True
 
 
-class HorovodBackend(Accelerator):
+class HorovodAccelerator(Accelerator):
     amp_backend: AMPType
 
     def __init__(self, trainer, cluster_environment=None):
         super().__init__(trainer, cluster_environment)
+        self.nickname = 'horovod'
 
     def setup(self, model):
         # call setup after the ddp process has connected
@@ -150,14 +151,14 @@ class HorovodBackend(Accelerator):
             output = self.trainer.model.test_step(*args)
         return output
 
-    def backward(self, closure_loss, optimizer, opt_idx):
-        super().backward(closure_loss, optimizer, opt_idx)
+    def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
+        super().backward(closure_loss, optimizer, opt_idx, *args, **kwargs)
         optimizer.synchronize()
 
     def on_train_epoch_end(self, outputs):
         hvd.join(hvd.local_rank() if self.trainer.on_gpu else -1)
 
-    def barrier(self, name: str = None):
+    def barrier(self, name: Optional[str] = None):
         hvd.join()
 
     def broadcast(self, obj, src=0):

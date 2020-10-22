@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import os
 import pickle
 from argparse import Namespace
@@ -5,6 +18,7 @@ from argparse import Namespace
 import cloudpickle
 import pytest
 import torch
+from fsspec.implementations.local import LocalFileSystem
 from omegaconf import OmegaConf, Container
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
@@ -12,7 +26,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.core.saving import save_hparams_to_yaml, load_hparams_from_yaml
 from pytorch_lightning.utilities import AttributeDict, is_picklable
-from tests.base import EvalModelTemplate, TrialMNIST
+from tests.base import EvalModelTemplate, TrialMNIST, BoringModel
 
 
 class SaveHparamsModel(EvalModelTemplate):
@@ -538,6 +552,60 @@ def test_args(tmpdir):
     trainer.fit(model)
 
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
-    with pytest.raises(TypeError, match="__init__\(\) got an unexpected keyword argument 'test'"):
+    with pytest.raises(TypeError, match=r"__init__\(\) got an unexpected keyword argument 'test'"):
         SubClassVarArgs.load_from_checkpoint(raw_checkpoint_path)
 
+
+class RuntimeParamChangeModelSaving(BoringModel):
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.save_hyperparameters()
+
+
+class RuntimeParamChangeModelAssign(BoringModel):
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.hparams = kwargs
+
+
+@pytest.mark.parametrize("cls", [RuntimeParamChangeModelSaving, RuntimeParamChangeModelAssign])
+def test_init_arg_with_runtime_change(tmpdir, cls):
+    """Test that we save/export only the initial hparams, no other runtime change allowed"""
+    model = cls(running_arg=123)
+    assert model.hparams.running_arg == 123
+    model.hparams.running_arg = -1
+    assert model.hparams.running_arg == -1
+    model.hparams = Namespace(abc=42)
+    assert model.hparams.abc == 42
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        max_epochs=1,
+    )
+    trainer.fit(model)
+
+    path_yaml = os.path.join(trainer.logger.log_dir, trainer.logger.NAME_HPARAMS_FILE)
+    hparams = load_hparams_from_yaml(path_yaml)
+    assert hparams.get('running_arg') == 123
+
+
+class UnsafeParamModel(BoringModel):
+    def __init__(self, my_path, any_param=123):
+        super().__init__()
+        self.save_hyperparameters()
+
+
+def test_model_with_fsspec_as_parameter(tmpdir):
+    model = UnsafeParamModel(LocalFileSystem(tmpdir))
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        max_epochs=1,
+    )
+    trainer.fit(model)
+    trainer.test()

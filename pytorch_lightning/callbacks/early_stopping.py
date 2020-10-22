@@ -35,8 +35,6 @@ TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 torch_inf = torch.tensor(np.Inf)
 
 
-
-
 class EarlyStopping(Callback):
     r"""
     Monitor a validation metric and stop training when it stops improving.
@@ -88,7 +86,7 @@ class EarlyStopping(Callback):
         # It is set to False initially and overwritten, if eval results have been validated
         self.based_on_eval_results = False
 
-        if mode not in self.mode_dict:
+        if mode not in self.mode_dict and mode != 'auto':
             if self.verbose > 0:
                 log.info(f'EarlyStopping mode {mode} is unknown, fallback to auto mode.')
             self.mode = 'auto'

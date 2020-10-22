@@ -1,7 +1,20 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import os
 import math
 from enum import Enum
-from typing import Union, Optional, Any
+from typing import Any, Optional
 
 import torch
 
@@ -29,13 +42,17 @@ EPSILON_FP16 = 1e-5
 
 class Accelerator(object):
 
-    def __init__(self, trainer, cluster_environment=None):
+    def __init__(self, trainer=None, cluster_environment=None, ddp_plugin=None):
         self.trainer = trainer
+        self.nickname = None
         self.cluster_environment = cluster_environment
         self.dist = AttributeDict(rank=0, device=None)
-        self.train_loop = self.trainer.train
-        self.validation_loop = self.trainer.run_evaluation
-        self.test_loop = self.trainer.run_evaluation
+        self.ddp_plugin = ddp_plugin
+
+        if trainer is not None:
+            self.train_loop = self.trainer.train
+            self.validation_loop = self.trainer.run_evaluation
+            self.test_loop = self.trainer.run_evaluation
 
     def setup(self, model):
         pass
@@ -43,7 +60,7 @@ class Accelerator(object):
     def teardown(self):
         pass
 
-    def barrier(self, name: str = None):
+    def barrier(self, name: Optional[str] = None):
         pass
 
     def broadcast(self, obj, src=0):
@@ -74,37 +91,18 @@ class Accelerator(object):
     def process_dataloader(self, dataloader):
         return dataloader
 
-    def backward(self, closure_loss, optimizer, opt_idx):
-        model_ref = self.trainer.get_model()
-
-        # scale loss for 16 bit
+    def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         if self.trainer.precision == 16:
-            closure_loss = model_ref.amp_scale_loss(
-                closure_loss,
-                optimizer,
-                opt_idx,
-                amp_backend=self.trainer.amp_backend
+            closure_loss = self.trainer.precision_connector.backend.backward(
+                closure_loss, optimizer, opt_idx, *args, **kwargs
             )
+        else:
+            # do backward pass
+            model = self.trainer.get_model()
+            model.backward(closure_loss, optimizer, opt_idx, *args, **kwargs)
 
-            # enter amp context
-            if self.trainer.amp_backend == AMPType.APEX:
-                self.trainer.dev_debugger.track_event('AMP', str(AMPType.APEX))
-                context = closure_loss
-                closure_loss = closure_loss.__enter__()
-
-        # do backward pass
-        model_ref.backward(self, closure_loss, optimizer, opt_idx)
-
-        # exit amp context
-        if self.trainer.precision == 16 and self.trainer.amp_backend == AMPType.APEX:
-            a, b, c = None, None, None
-            error = context.__exit__(a, b, c)
-            if error:
-                rank_zero_warn(a, b, c)
-                raise Exception('apex unscale error')
-
-        # once backward has been applied, release graph
-        closure_loss = closure_loss.detach()
+            # once backward has been applied, release graph
+            closure_loss = closure_loss.detach()
         return closure_loss
 
     def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure):
@@ -137,19 +135,25 @@ class Accelerator(object):
         model_ref = self.trainer.get_model()
         model_ref.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
-    def clip_gradients(self, optimizer):
+    def clip_gradients(self, optimizer, clip_val=None):
 
         if self.trainer.amp_backend == AMPType.NATIVE:
             self.trainer.scaler.unscale_(optimizer)
 
         # apply clip gradients
         # TODO: separate TPU case from here
-        self._clip_gradients(optimizer)
+        self._clip_gradients(optimizer, clip_val)
 
-    def _clip_gradients(self, optimizer):
+    def _clip_gradients(self, optimizer, clip_val=None):
+        # use the trainer's clip val if none passed
+        grad_clip_val = self.trainer.gradient_clip_val
+        if clip_val is not None:
+            grad_clip_val = clip_val
+        grad_clip_val = float(grad_clip_val)
+
         # this code is a modification of torch.nn.utils.clip_grad_norm_
         # with TPU support based on https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md
-        if self.trainer.gradient_clip_val <= 0:
+        if grad_clip_val <= 0:
             return
 
         model = self.trainer.get_model()
@@ -158,7 +162,7 @@ class Accelerator(object):
         else:
             parameters = model.parameters()
 
-        max_norm = float(self.trainer.gradient_clip_val)
+        max_norm = grad_clip_val
         norm_type = float(2.0)
 
         if isinstance(parameters, torch.Tensor):
@@ -201,45 +205,9 @@ class Accelerator(object):
     def init_ddp_connection(
         self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
     ) -> None:
-        if is_slurm_managing_tasks:
-            self.trainer.slurm_connector.connect_ddp(global_rank, world_size)
-        else:
-            self.connect_torchelastic(global_rank, world_size)
-
-    def connect_torchelastic(
-        self, global_rank: int, world_size: int
-    ) -> None:
-        """
-        Override to define your custom way of setting up a distributed environment.
-
-        Lightning's implementation uses env:// init by default and sets the first node as root
-        for SLURM managed cluster.
-
-        Args:
-            global_rank: The global process idx.
-            world_size: Number of GPUs being use across all nodes. (num_nodes * num_gpus).
-        """
-
-        if "MASTER_ADDR" not in os.environ:
-            rank_zero_warn(
-                "MASTER_ADDR environment variable is not defined. Set as localhost"
-            )
-            os.environ["MASTER_ADDR"] = "127.0.0.1"
-        log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
-
-        if "MASTER_PORT" not in os.environ:
-            rank_zero_warn(
-                "MASTER_PORT environment variable is not defined. Set as 12910"
-            )
-            os.environ["MASTER_PORT"] = "12910"
-        log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
-
-        if "WORLD_SIZE" in os.environ and int(os.environ["WORLD_SIZE"]) != world_size:
-            rank_zero_warn(
-                f"WORLD_SIZE environment variable ({os.environ['WORLD_SIZE']}) "
-                f"is not equal to the computed world size ({world_size}). Ignored."
-            )
-
+        os.environ["MASTER_ADDR"] = str(self.cluster_environment.master_address())
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
+        os.environ["WORLD_SIZE"] = str(self.cluster_environment.world_size())
         torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
 
         if not torch.distributed.is_initialized():
@@ -250,38 +218,21 @@ class Accelerator(object):
                 torch_backend, rank=global_rank, world_size=world_size
             )
 
-    def gather_all_tensors(self, result: Union[torch.Tensor], group: Optional[Any] = None):
-        """
-        Function to gather all tensors from several distributed processes into a list that
-        is broadcast to all processes.
+    def __getstate__(self):
+        return {
+            'trainer': self.trainer,
+            'nickname': self.nickname,
+            'cluster_environment': self.cluster_environment,
+            'dist': self.dist,
+            'ddp_plugin': self.ddp_plugin
+        }
 
-        Args:
-            result: the tensor to be gathered
-            group: the process group to gather results from. Defaults to all processes (world)
-
-        Return:
-            gathered_result: list with size equal to the process group size where
-                gathered_result[i] corresponds to result tensor from process i
-        """
-        raise NotImplementedError
-
-    def sync_tensor(self,
-                    tensor: Union[torch.Tensor],
-                    group: Optional[Any] = None,
-                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
-        """
-        Function to reduce a tensor from several distributed processes to one aggregated tensor.
-
-        Args:
-            tensor: the tensor to sync and reduce
-            group: the process group to gather results from. Defaults to all processes (world)
-            reduce_op: the reduction operation. Defaults to sum.
-                Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
-
-        Return:
-            reduced value
-        """
-        raise NotImplementedError
+    def __setstate__(self, d):
+        self.trainer = d['trainer']
+        self.nickname = d['nickname']
+        self.cluster_environment = d['cluster_environment']
+        self.dist = d['dist']
+        self.ddp_plugin = d['ddp_plugin']
 
 
 # TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...
