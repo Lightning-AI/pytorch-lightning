@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 import pickle
-import warnings
 
 import cloudpickle
 import numpy as np
@@ -21,6 +20,7 @@ import pytest
 import torch
 from unittest import mock
 
+from pytorch_lightning import _logger
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from tests.base import EvalModelTemplate, BoringModel
@@ -207,18 +207,21 @@ def test_early_stopping_functionality_arbitrary_key(tmpdir):
     trainer.fit(model)
     assert trainer.current_epoch >= 5, 'early_stopping failed'
 
-
-@pytest.mark.parametrize('step_freeze', [5, 6, 7])
-@pytest.mark.parametrize('min_steps', list(range(4, 8)))
+@pytest.mark.parametrize('step_freeze', [5, 7])
+@pytest.mark.parametrize('min_steps', [100] + list(range(4, 6)))
 @pytest.mark.parametrize('min_epochs', list(range(2, 3)))
 def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, min_steps, min_epochs):
     """Excepted Behaviour:
     IF `min_steps` was set to a higher value than the `trainer.global_step` when `early_stopping` is being triggered,
     THEN the trainer should continue until reaching `trainer.global_step` == `min_steps`, and stop.
     This test validate this expected behaviour
+
+    IF `min_epochs` resulted in a higher number of steps than the `trainer.global_step` when `early_stopping` is being triggered,
+    THEN the trainer should continue until reaching `trainer.global_step` == `min_epochs * len(train_dataloader)`, and stop.
+    This test validate this expected behaviour
     """
 
-    warnings.filterwarnings("ignore")
+    _logger.disabled = True
 
     original_loss_value = 10
     limit_train_batches = 3
@@ -285,3 +288,5 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, mi
     # Make sure the trainer stops for the max of all minimun requirements
     assert trainer.global_step == max(min_steps, by_early_stopping, by_min_epochs), \
         (trainer.global_step, max(min_steps, by_early_stopping, by_min_epochs), step_freeze, min_steps, min_epochs)
+
+    _logger.disabled = False
