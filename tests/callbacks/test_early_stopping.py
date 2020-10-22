@@ -207,6 +207,7 @@ def test_early_stopping_functionality_arbitrary_key(tmpdir):
     trainer.fit(model)
     assert trainer.current_epoch >= 5, 'early_stopping failed'
 
+
 @pytest.mark.parametrize('step_freeze', [5, 7])
 @pytest.mark.parametrize('min_steps', [100] + list(range(4, 6)))
 @pytest.mark.parametrize('min_epochs', list(range(2, 3)))
@@ -214,11 +215,17 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, mi
     """Excepted Behaviour:
     IF `min_steps` was set to a higher value than the `trainer.global_step` when `early_stopping` is being triggered,
     THEN the trainer should continue until reaching `trainer.global_step` == `min_steps`, and stop.
-    This test validate this expected behaviour
 
     IF `min_epochs` resulted in a higher number of steps than the `trainer.global_step` when `early_stopping` is being triggered,
     THEN the trainer should continue until reaching `trainer.global_step` == `min_epochs * len(train_dataloader)`, and stop.
     This test validate this expected behaviour
+
+    IF both `min_epochs` and `min_steps` are provided and higher than the `trainer.global_step` when `early_stopping` is being triggered,
+    THEN the highest between `min_epochs * len(train_dataloader)` and `min_steps` would be reached.
+
+    Caviat: IF min_steps is divisible by len(train_dataloader), then it will do min_steps + len(train_dataloader)
+
+    This test validate those expected behaviours
     """
 
     _logger.disabled = True
