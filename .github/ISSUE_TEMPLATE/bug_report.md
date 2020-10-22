@@ -23,7 +23,7 @@ assignees: ''
 
 ### Environment
 
-**Note** `Bugs with code` are solved faster ! `Colab Notebook` should be made `public` !
+**Note**: `Bugs with code` are solved faster ! `Colab Notebook` should be made `public` !
 
 * `IDE`: Please, use our python [bug_report_model.py](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/bug_report_model.py
 ) template.
