@@ -68,7 +68,7 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
 
     # We know user requested GPUs therefore if some of the
     # requested GPUs are not available an exception is thrown.
-    
+
     gpus = _normalize_parse_gpu_string_input(gpus)
     gpus = _normalize_parse_gpu_input_to_list(gpus)
     if not gpus:
