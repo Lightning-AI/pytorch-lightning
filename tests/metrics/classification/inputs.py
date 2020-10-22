@@ -1,16 +1,12 @@
-import os
-import pytest
-import numpy as np
+from collections import namedtuple
+
 import torch
 
-from collections import namedtuple
 from tests.metrics.utils import (
     NUM_BATCHES,
-    NUM_PROCESSES,
     BATCH_SIZE,
     NUM_CLASSES,
-    EXTRA_DIM,
-    THRESHOLD
+    EXTRA_DIM
 )
 
 Input = namedtuple('Input', ["preds", "target"])
@@ -39,6 +35,14 @@ _multilabel_inputs = Input(
     target=torch.randint(high=2, size=(NUM_BATCHES, BATCH_SIZE, NUM_CLASSES))
 )
 
+# Generate edge multilabel edge case, where nothing matches (scores are undefined)
+__temp_preds = torch.randint(high=2, size=(NUM_BATCHES, BATCH_SIZE, NUM_CLASSES))
+__temp_target = abs(__temp_preds - 1)
+
+_multilabel_inputs_no_match = Input(
+    preds=__temp_preds,
+    target=__temp_target
+)
 
 _multiclass_prob_inputs = Input(
     preds=torch.rand(NUM_BATCHES, BATCH_SIZE, NUM_CLASSES),

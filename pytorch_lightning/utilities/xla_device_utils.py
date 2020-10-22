@@ -55,8 +55,10 @@ class XLADeviceUtils:
     def _fetch_xla_device_type(device: torch.device) -> str:
         """
         Returns XLA device type
+
         Args:
             device: (:class:`~torch.device`): Accepts a torch.device type with a XLA device format i.e xla:0
+
         Return:
             Returns a str of the device hardware type. i.e TPU
         """
@@ -67,6 +69,7 @@ class XLADeviceUtils:
     def _is_device_tpu() -> bool:
         """
         Check if device is TPU
+
         Return:
             A boolean value indicating if the xla device is a TPU device or not
         """
@@ -79,6 +82,7 @@ class XLADeviceUtils:
     def tpu_device_exists() -> bool:
         """
         Public method to check if TPU is available
+
         Return:
             A boolean value indicating if a TPU device exists on the system
         """

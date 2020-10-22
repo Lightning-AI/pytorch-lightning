@@ -15,3 +15,5 @@ from pytorch_lightning.metrics.regression.mean_squared_error import MeanSquaredE
 from pytorch_lightning.metrics.regression.mean_absolute_error import MeanAbsoluteError
 from pytorch_lightning.metrics.regression.mean_squared_log_error import MeanSquaredLogError
 from pytorch_lightning.metrics.regression.explained_variance import ExplainedVariance
+from pytorch_lightning.metrics.regression.psnr import PSNR
+from pytorch_lightning.metrics.regression.ssim import SSIM

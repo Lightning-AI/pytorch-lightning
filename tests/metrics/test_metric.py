@@ -1,11 +1,13 @@
+import pickle
+
+from distutils.version import LooseVersion
+import cloudpickle
+import numpy as np
 import pytest
 import torch
 from pytorch_lightning.metrics.metric import Metric, MetricCollection
 import os
 import numpy as np
-
-import pickle
-import cloudpickle
 
 torch.manual_seed(42)
 
@@ -57,6 +59,18 @@ def test_add_state():
 
     a.add_state("e", torch.tensor(0), custom_fx)
     assert a._reductions["e"](torch.tensor([1, 1])) == -1
+
+
+def test_add_state_persistent():
+    a = Dummy()
+
+    a.add_state("a", torch.tensor(0), "sum", persistent=True)
+    assert "a" in a.state_dict()
+
+    a.add_state("b", torch.tensor(0), "sum", persistent=False)
+
+    if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+        assert "b" not in a.state_dict()
 
 
 def test_reset():

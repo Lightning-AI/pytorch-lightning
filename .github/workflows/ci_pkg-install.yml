@@ -25,14 +25,18 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Prepare env
+        run: |
+          pip install check-manifest "twine==1.13.0"
+
       - name: Create package
         run: |
+          check-manifest
           # python setup.py check --metadata --strict
           python setup.py sdist
 
       - name: Check package
         run: |
-          pip install twine==1.13.0
           twine check dist/*
           python setup.py clean
 
@@ -40,7 +44,7 @@ jobs:
         if: runner.os == 'windows'
         run: |
           # this is just a hotfix because of Win cannot install it directly
-          pip install -r requirements/base.txt --find-links https://download.pytorch.org/whl/torch_stable.html
+          pip install -r requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
 
       - name: Install package
         run: |

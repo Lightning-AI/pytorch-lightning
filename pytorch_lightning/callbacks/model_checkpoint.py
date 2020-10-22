@@ -159,6 +159,7 @@ class ModelCheckpoint(Callback):
         When pretrain routine starts we build the ckpt dir on the fly
         """
         self.__resolve_ckpt_dir(trainer, pl_module)
+        self.save_function = trainer.save_checkpoint
 
     def on_validation_end(self, trainer, pl_module):
         """
