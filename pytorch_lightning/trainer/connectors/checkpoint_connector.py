@@ -52,7 +52,6 @@ class CheckpointConnector:
         # used to validate checkpointing logic
         self.has_trained = False
 
-
     def restore_weights(self, model: LightningModule):
         """
         We attempt to restore weights in this order:

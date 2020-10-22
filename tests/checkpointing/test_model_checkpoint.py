@@ -649,10 +649,10 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
                          limit_test_batches=2,
                          )
 
-    assert trainer.checkpoint_connector.has_trained == False
+    assert trainer.checkpoint_connector.has_trained is not False
     assert trainer.current_epoch == 0
     trainer.fit(model)
-    assert trainer.checkpoint_connector.has_trained == True
+    assert trainer.checkpoint_connector.has_trained is True
     assert trainer.global_step == 2
     assert trainer.current_epoch == 0
     trainer.test(model)
@@ -690,12 +690,12 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
                              limit_val_batches=2,
                              limit_test_batches=2,
                              resume_from_checkpoint=chk)
-        assert trainer.checkpoint_connector.has_trained == False
+        assert trainer.checkpoint_connector.has_trained is not False
         assert trainer.global_step == 0
         trainer.test(model)
         assert trainer.global_step == 2
         trainer.fit(model)
         assert trainer.global_step == 2
-        assert trainer.checkpoint_connector.has_trained == False
+        assert trainer.checkpoint_connector.has_trained is not False
         lightning_logs_path = osp.join(tmpdir, 'lightning_logs')
         assert sorted(os.listdir(lightning_logs_path)) == [f"version_{i}" for i in range(idx + 1)]
