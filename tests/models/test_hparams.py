@@ -622,6 +622,7 @@ def test_extending_existing_hparams(tmpdir):
 
     old_hparams.update(hparams)
     assert old_hparams == model.hparams
+    assert old_hparams == model.hparams_initial
 
 
 def test_extending_non_existing_hparams(tmpdir):
@@ -635,6 +636,7 @@ def test_extending_non_existing_hparams(tmpdir):
     model.add_datamodule_hparams(hparams)
 
     assert hparams == model.hparams
+    assert hparams == model.hparams_initial
 
 
 def test_extending_with_namespace(tmpdir):
@@ -646,6 +648,7 @@ def test_extending_with_namespace(tmpdir):
 
     old_hparams.update(vars(hparams))
     assert old_hparams == model.hparams
+    assert old_hparams == model.hparams_initial
 
 
 def test_extend_with_unsupported_hparams(tmpdir):
@@ -686,6 +689,7 @@ def test_adding_datamodule_hparams(tmpdir):
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
     model = SaveHparamsModel.load_from_checkpoint(raw_checkpoint_path)
     assert model.hparams == hparams
+    assert model.hparams_initial == hparams
 
 
 def test_colliding_datamodule_hparams(tmpdir):

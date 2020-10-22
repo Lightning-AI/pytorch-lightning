@@ -1518,10 +1518,13 @@ class LightningModule(
     def add_datamodule_hparams(self, hparams):
         hparams = self._to_hparams_dict(hparams)
         if not hasattr(self, '_hparams'):
-            self._hparams_name = 'extended'
             self._hparams = hparams
+            self._hparams_initial = hparams
         else:
             colliding_keys = [key for key in hparams.keys() if key in self.hparams]
+            colliding_keys += [key for key in hparams.keys() if key in self.hparams_initial]
+            colliding_keys = set(colliding_keys)
             if colliding_keys:
                 raise ValueError(f'The keys {colliding_keys} are already present in the hparams.')
             self.hparams.update(hparams)
+            self._hparams_initial.update(hparams)
