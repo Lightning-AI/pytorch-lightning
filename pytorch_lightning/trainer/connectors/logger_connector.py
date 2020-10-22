@@ -75,6 +75,7 @@ class CacheInternalMetrics:
     def reset(self):
         self._internal_dict = {stage: defaultdict(list) for stage in self.stages}
 
+
 class LoggerConnector:
 
     __stages = ["train", "val", "test"]
@@ -606,6 +607,10 @@ class LoggerConnector:
             # logs user requested information to logger
             metrics = batch_output.batch_log_metrics
             grad_norm_dic = batch_output.grad_norm_dic
+            if metrics is None:
+                metrics = {}
+            if grad_norm_dic is None:
+                grad_norm_dic = {}
             if len(metrics) > 0 or len(grad_norm_dic) > 0:
                 self.log_metrics(metrics, grad_norm_dic)
                 self.callback_metrics.update(metrics)

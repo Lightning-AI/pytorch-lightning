@@ -14,9 +14,7 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
-<<<<<<< HEAD
 from pytorch_lightning.core.lightning import LightningModule
-=======
 import os
 import collections
 import itertools
@@ -25,7 +23,6 @@ import numpy as np
 import torch
 
 import pytorch_lightning as pl
->>>>>>> add support for logging within val / test
 from pytorch_lightning import Trainer
 from pytorch_lightning import callbacks, seed_everything
 

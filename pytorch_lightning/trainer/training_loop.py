@@ -727,7 +727,6 @@ class TrainLoop:
         batch_log_metrics = {}
         batch_log_metrics.update(model._results.batch_log_metrics)
         batch_log_metrics = [batch_log_metrics]
-
         # checks if backward or backward + optimizer step (via closure)
         accumulation_done = self._accumulated_batches_reached()
         is_final_batch = self._num_training_batches_reached()
@@ -751,24 +750,19 @@ class TrainLoop:
                     model = self.trainer.get_model()
                     model.toggle_optimizer(optimizer, opt_idx)
 
-                # -------------------
-                # calculate loss (train step + train step end)
-                # -------------------
-                opt_closure_result = self.training_step_and_backward(
-                    split_batch,
-                    batch_idx,
-                    opt_idx,
-                    optimizer,
-                    self.trainer.hiddens
-                )
+                if not (accumulation_done or is_final_batch):
+                    # For gradient accumulation
 
-                if opt_closure_result is None:
-                    results = self.trainer.get_model()._results
-                    batch_log_metrics.append(results.get_batch_log_metrics(include_forked_originals=False))
-                    batch_log_metrics.append(self.trainer.metrics_to_scalars(results.epoch_log_metrics))
-                    continue
-
-                using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
+                    # -------------------
+                    # calculate loss (train step + train step end)
+                    # -------------------
+                    self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens)
+                    batch_outputs = self._process_closure_result(
+                        batch_callback_metrics=batch_callback_metrics,
+                        batch_log_metrics=batch_log_metrics,
+                        batch_outputs=batch_outputs,
+                        opt_idx=opt_idx,
+                    )
 
                 # ------------------------------
                 # BACKWARD PASS
@@ -793,11 +787,13 @@ class TrainLoop:
                         self.optimizer_step(optimizer, opt_idx, batch_idx, train_step_and_backward_closure)
 
                     else:
-                        self._curr_step_result = self.training_step(split_batch, batch_idx, opt_idx, self.trainer.hiddens)
+                        self._curr_step_result = self.training_step(split_batch, batch_idx, opt_idx,
+                                                                    self.trainer.hiddens)
 
                     if self._curr_step_result is None:
-                        # user decided to skip optimization
-                        continue
+                        results = self.trainer.get_model()._results
+                        batch_log_metrics.append(results.get_batch_log_metrics(include_forked_originals=False))
+                        batch_log_metrics.append(self.trainer.metrics_to_scalars(results.epoch_log_metrics))
 
                     batch_outputs = self._process_closure_result(
                         batch_callback_metrics=batch_callback_metrics,
