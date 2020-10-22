@@ -78,14 +78,14 @@ def lr_find(
         datamodule: Optional[LightningDataModule] = None,
 ):
     r"""
-    lr_find enables the user to do a range test of good initial learning rates,
+    `lr_find` enables the user to do a range test of good initial learning rates,
     to reduce the amount of guesswork in picking a good starting learning rate.
 
     Args:
         model: Model to do range testing for
 
         train_dataloader: A PyTorch
-            DataLoader with training samples. If the model has
+            `DataLoader` with training samples. If the model has
             a predefined train_dataloader method, this will be skipped.
 
         min_lr: minimum learning rate to investigate
@@ -116,7 +116,7 @@ def lr_find(
         trainer = pl.Trainer()
 
         # Run lr finder
-        lr_finder = trainer.lr_find(model, ...)
+        lr_finder = trainer.tuner.lr_find(model, ...)
 
         # Inspect results
         fig = lr_finder.plot(); fig.show()
@@ -157,7 +157,6 @@ def lr_find(
 
     # Disable standard checkpoint & early stopping
     trainer.checkpoint_callback = False
-    trainer.early_stop_callback = None
 
     # Required for saving the model
     trainer.optimizers, trainer.schedulers = [], [],
@@ -204,7 +203,6 @@ def __lr_finder_dump_params(trainer, model):
         'logger': trainer.logger,
         'max_steps': trainer.max_steps,
         'checkpoint_callback': trainer.checkpoint_callback,
-        'early_stop_callback': trainer.early_stop_callback,
         'configure_optimizers': model.configure_optimizers,
     }
 
@@ -215,7 +213,6 @@ def __lr_finder_restore_params(trainer, model):
     trainer.callbacks = trainer.__dumped_params['callbacks']
     trainer.max_steps = trainer.__dumped_params['max_steps']
     trainer.checkpoint_callback = trainer.__dumped_params['checkpoint_callback']
-    trainer.early_stop_callback = trainer.__dumped_params['early_stop_callback']
     model.configure_optimizers = trainer.__dumped_params['configure_optimizers']
     del trainer.__dumped_params
 
@@ -393,7 +390,7 @@ class _LRCallback(Callback):
 
         self.lrs.append(trainer.lr_schedulers[0]['scheduler'].lr[0])
 
-    def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         """ Called when the training batch ends, logs the calculated loss """
         if (trainer.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return

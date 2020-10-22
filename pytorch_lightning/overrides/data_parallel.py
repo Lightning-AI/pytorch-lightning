@@ -212,10 +212,7 @@ class LightningDistributedDataParallel(DistributedDataParallel):
 
 def warn_missing_output(fx_called):
     if fx_called == 'training_step':
-        warning_cache.warn("Your training_step returned None. You should instead do:\n"
-                           "`return loss`\n or\n `return TrainResult`")
-    elif fx_called in ['validation_step', 'test_step']:
-        warning_cache.warn(f"Your {fx_called} returned None. You should instead do:\n `return EvalResult")
+        warning_cache.warn("Your training_step returned None. Make sure that was your intention!")
 
 
 def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: no-cover

@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from copy import deepcopy
 import pytest
 import torch
@@ -58,8 +71,7 @@ def test_trainer_reset_correctly(tmpdir):
     )
 
     changed_attributes = ['callbacks', 'logger', 'max_steps', 'auto_lr_find',
-                          'early_stop_callback', 'accumulate_grad_batches',
-                          'checkpoint_callback']
+                          'accumulate_grad_batches', 'checkpoint_callback']
     attributes_before = {}
     for ca in changed_attributes:
         attributes_before[ca] = getattr(trainer, ca)
@@ -197,11 +209,14 @@ def test_accumulation_and_early_stopping(tmpdir):
     lrfinder = trainer.tuner.lr_find(model, early_stop_threshold=None)
     after_lr = lrfinder.suggestion()
 
+    expected_num_lrs = 100
+    expected_batch_idx = 200 - 1
+
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
-    assert len(lrfinder.results['lr']) == 99, \
+    assert len(lrfinder.results['lr']) == expected_num_lrs, \
         'Early stopping for learning rate finder did not work'
-    assert lrfinder._total_batch_idx == 99 * 2, \
+    assert lrfinder._total_batch_idx == expected_batch_idx, \
         'Accumulation parameter did not work'
 
 

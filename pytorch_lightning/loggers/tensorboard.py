@@ -187,8 +187,8 @@ class TensorBoardLogger(LightningLoggerBase):
                 try:
                     self.experiment.add_scalar(k, v, step)
                 except Exception as e:
-                    m = f'you tried to log {v} which is not currently supported. Try a dict or a scalar/tensor.'
-                    raise MisconfigurationException(m)
+                    m = f'\n you tried to log {v} which is not currently supported. Try a dict or a scalar/tensor.'
+                    type(e)(e.message + m)
 
     @rank_zero_only
     def log_graph(self, model: LightningModule, input_array=None):

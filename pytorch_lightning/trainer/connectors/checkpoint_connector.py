@@ -24,15 +24,11 @@ import torch.distributed as torch_distrib
 
 import pytorch_lightning
 from pytorch_lightning import _logger as log
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.overrides.data_parallel import LightningDataParallel, LightningDistributedDataParallel
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
-from pytorch_lightning.accelerators.base_backend import Accelerator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
@@ -101,14 +97,15 @@ class CheckpointConnector:
         # load model state
         model = self.trainer.get_model()
 
-        # load the state_dict on the model automatically
-        model.load_state_dict(checkpoint['state_dict'])
-
         # give the datamodule a chance to load something
         if self.trainer.datamodule is not None:
             self.trainer.datamodule.on_load_checkpoint(checkpoint)
+
         # give model a chance to load something
         model.on_load_checkpoint(checkpoint)
+
+        # load the state_dict on the model automatically
+        model.load_state_dict(checkpoint['state_dict'])
 
         if on_gpu:
             model.cuda(self.trainer.root_gpu)

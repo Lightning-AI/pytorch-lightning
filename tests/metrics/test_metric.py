@@ -1,11 +1,12 @@
+import pickle
+
+from distutils.version import LooseVersion
+import cloudpickle
+import numpy as np
 import pytest
 import torch
-from pytorch_lightning.metrics.metric import Metric
-import os
-import numpy as np
 
-import pickle
-import cloudpickle
+from pytorch_lightning.metrics.metric import Metric
 
 torch.manual_seed(42)
 
@@ -59,6 +60,18 @@ def test_add_state():
     assert a._reductions["e"](torch.tensor([1, 1])) == -1
 
 
+def test_add_state_persistent():
+    a = Dummy()
+
+    a.add_state("a", torch.tensor(0), "sum", persistent=True)
+    assert "a" in a.state_dict()
+
+    a.add_state("b", torch.tensor(0), "sum", persistent=False)
+
+    if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+        assert "b" not in a.state_dict()
+
+
 def test_reset():
     class A(Dummy):
         pass
@@ -109,6 +122,24 @@ def test_compute():
     # called without update, should return cached value
     a._computed = 5
     assert a.compute() == 5
+
+
+def test_forward():
+    class A(Dummy):
+        def update(self, x):
+            self.x += x
+
+        def compute(self):
+            return self.x
+
+    a = A()
+    assert a(5) == 5
+    assert a._forward_cache == 5
+
+    assert a(8) == 8
+    assert a._forward_cache == 8
+
+    assert a.compute() == 13
 
 
 class ToPickle(Dummy):

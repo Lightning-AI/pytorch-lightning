@@ -1,9 +1,23 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import functools
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Optional, Union
 from collections.abc import Mapping, Sequence
 from collections import namedtuple
 from copy import deepcopy
+from distutils.version import LooseVersion
 
 import os
 import torch
@@ -19,7 +33,7 @@ class Metric(nn.Module, ABC):
     Base class for all metrics present in the Metrics API.
 
     Implements ``add_state()``, ``forward()``, ``reset()`` and a few other things to
-    handle distributed synchronization and per step metric computation.
+    handle distributed synchronization and per-step metric computation.
 
     Override ``update()`` and ``compute()`` functions to implement your own metric. Use
     ``add_state()`` to register metric state variables which keep track of state on each
@@ -32,12 +46,12 @@ class Metric(nn.Module, ABC):
     Note:
         Different metrics only override ``update()`` and not ``forward()``. A call to ``update()``
         is valid, but it won't return the metric value at the current step. A call to ``forward()``
-        automatically calls ``update()`` and also return the metric value at the current step.
+        automatically calls ``update()`` and also returns the metric value at the current step.
 
     Args:
         compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False. default: True
-        ddp_sync_on_step:
+            Forward only calls ``update()`` and returns None if this is set to False. default: True
+        dist_sync_on_step:
             Synchronize metric state across processes at each ``forward()``
             before returning the value at the step. default: False
         process_group:
@@ -46,12 +60,12 @@ class Metric(nn.Module, ABC):
     def __init__(
         self,
         compute_on_step: bool = True,
-        ddp_sync_on_step: bool = False,
+        dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
     ):
         super().__init__()
 
-        self.ddp_sync_on_step = ddp_sync_on_step
+        self.dist_sync_on_step = dist_sync_on_step
         self.compute_on_step = compute_on_step
         self.process_group = process_group
         self._to_sync = True
@@ -59,12 +73,15 @@ class Metric(nn.Module, ABC):
         self.update = self._wrap_update(self.update)
         self.compute = self._wrap_compute(self.compute)
         self._computed = None
+        self._forward_cache = None
 
         # initialize state
         self._reductions = {}
         self._defaults = {}
 
-    def add_state(self, name: str, default, dist_reduce_fx: Optional[Union[str, Callable]] = None):
+    def add_state(
+        self, name: str, default, dist_reduce_fx: Optional[Union[str, Callable]] = None, persistent: bool = True
+    ):
         """
         Adds metric state variable. Only used by subclasses.
 
@@ -76,6 +93,7 @@ class Metric(nn.Module, ABC):
                 If value is ``"sum"``, ``"mean"``, or ``"cat"``, we will use ``torch.sum``, ``torch.mean``,
                 and ``torch.cat`` respectively, each with argument ``dim=0``. The user can also pass a custom
                 function in this parameter.
+            persistent (Optional): whether the state will be saved as part of the modules ``state_dict``.
 
         Note:
             Setting ``dist_reduce_fx`` to None will return the metric state synchronized across different processes.
@@ -95,7 +113,11 @@ class Metric(nn.Module, ABC):
             the format discussed in the above note.
 
         """
-        if not isinstance(default, torch.Tensor) or (isinstance(default, list) and len(default) != 0):
+        if (
+            not isinstance(default, torch.Tensor)
+            and not isinstance(default, list)                     # noqa: W503
+            or (isinstance(default, list) and len(default) != 0)  # noqa: W503
+        ):
             raise ValueError(
                 "state variable must be a tensor or any empty list (where you can append tensors)"
             )
@@ -112,7 +134,11 @@ class Metric(nn.Module, ABC):
             )
 
         if isinstance(default, torch.Tensor):
-            self.register_buffer(name, default)
+            if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+                # persistent keyword is only supported in torch >= 1.6.0
+                self.register_buffer(name, default, persistent=persistent)
+            else:
+                self.register_buffer(name, default)
         else:
             setattr(self, name, default)
 
@@ -125,9 +151,10 @@ class Metric(nn.Module, ABC):
         """
         # add current step
         self.update(*args, **kwargs)
+        self._forward_cache = None
 
         if self.compute_on_step:
-            self._to_sync = self.ddp_sync_on_step
+            self._to_sync = self.dist_sync_on_step
 
             # save context before switch
             self._cache = {attr: getattr(self, attr) for attr in self._defaults.keys()}
@@ -135,7 +162,7 @@ class Metric(nn.Module, ABC):
             # call reset, update, compute, on single batch
             self.reset()
             self.update(*args, **kwargs)
-            result = self.compute()
+            self._forward_cache = self.compute()
 
             # restore context
             for attr, val in self._cache.items():
@@ -143,7 +170,7 @@ class Metric(nn.Module, ABC):
             self._to_sync = True
             self._computed = None
 
-            return result
+            return self._forward_cache
 
     def _sync_dist(self):
         input_dict = {attr: getattr(self, attr) for attr in self._reductions.keys()}
@@ -161,7 +188,7 @@ class Metric(nn.Module, ABC):
             elif isinstance(output_dict[attr][0], list):
                 output_dict[attr] = _flatten(output_dict[attr])
 
-            assert isinstance(reduction_fn, (Callable, None))
+            assert isinstance(reduction_fn, (Callable)) or reduction_fn is None
             reduced = reduction_fn(output_dict[attr]) if reduction_fn is not None else output_dict[attr]
             setattr(self, attr, reduced)
 

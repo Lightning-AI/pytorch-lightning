@@ -1,12 +1,26 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
+from pytorch_lightning.core.lightning import LightningModule
 from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
 import os
 import torch
 import pytest
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, callbacks
 from tests.base.deterministic_model import DeterministicModel
 from torch.utils.data import Dataset
 
@@ -54,8 +68,8 @@ def test__training_step__log(tmpdir):
             self.training_step_called = True
             return acc
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
-            loss.backward()
+        def backward(self, loss, optimizer, optimizer_idx):
+            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
 
     model = TestModel()
     model.val_dataloader = None
@@ -67,6 +81,7 @@ def test__training_step__log(tmpdir):
         max_epochs=2,
         log_every_n_steps=1,
         weights_summary=None,
+        checkpoint_callback=callbacks.ModelCheckpoint(monitor='l_se')
     )
     trainer.fit(model)
 
@@ -82,7 +97,6 @@ def test__training_step__log(tmpdir):
         'default',
         'l_e',
         'l_s',
-        'l_se',
         'l_se_step',
         'l_se_epoch',
     }
@@ -92,7 +106,6 @@ def test__training_step__log(tmpdir):
     expected_pbar_metrics = {
         'p_e',
         'p_s',
-        'p_se',
         'p_se_step',
         'p_se_epoch',
     }
@@ -103,6 +116,7 @@ def test__training_step__log(tmpdir):
     expected_callback_metrics = set()
     expected_callback_metrics = expected_callback_metrics.union(logged_metrics)
     expected_callback_metrics = expected_callback_metrics.union(pbar_metrics)
+    expected_callback_metrics.update({'p_se', 'l_se'})
     expected_callback_metrics.remove('epoch')
     assert callback_metrics == expected_callback_metrics
 
@@ -127,8 +141,8 @@ def test__training_step__epoch_end__log(tmpdir):
             self.log('b1', outputs[0]['loss'])
             self.log('b', outputs[0]['loss'], on_epoch=True, prog_bar=True, logger=True)
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
-            loss.backward()
+        def backward(self, loss, optimizer, optimizer_idx):
+            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
 
     model = TestModel()
     model.val_dataloader = None
@@ -150,7 +164,7 @@ def test__training_step__epoch_end__log(tmpdir):
 
     # make sure all the metrics are available for callbacks
     logged_metrics = set(trainer.logged_metrics.keys())
-    expected_logged_metrics = {'epoch', 'a', 'a_step', 'a_epoch', 'b', 'b1', 'a1', 'a2'}
+    expected_logged_metrics = {'epoch', 'a_step', 'a_epoch', 'b', 'b1', 'a1', 'a2'}
     assert logged_metrics == expected_logged_metrics
 
     pbar_metrics = set(trainer.progress_bar_metrics.keys())
@@ -165,6 +179,7 @@ def test__training_step__epoch_end__log(tmpdir):
     expected_callback_metrics = expected_callback_metrics.union(logged_metrics)
     expected_callback_metrics = expected_callback_metrics.union(pbar_metrics)
     expected_callback_metrics.remove('epoch')
+    expected_callback_metrics.add('a')
     assert callback_metrics == expected_callback_metrics
 
 
@@ -213,8 +228,8 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     # make sure all the metrics are available for callbacks
     logged_metrics = set(trainer.logged_metrics.keys())
     expected_logged_metrics = {
-        'a', 'a_step', 'a_epoch',
-        'b', 'b_step', 'b_epoch',
+        'a_step', 'a_epoch',
+        'b_step', 'b_epoch',
         'c',
         'd/e/f',
         'epoch'
@@ -222,7 +237,7 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     assert logged_metrics == expected_logged_metrics
 
     pbar_metrics = set(trainer.progress_bar_metrics.keys())
-    expected_pbar_metrics = {'b', 'c', 'b_epoch', 'b_step'}
+    expected_pbar_metrics = {'c', 'b_epoch', 'b_step'}
     assert pbar_metrics == expected_pbar_metrics
 
     callback_metrics = set(trainer.callback_metrics.keys())
@@ -230,6 +245,7 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     expected_callback_metrics = set()
     expected_callback_metrics = expected_callback_metrics.union(logged_metrics)
     expected_callback_metrics = expected_callback_metrics.union(pbar_metrics)
+    expected_callback_metrics.update({'a', 'b'})
     expected_callback_metrics.remove('epoch')
     assert callback_metrics == expected_callback_metrics
 
@@ -336,13 +352,13 @@ def test_tbptt_log(tmpdir):
         limit_val_batches=0,
         truncated_bptt_steps=truncated_bptt_steps,
         max_epochs=2,
-        row_log_interval=2,
+        log_every_n_steps=2,
         weights_summary=None,
     )
     trainer.fit(model)
 
     generated = set(trainer.logged_metrics.keys())
-    expected = {'a', 'a_step', 'a_epoch', 'epoch'}
+    expected = {'a_step', 'a_epoch', 'epoch'}
     assert generated == expected
 
 
@@ -382,8 +398,8 @@ def test_different_batch_types_for_sizing(tmpdir):
 
     generated = set(trainer.logger_connector.logged_metrics)
     expected = {
-        'a_epoch', 'a',
-        'n', 'n_step/epoch_0', 'n_epoch',
+        'a_epoch',
+        'n_step/epoch_0', 'n_epoch',
         'epoch'
     }
 
@@ -433,8 +449,8 @@ def test_nested_datasouce_batch(tmpdir):
             x = {
                 'post_text': ['bird is fast', 'big cat'],
                 'dense_0': [
-                    torch.tensor([-0.1000,  0.2000], dtype=torch.float64),
-                    torch.tensor([1, 1], dtype=torch.uint8)
+                    torch.tensor([-0.1000, 0.2000], dtype=torch.float64),
+                    torch.tensor([1, 1], dtype=torch.uint8),
                 ],
                 'post_id': ['115', '116'],
                 'label': [torch.tensor([0, 1]), torch.tensor([1, 1], dtype=torch.uint8)]

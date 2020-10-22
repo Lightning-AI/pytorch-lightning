@@ -1,6 +1,6 @@
 """Root package info."""
 
-__version__ = '0.10.0rc1'
+__version__ = '1.0.3'
 __author__ = 'William Falcon et al.'
 __author_email__ = 'waf2107@columbia.edu'
 __license__ = 'Apache-2.0'
@@ -54,7 +54,6 @@ if __LIGHTNING_SETUP__:
     # We are not importing the rest of the lightning during the build process, as it may not be compiled yet
 else:
     from pytorch_lightning.core import LightningDataModule, LightningModule
-    from pytorch_lightning.core.step_result import TrainResult, EvalResult
     from pytorch_lightning.callbacks import Callback
     from pytorch_lightning.trainer import Trainer
     from pytorch_lightning.utilities.seed import seed_everything
@@ -67,8 +66,6 @@ else:
         'Callback',
         'seed_everything',
         'metrics',
-        'EvalResult',
-        'TrainResult',
     ]
 
     # necessary for regular bolts imports. Skip exception since bolts is not always installed

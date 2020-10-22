@@ -55,9 +55,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - python_version: 3.7
-            pytorch_version: 1.8
-            pytorch_channel: pytorch-nightly
+          #- python_version: 3.7
+          #  pytorch_version: 1.8  # todo
+          #  pytorch_channel: pytorch-nightly
           - python_version: 3.8
             pytorch_version: 1.6
             pytorch_channel: pytorch

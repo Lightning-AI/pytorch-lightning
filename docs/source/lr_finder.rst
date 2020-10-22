@@ -8,6 +8,14 @@
 Learning Rate Finder
 --------------------
 
+.. raw:: html
+
+    <video width="50%" max-width="400px" controls
+    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/auto_lr_find.jpg"
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/auto_lr_find.mp4"></video>
+
+|
+
 For training deep neural networks, selecting a good learning rate is essential
 for both better performance and faster convergence. Even optimizers such as
 `Adam` that are self-adjusting the learning rate can benefit from more optimal
@@ -29,10 +37,10 @@ initial lr.
 Using Lightning's built-in LR finder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To enable the learning rate finder, your :class:`~pytorch_lightning.core.LightningModule` needs to have a ``learning_rate`` or ``lr`` property.
+To enable the learning rate finder, your :ref:`lightning_module` needs to have a ``learning_rate`` or ``lr`` property.
 Then, set ``Trainer(auto_lr_find=True)`` during trainer construction,
 and then call ``trainer.tune(model)`` to run the LR finder. The suggested ``learning_rate``
-will be written to the console and will be automatically set to your :class:`~pytorch_lightning.core.LightningModule`,
+will be written to the console and will be automatically set to your :ref:`lightning_module`,
 which can be accessed via ``self.learning_rate`` or ``self.lr``.
 
 .. code-block:: python
@@ -53,7 +61,7 @@ which can be accessed via ``self.learning_rate`` or ``self.lr``.
 
     trainer.tune(model)
 
-If your model is using an arbitrary value instead of ``self.lr`` or ``self.learning_rate``, set that value as auto_lr_find
+If your model is using an arbitrary value instead of ``self.lr`` or ``self.learning_rate``, set that value as ``auto_lr_find``:
 
 .. code-block:: python
 

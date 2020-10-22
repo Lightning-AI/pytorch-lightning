@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import functools
 import importlib
 from multiprocessing import Process, Queue
@@ -42,8 +55,10 @@ class XLADeviceUtils:
     def _fetch_xla_device_type(device: torch.device) -> str:
         """
         Returns XLA device type
+
         Args:
             device: (:class:`~torch.device`): Accepts a torch.device type with a XLA device format i.e xla:0
+
         Return:
             Returns a str of the device hardware type. i.e TPU
         """
@@ -54,6 +69,7 @@ class XLADeviceUtils:
     def _is_device_tpu() -> bool:
         """
         Check if device is TPU
+
         Return:
             A boolean value indicating if the xla device is a TPU device or not
         """
@@ -66,6 +82,7 @@ class XLADeviceUtils:
     def tpu_device_exists() -> bool:
         """
         Public method to check if TPU is available
+
         Return:
             A boolean value indicating if a TPU device exists on the system
         """
