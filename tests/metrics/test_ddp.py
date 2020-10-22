@@ -1,7 +1,7 @@
+import sys
+
 import pytest
 import torch
-import os
-import sys
 
 from tests.metrics.test_metric import Dummy
 from tests.metrics.utils import setup_ddp

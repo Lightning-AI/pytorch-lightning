@@ -1,4 +1,16 @@
-
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import pytest
 import sys
 import torch
@@ -39,7 +51,7 @@ def _ddp_test_fn(rank, worldsize):
     metric_b = DummyMetric()
     metric_c = DummyMetric()
 
-    # ddp_sync_on_step is False by default
+    # dist_sync_on_step is False by default
     result = Result()
 
     for epoch in range(3):
@@ -71,7 +83,6 @@ def _ddp_test_fn(rank, worldsize):
 
         epoch_expected = {
             "b": cumulative_sum * worldsize,
-            "a": cumulative_sum * worldsize,
             "a_epoch": cumulative_sum * worldsize
         }
 
@@ -124,7 +135,7 @@ def test_result_metric_integration():
         assert metric_b.x == metric_b._defaults['x']
         assert metric_c.x == metric_c._defaults['x']
 
-        epoch_expected = {"b": cumulative_sum, "a": cumulative_sum, "a_epoch": cumulative_sum}
+        epoch_expected = {"b": cumulative_sum, "a_epoch": cumulative_sum}
 
         assert set(epoch_log.keys()) == set(epoch_expected.keys())
         for k in epoch_expected.keys():

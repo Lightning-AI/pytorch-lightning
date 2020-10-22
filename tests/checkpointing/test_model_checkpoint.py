@@ -1,4 +1,18 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import os
+from distutils.version import LooseVersion
 from unittest.mock import MagicMock, Mock
 
 import yaml
@@ -499,3 +513,34 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
 
     # check that last one is also the best one
     assert trainer.dev_debugger.checkpoint_callback_history[-1]['epoch'] == len(monitor) - 1
+
+
+def test_checkpoint_within_callbacks_list(tmpdir):
+    """
+    This test validates that the checkpoint can be called when provided to callacks list
+    """
+
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    checkpoint_callback = ModelCheckpoint(monitor='val_loss', filepath=os.path.join(tmpdir, "{epoch:02d}"))
+
+    class ExtendedBoringModel(BoringModel):
+
+        def validation_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            return {"val_loss": loss}
+
+    model = ExtendedBoringModel()
+    model.validation_step_end = None
+    model.validation_epoch_end = None
+    trainer = Trainer(
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        callbacks=[checkpoint_callback]
+    )
+
+    trainer.fit(model)
+    assert os.listdir(tmpdir) == ['epoch=00.ckpt']

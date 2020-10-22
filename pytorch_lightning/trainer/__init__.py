@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """
 .. testsetup:: *
 
@@ -12,7 +25,7 @@ the Trainer automates everything else.
 
 .. raw:: html
 
-    <video width="100%" controls autoplay
+    <video width="100%" max-width="800px" controls autoplay
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_trainer_mov.m4v"></video>
 
 |
@@ -165,12 +178,63 @@ Example::
 Trainer flags
 -------------
 
+accelerator
+^^^^^^^^^^^
+
+.. raw:: html
+
+    <video width="50%" max-width="400px" controls
+    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/distributed_backend.jpg"
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/distributed_backend.mp4"></video>
+
+|
+
+The accelerator backend to use (previously known as distributed_backend).
+
+- (```dp```) is DataParallel (split batch among GPUs of same machine)
+- (```ddp```) is DistributedDataParallel (each gpu on each node trains, and syncs grads)
+- (```ddp_cpu```) is DistributedDataParallel on CPU (same as `ddp`, but does not use GPUs.
+  Useful for multi-node CPU training or single-node debugging. Note that this will **not** give
+  a speedup on a single node, since Torch already makes effient use of multiple CPUs on a single
+  machine.)
+- (```ddp2```) dp on node, ddp across nodes. Useful for things like increasing
+    the number of negative samples
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(distributed_backend=None)
+
+Example::
+
+    # dp = DataParallel
+    trainer = Trainer(gpus=2, distributed_backend='dp')
+
+    # ddp = DistributedDataParallel
+    trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp')
+
+    # ddp2 = DistributedDataParallel + dp
+    trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp2')
+
+.. note:: this option does not apply to TPU. TPUs use ```ddp``` by default (over each core)
+
+You can also modify hardware behavior by subclassing an existing accelerator to adjust for your needs.
+
+Example::
+
+    class MyOwnDDP(DDPAccelerator):
+        ...
+
+    Trainer(accelerator=MyOwnDDP())
+
+.. warning:: Passing in custom accelerators is experimental but work is in progress to enable full compatibility.
+
 accumulate_grad_batches
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/accumulate_grad_batches.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/accumulate_grad_batches.mp4"></video>
 
@@ -197,7 +261,7 @@ amp_backend
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/amp_backend.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/amp_backend.mp4"></video>
 
@@ -218,7 +282,7 @@ amp_level
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/amp_level.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/amp_level.mp4"></video>
 
@@ -234,12 +298,47 @@ Example::
     # default used by the Trainer
     trainer = Trainer(amp_level='O2')
 
+automatic_optimization
+^^^^^^^^^^^^^^^^^^^^^^
+When set to False, Lightning does not automate the optimization process. This means you are responsible for your own
+optimizer behavior
+
+Example::
+
+    def training_step(self, batch, batch_idx):
+        opt = self.optimizers()
+
+        loss = ...
+        self.manual_backward(loss, opt)
+        opt.step()
+        opt.zero_grad()
+
+This is not recommended when using a single optimizer, instead it's recommended when using 2+ optimizers
+AND you are an expert user. Most useful for research like RL, sparse coding and GAN research.
+
+In the multi-optimizer case, ignore the optimizer_idx flag and use the optimizers directly
+
+Example::
+
+    def training_step(self, batch, batch_idx, optimizer_idx):
+        (opt_a, opt_b) = self.optimizers()
+
+        gen_loss = ...
+        self.manual_backward(gen_loss, opt_a)
+        opt_a.step()
+        opt_a.zero_grad()
+
+        disc_loss = ...
+        self.manual_backward(disc_loss, opt_b)
+        opt_b.step()
+        opt_b.zero_grad()
+
 auto_scale_batch_size
 ^^^^^^^^^^^^^^^^^^^^^
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/auto_scale%E2%80%A8_batch_size.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/auto_scale_batch_size.mp4"></video>
 
@@ -264,7 +363,7 @@ auto_select_gpus
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/auto_select+_gpus.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/auto_select_gpus.mp4"></video>
 
@@ -287,7 +386,7 @@ auto_lr_find
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/auto_lr_find.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/auto_lr_find.mp4"></video>
 
@@ -325,7 +424,7 @@ benchmark
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/benchmark.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/benchmark.mp4"></video>
 
@@ -350,7 +449,7 @@ deterministic
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/deterministic.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/deterministic.mp4"></video>
 
@@ -373,16 +472,16 @@ callbacks
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/callbacks.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/callbacks.mp4"></video>
 
 |
 
-Add a list of user defined callbacks. These callbacks DO NOT replace the explicit callbacks
-(loggers or ModelCheckpoint).
+Add a list of :class:`~pytorch_lightning.callbacks.Callback`. These callbacks DO NOT replace the explicit callbacks
+(loggers or :class:`~pytorch_lightning.callbacks.ModelCheckpoint`).
 
-.. note:: Only user defined callbacks (ie: Not ModelCheckpoint)
+.. note:: Only user defined callbacks (ie: Not :class:`~pytorch_lightning.callbacks.ModelCheckpoint`)
 
 .. code-block:: python
 
@@ -405,7 +504,7 @@ check_val_every_n_epoch
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/check_val_every_n_epoch.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/check_val_every_n_epoch.mp4"></video>
 
@@ -426,20 +525,18 @@ checkpoint_callback
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/checkpoint_callback.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/checkpoint_callback.mp4"></video>
 
 |
 
-Callback for checkpointing.
+Pass in a callback for checkpointing. Checkpoints capture the exact value of all parameters used by a model.
+By default Lightning saves a checkpoint for you in your current working directory, with the state of your last training epoch,
+but you can override the default behavior by Initializing the :class:`~pytorch_lightning.callbacks.ModelCheckpoint` callback,
+and passing it to :class:`~pytorch_lightning.trainer.Trainer` `checkpoint_callback` flag.
 
 .. code-block:: python
-
-    from pytorch_lightning.callbacks import ModelCheckpoint
-    trainer = Trainer(checkpoint_callback=ModelCheckpoint())
-
-Example::
 
     from pytorch_lightning.callbacks import ModelCheckpoint
 
@@ -453,47 +550,22 @@ Example::
         prefix=''
     )
 
-cluster_environment
-^^^^^^^^^^^^^^^^^^^
+    trainer = Trainer(checkpoint_callback=checkpoint_callback)
 
-.. raw:: html
-
-    <video width="100%" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/cluster_environment.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/cluster_environment.mp4"></video>
-
-|
-
-Environment to connect arbitrary cluster backends. Lightning automatically handles:
-
-- SLURM
-- TorchElastic
-
-For any other non-supported cluster environment, define your own class and pass it in.
+To disable automatic checkpointing, set this to `False`.
 
 .. code-block:: python
 
-    from pytorch_lightning.cluster_environments import cluster_environment
+    trainer = Trainer(checkpoint_callback=False)
 
-    class MyCluster(ClusterEnvironment):
-
-        def master_address(self):
-            return your_master_address
-
-        def master_port(self):
-            return your_master_port
-
-        def world_size(self):
-            return the_world_size
-
-    trainer = Trainer(cluster_environment=cluster_environment())
+See also :ref:`Saving and Loading Weights <weights_loading>`.
 
 default_root_dir
 ^^^^^^^^^^^^^^^^
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/default%E2%80%A8_root_dir.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/default_root_dir.mp4"></video>
 
@@ -513,54 +585,14 @@ Example::
 
 distributed_backend
 ^^^^^^^^^^^^^^^^^^^
-
-.. raw:: html
-
-    <video width="100%" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/distributed_backend.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/distributed_backend.mp4"></video>
-
-|
-
-The distributed backend to use.
-
-- (```dp```) is DataParallel (split batch among GPUs of same machine)
-- (```ddp```) is DistributedDataParallel (each gpu on each node trains, and syncs grads)
-- (```ddp_cpu```) is DistributedDataParallel on CPU (same as `ddp`, but does not use GPUs.
-  Useful for multi-node CPU training or single-node debugging. Note that this will **not** give
-  a speedup on a single node, since Torch already makes effient use of multiple CPUs on a single
-  machine.)
-- (```ddp2```) dp on node, ddp across nodes. Useful for things like increasing
-    the number of negative samples
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(distributed_backend=None)
-
-Example::
-
-    # dp = DataParallel
-    trainer = Trainer(gpus=2, distributed_backend='dp')
-
-    # ddp = DistributedDataParallel
-    trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp')
-
-    # ddp2 = DistributedDataParallel + dp
-    trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp2')
-
-.. note:: this option does not apply to TPU. TPUs use ```ddp``` by default (over each core)
-
-See Also:
-    - :ref:`Multi-GPU training guide <multi_gpu>`.
-    - :ref:`Multi-node (SLURM) guide <slurm>`.
+This has been renamed "accelerator".
 
 fast_dev_run
 ^^^^^^^^^^^^
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/fast_dev_run.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/fast_dev_run.mp4"></video>
 
@@ -568,7 +600,7 @@ fast_dev_run
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/fast_dev_run.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/fast_dev_run.mp4"></video>
 
@@ -606,7 +638,7 @@ gpus
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/gpus.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/gpus.mp4"></video>
 
@@ -652,7 +684,7 @@ gradient_clip_val
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/gradient+_clip_val.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/gradient_clip_val.mp4"></video>
 
@@ -673,7 +705,7 @@ limit_test_batches
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/limit_test_batches.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/limit_batches.mp4"></video>
 
@@ -699,7 +731,7 @@ limit_val_batches
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/limit_val_batches.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/limit_batches.mp4"></video>
 
@@ -726,7 +758,7 @@ log_gpu_memory
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/log_gpu_memory.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/log_gpu_memory.mp4"></video>
 
@@ -756,7 +788,7 @@ flush_logs_every_n_steps
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/flush_logs%E2%80%A8_every_n_steps.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/flush_logs_every_n_steps.mp4"></video>
 
@@ -777,7 +809,7 @@ logger
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/logger.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/logger.mp4"></video>
 
@@ -802,7 +834,7 @@ max_epochs
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/max_epochs.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/min_max_epochs.mp4"></video>
 
@@ -820,7 +852,7 @@ min_epochs
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/min_epochs.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/min_max_epochs.mp4"></video>
 
@@ -838,7 +870,7 @@ max_steps
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/max_steps.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/min_max_steps.mp4"></video>
 
@@ -860,7 +892,7 @@ min_steps
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/min_steps.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/min_max_steps.mp4"></video>
 
@@ -882,7 +914,7 @@ num_nodes
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/num_nodes.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/num_nodes.mp4"></video>
 
@@ -903,7 +935,7 @@ num_processes
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/num_processes.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/num_processes.mp4"></video>
 
@@ -926,7 +958,7 @@ num_sanity_val_steps
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/num_sanity%E2%80%A8_val_steps.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/num_sanity_val_steps.mp4"></video>
 
@@ -955,12 +987,49 @@ Example::
     --env=XLA_USE_BF16=1
     -- python your_trainer_file.py
 
+plugins
+^^^^^^^
+
+.. raw:: html
+
+    <video width="50%" max-width="400px" controls
+    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/cluster_environment.jpg"
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/cluster_environment.mp4"></video>
+
+|
+
+Plugins allow you to connect arbitrary backends, precision libraries, SLURM, etc... For example:
+
+- DDP
+- SLURM
+- TorchElastic
+- Apex
+
+To define your own behavior, subclass the relevant class and pass it in. Here's an example linking up your own cluster.
+
+.. code-block:: python
+
+    from pytorch_lightning.cluster_environments import cluster_environment
+
+    class MyCluster(ClusterEnvironment):
+
+        def master_address(self):
+            return your_master_address
+
+        def master_port(self):
+            return your_master_port
+
+        def world_size(self):
+            return the_world_size
+
+    trainer = Trainer(cluster_environment=cluster_environment())
+
 prepare_data_per_node
 ^^^^^^^^^^^^^^^^^^^^^
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/prepare_data_per_node.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/prepare_data_per_node.mp4"></video>
 
@@ -982,7 +1051,7 @@ tpu_cores
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/tpu_cores.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/tpu_cores.mp4"></video>
 
@@ -1038,7 +1107,7 @@ overfit_batches
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/overfit_batches.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/overfit_batches.mp4"></video>
 
@@ -1065,7 +1134,7 @@ precision
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/precision.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/precision.mp4"></video>
 
@@ -1096,7 +1165,7 @@ process_position
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/process_position.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/process_position.mp4"></video>
 
@@ -1117,7 +1186,7 @@ profiler
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/profiler.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/profiler.mp4"></video>
 
@@ -1148,7 +1217,7 @@ progress_bar_refresh_rate
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/progress_bar%E2%80%A8_refresh_rate.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/progress_bar_refresh_rate.mp4"></video>
 
@@ -1174,7 +1243,7 @@ reload_dataloaders_every_epoch
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/reload_%E2%80%A8dataloaders_%E2%80%A8every_epoch.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/reload_dataloaders_every_epoch.mp4"></video>
 
@@ -1200,7 +1269,7 @@ replace_sampler_ddp
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/replace_sampler_ddp.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/replace_sampler_ddp.mp4"></video>
 
@@ -1228,7 +1297,7 @@ resume_from_checkpoint
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/resume_from_checkpoint.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/resume_from_checkpoint.mp4"></video>
 
@@ -1249,7 +1318,7 @@ log_every_n_steps
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/log_every_n_steps.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/log_every_n_steps.mp4"></video>
 
@@ -1272,7 +1341,7 @@ sync_batchnorm
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/sync_batchnorm.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/sync_batchnorm.mp4"></video>
 
@@ -1289,7 +1358,7 @@ track_grad_norm
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/track_grad_norm.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/track_grad_norm.mp4"></video>
 
@@ -1311,7 +1380,7 @@ limit_train_batches
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/limit_train_batches.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/limit_batches.mp4"></video>
 
@@ -1341,7 +1410,7 @@ truncated_bptt_steps
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/truncated_bptt_steps.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/truncated_bptt_steps.mp4"></video>
 
@@ -1406,7 +1475,7 @@ val_check_interval
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/val_check_interval.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/val_check_interval.mp4"></video>
 
@@ -1437,7 +1506,7 @@ weights_save_path
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/weights_save_path.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/weights_save_path.mp4"></video>
 
@@ -1468,7 +1537,7 @@ weights_summary
 
 .. raw:: html
 
-    <video width="100%" controls
+    <video width="50%" max-width="400px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/weights_summary.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/weights_summary.mp4"></video>
 
