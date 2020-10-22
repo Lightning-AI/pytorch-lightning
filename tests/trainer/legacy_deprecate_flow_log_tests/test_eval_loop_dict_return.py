@@ -1,6 +1,20 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """
 Tests to ensure that the training loop works with a dict
 """
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
 
@@ -9,7 +23,11 @@ def test_validation_step_no_return(tmpdir):
     """
     Test that val step can return nothing
     """
-    model = DeterministicModel()
+
+    class TestModel(DeterministicModel):
+        def backward(self, loss, optimizer, optimizer_idx):
+            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+    model = TestModel()
     model.training_step = model.training_step_dict_return
     model.validation_step = model.validation_step_no_return
     model.validation_step_end = None

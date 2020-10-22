@@ -21,7 +21,6 @@ import inspect
 # import m2r
 import builtins
 import pt_lightning_sphinx_theme
-from sphinx.ext import apidoc
 
 PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 PATH_ROOT = os.path.join(PATH_HERE, '..', '..')
@@ -51,12 +50,26 @@ import pytorch_lightning  # noqa: E402
 # with open('readme.md', 'w') as fp:
 #     fp.write(readme)
 
+# copy all documents from GH templates like contribution guide
 for md in glob.glob(os.path.join(PATH_ROOT, '.github', '*.md')):
     shutil.copy(md, os.path.join(PATH_HERE, os.path.basename(md)))
+# copy also the changelog
+with open(os.path.join(PATH_ROOT, 'CHANGELOG.md'), 'r') as fp:
+    chlog_lines = fp.readlines()
+# enrich short subsub-titles to be unique
+chlog_ver = ''
+for i, ln in enumerate(chlog_lines):
+    if ln.startswith('## '):
+        chlog_ver = ln[2:].split('-')[0].strip()
+    elif ln.startswith('### '):
+        ln = ln.replace('###', f'### {chlog_ver} -')
+        chlog_lines[i] = ln
+with open(os.path.join(PATH_HERE, 'CHANGELOG.md'), 'w') as fp:
+    fp.writelines(chlog_lines)
 
 # -- Project information -----------------------------------------------------
 
-project = 'PyTorch-Lightning'
+project = 'PyTorch Lightning'
 copyright = pytorch_lightning.__copyright__
 author = pytorch_lightning.__author__
 
@@ -65,10 +78,6 @@ version = pytorch_lightning.__version__
 # The full version, including alpha/beta/rc tags
 release = pytorch_lightning.__version__
 
-# Options for the linkcode extension
-# ----------------------------------
-github_user = 'PyTorchLightning'
-github_repo = project
 
 # -- General configuration ---------------------------------------------------
 
@@ -87,7 +96,7 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
-    'sphinx.ext.linkcode',
+    'sphinx.ext.viewcode',
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'sphinx.ext.imgmath',
@@ -138,10 +147,6 @@ language = None
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
-    'api/pytorch_lightning.rst',
-    'api/pl_examples.*',
-    'api/pytorch_lightning.accelerators.*',
-    'api/modules.rst',
     'PULL_REQUEST_TEMPLATE.md',
 ]
 
@@ -258,7 +263,7 @@ epub_exclude_files = ['search.html']
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
     'torch': ('https://pytorch.org/docs/stable/', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
+    'numpy': ('https://numpy.org/doc/stable/', None),
     'PIL': ('https://pillow.readthedocs.io/en/stable/', None),
 }
 
@@ -268,39 +273,11 @@ intersphinx_mapping = {
 todo_include_todos = True
 
 
-# packages for which sphinx-apidoc should generate the docs (.rst files)
-PACKAGES = [
-    pytorch_lightning.__name__,
-    'pl_examples',
-]
-
-apidoc_output_folder = os.path.join(PATH_HERE, 'api')
-
-
-def run_apidoc(_):
-    sys.path.insert(0, apidoc_output_folder)
-
-    # delete api-doc files before generating them
-    if os.path.exists(apidoc_output_folder):
-        shutil.rmtree(apidoc_output_folder)
-
-    for pkg in PACKAGES:
-        argv = ['-e',
-                '-o', apidoc_output_folder,
-                os.path.join(PATH_ROOT, pkg),
-                '**/test_*',
-                '--force',
-                '--private',
-                '--module-first']
-
-        apidoc.main(argv)
-
-
 def setup(app):
     # this is for hiding doctest decoration,
     # see: http://z4r.github.io/python/2011/12/02/hides-the-prompts-and-output/
     app.add_javascript('copybutton.js')
-    app.connect('builder-inited', run_apidoc)
+    app.add_css_file('main.css')
 
 
 # copy all notebooks to local folder
@@ -328,7 +305,7 @@ def package_list_from_file(file):
 MOCK_PACKAGES = []
 if SPHINX_MOCK_REQUIREMENTS:
     # mock also base packages when we are on RTD since we don't install them there
-    MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements/base.txt'))
+    MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements.txt'))
     MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements/extra.txt'))
     MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements/loggers.txt'))
 
@@ -342,59 +319,18 @@ MOCK_MANUAL_PACKAGES = [
 ]
 autodoc_mock_imports = MOCK_PACKAGES + MOCK_MANUAL_PACKAGES
 
-
-# Resolve function
-# This function is used to populate the (source) links in the API
-def linkcode_resolve(domain, info):
-    def find_source():
-        # try to find the file and line number, based on code from numpy:
-        # https://github.com/numpy/numpy/blob/master/doc/source/conf.py#L286
-        obj = sys.modules[info['module']]
-        for part in info['fullname'].split('.'):
-            obj = getattr(obj, part)
-        fname = inspect.getsourcefile(obj)
-        # https://github.com/rtfd/readthedocs.org/issues/5735
-        if any([s in fname for s in ('readthedocs', 'rtfd', 'checkouts')]):
-            # /home/docs/checkouts/readthedocs.org/user_builds/pytorch_lightning/checkouts/
-            #  devel/pytorch_lightning/utilities/cls_experiment.py#L26-L176
-            path_top = os.path.abspath(os.path.join('..', '..', '..'))
-            fname = os.path.relpath(fname, start=path_top)
-        else:
-            # Local build, imitate master
-            fname = 'master/' + os.path.relpath(fname, start=os.path.abspath('..'))
-        source, lineno = inspect.getsourcelines(obj)
-        return fname, lineno, lineno + len(source) - 1
-
-    if domain != 'py' or not info['module']:
-        return None
-    try:
-        filename = '%s#L%d-L%d' % find_source()
-    except Exception:
-        filename = info['module'].replace('.', '/') + '.py'
-    # import subprocess
-    # tag = subprocess.Popen(['git', 'rev-parse', 'HEAD'], stdout=subprocess.PIPE,
-    #                        universal_newlines=True).communicate()[0][:-1]
-    branch = filename.split('/')[0]
-    # do mapping from latest tags to master
-    branch = {'latest': 'master', 'stable': 'master'}.get(branch, branch)
-    filename = '/'.join([branch] + filename.split('/')[1:])
-    return "https://github.com/%s/%s/blob/%s" \
-           % (github_user, github_repo, filename)
-
+autosummary_generate = True
 
 autodoc_member_order = 'groupwise'
+
 autoclass_content = 'both'
-# the options are fixed and will be soon in release,
-#  see https://github.com/sphinx-doc/sphinx/issues/5459
+
 autodoc_default_options = {
-    'members': None,
-    'methods': None,
-    # 'attributes': None,
+    'members': True,
+    'methods': True,
     'special-members': '__call__',
     'exclude-members': '_abc_impl',
     'show-inheritance': True,
-    'private-members': True,
-    'noindex': True,
 }
 
 # Sphinx will add “permalinks” for each heading and description environment as paragraph signs that

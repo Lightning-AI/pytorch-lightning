@@ -1,4 +1,18 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import inspect
+import os
 from argparse import ArgumentParser, Namespace
 from typing import Union, List, Tuple, Any
 from pytorch_lightning.utilities import parsing
@@ -7,6 +21,7 @@ from pytorch_lightning.utilities import parsing
 def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
     """
     Create an instance from CLI arguments.
+    Eventually use varibles from OS environement which are defined as "PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>"
 
     Args:
         args: The parser or namespace to take arguments from. Only known arguments will be
@@ -24,6 +39,7 @@ def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
     """
     if isinstance(args, ArgumentParser):
         args = cls.parse_argparser(args)
+
     params = vars(args)
 
     # we only want to pass in valid Trainer args, the rest may be user specific
@@ -61,6 +77,35 @@ def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namesp
     return Namespace(**modified_args)
 
 
+def parse_env_variables(cls, template: str = "PL_%(cls_name)s_%(cls_argument)s") -> Namespace:
+    """Parse environment arguments if they are defined.
+
+    Example:
+        >>> from pytorch_lightning import Trainer
+        >>> parse_env_variables(Trainer)
+        Namespace()
+        >>> import os
+        >>> os.environ["PL_TRAINER_GPUS"] = '42'
+        >>> os.environ["PL_TRAINER_BLABLABLA"] = '1.23'
+        >>> parse_env_variables(Trainer)
+        Namespace(gpus=42)
+        >>> del os.environ["PL_TRAINER_GPUS"]
+    """
+    cls_arg_defaults = get_init_arguments_and_types(cls)
+
+    env_args = {}
+    for arg_name, _, _ in cls_arg_defaults:
+        env = template % {'cls_name': cls.__name__.upper(), 'cls_argument': arg_name.upper()}
+        val = os.environ.get(env)
+        if not (val is None or val == ''):
+            try:  # converting to native types like int/float/bool
+                val = eval(val)
+            except Exception:
+                pass
+            env_args[arg_name] = val
+    return Namespace(**env_args)
+
+
 def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
     r"""Scans the Trainer signature and returns argument names, types and default values.
 
@@ -69,31 +114,10 @@ def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
         (argument name, set with argument types, argument default value).
 
     Examples:
+
         >>> from pytorch_lightning import Trainer
         >>> args = get_init_arguments_and_types(Trainer)
-        >>> import pprint
-        >>> pprint.pprint(sorted(args))  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-        [('accumulate_grad_batches',
-          (<class 'int'>, typing.Dict[int, int], typing.List[list]),
-          1),
-         ...
-         ('callbacks',
-          (typing.List[pytorch_lightning.callbacks.base.Callback],
-           <class 'NoneType'>),
-           None),
-         ('check_val_every_n_epoch', (<class 'int'>,), 1),
-         ...
-         ('max_epochs', (<class 'int'>,), 1000),
-         ...
-         ('precision', (<class 'int'>,), 32),
-         ('prepare_data_per_node', (<class 'bool'>,), True),
-         ('process_position', (<class 'int'>,), 0),
-         ('profiler',
-          (<class 'pytorch_lightning.profiler.profilers.BaseProfiler'>,
-           <class 'bool'>,
-           <class 'NoneType'>),
-          None),
-         ...
+
     """
     trainer_default_params = inspect.signature(cls).parameters
     name_type_default = []
@@ -128,25 +152,6 @@ def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
         >>> parser = argparse.ArgumentParser()
         >>> parser = Trainer.add_argparse_args(parser)
         >>> args = parser.parse_args([])
-        >>> pprint.pprint(vars(args))  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-        {...
-         'check_val_every_n_epoch': 1,
-         'checkpoint_callback': True,
-         'default_root_dir': None,
-         'deterministic': False,
-         'distributed_backend': None,
-         'early_stop_callback': False,
-         ...
-         'logger': True,
-         'max_epochs': 1000,
-         'max_steps': None,
-         'min_epochs': 1,
-         'min_steps': None,
-         ...
-         'profiler': None,
-         'progress_bar_refresh_rate': 1,
-         ...}
-
     """
     parser = ArgumentParser(parents=[parent_parser], add_help=False,)
 

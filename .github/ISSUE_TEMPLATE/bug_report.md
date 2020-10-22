@@ -6,36 +6,20 @@ labels: bug / fix, help wanted
 assignees: ''
 
 ---
-
-<!-- 
-### Common bugs:
-1. Tensorboard not showing in Jupyter-notebook see [issue 79](https://github.com/PyTorchLightning/pytorch-lightning/issues/79).    
-2. PyTorch 1.1.0 vs 1.2.0 support [see FAQ](https://github.com/PyTorchLightning/pytorch-lightning#faq)    
--->
-
 ## 🐛 Bug
 
 <!-- A clear and concise description of what the bug is. -->
 
+## Please reproduce using [the BoringModel and post here](https://colab.research.google.com/drive/1HvWVVTK8j2Nj52qU4Q4YCyzOm0_aLQF3?usp=sharing)
+
+<!-- Please paste your BoringModel colab link here. -->
+
 ### To Reproduce
-
-Steps to reproduce the behavior:
-
-1. Go to '...'
-2. Run '....'
-3. Scroll down to '....'
-4. See error
-
-<!-- If you have a code sample, error messages, stack traces, please provide it here as well -->
-
-
-#### Code sample
-<!-- Ideally attach a minimal code sample to reproduce the decried issue. 
-Minimal means having the shortest code but still preserving the bug. -->
+<!-- If you could not reproduce using the BoringModel and still think there's a bug, please post here -->
 
 ### Expected behavior
 
-<!-- A clear and concise description of what you expected to happen. -->
+<!-- FILL IN -->
 
 ### Environment
 
