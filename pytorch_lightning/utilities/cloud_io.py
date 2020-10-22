@@ -28,8 +28,9 @@ def load(path_or_url: str, map_location=None):
     if path_or_url.startswith("http"):
         return torch.hub.load_state_dict_from_url(path_or_url, map_location=map_location)
     fs = get_filesystem(path_or_url)
-    with fs.open(path_or_url, "rb") as f:
-        return torch.load(f, map_location=map_location)
+    # with fs.open(path_or_url, "rb") as f:
+    #     return torch.load(f, map_location=map_location)
+    return torch.load(fs, map_location=map_location)
 
 
 def get_filesystem(path: pathlike):
