@@ -281,8 +281,8 @@ class MetricCollection(nn.ModuleDict):
         >>> metrics(preds, target)
         {'Accuracy': tensor(0.1250), 'Precision': tensor(0.0667), 'Recall': tensor(0.1111)}
 
-        >>> metrics = MetricCollection({'micro_recall': Recall(num_classes=3, average='micro')},
-                                       {'weighted_recall': Recall(num_classes=3, average='macro')})
+        >>> metrics = MetricCollection({'micro_recall': Recall(num_classes=3, average='micro'),
+        ...                             'weighted_recall': Recall(num_classes=3, average='macro')})
         >>> metrics(preds, target)
         {'micro_recall': tensor(0.1250), 'macro_recall': tensor(0.1111)}
 
@@ -294,7 +294,7 @@ class MetricCollection(nn.ModuleDict):
             for name, metric in metrics.items():
                 if not isinstance(metric, Metric):
                     raise ValueError(f'Value {metric} belonging to key {name}'
-                                      ' is not an instance of `pl.metrics.Metric`')
+                                     ' is not an instance of `pl.metrics.Metric`')
                 self[name] = metric
         elif isinstance(metrics, (tuple, list)):
             for metric in metrics:
@@ -307,18 +307,6 @@ class MetricCollection(nn.ModuleDict):
                 self[name] = metric
         else:
             raise ValueError('Unknown input to MetricCollection.')
-
-    def __getitem__(self, name):
-        """ Returns a metric by its name """
-        return self.metrics[name]
-
-    def __iter__(self):
-        """ Returns iterator over the metric dict keys"""
-        for k in self.metrics.keys():
-            yield k
-    def __len__(self):
-
-        return len(self.metrics)
 
     def forward(self, *args, **kwargs):
         """ Iteratively call forward for each metric """

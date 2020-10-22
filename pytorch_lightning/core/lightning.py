@@ -301,7 +301,7 @@ class LightningModule(
         """
         for k, v in dictionary.items():
             self.log(
-                name=prefix + '_' + k if prefix!='' else k,
+                name=prefix + '_' + k if prefix != '' else k,
                 value=v,
                 prog_bar=prog_bar,
                 logger=logger,

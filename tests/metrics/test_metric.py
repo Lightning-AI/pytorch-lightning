@@ -6,8 +6,6 @@ import numpy as np
 import pytest
 import torch
 from pytorch_lightning.metrics.metric import Metric, MetricCollection
-import os
-import numpy as np
 
 torch.manual_seed(42)
 
@@ -233,8 +231,3 @@ def test_metric_collection_wrong_input(tmpdir):
     # Not a list or dict passed in
     with pytest.raises(ValueError, match='Unknown input to MetricCollection.'):
         metric_collection = MetricCollection(m1)
-
-
-
-
-
