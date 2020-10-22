@@ -144,16 +144,16 @@ Example implementation:
         def compute(self):
             return self.correct.float() / self.total
 
-Metrics support backpropergation, if all computations involved in the metric calculation
+Metrics support backpropagation, if all computations involved in the metric calculation
 are differentiable. However, note that the cashed state is detached from the computational
-graph and cannot be backpropergated. Not doing this would mean storing the computational
+graph and cannot be backpropagated. Not doing this would mean storing the computational
 graph for each update call, which can lead to out-of-memory errors.
 In practise this means that:
 
 .. code-block:: python
     metric = MyMetric()
-    val = metric(pred, target) # this value can be backpropergated
-    val = metric.compute() # this value cannot be backpropergated
+    val = metric(pred, target) # this value can be backpropagated
+    val = metric.compute() # this value cannot be backpropagated
 
 
 **********
