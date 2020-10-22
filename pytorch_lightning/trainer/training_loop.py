@@ -582,7 +582,7 @@ class TrainLoop:
 
             # max steps reached, end training
             if self.trainer.max_steps is not None and self.trainer.max_steps == self.trainer.global_step + 1:
-                accumulation_done = self.accumulated_batches_reached()
+                accumulation_done = self._accumulated_batches_reached()
                 # Ensure accumulation across batches has completed before breaking loop
                 if accumulation_done:
                     break
@@ -651,8 +651,8 @@ class TrainLoop:
             return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
 
         # checks if backward or backward + optimizer step (via closure)
-        accumulation_done = self.accumulated_batches_reached()
-        is_final_batch = self.num_training_batches_reached()
+        accumulation_done = self._accumulated_batches_reached()
+        is_final_batch = self._num_training_batches_reached()
 
         # lightning module hook
         splits = self.tbptt_split_batch(batch)
@@ -825,8 +825,8 @@ class TrainLoop:
             )
 
     def update_train_loop_lr_schedulers(self, monitor_metrics=None):
-        num_accumulated_batches_reached = self.accumulated_batches_reached()
-        num_training_batches_reached = self.num_training_batches_reached()
+        num_accumulated_batches_reached = self._accumulated_batches_reached()
+        num_training_batches_reached = self._num_training_batches_reached()
 
         if num_accumulated_batches_reached or num_training_batches_reached:
             # update lr
@@ -837,17 +837,17 @@ class TrainLoop:
         self.trainer.call_hook("on_train_epoch_end", epoch_output)
 
     def increment_accumulated_grad_global_step(self):
-        num_accumulated_batches_reached = self.accumulated_batches_reached()
-        num_training_batches_reached = self.num_training_batches_reached()
+        num_accumulated_batches_reached = self._accumulated_batches_reached()
+        num_training_batches_reached = self._num_training_batches_reached()
 
         # progress global step according to grads progress
         if num_accumulated_batches_reached or num_training_batches_reached:
             self.trainer.global_step += 1
 
-    def accumulated_batches_reached(self):
+    def _accumulated_batches_reached(self):
         return (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
 
-    def num_training_batches_reached(self):
+    def _num_training_batches_reached(self):
         return (self.trainer.batch_idx + 1) == self.trainer.num_training_batches
 
     def should_check_val_fx(self, batch_idx, is_last_batch):
