@@ -61,8 +61,8 @@ class LightningOSS(OSS):
 
 class LightningModelDispatch(ModelDispatch):
     def forward(self, *inputs, **kwargs):  # type: ignore
-        if self.broadcast_buffers and len(list(self.base_model.buffers())) > 0:
-            self.sync_buffers()
+        if self.broadcast_model_buffers:
+            self.sync_buffers(non_blocking=False)
         if self.base_model.training:
             output = self.base_model.training_step(*inputs, **kwargs)
         elif self.base_model.testing:
