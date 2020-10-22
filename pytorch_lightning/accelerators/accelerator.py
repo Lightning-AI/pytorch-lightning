@@ -36,11 +36,12 @@ EPSILON_FP16 = 1e-5
 
 class Accelerator(object):
 
-    def __init__(self, trainer=None, cluster_environment=None):
+    def __init__(self, trainer=None, cluster_environment=None, ddp_plugin=None):
         self.trainer = trainer
         self.nickname = None
         self.cluster_environment = cluster_environment
         self.dist = AttributeDict(rank=0, device=None)
+        self.ddp_plugin = ddp_plugin
 
         if trainer is not None:
             self.train_loop = self.trainer.train
@@ -216,7 +217,8 @@ class Accelerator(object):
             'trainer': self.trainer,
             'nickname': self.nickname,
             'cluster_environment': self.cluster_environment,
-            'dist': self.dist
+            'dist': self.dist,
+            'ddp_plugin': self.ddp_plugin
         }
 
     def __setstate__(self, d):
@@ -224,6 +226,7 @@ class Accelerator(object):
         self.nickname = d['nickname']
         self.cluster_environment = d['cluster_environment']
         self.dist = d['dist']
+        self.ddp_plugin = d['ddp_plugin']
 
 
 # TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...
