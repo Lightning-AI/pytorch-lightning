@@ -21,7 +21,7 @@ Monitor and logs learning rate for lr schedulers during training.
 
 """
 
-from typing import Optional
+from typing import Dict, List, Optional
 
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
@@ -69,7 +69,7 @@ class LearningRateMonitor(Callback):
         self.lrs = None
         self.lr_sch_names = []
 
-    def on_train_start(self, trainer, pl_module):
+    def on_train_start(self, trainer, *args, **kwargs):
         """
         Called before training, determines unique names for all lr
         schedulers in the case of multiple of the same type or in
@@ -93,7 +93,10 @@ class LearningRateMonitor(Callback):
         # Initialize for storing values
         self.lrs = {name: [] for name in names}
 
-    def on_batch_start(self, trainer, pl_module):
+    def on_train_batch_start(self, trainer, *args, **kwargs):
+        if not self._should_log(trainer):
+            return
+
         if self.logging_interval != 'epoch':
             interval = 'step' if self.logging_interval is None else 'any'
             latest_stat = self._extract_lr(trainer, interval)
@@ -101,7 +104,7 @@ class LearningRateMonitor(Callback):
             if trainer.logger is not None and latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
-    def on_epoch_start(self, trainer, pl_module):
+    def on_train_epoch_start(self, trainer, *args, **kwargs):
         if self.logging_interval != 'step':
             interval = 'epoch' if self.logging_interval is None else 'any'
             latest_stat = self._extract_lr(trainer, interval)
@@ -109,7 +112,7 @@ class LearningRateMonitor(Callback):
             if trainer.logger is not None and latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.current_epoch)
 
-    def _extract_lr(self, trainer, interval):
+    def _extract_lr(self, trainer, interval: str) -> Dict[str, float]:
         latest_stat = {}
 
         for name, scheduler in zip(self.lr_sch_names, trainer.lr_schedulers):
@@ -126,7 +129,7 @@ class LearningRateMonitor(Callback):
 
         return latest_stat
 
-    def _find_names(self, lr_schedulers):
+    def _find_names(self, lr_schedulers) -> List[str]:
         # Create uniqe names in the case we have multiple of the same learning
         # rate schduler + multiple parameter groups
         names = []
@@ -157,3 +160,13 @@ class LearningRateMonitor(Callback):
             self.lr_sch_names.append(name)
 
         return names
+
+    @staticmethod
+    def _should_log(trainer) -> bool:
+        should_log = (
+            (trainer.global_step + 1) % trainer.log_every_n_steps == 0
+            or trainer.should_stop
+        )
+
+        should_log = should_log and not trainer.fast_dev_run
+        return should_log

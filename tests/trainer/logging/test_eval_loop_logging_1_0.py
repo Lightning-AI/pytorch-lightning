@@ -52,7 +52,7 @@ def test__validation_step__log(tmpdir):
             self.training_step_called = True
 
         def backward(self, loss, optimizer, optimizer_idx):
-            loss.backward()
+            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
 
     model = TestModel()
     model.validation_step_end = None
@@ -123,7 +123,7 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
             self.validation_epoch_end_called = True
 
         def backward(self, loss, optimizer, optimizer_idx):
-            loss.backward()
+            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
 
     model = TestModel()
 
@@ -196,6 +196,7 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     expected_logged_metrics = {
         'c',
         'd/e/f',
+        'epoch',
     }
     assert logged_metrics == expected_logged_metrics
 
@@ -204,10 +205,11 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     assert pbar_metrics == expected_pbar_metrics
 
     callback_metrics = set(trainer.callback_metrics.keys())
+    callback_metrics.remove('debug_epoch')
     expected_callback_metrics = set()
     expected_callback_metrics = expected_callback_metrics.union(logged_metrics)
     expected_callback_metrics = expected_callback_metrics.union(pbar_metrics)
-    callback_metrics.remove('debug_epoch')
+    expected_callback_metrics.remove('epoch')
     assert callback_metrics == expected_callback_metrics
 
     # assert the loggers received the expected number
@@ -244,6 +246,7 @@ def test_eval_float_logging(tmpdir):
     logged_metrics = set(trainer.logged_metrics.keys())
     expected_logged_metrics = {
         'a',
+        'epoch',
     }
     assert logged_metrics == expected_logged_metrics
 
@@ -315,6 +318,39 @@ def test_eval_logging_auto_reduce(tmpdir):
 
     # only those logged
     assert len(logged_val) == 6
+
+
+@pytest.mark.parametrize(['batches', 'log_interval', 'max_epochs'], [(1, 1, 1), (64, 32, 2)])
+def test_eval_epoch_only_logging(tmpdir, batches, log_interval, max_epochs):
+    """
+    Tests that only test_epoch_end can be used to log, and we return them in the results.
+    """
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    class TestModel(BoringModel):
+        def test_epoch_end(self, outputs):
+            self.log('c', torch.tensor(2), on_epoch=True, prog_bar=True, logger=True)
+            self.log('d/e/f', 2)
+
+    model = TestModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=batches,
+        limit_val_batches=batches,
+        max_epochs=max_epochs,
+        log_every_n_steps=log_interval,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+    results = trainer.test(model)
+
+    expected_result_metrics = {
+        'c': torch.tensor(2),
+        'd/e/f': 2,
+    }
+    for result in results:
+        assert result == expected_result_metrics
 
 
 def test_monitor_val_epoch_end(tmpdir):
