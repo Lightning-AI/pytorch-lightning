@@ -208,10 +208,7 @@ def test_early_stopping_functionality_arbitrary_key(tmpdir):
     assert trainer.current_epoch >= 5, 'early_stopping failed'
 
 
-@pytest.mark.parametrize('step_freeze, min_steps, min_epochs',
-[(5, 1, 1),
- (5, 1, 3),
- (3, 15, 1)])
+@pytest.mark.parametrize('step_freeze, min_steps, min_epochs',[(5, 1, 1), (5, 1, 3), (3, 15, 1)])
 def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, min_steps, min_epochs):
     """Excepted Behaviour:
     IF `min_steps` was set to a higher value than the `trainer.global_step` when `early_stopping` is being triggered,
