@@ -13,33 +13,30 @@
 # limitations under the License.
 
 import collections
-import copy
 import inspect
 import os
-import re
 import tempfile
 from abc import ABC
-from argparse import Namespace
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
-from pytorch_lightning import _logger as log
-from pytorch_lightning.core.grads import GradInformation
-from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
-from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
-from pytorch_lightning.utilities.hparams_mixin import HyperparametersMixin
-from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
-from pytorch_lightning.utilities import rank_zero_warn, AMPType
-from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
-from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.utilities.parsing import collect_init_args
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 
+from pytorch_lightning import _logger as log
+from pytorch_lightning.core.datamodule import LightningDataModule
+from pytorch_lightning.core.grads import GradInformation
+from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
+from pytorch_lightning.core.memory import ModelSummary
+from pytorch_lightning.core.saving import ModelIO
+from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.utilities import rank_zero_warn, AMPType
+from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.hparams_mixin import HyperparametersMixin
+from pytorch_lightning.utilities.parsing import collect_init_args
+from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 
 TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 
@@ -1515,8 +1512,8 @@ class LightningModule(
 
         return torchscript_module
 
-    def add_datamodule_hparams(self, hparams):
-        hparams = self._to_hparams_dict(hparams)
+    def add_datamodule_hparams(self, datamodule: LightningDataModule):
+        hparams = self._to_hparams_dict(datamodule.hparams)
         if not hasattr(self, '_hparams'):
             self._hparams = hparams
             self._hparams_initial = hparams

@@ -15,6 +15,7 @@ import copy
 import os
 import pickle
 from argparse import Namespace
+from typing import Optional
 
 import cloudpickle
 import pytest
@@ -22,9 +23,10 @@ import torch
 from fsspec.implementations.local import LocalFileSystem
 from omegaconf import OmegaConf, Container
 from torch.nn import functional as F
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, TensorDataset
 
 from pytorch_lightning import Trainer, LightningModule
+from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.saving import save_hparams_to_yaml, load_hparams_from_yaml
 from pytorch_lightning.utilities import AttributeDict, is_picklable
 from tests.base import EvalModelTemplate, TrialMNIST, BoringModel
@@ -613,12 +615,29 @@ def test_model_with_fsspec_as_parameter(tmpdir):
     trainer.test()
 
 
+class DataModuleWithHparams(LightningDataModule):
+    def __init__(self, hparams):
+        super().__init__()
+
+        self.hparams = hparams
+        self._data = None
+
+    def prepare_data(self, *args, **kwargs):
+        pass
+
+    def setup(self, stage: Optional[str] = None):
+        self._data = TensorDataset(torch.randn(100, 20))
+
+    def train_dataloader(self, *args, **kwargs) -> DataLoader:
+        return DataLoader(self._data, batch_size=10)
+
+
 def test_extending_existing_hparams(tmpdir):
     """Test that the new hparams are added to the existing ones."""
     hparams = {'arg1': 'abc'}
     model = EvalModelTemplate()
     old_hparams = copy.deepcopy(model.hparams)
-    model.add_datamodule_hparams(hparams)
+    model.add_datamodule_hparams(DataModuleWithHparams(hparams))
 
     old_hparams.update(hparams)
     assert old_hparams == model.hparams
@@ -633,7 +652,7 @@ def test_extending_non_existing_hparams(tmpdir):
 
     hparams = {'arg1': 'abc'}
     model = DummyModel()
-    model.add_datamodule_hparams(hparams)
+    model.add_datamodule_hparams(DataModuleWithHparams(hparams))
 
     assert hparams == model.hparams
     assert hparams == model.hparams_initial
@@ -644,7 +663,7 @@ def test_extending_with_namespace(tmpdir):
     hparams = Namespace(arg1='abc')
     model = EvalModelTemplate()
     old_hparams = copy.deepcopy(model.hparams)
-    model.add_datamodule_hparams(hparams)
+    model.add_datamodule_hparams(DataModuleWithHparams(hparams))
 
     old_hparams.update(vars(hparams))
     assert old_hparams == model.hparams
@@ -657,7 +676,7 @@ def test_extend_with_unsupported_hparams(tmpdir):
     model = EvalModelTemplate()
 
     with pytest.raises(ValueError):
-        model.add_datamodule_hparams(hparams)
+        model.add_datamodule_hparams(DataModuleWithHparams(hparams))
 
 
 def test_extend_with_primitive_hparams(tmpdir):
@@ -666,14 +685,14 @@ def test_extend_with_primitive_hparams(tmpdir):
     model = EvalModelTemplate()
 
     with pytest.raises(ValueError):
-        model.add_datamodule_hparams(hparams)
+        model.add_datamodule_hparams(DataModuleWithHparams(hparams))
 
 
 def test_extend_with_collision(tmp_path):
     """Test that new hparams cannot collide with existing hparams."""
     model = EvalModelTemplate()
     with pytest.raises(ValueError):
-        model.add_datamodule_hparams({'batch_size': 5})
+        model.add_datamodule_hparams(DataModuleWithHparams({'batch_size': 5}))
 
 
 def test_adding_datamodule_hparams(tmpdir):
@@ -703,5 +722,5 @@ def test_colliding_datamodule_hparams(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
-    with pytest.raises(ValueError, match='Error while adding data module hparams to model:'):
+    with pytest.raises(ValueError, match='Error while adding datamodule hparams: '):
         trainer.fit(model, datamodule=data)

@@ -92,12 +92,13 @@ class TrainLoop:
         # bind logger and other properties
         self.trainer.model_connector.copy_trainer_model_properties(model)
 
+        # Add hparams from datamodule
+        if datamodule is not None:
+            model.add_datamodule_hparams(datamodule)
+
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
-        if hasattr(datamodule, 'hparams'):
-            parsing.clean_namespace(datamodule.hparams)
-            model.add_datamodule_hparams(datamodule.hparams)
 
         # links data to the trainer
         self.trainer.data_connector.attach_data(model, train_dataloader, val_dataloaders, datamodule)
