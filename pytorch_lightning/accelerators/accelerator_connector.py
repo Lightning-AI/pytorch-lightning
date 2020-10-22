@@ -185,6 +185,7 @@ class AcceleratorConnector:
         # use the one the user passed in
         if self.accelerator is not None and isinstance(self.accelerator, Accelerator):
             self.accelerator.trainer = self.trainer
+            self.accelerator.ddp_plugin = self.trainer.plugin_connector.ddp_plugin
             acc = self.accelerator
             return acc
 
@@ -212,36 +213,62 @@ class AcceleratorConnector:
 
         # choose the appropriate accelerator backend
         if self.trainer.use_ddp2:
-            accelerator_backend = accelerators.DDP2Accelerator(self.trainer, cluster_env)
+            accelerator_backend = accelerators.DDP2Accelerator(
+                self.trainer,
+                cluster_env,
+                self.trainer.plugin_connector.ddp_plugin
+            )
 
         elif use_ddp_cpu_slurm:
-            accelerator_backend = accelerators.DDPCPUSLURMAccelerator(self.trainer, cluster_env)
+            accelerator_backend = accelerators.DDPCPUSLURMAccelerator(
+                self.trainer,
+                cluster_env,
+                self.trainer.plugin_connector.ddp_plugin
+            )
 
         elif use_slurm_ddp:
-            accelerator_backend = accelerators.DDPSLURMAccelerator(self.trainer, cluster_env)
+            accelerator_backend = accelerators.DDPSLURMAccelerator(
+                self.trainer,
+                cluster_env,
+                self.trainer.plugin_connector.ddp_plugin
+            )
 
         elif use_ddp_cpu_torch_elastic:
-            accelerator_backend = accelerators.DDPCPUTorchElasticAccelerator(self.trainer, cluster_env)
+            accelerator_backend = accelerators.DDPCPUTorchElasticAccelerator(
+                self.trainer,
+                cluster_env,
+                self.trainer.plugin_connector.ddp_plugin
+            )
 
         elif use_torchelastic_ddp:
-            accelerator_backend = accelerators.DDPTorchElasticAccelerator(self.trainer, cluster_env)
+            accelerator_backend = accelerators.DDPTorchElasticAccelerator(
+                self.trainer,
+                cluster_env,
+                self.trainer.plugin_connector.ddp_plugin
+            )
 
         elif use_ddp_spawn:
             accelerator_backend = accelerators.DDPSpawnAccelerator(
                 self.trainer,
                 nprocs=self.trainer.num_processes,
-                cluster_environment=cluster_env
+                cluster_environment=cluster_env,
+                ddp_plugin=self.trainer.plugin_connector.ddp_plugin
             )
 
         elif use_ddp_cpu_spawn:
             accelerator_backend = accelerators.DDPCPUSpawnAccelerator(
                 self.trainer,
                 nprocs=self.trainer.num_processes,
-                cluster_environment=cluster_env
+                cluster_environment=cluster_env,
+                ddp_plugin=self.trainer.plugin_connector.ddp_plugin
             )
 
         elif self.trainer.distributed_backend == "ddp":
-            accelerator_backend = accelerators.DDPAccelerator(self.trainer, cluster_env)
+            accelerator_backend = accelerators.DDPAccelerator(
+                self.trainer,
+                cluster_env,
+                ddp_plugin=self.trainer.plugin_connector.ddp_plugin
+            )
 
         elif self.trainer.use_dp:
             accelerator_backend = accelerators.DataParallelAccelerator(self.trainer, cluster_env)

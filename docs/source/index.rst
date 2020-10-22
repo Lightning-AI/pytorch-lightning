@@ -43,6 +43,7 @@ PyTorch Lightning Documentation
    datamodules
    logging
    metrics
+   plugins
 
 
 .. toctree::
