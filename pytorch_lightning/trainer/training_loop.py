@@ -16,6 +16,7 @@ import subprocess
 from copy import copy, deepcopy
 
 import numpy as np
+from numpy.lib.arraysetops import isin
 import torch
 import torch.distributed as torch_distrib
 
@@ -46,6 +47,7 @@ class TrainLoop:
         self.automatic_optimization = True
         self._curr_step_result = None
         self._cur_grad_norm_dict = None
+        self._updated_model_last_step = False
 
     def on_trainer_init(
         self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps, automatic_optimization
@@ -676,7 +678,17 @@ class TrainLoop:
                     # -------------------
                     # calculate loss (train step + train step end)
                     # -------------------
+
+                    # no ddp sync at the beginning of forward or backward due to parameter changes in this or last step required
+                    no_sync = self._updated_model_last_step and isinstance(self.trainer.model, torch.nn.parallel.DistributedDataParallel)
+                    if no_sync:
+                        self.trainer.model.no_sync.__enter__()
+
                     self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens)
+
+                    if no_sync:
+                        self.trainer.model.__exit__()
+
                     batch_outputs = self._process_closure_result(
                         batch_callback_metrics=batch_callback_metrics,
                         batch_log_metrics=batch_log_metrics,
@@ -684,12 +696,15 @@ class TrainLoop:
                         opt_idx=opt_idx,
                     )
 
+                    self._updated_model_last_step = False
+
                 # ------------------------------
                 # BACKWARD PASS
                 # ------------------------------
                 # gradient update with accumulated gradients
 
                 else:
+                    self._updated_model_last_step = True
 
                     if self.automatic_optimization:
 
