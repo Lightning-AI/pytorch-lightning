@@ -746,6 +746,39 @@ def test_dataloader_distributed_sampler(tmpdir):
     trainer.test(ckpt_path=None)
 
 
+@pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs')
+def test_dataloader_distributed_sampler_already_attached(tmpdir):
+    """ Test DistributedSampler and it's arguments for DDP backend when DistSampler already included on dataloader """
+
+    class ModelWithDataLoaderDistributedSampler(EvalModelTemplate):
+
+        def train_dataloader(self):
+            dataloader = super().train_dataloader()
+            dist_sampler = DistributedSampler(dataloader.dataset, shuffle=False)
+            dataloader = DataLoader(
+                dataset,
+                batch_size=self.batch_size,
+                drop_last=False,
+                sampler=dist_sampler,
+                shuffle=False
+            )
+            return dataloader
+
+    model = ModelWithDataLoaderDistributedSampler()
+    trainer = Trainer(
+        gpus=[0, 1],
+        num_nodes=1,
+        distributed_backend='ddp_spawn',
+        default_root_dir=tmpdir,
+        max_steps=100,
+        callbacks=[DistribSamplerCallback()]
+    )
+    trainer.fit(model)
+    assert result == 1, "DDP Training failed"
+
+
+
 @pytest.mark.skipif(torch.cuda.device_count() < 3, reason='Test requires multiple GPUs')
 def test_batch_size_smaller_than_num_gpus(tmpdir):
     # we need at least 3 gpus for this test
