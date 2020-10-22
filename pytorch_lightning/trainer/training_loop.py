@@ -426,7 +426,8 @@ class TrainLoop:
 
             if loss is None:
                 func_name = "training_step_end" if is_overridden('training_step_end', model_ref) else "training_step"
-                m = f'The key `loss` should be present within {func_name} output. Existing keys: {[*training_step_output]}'
+                m = f'The key `loss` should be present within {func_name} output. \
+                     Existing keys: {[*training_step_output]}'
                 raise MisconfigurationException(m)
 
         # handle scalar return
@@ -776,7 +777,8 @@ class TrainLoop:
                         self.optimizer_step(optimizer, opt_idx, batch_idx, train_step_and_backward_closure)
 
                     else:
-                        self._curr_step_result = self.training_step(split_batch, batch_idx, opt_idx, self.trainer.hiddens)
+                        self._curr_step_result = self.training_step(split_batch, batch_idx, opt_idx,
+                                                                    self.trainer.hiddens)
 
                     if self._curr_step_result is None:
                         results = self.trainer.get_model()._results

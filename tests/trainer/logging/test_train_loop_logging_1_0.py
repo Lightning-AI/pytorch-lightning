@@ -523,7 +523,8 @@ def test_misconfiguration_error_for_training_step(tmpdir):
         )
         trainer.fit(model)
 
-    assert "The key `loss` should be present within training_step output. Existing keys: ['train_loss']" == str(excinfo.value)
+    assert "The key `loss` should be present within training_step output. Existing keys: ['train_loss']" == str(
+        excinfo.value)
 
 
 def test_misconfiguration_error_for_training_step_end(tmpdir):
@@ -557,7 +558,8 @@ def test_misconfiguration_error_for_training_step_end(tmpdir):
         )
         trainer.fit(model)
 
-    assert "The key `loss` should be present within training_step_end output. Existing keys: ['train_loss']" == str(excinfo.value)
+    assert "The key `loss` should be present within training_step_end output. Existing keys: ['train_loss']" == str(
+        excinfo.value)
 
 
 def test_log_works_in_train_callback(tmpdir):
@@ -583,43 +585,56 @@ def test_log_works_in_train_callback(tmpdir):
                 # run logging
                 on_step, on_epoch, prog_bar = t
                 custom_func_name = f"{func_idx}_{idx}_{func_name}"
-                pl_module.log(custom_func_name, self.count * func_idx, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
+                pl_module.log(custom_func_name, self.count * func_idx,
+                              on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
                 # catch information for verification
                 self.callback_funcs_called[func_name].append([self.count * func_idx])
-                self.funcs_attr[custom_func_name] = {"on_step":on_step, "on_epoch":on_epoch, "prog_bar":prog_bar, "is_created":False, "func_name":func_name}
+                self.funcs_attr[custom_func_name] = {"on_step": on_step, "on_epoch": on_epoch,
+                                                     "prog_bar": prog_bar, "is_created": False, "func_name": func_name}
                 if on_step and on_epoch:
-                    self.funcs_attr[f"{custom_func_name}_step"] = {"on_step":True, "on_epoch":False, "prog_bar":prog_bar, "is_created":True, "func_name":func_name}
-                    self.funcs_attr[f"{custom_func_name}_epoch"] = {"on_step":False, "on_epoch":True, "prog_bar":prog_bar, "is_created":True, "func_name":func_name}
+                    self.funcs_attr[f"{custom_func_name}_step"] = {"on_step": True, "on_epoch": False,
+                                                                   "prog_bar": prog_bar, "is_created": True, "func_name": func_name}
+                    self.funcs_attr[f"{custom_func_name}_epoch"] = {"on_step": False, "on_epoch": True,
+                                                                    "prog_bar": prog_bar, "is_created": True, "func_name": func_name}
 
         def on_train_start(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_train_start', 1, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(pl_module, 'on_train_start', 1, on_steps=self.choices,
+                              on_epochs=self.choices, prob_bars=self.choices)
 
         def on_epoch_start(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_epoch_start', 2, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(pl_module, 'on_epoch_start', 2, on_steps=self.choices,
+                              on_epochs=self.choices, prob_bars=self.choices)
 
         def on_train_epoch_start(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_train_epoch_start', 3, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(pl_module, 'on_train_epoch_start', 3, on_steps=self.choices,
+                              on_epochs=self.choices, prob_bars=self.choices)
 
         def on_batch_start(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_batch_start', 4, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(pl_module, 'on_batch_start', 4, on_steps=self.choices,
+                              on_epochs=self.choices, prob_bars=self.choices)
 
         def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-            self.make_logging(pl_module, 'on_train_batch_start', 5, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(pl_module, 'on_train_batch_start', 5, on_steps=self.choices,
+                              on_epochs=self.choices, prob_bars=self.choices)
 
         def on_batch_end(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_batch_end', 6, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(pl_module, 'on_batch_end', 6, on_steps=self.choices,
+                              on_epochs=self.choices, prob_bars=self.choices)
 
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-            self.make_logging(pl_module, 'on_train_batch_end', 7, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(pl_module, 'on_train_batch_end', 7, on_steps=self.choices,
+                              on_epochs=self.choices, prob_bars=self.choices)
             # used to make sure aggregation works fine.
             # we should obtain func[value * c for c in range(1, max_epochs * limit_train_batches)]) with func = np.mean if on_epoch else func = np.max
             self.count += 1
 
         def on_epoch_end(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_epoch_end', 8, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(pl_module, 'on_epoch_end', 8, on_steps=[
+                              False], on_epochs=self.choices, prob_bars=self.choices)
 
         def on_train_epoch_end(self, trainer, pl_module, outputs):
-            self.make_logging(pl_module, 'on_train_epoch_end', 9, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices)
+            self.make_logging(pl_module, 'on_train_epoch_end', 9, on_steps=[
+                              False], on_epochs=self.choices, prob_bars=self.choices)
 
     class TestModel(BoringModel):
 
