@@ -251,18 +251,20 @@ class EvaluationLoop(object):
 
     def track_metrics_before_on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, test_mode):
         using_eval_result = self.is_using_eval_results()
-        eval_loop_results = self.trainer.logger_connector.before_on_evaluation_epoch_end(
+        self.trainer.logger_connector.before_on_evaluation_epoch_end(
             deprecated_eval_results,
             epoch_logs,
             using_eval_result,
             test_mode
         )
-        return eval_loop_results
 
     def log_epoch_metrics_on_evaluation_end(self):
         metrics_to_log = self.trainer.logger_connector.cached_metrics(self.testing).get_as_list("before_on_batch_start", "epoch_log_metrics")
         metrics_to_log += self.trainer.logger_connector.cached_metrics(self.testing).get_as_list("after_on_batch_end", "epoch_log_metrics")
         self.trainer.logger_connector.log_epoch_metrics_on_evaluation_end(metrics_to_log)
+        # get the final loop results
+        eval_loop_results = self.trainer.logger_connector._get_evaluate_epoch_results(self.testing)
+        return eval_loop_results
 
     def __run_eval_epoch_end(self, num_dataloaders, using_eval_result):
         model = self.trainer.get_model()

@@ -183,10 +183,6 @@ class LoggerConnector:
         # TODO: deprecate parts of this for 1.0 (when removing results)
         self.__process_eval_epoch_end_results_and_log_legacy(deprecated_eval_results, test_mode)
 
-        # get the final loop results
-        eval_loop_results = self._get_evaluate_epoch_results(test_mode)
-        return eval_loop_results
-
     def _get_evaluate_epoch_results(self, test_mode):
         # log results of test
         if test_mode and self.trainer.is_global_zero and self.trainer.verbose_test:
@@ -195,6 +191,9 @@ class LoggerConnector:
                 print(f'DATALOADER:{result_idx} TEST RESULTS')
                 pprint(results)
                 print('-' * 80)
+
+        if self.trainer.testing:
+            self.eval_loop_results.append(self.callback_metrics)
 
         results = self.eval_loop_results
 
