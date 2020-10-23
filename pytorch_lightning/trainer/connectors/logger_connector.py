@@ -97,7 +97,8 @@ class LoggerConnector:
             # Acces using trainer.testing
             stage = self.__lookup_stages[stage_or_testing]
             return self._cache_internal_metrics[stage]
-        raise MisconfigurationException(f"Provide stage_or_testing {stage_or_testing} doesn't belong either to {self.__stages} or {self.__lookup_stages.keys()}")
+        raise MisconfigurationException(f"Provide stage_or_testing {stage_or_testing} doesn't belong
+                                        either to {self.__stages} or {self.__lookup_stages.keys()}")
 
     def on_trainer_init(self, logger, flush_logs_every_n_steps, log_every_n_steps):
         # logging
@@ -176,7 +177,8 @@ class LoggerConnector:
     def before_on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, using_eval_result, test_mode):
         self._track_callback_metrics(deprecated_eval_results, using_eval_result)
 
-        metrics_to_log = self.cached_metrics(self.trainer.testing).get_as_list("before_on_batch_start", "epoch_log_metrics")
+        metrics_to_log = self.cached_metrics(self.trainer.testing)\
+            .get_as_list("before_on_batch_start", "epoch_log_metrics")
         self._track_callback_metrics_1_0(epoch_logs, metrics_to_log, reduce_on_epoch=True)
         # TODO: deprecate parts of this for 1.0 (when removing results)
         self.__process_eval_epoch_end_results_and_log_legacy(deprecated_eval_results, test_mode)
@@ -418,10 +420,12 @@ class LoggerConnector:
             epoch_log_metrics.update(epoch_end_log_result.get_epoch_log_metrics())
             epoch_progress_bar_metrics.update(epoch_end_log_result.get_epoch_pbar_metrics())
 
-            cache_internal_epoch_log_metrics = self.cached_metrics("train").get_as_dict("after_on_batch_end", "epoch_log_metrics")
+            cache_internal_epoch_log_metrics = self.cached_metrics("train")\
+                .get_as_dict("after_on_batch_end", "epoch_log_metrics")
             epoch_log_metrics.update(cache_internal_epoch_log_metrics)
 
-            cache_internal_epoch_pbar_metrics = self.cached_metrics("train").get_as_dict("after_on_batch_end", "epoch_pbar_metrics")
+            cache_internal_epoch_pbar_metrics = self.cached_metrics("train")\
+                .get_as_dict("after_on_batch_end", "epoch_pbar_metrics")
             epoch_progress_bar_metrics.update(cache_internal_epoch_pbar_metrics)
         # TODO: deprecate 1.0
         else:

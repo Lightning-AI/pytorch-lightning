@@ -107,7 +107,8 @@ class EvaluationLoop(object):
     def _update_metrics_to_log_after_evaluation_epoch_end(self):
         if not self.trainer.running_sanity_check:
             self.trainer.logger_connector.cached_metrics(self.testing).update(self.trainer, "after_on_batch_end")
-            metrics_to_log = self.trainer.logger_connector.cached_metrics(self.testing).get_as_list("after_on_batch_end", "epoch_log_metrics")
+            metrics_to_log = self.trainer.logger_connector.cached_metrics(self.testing)\
+                .get_as_list("after_on_batch_end", "epoch_log_metrics")
             self.trainer.logger_connector._track_callback_metrics_1_0(self.trainer.get_model()._results,
                                                                       metrics_to_log=metrics_to_log)
 
@@ -259,8 +260,10 @@ class EvaluationLoop(object):
         )
 
     def log_epoch_metrics_on_evaluation_end(self):
-        metrics_to_log = self.trainer.logger_connector.cached_metrics(self.testing).get_as_list("before_on_batch_start", "epoch_log_metrics")
-        metrics_to_log += self.trainer.logger_connector.cached_metrics(self.testing).get_as_list("after_on_batch_end", "epoch_log_metrics")
+        metrics_to_log = self.trainer.logger_connector.cached_metrics(self.testing)\
+            .get_as_list("before_on_batch_start", "epoch_log_metrics")
+        metrics_to_log += self.trainer.logger_connector.cached_metrics(self.testing)\
+            .get_as_list("after_on_batch_end", "epoch_log_metrics")
         self.trainer.logger_connector.log_epoch_metrics_on_evaluation_end(metrics_to_log)
         # get the final loop results
         eval_loop_results = self.trainer.logger_connector._get_evaluate_epoch_results(self.testing)

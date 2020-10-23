@@ -565,19 +565,23 @@ def test_log_works_in_test_callback(tmpdir):
 
                 # catch information for verification
                 self.callback_funcs_called[func_name].append([self.count * func_idx])
-                self.funcs_attr[custom_func_name + num_dl_ext] = {"on_step":on_step,
-                                                                  "on_epoch":on_epoch,
-                                                                  "prog_bar":prog_bar,
-                                                                  "func_name":func_name}
+                self.funcs_attr[custom_func_name + num_dl_ext] = {
+                    "on_step": on_step,
+                    "on_epoch": on_epoch,
+                    "prog_bar": prog_bar,
+                    "func_name": func_name}
                 if on_step and on_epoch:
-                    self.funcs_attr[f"{custom_func_name}_step" + num_dl_ext] = {"on_step":True,
-                                                                                "on_epoch":False,
-                                                                                "prog_bar":prog_bar,
-                                                                                "func_name":func_name}
-                    self.funcs_attr[f"{custom_func_name}_epoch" + num_dl_ext] = {"on_step":False,
-                                                                                 "on_epoch":True,
-                                                                                 "prog_bar":prog_bar,
-                                                                                 "func_name":func_name}
+                    self.funcs_attr[f"{custom_func_name}_step" + num_dl_ext] = {
+                        "on_step": True,
+                        "on_epoch": False,
+                        "prog_bar": prog_bar,
+                        "func_name": func_name}
+
+                    self.funcs_attr[f"{custom_func_name}_epoch" + num_dl_ext] = {
+                        "on_step": False,
+                        "on_epoch": True,
+                        "prog_bar": prog_bar,
+                        "func_name": func_name}
 
         def on_test_start(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_test_start', 1, on_steps=self.choices,
