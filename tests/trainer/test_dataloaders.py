@@ -772,7 +772,7 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
         distributed_backend='ddp_spawn',
         default_root_dir=tmpdir,
         max_steps=100,
-        callbacks=[DistribSamplerCallback()]
+        callbacks=[DistribSamplerCallback()],
         replace_sampler_ddp=True,
     )
     trainer.fit(model)
