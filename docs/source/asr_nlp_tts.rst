@@ -797,5 +797,5 @@ Learn More
 
 .. note:: Most NeMo tutorial notebooks can be run on `Google Colab <https://colab.research.google.com/notebooks/intro.ipynb>`_.
 
-`NVIDIA NeMo <https://github.com/NVIDIA/NeMo>`_ is actively being developed on GitHub.
+`NVIDIA NeMo <https://medium.com/pytorch/nvidia-nemo-neural-modules-and-models-for-conversational-ai-d660480d9696>`_ is actively being developed on GitHub.
 `Contributions <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/CONTRIBUTING.md>`_ are welcome!
