@@ -290,7 +290,6 @@ class CometLogger(LightningLoggerBase):
 
         return self._future_experiment_key
 
-
     def __getstate__(self):
         state = self.__dict__.copy()
 
