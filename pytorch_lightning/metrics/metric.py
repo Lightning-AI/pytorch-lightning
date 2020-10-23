@@ -275,16 +275,16 @@ class MetricCollection(nn.ModuleDict):
         >>> from pytorch_lightning.metrics import MetricCollection, Accuracy, Precision, Recall
         >>> target = torch.tensor([0, 2, 0, 2, 0, 1, 0, 2])
         >>> preds = torch.tensor([2, 1, 2, 0, 1, 2, 2, 2])
-        >>> metrics = MetricCollection(Accuracy(),
-        ...                            Precision(num_classes=3, average='macro'),
-        ...                            Recall(num_classes=3, average='macro'))
+        >>> metrics = MetricCollection([Accuracy(),
+        ...                             Precision(num_classes=3, average='macro'),
+        ...                             Recall(num_classes=3, average='macro')])
         >>> metrics(preds, target)
         {'Accuracy': tensor(0.1250), 'Precision': tensor(0.0667), 'Recall': tensor(0.1111)}
 
         >>> metrics = MetricCollection({'micro_recall': Recall(num_classes=3, average='micro'),
         ...                             'weighted_recall': Recall(num_classes=3, average='macro')})
         >>> metrics(preds, target)
-        {'micro_recall': tensor(0.1250), 'macro_recall': tensor(0.1111)}
+        {'micro_recall': tensor(0.1250), 'weighted_recall': tensor(0.1111)}
 
     """
     def __init__(self, metrics):
