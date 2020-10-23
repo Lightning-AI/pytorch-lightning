@@ -191,7 +191,10 @@ class LoggerConnector:
                 print('-' * 80)
 
         if self.trainer.testing:
-            self.eval_loop_results.append(self.callback_metrics)
+            callback_metrics = deepcopy(self.callback_metrics)
+            if self.trainer.dev_debugger.enabled:
+                callback_metrics.pop("debug_epoch")
+            self.eval_loop_results.append(callback_metrics)
 
         results = self.eval_loop_results
 
