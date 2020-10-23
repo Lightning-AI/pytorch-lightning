@@ -194,12 +194,9 @@ class LoggerConnector:
             callback_metrics = deepcopy(self.callback_metrics)
             if self.trainer.dev_debugger.enabled:
                 callback_metrics.pop("debug_epoch")
-            if len(self.eval_loop_results) > 0:
-                self.eval_loop_results[0].update(callback_metrics)
-            else:
-                self.eval_loop_results.append(callback_metrics)
+            self.eval_loop_results.append(callback_metrics)
 
-        results = self.eval_loop_results
+        results = [dict(ChainMap(*self.eval_loop_results))]
 
         # clear mem
         self.eval_loop_results = []
