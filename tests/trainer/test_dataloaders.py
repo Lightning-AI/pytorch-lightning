@@ -686,17 +686,17 @@ def test_dataloader_reinit_for_subclass(tmpdir):
     class CustomDummyObj:
         sampler = None
 
-    result = trainer.auto_add_sampler(CustomDummyObj(), train=True)
+    result = trainer.auto_add_sampler(CustomDummyObj(), shuffle=True)
     assert isinstance(result, CustomDummyObj), "Wrongly reinstantiated data loader"
 
     dataset = list(range(1000))
-    result = trainer.auto_add_sampler(CustomDataLoader(dataset), train=True)
+    result = trainer.auto_add_sampler(CustomDataLoader(dataset), shuffle=True)
     assert isinstance(result, torch.utils.data.DataLoader)
     assert isinstance(result, CustomDataLoader)
     assert hasattr(result, 'dummy_kwarg')
 
     # Shuffled DataLoader should also work
-    result = trainer.auto_add_sampler(CustomDataLoader(list(range(1000)), shuffle=True), train=True)
+    result = trainer.auto_add_sampler(CustomDataLoader(list(range(1000)), shuffle=True), shuffle=True)
     assert isinstance(result, torch.utils.data.DataLoader)
     assert isinstance(result, CustomDataLoader)
     assert hasattr(result, 'dummy_kwarg')
@@ -707,7 +707,7 @@ def test_dataloader_reinit_for_subclass(tmpdir):
     # Should raise an error if existing sampler is being replaced
     with pytest.raises(MisconfigurationException, match='DistributedSampler'):
         trainer.auto_add_sampler(
-            CustomDataLoader(list(range(1000)), sampler=CustomSampler(list(range(1000)))), train=True)
+            CustomDataLoader(list(range(1000)), sampler=CustomSampler(list(range(1000)))), shuffle=True)
 
 
 class DistribSamplerCallback(Callback):
