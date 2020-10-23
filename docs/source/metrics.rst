@@ -151,6 +151,7 @@ graph for each update call, which can lead to out-of-memory errors.
 In practise this means that:
 
 .. code-block:: python
+
     metric = MyMetric()
     val = metric(pred, target) # this value can be backpropagated
     val = metric.compute() # this value cannot be backpropagated
@@ -432,4 +433,3 @@ embedding_similarity [func]
 
 .. autofunction:: pytorch_lightning.metrics.functional.self_supervised.embedding_similarity
     :noindex:
-
