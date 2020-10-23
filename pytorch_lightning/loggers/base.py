@@ -187,7 +187,7 @@ class LightningLoggerBase(ABC):
                     if isinstance(_val, Callable):
                         return None
                     return _val
-                except:
+                except Exception:
                     return None
             return val
 
