@@ -628,7 +628,8 @@ def test_checkpoint_repeated_strategy_tmpdir(tmpdir):
 
 def test_checkpoint_repeated_strategy_extended(tmpdir):
     """
-    This test validates checkpoint can be called several times without increasing internally its global step if nothing run.
+    This test validates checkpoint can be called several times without
+    increasing internally its global step if nothing run.
     """
 
     os.environ['PL_DEV_DEBUG'] = '1'
