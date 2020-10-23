@@ -29,6 +29,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+import torch.distributed as torch_distrib
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn, rank_zero_info
@@ -238,7 +239,7 @@ class ModelCheckpoint(Callback):
         self._save_last_checkpoint(trainer, pl_module, epoch, monitor_candidates, filepath)
 
     def _sync_best_model_across_procs(self, trainer):
-        if trainer.accelerator_backend:
+        if trainer.accelerator_backend and torch_distrib.is_initialized():
             best_model_path, best_model_score = trainer.accelerator_backend.broadcast((self.best_model_path,
                                                                                       self.best_model_score))
             # track the best model path and score rank 0
