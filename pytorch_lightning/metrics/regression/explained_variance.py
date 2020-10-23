@@ -16,7 +16,10 @@ from typing import Any, Optional
 
 from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.metrics.utils import METRIC_EPS
+from pytorch_lightning.metrics.functional.explained_variance import (
+    _explained_variance_update,
+    _explained_variance_compute,
+)
 
 
 class ExplainedVariance(Metric):
@@ -86,9 +89,11 @@ class ExplainedVariance(Metric):
         self.add_state("y", default=[], dist_reduce_fx=None)
         self.add_state("y_pred", default=[], dist_reduce_fx=None)
 
-        rank_zero_warn('Metric `ExplainedVariance` will save all targets and'
-                       ' predictions in buffer. For large datasets this may lead'
-                       ' to large memory footprint.')
+        rank_zero_warn(
+            'Metric `ExplainedVariance` will save all targets and'
+            ' predictions in buffer. For large datasets this may lead'
+            ' to large memory footprint.'
+        )
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
@@ -98,37 +103,14 @@ class ExplainedVariance(Metric):
             preds: Predictions from model
             target: Ground truth values
         """
-        self._check_same_shape(preds, target)
-        self.y.append(target)
+        preds, target = _explained_variance_update(preds, target)
         self.y_pred.append(preds)
+        self.y.append(target)
 
     def compute(self):
         """
         Computes explained variance over state.
         """
-        y_true = torch.cat(self.y, dim=0)
-        y_pred = torch.cat(self.y_pred, dim=0)
-
-        y_diff_avg = torch.mean(y_true - y_pred, dim=0)
-        numerator = torch.mean((y_true - y_pred - y_diff_avg) ** 2, dim=0)
-
-        y_true_avg = torch.mean(y_true, dim=0)
-        denominator = torch.mean((y_true - y_true_avg) ** 2, dim=0)
-
-        # Take care of division by zero
-        nonzero_numerator = numerator != 0
-        nonzero_denominator = denominator != 0
-        valid_score = nonzero_numerator & nonzero_denominator
-        output_scores = torch.ones_like(y_diff_avg)
-        output_scores[valid_score] = 1.0 - (numerator[valid_score] / denominator[valid_score])
-        output_scores[nonzero_numerator & ~nonzero_denominator] = 0.
-
-        # Decide what to do in multioutput case
-        # Todo: allow user to pass in tensor with weights
-        if self.multioutput == 'raw_values':
-            return output_scores
-        if self.multioutput == 'uniform_average':
-            return torch.mean(output_scores)
-        if self.multioutput == 'variance_weighted':
-            denom_sum = torch.sum(denominator)
-            return torch.sum(denominator / denom_sum * output_scores)
+        preds = torch.cat(self.y_pred, dim=0)
+        target = torch.cat(self.y, dim=0)
+        return _explained_variance_compute(preds, target, self.multioutput)

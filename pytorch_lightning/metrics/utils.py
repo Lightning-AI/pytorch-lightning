@@ -61,3 +61,9 @@ def to_onehot(
                                 dtype=dtype, device=device)
     index = tensor.long().unsqueeze(1).expand_as(tensor_onehot)
     return tensor_onehot.scatter_(1, index, 1.0)
+
+
+def _check_same_shape(pred: torch.Tensor, target: torch.Tensor):
+    """ Check that predictions and target have the same shape, else raise error """
+    if pred.shape != target.shape:
+        raise RuntimeError('Predictions and targets are expected to have the same shape')

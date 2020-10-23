@@ -60,7 +60,7 @@ Have a favorite feature from other libraries like fast.ai or transformers? Those
 
 We are always looking for help implementing new features or fixing bugs.
 
-A lot of good work has already been done in project mechanics (requirements/base.txt, setup.py, pep8, badges, ci, etc...) so we're in a good state there thanks to all the early contributors (even pre-beta release)!
+A lot of good work has already been done in project mechanics (requirements.txt, setup.py, pep8, badges, ci, etc...) so we're in a good state there thanks to all the early contributors (even pre-beta release)!
 
 ### Bug Fixes:
 
@@ -196,7 +196,7 @@ This is useful if you do not test against all required dependency versions.
 **Docker:** Another option is utilize the [pytorch lightning cuda base docker image](https://hub.docker.com/repository/docker/pytorchlightning/pytorch_lightning/tags?page=1&name=cuda). You can then run:
 
 ```bash
-python -m pytest pytorch_lightning tests pl_examples -v --flake8
+python -m pytest pytorch_lightning tests pl_examples -v --color=yes --flake8
 ```
 
 ### Pull Request
