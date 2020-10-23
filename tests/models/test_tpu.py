@@ -12,14 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from multiprocessing import Process, Queue
 
 import pytest
 from torch.utils.data import DataLoader
 
 import tests.base.develop_pipelines as tpipes
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.accelerators.accelerator import BackendType
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -32,7 +30,6 @@ TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 
 if TPU_AVAILABLE:
     import torch_xla
-    import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp
     SERIAL_EXEC = xmp.MpSerialExecutor()
 

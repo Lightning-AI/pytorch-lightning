@@ -1,13 +1,12 @@
 """Test deprecated functionality which will be removed in vX.Y.Z"""
-import pytest
 import sys
 
+import pytest
 import torch
-
-from tests.base import EvalModelTemplate
 
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.base import EvalModelTemplate
 
 
 def test_tbd_remove_in_v1_2_0():

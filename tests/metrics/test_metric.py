@@ -1,6 +1,6 @@
 import pickle
-
 from distutils.version import LooseVersion
+
 import cloudpickle
 import numpy as np
 import pytest

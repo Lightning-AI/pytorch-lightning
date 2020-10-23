@@ -19,14 +19,12 @@ import pickle
 import cloudpickle
 import pytest
 import torch
-from torch.nn import functional as F
-from torch.utils.data import DataLoader
 
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
-from pytorch_lightning import Trainer, LightningModule, Callback
+from pytorch_lightning import Trainer, Callback
 from pytorch_lightning.callbacks import ModelCheckpoint
-from tests.base import EvalModelTemplate, GenericEvalModelTemplate, TrialMNIST
+from tests.base import EvalModelTemplate, GenericEvalModelTemplate
 
 
 class ModelTrainerPropertyParity(Callback):

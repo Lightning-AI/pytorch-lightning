@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 from typing import Any, Dict, Optional
+
+from torch.utils.data import DataLoader, random_split
+from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.core.datamodule import LightningDataModule
 from tests.base.datasets import MNIST, TrialMNIST
-from torch.utils.data import DataLoader, random_split
-from torch.utils.data.distributed import DistributedSampler
 
 
 class TrialMNISTDataModule(LightningDataModule):

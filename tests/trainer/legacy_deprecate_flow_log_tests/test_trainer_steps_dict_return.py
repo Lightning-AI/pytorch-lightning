@@ -14,9 +14,10 @@
 """
 Tests to ensure that the training loop works with a dict
 """
+import os
+
 from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
-import os
 
 
 def test_training_step_dict(tmpdir):

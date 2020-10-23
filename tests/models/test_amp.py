@@ -19,11 +19,10 @@ import torch
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.utilities import APEX_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-from pytorch_lightning.utilities import APEX_AVAILABLE
 
 
 @pytest.mark.skip(reason='dp + amp not supported currently')  # TODO

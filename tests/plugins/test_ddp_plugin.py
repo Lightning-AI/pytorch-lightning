@@ -1,10 +1,12 @@
-from pytorch_lightning.callbacks import Callback
-from tests.base.boring_model import BoringModel
-from pytorch_lightning import accelerators, Trainer
-from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
-import pytest
 import os
 from unittest import mock
+
+import pytest
+
+from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
+from tests.base.boring_model import BoringModel
 
 
 @mock.patch.dict(os.environ, {

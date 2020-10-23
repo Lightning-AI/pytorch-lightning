@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
+from unittest.mock import MagicMock
 
 import pytest
 import torch
-from unittest.mock import MagicMock
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator

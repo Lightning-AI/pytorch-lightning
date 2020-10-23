@@ -1,13 +1,13 @@
 from collections import namedtuple
 from functools import partial
 
+import numpy as np
 import pytest
 import torch
 from skimage.metrics import peak_signal_noise_ratio
-import numpy as np
 
-from pytorch_lightning.metrics.regression import PSNR
 from pytorch_lightning.metrics.functional import psnr
+from pytorch_lightning.metrics.regression import PSNR
 from tests.metrics.utils import BATCH_SIZE, NUM_BATCHES, MetricTester
 
 torch.manual_seed(42)

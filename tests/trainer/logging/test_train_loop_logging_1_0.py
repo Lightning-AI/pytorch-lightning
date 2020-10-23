@@ -14,15 +14,16 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
-from pytorch_lightning.core.lightning import LightningModule
-from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
 import os
-import torch
+
 import pytest
+import torch
+from torch.utils.data import Dataset
 
 from pytorch_lightning import Trainer, callbacks
+from pytorch_lightning.core.lightning import LightningModule
+from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
 from tests.base.deterministic_model import DeterministicModel
-from torch.utils.data import Dataset
 
 
 def test__training_step__log(tmpdir):

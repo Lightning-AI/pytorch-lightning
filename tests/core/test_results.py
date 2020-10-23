@@ -18,10 +18,10 @@ import pytest
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.core.step_result import Result, TrainResult, EvalResult
-import tests.base.develop_utils as tutils
 
+import tests.base.develop_utils as tutils
+from pytorch_lightning import Trainer
+from pytorch_lightning.core.step_result import Result, TrainResult, EvalResult
 from tests.base import EvalModelTemplate
 from tests.base.datamodules import TrialMNISTDataModule
 

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from copy import deepcopy
 import pickle
 
 import cloudpickle
@@ -21,8 +20,8 @@ import torch
 
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from tests.base import EvalModelTemplate
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.base import EvalModelTemplate
 
 
 class EarlyStoppingTestRestore(EarlyStopping):

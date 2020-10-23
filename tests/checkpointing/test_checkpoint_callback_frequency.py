@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from pytorch_lightning import Trainer, seed_everything, callbacks
-from tests.base import EvalModelTemplate, BoringModel
 from unittest import mock
+
 import pytest
 import torch
+
+from pytorch_lightning import Trainer, seed_everything, callbacks
+from tests.base import EvalModelTemplate, BoringModel
 
 
 def test_mc_called_on_fastdevrun(tmpdir):

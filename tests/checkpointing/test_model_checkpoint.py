@@ -12,25 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from distutils.version import LooseVersion
-from unittest.mock import MagicMock, Mock
-
-import yaml
 import pickle
 import platform
 import re
 from pathlib import Path
+from unittest.mock import Mock
 
 import cloudpickle
 import pytest
 import torch
+import yaml
 
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
-from tests.base import EvalModelTemplate, BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.base import EvalModelTemplate, BoringModel
 
 
 @pytest.mark.parametrize('save_top_k', [-1])
