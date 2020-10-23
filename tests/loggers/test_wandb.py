@@ -137,4 +137,4 @@ def test_wandb_sanitize_callable_params(tmpdir):
     params = WandbLogger._sanitize_callable_params(params)
     assert params["gpus"] == '_gpus_arg_default'
     assert params["something"] == "something"
-    assert params["wrapper_something"] is "wrapper_something"
+    assert params["wrapper_something"] == "wrapper_something"
