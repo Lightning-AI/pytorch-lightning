@@ -89,13 +89,13 @@ class LoggerConnector:
         self.eval_loop_results = []
         self._cache_internal_metrics = {stage: CacheInternalMetrics() for stage in self.__stages}
 
-    def cached_metrics(self, stage_or_testing: Union[str, bool]):
+    def cached_metrics(self, stage_or_testing: Union[str, bool]) -> Union[CacheInternalMetrics, None]:
         stage_or_testing = str(stage_or_testing)
         if stage_or_testing in self.__stages:
             return self._cache_internal_metrics[stage_or_testing]
         else:
-            # Acces using trainer.testing
             if stage_or_testing in self.__lookup_stages:
+                # Acces using trainer.testing
                 stage = self.__lookup_stages[stage_or_testing]
                 return self._cache_internal_metrics[stage]
             else:
