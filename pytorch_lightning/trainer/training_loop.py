@@ -640,11 +640,6 @@ class TrainLoop:
 
             self.trainer.checkpoint_connector.has_trained = True
 
-        # log epoch metrics
-        self.trainer.logger_connector.log_train_epoch_end_metrics(
-            epoch_output, self.checkpoint_accumulator, self.early_stopping_accumulator, self.num_optimizers
-        )
-
         # hook
         self.trainer.logger_connector.on_train_epoch_end(epoch_output)
 
