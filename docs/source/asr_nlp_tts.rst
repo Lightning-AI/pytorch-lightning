@@ -320,11 +320,11 @@ Any of the HuggingFace encoders or Megatron-LM encoders can easily be used for t
 that are included with NeMo:
 
 - `Glue Benchmark (All tasks) <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/nlp/GLUE_Benchmark.ipynb>`_
-- `Intent Slot Classification <https://github.com/NVIDIA/NeMo/tree/main/examples/nlp/intent_slot_classification>`_
+- `Intent Slot Classification <https://github.com/NVIDIA/NeMo/tree/v1.0.0b1/examples/nlp/intent_slot_classification>`_
 - `Language Modeling (BERT Pretraining) <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/nlp/01_Pretrained_Language_Models_for_Downstream_Tasks.ipynb>`_
 - `Question Answering <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/nlp/Question_Answering_Squad.ipynb>`_
-- `Text Classification <https://github.com/NVIDIA/NeMo/tree/main/examples/nlp/text_classification>`_ (including Sentiment Analysis)
-- `Token Classifcation <https://github.com/NVIDIA/NeMo/tree/main/examples/nlp/token_classification>`_ (including Named Entity Recognition)
+- `Text Classification <https://github.com/NVIDIA/NeMo/tree/v1.0.0b1/examples/nlp/text_classification>`_ (including Sentiment Analysis)
+- `Token Classifcation <https://github.com/NVIDIA/NeMo/tree/v1.0.0b1/examples/nlp/token_classification>`_ (including Named Entity Recognition)
 - `Punctuation and Capitalization <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/nlp/Punctuation_and_Capitalization.ipynb>`_
 
 Named Entity Recognition (NER)
@@ -793,7 +793,7 @@ Learn More
 - Visit the `NVIDIA NeMo Developer Website <https://developer.nvidia.com/nvidia-nemo>`_
 - Read the `NVIDIA NeMo PyTorch Blog <https://medium.com/pytorch/nvidia-nemo-neural-modules-and-models-for-conversational-ai-d660480d9696>`_
 - Download pre-trained `ASR <https://ngc.nvidia.com/catalog/models/nvidia:nemospeechmodels>`_, `NLP <https://ngc.nvidia.com/catalog/models/nvidia:nemonlpmodels>`_, and `TTS <https://ngc.nvidia.com/catalog/models/nvidia:nemospeechmodels>`_ models on `NVIDIA NGC <https://ngc.nvidia.com/>`_ to quickly get started with NeMo.
-- Become an expert on Building Conversational AI applications with our `tutorials <https://github.com/NVIDIA/NeMo#tutorials>`_, and `example scripts <https://github.com/NVIDIA/NeMo/tree/main/examples>`_, 
+- Become an expert on Building Conversational AI applications with our `tutorials <https://github.com/NVIDIA/NeMo#tutorials>`_, and `example scripts <https://github.com/NVIDIA/NeMo/tree/v1.0.0b1/examples>`_, 
 - See our `developer guide <https://docs.nvidia.com/deeplearning/nemo/user-guide/docs/en/main/>`_ for more information on core NeMo concepts, ASR/NLP/TTS collections, and the NeMo API.
 
 .. note:: NeMo tutorial notebooks can be run on `Google Colab <https://colab.research.google.com/notebooks/intro.ipynb>`_.
