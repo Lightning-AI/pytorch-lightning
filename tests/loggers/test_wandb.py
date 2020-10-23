@@ -19,7 +19,7 @@ import types
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
-from tests.base import EvalModelTemplate, BoringModel
+from tests.base import EvalModelTemplate
 
 
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
@@ -135,6 +135,6 @@ def test_wandb_sanitize_callable_params(tmpdir):
     params = WandbLogger._convert_params(params)
     params = WandbLogger._flatten_dict(params)
     params = WandbLogger._sanitize_callable_params(params)
-    assert params["gpus"] is None
+    assert params["gpus"] == '_gpus_arg_default'
     assert params["something"] == "something"
-    assert params["wrapper_something"] is None
+    assert params["wrapper_something"] is "wrapper_something"

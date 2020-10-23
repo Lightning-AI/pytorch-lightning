@@ -171,7 +171,7 @@ class LightningLoggerBase(ABC):
     @staticmethod
     def _sanitize_callable_params(params: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Sanitize callable params dict, e.g. ``{'a': <function_**** at 0x*****> -> {'a': 'None'}``.
+        Sanitize callable params dict, e.g. ``{'a': <function_**** at 0x*****> -> {'a': 'function_****'}``.
 
         Args:
             params: Dictionary containing the hyperparameters
@@ -185,10 +185,10 @@ class LightningLoggerBase(ABC):
                 try:
                     _val = val()
                     if isinstance(_val, Callable):
-                        return None
+                        return val.__name__
                     return _val
                 except Exception:
-                    return None
+                    return val.__name__
             return val
 
         return {key: _sanitize_callable(val) for key, val in params.items()}
