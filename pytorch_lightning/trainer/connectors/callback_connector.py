@@ -58,7 +58,7 @@ class CallbackConnector:
 
     def init_default_checkpoint_callback(self, checkpoint_callback):
         if checkpoint_callback is True:
-            checkpoint_callback = ModelCheckpoint(filepath=None)
+            checkpoint_callback = ModelCheckpoint(dirpath=None, filename=None)
         elif checkpoint_callback is False:
             checkpoint_callback = None
 
