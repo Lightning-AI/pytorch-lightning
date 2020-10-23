@@ -191,6 +191,7 @@ class DDPAccelerator(Accelerator):
 
     def sync_processes_best_model_path(self):
         best_model_path = self.broadcast(self.trainer.checkpoint_callback.best_model_path)
+        self.barrier('ddp_sync_best_model_path')
         if self.trainer.checkpoint_callback is not None:
             # track the best model path
             self.trainer.checkpoint_callback.best_model_path = best_model_path
