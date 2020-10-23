@@ -238,7 +238,7 @@ class ModelCheckpoint(Callback):
         # Mode 2: save the last checkpoint
         self._save_last_checkpoint(trainer, pl_module, epoch, monitor_candidates, filepath)
 
-    def _sync_best_model_across_procs(self, trainer):
+    def _sync_best_model_across_procs(self, trainer) -> None:
         if trainer.accelerator_backend and torch_distrib.is_initialized():
             best_model_path, best_model_score = trainer.accelerator_backend.broadcast((self.best_model_path,
                                                                                       self.best_model_score))
