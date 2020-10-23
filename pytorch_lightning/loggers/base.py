@@ -171,13 +171,13 @@ class LightningLoggerBase(ABC):
     @staticmethod
     def _sanitize_callable_params(params: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Sanitize callable params dict, e.g. ``{'a': <function_**** at 0x*****> -> {'a': 'function_****'}``.
+        Sanitize callable params dict, e.g. ``{'a': <function_**** at 0x****>} -> {'a': 'function_****'}``.
 
         Args:
             params: Dictionary containing the hyperparameters
 
         Returns:
-            dict.
+            dictionary with all callables sanitized
         """
         def _sanitize_callable(val):
             # Give them one chance to return a value. Don't go rabbit hole of recursive call

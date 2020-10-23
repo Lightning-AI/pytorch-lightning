@@ -46,7 +46,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `hparams` assign in init ([#4189](https://github.com/PyTorchLightning/pytorch-lightning/pull/4189))
 - Fixed overwrite check for model hooks ([#4010](https://github.com/PyTorchLightning/pytorch-lightning/pull/4010))
-- Fixed santized parameters for `wandb_logger.log_hyperparams` ([#4320](https://github.com/PyTorchLightning/pytorch-lightning/pull/4320))
+- Fixed santized parameters for `WandbLogger.log_hyperparams` ([#4320](https://github.com/PyTorchLightning/pytorch-lightning/pull/4320))
 
 
 
