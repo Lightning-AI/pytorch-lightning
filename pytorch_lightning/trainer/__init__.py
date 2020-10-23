@@ -542,7 +542,7 @@ and passing it to :class:`~pytorch_lightning.trainer.Trainer` `checkpoint_callba
 
     # default used by the Trainer
     checkpoint_callback = ModelCheckpoint(
-        filepath=os.getcwd(),
+        dirpath=os.getcwd(),
         save_top_k=True,
         verbose=True,
         monitor='checkpoint_on',
@@ -1526,7 +1526,7 @@ Example::
 
     # if checkpoint callback used, then overrides the weights path
     # **NOTE: this saves weights to some/path NOT my/path
-    checkpoint = ModelCheckpoint(filepath='some/path')
+    checkpoint = ModelCheckpoint(dirpath='some/path')
     trainer = Trainer(
         checkpoint_callback=checkpoint,
         weights_save_path='my/path'
