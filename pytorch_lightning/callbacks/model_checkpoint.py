@@ -239,8 +239,8 @@ class ModelCheckpoint(Callback):
 
     def _sync_best_model_across_procs(self, trainer):
         if trainer.accelerator_backend:
-            best_model_path, best_model_score = trainer.accelerator_backend.broadcast(self.best_model_path,
-                                                                                      self.best_model_score)
+            best_model_path, best_model_score = trainer.accelerator_backend.broadcast((self.best_model_path,
+                                                                                      self.best_model_score))
             # track the best model path and score rank 0
             self.best_model_path = best_model_path
             self.best_model_score = best_model_score
