@@ -113,12 +113,27 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
     assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0.ckpt'}
 
 def test_wandb_sanitize_callable_params(tmpdir):
+    """
+    Callback function are not serializiable. Therefore, we get them a chance to return
+    something and if the returned type is not accepted, return None.
+    """
     opt = "--max_epochs 1".split(" ")
     parser = ArgumentParser()
     parser = Trainer.add_argparse_args(parent_parser=parser)
     params = parser.parse_args(opt)
+
+    def return_something():
+        return "something"
+    params.something = return_something
+
+    def wrapper_something():
+        return return_something
+    params.wrapper_something = wrapper_something
+
     assert isinstance(params.gpus, types.FunctionType)
     params = WandbLogger._convert_params(params)
     params = WandbLogger._flatten_dict(params)
     params = WandbLogger._sanitize_callable_params(params)
     assert params["gpus"] == None
+    assert params["something"] == "something"
+    assert params["wrapper_something"] == None

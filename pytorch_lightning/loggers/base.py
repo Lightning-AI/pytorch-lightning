@@ -179,8 +179,19 @@ class LightningLoggerBase(ABC):
         Returns:
             dict.
         """
+        def  _sanitize_callable(val):
+            # Give them one chance to return a value. Don't go rabbit hole of recursive call
+            if isinstance(val, Callable):
+                try:
+                    _val =  val()
+                    if isinstance(_val, Callable):
+                        return None
+                    return _val
+                except:
+                    return None
+            return val
 
-        return {key: val if not isinstance(val, Callable) else None for key, val in params.items()}
+        return {key: _sanitize_callable(val) for key, val in params.items()}
 
     @staticmethod
     def _flatten_dict(params: Dict[str, Any], delimiter: str = '/') -> Dict[str, Any]:
