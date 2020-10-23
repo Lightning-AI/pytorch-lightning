@@ -196,7 +196,7 @@ class ModelCheckpoint(Callback):
         self.best_model_score = checkpointed_state["best_model_score"]
         self.best_model_path = checkpointed_state["best_model_path"]
 
-    def on_fit_end(self, trainer, pl_module):
+    def on_fit_end(self, trainer, pl_module) -> None:
         self._sync_best_model_across_procs(trainer)
 
     def save_checkpoint(self, trainer, pl_module):
