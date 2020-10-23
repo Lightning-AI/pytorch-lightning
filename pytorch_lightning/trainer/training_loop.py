@@ -575,6 +575,7 @@ class TrainLoop:
         dataloader_idx = 0
         should_check_val = False
         for batch_idx, (batch, is_last_batch) in train_dataloader:
+
             self.trainer.batch_idx = batch_idx
 
             # ------------------------------------
@@ -641,6 +642,8 @@ class TrainLoop:
 
             # progress global step according to grads progress
             self.increment_accumulated_grad_global_step()
+
+            self.trainer.checkpoint_connector.has_trained = True
 
         # hook
         self.trainer.logger_connector.on_train_epoch_end(epoch_output)

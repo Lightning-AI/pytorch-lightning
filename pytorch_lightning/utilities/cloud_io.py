@@ -21,9 +21,6 @@ import torch
 import fsspec
 
 
-pathlike = Union[Path, str]
-
-
 def load(path_or_url: str, map_location=None):
     if path_or_url.startswith("http"):
         return torch.hub.load_state_dict_from_url(path_or_url, map_location=map_location)
@@ -32,7 +29,7 @@ def load(path_or_url: str, map_location=None):
         return torch.load(f, map_location=map_location)
 
 
-def get_filesystem(path: pathlike):
+def get_filesystem(path: Union[str, Path]):
     path = str(path)
     if "://" in path:
         # use the fileystem from the protocol specified
