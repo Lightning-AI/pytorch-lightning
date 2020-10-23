@@ -310,7 +310,7 @@ class MetricCollection(nn.ModuleDict):
 
     def forward(self, *args, **kwargs):
         """ Iteratively call forward for each metric """
-        return {k: m(*args, **kwargs) for k,m in self.items()}
+        return {k: m(*args, **kwargs) for k, m in self.items()}
 
     def update(self, *args, **kwargs):
         """ Iteratively call update for each metric """
@@ -318,7 +318,7 @@ class MetricCollection(nn.ModuleDict):
             m.update(*args, **kwargs)
 
     def compute(self):
-        return {k: m.compute() for k,m in self.items()}
+        return {k: m.compute() for k, m in self.items()}
 
     def reset(self):
         """ Iteratively call reset for each metric """
