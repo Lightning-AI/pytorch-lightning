@@ -98,7 +98,7 @@ class GPUStatsMonitor(Callback):
             'temperature': temperature
         })
 
-    def on_train_start(self, trainer, pl_module):
+    def on_train_start(self, trainer, *args, **kwargs):
         if not trainer.logger:
             raise MisconfigurationException(
                 'Cannot use GPUStatsMonitor callback with Trainer that has no logger.'
@@ -112,12 +112,18 @@ class GPUStatsMonitor(Callback):
 
         self._gpu_ids = ','.join(map(str, trainer.data_parallel_device_ids))
 
-    def on_train_epoch_start(self, trainer, pl_module):
+    def on_train_epoch_start(self, *args, **kwargs):
         self._snap_intra_step_time = None
         self._snap_inter_step_time = None
 
     @rank_zero_only
-    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_train_batch_start(self, trainer, *args, **kwargs):
+        if self._log_stats.intra_step_time:
+            self._snap_intra_step_time = time.time()
+
+        if not self._should_log(trainer):
+            return
+
         gpu_stat_keys = self._get_gpu_stat_keys()
         gpu_stats = self._get_gpu_stats([k for k, _ in gpu_stat_keys])
         logs = self._parse_gpu_stats(self._gpu_ids, gpu_stats, gpu_stat_keys)
@@ -126,19 +132,19 @@ class GPUStatsMonitor(Callback):
             # First log at beginning of second step
             logs['batch_time/inter_step (ms)'] = (time.time() - self._snap_inter_step_time) * 1000
 
-        if self._log_stats.intra_step_time:
-            self._snap_intra_step_time = time.time()
-
         trainer.logger.log_metrics(logs, step=trainer.global_step)
 
     @rank_zero_only
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_train_batch_end(self, trainer, *args, **kwargs):
+        if self._log_stats.inter_step_time:
+            self._snap_inter_step_time = time.time()
+
+        if not self._should_log(trainer):
+            return
+
         gpu_stat_keys = self._get_gpu_stat_keys() + self._get_gpu_device_stat_keys()
         gpu_stats = self._get_gpu_stats([k for k, _ in gpu_stat_keys])
         logs = self._parse_gpu_stats(self._gpu_ids, gpu_stats, gpu_stat_keys)
-
-        if self._log_stats.inter_step_time:
-            self._snap_inter_step_time = time.time()
 
         if self._log_stats.intra_step_time and self._snap_intra_step_time:
             logs['batch_time/intra_step (ms)'] = (time.time() - self._snap_intra_step_time) * 1000
@@ -199,3 +205,13 @@ class GPUStatsMonitor(Callback):
             stat_keys.extend([('temperature.gpu', '°C'), ('temperature.memory', '°C')])
 
         return stat_keys
+
+    @staticmethod
+    def _should_log(trainer) -> bool:
+        should_log = (
+            (trainer.global_step + 1) % trainer.log_every_n_steps == 0
+            or trainer.should_stop
+        )
+
+        should_log = should_log and not trainer.fast_dev_run
+        return should_log

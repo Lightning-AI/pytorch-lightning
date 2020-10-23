@@ -225,6 +225,20 @@ ExplainedVariance
 .. autoclass:: pytorch_lightning.metrics.regression.ExplainedVariance
     :noindex:
 
+
+PSNR
+~~~~
+
+.. autoclass:: pytorch_lightning.metrics.regression.PSNR
+    :noindex:
+
+
+SSIM
+~~~~
+
+.. autoclass:: pytorch_lightning.metrics.regression.SSIM
+    :noindex:
+
 ******************
 Functional Metrics
 ******************
@@ -373,45 +387,45 @@ to_onehot [func]
 Regression
 ----------
 
-mae [func]
-~~~~~~~~~~
+explained_variance [func]
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.regression.mae
+.. autofunction:: pytorch_lightning.metrics.functional.explained_variance
     :noindex:
 
 
-mse [func]
-~~~~~~~~~~
+mean_absolute_error [func]
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.regression.mse
+.. autofunction:: pytorch_lightning.metrics.functional.mean_absolute_error
+    :noindex:
+
+
+mean_squared_error [func]
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.metrics.functional.mean_squared_error
     :noindex:
 
 
 psnr [func]
 ~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.regression.psnr
+.. autofunction:: pytorch_lightning.metrics.functional.psnr
     :noindex:
 
 
-rmse [func]
-~~~~~~~~~~~
+mean_squared_log_error [func]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.regression.rmse
-    :noindex:
-
-
-rmsle [func]
-~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.metrics.functional.regression.rmsle
+.. autofunction:: pytorch_lightning.metrics.functional.mean_squared_log_error
     :noindex:
 
 
 ssim [func]
 ~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.regression.mae
+.. autofunction:: pytorch_lightning.metrics.functional.ssim
     :noindex:
 
 

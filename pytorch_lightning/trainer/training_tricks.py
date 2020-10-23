@@ -18,7 +18,6 @@ import torch
 from torch import Tensor
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.core.lightning import LightningModule
 
 try:

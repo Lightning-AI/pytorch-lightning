@@ -14,6 +14,7 @@
 """
 Tests to ensure that the training loop works with a dict
 """
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
 
@@ -22,7 +23,11 @@ def test_validation_step_no_return(tmpdir):
     """
     Test that val step can return nothing
     """
-    model = DeterministicModel()
+
+    class TestModel(DeterministicModel):
+        def backward(self, loss, optimizer, optimizer_idx):
+            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+    model = TestModel()
     model.training_step = model.training_step_dict_return
     model.validation_step = model.validation_step_no_return
     model.validation_step_end = None

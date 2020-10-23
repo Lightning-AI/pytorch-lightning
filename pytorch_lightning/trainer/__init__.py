@@ -542,7 +542,7 @@ and passing it to :class:`~pytorch_lightning.trainer.Trainer` `checkpoint_callba
 
     # default used by the Trainer
     checkpoint_callback = ModelCheckpoint(
-        filepath=os.getcwd(),
+        dirpath=os.getcwd(),
         save_top_k=True,
         verbose=True,
         monitor='checkpoint_on',
@@ -1278,6 +1278,8 @@ replace_sampler_ddp
 Enables auto adding of distributed sampler. By default it will add ``shuffle=True``
 for train sampler and ``shuffle=False`` for val/test sampler. If you want to customize
 it, you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
+If ``replace_sampler_ddp=True`` and a distributed sampler was already added,
+Lightning will not replace the existing one.
 
 .. testcode::
 
@@ -1526,7 +1528,7 @@ Example::
 
     # if checkpoint callback used, then overrides the weights path
     # **NOTE: this saves weights to some/path NOT my/path
-    checkpoint = ModelCheckpoint(filepath='some/path')
+    checkpoint = ModelCheckpoint(dirpath='some/path')
     trainer = Trainer(
         checkpoint_callback=checkpoint,
         weights_save_path='my/path'
