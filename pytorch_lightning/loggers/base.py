@@ -169,7 +169,7 @@ class LightningLoggerBase(ABC):
         return params
 
     @staticmethod
-    def _sanitize_callable_params(params:  Dict[str, Any]) -> Dict[str, Any]:
+    def _sanitize_callable_params(params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Sanitize callable params dict, e.g. ``{'a': <function_**** at 0x*****> -> {'a': 'None'}``.
 
@@ -179,11 +179,11 @@ class LightningLoggerBase(ABC):
         Returns:
             dict.
         """
-        def  _sanitize_callable(val):
+        def _sanitize_callable(val):
             # Give them one chance to return a value. Don't go rabbit hole of recursive call
             if isinstance(val, Callable):
                 try:
-                    _val =  val()
+                    _val = val()
                     if isinstance(_val, Callable):
                         return None
                     return _val

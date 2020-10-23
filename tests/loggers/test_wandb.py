@@ -112,6 +112,7 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
     assert trainer.checkpoint_callback.dirpath == str(tmpdir / 'project' / version / 'checkpoints')
     assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0.ckpt'}
 
+
 def test_wandb_sanitize_callable_params(tmpdir):
     """
     Callback function are not serializiable. Therefore, we get them a chance to return
