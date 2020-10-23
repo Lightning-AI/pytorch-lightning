@@ -17,7 +17,7 @@ import csv
 import inspect
 import os
 from argparse import Namespace
-from typing import Union, Dict, Any, Optional, Callable, MutableMapping
+from typing import Union, Dict, Any, Optional, Callable, MutableMapping, IO
 from warnings import warn
 
 import fsspec
@@ -52,7 +52,7 @@ class ModelIO(object):
     @classmethod
     def load_from_checkpoint(
         cls,
-        checkpoint_path: str,
+        checkpoint_path: Union[str, IO],
         map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
         hparams_file: Optional[str] = None,
         strict: bool = True,
@@ -65,7 +65,7 @@ class ModelIO(object):
         Any arguments specified through \*args and \*\*kwargs will override args stored in `hparams`.
 
         Args:
-            checkpoint_path: Path to checkpoint. This can also be a URL.
+            checkpoint_path: Path to checkpoint. This can also be a URL, or file-like object
             map_location:
                 If your checkpoint saved a GPU model and you now load on CPUs
                 or a different number of GPUs, use this to map to the new setup.
