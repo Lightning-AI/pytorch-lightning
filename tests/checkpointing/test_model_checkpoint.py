@@ -448,7 +448,8 @@ def test_model_checkpoint_save_last_warning(tmpdir, caplog, max_epochs, should_v
         model.validation_step = None
     trainer = Trainer(
         default_root_dir=tmpdir,
-        checkpoint_callback=ModelCheckpoint(monitor='early_stop_on', filepath=tmpdir, save_top_k=0, save_last=save_last),
+        checkpoint_callback=ModelCheckpoint(monitor='early_stop_on', filepath=tmpdir,
+                                            save_top_k=0, save_last=save_last),
         max_epochs=max_epochs,
     )
     trainer.fit(model)
