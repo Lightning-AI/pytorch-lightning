@@ -28,9 +28,7 @@ Callbacks API
     base
     early_stopping
     gpu_stats_monitor
-    gpu_usage_logger
     gradient_accumulation_scheduler
-    lr_logger
     lr_monitor
     model_checkpoint
     progress
