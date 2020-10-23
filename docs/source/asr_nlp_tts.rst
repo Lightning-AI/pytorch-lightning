@@ -788,14 +788,15 @@ for a production-grade application.
 Learn More
 ==========
 
-- Watch the `NeMo Intro Video <https://youtu.be/wBgpMf_KQVw>`_
+- Watch the `NVIDIA NeMo Intro Video <https://youtu.be/wBgpMf_KQVw>`_
 - Watch the `PyTorch Lightning and NVIDIA NeMo Discussion Video <https://youtu.be/rFAX1-4DSr4>`_
 - Visit the `NVIDIA NeMo Developer Website <https://developer.nvidia.com/nvidia-nemo>`_
+- Read the `NVIDIA NeMo PyTorch Blog <https://medium.com/pytorch/nvidia-nemo-neural-modules-and-models-for-conversational-ai-d660480d9696>`_
 - Download pre-trained `ASR <https://ngc.nvidia.com/catalog/models/nvidia:nemospeechmodels>`_, `NLP <https://ngc.nvidia.com/catalog/models/nvidia:nemonlpmodels>`_, and `TTS <https://ngc.nvidia.com/catalog/models/nvidia:nemospeechmodels>`_ models on `NVIDIA NGC <https://ngc.nvidia.com/>`_ to quickly get started with NeMo.
 - Become an expert on Building Conversational AI applications with our `tutorials <https://github.com/NVIDIA/NeMo#tutorials>`_, and `example scripts <https://github.com/NVIDIA/NeMo/tree/main/examples>`_, 
 - See our `developer guide <https://docs.nvidia.com/deeplearning/nemo/user-guide/docs/en/main/>`_ for more information on core NeMo concepts, ASR/NLP/TTS collections, and the NeMo API.
 
-.. note:: Most NeMo tutorial notebooks can be run on `Google Colab <https://colab.research.google.com/notebooks/intro.ipynb>`_.
+.. note:: NeMo tutorial notebooks can be run on `Google Colab <https://colab.research.google.com/notebooks/intro.ipynb>`_.
 
-`NVIDIA NeMo <https://medium.com/pytorch/nvidia-nemo-neural-modules-and-models-for-conversational-ai-d660480d9696>`_ is actively being developed on GitHub.
+NVIDIA `NeMo <https://github.com/NVIDIA/NeMo>`_ is actively being developed on GitHub.
 `Contributions <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/CONTRIBUTING.md>`_ are welcome!
