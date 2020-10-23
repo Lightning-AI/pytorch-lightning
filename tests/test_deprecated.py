@@ -1,9 +1,24 @@
 """Test deprecated functionality which will be removed in vX.Y.Z"""
+import pytest
 import sys
 
 import torch
 
 from tests.base import EvalModelTemplate
+
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+
+def test_tbd_remove_in_v1_2_0():
+    with pytest.deprecated_call(match='will be removed in v1.2'):
+        checkpoint_cb = ModelCheckpoint(filepath='.')
+
+    with pytest.deprecated_call(match='will be removed in v1.2'):
+        checkpoint_cb = ModelCheckpoint('.')
+
+    with pytest.raises(MisconfigurationException, match='inputs which are not feasible'):
+        checkpoint_cb = ModelCheckpoint(filepath='.', dirpath='.')
 
 
 def _soft_unimport_module(str_module):
