@@ -145,6 +145,7 @@ class DDPAccelerator(Accelerator):
         results = self.ddp_train(process_idx=self.task_idx, model=model)
         if 'WORLD_SIZE' in os.environ:
             del os.environ['WORLD_SIZE']
+        self.sync_processes_best_model_path()
         return results
 
     def training_step(self, args):
@@ -187,6 +188,12 @@ class DDPAccelerator(Accelerator):
     def get_device_ids(self):
         device_ids = [self.trainer.root_gpu]
         return device_ids
+
+    def sync_processes_best_model_path(self):
+        best_model_path = self.broadcast(self.trainer.checkpoint_callback.best_model_path)
+        if self.trainer.checkpoint_callback is not None:
+            # track the best model path
+            self.trainer.checkpoint_callback.best_model_path = best_model_path
 
     def on_train_end(self):
         pass
