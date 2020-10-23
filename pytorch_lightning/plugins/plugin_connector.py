@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning.cluster_environments import ClusterEnvironment
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class PluginConnector:

@@ -14,11 +14,11 @@
 
 import io
 from distutils.version import LooseVersion
-from typing import Union
 from pathlib import Path
-from urllib.parse import urlparse
-import torch
+from typing import Union
+
 import fsspec
+import torch
 
 
 def load(path_or_url: str, map_location=None):

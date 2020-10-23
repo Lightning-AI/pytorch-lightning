@@ -12,17 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import torch
-from pytorch_lightning.core import memory
-from pytorch_lightning.loggers import TensorBoardLogger, LoggerCollection
-from pytorch_lightning.utilities import flatten_dict
-from pytorch_lightning.utilities.model_utils import is_overridden
-from pytorch_lightning.core.step_result import EvalResult, Result
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from collections import ChainMap
+from copy import deepcopy
 from pprint import pprint
 from typing import Iterable
-from copy import deepcopy
-from collections import ChainMap
+
+import torch
+
+from pytorch_lightning.core import memory
+from pytorch_lightning.core.step_result import EvalResult, Result
+from pytorch_lightning.loggers import TensorBoardLogger, LoggerCollection
+from pytorch_lightning.utilities import flatten_dict
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.model_utils import is_overridden
 
 
 class LoggerConnector:

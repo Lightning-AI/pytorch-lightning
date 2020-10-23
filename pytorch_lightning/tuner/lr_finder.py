@@ -13,8 +13,8 @@
 # limitations under the License.
 import importlib
 import os
-from typing import List, Optional, Sequence, Union, Callable
 from functools import wraps
+from typing import List, Optional, Sequence, Union, Callable
 
 import numpy as np
 import torch

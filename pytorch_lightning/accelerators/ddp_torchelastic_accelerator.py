@@ -15,8 +15,8 @@ import os
 from typing import List, Optional
 
 import torch
-import torch.distributed as torch_distrib
 import torch.distributed as dist
+import torch.distributed as torch_distrib
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
@@ -25,7 +25,6 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
-
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd

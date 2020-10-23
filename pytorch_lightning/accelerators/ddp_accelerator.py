@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 import os
-import torch
-import torch.distributed as torch_distrib
 import subprocess
 import sys
 from os.path import abspath
@@ -21,6 +19,9 @@ from time import sleep
 from typing import Optional, List
 
 import numpy as np
+import torch
+import torch.distributed as torch_distrib
+from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
@@ -31,8 +32,6 @@ from pytorch_lightning.utilities.distributed import find_free_network_port
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
-from torch.nn.parallel import DistributedDataParallel
-
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd

@@ -11,18 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import math
-import functools
-from abc import ABC, abstractmethod
-from typing import Any, Callable, Optional, Union
-from collections.abc import Mapping, Sequence
-from collections import namedtuple
+from typing import Any, Optional
 
 import torch
-from torch import nn
-from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.metrics.functional.reduction import class_reduce
+
 from pytorch_lightning.metrics.classification.precision_recall import _input_format
+from pytorch_lightning.metrics.functional.reduction import class_reduce
+from pytorch_lightning.metrics.metric import Metric
 
 
 class Fbeta(Metric):

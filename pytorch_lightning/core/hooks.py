@@ -15,11 +15,10 @@
 from typing import Any, Dict, List, Union
 
 import torch
-from pytorch_lightning.utilities import AMPType, move_data_to_device, rank_zero_warn
-from torch import Tensor
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
+from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
 
 try:
     from apex import amp

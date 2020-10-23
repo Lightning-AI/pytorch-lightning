@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, ProgressBarBase, ProgressBar
-from pytorch_lightning.utilities import rank_zero_warn
+
+from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBarBase, ProgressBar
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 

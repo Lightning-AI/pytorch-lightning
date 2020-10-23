@@ -14,7 +14,7 @@
 import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities import AMPType, rank_zero_warn
+from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 

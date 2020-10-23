@@ -22,13 +22,14 @@ Automatically save model checkpoints during training.
 
 import os
 import re
-import yaml
 from copy import deepcopy
-from typing import Any, Dict, Optional, Union
 from pathlib import Path
+from typing import Any, Dict, Optional, Union
 
 import numpy as np
 import torch
+import yaml
+
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn, rank_zero_info

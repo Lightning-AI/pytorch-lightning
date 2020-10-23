@@ -19,7 +19,6 @@ Early Stopping
 Monitor a validation metric and stop training when it stops improving.
 
 """
-import os
 
 import numpy as np
 import torch

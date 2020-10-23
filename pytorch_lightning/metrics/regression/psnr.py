@@ -11,14 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torch
 from typing import Any, Optional
 
-from pytorch_lightning.metrics.metric import Metric
+import torch
+
 from pytorch_lightning.metrics.functional.psnr import (
     _psnr_update,
     _psnr_compute,
 )
+from pytorch_lightning.metrics.metric import Metric
 
 
 class PSNR(Metric):

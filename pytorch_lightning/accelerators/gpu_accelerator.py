@@ -15,8 +15,8 @@
 import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.utilities import AMPType
 
 
 class GPUAccelerator(Accelerator):

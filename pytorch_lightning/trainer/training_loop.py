@@ -12,12 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess
 from copy import copy, deepcopy
 
 import numpy as np
 import torch
-import torch.distributed as torch_distrib
 
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule

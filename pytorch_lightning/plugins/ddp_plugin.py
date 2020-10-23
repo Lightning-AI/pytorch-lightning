@@ -1,6 +1,7 @@
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
-from pytorch_lightning.core.lightning import LightningModule
 from typing import List
+
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 
 
 class DDPPlugin(object):

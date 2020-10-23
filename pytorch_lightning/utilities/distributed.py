@@ -15,10 +15,11 @@
 import os
 import warnings
 from functools import wraps
+from typing import Union, Optional, Any
 
 import torch
+
 from pytorch_lightning import _logger as log
-from typing import Union, Optional, Any
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp

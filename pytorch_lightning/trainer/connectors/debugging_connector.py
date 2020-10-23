@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from typing import Union
-from pytorch_lightning.utilities import rank_zero_warn, rank_zero_info
+
+from pytorch_lightning.utilities import rank_zero_info
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class DebuggingConnector:

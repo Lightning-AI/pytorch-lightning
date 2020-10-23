@@ -16,8 +16,8 @@ from typing import List, Tuple
 from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities.distributed import rank_zero_warn
 
 try:
     from apex import amp

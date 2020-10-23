@@ -12,5 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
-from pytorch_lightning.metrics.classification.precision_recall import Precision, Recall
 from pytorch_lightning.metrics.classification.f_beta import Fbeta
+from pytorch_lightning.metrics.classification.precision_recall import Precision, Recall
