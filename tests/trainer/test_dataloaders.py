@@ -752,7 +752,7 @@ class ModelWithDataLoaderDistributedSampler(EvalModelTemplate):
         dataloader = super().train_dataloader()
         dist_sampler = DistributedSampler(dataloader.dataset, shuffle=False)
         return DataLoader(
-            dataset,
+            dataloader.dataset,
             batch_size=self.batch_size,
             drop_last=False,
             sampler=dist_sampler,
@@ -775,7 +775,7 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
         callbacks=[DistribSamplerCallback()],
         replace_sampler_ddp=True,
     )
-    trainer.fit(model)
+    result = trainer.fit(model)
     assert result == 1, "DDP Training failed"
 
 
