@@ -21,10 +21,7 @@ import torch
 import fsspec
 
 
-pathlike = Union[Path, str]
-
-
-def load(path_or_url: Union[Path, str, IO], map_location=None):
+def load(path_or_url: Union[str, IO, Path], map_location=None):
     if not isinstance(path_or_url, (str, Path)):
         # any sort of BytesIO or similiar
         return torch.load(path_or_url, map_location=map_location)
@@ -35,7 +32,7 @@ def load(path_or_url: Union[Path, str, IO], map_location=None):
         return torch.load(f, map_location=map_location)
 
 
-def get_filesystem(path: pathlike):
+def get_filesystem(path: Union[str, Path]):
     path = str(path)
     if "://" in path:
         # use the fileystem from the protocol specified
