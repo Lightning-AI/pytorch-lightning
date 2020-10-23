@@ -111,8 +111,9 @@ class CallbackConnector:
                 msg = m.format(current_hook_fx_name, "on_epoch", current_callback_hook_auth_args["on_epoch"], on_epoch)
                 raise MisconfigurationException(msg)
         else:
-            raise MisconfigurationException(f"{current_hook_fx_name} function doesn't support logging
-                                            using self.log() yet.")
+            raise MisconfigurationException(
+                f"{current_hook_fx_name} function doesn't support logging using self.log() yet."
+            )
 
     @staticmethod
     def _setup_log():
