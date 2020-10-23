@@ -25,6 +25,7 @@ from warnings import warn
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.tensorboard.summary import hparams
+import matplotlib.pyplot as plt
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
@@ -189,6 +190,10 @@ class TensorBoardLogger(LightningLoggerBase):
                 except Exception as e:
                     m = f'\n you tried to log {v} which is not currently supported. Try a dict or a scalar/tensor.'
                     type(e)(e.message + m)
+
+    @rank_zero_only
+    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, **kwargs) -> None:
+        self.experiment.add_figure(tag=name, figure=figure, global_step=step, **kwargs)
 
     @rank_zero_only
     def log_graph(self, model: LightningModule, input_array=None):

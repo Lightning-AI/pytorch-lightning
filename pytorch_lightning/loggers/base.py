@@ -21,6 +21,7 @@ from functools import wraps
 from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 
 import numpy as np
+import matplotlib.pyplot as plt
 import torch
 
 from pytorch_lightning.core.lightning import LightningModule
@@ -155,6 +156,9 @@ class LightningLoggerBase(ABC):
             metrics: Dictionary with metric names as keys and measured quantities as values
             step: Step number at which the metrics should be recorded
         """
+        pass
+
+    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, **kwargs) -> None:
         pass
 
     @staticmethod
