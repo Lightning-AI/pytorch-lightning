@@ -2,7 +2,6 @@
 import pytest
 import sys
 
-import pytest
 import torch
 
 from tests.base import EvalModelTemplate
