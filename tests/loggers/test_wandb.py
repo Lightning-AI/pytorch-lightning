@@ -14,10 +14,12 @@
 import os
 import pickle
 from unittest import mock
+from argparse import ArgumentParser
+import types
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
-from tests.base import EvalModelTemplate
+from tests.base import EvalModelTemplate, BoringModel
 
 
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
@@ -109,3 +111,14 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
 
     assert trainer.checkpoint_callback.dirpath == str(tmpdir / 'project' / version / 'checkpoints')
     assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0.ckpt'}
+
+def test_wandb_sanitize_callable_params(tmpdir):
+    opt = "--max_epochs 1".split(" ")
+    parser = ArgumentParser()
+    parser = Trainer.add_argparse_args(parent_parser=parser)
+    params = parser.parse_args(opt)
+    assert isinstance(params.gpus, types.FunctionType)
+    params = WandbLogger._convert_params(params)
+    params = WandbLogger._flatten_dict(params)
+    params = WandbLogger._sanitize_callable_params(params)
+    assert params["gpus"] == None

@@ -169,6 +169,20 @@ class LightningLoggerBase(ABC):
         return params
 
     @staticmethod
+    def _sanitize_callable_params(params:  Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Sanitize callable params dict, e.g. ``{'a': <function_**** at 0x*****> -> {'a': 'None'}``.
+
+        Args:
+            params: Dictionary containing the hyperparameters
+
+        Returns:
+            dict.
+        """
+
+        return {key: val if not isinstance(val, Callable) else None for key, val in params.items()}
+
+    @staticmethod
     def _flatten_dict(params: Dict[str, Any], delimiter: str = '/') -> Dict[str, Any]:
         """
         Flatten hierarchical dict, e.g. ``{'a': {'b': 'c'}} -> {'a/b': 'c'}``.
