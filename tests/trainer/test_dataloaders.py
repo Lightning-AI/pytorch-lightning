@@ -756,7 +756,7 @@ class ModelWithDataLoaderDistributedSampler(EvalModelTemplate):
             batch_size=self.batch_size,
             drop_last=False,
             sampler=dist_sampler,
-            shuffle=False
+            shuffle=True
         )
 
 
