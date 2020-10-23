@@ -93,13 +93,11 @@ class LoggerConnector:
         stage_or_testing = str(stage_or_testing)
         if stage_or_testing in self.__stages:
             return self._cache_internal_metrics[stage_or_testing]
-        else:
-            if stage_or_testing in self.__lookup_stages:
-                # Acces using trainer.testing
-                stage = self.__lookup_stages[stage_or_testing]
-                return self._cache_internal_metrics[stage]
-            else:
-                raise MisconfigurationException(f"Provide stage_or_testing {stage_or_testing} doesn't belong either to {self.__stages} or {self.__lookup_stages.keys()}")
+        if stage_or_testing in self.__lookup_stages:
+            # Acces using trainer.testing
+            stage = self.__lookup_stages[stage_or_testing]
+            return self._cache_internal_metrics[stage]
+        raise MisconfigurationException(f"Provide stage_or_testing {stage_or_testing} doesn't belong either to {self.__stages} or {self.__lookup_stages.keys()}")
 
     def on_trainer_init(self, logger, flush_logs_every_n_steps, log_every_n_steps):
         # logging
