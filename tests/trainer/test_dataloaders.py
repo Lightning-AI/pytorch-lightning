@@ -750,13 +750,13 @@ class ModelWithDataLoaderDistributedSampler(EvalModelTemplate):
 
     def train_dataloader(self):
         dataloader = super().train_dataloader()
-        dist_sampler = DistributedSampler(dataloader.dataset, shuffle=False)
+        dist_sampler = DistributedSampler(dataloader.dataset, shuffle=True)
         return DataLoader(
             dataloader.dataset,
             batch_size=self.batch_size,
             drop_last=False,
             sampler=dist_sampler,
-            shuffle=True
+            shuffle=False
         )
 
 
