@@ -37,7 +37,9 @@ LOCAL_FILE_URI_PREFIX = "file:"
 
 class MLFlowLogger(LightningLoggerBase):
     """
-    Log using `MLflow <https://mlflow.org>`_. Install it with pip:
+    Log using `MLflow <https://mlflow.org>`_.
+
+    Install it with pip:
 
     .. code-block:: bash
 

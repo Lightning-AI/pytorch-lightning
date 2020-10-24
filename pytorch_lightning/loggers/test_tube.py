@@ -33,6 +33,7 @@ class TestTubeLogger(LightningLoggerBase):
     r"""
     Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format
     but using a nicer folder structure (see `full docs <https://williamfalcon.github.io/test-tube>`_).
+
     Install it with pip:
 
     .. code-block:: bash

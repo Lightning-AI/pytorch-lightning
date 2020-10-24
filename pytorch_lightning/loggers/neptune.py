@@ -36,7 +36,9 @@ from pytorch_lightning.utilities import rank_zero_only
 
 class NeptuneLogger(LightningLoggerBase):
     r"""
-    Log using `Neptune <https://neptune.ai>`_. Install it with pip:
+    Log using `Neptune <https://neptune.ai>`_.
+
+    Install it with pip:
 
     .. code-block:: bash
 

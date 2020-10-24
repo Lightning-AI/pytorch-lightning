@@ -100,8 +100,9 @@ class ExperimentWriter(object):
 
 class CSVLogger(LightningLoggerBase):
     r"""
-    Log to local file system in yaml and CSV format. Logs are saved to
-    ``os.path.join(save_dir, name, version)``.
+    Log to local file system in yaml and CSV format.
+
+    Logs are saved to ``os.path.join(save_dir, name, version)``.
 
     Example:
         >>> from pytorch_lightning import Trainer
