@@ -1,13 +1,13 @@
 # Copyright The PyTorch Lightning team.
 #
-# Licensed under the Apache License, Version 2.0 (the 'License');
+# Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an 'AS IS' BASIS,
+# distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
@@ -91,14 +91,14 @@ class DDPSpawnAccelerator(Accelerator):
         return results
 
     def ddp_train(self, process_idx, mp_queue, model, is_master=False, proc_offset=0):
-        '''
+        """
         Entry point for ddp
 
         Args:
             process_idx:
             mp_queue: multiprocessing queue
             model:
-        '''
+        """
         seed = os.environ.get('PL_GLOBAL_SEED')
         if seed is not None:
             seed_everything(int(seed))
@@ -267,7 +267,7 @@ class DDPSpawnAccelerator(Accelerator):
         return model
 
     def configure_sync_batchnorm(self, model: LightningModule) -> LightningModule:
-        '''
+        """
         Add global batchnorm for a model spread across multiple GPUs and nodes.
 
         Override to synchronize batchnorm between specific process groups instead
@@ -278,7 +278,7 @@ class DDPSpawnAccelerator(Accelerator):
 
         Return:
             LightningModule with batchnorm layers synchronized between process groups
-        '''
+        """
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
 
         return model
