@@ -1,6 +1,7 @@
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
-from pytorch_lightning.core.lightning import LightningModule
 from typing import List
+
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 
 
 class DDPPlugin(object):
@@ -20,7 +21,9 @@ class DDPPlugin(object):
 
     """
 
-    def configure_ddp(self, model: LightningModule, device_ids: List[int]) -> LightningModule:
+    def configure_ddp(
+        self, model: LightningModule, device_ids: List[int]
+    ) -> LightningModule:
         """
         Override to define a custom DDP implementation.
 
@@ -42,5 +45,7 @@ class DDPPlugin(object):
         Returns:
 
         """
-        model = LightningDistributedDataParallel(model, device_ids=device_ids, find_unused_parameters=True)
+        model = LightningDistributedDataParallel(
+            model, device_ids=device_ids, find_unused_parameters=True
+        )
         return model

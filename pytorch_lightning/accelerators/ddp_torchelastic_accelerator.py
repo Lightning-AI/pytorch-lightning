@@ -15,16 +15,15 @@ import os
 from typing import List, Optional
 
 import torch
-import torch.distributed as torch_distrib
 import torch.distributed as dist
-from torch.nn.parallel import DistributedDataParallel
-
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
+from torch.nn.parallel import DistributedDataParallel
 
 
 try:
@@ -42,17 +41,18 @@ else:
 # !!!!!!!!!!!!!! NOTE !!!!!!!!!!!!!!!!!!!!!!
 # -------------------------------------------
 class DDPTorchElasticAccelerator(Accelerator):
-
-    def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
+    def __init__(
+        self, trainer, cluster_environment=None, ddp_plugin: Optional[DDPPlugin] = None
+    ):
         super().__init__(trainer, cluster_environment, ddp_plugin)
         self.task_idx = None
         self._has_spawned_children = False
         self.dist = LightningDistributed()
-        self.nickname = 'ddp'
+        self.nickname = "ddp"
 
     def setup(self, model):
         self.trainer.model = model
-        self.task_idx = int(os.environ['LOCAL_RANK'])
+        self.task_idx = int(os.environ["LOCAL_RANK"])
 
     def train(self):
         model = self.trainer.model
@@ -60,7 +60,9 @@ class DDPTorchElasticAccelerator(Accelerator):
 
     def set_world_ranks(self, process_idx):
         self.trainer.local_rank = process_idx
-        self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
+        self.trainer.global_rank = (
+            self.trainer.node_rank * self.trainer.num_processes + process_idx
+        )
         self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
     def model_to_device(self, model, process_idx):
@@ -119,7 +121,10 @@ class DDPTorchElasticAccelerator(Accelerator):
         self.set_world_ranks(process_idx)
 
         # toggle prog bar
-        if self.trainer.global_rank == 0 and self.trainer.progress_bar_callback is not None:
+        if (
+            self.trainer.global_rank == 0
+            and self.trainer.progress_bar_callback is not None
+        ):
             self.trainer.progress_bar_callback.disable()
 
         # set warning rank
@@ -132,7 +137,7 @@ class DDPTorchElasticAccelerator(Accelerator):
         self.init_ddp_connection(
             self.trainer.global_rank,
             self.trainer.world_size,
-            self.trainer.is_slurm_managing_tasks
+            self.trainer.is_slurm_managing_tasks,
         )
 
         # call setup after the ddp process has connected
@@ -140,10 +145,14 @@ class DDPTorchElasticAccelerator(Accelerator):
 
         # on world_size=0 let everyone know training is starting
         if self.trainer.is_global_zero and not torch.distributed.is_initialized():
-            log.info('-' * 100)
-            log.info(f'distributed_backend={self.trainer.distributed_backend} (on SLURM)')
-            log.info(f'All DDP processes registered. Starting ddp with {self.trainer.world_size} processes')
-            log.info('-' * 100)
+            log.info("-" * 100)
+            log.info(
+                f"distributed_backend={self.trainer.distributed_backend} (on SLURM)"
+            )
+            log.info(
+                f"All DDP processes registered. Starting ddp with {self.trainer.world_size} processes"
+            )
+            log.info("-" * 100)
 
         # call sync_bn before .cuda(), configure_apex and configure_ddp
         if self.trainer.sync_batchnorm:

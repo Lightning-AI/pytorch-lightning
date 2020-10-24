@@ -11,19 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 import math
+import os
 from enum import Enum
 from typing import Any, Optional
 
 import torch
-
+import torch.distributed as torch_distrib
+from pytorch_lightning import _logger as log
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
-import torch.distributed as torch_distrib
-from pytorch_lightning import _logger as log
+
 
 try:
     from apex import amp
@@ -35,8 +36,12 @@ EPSILON_FP16 = 1e-5
 
 
 class Accelerator(object):
-
-    def __init__(self, trainer=None, cluster_environment=None, ddp_plugin=None):
+    def __init__(
+        self,
+        trainer=None,
+        cluster_environment=None,
+        ddp_plugin: Optional[DDPPlugin] = None,
+    ):
         self.trainer = trainer
         self.nickname = None
         self.cluster_environment = cluster_environment
@@ -108,8 +113,9 @@ class Accelerator(object):
         # native amp + lbfgs is a no go right now
         if native_amp and is_lbfgs:
             raise MisconfigurationException(
-                'native PyTorch amp and lbfgs are not compatible.'
-                ' To request, please file a Github issue in PyTorch and tag @mcarilli')
+                "native PyTorch amp and lbfgs are not compatible."
+                " To request, please file a Github issue in PyTorch and tag @mcarilli"
+            )
 
         # model hook
         model_ref.optimizer_step(
@@ -119,7 +125,7 @@ class Accelerator(object):
             opt_idx,
             lambda_closure,
             using_native_amp=native_amp,
-            using_lbfgs=is_lbfgs
+            using_lbfgs=is_lbfgs,
         )
 
         # scale when native amp
@@ -128,7 +134,9 @@ class Accelerator(object):
 
     def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
         model_ref = self.trainer.get_model()
-        model_ref.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
+        model_ref.optimizer_zero_grad(
+            self.trainer.current_epoch, batch_idx, optimizer, opt_idx
+        )
 
     def clip_gradients(self, optimizer, clip_val=None):
 
@@ -192,7 +200,9 @@ class Accelerator(object):
         if self.trainer.testing is True:
             return
 
-        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
+        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(
+            model
+        )
         self.trainer.optimizers = optimizers
         self.trainer.lr_schedulers = lr_schedulers
         self.trainer.optimizer_frequencies = optimizer_frequencies
@@ -215,29 +225,29 @@ class Accelerator(object):
 
     def __getstate__(self):
         return {
-            'trainer': self.trainer,
-            'nickname': self.nickname,
-            'cluster_environment': self.cluster_environment,
-            'dist': self.dist,
-            'ddp_plugin': self.ddp_plugin
+            "trainer": self.trainer,
+            "nickname": self.nickname,
+            "cluster_environment": self.cluster_environment,
+            "dist": self.dist,
+            "ddp_plugin": self.ddp_plugin,
         }
 
     def __setstate__(self, d):
-        self.trainer = d['trainer']
-        self.nickname = d['nickname']
-        self.cluster_environment = d['cluster_environment']
-        self.dist = d['dist']
-        self.ddp_plugin = d['ddp_plugin']
+        self.trainer = d["trainer"]
+        self.nickname = d["nickname"]
+        self.cluster_environment = d["cluster_environment"]
+        self.dist = d["dist"]
+        self.ddp_plugin = d["ddp_plugin"]
 
 
 # TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...
 class BackendType(Enum):
-    DP = 'dp'
-    DDP = 'ddp'
-    DDP2 = 'ddp2'
-    DDP_SPAWN = 'ddp_spawn'
+    DP = "dp"
+    DDP = "ddp"
+    DDP2 = "ddp2"
+    DDP_SPAWN = "ddp_spawn"
     # decuple distrib and device
-    DDP_CPU = 'ddp_cpu'
-    HOROVOD = 'horovod'
+    DDP_CPU = "ddp_cpu"
+    HOROVOD = "horovod"
     # this is rather device
-    TPU = 'tpu'
+    TPU = "tpu"
