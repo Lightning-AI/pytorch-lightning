@@ -73,12 +73,6 @@ class CallbackConnector:
         if not self._trainer_has_checkpoint_callbacks() and checkpoint_callback is True:
             self.trainer.callbacks.append(ModelCheckpoint(dirpath=None, filename=None))
 
-        if len(self.trainer.checkpoint_callbacks) > 1:
-            raise MisconfigurationException(
-                "You added multiple ModelCheckpoint callbacks to the Trainer, but currently only one"
-                " instance is supported."
-            )
-
     def configure_progress_bar(self, refresh_rate=1, process_position=0):
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]
         if len(progress_bars) > 1:
