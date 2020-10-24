@@ -213,7 +213,7 @@ class Trainer(
                 Ignored when a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
             profiler: To profile individual steps during training and assist in identifying bottlenecks. Passing bool
-                value is deprecated in v0.9.1 and will be removed in 0.11.0.
+                value is deprecated in v1.1 and will be removed in v1.3.
 
             overfit_batches: Overfit a percent of training data (float) or a set number of batches (int). Default: 0.0
 
