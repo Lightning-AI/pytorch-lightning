@@ -25,7 +25,7 @@ jobs:
 
   python-types:
     name: Python static type checking with Pyright
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 15
@@ -42,7 +42,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-extras-${{ hashFiles('requirements/base.txt') }}-${{ hashFiles('requirements/extra.txt') }}
+          key: ${{ runner.os }}-pip-extras-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements/extra.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-extras-
 
@@ -53,7 +53,7 @@ jobs:
           HOROVOD_WITHOUT_TENSORFLOW: 1
         run: |
           # python -m pip install --upgrade --user pip
-          pip install --requirement requirements/base.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
+          pip install --requirement requirements.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
           pip install --requirement ./requirements/devel.txt --quiet
           # pip install tox coverage
           python --version ; pip --version ; pip list
@@ -71,3 +71,24 @@ jobs:
       - name: Run type checking
         run: |
           $(npm bin)/pyright --project .pyrightconfig.json
+
+  python-pep8:
+    name: Python formatting PEP8
+    runs-on: ubuntu-20.04
+
+    # Timeout: https://stackoverflow.com/a/59076067/4521646
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - name: Install dependencies
+        run: |
+          pip install flake8
+
+      - name: Run checking
+        run: |
+          flake8 .

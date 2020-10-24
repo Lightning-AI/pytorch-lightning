@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import os
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, ProgressBarBase, ProgressBar
 from pytorch_lightning.utilities import rank_zero_warn
@@ -12,7 +25,6 @@ class CallbackConnector:
     def on_trainer_init(
             self,
             callbacks,
-            early_stop_callback,  # TODO: Deprecated in v0.10.0. Remove in v1.0
             checkpoint_callback,
             progress_bar_refresh_rate,
             process_position,
@@ -29,13 +41,6 @@ class CallbackConnector:
         # init callbacks
         self.trainer.callbacks = callbacks or []
 
-        # configure early stop callback
-        # creates a default one if none passed in
-        # TODO: Deprecated in v0.10.0. Remove early stopping default configuration in v1.0
-        early_stop_callback = self.configure_early_stopping(early_stop_callback)
-        if early_stop_callback:
-            self.trainer.callbacks.append(early_stop_callback)
-
         # configure checkpoint callback
         # it is important that this is the last callback to run
         # pass through the required args to figure out defaults
@@ -46,9 +51,6 @@ class CallbackConnector:
         # TODO refactor codebase (tests) to not directly reach into these callbacks
         self.trainer.checkpoint_callback = checkpoint_callback
 
-        # TODO: Deprecated in v0.10.0. Remove in v1.0
-        self.trainer.early_stop_callback = early_stop_callback
-
         # init progress bar
         self.trainer._progress_bar_callback = self.configure_progress_bar(
             progress_bar_refresh_rate, process_position
@@ -56,35 +58,11 @@ class CallbackConnector:
 
     def init_default_checkpoint_callback(self, checkpoint_callback):
         if checkpoint_callback is True:
-            checkpoint_callback = ModelCheckpoint(filepath=None)
+            checkpoint_callback = ModelCheckpoint(dirpath=None, filename=None)
         elif checkpoint_callback is False:
             checkpoint_callback = None
-        if checkpoint_callback:
-            checkpoint_callback.save_function = self.trainer.save_checkpoint
 
         return checkpoint_callback
-
-    # TODO: Deprecated in v0.10.0. Remove this method in v1.0
-    def configure_early_stopping(self, early_stop_callback):
-        if early_stop_callback is True or None:
-            rank_zero_warn(
-                "Trainer(early_stop_callback=True) is deprecated since v0.10.0 and will be"
-                " removed in v1.0."
-                " Configure the EarlyStopping callback class and add it to the list of callbacks:"
-                " Trainer(callbacks=[EarlyStopping(...)])."
-            )
-            early_stop_callback = EarlyStopping(
-                monitor='early_stop_on',
-                patience=3,
-                strict=True,
-                verbose=True,
-                mode='min'
-            )
-        elif not early_stop_callback:
-            early_stop_callback = None
-        else:
-            early_stop_callback = early_stop_callback
-        return early_stop_callback
 
     def configure_progress_bar(self, refresh_rate=1, process_position=0):
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]

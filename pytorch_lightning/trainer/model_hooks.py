@@ -15,7 +15,6 @@
 import inspect
 from abc import ABC, abstractmethod
 
-from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 
 

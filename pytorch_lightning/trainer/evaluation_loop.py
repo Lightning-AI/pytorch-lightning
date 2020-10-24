@@ -144,13 +144,21 @@ class EvaluationLoop(object):
         # make dataloader_idx arg in validation_step optional
         args = [batch, batch_idx]
 
-        multiple_val_loaders = (not test_mode and len(self.trainer.val_dataloaders) > 1)
-        multiple_test_loaders = (test_mode and len(self.trainer.test_dataloaders) > 1)
+        multiple_val_loaders = (not test_mode and self._get_num_dataloaders(self.trainer.val_dataloaders) > 1)
+        multiple_test_loaders = (test_mode and self._get_num_dataloaders(self.trainer.test_dataloaders) > 1)
 
         if multiple_test_loaders or multiple_val_loaders:
             args.append(dataloader_idx)
 
         return args
+
+    def _get_num_dataloaders(self, dataloaders):
+        # case where user does:
+        # return dl1, dl2
+        length = len(dataloaders)
+        if len(dataloaders) > 0 and isinstance(dataloaders[0], (list, tuple)):
+            length = len(dataloaders[0])
+        return length
 
     def evaluation_step(self, test_mode, batch, batch_idx, dataloader_idx):
         # configure args
@@ -165,7 +173,7 @@ class EvaluationLoop(object):
         # track batch size for weighted average
         is_result_obj = isinstance(output, Result)
         if is_result_obj:
-            output.track_batch_size(len(batch))
+            output.track_batch_size(batch)
 
         # allow only EvalResult when using structured results (from val_step)
         if is_result_obj and not isinstance(output, EvalResult):
@@ -209,6 +217,9 @@ class EvaluationLoop(object):
 
     def __run_eval_epoch_end(self, num_dataloaders, using_eval_result):
         model = self.trainer.get_model()
+
+        # reset results
+        model._results = Result()
 
         # with a single dataloader don't pass an array
         outputs = self.outputs
@@ -321,7 +332,7 @@ class EvaluationLoop(object):
         if len(results) == 1:
             return None
 
-        results.track_batch_size(len(batch))
+        results.track_batch_size(batch)
         self.__log_result_step_metrics(results, batch_idx)
 
         return results

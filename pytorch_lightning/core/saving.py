@@ -17,7 +17,8 @@ import csv
 import inspect
 import os
 from argparse import Namespace
-from typing import Union, Dict, Any, Optional, Callable, MutableMapping
+from typing import Union, Dict, Any, Optional, Callable, MutableMapping, IO
+from warnings import warn
 
 import fsspec
 import torch
@@ -51,7 +52,7 @@ class ModelIO(object):
     @classmethod
     def load_from_checkpoint(
         cls,
-        checkpoint_path: str,
+        checkpoint_path: Union[str, IO],
         map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
         hparams_file: Optional[str] = None,
         strict: bool = True,
@@ -64,7 +65,7 @@ class ModelIO(object):
         Any arguments specified through \*args and \*\*kwargs will override args stored in `hparams`.
 
         Args:
-            checkpoint_path: Path to checkpoint. This can also be a URL.
+            checkpoint_path: Path to checkpoint. This can also be a URL, or file-like object
             map_location:
                 If your checkpoint saved a GPU model and you now load on CPUs
                 or a different number of GPUs, use this to map to the new setup.
@@ -192,11 +193,11 @@ class ModelIO(object):
 
         model = cls(**_cls_kwargs)
 
-        # load the state_dict on the model automatically
-        model.load_state_dict(checkpoint['state_dict'], strict=strict)
-
         # give model a chance to load something
         model.on_load_checkpoint(checkpoint)
+
+        # load the state_dict on the model automatically
+        model.load_state_dict(checkpoint['state_dict'], strict=strict)
 
         return model
 
@@ -240,7 +241,7 @@ class ModelIO(object):
         """
 
 
-def _convert_loaded_hparams(model_args: dict, hparams_type: Union[Callable, str] = None) -> object:
+def _convert_loaded_hparams(model_args: dict, hparams_type: Optional[Union[Callable, str]] = None) -> object:
     """Convert hparams according given type in callable or string (past) format."""
     # if not hparams type define
     if not hparams_type:
@@ -372,10 +373,21 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
                     OmegaConf.save(OmegaConf.create(hparams), fp, resolve=True)
                 return
 
-    # saving the standard way
     assert isinstance(hparams, dict)
+    hparams_allowed = {}
+    # drop paramaters which contain some strange datatypes as fsspec
+    for k, v in hparams.items():
+        try:
+            yaml.dump(v)
+        except TypeError as err:
+            warn(f"Skipping '{k}' parameter because it is not possible to safely dump to YAML.")
+            hparams[k] = type(v).__name__
+        else:
+            hparams_allowed[k] = v
+
+    # saving the standard way
     with fs.open(config_yaml, "w", newline="") as fp:
-        yaml.dump(hparams, fp)
+        yaml.dump(hparams_allowed, fp)
 
 
 def convert(val: str) -> Union[int, float, bool, str]:

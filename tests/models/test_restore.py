@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import glob
 import logging as log
 import os
@@ -42,12 +55,11 @@ def test_resume_from_checkpoint(tmpdir):
     """ Test that properties like `current_epoch` and `global_step`
     in model and trainer are always the same. """
     model = EvalModelTemplate()
-    checkpoint_callback = ModelCheckpoint(filepath=tmpdir, monitor="early_stop_on", save_last=True)
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True)
     trainer_args = dict(
         default_root_dir=tmpdir,
         max_epochs=2,
         logger=False,
-        early_stop_callback=False,
         checkpoint_callback=checkpoint_callback,
         callbacks=[ModelTrainerPropertyParity()]  # this performs the assertions
     )
@@ -204,7 +216,7 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
         max_epochs=2,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        checkpoint_callback=ModelCheckpoint(tmpdir, monitor='early_stop_on', save_top_k=-1),
+        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_top_k=-1),
         default_root_dir=tmpdir,
     )
 
@@ -281,7 +293,7 @@ def test_dp_resume(tmpdir):
     # init new trainer
     new_logger = tutils.get_default_logger(tmpdir, version=logger.version)
     trainer_options['logger'] = new_logger
-    trainer_options['checkpoint_callback'] = ModelCheckpoint(tmpdir)
+    trainer_options['checkpoint_callback'] = ModelCheckpoint(dirpath=tmpdir)
     trainer_options['limit_train_batches'] = 0.5
     trainer_options['limit_val_batches'] = 0.2
     trainer_options['max_epochs'] = 1
@@ -320,7 +332,8 @@ def test_model_saving_loading(tmpdir):
 
     # fit model
     trainer = Trainer(
-        max_epochs=1, logger=logger, checkpoint_callback=ModelCheckpoint(tmpdir), default_root_dir=tmpdir,
+        max_epochs=1, logger=logger,
+        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir), default_root_dir=tmpdir,
     )
     result = trainer.fit(model)
 
@@ -374,7 +387,8 @@ def test_strict_model_load_more_params(monkeypatch, tmpdir, tmpdir_server, url_c
 
     # fit model
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, logger=logger, checkpoint_callback=ModelCheckpoint(tmpdir),
+        default_root_dir=tmpdir, max_epochs=1, logger=logger,
+        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
     )
     result = trainer.fit(model)
 
@@ -413,7 +427,8 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
 
     # fit model
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, logger=logger, checkpoint_callback=ModelCheckpoint(tmpdir),
+        default_root_dir=tmpdir, max_epochs=1, logger=logger,
+        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
     )
     result = trainer.fit(model)
 
