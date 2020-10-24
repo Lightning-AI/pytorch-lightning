@@ -1,13 +1,13 @@
 # Copyright The PyTorch Lightning team.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
+# Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
+# distributed under the License is distributed on an 'AS IS' BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
@@ -49,11 +49,11 @@ class DDPSLURMAccelerator(Accelerator):
         self.task_idx = None
         self._has_spawned_children = False
         self.dist = LightningDistributed()
-        self.nickname = "ddp"
+        self.nickname = 'ddp'
 
     def setup(self, model):
         self.trainer.model = model
-        self.task_idx = int(os.environ["SLURM_LOCALID"])
+        self.task_idx = int(os.environ['SLURM_LOCALID'])
 
     def train(self):
         model = self.trainer.model
@@ -106,7 +106,7 @@ class DDPSLURMAccelerator(Accelerator):
         return self.dist.broadcast(obj)
 
     def ddp_train(self, process_idx, model):
-        """
+        '''
         Entry point for ddp
 
         Args:
@@ -117,8 +117,8 @@ class DDPSLURMAccelerator(Accelerator):
         Returns:
             Dict with evaluation results
 
-        """
-        seed = os.environ.get("PL_GLOBAL_SEED")
+        '''
+        seed = os.environ.get('PL_GLOBAL_SEED')
         if seed is not None:
             seed_everything(int(seed))
 
@@ -150,14 +150,14 @@ class DDPSLURMAccelerator(Accelerator):
 
         # on world_size=0 let everyone know training is starting
         if self.trainer.is_global_zero and not torch.distributed.is_initialized():
-            log.info("-" * 100)
+            log.info('-' * 100)
             log.info(
-                f"distributed_backend={self.trainer.distributed_backend} (on SLURM)"
+                f'distributed_backend={self.trainer.distributed_backend} (on SLURM)'
             )
             log.info(
-                f"All DDP processes registered. Starting ddp with {self.trainer.world_size} processes"
+                f'All DDP processes registered. Starting ddp with {self.trainer.world_size} processes'
             )
-            log.info("-" * 100)
+            log.info('-' * 100)
 
         # call sync_bn before .cuda(), configure_apex and configure_ddp
         if self.trainer.sync_batchnorm:
@@ -200,7 +200,7 @@ class DDPSLURMAccelerator(Accelerator):
         return model
 
     def configure_sync_batchnorm(self, model: LightningModule) -> LightningModule:
-        """
+        '''
         Add global batchnorm for a model spread across multiple GPUs and nodes.
 
         Override to synchronize batchnorm between specific process groups instead
@@ -211,7 +211,7 @@ class DDPSLURMAccelerator(Accelerator):
 
         Return:
             LightningModule with batchnorm layers synchronized between process groups
-        """
+        '''
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
 
         return model

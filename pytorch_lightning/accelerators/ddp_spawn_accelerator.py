@@ -1,13 +1,13 @@
 # Copyright The PyTorch Lightning team.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
+# Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
+# distributed under the License is distributed on an 'AS IS' BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
@@ -55,15 +55,15 @@ class DDPSpawnAccelerator(Accelerator):
         self.mp_queue = None
         self.nprocs = nprocs
         self.dist = LightningDistributed()
-        self.nickname = "ddp"
+        self.nickname = 'ddp'
 
     def setup(self, model):
-        os.environ["MASTER_PORT"] = os.environ.get(
-            "MASTER_PORT", str(find_free_network_port())
+        os.environ['MASTER_PORT'] = os.environ.get(
+            'MASTER_PORT', str(find_free_network_port())
         )
 
         # pass in a state q
-        smp = mp.get_context("spawn")
+        smp = mp.get_context('spawn')
         self.mp_queue = smp.SimpleQueue()
 
         self.trainer.model = model
@@ -91,15 +91,15 @@ class DDPSpawnAccelerator(Accelerator):
         return results
 
     def ddp_train(self, process_idx, mp_queue, model, is_master=False, proc_offset=0):
-        """
+        '''
         Entry point for ddp
 
         Args:
             process_idx:
             mp_queue: multiprocessing queue
             model:
-        """
-        seed = os.environ.get("PL_GLOBAL_SEED")
+        '''
+        seed = os.environ.get('PL_GLOBAL_SEED')
         if seed is not None:
             seed_everything(int(seed))
 
@@ -133,12 +133,12 @@ class DDPSpawnAccelerator(Accelerator):
 
         # on world_size=0 let everyone know training is starting
         if self.trainer.is_global_zero and not torch.distributed.is_initialized():
-            log.info("-" * 100)
-            log.info(f"distributed_backend={self.trainer.distributed_backend}")
+            log.info('-' * 100)
+            log.info(f'distributed_backend={self.trainer.distributed_backend}')
             log.info(
-                f"All DDP processes registered. Starting ddp with {self.trainer.world_size} processes"
+                f'All DDP processes registered. Starting ddp with {self.trainer.world_size} processes'
             )
-            log.info("-" * 100)
+            log.info('-' * 100)
 
         # call sync_bn before .cuda(), configure_apex and configure_ddp
         if self.trainer.sync_batchnorm:
@@ -244,7 +244,7 @@ class DDPSpawnAccelerator(Accelerator):
             best_model_path = self.trainer.checkpoint_callback.best_model_path
 
         if self.trainer.global_rank == 0 and mp_queue is not None:
-            rank_zero_warn("cleaning up ddp environment...")
+            rank_zero_warn('cleaning up ddp environment...')
             # todo, pass complete checkpoint as state dictionary
             mp_queue.put(best_model_path)
             mp_queue.put(results)
@@ -256,7 +256,7 @@ class DDPSpawnAccelerator(Accelerator):
                 and best_model_path is not None
                 and len(best_model_path) > 0
             ):
-                last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
+                last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
                 atomic_save(model.state_dict(), last_path)
             mp_queue.put(last_path)
 
@@ -267,7 +267,7 @@ class DDPSpawnAccelerator(Accelerator):
         return model
 
     def configure_sync_batchnorm(self, model: LightningModule) -> LightningModule:
-        """
+        '''
         Add global batchnorm for a model spread across multiple GPUs and nodes.
 
         Override to synchronize batchnorm between specific process groups instead
@@ -278,7 +278,7 @@ class DDPSpawnAccelerator(Accelerator):
 
         Return:
             LightningModule with batchnorm layers synchronized between process groups
-        """
+        '''
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
 
         return model
