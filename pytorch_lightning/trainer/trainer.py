@@ -212,7 +212,7 @@ class Trainer(
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
                 Ignored when a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
-            profiler:  To profile individual steps during training and assist in identifying bottlenecks. Passing bool
+            profiler: To profile individual steps during training and assist in identifying bottlenecks. Passing bool
                 value is deprecated in v0.9.1 and will be removed in 0.11.0.
 
             overfit_batches: Overfit a percent of training data (float) or a set number of batches (int). Default: 0.0
