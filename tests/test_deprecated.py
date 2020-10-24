@@ -4,10 +4,17 @@ import sys
 
 import torch
 
+from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate
 
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+
+def test_tbd_remove_in_v1_4_0(tmpdir):
+    with pytest.deprecated_call(match='will no longer be supported in v1.4'):
+        callback = ModelCheckpoint()
+        trainer = Trainer(checkpoint_callback=callback, callbacks=[], default_root_dir=tmpdir)
 
 
 def test_tbd_remove_in_v1_2_0():
