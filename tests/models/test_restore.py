@@ -60,8 +60,7 @@ def test_resume_from_checkpoint(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=2,
         logger=False,
-        checkpoint_callback=checkpoint_callback,
-        callbacks=[ModelTrainerPropertyParity()]  # this performs the assertions
+        callbacks=[checkpoint_callback, ModelTrainerPropertyParity()]  # this performs the assertions
     )
     trainer = Trainer(**trainer_args)
     trainer.fit(model)
