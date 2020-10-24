@@ -14,7 +14,6 @@ Core API
     decorators
     hooks
     lightning
-    step_result
 
 Callbacks API
 -------------
