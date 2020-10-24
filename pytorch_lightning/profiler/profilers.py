@@ -122,7 +122,7 @@ class SimpleProfiler(BaseProfiler):
     def __init__(self, output_filename: Optional[str] = None):
         """
         Args:
-            output_filename (Optional[str]): optionally save profile results to file instead of printing
+            output_filename: optionally save profile results to file instead of printing
                 to std out when training is finished.
         """
         self.current_actions = {}
