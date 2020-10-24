@@ -132,7 +132,7 @@ class ModelHooks:
         Called in the training loop after the batch.
 
         Args:
-            outputs: The outputs of validation_step_end(validation_step(x))
+            outputs: The outputs of training_step_end(training_step(x))
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
