@@ -21,9 +21,9 @@ import yaml
 from omegaconf import OmegaConf
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.loggers import TensorBoardLogger
-from tests.base import EvalModelTemplate
+from tests.base import EvalModelTemplate, BoringModel
 
 
 @pytest.mark.skipif(
@@ -201,3 +201,65 @@ def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
             ' attribute is not set or `input_array` was not given'
     ):
         logger.log_graph(model)
+
+
+def test_tensorboard_with_accumulate_grad_batches(tmpdir):
+    """ test that tensorboard works properly with accumulate_grad_batches """
+
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    seed_everything(42)
+
+    class ExtendedModel(BoringModel):
+
+        _count = 0
+
+        def training_step(self, batch, batch_idx):
+            self.log("count", self._count, on_step=True, on_epoch=True)
+            self._count += 1
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            return {"loss": loss}
+
+
+    accumulate_grad_batches = 1
+    model = ExtendedModel()
+    model.training_epoch_end = None
+    trainer = Trainer(
+        logger=TensorBoardLogger(tmpdir),
+        accumulate_grad_batches=accumulate_grad_batches,
+        limit_train_batches=12,
+        limit_val_batches=2,
+        limit_test_batches=0,
+        max_epochs=2,
+    )
+    trainer.fit(model)
+
+    saved_train_losses_wo_accumulate = trainer.dev_debugger.saved_train_losses
+    saved_train_accumulated_losses_wo_accumulate = trainer.dev_debugger.saved_train_accumulated_losses
+    saved_train_running_losses_wo_accumulate = trainer.dev_debugger.saved_train_running_losses
+    outputs_wo_accumulate = trainer.evaluation_loop.outputs
+
+    seed_everything(42)
+
+    accumulate_grad_batches = 8
+    model = ExtendedModel()
+    model.training_epoch_end = None
+    trainer = Trainer(
+        logger=TensorBoardLogger(tmpdir),
+        accumulate_grad_batches=accumulate_grad_batches,
+        limit_train_batches=12,
+        limit_val_batches=2,
+        limit_test_batches=0,
+        max_epochs=2,
+    )
+    trainer.fit(model)
+
+    saved_train_losses_wi_accumulate = trainer.dev_debugger.saved_train_losses
+    saved_train_accumulated_losses_wi_accumulate = trainer.dev_debugger.saved_train_accumulated_losses
+    saved_train_running_losses_wi_accumulate = trainer.dev_debugger.saved_train_running_losses
+    outputs_wi_accumulate = trainer.evaluation_loop.outputs
+
+    breakpoint()
+    print(saved_train_accumulated_losses_wo_accumulate)
+    print()

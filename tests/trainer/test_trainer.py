@@ -36,7 +36,7 @@ from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
-from tests.base import EvalModelTemplate
+from tests.base import EvalModelTemplate, BoringModel
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -304,28 +304,28 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
 def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_batches, limit_train_batches):
     """ Verify optimizer.step() applied to last batch while grad accumulation """
 
-    class CurrentModel(EvalModelTemplate):
-        def on_after_backward(self):
-            self.loss_backward = deepcopy(self.state_dict())
+    class CurrentModel(BoringModel):
 
-        def on_before_zero_grad(self, optimizer):
-            self.opt_step = self.state_dict()
+        def on_batch_start(self, batch, batch_idx, dataloader_idx):
+            self.on_train_batch_start_state_dict = self.state_dict()
 
-        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
-            _exclude_keys = ["num_batches_tracked", "running_mean", "running_var"]
-
-            if (batch_idx + 1) == self.trainer.num_training_batches:
-                for key in self.loss_backward.keys():
-                    # exclude the check for batch_norm parameters
-                    if not any([k in key for k in _exclude_keys]):
-                        assert not torch.equal(self.loss_backward[key], self.opt_step[key])
+        def on_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+            self.on_train_batch_start_end_dict = self.state_dict()
+            for key in self.on_train_batch_start_end_dict.keys():
+                # exclude the check for batch_norm parameters
+                if (batch_idx + 1) == self.trainer.num_training_batches:
+                    assert torch.equal(self.on_train_batch_start_state_dict[key], self.on_train_batch_start_end_dict[key])
+                else:
+                    assert not torch.equal(self.on_train_batch_start_state_dict[key], self.on_train_batch_start_end_dict[key])
 
     model = CurrentModel()
 
     trainer = Trainer(
         accumulate_grad_batches=accumulate_grad_batches,
-        max_epochs=4,
+        max_epochs=2,
         limit_train_batches=limit_train_batches,
+        limit_val_batches=0,
+        limit_test_batches=0,
         default_root_dir=tmpdir,
     )
 
