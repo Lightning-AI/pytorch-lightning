@@ -438,7 +438,6 @@ class Trainer(
 
         results = self.accelerator_backend.train()
         self.accelerator_backend.teardown()
-        self.accelerator_backend.barrier()
 
         # ----------------------------
         # POST-Training CLEAN UP
