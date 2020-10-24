@@ -145,7 +145,6 @@ class DDPAccelerator(Accelerator):
         results = self.ddp_train(process_idx=self.task_idx, model=model)
         if 'WORLD_SIZE' in os.environ:
             del os.environ['WORLD_SIZE']
-        self.barrier('ddp_end_train')
         return results
 
     def training_step(self, args):

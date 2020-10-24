@@ -29,7 +29,6 @@ from pathlib import Path
 
 import numpy as np
 import torch
-import torch.distributed as torch_distrib
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn, rank_zero_info
@@ -196,9 +195,6 @@ class ModelCheckpoint(Callback):
         self.best_model_score = checkpointed_state["best_model_score"]
         self.best_model_path = checkpointed_state["best_model_path"]
 
-    def on_fit_end(self, trainer, pl_module) -> None:
-        self._sync_best_model_across_procs(trainer)
-
     def save_checkpoint(self, trainer, pl_module):
         """
         Performs the main logic around saving a checkpoint.
@@ -237,14 +233,6 @@ class ModelCheckpoint(Callback):
 
         # Mode 2: save the last checkpoint
         self._save_last_checkpoint(trainer, pl_module, epoch, monitor_candidates, filepath)
-
-    def _sync_best_model_across_procs(self, trainer) -> None:
-        if trainer.accelerator_backend and torch_distrib.is_initialized():
-            best_model_path, best_model_score = trainer.accelerator_backend.broadcast((self.best_model_path,
-                                                                                      self.best_model_score))
-            # track the best model path and score rank 0
-            self.best_model_path = best_model_path
-            self.best_model_score = best_model_score
 
     def __validate_init_configuration(self):
         if self.save_top_k is not None and self.save_top_k < -1:
