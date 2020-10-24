@@ -676,7 +676,6 @@ class TrainLoop:
                     model = self.trainer.get_model()
                     model.toggle_optimizer(optimizer, opt_idx)
 
-<<<<<<< HEAD
                 if not (accumulation_done or is_final_batch):
                     # For gradient accumulation
 
@@ -690,17 +689,6 @@ class TrainLoop:
                         batch_outputs=batch_outputs,
                         opt_idx=opt_idx,
                     )
-=======
-                # -------------------
-                # calculate loss (train step + train step end)
-                # -------------------
-                opt_closure_result = self.training_step_and_backward(
-                    split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
-                )
-
-                if opt_closure_result is None:
-                    continue
->>>>>>> Added iteration based training
 
                 # ------------------------------
                 # BACKWARD PASS
@@ -731,33 +719,12 @@ class TrainLoop:
                         # user decided to skip optimization
                         continue
 
-<<<<<<< HEAD
                     batch_outputs = self._process_closure_result(
                         batch_callback_metrics=batch_callback_metrics,
                         batch_log_metrics=batch_log_metrics,
                         batch_outputs=batch_outputs,
                         opt_idx=opt_idx,
                     )
-=======
-                # ------------------------------
-                # BACKWARD PASS
-                # ------------------------------
-                # gradient update with accumulated gradients
-                accumulation_done = (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
-                is_final_batch = (self.trainer.batch_idx + 1) == self.trainer.num_training_batches
-                if accumulation_done or is_final_batch:
-                    # hook
-                    grad_norm_dic = self.on_before_backward(batch_idx, optimizer)
-
-                    # wrap forward + backward pass in closure for 2nd order optimizers
-                    train_step_and_backward_closure = lambda: self.training_step_and_backward(
-                        split_batch,
-                        batch_idx,
-                        opt_idx,
-                        optimizer,
-                        self.trainer.hiddens,
-                    ).loss
->>>>>>> Added iteration based training
 
                     grad_norm_dic = self._cur_grad_norm_dict
                     self._cur_grad_norm_dict = None
@@ -768,16 +735,11 @@ class TrainLoop:
                     # clear gradients
                     self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
-<<<<<<< HEAD
                     accumulated_loss = self.accumulated_loss.mean()
 
                     if accumulated_loss is not None:
                         # calculate running loss for display
                         self.running_loss.append(self.accumulated_loss.mean() * self.trainer.accumulate_grad_batches)
-=======
-                    # calculate running loss for display
-                    self.running_loss.append(self.accumulated_loss.mean() * self.trainer.accumulate_grad_batches)
->>>>>>> Added iteration based training
 
                     # reset for next set of accumulated grads
                     self.accumulated_loss.reset()
