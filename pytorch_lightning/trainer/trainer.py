@@ -828,21 +828,34 @@ class Trainer(
         self.setup(stage_name)
         model.setup(stage_name)
 
+    def _prepare_logging_capture(self, hook_name):
+        model_ref = self.get_model()
+        if model_ref is not None:
+            # used to track current hook name called
+            model_ref._result = Result()
+            model_ref._current_hook_fx_name = hook_name
+
+    def _capture_logging(self):
+        model_ref = self.get_model()
+        if model_ref is not None:
+            # capture logging for this hook
+            self.logger_connector.capture_logging()
+            
+            # reset result to the next hook
+            model_ref._result = Result()
+            model_ref._current_hook_fx_name = None
+
     def call_hook(self, hook_name, *args, **kwargs):
+        
+        self._prepare_logging_capture(hook_name)
+
         # always profile hooks
         with self.profiler.profile(hook_name):
 
             # first call trainer hook
             if hasattr(self, hook_name):
-                model_ref = self.get_model()
-                if model_ref is not None:
-                    # used to track current hook name called
-                    model_ref._current_hook_fx_name = hook_name
                 trainer_hook = getattr(self, hook_name)
                 trainer_hook(*args, **kwargs)
-                if model_ref is not None:
-                    # set back current_hook_fx_name to its default value
-                    model_ref._current_hook_fx_name = ''
 
             # next call hook in lightningModule
             output = None
@@ -857,4 +870,6 @@ class Trainer(
                 accelerator_hook = getattr(self.accelerator_backend, hook_name)
                 output = accelerator_hook(*args, **kwargs)
 
-            return output
+        # capture logging    
+        self._capture_logging()
+        return output

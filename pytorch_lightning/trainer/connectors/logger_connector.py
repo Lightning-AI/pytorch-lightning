@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from enum import Enum
 import torch
 from pytorch_lightning.core import memory
 from pytorch_lightning.loggers import TensorBoardLogger, LoggerCollection
@@ -24,61 +25,105 @@ from typing import Iterable, Union
 from copy import deepcopy
 from collections import defaultdict, ChainMap
 
+class LoggerStages(Enum):
+    TRAIN = "train"
+    VAL = "validation"
+    TEST = "test"
+    ALL = "all"
 
-class CacheInternalMetrics:
-    """
-    This class is an helper to cache model._results logged values before / after entering batch loop.
-    As on every `run_training_batch`, we apply model._results = Result()
-    and therefore delete any previously logged values
 
-    before_on_batch_start is responsible to catch logging values from `on_start` to `on_batch_start`
-    after_on_batch_end is responsible to catch logging values from `on_batch_end` to `on_epoch_end`
-    """
+class HookResults:
 
-    stages = ["before_on_batch_start", "after_on_batch_end"]
+    def __init__(self, current_hook_fx_name):
+        self._current_hook_fx_name = current_hook_fx_name
+        self._internals = defaultdict(list)
 
-    def __init__(self):
-        self.reset()
-
-    def append(self, stage: str, key: str, value) -> None:
-        assert stage in self.stages, f"Provided stage {stage} should be within {self.stages}"
-        self._internal_dict[stage][key].append(value)
-
-    def get_as_dict(self, stage, key):
-        _internal_metrics = self.get_as_list(stage, key)
-        return dict(ChainMap(*_internal_metrics))
-
-    def get_as_list(self, stage, key):
-        assert stage in self.stages, f"Provided stage {stage} should be within {self.stages}"
-        return self._internal_dict[stage][key]
+    def append(self, result, dataloader_idx=None, split_idx=None):
+        # TODO handle split_idx
+        if dataloader_idx is None:
+            dataloader_idx = 0
+        self._internals[dataloader_idx].append(result)
 
     def __repr__(self):
-        return self._internal_dict.__repr__()
+        return self._internals.__repr__()
 
-    def update(self, trainer, stage: str) -> None:
-        """
-        This function is used to cache any logged information
-        between "on_train_start" to "on_train_epoch_start" callback hooks
-        """
-        assert stage in self.stages, f"Provided stage {stage} should be within {self.stages}"
-        if not trainer.running_sanity_check:
-            model_ref = trainer.get_model()
+class EpochLoopResult:
 
-            # save epoch metrics
-            self.append(stage, "epoch_log_metrics", model_ref._results.get_epoch_log_metrics())
-            self.append(stage, "epoch_pbar_metrics", model_ref._results.get_epoch_pbar_metrics())
+    def __init__(self, trainer, stage):
+        self.trainer = trainer
+        self._stage = stage
+        self._internals = {}
+        self._dataloader_idx = None
+        self._split_idx = None
 
-            # save step/batch metrics
-            self.append(stage, "batch_log_metrics", model_ref._results.get_batch_log_metrics())
-            self.append(stage, "batch_pbar_metrics", model_ref._results.get_batch_pbar_metrics())
+    def cache_result(self):
+        model_ref = self.trainer.get_model()
+
+        # extract hook information
+        hook_result = model_ref._results
+        current_hook_fx_name = model_ref._current_hook_fx_name
+
+        if current_hook_fx_name not in self._internals:
+            self._internals[current_hook_fx_name] = HookResults(current_hook_fx_name)
+        
+        self._internals[current_hook_fx_name].append(hook_result, dataloader_idx=self._dataloader_idx, split_idx=self._split_idx)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(stage={self._stage}, internals={self._internals})"
+
+    def log_training_step_metrics(self, opt_closure_result):
+
+        # decide which metrics to log (results vs dict return)
+        using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
+
+        if using_results_obj:
+            metrics_to_log = opt_closure_result.training_step_output.get_batch_log_metrics(
+                include_forked_originals=False
+            )
+            step_pbar_metrics = opt_closure_result.training_step_output.get_batch_pbar_metrics(
+                include_forked_originals=False
+            )
+            forked_metrics = opt_closure_result.training_step_output.get_forked_metrics()
+            callback_metrics.update(forked_metrics)
+
+        else:
+            metrics_to_log = opt_closure_result.training_step_output.log_metrics
+            step_pbar_metrics = opt_closure_result.training_step_output.pbar_on_batch_end
+
+        # track batch log metrics
+        batch_log_metrics.append(metrics_to_log)
+
+        # add initially computed step metrics.
+        cache_internal_batch_pbar_metrics = self.trainer.logger_connector.cached_metrics("train").get_as_dict(
+            "before_on_batch_start", "batch_pbar_metrics")
+        if len(cache_internal_batch_pbar_metrics) > 0:
+            self.trainer.logger_connector.add_progress_bar_metrics(cache_internal_batch_pbar_metrics)
+            self.trainer.logger_connector.callback_metrics.update(cache_internal_batch_pbar_metrics)
+
+        # track progress bar metrics
+        if len(step_pbar_metrics) > 0:
+            self.trainer.logger_connector.add_progress_bar_metrics(step_pbar_metrics)
+            self.trainer.logger_connector.callback_metrics.update(step_pbar_metrics)
+
+        batch_callback_metrics.append(callback_metrics)
 
     def reset(self):
-        self._internal_dict = {stage: defaultdict(list) for stage in self.stages}
+        self._internals = {}
 
+class BatchSplitIdxManager: 
+    def __init__(self, trainer, stage): 
+        self.trainer = trainer
+        self.stage = stage
+          
+    def __enter__(self): 
+        self.trainer.split_idx = self.split_idx
+        self.trainer.logger_connector._cached_results[self.stage].split_idx = self.split_idx
+      
+    def __exit__(self, exc_type, exc_value, exc_traceback): 
+        self.trainer.logger_connector._cached_results[self.stage].split_idx = None
 
 class LoggerConnector:
 
-    __stages = ["train", "val", "test"]
     __lookup_stages = {"0": "test", "1": "val", "True": "test", "False": "val"}
 
     def __init__(self, trainer):
@@ -87,21 +132,53 @@ class LoggerConnector:
         self.logged_metrics = {}
         self.progress_bar_metrics = {}
         self.eval_loop_results = []
-        self._cache_internal_metrics = {stage: CacheInternalMetrics() for stage in self.__stages}
+        self._current_stage = None
+        self.__stages  = sorted([s.value for s in LoggerStages])
+        self._cached_results = {stage: EpochLoopResult(trainer, stage) for stage in self.__stages}
+        self._split_idx_manager = {stage: BatchSplitIdxManager(trainer, stage) for stage in self.__stages[1:]}
 
-    def cached_metrics(self, stage_or_testing: Union[str, bool]) -> Union[CacheInternalMetrics, None]:
+    def _determine_stage_from_hook_name(self, hook_name: str = None) -> str:
+        if hook_name is None:
+            model_ref = self.trainer.get_model()
+            hook_name = model_ref._current_hook_fx_name
+        if LoggerStages.TRAIN.value in hook_name:
+            return LoggerStages.TRAIN.value
+        elif LoggerStages.VAL.value in hook_name:
+            return LoggerStages.VAL.value
+        elif LoggerStages.TEST.value in hook_name:
+            return LoggerStages.TEST.value
+        else:
+            return LoggerStages.ALL.value
+
+    def _determine_stage(self, stage_or_testing: Union[str, bool]) -> str:
         stage_or_testing = str(stage_or_testing)
-        stages = self.__stages
-        if stage_or_testing in self.__stages:
-            return self._cache_internal_metrics[stage_or_testing]
+        stages = self.__stages[1:] # exclude all
+        if stage_or_testing in stages:
+            return stage_or_testing
         if stage_or_testing in self.__lookup_stages:
             # Acces using trainer.testing
-            stage = self.__lookup_stages[stage_or_testing]
-            return self._cache_internal_metrics[stage]
+            return self.__lookup_stages[stage_or_testing]
         raise MisconfigurationException(
-            f"Provide stage_or_testing {stage_or_testing} doesn't belong either to {self.__stages}"
+            f"Provide stage_or_testing {stage_or_testing} doesn't belong either to {stages}"
             f" or {self.__lookup_stages.keys()}"
         )
+
+    def split_idx_manager(self, stage_or_testing: Union[str, bool], split_idx: int) -> BatchSplitIdxManager:
+        stage = self._determine_stage(stage_or_testing)
+        self._current_stage = stage
+        # used to access it in __enter__
+        self._split_idx_manager[stage].split_idx = split_idx
+        return self._split_idx_manager[stage]
+    
+    def __enter__(self): 
+        return self
+      
+    def __exit__(self, exc_type, exc_value, exc_traceback): 
+        pass
+
+    def capture_logging(self) -> Union[EpochLoopResult, None]:
+        stage = self._determine_stage_from_hook_name()
+        self._cached_results[stage].cache_result()
 
     def on_trainer_init(self, logger, flush_logs_every_n_steps, log_every_n_steps):
         # logging
