@@ -110,7 +110,7 @@ RUN \
     # install NVIDIA AMP
     git clone https://github.com/NVIDIA/apex && \
     pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./apex && \
-    rm -rf apex && \
+    rm -rf apex
 
 RUN \
     # Show what we have

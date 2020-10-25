@@ -115,6 +115,8 @@ jobs:
 
       # for PT 1.3 and 1.4 we need to use CUDA 10.1
       - run: |
+          cuda=$(python -c "print(10.2 if float(${{matrix.pytorch_version}}) > 1.4 else 10.1)" 2>&1)
+          echo "::set-env name=CUDA::$cuda"
           channel=$(python -c "print('pytorch-nightly' if float(${{matrix.pytorch_version}}) > 1.7 else 'pytorch')" 2>&1)
           echo "::set-env name=CHANNEL::$channel"
 
@@ -129,6 +131,7 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             PYTORCH_CHANNEL=${{ env.CHANNEL }}
+            CUDA_VERSION=${{ env.CUDA }}
           cache-from: pytorchlightning/pytorch_lightning:base-conda-cache-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
           file: dockers/base-conda/Dockerfile
           push: false
