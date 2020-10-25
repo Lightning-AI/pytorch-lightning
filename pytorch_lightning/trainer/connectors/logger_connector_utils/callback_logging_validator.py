@@ -4,7 +4,7 @@ class LoggingCallbackValidator:
     @staticmethod
     def validate_callback_logging_arguments(current_hook_fx_name: str = None, on_step: bool = None,
                                             on_epoch: bool = None) -> None:
-        current_callback_hook_auth_args = getattr(CallbackConnector, f"_{current_hook_fx_name}_log")()
+        current_callback_hook_auth_args = getattr(LoggingCallbackValidator, f"_{current_hook_fx_name}_log")()
 
         if current_callback_hook_auth_args is not None:
             m = "{} function supports only {} in {}. Provided {}"
