@@ -267,13 +267,16 @@ class MetricCollection(nn.ModuleDict):
     call pattern into one single class.
 
     Args:
-        metrics: one of the following
-            * list or tuple: if metrics are passed in as a list, will use the metrics
-                class name as key for output dict. Therefore, two metrics of the
-                same class cannot be chained this way.
-            * dict: if metrics are passed in as a dict, will use each key in the dict
-                as key for output dict. Use this format if you want to chain together
-                multiple of the same metric with different parameters.
+        metrics: One of the following
+
+            * list or tuple: if metrics are passed in as a list, will use the
+              metrics class name as key for output dict. Therefore, two metrics
+              of the same class cannot be chained this way.
+
+            * dict: if metrics are passed in as a dict, will use each key in the
+              dict as key for output dict. Use this format if you want to chain
+              together multiple of the same metric with different parameters.
+
     Example:
 
         >>> from pytorch_lightning.metrics import MetricCollection, Accuracy, Precision, Recall
@@ -286,9 +289,9 @@ class MetricCollection(nn.ModuleDict):
         {'Accuracy': tensor(0.1250), 'Precision': tensor(0.0667), 'Recall': tensor(0.1111)}
 
         >>> metrics = MetricCollection({'micro_recall': Recall(num_classes=3, average='micro'),
-        ...                             'weighted_recall': Recall(num_classes=3, average='macro')})
+        ...                             'macro_recall': Recall(num_classes=3, average='macro')})
         >>> metrics(preds, target)
-        {'micro_recall': tensor(0.1250), 'weighted_recall': tensor(0.1111)}
+        {'micro_recall': tensor(0.1250), 'macro_recall': tensor(0.1111)}
 
     """
     blacklist_keys = ['train', 'eval', 'forward']
@@ -319,7 +322,7 @@ class MetricCollection(nn.ModuleDict):
     def _check_valid_key(self, name):
         if name in self.blacklist_keys:
             raise ValueError(f'Cannot assign metric to key {name} as it is reserved'
-                              ' for internal use.')
+                             ' for internal use.')
 
     def forward(self, *args, **kwargs):
         """ Iteratively call forward for each metric """

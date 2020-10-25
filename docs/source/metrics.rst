@@ -78,6 +78,20 @@ If ``on_epoch`` is True, the logger automatically logs the end of epoch metric v
         self.valid_acc(logits, y)
         self.log('valid_acc', self.valid_acc, on_step=True, on_epoch=True)
 
+.. note::
+    Remember to initialize your metrics for both training, validation and testing
+    in your ``LightningModule`` or else the metric states may be mixed during
+    training leading to wrong results. To easy initialize the same metric multiple
+    times, the ``.clone()`` method can be used.
+
+    .. code-block :: python
+
+        def __init__(self):
+            ...
+            metric = pl.metrics.Accuracy()
+            self.train_acc = metric.clone()
+            self.val_acc = metric.clone()
+            self.test_acc = metric.clone()
 
 This metrics API is independent of PyTorch Lightning. Metrics can directly be used in PyTorch as shown in the example:
 
@@ -153,7 +167,7 @@ In this case the `MetricCollection` class may come in handy. It accepts a sequen
 of metrics and wraps theses into a single callable metric class, with the same
 interface as any other metric.
 
-.. None::
+.. note::
     It is expected that all metrics in the collection have the same call signature
 
 Example:
@@ -163,9 +177,9 @@ Example:
     from pytorch_lightning.metrics import MetricCollection, Accuracy, Precision, Recall
     target = torch.tensor([0, 2, 0, 2, 0, 1, 0, 2])
     preds = torch.tensor([2, 1, 2, 0, 1, 2, 2, 2])
-    metric_collection = MetricCollection(Accuracy(),
-                                         Precision(num_classes=3, average='macro',
-                                         Recall(num_classes=3, average='macro'))
+    metric_collection = MetricCollection([Accuracy(),
+                                          Precision(num_classes=3, average='macro'),
+                                          Recall(num_classes=3, average='macro')])
     metric_collection(preds, target)
     {'Accuracy': tensor(0.1250),
      'Precision': tensor(0.0667),
@@ -178,8 +192,9 @@ inside your LightningModule
 
     def __init__(self):
         ...
-        self.train_metrics = pl.metrics.MetricCollection(...)
-        self.valid_metrics = pl.metrics.MetricCollection(...)
+        metrics = pl.metrics.MetricCollection(...)
+        self.train_metrics = metrics.clone()
+        self.valid_metrics = metrics.clone()
 
     def training_step(self, batch, batch_idx):
         logits = self(x)
