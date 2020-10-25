@@ -87,7 +87,7 @@ RUN \
     # Disable cache
     pip config set global.cache-dir false && \
     # eventualy use pre-release
-    pip install "torch==${PYTORCH_VERSION}.*" --pre && \
+    #pip install "torch==${PYTORCH_VERSION}.*" --pre && \
     # set particular PyTorch version
     python -c "import re ; fname = 'requirements.txt' ; req = re.sub(r'torch[>=]+[\d\.]+', 'torch==${PYTORCH_VERSION}.*', open(fname).read()) ; open(fname, 'w').write(req)" && \
 
