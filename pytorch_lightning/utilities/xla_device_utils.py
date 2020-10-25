@@ -13,6 +13,7 @@
 # limitations under the License.
 import functools
 import importlib
+import queue as q
 from multiprocessing import Process, Queue
 
 import torch
@@ -40,8 +41,11 @@ def pl_multi_process(func):
         queue = Queue()
         proc = Process(target=inner_f, args=(queue, func,), kwargs=kwargs)
         proc.start()
-        proc.join()
-        return queue.get()
+        proc.join(10)
+        try:
+            return queue.get_nowait()
+        except q.Empty:
+            return False
 
     return wrapper
 
