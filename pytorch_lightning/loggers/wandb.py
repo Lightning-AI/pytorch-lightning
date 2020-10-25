@@ -160,4 +160,3 @@ class WandbLogger(LightningLoggerBase):
     def finalize(self, status: str) -> None:
         if self._log_model:
             wandb.save(os.path.join(self.save_dir, "*.ckpt"))
-
