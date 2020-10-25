@@ -9,7 +9,7 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     branches: [master]
 
 jobs:
-  build-Conda:
+  build-PL:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -21,11 +21,9 @@ jobs:
         uses: actions/checkout@v2
 
       # https://github.com/docker/setup-buildx-action
-      # to use cache-from and cache-to argument of buildx command
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-
-      - name: Build Conda Docker
+      # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
+      - uses: docker/setup-buildx-action@v1
+      - name: Build PL Docker
         # publish master
         uses: docker/build-push-action@v2
         with:
@@ -48,10 +46,8 @@ jobs:
         uses: actions/checkout@v2
 
       # https://github.com/docker/setup-buildx-action
-      # to use cache-from and cache-to argument of buildx command
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-
+      # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
+      - uses: docker/setup-buildx-action@v1
       - name: Build XLA Docker
         # publish master
         uses: docker/build-push-action@v2
@@ -70,24 +66,51 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          #- python_version: 3.7
-          #  pytorch_version: 1.8  # todo
-          #  pytorch_channel: pytorch-nightly
+          - python_version: 3.8
+            pytorch_version: 1.6
+          - python_version: 3.6
+            pytorch_version: 1.5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      # https://github.com/docker/setup-buildx-action
+      # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
+      - uses: docker/setup-buildx-action@v1
+      - name: Build CUDA Docker
+        # publish master
+        uses: docker/build-push-action@v2
+        with:
+          build-args: |
+            PYTHON_VERSION=${{ matrix.python_version }}
+            PYTORCH_VERSION=${{ matrix.pytorch_version }}
+          cache-from: pytorchlightning/pytorch_lightning:base-cuda-cache-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
+          file: dockers/base-cuda/Dockerfile
+          push: false
+        timeout-minutes: 50
+
+  build-conda:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
           - python_version: 3.8
             pytorch_version: 1.6
             pytorch_channel: pytorch
           - python_version: 3.6
             pytorch_version: 1.5
             pytorch_channel: pytorch
+          #- python_version: 3.7
+          #  pytorch_version: 1.8  # todo
+          #  pytorch_channel: pytorch-nightly
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
       # https://github.com/docker/setup-buildx-action
-      # to use cache-from and cache-to argument of buildx command
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-
+      # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
+      - uses: docker/setup-buildx-action@v1
       - name: Build CUDA Docker
         # publish master
         uses: docker/build-push-action@v2
@@ -96,7 +119,7 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             PYTORCH_CHANNEL=${{ matrix.pytorch_channel }}
-          cache-from: pytorchlightning/pytorch_lightning:base-cuda-cache-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
-          file: dockers/base-cuda/Dockerfile
+          cache-from: pytorchlightning/pytorch_lightning:base-conda-cache-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
+          file: dockers/base-conda/Dockerfile
           push: false
         timeout-minutes: 50
