@@ -28,7 +28,7 @@ else:
 def inner_f(queue, func, *args, **kwargs):  # pragma: no cover
     try:
         queue.put(func(*args, **kwargs))
-    except Exception as _e:
+    except Exception:
         import traceback
 
         traceback.print_exc()
