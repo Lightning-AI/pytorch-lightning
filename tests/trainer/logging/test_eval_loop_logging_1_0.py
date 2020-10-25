@@ -382,6 +382,10 @@ def test_log_works_in_val_callback(tmpdir):
         funcs_attr = {}
 
         def make_logging(self, pl_module: pl.LightningModule, func_name, func_idx, on_steps=[], on_epochs=[], prob_bars=[]):
+            """
+            This function is used to log metrics and make sure everything is properly logged.
+            """
+            
             self.funcs_called_count[func_name] += 1
             for idx, t in enumerate(list(itertools.product(*[on_steps, on_epochs, prob_bars]))):
                 # run logging
@@ -569,19 +573,22 @@ def test_log_works_in_test_callback(tmpdir):
                     "on_step": on_step,
                     "on_epoch": on_epoch,
                     "prog_bar": prog_bar,
-                    "func_name": func_name}
+                    "func_name": func_name,
+                    "forked": on_step and on_epoch}
                 if on_step and on_epoch:
                     self.funcs_attr[f"{custom_func_name}_step" + num_dl_ext] = {
                         "on_step": True,
                         "on_epoch": False,
                         "prog_bar": prog_bar,
-                        "func_name": func_name}
+                        "func_name": func_name,
+                        "forked": False}
 
                     self.funcs_attr[f"{custom_func_name}_epoch" + num_dl_ext] = {
                         "on_step": False,
                         "on_epoch": True,
                         "prog_bar": prog_bar,
-                        "func_name": func_name}
+                        "func_name": func_name,
+                        "forked": False}
 
         def on_test_start(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_test_start', 1, on_steps=self.choices,
@@ -701,7 +708,13 @@ def test_log_works_in_test_callback(tmpdir):
         assert float(output_value) == float(expected_output)
 
     for func_name, func_attr in test_callback.funcs_attr.items():
-        if func_attr["prog_bar"] and (func_attr["on_step"] or func_attr["on_epoch"]):
-            assert func_name in trainer.logger_connector.progress_bar_metrics
+        if func_attr["prog_bar"]and (func_attr["on_step"] or func_attr["on_epoch"]) and not func_attr["forked"]:
+            try:
+                assert func_name in trainer.logger_connector.progress_bar_metrics
+            except:
+                print("IN", func_name, func_attr)
         else:
-            assert func_name not in trainer.logger_connector.progress_bar_metrics
+            try:
+                assert func_name not in trainer.logger_connector.progress_bar_metrics
+            except:
+                print("OUT", func_name, func_attr)

@@ -247,9 +247,10 @@ class LightningModule(
             on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
             if self._current_hook_fx_name != '':
-                self.trainer.callback_connector.validate_callback_logging_arguments(self._current_hook_fx_name,
-                                                                                    on_step=on_step,
-                                                                                    on_epoch=on_epoch)
+                self.trainer.logger_connector.callback_logging_validator\
+                    .validate_callback_logging_arguments(self._current_hook_fx_name,
+                                                         on_step=on_step,
+                                                         on_epoch=on_epoch)
 
             # make sure user doesn't introduce logic for multi-dataloaders
             if "/dataloader_idx_" in name:
@@ -963,7 +964,8 @@ class LightningModule(
             - Single optimizer.
             - List or Tuple - List of optimizers.
             - Two lists - The first list has multiple optimizers, the second a list of LR schedulers (or lr_dict).
-            - Dictionary, with an 'optimizer' key, and (optionally) a 'lr_scheduler' key which value is a single LR scheduler or lr_dict.
+            - Dictionary, with an 'optimizer' key, and (optionally) a 'lr_scheduler' key which value is a single LR
+              scheduler or lr_dict.
             - Tuple of dictionaries as described, with an optional 'frequency' key.
             - None - Fit will run without any optimizer.
 

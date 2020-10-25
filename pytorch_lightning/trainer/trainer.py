@@ -607,16 +607,13 @@ class Trainer(
             num_dataloaders=len(dataloaders)
         )
 
-        self.evaluation_loop.track_metrics_before_on_evaluation_epoch_end(
-            deprecated_eval_results, epoch_logs, test_mode)
-
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
 
         # hook
         self.evaluation_loop.on_evaluation_end()
 
-        # bookkeeping
+        # bookkeeping and logging
         eval_loop_results = self.evaluation_loop.log_epoch_metrics_on_evaluation_end()
         self.evaluation_loop.predictions.to_disk()
 

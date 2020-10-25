@@ -248,11 +248,15 @@ class EvaluationLoop(object):
             if not isinstance(r, (dict, Result, torch.Tensor)):
                 deprecated_results[i] = []
 
+        # track and reduced metrics 
+        self.track_metrics_evaluation_epoch_end(
+            deprecated_results, epoch_logs, self.testing)
+
         return deprecated_results, epoch_logs
 
-    def track_metrics_before_on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, test_mode):
+    def track_metrics_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, test_mode):
         using_eval_result = self.is_using_eval_results()
-        self.trainer.logger_connector.before_on_evaluation_epoch_end(
+        self.trainer.logger_connector.track_metrics_evaluation_epoch_end(
             deprecated_eval_results,
             epoch_logs,
             using_eval_result,
