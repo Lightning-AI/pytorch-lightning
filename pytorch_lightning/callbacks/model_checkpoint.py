@@ -101,7 +101,7 @@ class ModelCheckpoint(Callback):
                 ...     filename='{epoch}-{val_loss:.2f}-{other_metric:.2f}'
                 ... )
 
-            By default, filename is ``None`` and will be set to ``'{epoch}'``.
+            By default, filename is ``None`` and will be set to ``'{epoch}-{step}'``.
 
 
     Example:
