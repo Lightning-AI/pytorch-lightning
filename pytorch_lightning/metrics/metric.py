@@ -246,6 +246,10 @@ class Metric(nn.Module, ABC):
             else:
                 setattr(self, attr, deepcopy(default))
 
+    def clone(self):
+        """ Make a copy of the metric """
+        return deepcopy(self)
+
     def __getstate__(self):
         # ignore update and compute functions for pickling
         return {k: v for k, v in self.__dict__.items() if k not in ["update", "compute"]}
@@ -287,6 +291,8 @@ class MetricCollection(nn.ModuleDict):
         {'micro_recall': tensor(0.1250), 'weighted_recall': tensor(0.1111)}
 
     """
+    blacklist_keys = ['train', 'eval', 'forward']
+
     def __init__(self, metrics):
         super().__init__()
         if isinstance(metrics, dict):
@@ -295,6 +301,7 @@ class MetricCollection(nn.ModuleDict):
                 if not isinstance(metric, Metric):
                     raise ValueError(f'Value {metric} belonging to key {name}'
                                      ' is not an instance of `pl.metrics.Metric`')
+                self._check_valid_key(name)
                 self[name] = metric
         elif isinstance(metrics, (tuple, list)):
             for metric in metrics:
@@ -304,9 +311,15 @@ class MetricCollection(nn.ModuleDict):
                 name = metric.__class__.__name__
                 if name in self:
                     raise ValueError(f'Encountered two metrics both named {name}')
+                self._check_valid_key(name)
                 self[name] = metric
         else:
             raise ValueError('Unknown input to MetricCollection.')
+
+    def _check_valid_key(self, name):
+        if name in self.blacklist_keys:
+            raise ValueError(f'Cannot assign metric to key {name} as it is reserved'
+                              ' for internal use.')
 
     def forward(self, *args, **kwargs):
         """ Iteratively call forward for each metric """
@@ -324,3 +337,7 @@ class MetricCollection(nn.ModuleDict):
         """ Iteratively call reset for each metric """
         for _, m in self.items():
             m.reset()
+
+    def clone(self):
+        """ Make a copy of the metric collection """
+        return deepcopy(self)
