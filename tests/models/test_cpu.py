@@ -43,7 +43,7 @@ def test_cpu_slurm_save_load(tmpdir):
         logger=logger,
         limit_train_batches=0.2,
         limit_val_batches=0.2,
-        checkpoint_callback=ModelCheckpoint(tmpdir),
+        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
     )
     result = trainer.fit(model)
     real_global_step = trainer.global_step
@@ -79,7 +79,7 @@ def test_cpu_slurm_save_load(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir),
+        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
     )
     model = EvalModelTemplate(**hparams)
 

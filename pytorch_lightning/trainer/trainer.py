@@ -19,10 +19,9 @@ from typing import Dict, Iterable, List, Optional, Union
 import torch
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import EvalResult
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import BaseProfiler
@@ -130,7 +129,7 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
-        plugins: list = None,
+        plugins: Optional[list] = None,
         amp_backend: str = 'native',
         amp_level: str = 'O2',
         distributed_backend: Optional[str] = None,
@@ -460,6 +459,8 @@ class Trainer(
 
     def train(self):
         self.run_sanity_check(self.get_model())
+
+        self.checkpoint_connector.has_trained = False
 
         # enable train mode
         model = self.get_model()

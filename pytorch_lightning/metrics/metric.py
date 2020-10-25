@@ -17,6 +17,7 @@ from typing import Any, Callable, Optional, Union
 from collections.abc import Mapping, Sequence
 from collections import namedtuple
 from copy import deepcopy
+from distutils.version import LooseVersion
 
 import os
 import torch
@@ -78,7 +79,9 @@ class Metric(nn.Module, ABC):
         self._reductions = {}
         self._defaults = {}
 
-    def add_state(self, name: str, default, dist_reduce_fx: Optional[Union[str, Callable]] = None):
+    def add_state(
+        self, name: str, default, dist_reduce_fx: Optional[Union[str, Callable]] = None, persistent: bool = True
+    ):
         """
         Adds metric state variable. Only used by subclasses.
 
@@ -90,6 +93,7 @@ class Metric(nn.Module, ABC):
                 If value is ``"sum"``, ``"mean"``, or ``"cat"``, we will use ``torch.sum``, ``torch.mean``,
                 and ``torch.cat`` respectively, each with argument ``dim=0``. The user can also pass a custom
                 function in this parameter.
+            persistent (Optional): whether the state will be saved as part of the modules ``state_dict``.
 
         Note:
             Setting ``dist_reduce_fx`` to None will return the metric state synchronized across different processes.
@@ -130,7 +134,11 @@ class Metric(nn.Module, ABC):
             )
 
         if isinstance(default, torch.Tensor):
-            self.register_buffer(name, default)
+            if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+                # persistent keyword is only supported in torch >= 1.6.0
+                self.register_buffer(name, default, persistent=persistent)
+            else:
+                self.register_buffer(name, default)
         else:
             setattr(self, name, default)
 
@@ -247,8 +255,3 @@ class Metric(nn.Module, ABC):
         self.__dict__.update(state)
         self.update = self._wrap_update(self.update)
         self.compute = self._wrap_compute(self.compute)
-
-    def _check_same_shape(self, pred: torch.Tensor, target: torch.Tensor):
-        """ Check that predictions and target have the same shape, else raise error """
-        if pred.shape != target.shape:
-            raise RuntimeError('Predictions and targets are expected to have the same shape')

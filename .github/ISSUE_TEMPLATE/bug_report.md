@@ -23,9 +23,12 @@ assignees: ''
 
 ### Environment
 
-Please copy and paste the output from our
-[environment collection script](https://raw.githubusercontent.com/PyTorchLightning/pytorch-lightning/master/tests/collect_env_details.py)
-(or fill out the checklist below manually).
+**Note**: `Bugs with code` are solved faster ! `Colab Notebook` should be made `public` !
+
+* `IDE`: Please, use our python [bug_report_model.py](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/bug_report_model.py
+) template.
+
+* `Colab Notebook`: Please copy and paste the output from our [environment collection script](https://raw.githubusercontent.com/PyTorchLightning/pytorch-lightning/master/tests/collect_env_details.py) (or fill out the checklist below manually).
 
 You can get the script and run it with:
 ```

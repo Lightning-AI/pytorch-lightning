@@ -31,14 +31,14 @@ The example below shows how to use a metric in your ``LightningModule``:
     def __init__(self):
         ...
         self.accuracy = pl.metrics.Accuracy()
-   
+
     def training_step(self, batch, batch_idx):
         logits = self(x)
         ...
         # log step metric
         self.log('train_acc_step', self.accuracy(logits, y))
         ...
-   
+
     def training_epoch_end(self, outs):
         # log epoch metric
         self.log('train_acc_epoch', self.accuracy.compute())
@@ -57,7 +57,7 @@ If ``on_epoch`` is True, the logger automatically logs the end of epoch metric v
     This however is only true for metrics that inherit the base class ``Metric``,
     and thus the functional metric API provides no support for in-built distributed synchronization
     or reduction functions.
-    
+
 
 .. code-block:: python
 
@@ -65,7 +65,7 @@ If ``on_epoch`` is True, the logger automatically logs the end of epoch metric v
         ...
         self.train_acc = pl.metrics.Accuracy()
         self.valid_acc = pl.metrics.Accuracy()
-   
+
     def training_step(self, batch, batch_idx):
         logits = self(x)
         ...
@@ -91,17 +91,17 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
     for epoch in range(epochs):
         for x, y in train_data:
             y_hat = model(x)
-            
+
             # training step accuracy
             batch_acc = train_accuracy(y_hat, y)
-            
+
         for x, y in valid_data:
             y_hat = model(x)
             valid_accuracy(y_hat, y)
-            
+
     # total accuracy over all training batches
     total_train_accuracy = train_accuracy.compute()
-    
+
     # total accuracy over all validation batches
     total_valid_accuracy = valid_accuracy.compute()
 
@@ -210,6 +210,20 @@ ExplainedVariance
 ~~~~~~~~~~~~~~~~~
 
 .. autoclass:: pytorch_lightning.metrics.regression.ExplainedVariance
+    :noindex:
+
+
+PSNR
+~~~~
+
+.. autoclass:: pytorch_lightning.metrics.regression.PSNR
+    :noindex:
+
+
+SSIM
+~~~~
+
+.. autoclass:: pytorch_lightning.metrics.regression.SSIM
     :noindex:
 
 ******************
@@ -360,45 +374,45 @@ to_onehot [func]
 Regression
 ----------
 
-mae [func]
-~~~~~~~~~~
+explained_variance [func]
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.regression.mae
+.. autofunction:: pytorch_lightning.metrics.functional.explained_variance
     :noindex:
 
 
-mse [func]
-~~~~~~~~~~
+mean_absolute_error [func]
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.regression.mse
+.. autofunction:: pytorch_lightning.metrics.functional.mean_absolute_error
+    :noindex:
+
+
+mean_squared_error [func]
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.metrics.functional.mean_squared_error
     :noindex:
 
 
 psnr [func]
 ~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.regression.psnr
+.. autofunction:: pytorch_lightning.metrics.functional.psnr
     :noindex:
 
 
-rmse [func]
-~~~~~~~~~~~
+mean_squared_log_error [func]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.regression.rmse
-    :noindex:
-
-
-rmsle [func]
-~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.metrics.functional.regression.rmsle
+.. autofunction:: pytorch_lightning.metrics.functional.mean_squared_log_error
     :noindex:
 
 
 ssim [func]
 ~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.regression.mae
+.. autofunction:: pytorch_lightning.metrics.functional.ssim
     :noindex:
 
 

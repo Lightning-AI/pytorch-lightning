@@ -103,7 +103,7 @@ class TrainerDataLoadingMixin(ABC):
                                f' (try {num_cpus} which is the number of cpus on this machine)'
                                ' in the `DataLoader` init to improve performance.')
 
-    def auto_add_sampler(self, dataloader: DataLoader, train: bool) -> DataLoader:
+    def auto_add_sampler(self, dataloader: DataLoader, shuffle: bool) -> DataLoader:
 
         # don't do anything if it's not a dataloader
         is_dataloader = isinstance(dataloader, DataLoader)
@@ -112,8 +112,9 @@ class TrainerDataLoadingMixin(ABC):
 
         if not is_dataloader or is_iterable_ds:
             return dataloader
-        need_dist_sampler = (self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu)
 
+        is_in_dist = self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu
+        need_dist_sampler = is_in_dist and not isinstance(dataloader.sampler, DistributedSampler)
         if self.replace_sampler_ddp and need_dist_sampler:
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
                 raise MisconfigurationException(
@@ -123,7 +124,7 @@ class TrainerDataLoadingMixin(ABC):
                     ' `replace_sampler_ddp`=False if you want to use your custom sampler.')
 
             # replace with distributed sampler
-            sampler = self._get_distributed_sampler(dataloader, train)
+            sampler = self._get_distributed_sampler(dataloader, shuffle)
             dataloader = self.replace_sampler(dataloader, sampler)
 
         return dataloader
@@ -136,10 +137,11 @@ class TrainerDataLoadingMixin(ABC):
         }
 
         dl_args['sampler'] = sampler
+        dl_args['shuffle'] = False
         dataloader = type(dataloader)(**dl_args)
         return dataloader
 
-    def _get_distributed_sampler(self, dataloader, train):
+    def _get_distributed_sampler(self, dataloader, shuffle):
         if self.use_tpu:
             kwargs = dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
         elif self.use_horovod:
@@ -154,7 +156,7 @@ class TrainerDataLoadingMixin(ABC):
             assert self.distributed_backend is not None
             kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.global_rank)
 
-        kwargs['shuffle'] = train and not self.overfit_batches
+        kwargs['shuffle'] = shuffle and not self.overfit_batches
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler
 
@@ -179,7 +181,7 @@ class TrainerDataLoadingMixin(ABC):
         self.num_training_batches = 0
 
         # automatically add samplers
-        self.train_dataloader = self.auto_add_sampler(self.train_dataloader, train=True)
+        self.train_dataloader = self.auto_add_sampler(self.train_dataloader, shuffle=True)
 
         self.num_training_batches = len(self.train_dataloader) if has_len(self.train_dataloader) else float('inf')
         self._worker_check(self.train_dataloader, 'train dataloader')
@@ -267,7 +269,7 @@ class TrainerDataLoadingMixin(ABC):
             rank_zero_warn("One of given dataloaders is None and it will be skipped.")
 
         # add samplers
-        dataloaders = [self.auto_add_sampler(dl, train=False) for dl in dataloaders if dl is not None]
+        dataloaders = [self.auto_add_sampler(dl, shuffle=False) for dl in dataloaders if dl is not None]
 
         loader_num_batches = []
 

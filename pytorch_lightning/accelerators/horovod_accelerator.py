@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import ExitStack
+from typing import Optional
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
@@ -106,9 +107,6 @@ class HorovodAccelerator(Accelerator):
         hvd.join()
         return results
 
-    def teardown(self):
-        pass
-
     def training_step(self, args):
         if self.trainer.on_gpu:
             batch = args[0]
@@ -151,13 +149,13 @@ class HorovodAccelerator(Accelerator):
         return output
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
-        super().backward(closure_loss, optimizer, opt_idx,  *args, **kwargs)
+        super().backward(closure_loss, optimizer, opt_idx, *args, **kwargs)
         optimizer.synchronize()
 
     def on_train_epoch_end(self, outputs):
         hvd.join(hvd.local_rank() if self.trainer.on_gpu else -1)
 
-    def barrier(self, name: str = None):
+    def barrier(self, name: Optional[str] = None):
         hvd.join()
 
     def broadcast(self, obj, src=0):

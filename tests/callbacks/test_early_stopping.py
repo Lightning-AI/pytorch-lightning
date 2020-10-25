@@ -50,7 +50,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     """
     seed_everything(42)
     model = EvalModelTemplate()
-    checkpoint_callback = ModelCheckpoint(monitor="early_stop_on", save_top_k=1)
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_top_k=1)
     early_stop_callback = EarlyStoppingTestRestore()
     trainer = Trainer(
         default_root_dir=tmpdir,
