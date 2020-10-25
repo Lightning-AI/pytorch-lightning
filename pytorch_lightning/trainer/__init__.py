@@ -979,13 +979,9 @@ The Trainer uses 2 steps by default. Turn it off or modify it here.
     # check all validation data
     trainer = Trainer(num_sanity_val_steps=-1)
 
-Example::
 
-    python -m torch_xla.distributed.xla_dist
-    --tpu=$TPU_POD_NAME
-    --conda-env=torch-xla-nightly
-    --env=XLA_USE_BF16=1
-    -- python your_trainer_file.py
+This option will reset the validation dataloader unless ``num_sanity_val_steps=0``.
+
 
 plugins
 ^^^^^^^
