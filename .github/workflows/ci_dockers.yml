@@ -118,7 +118,8 @@ jobs:
 
       # TODO: for PT 1.3 and 1.4 we need to use CUDA 10.1
       - run: |
-          echo "::set-env name=CHANNEL::$(( ${{matrix.pytorch_version}} > 1.7 ? 'pytorch' : 'pytorch-nightly'))"
+          channel=$(( ${{matrix.pytorch_version}} > 1.7 ? 'pytorch' : 'pytorch-nightly'))
+          echo "::set-env name=CHANNEL::$channel"
       - run: echo ${{env.CHANNEL}}
 
       # https://github.com/docker/setup-buildx-action
