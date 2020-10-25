@@ -76,7 +76,7 @@ jobs:
 
       # TODO: for PT 1.3 and 1.4 we need to use CUDA 10.1
       - run: |
-          cuda=$(( ${{matrix.pytorch_version}} >= 1.4 ? 10.2 : 10.1))
+          cuda=$(python -c "exit(10.2 if int(${{matrix.pytorch_version}}) >= 1.4 else 10.1)" 2>&1)
           echo $cuda
           echo "::set-env name=CUDA::$cuda"
           echo ${{env.CUDA}}
@@ -116,7 +116,7 @@ jobs:
 
       # TODO: for PT 1.3 and 1.4 we need to use CUDA 10.1
       - run: |
-          channel=$(( ${{matrix.pytorch_version}} > 1.7 ? 'pytorch' : 'pytorch-nightly'))
+          channel=$(python -c "exit('pytorch-nightly' if int(${{matrix.pytorch_version}}) > 1.7 else 'pytorch')" 2>&1)
           echo "::set-env name=CHANNEL::$channel"
       - run: echo ${{env.CHANNEL}}
 
