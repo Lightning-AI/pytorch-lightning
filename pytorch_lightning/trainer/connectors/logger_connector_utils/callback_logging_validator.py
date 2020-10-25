@@ -1,3 +1,5 @@
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
 
 class LoggingCallbackValidator:
 

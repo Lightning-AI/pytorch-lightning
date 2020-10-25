@@ -1,5 +1,6 @@
 from collections import defaultdict, ChainMap
 
+
 class CacheInternalMetrics:
     """
     This class is an helper to cache model._results logged values before / after entering batch loop.

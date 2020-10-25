@@ -82,5 +82,4 @@ class CallbackConnector:
             self.trainer.callbacks.append(progress_bar_callback)
         else:
             progress_bar_callback = None
-
         return progress_bar_callback

@@ -494,6 +494,7 @@ def test_nested_datasouce_batch(tmpdir):
     )
     trainer.fit(model, train_data, val_data)
 
+
 def test_log_works_in_train_callback(tmpdir):
     """
     Tests that log can be called within callback
