@@ -160,7 +160,7 @@ def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
 
     allowed_types = (str, int, float, bool)
 
-    args_help = parse_args_from_docstring(cls.__doc__ or cls.__init__.__doc__)
+    args_help = parse_args_from_docstring(cls.__init__.__doc__ or cls.__doc__)
     for arg, arg_types, arg_default in (
         at for at in get_init_arguments_and_types(cls) if at[0] not in depr_arg_names
     ):
@@ -226,7 +226,7 @@ def parse_args_from_docstring(docstring: str) -> Dict[str, str]:
             current_arg, arg_description = stripped.split(':', maxsplit=1)
             parsed[current_arg] = arg_description.lstrip()
         elif line_indent > arg_block_indent:
-            parsed[current_arg] = f'{parsed[current_arg]} {stripped}'
+            parsed[current_arg] += f' {stripped}'
     return parsed
 
 
