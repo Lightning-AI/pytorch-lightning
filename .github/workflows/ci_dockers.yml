@@ -74,13 +74,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      # TODO: for PT 1.3 and 1.4 we need to use CUDA 10.1
+      # for PT 1.3 and 1.4 we need to use CUDA 10.1
       - run: |
           cuda=$(python -c "print(10.2 if int(${{matrix.pytorch_version}}) >= 1.4 else 10.1)" 2>&1)
-          echo $cuda
           echo "::set-env name=CUDA::$cuda"
-          echo ${{env.CUDA}}
-      - run: echo ${{env.CUDA}}
 
       # https://github.com/docker/setup-buildx-action
       # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
@@ -114,11 +111,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      # TODO: for PT 1.3 and 1.4 we need to use CUDA 10.1
+      # for PT 1.3 and 1.4 we need to use CUDA 10.1
       - run: |
           channel=$(python -c "print('pytorch-nightly' if int(${{matrix.pytorch_version}}) > 1.7 else 'pytorch')" 2>&1)
           echo "::set-env name=CHANNEL::$channel"
-      - run: echo ${{env.CHANNEL}}
 
       # https://github.com/docker/setup-buildx-action
       # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
