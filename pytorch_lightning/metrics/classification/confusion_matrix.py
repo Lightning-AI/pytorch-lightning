@@ -90,8 +90,6 @@ class ConfusionMatrix(Metric):
 
         self.add_state("confmat", default=torch.zeros(num_classes, num_classes), dist_reduce_fx="sum")
 
-        self.threshold = threshold
-
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
         Update state with predictions and targets.
