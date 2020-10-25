@@ -15,7 +15,7 @@
 import torch
 
 
-class NativeAMP:
+class NativeAMPPlugin:
 
     def __init__(self, trainer):
         self.trainer = trainer
