@@ -43,4 +43,4 @@ RUN python --version && \
     conda list && \
     python -c "import pytorch_lightning as pl; print(pl.__version__)"
 
-CMD ["/bin/bash"]
+# CMD ["/bin/bash"]
