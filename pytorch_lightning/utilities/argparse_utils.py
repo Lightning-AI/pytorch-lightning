@@ -216,7 +216,7 @@ def parse_args_from_docstring(docstring: str) -> Dict[str, str]:
         if not stripped:
             continue
         line_indent = len(line) - len(stripped)
-        if stripped.startswith('Args:'):
+        if stripped.startswith(('Args:', 'Arguments:', 'Parameters:')):
             arg_block_indent = line_indent + 4
         elif arg_block_indent is None:
             continue
