@@ -99,6 +99,8 @@ jobs:
       - run: |
           cuda=$(python -c "print(10.2 if float(${{matrix.pytorch_version}}) > 1.4 else 10.1)" 2>&1)
           echo "::set-output name=CUDA::$cuda"
+          channel=$(python -c "print('pytorch-nightly' if float(${{matrix.pytorch_version}}) > 1.7 else 'pytorch')" 2>&1)
+          echo "::set-output name=CHANNEL::$channel"
         id: extend
 
       - name: Publish CUDA to Docker Hub
@@ -115,39 +117,6 @@ jobs:
           push: true
           tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 55
-
-  docker-conda:
-    runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: false
-      matrix:
-        python_version: [3.6, 3.7, 3.8]
-        pytorch_version: [1.3, 1.4, 1.5, 1.6]  # todo: , 1.7
-        exclude:
-          # excludes PT 1.3 as it is missing on pypi
-          - python_version: 3.8
-            pytorch_version: 1.3
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      # https://github.com/docker/setup-buildx-action
-      # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
-      - uses: docker/setup-buildx-action@v1
-      - name: Login to DockerHub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      # for PT 1.3 and 1.4 we need to use CUDA 10.1
-      - run: |
-          cuda=$(python -c "print(10.2 if float(${{matrix.pytorch_version}}) > 1.4 else 10.1)" 2>&1)
-          echo "::set-output name=CUDA::$cuda"
-          channel=$(python -c "print('pytorch-nightly' if float(${{matrix.pytorch_version}}) > 1.7 else 'pytorch')" 2>&1)
-          echo "::set-output name=CHANNEL::$channel"
-        id: extend
 
       - name: Publish Conda to Docker Hub
         # publish master
