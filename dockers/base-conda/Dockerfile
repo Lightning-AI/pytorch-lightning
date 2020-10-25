@@ -68,7 +68,7 @@ ENV HOROVOD_WITH_GLOO=1
 ENV HOROVOD_WITHOUT_MPI=1
 #ENV MAKEFLAGS="-j$(nproc)"
 ENV MAKEFLAGS="-j1"
-ENV TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5"
+ENV TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5;8.0"
 
 ENV CONDA_ENV=lightning
 COPY environment.yml environment.yml
@@ -101,14 +101,16 @@ RUN \
     #echo ". ${WORKDIR}/miniconda/etc/profile.d/conda.sh" >> ~/.bashrc && \
     #echo "conda activate ${CONDA_ENV}" >> ~/.bashrc && \
     #source ~/.bashrc && \
-    # install NVIDIA AMP
-    git clone https://github.com/NVIDIA/apex && \
-    pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./apex && \
-    rm -rf apex && \
     # Install remaining requirements
     pip install -r requirements-extra.txt --upgrade-strategy only-if-needed && \
     pip install -r requirements-test.txt --upgrade-strategy only-if-needed && \
     rm requirements*
+
+RUN \
+    # install NVIDIA AMP
+    git clone https://github.com/NVIDIA/apex && \
+    pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./apex && \
+    rm -rf apex && \
 
 RUN \
     # Show what we have

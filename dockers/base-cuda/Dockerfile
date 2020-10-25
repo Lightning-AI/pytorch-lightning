@@ -73,7 +73,7 @@ ENV HOROVOD_WITH_GLOO=1
 ENV HOROVOD_WITHOUT_MPI=1
 #ENV MAKEFLAGS="-j$(nproc)"
 ENV MAKEFLAGS="-j1"
-ENV TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5"
+ENV TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5;8.0"
 
 COPY ./requirements.txt requirements.txt
 COPY ./requirements/ ./requirements/
@@ -93,7 +93,9 @@ RUN \
 
     # Install all requirements
     pip install -r requirements/devel.txt --upgrade-strategy only-if-needed --use-feature=2020-resolver && \
-    rm -rf requirements* && \
+    rm -rf requirements*
+
+RUN \
     # install NVIDIA AMP
     git clone https://github.com/NVIDIA/apex && \
     pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./apex && \
