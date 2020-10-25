@@ -832,7 +832,7 @@ class Trainer(
         model_ref = self.get_model()
         if model_ref is not None:
             # used to track current hook name called
-            model_ref._result = Result()
+            model_ref._results = Result()
             model_ref._current_hook_fx_name = hook_name
 
     def _capture_logging(self):
@@ -842,8 +842,8 @@ class Trainer(
             self.logger_connector.capture_logging()
             
             # reset result to the next hook
-            model_ref._result = Result()
-            model_ref._current_hook_fx_name = None
+            model_ref._results = Result()
+            model_ref._current_hook_fx_name = ''
 
     def call_hook(self, hook_name, *args, **kwargs):
         
@@ -869,6 +869,7 @@ class Trainer(
             elif hasattr(self.accelerator_backend, hook_name):
                 accelerator_hook = getattr(self.accelerator_backend, hook_name)
                 output = accelerator_hook(*args, **kwargs)
+
 
         # capture logging    
         self._capture_logging()

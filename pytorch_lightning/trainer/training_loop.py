@@ -248,10 +248,6 @@ class TrainLoop:
         # figure out what to track for epoch end
         self.track_epoch_end_reduce_metrics(epoch_output, epoch_end_outputs)
 
-        batch_pbar_metrics = model_ref._results.get_batch_pbar_metrics()
-        if len(batch_pbar_metrics) > 0:
-            self.trainer.logger_connector.add_progress_bar_metrics(batch_pbar_metrics)
-
     def reset_train_val_dataloaders(self, model):
         if not self.trainer.reload_dataloaders_every_epoch:
             self.trainer.reset_train_dataloader(model)
@@ -259,30 +255,12 @@ class TrainLoop:
         if self.trainer.val_dataloaders is None and not self.trainer.reload_dataloaders_every_epoch:
             self.trainer.reset_val_dataloader(model)
 
-    def _extend_epoch_end_outputs(self, opt_outputs):
-        """
-        This function extend `opt_outputs` from `epoch_end_outputs` with any extra `epoch_log_metrics`
-        from 'on_batch_end' or 'on_train_batch_end' hooks.
-        """
-        model_ref = self.trainer.get_model()
-        valid_keys = model_ref._results.epoch_log_metrics
-        for opt_output in opt_outputs:
-            if isinstance(opt_output, dict):
-                opt_output.update(valid_keys)
-
-                _internal = {k: v for k, v in model_ref._results["meta"]["_internal"].items() if k in valid_keys}
-                meta = {k: v for k, v in model_ref._results["meta"].items() if k in valid_keys}
-
-                opt_output["meta"]["_internal"].update(_internal)
-                opt_output["meta"].update(meta)
-
     def track_epoch_end_reduce_metrics(self, epoch_output, epoch_end_outputs):
         # track the outputs to reduce at the end of the epoch
         for opt_idx, opt_outputs in enumerate(epoch_end_outputs):
             # with 1 step (no tbptt) don't use a sequence at epoch end
             if isinstance(opt_outputs, list) and len(opt_outputs) == 1 and not isinstance(opt_outputs[0], Result):
                 opt_outputs = opt_outputs[0]
-            self._extend_epoch_end_outputs(opt_outputs)
             epoch_output[opt_idx].append(opt_outputs)
 
     def get_optimizers_iterable(self):
@@ -317,12 +295,16 @@ class TrainLoop:
 
     def training_step(self, split_batch, batch_idx, opt_idx, hiddens):
         # give the PL module a result for logging
-        model = self.trainer.get_model()
-        model._current_fx_name = 'training_step'
+        model_ref = self.trainer.get_model()
 
         with self.trainer.profiler.profile("model_forward"):
             args = self.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
+            
+            # manually capture logged metrics
+            model_ref._current_fx_name = 'training_step'
             training_step_output = self.trainer.accelerator_backend.training_step(args)
+            self.trainer.logger_connector.capture_logging()
+            
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
 
             training_step_output_for_epoch_end, training_step_output = self._process_training_step_output(
@@ -570,7 +552,6 @@ class TrainLoop:
 
             # update LR schedulers
             monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
-            monitor_metrics.update(batch_output.batch_log_metrics)
             self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
 
             # max steps reached, end training
@@ -603,6 +584,7 @@ class TrainLoop:
         # epoch end hook
         self.run_on_epoch_end_hook(epoch_output)
 
+        breakpoint()
         # log epoch metrics
         self.trainer.logger_connector.log_train_epoch_end_metrics(
             epoch_output,
@@ -619,10 +601,6 @@ class TrainLoop:
         self.increment_accumulated_grad_global_step()
 
     def run_training_batch(self, batch, batch_idx, dataloader_idx):
-
-        # reset results
-        model = self.trainer.get_model()
-        model._results = Result()
 
         # track grad norms
         grad_norm_dic = {}
@@ -655,12 +633,8 @@ class TrainLoop:
         splits = self.tbptt_split_batch(batch)
 
         for split_idx, split_batch in enumerate(splits):
+            self.trainer.split_idx = split_idx
 
-            for opt_idx in range(self.num_optimizers):
-
-                with self.trainer.run_training_batch_manager(split_idx, opt_idx):
-
-            
             # in manual optimization we loop over all optimizers at once
             optimizers = self.get_optimizers_iterable()
             if not self.automatic_optimization:
@@ -668,79 +642,81 @@ class TrainLoop:
 
             # loop over optimizers
             for opt_idx, optimizer in optimizers:
+                # make sure only the gradients of the current optimizer's parameters are calculated
+                # in the training step to prevent dangling gradients in multiple-optimizer setup.
+                if self.automatic_optimization and len(self.trainer.optimizers) > 1:
+                    model = self.trainer.get_model()
+                    model.toggle_optimizer(optimizer, opt_idx)
 
-                
-                with self.trainer.training_batch_manager(): logger_connector.split_idx_manager("train", split_idx):
+                # use to track metrics internally
+                self.trainer.logger_connector.on_batch_start(split_idx, opt_idx)
 
-                    # make sure only the gradients of the current optimizer's parameters are calculated
-                    # in the training step to prevent dangling gradients in multiple-optimizer setup.
-                    if self.automatic_optimization and len(self.trainer.optimizers) > 1:
-                        model = self.trainer.get_model()
-                        model.toggle_optimizer(optimizer, opt_idx)
+                if not (accumulation_done or is_final_batch):
+                    # For gradient accumulation
 
-                    if not (accumulation_done or is_final_batch):
-                        # For gradient accumulation
+                    # -------------------
+                    # calculate loss (train step + train step end)
+                    # -------------------
+                    self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens)
+                    batch_outputs = self._process_closure_result(
+                        batch_outputs=batch_outputs,
+                        opt_idx=opt_idx,
+                    )
 
-                        # -------------------
-                        # calculate loss (train step + train step end)
-                        # -------------------
-                        self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens)
-                        batch_outputs = self._process_closure_result(
-                            batch_outputs=batch_outputs,
-                            opt_idx=opt_idx,
-                        )
+                # ------------------------------
+                # BACKWARD PASS
+                # ------------------------------
+                # gradient update with accumulated gradients
 
-                    # ------------------------------
-                    # BACKWARD PASS
-                    # ------------------------------
-                    # gradient update with accumulated gradients
+                else:
+
+                    if self.automatic_optimization:
+
+                        def train_step_and_backward_closure():
+                            result = self.training_step_and_backward(
+                                split_batch,
+                                batch_idx,
+                                opt_idx,
+                                optimizer,
+                                self.trainer.hiddens
+                            )
+                            return None if result is None else result.loss
+
+                        # optimizer step
+                        self.optimizer_step(optimizer, opt_idx, batch_idx, train_step_and_backward_closure)
 
                     else:
+                        self._curr_step_result = self.training_step(split_batch, batch_idx, opt_idx,
+                                                                    self.trainer.hiddens)
 
-                        if self.automatic_optimization:
+                    if self._curr_step_result is None:
+                        continue
 
-                            def train_step_and_backward_closure():
-                                result = self.training_step_and_backward(
-                                    split_batch,
-                                    batch_idx,
-                                    opt_idx,
-                                    optimizer,
-                                    self.trainer.hiddens
-                                )
-                                return None if result is None else result.loss
+                    batch_outputs = self._process_closure_result(
+                        batch_outputs=batch_outputs,
+                        opt_idx=opt_idx,
+                    )
 
-                            # optimizer step
-                            self.optimizer_step(optimizer, opt_idx, batch_idx, train_step_and_backward_closure)
+                    grad_norm_dic = self._cur_grad_norm_dict
+                    self._cur_grad_norm_dict = None
 
-                        else:
-                            self._curr_step_result = self.training_step(split_batch, batch_idx, opt_idx,
-                                                                        self.trainer.hiddens)
+                    # hook
+                    self.on_before_zero_grad(optimizer)
 
-                        if self._curr_step_result is None:
-                            results = self.trainer.get_model()._results
+                    # clear gradients
+                    self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
-                        batch_outputs = self._process_closure_result(
-                            batch_outputs=batch_outputs,
-                            opt_idx=opt_idx,
-                        )
+                    accumulated_loss = self.accumulated_loss.mean()
 
-                        grad_norm_dic = self._cur_grad_norm_dict
-                        self._cur_grad_norm_dict = None
+                    if accumulated_loss is not None:
+                        # calculate running loss for display
+                        self.running_loss.append(self.accumulated_loss.mean() * self.trainer.accumulate_grad_batches)
 
-                        # hook
-                        self.on_before_zero_grad(optimizer)
+                    # reset for next set of accumulated grads
+                    self.accumulated_loss.reset()
 
-                        # clear gradients
-                        self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
-
-                        accumulated_loss = self.accumulated_loss.mean()
-
-                        if accumulated_loss is not None:
-                            # calculate running loss for display
-                            self.running_loss.append(self.accumulated_loss.mean() * self.trainer.accumulate_grad_batches)
-
-                        # reset for next set of accumulated grads
-                        self.accumulated_loss.reset()
+        # update_logger
+        self.trainer.logger_connector.on_train_batch_end()
 
         result = AttributeDict(
             signal=0,
@@ -748,6 +724,7 @@ class TrainLoop:
             training_step_output_for_epoch_end=batch_outputs,
         )
         return result
+
 
     def _process_closure_result(
         self, batch_outputs: list, opt_idx: int
@@ -826,10 +803,8 @@ class TrainLoop:
     def run_on_epoch_end_hook(self, epoch_output):
         # reset result + internal metris to catch epoch end logging
         model_ref = self.trainer.get_model()
-        model_ref._results = Result()
         self.trainer.call_hook('on_epoch_end')
         self.trainer.call_hook('on_train_epoch_end', epoch_output)
-        self.trainer.logger_connector.cached_metrics("train").update(self.trainer, "after_on_batch_end")
 
     def increment_accumulated_grad_global_step(self):
         num_accumulated_batches_reached = self._accumulated_batches_reached()

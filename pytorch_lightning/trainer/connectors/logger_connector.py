@@ -31,14 +31,43 @@ class LoggerStages(Enum):
     TEST = "test"
     ALL = "all"
 
-
 class HookResults:
 
-    def __init__(self, current_hook_fx_name):
-        self._current_hook_fx_name = current_hook_fx_name
+    def __init__(self, fx_name):
+        self._fx_name = fx_name
         self._internals = defaultdict(list)
+    
+    @property
+    def num_dataloaders(self):
+        return len(self._internals)
 
-    def append(self, result, dataloader_idx=None, split_idx=None):
+    @property
+    def add_dataloader_idx(self):
+        return True if self.num_dataloaders > 1 else False
+
+    def get_batch_pbar_metrics(self, latest=True, *args, **kwargs):
+        results = {}
+        if latest:
+            for dl_idx in range(self.num_dataloaders):
+                latest_result = self._internals[dl_idx][-1]
+                results.update(latest_result.get_batch_pbar_metrics(*args, 
+                    add_dataloader_idx=self.add_dataloader_idx, **kwargs))
+            return results
+        else:
+            raise NotImplementedError
+
+    def get_batch_log_metrics(self, latest=True, *args, **kwargs):
+        results = {}
+        if latest:
+            for dl_idx in range(self.num_dataloaders):
+                latest_result = self._internals[dl_idx][-1]
+                results.update(latest_result.get_batch_log_metrics(*args, 
+                    add_dataloader_idx=self.add_dataloader_idx, **kwargs))
+            return results
+        else:
+            raise NotImplementedError
+
+    def append(self, result, dataloader_idx=None):
         # TODO handle split_idx
         if dataloader_idx is None:
             dataloader_idx = 0
@@ -55,6 +84,29 @@ class EpochLoopResult:
         self._internals = {}
         self._dataloader_idx = None
         self._split_idx = None
+        self._opt_idx = None
+
+    def add_split_and_opt_idx(self, hook_result):
+        d = {}
+        has_split = self._split_idx is not None
+        has_opt = self._opt_idx is not None
+        if has_split:
+            has_split 
+            d["split_idx"] = self._split_idx
+
+        if has_opt:
+            d["opt_idx"] = self._opt_idx
+
+        if has_split or has_opt: 
+            for k, option in hook_result["meta"].items():
+                if k == "_internal":
+                    continue
+                option.update(d)
+
+    def reset_model(self, model_ref):
+        model_ref._results = Result()
+        model_ref._current_hook_fx_name = ''
+        model_ref._current_fx_name = ''
 
     def cache_result(self):
         model_ref = self.trainer.get_model()
@@ -62,65 +114,40 @@ class EpochLoopResult:
         # extract hook information
         hook_result = model_ref._results
         current_hook_fx_name = model_ref._current_hook_fx_name
+        dataloader_idx = model_ref._current_dataloader_idx
 
         if current_hook_fx_name not in self._internals:
             self._internals[current_hook_fx_name] = HookResults(current_hook_fx_name)
+
+        self.add_split_and_opt_idx(hook_result)
         
-        self._internals[current_hook_fx_name].append(hook_result, dataloader_idx=self._dataloader_idx, split_idx=self._split_idx)
+        self._internals[current_hook_fx_name].append(deepcopy(hook_result), 
+                                                     dataloader_idx=dataloader_idx)
+        self.reset_model(model_ref)
+        self.update_logger_connector()
+
+    def update_logger_connector(self):
+        logger_connector = self.trainer.logger_connector
+        batch_log_metrics = self.get_latest_batch_log_metrics()
+        logger_connector.callback_metrics.update(batch_log_metrics)
 
     def __repr__(self):
         return f"{self.__class__.__name__}(stage={self._stage}, internals={self._internals})"
 
-    def log_training_step_metrics(self, opt_closure_result):
-
-        # decide which metrics to log (results vs dict return)
-        using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
-
-        if using_results_obj:
-            metrics_to_log = opt_closure_result.training_step_output.get_batch_log_metrics(
-                include_forked_originals=False
-            )
-            step_pbar_metrics = opt_closure_result.training_step_output.get_batch_pbar_metrics(
-                include_forked_originals=False
-            )
-            forked_metrics = opt_closure_result.training_step_output.get_forked_metrics()
-            callback_metrics.update(forked_metrics)
-
-        else:
-            metrics_to_log = opt_closure_result.training_step_output.log_metrics
-            step_pbar_metrics = opt_closure_result.training_step_output.pbar_on_batch_end
-
-        # track batch log metrics
-        batch_log_metrics.append(metrics_to_log)
-
-        # add initially computed step metrics.
-        cache_internal_batch_pbar_metrics = self.trainer.logger_connector.cached_metrics("train").get_as_dict(
-            "before_on_batch_start", "batch_pbar_metrics")
-        if len(cache_internal_batch_pbar_metrics) > 0:
-            self.trainer.logger_connector.add_progress_bar_metrics(cache_internal_batch_pbar_metrics)
-            self.trainer.logger_connector.callback_metrics.update(cache_internal_batch_pbar_metrics)
-
-        # track progress bar metrics
-        if len(step_pbar_metrics) > 0:
-            self.trainer.logger_connector.add_progress_bar_metrics(step_pbar_metrics)
-            self.trainer.logger_connector.callback_metrics.update(step_pbar_metrics)
-
-        batch_callback_metrics.append(callback_metrics)
-
     def reset(self):
         self._internals = {}
 
-class BatchSplitIdxManager: 
-    def __init__(self, trainer, stage): 
-        self.trainer = trainer
-        self.stage = stage
-          
-    def __enter__(self): 
-        self.trainer.split_idx = self.split_idx
-        self.trainer.logger_connector._cached_results[self.stage].split_idx = self.split_idx
-      
-    def __exit__(self, exc_type, exc_value, exc_traceback): 
-        self.trainer.logger_connector._cached_results[self.stage].split_idx = None
+    def get_latest_batch_log_metrics(self):
+        results = {}
+        for fx_name, hook_result in self._internals.items():
+            results.update(hook_result.get_batch_log_metrics(latest=True))
+        return results
+
+    def get_latest_batch_pbar_metrics(self):
+        results = {}
+        for fx_name, hook_result in self._internals.items():
+            results.update(hook_result.get_batch_pbar_metrics(latest=True))
+        return results
 
 class LoggerConnector:
 
@@ -135,17 +162,27 @@ class LoggerConnector:
         self._current_stage = None
         self.__stages  = sorted([s.value for s in LoggerStages])
         self._cached_results = {stage: EpochLoopResult(trainer, stage) for stage in self.__stages}
-        self._split_idx_manager = {stage: BatchSplitIdxManager(trainer, stage) for stage in self.__stages[1:]}
 
-    def _determine_stage_from_hook_name(self, hook_name: str = None) -> str:
-        if hook_name is None:
+    def on_batch_start(self, split_idx: int, opt_idx: int) -> None:
+        self._cached_results["train"]._split_idx = split_idx
+        self._cached_results["train"]._opt_idx = opt_idx
+
+    def on_train_batch_end(self) -> None:
+        self._cached_results["train"]._split_idx = None
+        self._cached_results["train"]._opt_idx = None
+
+    def _determine_stage_from_fx_name(self, fx_name: str = None) -> str:
+        if fx_name is None:
             model_ref = self.trainer.get_model()
-            hook_name = model_ref._current_hook_fx_name
-        if LoggerStages.TRAIN.value in hook_name:
+            fx_name = model_ref._current_hook_fx_name
+            if fx_name == '':
+                fx_name = model_ref._current_fx_name
+        print(fx_name)
+        if LoggerStages.TRAIN.value in fx_name:
             return LoggerStages.TRAIN.value
-        elif LoggerStages.VAL.value in hook_name:
+        elif LoggerStages.VAL.value in fx_name:
             return LoggerStages.VAL.value
-        elif LoggerStages.TEST.value in hook_name:
+        elif LoggerStages.TEST.value in fx_name:
             return LoggerStages.TEST.value
         else:
             return LoggerStages.ALL.value
@@ -163,21 +200,8 @@ class LoggerConnector:
             f" or {self.__lookup_stages.keys()}"
         )
 
-    def split_idx_manager(self, stage_or_testing: Union[str, bool], split_idx: int) -> BatchSplitIdxManager:
-        stage = self._determine_stage(stage_or_testing)
-        self._current_stage = stage
-        # used to access it in __enter__
-        self._split_idx_manager[stage].split_idx = split_idx
-        return self._split_idx_manager[stage]
-    
-    def __enter__(self): 
-        return self
-      
-    def __exit__(self, exc_type, exc_value, exc_traceback): 
-        pass
-
     def capture_logging(self) -> Union[EpochLoopResult, None]:
-        stage = self._determine_stage_from_hook_name()
+        stage = self._determine_stage_from_fx_name()
         self._cached_results[stage].cache_result()
 
     def on_trainer_init(self, logger, flush_logs_every_n_steps, log_every_n_steps):
@@ -205,6 +229,30 @@ class LoggerConnector:
                 self.trainer.logger = LoggerCollection(logger)
             else:
                 self.trainer.logger = logger
+
+    def log_training_step_metrics(self, opt_closure_result):
+        # decide which metrics to log (results vs dict return)
+        using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
+        if using_results_obj:
+            metrics_to_log = opt_closure_result.training_step_output.get_batch_log_metrics(
+                include_forked_originals=False
+            )
+            step_pbar_metrics = opt_closure_result.training_step_output.get_batch_pbar_metrics(
+                include_forked_originals=False
+            )
+            forked_metrics = opt_closure_result.training_step_output.get_forked_metrics()
+        else:
+            metrics_to_log = opt_closure_result.training_step_output.log_metrics
+            step_pbar_metrics = opt_closure_result.training_step_output.pbar_on_batch_end
+
+        # Gather pbar_metrics from `pl_module.log`
+        batch_pbar_metrics = self._cached_results["train"].get_latest_batch_pbar_metrics()
+        batch_pbar_metrics.update(step_pbar_metrics)
+
+        # track progress bar metrics
+        if len(step_pbar_metrics) > 0:
+            self.trainer.logger_connector.add_progress_bar_metrics(batch_pbar_metrics)
+            self.trainer.logger_connector.callback_metrics.update(step_pbar_metrics)
 
     def log_metrics(self, metrics, grad_norm_dic, step=None):
         """Logs the metric dict passed in.
@@ -541,7 +589,6 @@ class LoggerConnector:
         # run training_epoch_end
         # refresh the result for custom logging at the epoch level
         model._current_fx_name = 'training_epoch_end'
-        model._results = Result()
 
         epoch_output = self.__prepare_epoch_end_inputs(epoch_output)
 
