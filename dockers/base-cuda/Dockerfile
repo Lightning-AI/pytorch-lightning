@@ -44,14 +44,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
         ca-certificates \
     && \
-
 # Install conda and python.
 # NOTE new Conda does not forward the exit status... https://github.com/conda/conda/issues/8385
     curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-4.7.12-Linux-x86_64.sh  && \
     chmod +x ~/miniconda.sh && \
     ~/miniconda.sh -b && \
     rm ~/miniconda.sh && \
-
 # Cleaning
     apt-get autoremove -y && \
     apt-get clean && \
