@@ -26,13 +26,13 @@ def test_tbd_remove_in_v1_2_0():
         checkpoint_cb = ModelCheckpoint(filepath='.', dirpath='.')
 
 
-# TODO: remove bool from Trainer.profiler param in v1.2.0, update profiler_connector.py
+# TODO: remove bool from Trainer.profiler param in v1.3.0, update profiler_connector.py
 @pytest.mark.parametrize(['profiler', 'expected'], [
     (True, SimpleProfiler),
     (False, PassThroughProfiler),
 ])
-def test_trainer_profiler_remove_in_v1_2_0(profiler, expected):
-    with pytest.deprecated_call(match='will be removed in v1.2.0'):
+def test_trainer_profiler_remove_in_v1_3_0(profiler, expected):
+    with pytest.deprecated_call(match='will be removed in v1.3'):
         trainer = Trainer(profiler=profiler)
         assert isinstance(trainer.profiler, expected)
 
@@ -45,7 +45,7 @@ def test_trainer_profiler_remove_in_v1_2_0(profiler, expected):
         ('--profiler False', False, PassThroughProfiler),
     ],
 )
-def test_trainer_cli_profiler_remove_in_v1_2_0(cli_args, expected_parsed_arg, expected_profiler):
+def test_trainer_cli_profiler_remove_in_v1_3_0(cli_args, expected_parsed_arg, expected_profiler):
     cli_args = cli_args.split(' ')
     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
         parser = ArgumentParser(add_help=False)
