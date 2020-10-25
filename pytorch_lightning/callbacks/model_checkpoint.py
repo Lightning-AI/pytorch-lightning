@@ -223,13 +223,13 @@ class ModelCheckpoint(Callback):
         monitor_candidates = self._monitor_candidates(trainer)
 
         # ie: path/val_loss=0.5.ckpt
-        filepath = self._get_metric_interpolated_filepath_name(epoch, global_step, monitor_candidates)
+        filepath = self._get_metric_interpolated_filepath_name(monitor_candidates)
 
         # callback supports multiple simultaneous modes
         # here we call each mode sequentially
         # Mode 1: save all checkpoints OR only the top k
         if self.save_top_k:
-            self._save_top_k_checkpoints(monitor_candidates, trainer, pl_module, epoch, global_step, filepath)
+            self._save_top_k_checkpoints(monitor_candidates, trainer, pl_module, filepath)
 
         # Mode 2: save the last checkpoint
         self._save_last_checkpoint(trainer, pl_module, monitor_candidates, filepath)
@@ -481,13 +481,13 @@ class ModelCheckpoint(Callback):
             )
             raise MisconfigurationException(m)
 
-    def _get_metric_interpolated_filepath_name(self, epoch: int, step: int, ckpt_name_metrics: Dict[str, Any]):
+    def _get_metric_interpolated_filepath_name(self, ckpt_name_metrics: Dict[str, Any]):
+        epoch = ckpt_name_metrics.get("current_epoch")
+        step = ckpt_name_metrics.get("global_step")
         filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics)
         version_cnt = 0
         while self._fs.exists(filepath):
-            filepath = self.format_checkpoint_name(
-                epoch, step, ckpt_name_metrics, ver=version_cnt
-            )
+            filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics, ver=version_cnt)
             # this epoch called before
             version_cnt += 1
         return filepath
@@ -496,6 +496,7 @@ class ModelCheckpoint(Callback):
         ckpt_name_metrics = deepcopy(trainer.logger_connector.logged_metrics)
         ckpt_name_metrics.update(trainer.logger_connector.callback_metrics)
         ckpt_name_metrics.update(trainer.logger_connector.progress_bar_metrics)
+        ckpt_name_metrics.update({"global_step": trainer.global_step, "current_epoch": trainer.current_epoch})
         return ckpt_name_metrics
 
     def _save_last_checkpoint(self, trainer, pl_module, ckpt_name_metrics, filepath):
@@ -529,8 +530,10 @@ class ModelCheckpoint(Callback):
         if self.monitor is None:
             self.best_model_path = self.last_model_path
 
-    def _save_top_k_checkpoints(self, metrics, trainer, pl_module, epoch, step, filepath):
+    def _save_top_k_checkpoints(self, metrics, trainer, pl_module, filepath):
         current = metrics.get(self.monitor)
+        epoch = metrics.get("current_epoch")
+        step = metrics.get("global_step")
 
         if not isinstance(current, torch.Tensor) and current is not None:
             current = torch.tensor(current, device=pl_module.device)
