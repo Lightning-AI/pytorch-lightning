@@ -10,6 +10,14 @@ Multi-GPU training
 ==================
 Lightning supports multiple ways of doing distributed training.
 
+.. raw:: html
+
+    <video width="50%" max-width="400px" controls
+    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/yt_thumbs/thumb_multi_gpus.png"
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/yt/Trainer+flags+4-+multi+node+training_3.mp4"></video>
+
+|
+
 ----------
 
 Preparing your code
@@ -162,7 +170,7 @@ a comma separated list of GPU ids:
     Trainer(gpus='0, 1')
 
     # To use all available GPUs put -1 or '-1'
-    # equivalent to list(range(torch.cuda.available_devices()))
+    # equivalent to list(range(torch.cuda.device_count()))
     Trainer(gpus=-1)
 
 The table below lists examples of possible input formats and how they are interpreted by Lightning.
@@ -260,7 +268,7 @@ Distributed Data Parallel
 
 3. Each process inits the model.
 
-.. note:: Make sure to set the random seed so that each model initializes with the same weights.
+.. note:: Make sure to set the random seed before the instantiation of a ``Trainer()`` so that each model initializes with the same weights.
 
 4. Each process performs a full forward and backward pass in parallel.
 

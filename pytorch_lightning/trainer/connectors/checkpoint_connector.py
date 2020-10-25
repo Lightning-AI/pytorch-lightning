@@ -24,15 +24,11 @@ import torch.distributed as torch_distrib
 
 import pytorch_lightning
 from pytorch_lightning import _logger as log
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.overrides.data_parallel import LightningDataParallel, LightningDistributedDataParallel
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
-from pytorch_lightning.accelerators.base_backend import Accelerator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
@@ -52,6 +48,9 @@ class CheckpointConnector:
 
     def __init__(self, trainer):
         self.trainer = trainer
+
+        # used to validate checkpointing logic
+        self.has_trained = False
 
     def restore_weights(self, model: LightningModule):
         """
@@ -101,14 +100,15 @@ class CheckpointConnector:
         # load model state
         model = self.trainer.get_model()
 
-        # load the state_dict on the model automatically
-        model.load_state_dict(checkpoint['state_dict'])
-
         # give the datamodule a chance to load something
         if self.trainer.datamodule is not None:
             self.trainer.datamodule.on_load_checkpoint(checkpoint)
+
         # give model a chance to load something
         model.on_load_checkpoint(checkpoint)
+
+        # load the state_dict on the model automatically
+        model.load_state_dict(checkpoint['state_dict'])
 
         if on_gpu:
             model.cuda(self.trainer.root_gpu)
@@ -149,7 +149,7 @@ class CheckpointConnector:
         self.trainer.global_step = checkpoint['global_step']
         self.trainer.current_epoch = checkpoint['epoch']
 
-        # crash if max_epochs is lower than the current epoch from the checkpoint
+        # crash if max_epochs is lower then the current epoch from the checkpoint
         if self.trainer.current_epoch > self.trainer.max_epochs:
             m = f"""
             you restored a checkpoint with current_epoch={self.trainer.current_epoch}
@@ -194,7 +194,7 @@ class CheckpointConnector:
         folderpath = str(self.trainer.weights_save_path)
         fs = get_filesystem(folderpath)
         if fs.exists(folderpath):
-            files = [os.path.basename(f) for f in fs.ls(folderpath)]
+            files = [os.path.basename(f['name']) for f in fs.listdir(folderpath)]
             hpc_weight_paths = [x for x in files if 'hpc_ckpt' in x]
 
             # if hpc weights exist restore model
@@ -249,9 +249,19 @@ class CheckpointConnector:
         Return:
              structured dictionary
         """
+
+        current_epoch = self.trainer.current_epoch
+        global_step = self.trainer.global_step
+        has_reached_max_steps = self.trainer.max_steps and self.trainer.max_steps <= global_step
+
+        global_step += 1
+        if self.has_trained:
+            if not has_reached_max_steps:
+                current_epoch += 1
+
         checkpoint = {
-            'epoch': self.trainer.current_epoch + 1,
-            'global_step': self.trainer.global_step + 1,
+            'epoch': current_epoch,
+            'global_step': global_step,
             'pytorch-lightning_version': pytorch_lightning.__version__,
         }
 
@@ -333,7 +343,7 @@ class CheckpointConnector:
 
     def max_ckpt_in_folder(self, path, name_key='ckpt_'):
         fs = get_filesystem(path)
-        files = [os.path.basename(f) for f in fs.ls(path)]
+        files = [os.path.basename(f["name"]) for f in fs.listdir(path)]
         files = [x for x in files if name_key in x]
         if len(files) == 0:
             return 0

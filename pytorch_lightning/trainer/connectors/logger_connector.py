@@ -22,6 +22,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pprint import pprint
 from typing import Iterable
 from copy import deepcopy
+from collections import ChainMap
 
 
 class LoggerConnector:
@@ -33,11 +34,13 @@ class LoggerConnector:
         self.progress_bar_metrics = {}
         self.eval_loop_results = []
 
-    def on_trainer_init(self, logger, log_save_interval, row_log_interval):
+    def on_trainer_init(self, logger, flush_logs_every_n_steps, log_every_n_steps):
         # logging
         self.configure_logger(logger)
-        self.trainer.log_save_interval = log_save_interval
-        self.trainer.row_log_interval = row_log_interval
+        # todo: IDE is complaining, these shall be initialized in the Trainer init at leas as placeholders
+        #  and assign here the desired value
+        self.trainer.flush_logs_every_n_steps = flush_logs_every_n_steps
+        self.trainer.log_every_n_steps = log_every_n_steps
 
     def configure_logger(self, logger):
         if logger is True:
@@ -84,12 +87,13 @@ class LoggerConnector:
         elif step is None:
             # added metrics by Lightning for convenience
             scalar_metrics['epoch'] = self.trainer.current_epoch
-            step = step if step is not None else self.trainer.global_step
+            step = self.trainer.global_step
 
         # log actual metrics
-        if self.trainer.is_global_zero and self.trainer.logger is not None:
-            self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
-            self.trainer.logger.save()
+        if self.trainer.logger is not None:
+            if self.trainer.is_global_zero:
+                self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
+                self.trainer.logger.save()
 
             # track the logged metrics
             self.logged_metrics.update(scalar_metrics)
@@ -104,12 +108,12 @@ class LoggerConnector:
 
         self.trainer.dev_debugger.track_pbar_metrics_history(metrics)
 
-    def on_evaluation_epoch_end(self, eval_results, using_eval_result, test_mode):
-        self._track_callback_metrics(eval_results, using_eval_result)
-        self._log_on_evaluation_epoch_end_metrics()
+    def on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, using_eval_result, test_mode):
+        self._track_callback_metrics(deprecated_eval_results, using_eval_result)
+        self._log_on_evaluation_epoch_end_metrics(epoch_logs)
 
         # TODO: deprecate parts of this for 1.0 (when removing results)
-        self.__process_eval_epoch_end_results_and_log_legacy(eval_results, test_mode)
+        self.__process_eval_epoch_end_results_and_log_legacy(deprecated_eval_results, test_mode)
 
         # get the final loop results
         eval_loop_results = self._get_evaluate_epoch_results(test_mode)
@@ -130,17 +134,48 @@ class LoggerConnector:
         self.eval_loop_results = []
         return results
 
-    def _log_on_evaluation_epoch_end_metrics(self):
+    def _log_on_evaluation_epoch_end_metrics(self, epoch_logs):
         step_metrics = self.trainer.evaluation_loop.step_metrics
+
+        num_loaders = len(step_metrics)
 
         # clear mem
         self.trainer.evaluation_loop.step_metrics = []
 
-        num_loaders = len(step_metrics)
+        if self.trainer.running_sanity_check:
+            return
 
-        # process metrics per dataloader
+        # track all metrics we want to log
+        metrics_to_log = []
+
+        # ---------------------------
+        # UPDATE EPOCH LOGGED METRICS
+        # ---------------------------
+        # (ie: in methods at the val_epoch_end level)
+        # union the epoch logs with whatever was returned from loaders and reduced
+        epoch_logger_metrics = epoch_logs.get_epoch_log_metrics()
+        epoch_pbar_metrics = epoch_logs.get_epoch_pbar_metrics()
+
+        self.logged_metrics.update(epoch_logger_metrics)
+        self.add_progress_bar_metrics(epoch_pbar_metrics)
+
+        # enable the metrics to be monitored
+        self.callback_metrics.update(epoch_logger_metrics)
+        self.callback_metrics.update(epoch_pbar_metrics)
+
+        if len(epoch_logger_metrics) > 0:
+            metrics_to_log.append(epoch_logger_metrics)
+
+        # --------------------------------
+        # UPDATE  METRICS PER DATALOADER
+        # --------------------------------
+        # each dataloader aggregated metrics
+        # now we log all of them
         for dl_idx, dl_metrics in enumerate(step_metrics):
             if len(dl_metrics) == 0:
+                # Ensure custom logged metrics are included if not included with step metrics
+                if len(epoch_logger_metrics) > 0:
+                    self.eval_loop_results.append(epoch_logger_metrics)
                 continue
 
             reduced_epoch_metrics = dl_metrics[0].__class__.reduce_on_epoch_end(dl_metrics)
@@ -151,17 +186,27 @@ class LoggerConnector:
             logger_metrics = reduced_epoch_metrics.get_epoch_log_metrics()
             pbar_metrics = reduced_epoch_metrics.get_epoch_pbar_metrics()
             self.logged_metrics.update(logger_metrics)
-            self.progress_bar_metrics.update(pbar_metrics)
+            self.add_progress_bar_metrics(pbar_metrics)
 
             # enable the metrics to be monitored
             self.callback_metrics.update(logger_metrics)
             self.callback_metrics.update(pbar_metrics)
 
+            # forked metrics were dropped, enable them for callbacks
+            forked_metrics = reduced_epoch_metrics.get_forked_metrics()
+            self.callback_metrics.update(forked_metrics)
+
             # track the final results for the dataloader
             self.eval_loop_results.append(deepcopy(self.callback_metrics))
 
             # actually log
-            self.log_metrics(logger_metrics, {}, step=self.trainer.global_step)
+            if len(logger_metrics) > 0:
+                metrics_to_log.append(logger_metrics)
+
+        # log all the metrics as a s single dict
+        metrics_to_log = dict(ChainMap(*metrics_to_log))
+        if len(metrics_to_log) > 0:
+            self.log_metrics(metrics_to_log, {})
 
     def __rename_keys_by_dataloader_idx(self, metrics, dataloader_idx, num_loaders):
         if num_loaders == 1:
@@ -171,7 +216,10 @@ class LoggerConnector:
         return result
 
     def _track_callback_metrics(self, eval_results, using_eval_result):
-        if len(eval_results) > 0 and eval_results[0] is None:
+        if (
+                len(eval_results) > 0 and
+                (eval_results[0] is None or not isinstance(eval_results[0], Result))
+        ):
             return
 
         if using_eval_result:
@@ -236,7 +284,8 @@ class LoggerConnector:
                 self.trainer.logger_connector.add_progress_bar_metrics(prog_bar_metrics)
 
                 # log metrics
-                self.trainer.logger_connector.log_metrics(log_metrics, {})
+                if len(log_metrics) > 0:
+                    self.trainer.logger_connector.log_metrics(log_metrics, {})
 
                 # track metrics for callbacks (all prog bar, logged and callback metrics)
                 self.trainer.logger_connector.callback_metrics.update(callback_metrics)
@@ -336,7 +385,7 @@ class LoggerConnector:
 
         epoch_output = self.__prepare_epoch_end_inputs(epoch_output)
 
-        if num_optimizers == 1:
+        if num_optimizers == 1 or not self.trainer.train_loop.automatic_optimization:
             epoch_output = epoch_output[0]
 
         # lightningmodule hook
@@ -405,11 +454,18 @@ class LoggerConnector:
             for train_step_idx in range(len(opt_outputs)):
                 tbptt_outs = opt_outputs[train_step_idx]
                 tbptt_outs = tbptt_outs[0].__class__.reduce_across_time(tbptt_outs)
-                time_reduced_outputs.append(tbptt_outs)
+                if len(tbptt_outs) > 1:
+                    time_reduced_outputs.append(tbptt_outs)
+
+            if len(time_reduced_outputs) == 0:
+                continue
 
             # reduce across training steps
             opt_outputs = time_reduced_outputs[0].__class__.reduce_on_epoch_end(time_reduced_outputs)
-            opt_outputs.minimize = opt_outputs.minimize.mean()
+
+            # with manual opt need 1+ metrics because meta is always there
+            if opt_outputs.minimize is not None:
+                opt_outputs.minimize = opt_outputs.minimize.mean()
             epoch_log_metrics.update(opt_outputs.epoch_log_metrics)
             epoch_progress_bar_metrics.update(opt_outputs.epoch_pbar_metrics)
 
@@ -470,7 +526,7 @@ class LoggerConnector:
     def log_train_step_metrics(self, batch_output):
         # when metrics should be logged
         should_log_metrics = (
-            (self.trainer.global_step + 1) % self.trainer.row_log_interval == 0 or self.trainer.should_stop
+            (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0 or self.trainer.should_stop
         )
         if should_log_metrics or self.trainer.fast_dev_run:
             # logs user requested information to logger

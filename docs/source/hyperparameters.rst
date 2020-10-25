@@ -9,7 +9,7 @@
 
 Hyperparameters
 ---------------
-Lightning has utilities to interact seamlessly with the command line ArgumentParser
+Lightning has utilities to interact seamlessly with the command line ``ArgumentParser``
 and plays well with the hyperparameter optimization framework of your choice.
 
 ----------
@@ -37,15 +37,15 @@ Argparser Best Practices
 ^^^^^^^^^^^^^^^^^^^^^^^^
 It is best practice to layer your arguments in three sections.
 
-1.  Trainer args (gpus, num_nodes, etc...)
-2.  Model specific arguments (layer_dim, num_layers, learning_rate, etc...)
-3.  Program arguments (data_path, cluster_email, etc...)
+1.  Trainer args (``gpus``, ``num_nodes``, etc...)
+2.  Model specific arguments (``layer_dim``, ``num_layers``, ``learning_rate``, etc...)
+3.  Program arguments (``data_path``, ``cluster_email``, etc...)
 
 |
 
-We can do this as follows. First, in your LightningModule, define the arguments
+We can do this as follows. First, in your ``LightningModule``, define the arguments
 specific to that module. Remember that data splits or data paths may also be specific to
-a module (ie: if your project has a model that trains on Imagenet and another on CIFAR-10).
+a module (i.e.: if your project has a model that trains on Imagenet and another on CIFAR-10).
 
 .. testcode::
 
@@ -58,7 +58,7 @@ a module (ie: if your project has a model that trains on Imagenet and another on
             parser.add_argument('--data_path', type=str, default='/some/path')
             return parser
 
-Now in your main trainer file, add the Trainer args, the program args, and add the model args
+Now in your main trainer file, add the ``Trainer`` args, the program args, and add the model args
 
 .. testcode::
 
@@ -81,7 +81,7 @@ Now in your main trainer file, add the Trainer args, the program args, and add t
 
     args = parser.parse_args()
 
-Now you can call run your program like so
+Now you can call run your program like so:
 
 .. code-block:: bash
 
@@ -109,12 +109,12 @@ Finally, make sure to start the training like so:
 LightningModule hyperparameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Often times we train many versions of a model. You might share that model or come back to it a few months later
-at which point it is very useful to know how that model was trained (ie: what learning_rate, neural network, etc...).
+at which point it is very useful to know how that model was trained (i.e.: what learning rate, neural network, etc...).
 
 Lightning has a few ways of saving that information for you in checkpoints and yaml files. The goal here is to
 improve readability and reproducibility
 
-1. The first way is to ask lightning to save the values anything in the __init__ for you to the checkpoint. This also
+1. The first way is to ask lightning to save the values of anything in the __init__ for you to the checkpoint. This also
 makes those values available via `self.hparams`.
 
 .. code-block:: python
@@ -198,7 +198,7 @@ In that case, choose only a few
 
 Trainer args
 ^^^^^^^^^^^^
-To recap, add ALL possible trainer flags to the argparser and init the Trainer this way
+To recap, add ALL possible trainer flags to the argparser and init the ``Trainer`` this way
 
 .. code-block:: python
 
@@ -217,7 +217,7 @@ Multiple Lightning Modules
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We often have multiple Lightning Modules where each one has different arguments. Instead of
-polluting the main.py file, the LightningModule lets you define arguments for each one.
+polluting the ``main.py`` file, the ``LightningModule`` lets you define arguments for each one.
 
 .. testcode::
 
@@ -291,14 +291,3 @@ and now we can train MNIST or the GAN using the command line interface!
 
     $ python main.py --model_name gan --encoder_layers 24
     $ python main.py --model_name mnist --layer_1_dim 128
-
-----------
-
-Hyperparameter Optimization
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Lightning is fully compatible with the hyperparameter optimization libraries!
-Here are some useful ones:
-
-- `Hydra <https://medium.com/pytorch/hydra-a-fresh-look-at-configuration-for-machine-learning-projects-50583186b710>`_
-- `Optuna <https://github.com/optuna/optuna/blob/master/examples/pytorch_lightning_simple.py>`_
-- `Ray Tune <https://docs.ray.io/en/master/tune/tutorials/tune-pytorch-lightning.html>`_

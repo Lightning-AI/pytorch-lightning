@@ -1,17 +1,31 @@
-from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.states import TrainerState
-from typing import List, Optional, Union
-from pytorch_lightning.utilities import argparse_utils
-from argparse import ArgumentParser, Namespace
-from abc import ABC
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import inspect
 import os
-from pytorch_lightning.utilities.model_utils import is_overridden
-from pytorch_lightning.core.lightning import LightningModule
+from abc import ABC
+from argparse import ArgumentParser, Namespace
+from typing import List, Optional, Union, Type, TypeVar
+
 from pytorch_lightning.callbacks import ProgressBarBase
-from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
+from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
+from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
+from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.utilities import argparse_utils
+from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.model_utils import is_overridden
 
 
 class TrainerProperties(ABC):
@@ -105,12 +119,16 @@ class TrainerProperties(ABC):
         return depr_arg_names
 
     @classmethod
-    def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
+    def from_argparse_args(cls: Type['_T'], args: Union[Namespace, ArgumentParser], **kwargs) -> '_T':
         return argparse_utils.from_argparse_args(cls, args, **kwargs)
 
     @classmethod
     def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
         return argparse_utils.parse_argparser(cls, arg_parser)
+
+    @classmethod
+    def match_env_arguments(cls) -> Namespace:
+        return argparse_utils.parse_env_variables(cls)
 
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
@@ -174,3 +192,7 @@ class TrainerProperties(ABC):
 
     def get_model(self):
         return self.model_connector.get_model()
+
+
+# Used to represent the concrete type TrainerProperties class methods are called on.
+_T = TypeVar('_T', bound=TrainerProperties)

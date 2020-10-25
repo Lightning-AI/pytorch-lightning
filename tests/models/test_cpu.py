@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import os
 import platform
 from distutils.version import LooseVersion
@@ -30,7 +43,7 @@ def test_cpu_slurm_save_load(tmpdir):
         logger=logger,
         limit_train_batches=0.2,
         limit_val_batches=0.2,
-        checkpoint_callback=ModelCheckpoint(tmpdir),
+        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
     )
     result = trainer.fit(model)
     real_global_step = trainer.global_step
@@ -66,7 +79,7 @@ def test_cpu_slurm_save_load(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir),
+        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
     )
     model = EvalModelTemplate(**hparams)
 
@@ -91,7 +104,7 @@ def test_early_stopping_cpu_model(tmpdir):
     stopping = EarlyStopping(monitor='early_stop_on', min_delta=0.1)
     trainer_options = dict(
         default_root_dir=tmpdir,
-        early_stop_callback=stopping,
+        callbacks=[stopping],
         max_epochs=2,
         gradient_clip_val=1.0,
         overfit_batches=0.20,
@@ -222,7 +235,6 @@ def test_running_test_no_val(tmpdir):
         limit_test_batches=0.2,
         checkpoint_callback=checkpoint,
         logger=logger,
-        early_stop_callback=False,
     )
     result = trainer.fit(model)
 
@@ -355,7 +367,6 @@ def test_tbptt_cpu_model(tmpdir):
         truncated_bptt_steps=truncated_bptt_steps,
         limit_val_batches=0,
         weights_summary=None,
-        early_stop_callback=False,
     )
     result = trainer.fit(model)
 
@@ -434,7 +445,6 @@ def test_tbptt_cpu_model_result(tmpdir):
         truncated_bptt_steps=truncated_bptt_steps,
         limit_val_batches=0,
         weights_summary=None,
-        early_stop_callback=False,
     )
     result = trainer.fit(model)
 
@@ -505,7 +515,6 @@ def test_tbptt_cpu_model_result_auto_reduce(tmpdir):
         truncated_bptt_steps=truncated_bptt_steps,
         limit_val_batches=0,
         weights_summary=None,
-        early_stop_callback=False,
     )
     result = trainer.fit(model)
 
