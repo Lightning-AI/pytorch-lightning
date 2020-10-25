@@ -109,14 +109,6 @@ class Result(Dict):
                 m += f' {additional_err}'
             assert x.grad_fn is not None, m
 
-    def add_dataloader_idx(self, name: str, dl_idx: Union[None, int]) -> str:
-        """
-        This function add dl_idx logic to logged key automatically if we have multiple dataloders
-        """
-        if dl_idx is not None:
-            name += f"/dataloader_idx_{dl_idx}"
-        return name
-
     def log(
         self,
         name: str,
@@ -132,7 +124,7 @@ class Result(Dict):
         sync_dist: bool = False,
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
-        current_dataloader_idx: Optional[int] = None,
+        dataloader_idx: Optional[int] = None,
     ):
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
@@ -152,8 +144,7 @@ class Result(Dict):
             was_forked = True
 
             # set step version
-            # add possibly dataloader_idx
-            step_name = self.add_dataloader_idx(f'{name}_step', current_dataloader_idx)
+            step_name = f'{name}_step'
 
             self.__set_meta(
                 step_name,
@@ -165,14 +156,14 @@ class Result(Dict):
                 reduce_fx=reduce_fx,
                 tbptt_reduce_fx=tbptt_reduce_fx,
                 tbptt_pad_token=tbptt_pad_token,
-                forked=False
+                forked=False,
+                dataloader_idx=dataloader_idx,
             )
 
             self.__setitem__(step_name, value)
 
             # set epoch version
-            # add possibly dataloader_idx
-            epoch_name = self.add_dataloader_idx(f'{name}_epoch', current_dataloader_idx)
+            epoch_name = f'{name}_epoch'
 
             self.__set_meta(
                 epoch_name,
@@ -184,12 +175,10 @@ class Result(Dict):
                 reduce_fx=reduce_fx,
                 tbptt_reduce_fx=tbptt_reduce_fx,
                 tbptt_pad_token=tbptt_pad_token,
-                forked=False
+                forked=False,
+                dataloader_idx=dataloader_idx,
             )
             self.__setitem__(epoch_name, value)
-
-        # add possibly dataloader_idx
-        name = self.add_dataloader_idx(name, current_dataloader_idx)
 
         # always log the original metric
         self.__set_meta(
@@ -202,7 +191,8 @@ class Result(Dict):
             reduce_fx,
             tbptt_reduce_fx=tbptt_reduce_fx,
             tbptt_pad_token=tbptt_pad_token,
-            forked=was_forked
+            forked=was_forked,
+            dataloader_idx=dataloader_idx,
         )
 
         # set the value
@@ -219,7 +209,8 @@ class Result(Dict):
         reduce_fx: Callable,
         tbptt_pad_token: int,
         tbptt_reduce_fx: Callable,
-        forked: bool
+        forked: bool,
+        dataloader_idx: Union[int, None]
     ):
         # set the meta for the item
         meta_value = value
@@ -232,7 +223,8 @@ class Result(Dict):
             value=meta_value,
             tbptt_reduce_fx=tbptt_reduce_fx,
             tbptt_pad_token=tbptt_pad_token,
-            forked=forked
+            forked=forked,
+            dataloader_idx=dataloader_idx,
         )
 
         self['meta'][name] = meta

@@ -424,11 +424,6 @@ class TrainLoop:
             hiddens = training_step_output.pop("hiddens", None)
             result["extra"] = training_step_output
 
-            if loss is None:
-                func_name = "training_step_end" if is_overridden('training_step_end', model_ref) else "training_step"
-                m = f'The key `loss` should be present within {func_name} output. Found keys: {[*training_step_output]}'
-                raise MisconfigurationException(m)
-
         # handle scalar return
         elif isinstance(training_step_output, torch.Tensor):
             loss = training_step_output
