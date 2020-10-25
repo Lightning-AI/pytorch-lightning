@@ -482,8 +482,8 @@ class ModelCheckpoint(Callback):
             raise MisconfigurationException(m)
 
     def _get_metric_interpolated_filepath_name(self, ckpt_name_metrics: Dict[str, Any]):
-        epoch = ckpt_name_metrics.get("current_epoch")
-        step = ckpt_name_metrics.get("global_step")
+        epoch = ckpt_name_metrics.get("epoch")
+        step = ckpt_name_metrics.get("step")
         filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics)
         version_cnt = 0
         while self._fs.exists(filepath):
@@ -496,7 +496,7 @@ class ModelCheckpoint(Callback):
         ckpt_name_metrics = deepcopy(trainer.logger_connector.logged_metrics)
         ckpt_name_metrics.update(trainer.logger_connector.callback_metrics)
         ckpt_name_metrics.update(trainer.logger_connector.progress_bar_metrics)
-        ckpt_name_metrics.update({"global_step": trainer.global_step, "current_epoch": trainer.current_epoch})
+        ckpt_name_metrics.update({"step": trainer.global_step, "epoch": trainer.current_epoch})
         return ckpt_name_metrics
 
     def _save_last_checkpoint(self, trainer, pl_module, ckpt_name_metrics, filepath):
@@ -532,8 +532,8 @@ class ModelCheckpoint(Callback):
 
     def _save_top_k_checkpoints(self, metrics, trainer, pl_module, filepath):
         current = metrics.get(self.monitor)
-        epoch = metrics.get("current_epoch")
-        step = metrics.get("global_step")
+        epoch = metrics.get("epoch")
+        step = metrics.get("step")
 
         if not isinstance(current, torch.Tensor) and current is not None:
             current = torch.tensor(current, device=pl_module.device)
@@ -553,7 +553,7 @@ class ModelCheckpoint(Callback):
         filepath: str,
         current: torch.Tensor,
         epoch: int,
-        global_step: int,
+        step: int,
         trainer,
         pl_module,
     ):
@@ -584,7 +584,7 @@ class ModelCheckpoint(Callback):
 
         if self.verbose:
             rank_zero_info(
-                f"Epoch {epoch:d}, global step {global_step:d}: {self.monitor} reached {current:0.5f} (best {self.best_model_score:0.5f}),"
+                f"Epoch {epoch:d}, global step {step:d}: {self.monitor} reached {current:0.5f} (best {self.best_model_score:0.5f}),"
                 f' saving model to "{filepath}" as top {k}'
             )
         self._save_model(filepath, trainer, pl_module)
