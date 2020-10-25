@@ -11,12 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import math
 import time
 
 import pytest
 
-import pytorch_lightning.utilities.xla_device_utils as utils
+import pytorch_lightning.utilities.xla_device_utils as xla_utils
 from tests.base.develop_utils import pl_multi_process_test
 
 try:
@@ -30,13 +29,13 @@ except ImportError as e:
 @pytest.mark.skipif(XLA_AVAILABLE, reason="test requires torch_xla to be absent")
 def test_tpu_device_absence():
     """Check tpu_device_exists returns None when torch_xla is not available"""
-    assert utils.XLADeviceUtils.tpu_device_exists() is None
+    assert xla_utils.XLADeviceUtils.tpu_device_exists() is None
 
 
 @pytest.mark.skipif(not XLA_AVAILABLE, reason="test requires torch_xla to be installed")
 def test_tpu_device_presence():
     """Check tpu_device_exists returns True when TPU is available"""
-    assert utils.XLADeviceUtils.tpu_device_exists() is True
+    assert xla_utils.XLADeviceUtils.tpu_device_exists() is True
 
 
 @pytest.mark.skipif(not XLA_AVAILABLE, reason="test requires torch_xla to be installed")
@@ -52,8 +51,8 @@ def test_result_returns_within_10_seconds():
     """Check that pl_multi_process returns within 10 seconds"""
 
     start = time.time()
-    result = utils.pl_multi_process(time.sleep)(25)
+    result = xla_utils.pl_multi_process(time.sleep)(25)
     end = time.time()
-    elapsed_time = math.floor(end - start)
+    elapsed_time = int(end - start)
     assert elapsed_time <= 10
     assert result is False
