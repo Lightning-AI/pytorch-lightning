@@ -158,4 +158,4 @@ class WandbLogger(LightningLoggerBase):
         return self._experiment.id if self._experiment else self._id
 
     def finalize(self, status: str) -> None:
-        wandb.finish()
+        self.experiment.finish()
