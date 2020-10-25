@@ -251,7 +251,13 @@ class Result(Dict):
 
         return result
 
-    def get_batch_log_metrics(self, include_forked_originals=True) -> dict:
+    def _add_dataloader_idx(self, k: str, dataloader_idx: Union[int, None], add_dataloader_idx: bool) -> str:
+        if dataloader_idx is not None and add_dataloader_idx:
+            return f"{k}/dataloader_idx_{dataloader_idx}"
+        else:
+            return k
+
+    def get_batch_log_metrics(self, include_forked_originals=True, add_dataloader_idx=False) -> dict:
         """
         Gets the metrics to log at the end of the batch step
 
@@ -266,19 +272,15 @@ class Result(Dict):
             if options['forked'] and not include_forked_originals:
                 continue
 
+            dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx)
+
             if options['logger'] and options['on_step']:
                 if isinstance(self[k], Metric):
-                    result[k] = self[k]._forward_cache
+                    result[dl_key] = self[k]._forward_cache
                 else:
-                    result[k] = self[k]
+                    result[dl_key] = self[k]
 
         return result
-
-    def _add_dataloader_idx(self, k: str, dataloader_idx: Union[int, None], add_dataloader_idx: bool) -> str:
-        if dataloader_idx is not None and add_dataloader_idx:
-            return f"{k}/dataloader_idx_{dataloader_idx}"
-        else:
-            return k
 
     def get_epoch_log_metrics(self, add_dataloader_idx=False) -> dict:
         """
@@ -354,7 +356,7 @@ class Result(Dict):
 
         return result
 
-    def get_batch_pbar_metrics(self, include_forked_originals=True):
+    def get_batch_pbar_metrics(self, include_forked_originals=True, add_dataloader_idx=False):
         """
         Gets the metrics to log at the end of the batch step
         """
@@ -368,11 +370,13 @@ class Result(Dict):
             if options['forked'] and not include_forked_originals:
                 continue
 
+            dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx)
+
             if options['prog_bar'] and options['on_step']:
                 if isinstance(self[k], Metric):
-                    result[k] = self[k]._forward_cache
+                    result[dl_key] = self[k]._forward_cache
                 else:
-                    result[k] = self[k]
+                    result[dl_key] = self[k]
 
         return result
 

@@ -45,8 +45,9 @@ class CacheInternalMetrics:
             self.append(stage, "epoch_pbar_metrics", model_ref._results.get_epoch_pbar_metrics(add_dataloader_idx=True))
 
             # save step/batch metrics
-            self.append(stage, "batch_log_metrics", model_ref._results.get_batch_log_metrics())
-            self.append(stage, "batch_pbar_metrics", model_ref._results.get_batch_pbar_metrics())
+            self.append(stage, "batch_log_metrics", model_ref._results.get_batch_log_metrics(add_dataloader_idx=True))
+            self.append(stage, "batch_pbar_metrics", model_ref._results.get_batch_pbar_metrics(include_forked_originals=False, 
+                                                                                               add_dataloader_idx=True))
 
     def reset(self):
         self._internal_dict = {stage: defaultdict(list) for stage in self.stages}

@@ -708,13 +708,7 @@ def test_log_works_in_test_callback(tmpdir):
         assert float(output_value) == float(expected_output)
 
     for func_name, func_attr in test_callback.funcs_attr.items():
-        if func_attr["prog_bar"]and (func_attr["on_step"] or func_attr["on_epoch"]) and not func_attr["forked"]:
-            try:
-                assert func_name in trainer.logger_connector.progress_bar_metrics
-            except:
-                print("IN", func_name, func_attr)
+        if func_attr["prog_bar"] and (func_attr["on_step"] or func_attr["on_epoch"]) and not func_attr["forked"]:
+            assert func_name in trainer.logger_connector.progress_bar_metrics
         else:
-            try:
-                assert func_name not in trainer.logger_connector.progress_bar_metrics
-            except:
-                print("OUT", func_name, func_attr)
+            assert func_name not in trainer.logger_connector.progress_bar_metrics

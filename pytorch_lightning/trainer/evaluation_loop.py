@@ -419,7 +419,7 @@ class EvaluationLoop(object):
 
     def __log_result_step_metrics(self, output, batch_idx):
         step_log_metrics = output.get_batch_log_metrics(include_forked_originals=False)
-        step_pbar_metrics = output.get_batch_pbar_metrics(include_forked_originals=False)
+        step_pbar_metrics = output.get_batch_pbar_metrics(include_forked_originals=False, add_dataloader_idx=True)
 
         batch_pbar_metrics = self.trainer.get_model()._results.batch_pbar_metrics
         step_pbar_metrics.update(batch_pbar_metrics)
