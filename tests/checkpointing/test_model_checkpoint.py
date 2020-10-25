@@ -758,7 +758,13 @@ def test_filepath_decomposition_dirpath_filename(tmpdir, filepath, dirpath, file
 def test_val_check_interval_checkpoint_files(tmpdir):
     """ Test correct checkpoint naming when validating/checkpointing multiple times per epoch. """
     model = EvalModelTemplate()
-    model_checkpoint = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="val_acc", mode="max", verbose=True)
+    model_checkpoint = ModelCheckpoint(
+        dirpath=tmpdir,
+        save_top_k=-1,
+        monitor="val_acc",
+        mode="max",
+        verbose=True
+    )
     trainer = Trainer(
         default_root_dir=tmpdir,
         val_check_interval=0.2,
