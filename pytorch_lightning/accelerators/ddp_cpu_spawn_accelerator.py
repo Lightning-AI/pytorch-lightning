@@ -184,8 +184,8 @@ class DDPCPUSpawnAccelerator(Accelerator):
         return output
 
     def barrier(self, name: Optional[str] = None):
-        if torch_distrib.is_initialized():
-            torch_distrib.barrier()
+        if dist.is_initialized():
+            dist.barrier()
 
     def broadcast(self, obj, src=0):
         return self.dist.broadcast(obj)

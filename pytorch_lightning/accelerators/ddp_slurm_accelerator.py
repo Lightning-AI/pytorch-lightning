@@ -92,8 +92,8 @@ class DDPSLURMAccelerator(Accelerator):
         return output
 
     def barrier(self, name: str = None):
-        if torch_distrib.is_initialized():
-            torch_distrib.barrier()
+        if dist.is_initialized():
+            dist.barrier()
 
     def early_stopping_should_stop(self, pl_module):
         stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device)
