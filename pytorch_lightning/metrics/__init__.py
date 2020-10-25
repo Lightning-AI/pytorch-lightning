@@ -26,4 +26,6 @@ from pytorch_lightning.metrics.regression import (
     MeanAbsoluteError,
     MeanSquaredLogError,
     ExplainedVariance,
+    PSNR,
+    SSIM,
 )

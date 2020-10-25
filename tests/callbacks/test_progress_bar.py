@@ -46,7 +46,7 @@ def test_progress_bar_on(tmpdir, callbacks, refresh_rate):
 @pytest.mark.parametrize('callbacks,refresh_rate', [
     ([], 0),
     ([], False),
-    ([ModelCheckpoint('../trainer')], 0),
+    ([ModelCheckpoint(dirpath='../trainer')], 0),
 ])
 def test_progress_bar_off(tmpdir, callbacks, refresh_rate):
     """Test different ways the progress bar can be turned off."""
@@ -64,7 +64,7 @@ def test_progress_bar_off(tmpdir, callbacks, refresh_rate):
 
 def test_progress_bar_misconfiguration():
     """Test that Trainer doesn't accept multiple progress bars."""
-    callbacks = [ProgressBar(), ProgressBar(), ModelCheckpoint('../trainer')]
+    callbacks = [ProgressBar(), ProgressBar(), ModelCheckpoint(dirpath='../trainer')]
     with pytest.raises(MisconfigurationException, match=r'^You added multiple progress bar callbacks'):
         Trainer(callbacks=callbacks)
 

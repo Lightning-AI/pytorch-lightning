@@ -6,6 +6,7 @@ import torch
 from sklearn.metrics import explained_variance_score
 
 from pytorch_lightning.metrics.regression import ExplainedVariance
+from pytorch_lightning.metrics.functional import explained_variance
 from tests.metrics.utils import BATCH_SIZE, NUM_BATCHES, MetricTester
 
 torch.manual_seed(42)
@@ -33,8 +34,6 @@ def _multi_target_sk_metric(preds, target, sk_fn=explained_variance_score):
     return sk_fn(sk_target, sk_preds)
 
 
-@pytest.mark.parametrize("ddp", [True, False])
-@pytest.mark.parametrize("dist_sync_on_step", [True, False])
 @pytest.mark.parametrize("multioutput", ['raw_values', 'uniform_average', 'variance_weighted'])
 @pytest.mark.parametrize(
     "preds, target, sk_metric",
@@ -44,14 +43,25 @@ def _multi_target_sk_metric(preds, target, sk_fn=explained_variance_score):
     ],
 )
 class TestExplainedVariance(MetricTester):
-    def test_explained_variance(self, ddp, dist_sync_on_step, multioutput, preds, target, sk_metric):
-        self.run_metric_test(
+    @pytest.mark.parametrize("ddp", [True, False])
+    @pytest.mark.parametrize("dist_sync_on_step", [True, False])
+    def test_explained_variance(self, multioutput, preds, target, sk_metric, ddp, dist_sync_on_step):
+        self.run_class_metric_test(
             ddp,
             preds,
             target,
             ExplainedVariance,
             partial(sk_metric, sk_fn=partial(explained_variance_score, multioutput=multioutput)),
             dist_sync_on_step,
+            metric_args=dict(multioutput=multioutput),
+        )
+
+    def test_explained_variance_functional(self, multioutput, preds, target, sk_metric):
+        self.run_functional_metric_test(
+            preds,
+            target,
+            explained_variance,
+            partial(sk_metric, sk_fn=partial(explained_variance_score, multioutput=multioutput)),
             metric_args=dict(multioutput=multioutput),
         )
 

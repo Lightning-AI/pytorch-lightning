@@ -177,6 +177,8 @@ html_theme_options = {
 
 html_logo = '_images/logos/lightning_logo-name.svg'
 
+html_favicon = '_images/logos/lightning_icon.svg'
+
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
@@ -305,7 +307,7 @@ def package_list_from_file(file):
 MOCK_PACKAGES = []
 if SPHINX_MOCK_REQUIREMENTS:
     # mock also base packages when we are on RTD since we don't install them there
-    MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements/base.txt'))
+    MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements.txt'))
     MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements/extra.txt'))
     MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements/loggers.txt'))
 

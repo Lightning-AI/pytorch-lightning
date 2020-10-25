@@ -43,6 +43,7 @@ PyTorch Lightning Documentation
    datamodules
    logging
    metrics
+   plugins
 
 
 .. toctree::
@@ -110,7 +111,7 @@ PyTorch Lightning Documentation
    :name: Partner Domain Frameworks
    :caption: Partner Domain Frameworks
 
-   asr_tts
+   asr_nlp_tts
 
 .. toctree::
    :maxdepth: 1

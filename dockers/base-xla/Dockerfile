@@ -38,14 +38,12 @@ RUN apt-get update && \
         ca-certificates \
         libomp5 \
     && \
-
 # Install conda and python.
 # NOTE new Conda does not forward the exit status... https://github.com/conda/conda/issues/8385
     curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-4.7.12-Linux-x86_64.sh  && \
     chmod +x ~/miniconda.sh && \
     ~/miniconda.sh -b && \
     rm ~/miniconda.sh && \
-
 # Cleaning
     apt-get autoremove -y && \
     apt-get clean && \
@@ -74,7 +72,6 @@ ENV CONDA_DEFAULT_ENV=${CONDA_ENV}
 # Disable cache
 RUN pip --version && \
     pip config set global.cache-dir false && \
-
     conda remove pytorch torchvision && \
 # Install Pytorch XLA
     py_version=${PYTHON_VERSION/./} && \
@@ -94,7 +91,7 @@ RUN \
 # Install PL dependencies
     cd pytorch-lightning && \
     # drop Torch as it was installed with XLA
-    python -c "fname = 'requirements/base.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('torch')] ; open(fname, 'w').writelines(lines)" && \
+    python -c "fname = 'requirements.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('torch')] ; open(fname, 'w').writelines(lines)" && \
     # drop Horovod as it is not needed
     python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)" && \
     # drop TorchVision as it was installed with XLA
