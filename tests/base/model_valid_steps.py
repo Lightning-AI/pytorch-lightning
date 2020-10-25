@@ -15,7 +15,6 @@ from abc import ABC
 from collections import OrderedDict
 from pytorch_lightning.core.step_result import EvalResult
 
-import numpy as np
 import torch
 
 
@@ -45,20 +44,6 @@ class ValidationStepVariations(ABC):
             'val_loss': loss_val,
             'val_acc': val_acc,
             'test_dic': {'val_loss_a': loss_val}
-        })
-        return output
-
-    def validation_step__decreasing(self, batch, batch_idx, *args, **kwargs):
-        if not hasattr(self, 'running'):
-            self.running = 0
-        self.running += 1
-
-        running_loss = np.e ** (10 / self.running) - 1
-        running_acc = np.log(self.running + 1)
-
-        output = OrderedDict({
-            'val_loss': torch.tensor(running_loss),
-            'val_acc': torch.tensor(running_acc),
         })
         return output
 

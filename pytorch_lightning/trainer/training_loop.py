@@ -619,7 +619,8 @@ class TrainLoop:
         # epoch end hook
         self.run_on_epoch_end_hook(epoch_output)
 
-        # increment the global step once progress global step according to grads progress
+        # increment the global step once
+        # progress global step according to grads progress
         self.increment_accumulated_grad_global_step()
 
     def run_training_batch(self, batch, batch_idx, dataloader_idx):

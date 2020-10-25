@@ -120,14 +120,14 @@ def _test_loggers_fit_test(tmpdir, logger_class):
             (0, ['epoch', 'train_some_val']),
             (0, ['early_stop_on', 'epoch', 'val_acc']),
             (0, ['hp_metric']),
-            (0, ['epoch', 'test_acc', 'test_loss'])
+            (1, ['epoch', 'test_acc', 'test_loss'])
         ]
         assert log_metric_names == expected
     else:
         expected = [
             (0, ['epoch', 'train_some_val']),
             (0, ['early_stop_on', 'epoch', 'val_acc']),
-            (0, ['epoch', 'test_acc', 'test_loss'])
+            (1, ['epoch', 'test_acc', 'test_loss'])
         ]
         assert log_metric_names == expected
 

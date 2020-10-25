@@ -507,8 +507,6 @@ class Trainer(
                             ' not been met. Training will continue...'
                         )
 
-            # lower the final step as there is no real change
-            self.global_step -= 1
             # hook
             self.train_loop.on_train_end()
 

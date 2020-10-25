@@ -367,7 +367,7 @@ class ModelCheckpoint(Callback):
     ) -> str:
         if not filename:
             # filename is not set, use default name
-            filename = "{epoch}"
+            filename = "{epoch}-{step}"
         # check and parse user passed keys in the string
         groups = re.findall(r"(\{.*?)[:\}]", filename)
         if len(groups) >= 0:
@@ -401,7 +401,7 @@ class ModelCheckpoint(Callback):
             >>> os.path.basename(ckpt.format_checkpoint_name(0, 4, metrics={}))
             'missing=0.ckpt'
             >>> ckpt = ModelCheckpoint(filename='{epoch}')
-            >>> os.path.basename(ckpt.format_checkpoint_name(0, {}))
+            >>> os.path.basename(ckpt.format_checkpoint_name(0, 0, {}))
             'epoch=0.ckpt'
 
         """
@@ -529,17 +529,17 @@ class ModelCheckpoint(Callback):
         if self.monitor is None:
             self.best_model_path = self.last_model_path
 
-    def _save_top_k_checkpoints(self, metrics, trainer, pl_module, epoch, filepath):
+    def _save_top_k_checkpoints(self, metrics, trainer, pl_module, epoch, step, filepath):
         current = metrics.get(self.monitor)
 
         if not isinstance(current, torch.Tensor) and current is not None:
             current = torch.tensor(current, device=pl_module.device)
 
         if self.check_monitor_top_k(current):
-            self._update_best_and_save(filepath, current, epoch, trainer, pl_module)
+            self._update_best_and_save(filepath, current, epoch, step, trainer, pl_module)
         elif self.verbose:
             rank_zero_info(
-                f"Epoch {epoch:d}: {self.monitor} was not in top {self.save_top_k}"
+                f"Epoch {epoch:d}, step {step:d}: {self.monitor} was not in top {self.save_top_k}"
             )
 
     def _is_valid_monitor_key(self, metrics):
@@ -550,6 +550,7 @@ class ModelCheckpoint(Callback):
         filepath: str,
         current: torch.Tensor,
         epoch: int,
+        global_step: int,
         trainer,
         pl_module,
     ):
@@ -580,7 +581,7 @@ class ModelCheckpoint(Callback):
 
         if self.verbose:
             rank_zero_info(
-                f"Epoch {epoch:d}: {self.monitor} reached {current:0.5f} (best {self.best_model_score:0.5f}),"
+                f"Epoch {epoch:d}, global step {global_step:d}: {self.monitor} reached {current:0.5f} (best {self.best_model_score:0.5f}),"
                 f' saving model to "{filepath}" as top {k}'
             )
         self._save_model(filepath, trainer, pl_module)
