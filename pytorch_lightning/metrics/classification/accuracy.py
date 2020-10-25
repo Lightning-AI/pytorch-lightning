@@ -23,6 +23,7 @@ from torch import nn
 from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.metrics.utils import _input_format_classification
 
+
 class Accuracy(Metric):
     """
     Computes accuracy. Works with binary, multiclass, and multilabel data.

@@ -124,6 +124,7 @@ class TestConfusionMatrix(MetricTester):
                                                      "normalize": normalize}
                                         )
 
+
 def test_warning_on_nan(tmpdir):
     preds = torch.randint(3, size=(20,))
     target = torch.randint(3, size=(20,))

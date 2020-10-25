@@ -31,7 +31,7 @@ def _confusion_matrix_update(preds: torch.Tensor,
 
 
 def _confusion_matrix_compute(confmat: torch.Tensor,
-                              normalize: Optional[str]=None) -> torch.Tensor:
+                              normalize: Optional[str] = None) -> torch.Tensor:
     allowed_normalize = ('true', 'pred', 'all', None)
     assert normalize in allowed_normalize, \
         f"Argument average needs to one of the following: {allowed_normalize}"
@@ -51,11 +51,13 @@ def _confusion_matrix_compute(confmat: torch.Tensor,
         return cm
     return confmat
 
-def confusion_matrix(preds: torch.Tensor,
-                     target: torch.Tensor,
-                     num_classes: int,
-                     normalize: Optional[str] = None,
-                     threshold: float = 0.5
+
+def confusion_matrix(
+        preds: torch.Tensor,
+        target: torch.Tensor,
+        num_classes: int,
+        normalize: Optional[str] = None,
+        threshold: float = 0.5
 ) -> torch.Tensor:
     """
     Computes the confusion matrix. Works with binary, multiclass, and multilabel data.
