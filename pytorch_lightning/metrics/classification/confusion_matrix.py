@@ -15,9 +15,11 @@ from typing import Any, Optional
 
 import torch
 
-from pytorch_lightning.metrics.classification.accuracy import _input_format
 from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.metrics.functional.confusion_matrix import (
+    _confusion_matrix_update,
+    _confusion_matrix_compute
+)
 
 
 class ConfusionMatrix(Metric):
@@ -98,27 +100,11 @@ class ConfusionMatrix(Metric):
             preds: Predictions from model
             target: Ground truth values
         """
-        preds, target = _input_format(preds, target, self.threshold)
-
-        unique_mapping = (target.view(-1) * self.num_classes + preds.view(-1)).to(torch.long)
-        bins = torch.bincount(unique_mapping, minlength=self.num_classes ** 2)
-
-        self.confmat += bins.reshape(self.num_classes, self.num_classes)
+        confmat = _confusion_matrix_update(preds, target, self.num_classes, self.threshold)
+        self.confmat += confmat
 
     def compute(self):
         """
         Computes confusion matrix
         """
-        if self.normalize is not None:
-            if self.normalize == 'true':
-                cm = self.confmat / self.confmat.sum(axis=1, keepdim=True)
-            elif self.normalize == 'pred':
-                cm = self.confmat / self.confmat.sum(axis=0, keepdim=True)
-            elif self.normalize == 'all':
-                cm = self.confmat / self.confmat.sum()
-            nan_elements = cm[torch.isnan(cm)].nelement()
-            if nan_elements != 0:
-                cm[torch.isnan(cm)] = 0
-                rank_zero_warn(f'{nan_elements} nan values found in confusion matrix have been replaced with zeros.')
-            return cm
-        return self.confmat
+        return _confusion_matrix_compute(self.confmat, self.normalize)
