@@ -753,3 +753,19 @@ def test_filepath_decomposition_dirpath_filename(tmpdir, filepath, dirpath, file
 
     assert mc_cb.dirpath == dirpath
     assert mc_cb.filename == filename
+
+
+def test_val_check_interval_checkpoint_files(tmpdir):
+    """ Test correct checkpoint naming when validating/checkpointing multiple times per epoch. """
+    model = EvalModelTemplate()
+    model_checkpoint = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="val_acc", mode="max", verbose=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        val_check_interval=0.2,
+        max_epochs=1,
+        limit_train_batches=10,
+        callbacks=[model_checkpoint]
+    )
+    trainer.fit(model)
+    files = [p.name for p in Path(tmpdir).glob("*.ckpt")]
+    assert files == [f"epoch=0-step={s}.ckpt" for s in [1, 3, 5, 7, 9]]

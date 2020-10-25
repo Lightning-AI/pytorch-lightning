@@ -554,7 +554,7 @@ class ModelCheckpoint(Callback):
         trainer,
         pl_module,
     ):
-        k = epoch + 1 if self.save_top_k == -1 else self.save_top_k
+        k = len(self.best_k_models) + 1 if self.save_top_k == -1 else self.save_top_k
 
         del_list = []
         if len(self.best_k_models) == k and k > 0:
