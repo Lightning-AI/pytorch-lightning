@@ -156,3 +156,6 @@ class WandbLogger(LightningLoggerBase):
     def version(self) -> Optional[str]:
         # don't create an experiment if we don't have one
         return self._experiment.id if self._experiment else self._id
+
+    def finalize(self, status: str) -> None:
+        wandb.finish()
