@@ -30,7 +30,7 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
-          file: dockers/conda/Dockerfile
+          file: dockers/release/Dockerfile
           push: false
         timeout-minutes: 50
 
