@@ -61,7 +61,9 @@ jobs:
         # publish master
         uses: docker/build-push-action@v2
         with:
-          build-args: PYTHON_VERSION=${{ matrix.python_version }},XLA_VERSION=${{ matrix.xla_version }}
+          build-args: |
+            PYTHON_VERSION=${{ matrix.python_version }}
+            XLA_VERSION=${{ matrix.xla_version }}
           cache-from: pytorchlightning/pytorch_lightning:base-xla-cache-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
           cache-to: pytorchlightning/pytorch_lightning:base-xla-cache-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
           file: dockers/base-xla/Dockerfile
@@ -111,7 +113,10 @@ jobs:
         # publish master
         uses: docker/build-push-action@v2
         with:
-          build-args: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }},PYTORCH_CHANNEL=${{ matrix.pytorch_channel }}
+          build-args: |
+            PYTHON_VERSION=${{ matrix.python_version }}
+            PYTORCH_VERSION=${{ matrix.pytorch_version }}
+            PYTORCH_CHANNEL=${{ matrix.pytorch_channel }}
           cache-from: pytorchlightning/pytorch_lightning:base-cuda-cache-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
           cache-to: pytorchlightning/pytorch_lightning:base-cuda-cache-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
           file: dockers/base-cuda/Dockerfile
@@ -123,7 +128,9 @@ jobs:
         # publish master
         uses: docker/build-push-action@v2
         with:
-          build-args: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }}
+          build-args: |
+            PYTHON_VERSION=${{ matrix.python_version }}
+            PYTORCH_VERSION=${{ matrix.pytorch_version }}
           file: dockers/conda/Dockerfile
           push: true
           tags: pytorchlightning/pytorch_lightning:nightly-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
