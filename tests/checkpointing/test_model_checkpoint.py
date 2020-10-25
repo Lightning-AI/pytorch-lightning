@@ -767,5 +767,5 @@ def test_val_check_interval_checkpoint_files(tmpdir):
         callbacks=[model_checkpoint]
     )
     trainer.fit(model)
-    files = [p.name for p in Path(tmpdir).glob("*.ckpt")]
+    files = sorted([p.name for p in Path(tmpdir).glob("*.ckpt")])
     assert files == [f"epoch=0-step={s}.ckpt" for s in [1, 3, 5, 7, 9]]
