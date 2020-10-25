@@ -25,9 +25,9 @@ else:
     xm = None
 
 
-def inner_f(queue, func, **kwargs):  # pragma: no cover
+def inner_f(queue, func, *args, **kwargs):  # pragma: no cover
     try:
-        queue.put(func(**kwargs))
+        queue.put(func(*args, **kwargs))
     except Exception as _e:
         import traceback
 
@@ -39,7 +39,7 @@ def pl_multi_process(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         queue = Queue()
-        proc = Process(target=inner_f, args=(queue, func,), kwargs=kwargs)
+        proc = Process(target=inner_f, args=(queue, func, *args), kwargs=kwargs)
         proc.start()
         proc.join(10)
         try:

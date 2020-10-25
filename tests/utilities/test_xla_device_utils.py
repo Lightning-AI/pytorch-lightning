@@ -51,12 +51,8 @@ def test_xla_device_is_a_tpu():
 def test_result_returns_within_10_seconds():
     """Check that pl_multi_process returns within 10 seconds"""
 
-    def run(n):
-        time.sleep(n)
-        return n
-
     start = time.time()
-    result = utils.pl_multi_process(run)(n=15)
+    result = utils.pl_multi_process(time.sleep)(25)
     end = time.time()
     elapsed_time = math.floor(end - start)
     assert elapsed_time <= 10
