@@ -35,9 +35,8 @@ def _confusion_matrix_compute(confmat: torch.Tensor,
     allowed_normalize = ('true', 'pred', 'all', None)
     assert normalize in allowed_normalize, \
         f"Argument average needs to one of the following: {allowed_normalize}"
-
+    confmat = confmat.float()
     if normalize is not None:
-        confmat = confmat.float()
         if normalize == 'true':
             cm = confmat / confmat.sum(axis=1, keepdim=True)
         elif normalize == 'pred':
@@ -86,7 +85,7 @@ def confusion_matrix(
         >>> from pytorch_lightning.metrics.functional import confusion_matrix
         >>> target = torch.tensor([1, 1, 0, 0])
         >>> preds = torch.tensor([0, 1, 0, 0])
-        >>> confusion_matrix(target, preds, num_classes=2)
+        >>> confusion_matrix(preds, target, num_classes=2)
         tensor([[2., 0.],
                 [1., 1.]])
     """
