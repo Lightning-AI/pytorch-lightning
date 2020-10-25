@@ -48,11 +48,11 @@ class DDPTorchElasticAccelerator(Accelerator):
         self.task_idx = None
         self._has_spawned_children = False
         self.dist = LightningDistributed()
-        self.nickname = 'ddp'
+        self.nickname = "ddp"
 
     def setup(self, model):
         self.trainer.model = model
-        self.task_idx = int(os.environ['LOCAL_RANK'])
+        self.task_idx = int(os.environ["LOCAL_RANK"])
 
     def train(self):
         model = self.trainer.model
@@ -145,14 +145,14 @@ class DDPTorchElasticAccelerator(Accelerator):
 
         # on world_size=0 let everyone know training is starting
         if self.trainer.is_global_zero and not torch.distributed.is_initialized():
-            log.info('-' * 100)
+            log.info("-" * 100)
             log.info(
-                f'distributed_backend={self.trainer.distributed_backend} (on SLURM)'
+                f"distributed_backend={self.trainer.distributed_backend} (on SLURM)"
             )
             log.info(
-                f'All DDP processes registered. Starting ddp with {self.trainer.world_size} processes'
+                f"All DDP processes registered. Starting ddp with {self.trainer.world_size} processes"
             )
-            log.info('-' * 100)
+            log.info("-" * 100)
 
         # call sync_bn before .cuda(), configure_apex and configure_ddp
         if self.trainer.sync_batchnorm:

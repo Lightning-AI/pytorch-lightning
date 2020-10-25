@@ -45,7 +45,7 @@ class DDP2Accelerator(Accelerator):
         super().__init__(trainer, cluster_environment, ddp_plugin)
         self.task_idx = None
         self.dist = LightningDistributed()
-        self.nickname = 'ddp2'
+        self.nickname = "ddp2"
 
     def setup(self, model):
         self._resolve_task_idx()
@@ -53,13 +53,13 @@ class DDP2Accelerator(Accelerator):
 
     def _resolve_task_idx(self):
         if self.trainer.is_slurm_managing_tasks:
-            self.task_idx = int(os.environ['SLURM_LOCALID'])
+            self.task_idx = int(os.environ["SLURM_LOCALID"])
         else:
             # torchelastic or general non_slurm ddp2
             try:
-                self.task_idx = int(os.environ['LOCAL_RANK'])
+                self.task_idx = int(os.environ["LOCAL_RANK"])
             except Exception as exp:
-                m = 'ddp2 only works in SLURM or via torchelastic with the WORLD_SIZE, LOCAL_RANK, GROUP_RANK flags'
+                m = "ddp2 only works in SLURM or via torchelastic with the WORLD_SIZE, LOCAL_RANK, GROUP_RANK flags"
                 raise MisconfigurationException(m) from exp
 
     def train(self):
@@ -158,12 +158,12 @@ class DDP2Accelerator(Accelerator):
 
         # on world_size=0 let everyone know training is starting
         if self.trainer.is_global_zero and not torch.distributed.is_initialized():
-            log.info('-' * 100)
-            log.info(f'distributed_backend={self.trainer.distributed_backend}')
+            log.info("-" * 100)
+            log.info(f"distributed_backend={self.trainer.distributed_backend}")
             log.info(
-                f'All DDP processes registered. Starting ddp with {self.trainer.world_size} processes'
+                f"All DDP processes registered. Starting ddp with {self.trainer.world_size} processes"
             )
-            log.info('-' * 100)
+            log.info("-" * 100)
 
         # call sync_bn before .cuda(), configure_apex and configure_ddp
         if self.trainer.sync_batchnorm:

@@ -15,7 +15,7 @@ import os
 from typing import List, Optional
 
 import torch
-import torch.distributed as dist
+import torch.distributed as torch_distrib
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.core.lightning import LightningModule
@@ -49,11 +49,11 @@ class DDPSLURMAccelerator(Accelerator):
         self.task_idx = None
         self._has_spawned_children = False
         self.dist = LightningDistributed()
-        self.nickname = 'ddp'
+        self.nickname = "ddp"
 
     def setup(self, model):
         self.trainer.model = model
-        self.task_idx = int(os.environ['SLURM_LOCALID'])
+        self.task_idx = int(os.environ["SLURM_LOCALID"])
 
     def train(self):
         model = self.trainer.model
@@ -92,13 +92,13 @@ class DDPSLURMAccelerator(Accelerator):
         return output
 
     def barrier(self, name: str = None):
-        if dist.is_initialized():
-            dist.barrier()
+        if torch_distrib.is_initialized():
+            torch_distrib.barrier()
 
     def early_stopping_should_stop(self, pl_module):
         stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device)
-        dist.all_reduce(stop, op=dist.reduce_op.SUM)
-        dist.barrier()
+        torch_distrib.all_reduce(stop, op=torch_distrib.reduce_op.SUM)
+        torch_distrib.barrier()
         should_stop = stop == self.trainer.world_size
         return should_stop
 
@@ -118,7 +118,7 @@ class DDPSLURMAccelerator(Accelerator):
             Dict with evaluation results
 
         """
-        seed = os.environ.get('PL_GLOBAL_SEED')
+        seed = os.environ.get("PL_GLOBAL_SEED")
         if seed is not None:
             seed_everything(int(seed))
 
@@ -150,14 +150,14 @@ class DDPSLURMAccelerator(Accelerator):
 
         # on world_size=0 let everyone know training is starting
         if self.trainer.is_global_zero and not torch.distributed.is_initialized():
-            log.info('-' * 100)
+            log.info("-" * 100)
             log.info(
-                f'distributed_backend={self.trainer.distributed_backend} (on SLURM)'
+                f"distributed_backend={self.trainer.distributed_backend} (on SLURM)"
             )
             log.info(
-                f'All DDP processes registered. Starting ddp with {self.trainer.world_size} processes'
+                f"All DDP processes registered. Starting ddp with {self.trainer.world_size} processes"
             )
-            log.info('-' * 100)
+            log.info("-" * 100)
 
         # call sync_bn before .cuda(), configure_apex and configure_ddp
         if self.trainer.sync_batchnorm:

@@ -54,35 +54,35 @@ class DDPAccelerator(Accelerator):
         self._has_spawned_children = False
         self.interactive_ddp_procs = []
         self.dist = LightningDistributed()
-        self.nickname = 'ddp'
+        self.nickname = "ddp"
 
     def setup(self, model):
         # first track model
         self.trainer.model = model
 
         # start the other scripts
-        if os.environ.get('PL_IN_DDP_SUBPROCESS', '0') != '1':
+        if os.environ.get("PL_IN_DDP_SUBPROCESS", "0") != "1":
             self._call_children_scripts()
 
         # set the task idx
-        self.task_idx = int(os.environ['LOCAL_RANK'])
+        self.task_idx = int(os.environ["LOCAL_RANK"])
 
     def _call_children_scripts(self):
         assert self.trainer.global_rank == 0
         self._check_can_spawn_children()
         self._has_spawned_children = True
 
-        os.environ['MASTER_ADDR'] = os.environ.get('MASTER_ADDR', '127.0.0.1')
-        os.environ['MASTER_PORT'] = os.environ.get(
-            'MASTER_PORT', str(find_free_network_port())
+        os.environ["MASTER_ADDR"] = os.environ.get("MASTER_ADDR", "127.0.0.1")
+        os.environ["MASTER_PORT"] = os.environ.get(
+            "MASTER_PORT", str(find_free_network_port())
         )
 
         # allow the user to pass the node rank
-        node_rank = '0'
-        node_rank = os.environ.get('NODE_RANK', node_rank)
-        node_rank = os.environ.get('GROUP_RANK', node_rank)
-        os.environ['NODE_RANK'] = node_rank
-        os.environ['LOCAL_RANK'] = '0'
+        node_rank = "0"
+        node_rank = os.environ.get("NODE_RANK", node_rank)
+        node_rank = os.environ.get("GROUP_RANK", node_rank)
+        os.environ["NODE_RANK"] = node_rank
+        os.environ["LOCAL_RANK"] = "0"
 
         # when user is using hydra find the absolute path
         path_lib = abspath if not HYDRA_AVAILABLE else to_absolute_path
@@ -104,31 +104,31 @@ class DDPAccelerator(Accelerator):
         # but forward the GPUs selected via environment variables
         if self.trainer.data_parallel_device_ids is None:
             raise MisconfigurationException(
-                'you selected (distribute_backend = ddp) but did not set Trainer(gpus=?)'
+                "you selected (distribute_backend = ddp) but did not set Trainer(gpus=?)"
             )
 
-        os.environ['PL_TRAINER_GPUS'] = ','.join(
+        os.environ["PL_TRAINER_GPUS"] = ",".join(
             [str(i) for i in self.trainer.data_parallel_device_ids]
         )
-        os.environ['PL_IN_DDP_SUBPROCESS'] = '1'
+        os.environ["PL_IN_DDP_SUBPROCESS"] = "1"
 
         if self.trainer.logger is not None:
-            os.environ['PL_EXP_VERSION'] = str(self.trainer.logger.version)
+            os.environ["PL_EXP_VERSION"] = str(self.trainer.logger.version)
 
         num_gpus = len(self.trainer.data_parallel_device_ids)
-        os.environ['WORLD_SIZE'] = f'{num_gpus * self.trainer.num_nodes}'
+        os.environ["WORLD_SIZE"] = f"{num_gpus * self.trainer.num_nodes}"
 
         self.interactive_ddp_procs = []
         for local_rank in range(1, self.trainer.num_processes):
             env_copy = os.environ.copy()
-            env_copy['LOCAL_RANK'] = f'{local_rank}'
+            env_copy["LOCAL_RANK"] = f"{local_rank}"
 
             # remove env var if global seed not set
             if (
-                os.environ.get('PL_GLOBAL_SEED') is None
-                and 'PL_GLOBAL_SEED' in env_copy
+                os.environ.get("PL_GLOBAL_SEED") is None
+                and "PL_GLOBAL_SEED" in env_copy
             ):
-                del env_copy['PL_GLOBAL_SEED']
+                del env_copy["PL_GLOBAL_SEED"]
 
             # start process
             # if hydra is available and initialized, make sure to set the cwd correctly
@@ -148,8 +148,8 @@ class DDPAccelerator(Accelerator):
         model = self.trainer.model
 
         results = self.ddp_train(process_idx=self.task_idx, model=model)
-        if 'WORLD_SIZE' in os.environ:
-            del os.environ['WORLD_SIZE']
+        if "WORLD_SIZE" in os.environ:
+            del os.environ["WORLD_SIZE"]
         return results
 
     def training_step(self, args):
@@ -175,7 +175,7 @@ class DDPAccelerator(Accelerator):
     def _check_can_spawn_children(self):
         if self._has_spawned_children:
             raise RuntimeError(
-                'You tried to run `.fit` or `.test` multiple times in the same script.'
+                "You tried to run `.fit` or `.test` multiple times in the same script."
                 ' This is not supported in DDP mode, switch to `distributed_backend="ddp_spawn"` instead.'
             )
 
@@ -223,7 +223,7 @@ class DDPAccelerator(Accelerator):
             Dict with evaluation results
 
         """
-        seed = os.environ.get('PL_GLOBAL_SEED')
+        seed = os.environ.get("PL_GLOBAL_SEED")
         if seed is not None:
             seed_everything(int(seed))
 
@@ -254,12 +254,12 @@ class DDPAccelerator(Accelerator):
 
         # on world_size=0 let everyone know training is starting
         if self.trainer.is_global_zero and not torch.distributed.is_initialized():
-            log.info('-' * 100)
-            log.info(f'distributed_backend={self.trainer.distributed_backend}')
+            log.info("-" * 100)
+            log.info(f"distributed_backend={self.trainer.distributed_backend}")
             log.info(
-                f'All DDP processes registered. Starting ddp with {self.trainer.world_size} processes'
+                f"All DDP processes registered. Starting ddp with {self.trainer.world_size} processes"
             )
-            log.info('-' * 100)
+            log.info("-" * 100)
 
         # call sync_bn before .cuda(), configure_apex and configure_ddp
         if self.trainer.sync_batchnorm:
@@ -285,7 +285,7 @@ class DDPAccelerator(Accelerator):
         model = self.configure_ddp(model, device_ids)
 
         # set up training routine
-        self.barrier('ddp_setup')
+        self.barrier("ddp_setup")
         self.trainer.train_loop.setup_training(model)
 
         # train or test

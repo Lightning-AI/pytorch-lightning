@@ -15,7 +15,7 @@ import os
 from typing import List, Optional
 
 import torch
-import torch.distributed as dist
+import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
@@ -52,15 +52,15 @@ class DDPCPUSpawnAccelerator(Accelerator):
         self.mp_queue = None
         self.nprocs = nprocs
         self.dist = LightningDistributed()
-        self.nickname = 'ddp_cpu'
+        self.nickname = "ddp_cpu"
 
     def setup(self, model):
-        os.environ['MASTER_PORT'] = os.environ.get(
-            'MASTER_PORT', str(find_free_network_port())
+        os.environ["MASTER_PORT"] = os.environ.get(
+            "MASTER_PORT", str(find_free_network_port())
         )
 
         # pass in a state q
-        smp = mp.get_context('spawn')
+        smp = mp.get_context("spawn")
         self.mp_queue = smp.SimpleQueue()
 
         self.trainer.model = model
@@ -122,12 +122,12 @@ class DDPCPUSpawnAccelerator(Accelerator):
 
         # on world_size=0 let everyone know training is starting
         if self.trainer.is_global_zero and not torch.distributed.is_initialized():
-            log.info('-' * 100)
-            log.info(f'distributed_backend={self.trainer.distributed_backend}')
+            log.info("-" * 100)
+            log.info(f"distributed_backend={self.trainer.distributed_backend}")
             log.info(
-                f'All DDP processes registered. Starting ddp with {self.trainer.world_size} processes'
+                f"All DDP processes registered. Starting ddp with {self.trainer.world_size} processes"
             )
-            log.info('-' * 100)
+            log.info("-" * 100)
 
         # call sync_bn before .cuda(), configure_apex and configure_ddp
         if self.trainer.sync_batchnorm:
@@ -184,16 +184,16 @@ class DDPCPUSpawnAccelerator(Accelerator):
         return output
 
     def barrier(self, name: Optional[str] = None):
-        if dist.is_initialized():
-            dist.barrier()
+        if torch_distrib.is_initialized():
+            torch_distrib.barrier()
 
     def broadcast(self, obj, src=0):
         return self.dist.broadcast(obj)
 
     def early_stopping_should_stop(self, pl_module):
         stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device)
-        dist.all_reduce(stop, op=dist.reduce_op.SUM)
-        dist.barrier()
+        torch_distrib.all_reduce(stop, op=torch_distrib.reduce_op.SUM)
+        torch_distrib.barrier()
         should_stop = stop == self.trainer.world_size
         return should_stop
 
@@ -225,7 +225,7 @@ class DDPCPUSpawnAccelerator(Accelerator):
             best_model_path = self.trainer.checkpoint_callback.best_model_path
 
         if self.trainer.global_rank == 0 and mp_queue is not None:
-            rank_zero_warn('cleaning up ddp environment...')
+            rank_zero_warn("cleaning up ddp environment...")
             # todo, pass complete checkpoint as state dictionary
             mp_queue.put(best_model_path)
             mp_queue.put(results)
