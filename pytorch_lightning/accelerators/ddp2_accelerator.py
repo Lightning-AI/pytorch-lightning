@@ -13,20 +13,21 @@
 # limitations under the License
 
 import os
+from typing import List, Optional
 
 import torch
 import torch.distributed as torch_distrib
-
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning import _logger as log
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.distributed.dist import LightningDistributed
-from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.plugins.sync_batchnorm_plugin import SyncBatchNormPlugin
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from torch.nn.parallel import DistributedDataParallel
-from typing import List, Optional
+
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -38,12 +39,17 @@ else:
 
 
 class DDP2Accelerator(Accelerator):
-
-    def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
-        super().__init__(trainer, cluster_environment, ddp_plugin)
+    def __init__(
+        self,
+        trainer,
+        cluster_environment=None,
+        ddp_plugin=None,
+        sync_bn_plugin: Optional[SyncBatchNormPlugin] = None,
+    ):
+        super().__init__(trainer, cluster_environment, ddp_plugin, sync_bn_plugin)
         self.task_idx = None
         self.dist = LightningDistributed()
-        self.nickname = 'ddp2'
+        self.nickname = "ddp2"
 
     def setup(self, model):
         self._resolve_task_idx()
@@ -51,13 +57,13 @@ class DDP2Accelerator(Accelerator):
 
     def _resolve_task_idx(self):
         if self.trainer.is_slurm_managing_tasks:
-            self.task_idx = int(os.environ['SLURM_LOCALID'])
+            self.task_idx = int(os.environ["SLURM_LOCALID"])
         else:
             # torchelastic or general non_slurm ddp2
             try:
-                self.task_idx = int(os.environ['LOCAL_RANK'])
+                self.task_idx = int(os.environ["LOCAL_RANK"])
             except Exception as exp:
-                m = 'ddp2 only works in SLURM or via torchelastic with the WORLD_SIZE, LOCAL_RANK, GROUP_RANK flags'
+                m = "ddp2 only works in SLURM or via torchelastic with the WORLD_SIZE, LOCAL_RANK, GROUP_RANK flags"
                 raise MisconfigurationException(m) from exp
 
     def train(self):
@@ -130,7 +136,9 @@ class DDP2Accelerator(Accelerator):
 
         """
         # show progressbar only on progress_rank 0
-        if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:
+        if (
+            self.trainer.node_rank != 0 or process_idx != 0
+        ) and self.trainer.progress_bar_callback is not None:
             self.trainer.progress_bar_callback.disable()
 
         # determine which process we are and world size
@@ -146,7 +154,7 @@ class DDP2Accelerator(Accelerator):
         self.init_ddp_connection(
             self.trainer.global_rank,
             self.trainer.world_size,
-            self.trainer.is_slurm_managing_tasks
+            self.trainer.is_slurm_managing_tasks,
         )
 
         # call setup after the ddp process has connected
@@ -154,10 +162,12 @@ class DDP2Accelerator(Accelerator):
 
         # on world_size=0 let everyone know training is starting
         if self.trainer.is_global_zero and not torch.distributed.is_initialized():
-            log.info('-' * 100)
-            log.info(f'distributed_backend={self.trainer.distributed_backend}')
-            log.info(f'All DDP processes registered. Starting ddp with {self.trainer.world_size} processes')
-            log.info('-' * 100)
+            log.info("-" * 100)
+            log.info(f"distributed_backend={self.trainer.distributed_backend}")
+            log.info(
+                f"All DDP processes registered. Starting ddp with {self.trainer.world_size} processes"
+            )
+            log.info("-" * 100)
 
         # call sync_bn before .cuda(), configure_apex and configure_ddp
         if self.trainer.sync_batchnorm:
@@ -199,18 +209,6 @@ class DDP2Accelerator(Accelerator):
         return model
 
     def configure_sync_batchnorm(self, model: LightningModule) -> LightningModule:
-        """
-        Add global batchnorm for a model spread across multiple GPUs and nodes.
-
-        Override to synchronize batchnorm between specific process groups instead
-        of the whole world or use a different sync_bn like `apex`'s version.
-
-        Args:
-            model: pointer to current :class:`LightningModule`.
-
-        Return:
-            LightningModule with batchnorm layers synchronized between process groups
-        """
-        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
+        model = self.sync_bn_plugin.configure_sync_batchnorm(model)
 
         return model

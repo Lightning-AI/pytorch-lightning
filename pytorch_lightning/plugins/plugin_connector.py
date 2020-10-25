@@ -12,16 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning.cluster_environments import ClusterEnvironment
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
+from pytorch_lightning.plugins.sync_batchnorm_plugin import SyncBatchNormPlugin
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class PluginConnector:
-
     def __init__(self, trainer):
         self.trainer = trainer
         self.plugins = []
         self.ddp_plugin = DDPPlugin()
+        self.sync_bn_plugin = SyncBatchNormPlugin()
         self.cloud_environment = None
 
     def on_trainer_init(self, plugins):
@@ -30,6 +31,7 @@ class PluginConnector:
             self.plugins = []
 
         self.__attach_ddp()
+        self.__attach_sync_bn()
         self.__attach_cluster()
 
     def __attach_ddp(self, limit=1):
@@ -40,11 +42,25 @@ class PluginConnector:
                 # count the clusters
                 count += 1
                 if count > limit:
-                    m = f'you can only use one DDP plugin in plugins. You passed in: {count}'
+                    m = f"you can only use one DDP plugin in plugins. You passed in: {count}"
                     raise MisconfigurationException(m)
 
                 # set the ddp plugin
                 self.ddp_plugin = plugin
+
+    def __attach_sync_bn(self, limit: int = 1):
+        count = 0
+        for plugin in self.plugins:
+            if isinstance(plugin, SyncBatchNormPlugin):
+
+                # count the clusters
+                count += 1
+                if count > limit:
+                    m = f"you can only use one SyncBatchNorm plugin in plugins. You passed in: {count}"
+                    raise MisconfigurationException(m)
+
+                # set the sync batchnorm plugin
+                self.sync_bn_plugin = plugin
 
     def __attach_cluster(self, limit=1):
         num_clusters = 0
@@ -54,7 +70,7 @@ class PluginConnector:
                 # count the clusters
                 num_clusters += 1
                 if num_clusters > limit:
-                    m = f'you can only use one cluster environment in plugins. You passed in: {num_clusters}'
+                    m = f"you can only use one cluster environment in plugins. You passed in: {num_clusters}"
                     raise MisconfigurationException(m)
 
                 # set the cluster

@@ -16,19 +16,23 @@ import re
 from typing import List, Optional
 
 import torch
-import torch.multiprocessing as mp
-import torch.distributed as torch_distrib
 import torch.distributed as dist
-from torch.nn.parallel import DistributedDataParallel
-
+import torch.multiprocessing as mp
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.plugins.sync_batchnorm_plugin import SyncBatchNormPlugin
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.cloud_io import atomic_save, load as pl_load
-from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, find_free_network_port
+from pytorch_lightning.utilities.distributed import (
+    find_free_network_port,
+    rank_zero_only,
+    rank_zero_warn,
+)
 from pytorch_lightning.utilities.seed import seed_everything
-from pytorch_lightning.distributed.dist import LightningDistributed
+from torch.nn.parallel import DistributedDataParallel
+
 
 try:
     from hydra.core.hydra_config import HydraConfig
@@ -40,19 +44,27 @@ else:
 
 
 class DDPSpawnAccelerator(Accelerator):
-
-    def __init__(self, trainer, nprocs, cluster_environment=None, ddp_plugin=None):
-        super().__init__(trainer, cluster_environment, ddp_plugin)
+    def __init__(
+        self,
+        trainer,
+        nprocs,
+        cluster_environment=None,
+        ddp_plugin=None,
+        sync_bn_plugin: Optional[SyncBatchNormPlugin] = None,
+    ):
+        super().__init__(trainer, cluster_environment, ddp_plugin, sync_bn_plugin)
         self.mp_queue = None
         self.nprocs = nprocs
         self.dist = LightningDistributed()
-        self.nickname = 'ddp'
+        self.nickname = "ddp"
 
     def setup(self, model):
-        os.environ['MASTER_PORT'] = os.environ.get('MASTER_PORT', str(find_free_network_port()))
+        os.environ["MASTER_PORT"] = os.environ.get(
+            "MASTER_PORT", str(find_free_network_port())
+        )
 
         # pass in a state q
-        smp = mp.get_context('spawn')
+        smp = mp.get_context("spawn")
         self.mp_queue = smp.SimpleQueue()
 
         self.trainer.model = model
@@ -61,7 +73,14 @@ class DDPSpawnAccelerator(Accelerator):
         model = self.trainer.model
 
         # train in children process
-        mp.spawn(self.ddp_train, nprocs=self.nprocs, args=(self.mp_queue, model,))
+        mp.spawn(
+            self.ddp_train,
+            nprocs=self.nprocs,
+            args=(
+                self.mp_queue,
+                model,
+            ),
+        )
 
         # restore main state with best weights
         best_path = self.mp_queue.get()
@@ -89,7 +108,9 @@ class DDPSpawnAccelerator(Accelerator):
         process_idx = process_idx + proc_offset
 
         # show progressbar only on progress_rank 0
-        if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:
+        if (
+            self.trainer.node_rank != 0 or process_idx != 0
+        ) and self.trainer.progress_bar_callback is not None:
             self.trainer.progress_bar_callback.disable()
 
         # determine which process we are and world size
@@ -105,7 +126,7 @@ class DDPSpawnAccelerator(Accelerator):
         self.init_ddp_connection(
             self.trainer.global_rank,
             self.trainer.world_size,
-            self.trainer.is_slurm_managing_tasks
+            self.trainer.is_slurm_managing_tasks,
         )
 
         # call setup after the ddp process has connected
@@ -113,10 +134,12 @@ class DDPSpawnAccelerator(Accelerator):
 
         # on world_size=0 let everyone know training is starting
         if self.trainer.is_global_zero and not torch.distributed.is_initialized():
-            log.info('-' * 100)
-            log.info(f'distributed_backend={self.trainer.distributed_backend}')
-            log.info(f'All DDP processes registered. Starting ddp with {self.trainer.world_size} processes')
-            log.info('-' * 100)
+            log.info("-" * 100)
+            log.info(f"distributed_backend={self.trainer.distributed_backend}")
+            log.info(
+                f"All DDP processes registered. Starting ddp with {self.trainer.world_size} processes"
+            )
+            log.info("-" * 100)
 
         # call sync_bn before .cuda(), configure_apex and configure_ddp
         if self.trainer.sync_batchnorm:
@@ -158,7 +181,9 @@ class DDPSpawnAccelerator(Accelerator):
 
     def set_world_ranks(self, process_idx):
         self.trainer.local_rank = process_idx
-        self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
+        self.trainer.global_rank = (
+            self.trainer.node_rank * self.trainer.num_processes + process_idx
+        )
         self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
     def model_to_device(self, model, process_idx, is_master):
@@ -220,15 +245,19 @@ class DDPSpawnAccelerator(Accelerator):
             best_model_path = self.trainer.checkpoint_callback.best_model_path
 
         if self.trainer.global_rank == 0 and mp_queue is not None:
-            rank_zero_warn('cleaning up ddp environment...')
+            rank_zero_warn("cleaning up ddp environment...")
             # todo, pass complete checkpoint as state dictionary
             mp_queue.put(best_model_path)
             mp_queue.put(results)
 
             # save the last weights
             last_path = None
-            if not self.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
-                last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
+            if (
+                not self.trainer.testing
+                and best_model_path is not None
+                and len(best_model_path) > 0
+            ):
+                last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
                 atomic_save(model.state_dict(), last_path)
             mp_queue.put(last_path)
 
@@ -239,18 +268,4 @@ class DDPSpawnAccelerator(Accelerator):
         return model
 
     def configure_sync_batchnorm(self, model: LightningModule) -> LightningModule:
-        """
-        Add global batchnorm for a model spread across multiple GPUs and nodes.
-
-        Override to synchronize batchnorm between specific process groups instead
-        of the whole world or use a different sync_bn like `apex`'s version.
-
-        Args:
-            model: pointer to current :class:`LightningModule`.
-
-        Return:
-            LightningModule with batchnorm layers synchronized between process groups
-        """
-        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
-
-        return model
+        return self.sync_bn_plugin.configure_sync_batchnorm(model)
