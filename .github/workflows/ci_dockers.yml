@@ -80,9 +80,7 @@ jobs:
           echo $cuda
           echo "::set-env name=CUDA::$cuda"
           echo ${{env.CUDA}}
-      - env:
-          CUDA: $(( ${{matrix.pytorch_version}} >= 1.4 ? 10.2 : 10.1))
-        run: echo ${{env.CUDA}}
+      - run: echo ${{env.CUDA}}
 
       # https://github.com/docker/setup-buildx-action
       # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
