@@ -461,6 +461,8 @@ class Trainer(
         return results or 1
 
     def train(self):
+        self.logger_connector.set_stage("train")
+
         self.run_sanity_check(self.get_model())
 
         self.checkpoint_connector.has_trained = False
@@ -526,6 +528,9 @@ class Trainer(
                 self.train_loop.on_train_end()
 
     def run_evaluation(self, test_mode: bool = False, max_batches=None):
+        # used to know if we are logging for val, testl
+        self.trainer.logger_connector.set_stage(test_mode)
+        
         # bookkeeping
         self.evaluation_loop.testing = test_mode
         dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders(max_batches)

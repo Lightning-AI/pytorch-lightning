@@ -328,12 +328,12 @@ def test_tbptt_log(tmpdir):
             assert y_tensor.shape[1] == truncated_bptt_steps, "tbptt split list failed"
 
             pred = self(x_tensor.view(batch_size, truncated_bptt_steps))
-            loss_val = torch.nn.functional.mse_loss(
+            loss = torch.nn.functional.mse_loss(
                 pred, y_tensor.view(batch_size, truncated_bptt_steps))
 
-            self.log('a', loss_val, on_epoch=True)
+            self.log('a', loss, on_epoch=True)
 
-            return {'loss': loss_val, 'hiddens': self.test_hidden}
+            return {'loss': loss, 'hiddens': self.test_hidden}
 
         def on_train_epoch_start(self) -> None:
             self.test_hidden = None
@@ -364,7 +364,6 @@ def test_tbptt_log(tmpdir):
     generated = set(trainer.logged_metrics.keys())
     expected = {'a_step', 'a_epoch', 'epoch'}
     assert generated == expected
-
 
 def test_different_batch_types_for_sizing(tmpdir):
 
@@ -523,10 +522,14 @@ def test_log_works_in_train_callback(tmpdir):
                               on_epoch=on_epoch, prog_bar=prog_bar)
                 # catch information for verification
                 self.callback_funcs_called[func_name].append([self.count * func_idx])
+
+                forked = on_step and on_epoch
+
                 self.funcs_attr[custom_func_name] = {
                     "on_step": on_step,
                     "on_epoch": on_epoch,
                     "prog_bar": prog_bar,
+                    "forked": forked,
                     "func_name": func_name}
 
                 if on_step and on_epoch:
@@ -534,12 +537,14 @@ def test_log_works_in_train_callback(tmpdir):
                         "on_step": True,
                         "on_epoch": False,
                         "prog_bar": prog_bar,
+                        "forked": False,
                         "func_name": func_name}
 
                     self.funcs_attr[f"{custom_func_name}_epoch"] = {
                         "on_step": False,
                         "on_epoch": True,
                         "prog_bar": prog_bar,
+                        "forked": False,
                         "func_name": func_name}
 
         def on_train_start(self, trainer, pl_module):
@@ -639,7 +644,7 @@ def test_log_works_in_train_callback(tmpdir):
     # Make sure the func_name output equals the average from all logged values when on_epoch true
     # pop extra keys
     trainer.callback_metrics.pop("debug_epoch")
-    trainer.callback_metrics.pop("train_loss")
+    #trainer.callback_metrics.pop("train_loss")
 
     for func_name, output_value in trainer.callback_metrics.items():
         if torch.is_tensor(output_value):
@@ -655,7 +660,7 @@ def test_log_works_in_train_callback(tmpdir):
         assert float(output_value) == float(expected_output)
 
     for func_name, func_attr in test_callback.funcs_attr.items():
-        if func_attr["prog_bar"] and (func_attr["on_step"] or func_attr["on_epoch"]):
+        if func_attr["prog_bar"] and (func_attr["on_step"] or func_attr["on_epoch"]) and not func_attr["forked"]:
             assert func_name in trainer.logger_connector.progress_bar_metrics
         else:
             assert func_name not in trainer.logger_connector.progress_bar_metrics

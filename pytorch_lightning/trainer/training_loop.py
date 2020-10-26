@@ -544,6 +544,8 @@ class TrainLoop:
             should_check_val = self.should_check_val_fx(batch_idx, is_last_batch)
             if should_check_val:
                 self.trainer.run_evaluation(test_mode=False)
+                # reset stage to train
+                self.trainer.logger_connector.set_stage("train")
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
@@ -584,7 +586,6 @@ class TrainLoop:
         # epoch end hook
         self.run_on_epoch_end_hook(epoch_output)
 
-        breakpoint()
         # log epoch metrics
         self.trainer.logger_connector.log_train_epoch_end_metrics(
             epoch_output,

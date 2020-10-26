@@ -247,9 +247,9 @@ class LightningModule(
             on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
             if self._current_hook_fx_name != '':
-                self.trainer.callback_connector.validate_callback_logging_arguments(self._current_hook_fx_name,
-                                                                                    on_step=on_step,
-                                                                                    on_epoch=on_epoch)
+                self.trainer.logger_connector.check_logging_in_callbacks(self._current_hook_fx_name,
+                                                                           on_step=on_step,
+                                                                           on_epoch=on_epoch)
 
             # make sure user doesn't introduce logic for multi-dataloaders
             if "/dataloader_idx_" in name:

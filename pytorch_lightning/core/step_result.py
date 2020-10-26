@@ -498,6 +498,8 @@ class Result(Dict):
             if option['on_epoch']:
                 fx = option['reduce_fx']
                 if fx == torch.mean:
+                    if isinstance(result[k], list):
+                        result[k] = torch.tensor(result[k]).float()
                     try:
                         reduced_val = weighted_mean(result[k], batch_sizes)
                     except Exception as e:
