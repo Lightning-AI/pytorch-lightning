@@ -81,7 +81,7 @@ class TrainLoop:
         if self.trainer.current_epoch >= self.trainer.max_epochs:
             return True
 
-        if self.trainer.num_training_batches == 0:
+        if self.trainer.limit_train_batches == 0:
             return True
 
         return False
