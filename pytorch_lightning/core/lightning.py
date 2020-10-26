@@ -38,6 +38,7 @@ from pytorch_lightning.utilities.parsing import (
     collect_init_args,
     get_init_args,
 )
+from pytorch_lightning.utilities.apply_func import move_data_to_device
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
@@ -1539,7 +1540,7 @@ class LightningModule(
 
     def to_torchscript(
         self, file_path: Optional[str] = None, method: Optional[str] = 'script',
-            example_inputs: Optional[torch.Tensor] = None, **kwargs
+            example_inputs: Optional[Union[torch.Tensor, Tuple[torch.Tensor]]] = None, **kwargs
     ) -> Union[ScriptModule, Dict[str, ScriptModule]]:
         """
         By default compiles the whole model to a :class:`~torch.jit.ScriptModule`.
@@ -1576,6 +1577,8 @@ class LightningModule(
             >>> model = SimpleModel()
             >>> torch.jit.save(model.to_torchscript(), "model.pt")  # doctest: +SKIP
             >>> os.path.isfile("model.pt")  # doctest: +SKIP
+            # >>> torch.jit.save(model.to_torchscript(method='trace', example_inputs=torch.randn(1, 64)), "model_trace.pt")  # doctest: +SKIP
+            # >>> os.path.isfile("model_trace.pt")  # doctest: +SKIP
             True
 
         Return:
@@ -1591,8 +1594,12 @@ class LightningModule(
                 # if no example inputs are provided, try to see if model has example_input_array set
                 if example_inputs is None:
                     example_inputs = self.example_input_array
+                # dicts are not supported, so show the user an error; not raising an error to show the original error
+                if type(example_inputs) == dict:
+                    log.error(f"`example_inputs` should be a Tensor or a tuple of Tensors, but got a dict.")
                 # automatically send example inputs to the right device and use trace
-                torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs.to(self.device),
+                example_input_array_device = move_data_to_device(example_inputs, device=self.device)
+                torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_input_array_device,
                                                      **kwargs)
             else:
                 raise ValueError(f"The 'method' parameter only supports 'script' or 'trace', but value given was:"
