@@ -203,7 +203,7 @@ class TrainLoop:
 
     def check_checkpoint_callback(self, should_save, is_last=False):
         # TODO bake this logic into the checkpoint callback
-        if should_save:
+        if should_save and self.trainer.checkpoint_connector.has_trained:
             checkpoint_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
             if is_last and any(c.save_last for c in checkpoint_callbacks):
                 rank_zero_info("Saving latest checkpoint...")
@@ -595,14 +595,14 @@ class TrainLoop:
 
             self.trainer.total_batch_idx += 1
 
+            self.trainer.checkpoint_connector.has_trained = True
+
             # stop epoch if we limited the number of training batches
             if batch_idx + 1 >= self.trainer.num_training_batches:
                 break
 
             # progress global step according to grads progress
             self.increment_accumulated_grad_global_step()
-
-            self.trainer.checkpoint_connector.has_trained = True
 
         # log epoch metrics
         self.trainer.logger_connector.log_train_epoch_end_metrics(
