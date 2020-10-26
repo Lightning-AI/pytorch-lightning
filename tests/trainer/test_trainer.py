@@ -748,6 +748,69 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
             assert trainer.tested_ckpt_path == ckpt_path
 
 
+def test_disabled_training(tmpdir):
+    """Verify that `limit_train_batches=0` disables the training loop unless `fast_dev_run=True`."""
+
+    class CurrentModel(EvalModelTemplate):
+
+        training_step_invoked = False
+        training_epoch_end_invoked = False
+
+        def training_step(self, *args, **kwargs):
+            self.training_step_invoked = True
+            return super().training_step(*args, **kwargs)
+
+        def training_epoch_end(self, *args, **kwargs):
+            self.training_epoch_end_invoked = True
+            return super().training_epoch_end(*args, **kwargs)
+
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = CurrentModel(**hparams)
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=2,
+        limit_train_batches=0.0,
+        limit_val_batches=0.2,
+        fast_dev_run=False,
+    )
+
+    before_state_dict = deepcopy(model.state_dict())
+
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    after_state_dict = model.state_dict()
+
+    for key in before_state_dict.keys():
+        assert torch.all(torch.eq(before_state_dict[key], after_state_dict[key]))
+
+    # check that limit_train_batches=0 turns off training
+    assert result == 1, "training failed to complete"
+    assert trainer.current_epoch == 0
+    assert not model.training_step_invoked, "`training_step` should not run when `limit_train_batches=0`"
+    assert not model.training_epoch_end_invoked, "`training_epoch_end` should not run when `limit_train_batches=0`"
+
+    # check that limit_train_batches has no influence when fast_dev_run is turned on
+    model = CurrentModel(**hparams)
+    trainer_options.update(fast_dev_run=True)
+    before_state_dict = deepcopy(model.state_dict())
+
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    after_state_dict = model.state_dict()
+
+    for key in before_state_dict.keys():
+        assert not torch.all(torch.eq(before_state_dict[key], after_state_dict[key]))
+
+    assert result == 1, "training failed to complete"
+    assert trainer.current_epoch == 0
+    assert model.training_step_invoked, "did not run `training_step` with `fast_dev_run=True`"
+    assert model.training_epoch_end_invoked, "did not run `training_epoch_end` with `fast_dev_run=True`"
+
+
 def test_disabled_validation(tmpdir):
     """Verify that `limit_val_batches=0` disables the validation loop unless `fast_dev_run=True`."""
 
