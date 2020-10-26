@@ -223,7 +223,7 @@ class ModelCheckpoint(Callback):
         monitor_candidates = self._monitor_candidates(trainer)
 
         # ie: path/val_loss=0.5.ckpt
-        filepath = self._get_metric_interpolated_filepath_name(monitor_candidates)
+        filepath = self._get_metric_interpolated_filepath_name(monitor_candidates, epoch, global_step)
 
         # callback supports multiple simultaneous modes
         # here we call each mode sequentially
@@ -400,9 +400,9 @@ class ModelCheckpoint(Callback):
             >>> ckpt = ModelCheckpoint(dirpath=tmpdir, filename='{missing:d}')
             >>> os.path.basename(ckpt.format_checkpoint_name(0, 4, metrics={}))
             'missing=0.ckpt'
-            >>> ckpt = ModelCheckpoint(filename='{epoch}')
+            >>> ckpt = ModelCheckpoint(filename='{step}')
             >>> os.path.basename(ckpt.format_checkpoint_name(0, 0, {}))
-            'epoch=0.ckpt'
+            'step=0.ckpt'
 
         """
         filename = self._format_checkpoint_name(
@@ -481,9 +481,7 @@ class ModelCheckpoint(Callback):
             )
             raise MisconfigurationException(m)
 
-    def _get_metric_interpolated_filepath_name(self, ckpt_name_metrics: Dict[str, Any]):
-        epoch = ckpt_name_metrics.get("epoch")
-        step = ckpt_name_metrics.get("step")
+    def _get_metric_interpolated_filepath_name(self, ckpt_name_metrics: Dict[str, Any], epoch: int, step: int):
         filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics)
         version_cnt = 0
         while self._fs.exists(filepath):
