@@ -454,8 +454,7 @@ class TrainLoop:
             )
 
     def on_before_zero_grad(self, optimizer):
-        model = self.trainer.get_model()
-        model.on_before_zero_grad(optimizer)
+        self.trainer.call_hook('on_before_zero_grad')
 
     def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
         self.trainer.accelerator_backend.optimizer_zero_grad(batch_idx, optimizer, opt_idx)

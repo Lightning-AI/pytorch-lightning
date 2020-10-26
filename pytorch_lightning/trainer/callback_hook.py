@@ -209,3 +209,17 @@ class TrainerCallbackHookMixin(ABC):
             if state:
                 state = deepcopy(state)
                 callback.on_load_checkpoint(state)
+
+    def on_after_backward(self):
+        """
+        Called after loss.backward() and before optimizers do anything.
+        """
+        for callback in self.callbacks:
+            callback.on_after_backward(self, self.get_model())
+
+    def on_before_zero_grad(self):
+        """
+        Called after optimizer.step() and before optimizer.zero_grad().
+        """
+        for callback in self.callbacks:
+            callback.on_before_zero_grad(self, self.get_model())

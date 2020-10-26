@@ -166,3 +166,15 @@ class Callback(abc.ABC):
     def on_load_checkpoint(self, checkpointed_state):
         """Called when loading a model checkpoint, use to reload state."""
         pass
+
+    def on_after_backward(self):
+        """
+        Called after loss.backward() and before optimizers do anything.
+        """
+        pass
+
+    def on_before_zero_grad(self):
+        """
+        Called after optimizer.step() and before optimizer.zero_grad().
+        """
+        pass
