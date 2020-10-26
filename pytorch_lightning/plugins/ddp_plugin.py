@@ -52,7 +52,13 @@ class DDPPlugin(object):
             the model wrapped in LightningDistributedDataParallel
 
         """
+        # if unset, default `find_unused_parameters` `True`
+        self._kwargs["find_unused_parameters"] = self._kwargs.get(
+            "find_unused_parameters", True
+        )
         model = LightningDistributedDataParallel(
-            model, device_ids=device_ids, find_unused_parameters=True, **self._kwargs
+            model,
+            device_ids=device_ids,
+            **self._kwargs,
         )
         return model
