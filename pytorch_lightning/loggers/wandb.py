@@ -156,3 +156,8 @@ class WandbLogger(LightningLoggerBase):
     def version(self) -> Optional[str]:
         # don't create an experiment if we don't have one
         return self._experiment.id if self._experiment else self._id
+
+    def finalize(self, status: str) -> None:
+        # upload all checkpoints from saving dir
+        if self._log_model:
+            wandb.save(os.path.join(self.save_dir, "*.ckpt"))
