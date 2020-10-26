@@ -557,7 +557,7 @@ class TrainLoop:
 
             # hook
             # TODO: add outputs to batches
-            self.on_train_batch_end(epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx)
+            self.on_train_batch_end(epoch_output, batch_output.training_step_output_for_epoch_end, batch, batch_idx, dataloader_idx)
 
             # -----------------------------------------
             # SAVE METRICS TO LOGGERS
