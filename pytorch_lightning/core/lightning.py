@@ -1497,7 +1497,7 @@ class LightningModule(
 
         Args:
             file_path: The path of the file the onnx model should be saved to.
-            input_sample: An input for tracing.
+            input_sample: An input sample for tracing.
             **kwargs: Will be passed to torch.onnx.export function.
 
         Example:
