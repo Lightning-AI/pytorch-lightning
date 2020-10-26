@@ -252,7 +252,7 @@ class EvaluationLoop(object):
             step = 'testing_epoch_end' if self.testing else 'validation_epoch_end'
             self.warning_cache.warn(
                 f'The {step} should not return anything as of 9.1.'
-                f'to log, use self.log(...) or self.write(...) directly in the LightningModule'
+                ' To log, use self.log(...) or self.write(...) directly in the LightningModule'
             )
 
         if using_eval_result and not user_reduced:
