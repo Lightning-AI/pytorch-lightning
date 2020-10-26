@@ -72,6 +72,12 @@ jobs:
       run: |
         echo "::set-output name=dir::$(pip cache dir)"
 
+    # TODO: remove when 1.7 release in stable channel
+    - name: Install PyTorch RC
+      if: matrix.requires == 'latest'
+      run: |
+        pip install torch -f https://download.pytorch.org/whl/test/cpu/torch_test.html
+
     - name: pip cache
       uses: actions/cache@v2
       with:
