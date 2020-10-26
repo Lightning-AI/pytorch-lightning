@@ -76,14 +76,14 @@ class TrainLoop:
     def num_optimizers(self):
         num_optimizers = len(self.get_optimizers_iterable())
         return num_optimizers
-    
+
     def should_skip_training(self):
         if self.trainer.current_epoch >= self.trainer.max_epochs:
             return True
 
         if self.trainer.num_training_batches == 0:
             return True
-        
+
         return False
 
     def on_train_start(self):
