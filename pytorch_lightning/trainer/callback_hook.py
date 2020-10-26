@@ -217,9 +217,9 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_after_backward(self, self.get_model())
 
-    def on_before_zero_grad(self):
+    def on_before_zero_grad(self, optimizer):
         """
         Called after optimizer.step() and before optimizer.zero_grad().
         """
         for callback in self.callbacks:
-            callback.on_before_zero_grad(self, self.get_model())
+            callback.on_before_zero_grad(self, self.get_model(), optimizer)
