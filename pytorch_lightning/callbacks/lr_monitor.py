@@ -102,6 +102,7 @@ class LearningRateMonitor(Callback):
             latest_stat = self._extract_lr(trainer, interval)
 
             if trainer.logger is not None and latest_stat:
+                latest_stat.setdefault("epoch", trainer.current_epoch)
                 trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
     def on_train_epoch_start(self, trainer, *args, **kwargs):
@@ -110,7 +111,8 @@ class LearningRateMonitor(Callback):
             latest_stat = self._extract_lr(trainer, interval)
 
             if trainer.logger is not None and latest_stat:
-                trainer.logger.log_metrics(latest_stat, step=trainer.current_epoch)
+                latest_stat.setdefault("epoch", trainer.current_epoch)
+                trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
     def _extract_lr(self, trainer, interval: str) -> Dict[str, float]:
         latest_stat = {}
