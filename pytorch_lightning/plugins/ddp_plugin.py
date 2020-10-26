@@ -24,7 +24,7 @@ class DDPPlugin(object):
     """
 
     def __init__(self, **kwargs):
-        self._kwargs: Dict[str, Any] = kwargs
+        self._ddp_args: Dict[str, Any] = kwargs
 
     def configure_ddp(
         self, model: LightningModule, device_ids: List[int]
@@ -53,12 +53,12 @@ class DDPPlugin(object):
 
         """
         # if unset, default `find_unused_parameters` `True`
-        self._kwargs["find_unused_parameters"] = self._kwargs.get(
+        self._ddp_args["find_unused_parameters"] = self._ddp_args.get(
             "find_unused_parameters", True
         )
         model = LightningDistributedDataParallel(
             model,
             device_ids=device_ids,
-            **self._kwargs,
+            **self._ddp_args,
         )
         return model
