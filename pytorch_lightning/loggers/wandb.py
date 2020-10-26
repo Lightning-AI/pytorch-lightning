@@ -135,6 +135,7 @@ class WandbLogger(LightningLoggerBase):
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = self._convert_params(params)
         params = self._flatten_dict(params)
+        params = self._sanitize_callable_params(params)
         self.experiment.config.update(params, allow_val_change=True)
 
     @rank_zero_only
@@ -156,3 +157,8 @@ class WandbLogger(LightningLoggerBase):
     def version(self) -> Optional[str]:
         # don't create an experiment if we don't have one
         return self._experiment.id if self._experiment else self._id
+
+    def finalize(self, status: str) -> None:
+        # upload all checkpoints from saving dir
+        if self._log_model:
+            wandb.save(os.path.join(self.save_dir, "*.ckpt"))

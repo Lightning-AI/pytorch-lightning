@@ -17,6 +17,8 @@ ARG PYTORCH_VERSION=1.6
 
 FROM pytorchlightning/pytorch_lightning:base-xla-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
 
+MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
+
 #SHELL ["/bin/bash", "-c"]
 
 COPY ./ ./pytorch-lightning/
