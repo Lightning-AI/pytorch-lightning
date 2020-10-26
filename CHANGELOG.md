@@ -23,6 +23,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Consistently use `step=trainer.global_step` in `LearningRateMonitor` independently of `logging_interval` and also log epoch ([#4376](https://github.com/PyTorchLightning/pytorch-lightning/pull/4376))
+
 
 - Improved error messages for invalid `configure_optimizers` returns ([#3587](https://github.com/PyTorchLightning/pytorch-lightning/pull/3587))
 
