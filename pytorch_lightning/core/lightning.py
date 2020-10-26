@@ -20,7 +20,7 @@ import re
 import tempfile
 from abc import ABC
 from argparse import Namespace
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union, Mapping
 
 import torch
 from pytorch_lightning import _logger as log
