@@ -1595,7 +1595,7 @@ class LightningModule(
                 if example_inputs is None:
                     example_inputs = self.example_input_array
                 # dicts are not supported, so show the user an error; not raising an error to show the original error
-                if type(example_inputs) == dict:
+                if isinstance(example_inputs, Mapping):
                     log.error(f"`example_inputs` should be a Tensor or a tuple of Tensors, but got a dict.")
                 # automatically send example inputs to the right device and use trace
                 example_input_array_device = move_data_to_device(example_inputs, device=self.device)
