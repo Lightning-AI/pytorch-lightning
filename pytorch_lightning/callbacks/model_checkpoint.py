@@ -185,7 +185,7 @@ class ModelCheckpoint(Callback):
 
     def on_save_checkpoint(self, trainer, pl_module) -> Dict[str, Any]:
         return {
-            "best_model_monitor": self.monitor,
+            "monitor": self.monitor,
             "best_model_score": self.best_model_score,
             "best_model_path": self.best_model_path,
         }
