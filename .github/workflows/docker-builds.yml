@@ -8,7 +8,7 @@ on:
     types: [created]
 
 jobs:
-  build-Conda:
+  build-PL:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -36,7 +36,7 @@ jobs:
           repository: pytorchlightning/pytorch_lightning
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          dockerfile: dockers/conda/Dockerfile
+          dockerfile: dockers/release/Dockerfile
           build_args: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }},LIGHTNING_VERSION=${{ env.RELEASE_VERSION }}
           tags: "${{ env.RELEASE_VERSION }}-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }},latest-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}"
         timeout-minutes: 55

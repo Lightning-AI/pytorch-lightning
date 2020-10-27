@@ -15,9 +15,12 @@
 import torch
 
 
-class NativeAMP:
+class NativeAMPPlugin:
 
-    def __init__(self, trainer):
+    def __init__(self, trainer=None):
+        """
+        Integrates native amp into Lightning's internals.
+        """
         self.trainer = trainer
 
     def connect(self, model, optimizers):
