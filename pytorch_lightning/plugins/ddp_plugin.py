@@ -24,7 +24,7 @@ class DDPPlugin(object):
     """
 
     def __init__(self, **kwargs):
-        self._ddp_args: Dict[str, Any] = kwargs
+        self.ddp_kwargs: Dict[str, Any] = kwargs
 
     def configure_ddp(
         self, model: LightningModule, device_ids: List[int]
