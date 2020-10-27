@@ -161,7 +161,7 @@ class NeptuneLogger(LightningLoggerBase):
         experiment_name: Optional. Editable name of the experiment.
             Name is displayed in the experiment’s Details (Metadata section) and
             in experiments view as a column.
-        experiment_id: Optional. Default is ''None''. ID of the existing experiment.
+        experiment_id: Optional. Default is ``None``. The ID of the existing experiment.
             If specified, connect to experiment with experiment_id in project_name.
             Input arguments "experiment_name", "params", "properties" and "tags" will be overriden based
             on fetched experiment data.
