@@ -76,7 +76,7 @@ jobs:
     - name: Install PyTorch RC
       if: matrix.requires == 'latest'
       run: |
-        pip install torch -f https://download.pytorch.org/whl/test/cpu/torch_test.html
+        pip install torch torchvision -f https://download.pytorch.org/whl/test/cpu/torch_test.html
 
     - name: pip cache
       uses: actions/cache@v2
