@@ -20,7 +20,7 @@ class DDPPlugin(object):
 
     """
 
-    def configure_ddp(self, model: LightningModule, device_ids: List[int]) -> LightningModule:
+    def configure_ddp(self, model: LightningModule, device_ids: List[int]) -> LightningDistributedDataParallel:
         """
         Override to define a custom DDP implementation.
 
@@ -40,6 +40,7 @@ class DDPPlugin(object):
             device_ids: the list of devices available
 
         Returns:
+            the model wrapped in LightningDistributedDataParallel
 
         """
         model = LightningDistributedDataParallel(model, device_ids=device_ids, find_unused_parameters=True)
