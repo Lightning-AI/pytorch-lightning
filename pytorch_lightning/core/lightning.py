@@ -1600,7 +1600,7 @@ class LightningModule(
                     log.error("`example_inputs` should be a Tensor or a tuple of Tensors,"
                               f" but got {type(example_inputs)}.")
                 # automatically send example inputs to the right device and use trace
-                example_inputs = move_data_to_device(example_inputs, device=self.device)
+                example_inputs = self.transfer_batch_to_device(example_inputs, device=self.device)
                 torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
             else:
                 raise ValueError(f"The 'method' parameter only supports 'script' or 'trace', but value given was:"
