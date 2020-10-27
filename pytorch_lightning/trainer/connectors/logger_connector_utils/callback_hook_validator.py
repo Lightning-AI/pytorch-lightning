@@ -18,11 +18,16 @@ class CallbackHookNameValidator:
 
     @staticmethod
     def check_logging_in_callbacks(current_hook_fx_name: str = None, on_step: bool = None,
-                                            on_epoch: bool = None) -> None:
+                                   on_epoch: bool = None) -> None:
         if current_hook_fx_name is None:
-            return current_hook_fx_name
+            return
 
-        current_callback_hook_auth_args = getattr(CallbackHookNameValidator, f"_{current_hook_fx_name}_log")()
+        internal_func = getattr(CallbackHookNameValidator, f"_{current_hook_fx_name}_log", None)
+
+        if internal_func is None:
+            return
+
+        current_callback_hook_auth_args = internal_func()
 
         if current_callback_hook_auth_args is not None:
             m = "{} function supports only {} in {}. Provided {}"

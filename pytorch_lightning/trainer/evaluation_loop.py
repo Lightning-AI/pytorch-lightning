@@ -202,7 +202,7 @@ class EvaluationLoop(object):
         model_ref = self.trainer.get_model()
         model_ref._current_dataloader_idx = None
 
-        #inform logger_connector batch loop is finished
+        # inform logger_connector batch loop is finished
         self.trainer.logger_connector.evaluation_epoch_end(self.testing)
 
         using_eval_result = self.is_using_eval_results()

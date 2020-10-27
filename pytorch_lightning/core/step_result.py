@@ -254,8 +254,7 @@ class Result(Dict):
     def _add_dataloader_idx(self, k: str, dataloader_idx: Union[int, None], add_dataloader_idx: bool) -> str:
         if dataloader_idx is not None and add_dataloader_idx:
             return f"{k}/dataloader_idx_{dataloader_idx}"
-        else:
-            return k
+        return k
 
     def get_batch_log_metrics(self, include_forked_originals=True, add_dataloader_idx=False) -> dict:
         """

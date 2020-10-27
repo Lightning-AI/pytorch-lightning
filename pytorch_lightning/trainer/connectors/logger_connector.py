@@ -96,10 +96,8 @@ class LoggerConnector:
         try:
             self._cached_results[self._current_stage].cache_result()
         except Exception as e:
-            print(e)
-            # TODO Add support for all
-            # model_ref = self.trainer.get_model()
-            # print(f"SKIPPING: {model_ref._current_hook_fx_name}")
+            # FIXME: support all
+            pass
 
     def on_trainer_init(self, logger, flush_logs_every_n_steps, log_every_n_steps):
         # logging
@@ -260,11 +258,8 @@ class LoggerConnector:
             self.log_metrics(metrics_to_log, {})
 
     def _track_callback_metrics(self, eval_results, using_eval_result):
-        if (len(eval_results) > 0
-            and (eval_results[0] is None
-                or not isinstance(eval_results[0], Result)
-            )
-        ):
+        is_not_none_or_result = eval_results[0] is None or not isinstance(eval_results[0], Result)
+        if len(eval_results) > 0 and is_not_none_or_result:
             return
 
         if using_eval_result:

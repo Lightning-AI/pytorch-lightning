@@ -81,8 +81,7 @@ class HookResults:
                 func = getattr(latest_result, func_name)
                 results.update(func(*args, add_dataloader_idx=add_dataloader_idx, **kwargs))
             return results
-        else:
-            raise NotImplementedError
+        raise NotImplementedError
 
     def get_batch_pbar_metrics(self, latest=True, *args, **kwargs):
         return self.get_lastest("get_batch_pbar_metrics", *args, latest=latest, **kwargs)
@@ -97,12 +96,16 @@ class HookResults:
             opt_metrics = self._internals_reduced[dl_idx]
             if isinstance(opt_metrics, defaultdict):
                 for opt_metric in opt_metrics.values():
-                    metrics_to_log = opt_metric.get_epoch_pbar_metrics(*args,
-                        add_dataloader_idx=self.add_dataloader_idx, **kwargs)
+                    metrics_to_log = opt_metric.get_epoch_pbar_metrics(
+                        *args,
+                        add_dataloader_idx=self.add_dataloader_idx,
+                        **kwargs)
                     results.update(metrics_to_log)
             else:
-                metrics_to_log = opt_metrics.get_epoch_pbar_metrics(*args,
-                        add_dataloader_idx=self.add_dataloader_idx, **kwargs)
+                metrics_to_log = opt_metrics.get_epoch_pbar_metrics(
+                    *args,
+                    add_dataloader_idx=self.add_dataloader_idx,
+                    **kwargs)
                 results.update(metrics_to_log)
         return results
 
@@ -113,12 +116,16 @@ class HookResults:
             opt_metrics = self._internals_reduced[dl_idx]
             if isinstance(opt_metrics, defaultdict):
                 for opt_metric in opt_metrics.values():
-                    metrics_to_log = opt_metric.get_epoch_log_metrics(*args,
-                        add_dataloader_idx=self.add_dataloader_idx, **kwargs)
+                    metrics_to_log = opt_metric.get_epoch_log_metrics(
+                        *args,
+                        add_dataloader_idx=self.add_dataloader_idx,
+                        **kwargs)
                     results.update(metrics_to_log)
             else:
-                metrics_to_log = opt_metrics.get_epoch_log_metrics(*args,
-                        add_dataloader_idx=self.add_dataloader_idx, **kwargs)
+                metrics_to_log = opt_metrics.get_epoch_log_metrics(
+                    *args,
+                    add_dataloader_idx=self.add_dataloader_idx,
+                    **kwargs)
                 results.update(metrics_to_log)
         return results
 
@@ -129,12 +136,16 @@ class HookResults:
             opt_metrics = self._internals_reduced[dl_idx]
             if isinstance(opt_metrics, defaultdict):
                 for opt_metric in opt_metrics.values():
-                    metrics_to_log = opt_metric.get_forked_metrics(*args,
-                        add_dataloader_idx=self.add_dataloader_idx, **kwargs)
+                    metrics_to_log = opt_metric.get_forked_metrics(
+                        *args,
+                        add_dataloader_idx=self.add_dataloader_idx,
+                        **kwargs)
                     results.update(metrics_to_log)
             else:
-                metrics_to_log = opt_metrics.get_forked_metrics(*args,
-                        add_dataloader_idx=self.add_dataloader_idx, **kwargs)
+                metrics_to_log = opt_metrics.get_forked_metrics(
+                    *args,
+                    add_dataloader_idx=self.add_dataloader_idx,
+                    **kwargs)
                 results.update(metrics_to_log)
         return results
 
@@ -224,8 +235,7 @@ class HookResults:
         try:
             if key in self._internals:
                 return self._internals[key]
-            else:
-                return self[key]
+            return self[key]
         except KeyError:
             return None
 
@@ -302,9 +312,10 @@ class EpochLoopResult:
             if self.has_split_and_opt_idx:
                 extra_info = self.extra_info
 
-            self._internals[fx_name].append(deepcopy(hook_result),
-                                                     dataloader_idx=dataloader_idx,
-                                                     extra_info=extra_info)
+            self._internals[fx_name].append(
+                deepcopy(hook_result),
+                dataloader_idx=dataloader_idx,
+                extra_info=extra_info)
 
             # update logged_metrics, progress_bar_metrics, callback_metrics
             self.update_logger_connector()
@@ -347,14 +358,16 @@ class EpochLoopResult:
     def get_latest_batch_log_metrics(self):
         results = {}
         for fx_name, hook_result in self._internals.items():
-            results.update(hook_result.get_batch_log_metrics(latest=True,
+            results.update(hook_result.get_batch_log_metrics(
+                latest=True,
                 include_forked_originals=False))
         return results
 
     def get_latest_batch_pbar_metrics(self):
         results = {}
         for fx_name, hook_result in self._internals.items():
-            results.update(hook_result.get_batch_pbar_metrics(latest=True,
+            results.update(hook_result.get_batch_pbar_metrics(
+                latest=True,
                 include_forked_originals=False))
         return results
 
