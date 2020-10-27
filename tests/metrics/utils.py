@@ -25,7 +25,10 @@ def setup_ddp(rank, world_size):
     os.environ['MASTER_PORT'] = '8088'
 
     if torch.distributed.is_available():
-        torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
+        if sys.platform in ['win32', 'cygwin']:
+            torch.distributed.init_process_group("gloo", init_method="file:///d:/tmp/metrics", rank=rank, world_size=world_size)
+        else:
+            torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
 
 
 def _class_test(
