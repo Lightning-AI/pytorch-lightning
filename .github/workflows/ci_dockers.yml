@@ -9,7 +9,7 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     branches: [master]
 
 jobs:
-  build-Conda:
+  build-PL:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -20,12 +20,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Build Docker
+      # https://github.com/docker/setup-buildx-action
+      # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
+      - uses: docker/setup-buildx-action@v1
+      - name: Build PL Docker
         # publish master
-        uses: docker/build-push-action@v1.1.0
+        uses: docker/build-push-action@v2
         with:
-          dockerfile: dockers/conda/Dockerfile
-          build_args: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }}
+          build-args: |
+            PYTHON_VERSION=${{ matrix.python_version }}
+            PYTORCH_VERSION=${{ matrix.pytorch_version }}
+          file: dockers/release/Dockerfile
           push: false
         timeout-minutes: 50
 
@@ -40,12 +45,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Build Docker
+      # https://github.com/docker/setup-buildx-action
+      # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
+      - uses: docker/setup-buildx-action@v1
+      - name: Build XLA Docker
         # publish master
-        uses: docker/build-push-action@v1.1.0
+        uses: docker/build-push-action@v2
         with:
-          dockerfile: dockers/base-xla/Dockerfile
-          build_args: PYTHON_VERSION=${{ matrix.python_version }},XLA_VERSION=${{ matrix.xla_version }}
+          build-args: |
+            PYTHON_VERSION=${{ matrix.python_version }}
+            XLA_VERSION=${{ matrix.xla_version }}
+          cache-from: pytorchlightning/pytorch_lightning:base-xla-cache-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
+          file: dockers/base-xla/Dockerfile
           push: false
         timeout-minutes: 50
 
@@ -55,24 +66,75 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          #- python_version: 3.7
-          #  pytorch_version: 1.8  # todo
-          #  pytorch_channel: pytorch-nightly
-          - python_version: 3.8
+          #- python_version: 3.8
+          #  pytorch_version: 1.7  # todo
+          - python_version: 3.7
             pytorch_version: 1.6
-            pytorch_channel: pytorch
           - python_version: 3.6
-            pytorch_version: 1.5
-            pytorch_channel: pytorch
+            pytorch_version: 1.3
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Build Docker
+      # for PT 1.3 and 1.4 we need to use CUDA 10.1
+      - run: |
+          cuda=$(python -c "print(10.2 if float(${{matrix.pytorch_version}}) > 1.4 else 10.1)" 2>&1)
+          echo "::set-output name=CUDA::$cuda"
+        id: extend
+
+      # https://github.com/docker/setup-buildx-action
+      # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
+      - uses: docker/setup-buildx-action@v1
+      - name: Build CUDA Docker
         # publish master
-        uses: docker/build-push-action@v1.1.0
+        uses: docker/build-push-action@v2
         with:
-          dockerfile: dockers/base-cuda/Dockerfile
-          build_args: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }},PYTORCH_CHANNEL=${{ matrix.pytorch_channel }}
+          build-args: |
+            PYTHON_VERSION=${{ matrix.python_version }}
+            PYTORCH_VERSION=${{ matrix.pytorch_version }}
+            CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
+          cache-from: pytorchlightning/pytorch_lightning:base-cuda-cache-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
+          file: dockers/base-cuda/Dockerfile
+          push: false
+        timeout-minutes: 50
+
+  build-conda:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python_version: 3.8
+            pytorch_version: 1.6
+          - python_version: 3.6
+            pytorch_version: 1.4
+          #- python_version: 3.7
+          #  pytorch_version: 1.8  # todo
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      # for PT 1.3 and 1.4 we need to use CUDA 10.1
+      - run: |
+          cuda=$(python -c "print(10.2 if float(${{matrix.pytorch_version}}) > 1.4 else 10.1)" 2>&1)
+          echo "::set-output name=CUDA::$cuda"
+          channel=$(python -c "print('pytorch-nightly' if float(${{matrix.pytorch_version}}) > 1.7 else 'pytorch')" 2>&1)
+          echo "::set-output name=CHANNEL::$channel"
+        id: extend
+
+      # https://github.com/docker/setup-buildx-action
+      # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
+      - uses: docker/setup-buildx-action@v1
+      - name: Build CUDA Docker
+        # publish master
+        uses: docker/build-push-action@v2
+        with:
+          build-args: |
+            PYTHON_VERSION=${{ matrix.python_version }}
+            PYTORCH_VERSION=${{ matrix.pytorch_version }}
+            PYTORCH_CHANNEL=${{ steps.extend.outputs.CHANNEL }}
+            CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
+          cache-from: pytorchlightning/pytorch_lightning:base-conda-cache-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
+          file: dockers/base-conda/Dockerfile
           push: false
         timeout-minutes: 50
