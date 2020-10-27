@@ -659,7 +659,6 @@ def test_log_works_in_train_callback(tmpdir):
     assert trainer.logged_metrics["train_loss"] == model.manual_loss[-1]
     assert trainer.callback_metrics["train_loss"] == model.manual_loss[-1]
     trainer.callback_metrics.pop("train_loss")
-    trainer.callback_metrics.pop("epoch")
 
     for func_name, output_value in trainer.callback_metrics.items():
         if torch.is_tensor(output_value):

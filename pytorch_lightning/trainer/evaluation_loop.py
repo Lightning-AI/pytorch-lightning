@@ -263,6 +263,9 @@ class EvaluationLoop(object):
                 eval_results = model.validation_epoch_end(eval_results)
                 user_reduced = True
 
+        # capture logging
+        self.trainer.logger_connector.capture_logging()
+
         # depre warning
         if eval_results is not None and user_reduced:
             step = 'testing_epoch_end' if self.testing else 'validation_epoch_end'

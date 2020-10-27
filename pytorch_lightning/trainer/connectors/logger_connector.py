@@ -13,6 +13,11 @@
 # limitations under the License.
 import os
 from enum import Enum
+from pprint import pprint
+from typing import Iterable, Union
+from copy import deepcopy
+from collections import defaultdict, ChainMap
+
 import torch
 from pytorch_lightning.core import memory
 from pytorch_lightning.loggers import TensorBoardLogger, LoggerCollection
@@ -25,10 +30,7 @@ from pytorch_lightning.trainer.connectors.logger_connector_utils import (
     LoggerStages,
     CallbackHookNameValidator
 )
-from pprint import pprint
-from typing import Iterable, Union
-from copy import deepcopy
-from collections import defaultdict, ChainMap
+from pytorch_lightning import _logger as log
 
 
 class LoggerConnector:
@@ -96,8 +98,7 @@ class LoggerConnector:
         try:
             self._cached_results[self._current_stage].cache_result()
         except Exception:
-            # todo: support all
-            pass
+            log.warn("Couldn't capute logging")
 
     def on_trainer_init(self, logger, flush_logs_every_n_steps, log_every_n_steps):
         # logging
@@ -213,7 +214,6 @@ class LoggerConnector:
             self.add_to_eval_loop_results(dl_idx)
 
     def get_evaluate_epoch_results(self, test_mode):
-
         # filter callback_metris to display per dataloader_idx.
         self.prepare_eval_loop_results()
 

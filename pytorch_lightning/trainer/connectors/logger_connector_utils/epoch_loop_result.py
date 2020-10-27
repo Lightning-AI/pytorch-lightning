@@ -74,7 +74,7 @@ class HookResults:
                 add_dataloader_idx = result["meta"][random_key]["dataloader_idx"] is not None
                 return add_dataloader_idx
             return add_dataloader_idx
-        except:
+        except Exception:
             return add_dataloader_idx
 
     def get_lastest(self, func_name, *args, latest=True, **kwargs):
