@@ -17,6 +17,8 @@ ARG PYTORCH_VERSION=1.5
 
 FROM pytorchlightning/pytorch_lightning:base-cuda-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
 
+MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
+
 ARG LIGHTNING_VERSION=""
 
 COPY ./ ./pytorch-lightning/
@@ -37,8 +39,6 @@ RUN \
 RUN python --version && \
     pip --version && \
     pip list && \
-    conda info && \
-    conda list && \
     python -c "import pytorch_lightning as pl; print(pl.__version__)"
 
-CMD ["/bin/bash"]
+# CMD ["/bin/bash"]

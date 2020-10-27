@@ -719,7 +719,7 @@ Lightning has many tools for debugging. Here is an example of just a few of them
 .. code-block:: python
    
    # train only 20% of an epoch
-   trainer = pl. Trainer(limit_train_batches=0.2)
+   trainer = pl.Trainer(limit_train_batches=0.2)
 
 .. code-block:: python
 

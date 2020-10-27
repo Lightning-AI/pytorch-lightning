@@ -460,6 +460,8 @@ class Trainer(
     def train(self):
         self.run_sanity_check(self.get_model())
 
+        self.checkpoint_connector.has_trained = False
+
         # enable train mode
         model = self.get_model()
         model.train()

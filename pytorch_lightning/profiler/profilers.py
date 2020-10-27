@@ -22,9 +22,10 @@ from collections import defaultdict
 from contextlib import contextmanager
 from typing import Optional, Union
 
+import fsspec
 import numpy as np
-
 from pytorch_lightning import _logger as log
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 
 class BaseProfiler(ABC):
@@ -121,14 +122,17 @@ class SimpleProfiler(BaseProfiler):
     def __init__(self, output_filename: Optional[str] = None):
         """
         Args:
-            output_filename (str): optionally save profile results to file instead of printing
+            output_filename: optionally save profile results to file instead of printing
                 to std out when training is finished.
         """
         self.current_actions = {}
         self.recorded_durations = defaultdict(list)
 
         self.output_fname = output_filename
-        self.output_file = open(self.output_fname, 'w') if self.output_fname else None
+        self.output_file = None
+        if self.output_fname:
+            fs = get_filesystem(self.output_fname)
+            self.output_file = fs.open(self.output_fname, "w")
 
         streaming_out = [self.output_file.write] if self.output_file else [log.info]
         super().__init__(output_streams=streaming_out)
@@ -160,7 +164,7 @@ class SimpleProfiler(BaseProfiler):
         output_string += f"{os.linesep}{'-' * 65}"
         for action, durations in self.recorded_durations.items():
             output_string += log_row(
-                action, f"{np.mean(durations):.5}", f"{np.sum(durations):.5}",
+                action, f"{np.mean(durations):.5}", f"{np.sum(durations):.5}"
             )
         output_string += os.linesep
         return output_string
@@ -197,7 +201,10 @@ class AdvancedProfiler(BaseProfiler):
         self.line_count_restriction = line_count_restriction
 
         self.output_fname = output_filename
-        self.output_file = open(self.output_fname, 'w') if self.output_fname else None
+        self.output_file = None
+        if self.output_fname:
+            fs = get_filesystem(self.output_fname)
+            self.output_file = fs.open(self.output_fname, "w")
 
         streaming_out = [self.output_file.write] if self.output_file else [log.info]
         super().__init__(output_streams=streaming_out)
@@ -226,7 +233,9 @@ class AdvancedProfiler(BaseProfiler):
         # log to standard out
         output_string = f"{os.linesep}Profiler Report{os.linesep}"
         for action, stats in recorded_stats.items():
-            output_string += f"{os.linesep}Profile stats for: {action}{os.linesep}{stats}"
+            output_string += (
+                f"{os.linesep}Profile stats for: {action}{os.linesep}{stats}"
+            )
 
         return output_string
 
