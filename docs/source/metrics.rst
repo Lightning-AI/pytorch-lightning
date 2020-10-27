@@ -78,7 +78,6 @@ If ``on_epoch`` is True, the logger automatically logs the end of epoch metric v
         self.valid_acc(logits, y)
         self.log('valid_acc', self.valid_acc, on_step=True, on_epoch=True)
 
-
 This metrics API is independent of PyTorch Lightning. Metrics can directly be used in PyTorch as shown in the example:
 
 .. code-block:: python
@@ -104,6 +103,13 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
 
     # total accuracy over all validation batches
     total_valid_accuracy = valid_accuracy.compute()
+
+.. warning::
+
+    Metrics have internal states that keeps track of the data seen so far. Too
+    not mix metric states across training, validation and testing it is
+    highly recommended to re-initialize the metric per mode as shown in the
+    examples above.
 
 *********************
 Implementing a Metric
