@@ -1595,7 +1595,7 @@ class LightningModule(
                 # if no example inputs are provided, try to see if model has example_input_array set
                 if example_inputs is None:
                     example_inputs = self.example_input_array
-                # dicts are not supported, so show the user an error; not raising an error to show the original error
+                # dicts are not supported for example_inputs, so show a user-friendly message about what is wrong
                 if isinstance(example_inputs, Mapping):
                     log.error("`example_inputs` should be a Tensor or a tuple of Tensors,"
                               f" but got {type(example_inputs)}.")
