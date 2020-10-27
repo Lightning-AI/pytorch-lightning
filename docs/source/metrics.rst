@@ -106,10 +106,10 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
 
 .. warning::
 
-    Metrics have internal states that keeps track of the data seen so far. Too
-    not mix metric states across training, validation and testing it is
-    highly recommended to re-initialize the metric per mode as shown in the
-    examples above.
+    Metrics contain internal states that keep track of the data seen so far.
+    Do not mix metric states across training, validation and testing.
+    It is highly recommended to re-initialize the metric per mode as
+    shown in the examples above.
 
 *********************
 Implementing a Metric
