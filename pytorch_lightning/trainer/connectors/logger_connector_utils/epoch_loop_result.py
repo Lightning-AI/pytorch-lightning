@@ -342,30 +342,40 @@ class EpochLoopResult:
 
         logger_connector = self.trainer.logger_connector
 
+        callback_metrics = {}
+
         if not self._has_batch_loop_finished:
-            # update pbar
+            # get pbar
             batch_pbar_metrics = self.get_latest_batch_pbar_metrics()
             logger_connector.add_progress_bar_metrics(batch_pbar_metrics)
 
-            # update logged_metrics
+            # get logged_metrics
             batch_log_metrics = self.get_latest_batch_log_metrics()
             logger_connector.logged_metrics.update(batch_log_metrics)
+
+            callback_metrics.update(batch_pbar_metrics)
+            callback_metrics.update(batch_log_metrics)
         else:
-            # update pbar
+            epoch_dict = {"epoch": self.trainer.current_epoch}
+
+            # get pbar
             epoch_pbar_metrics = self.get_epoch_pbar_metrics()
             logger_connector.add_progress_bar_metrics(epoch_pbar_metrics)
 
-            # update logged_metrics
+            # get logged_metrics
             epoch_log_metrics = self.get_epoch_log_metrics()
             logger_connector.logged_metrics.update(epoch_log_metrics)
+            logger_connector.logged_metrics.update(epoch_dict)
 
-            # update forked_metrics
+            # get forked_metrics
             forked_metrics = self.get_forked_metrics()
-            logger_connector.callback_metrics.update(forked_metrics)
+
+            callback_metrics.update(epoch_pbar_metrics)
+            callback_metrics.update(epoch_log_metrics)
+            callback_metrics.update(forked_metrics)
 
         # update callback_metrics
-        logger_connector.callback_metrics.update(logger_connector.progress_bar_metrics)
-        logger_connector.callback_metrics.update(logger_connector.logged_metrics)
+        logger_connector.callback_metrics.update(callback_metrics)
         logger_connector.callback_metrics.pop("epoch", None)
 
     def get_latest_batch_log_metrics(self):

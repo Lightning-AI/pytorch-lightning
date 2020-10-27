@@ -97,8 +97,14 @@ class LoggerConnector:
     def capture_logging(self) -> Union[EpochLoopResult, None]:
         try:
             self._cached_results[self._current_stage].cache_result()
-        except Exception:
-            log.warn("Couldn't capute logging")
+        except:
+            model_ref = self.trainer.get_model()
+            fx_name = model_ref._current_hook_fx_name
+            if fx_name == '':
+                fx_name = model_ref._current_fx_name = ''
+            if fx_name == '':
+                pass
+            log.warn(f"Skipping capture for {fx_name}")
 
     def on_trainer_init(self, logger, flush_logs_every_n_steps, log_every_n_steps):
         # logging
@@ -217,8 +223,12 @@ class LoggerConnector:
         # filter callback_metris to display per dataloader_idx.
         self.prepare_eval_loop_results()
 
+        if not self.trainer.running_sanity_check:
+            epoch_log_metrics = self.cached_results(test_mode).get_epoch_log_metrics()
+            self.trainer.dev_debugger.track_logged_metrics_history(epoch_log_metrics)
+
         # reset for next epoch
-        self.cached_results(self.trainer.evaluation_loop.testing).reset()
+        self.cached_results(test_mode).reset()
 
         # log results of test
         if test_mode and self.trainer.is_global_zero and self.trainer.verbose_test:
@@ -228,10 +238,7 @@ class LoggerConnector:
                 pprint(results)
                 print('-' * 80)
 
-        if self.trainer.testing:
-            results = [dict(ChainMap(*self.eval_loop_results))]
-        else:
-            results = self.eval_loop_results
+        results = [dict(ChainMap(*self.eval_loop_results))]
 
         # clear mem
         self.eval_loop_results = []

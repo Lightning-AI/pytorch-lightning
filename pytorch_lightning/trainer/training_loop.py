@@ -306,7 +306,6 @@ class TrainLoop:
             self.trainer.logger_connector.capture_logging()
 
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
-            self.trainer.logger_connector.capture_logging()
 
             training_step_output_for_epoch_end, training_step_output = self._process_training_step_output(
                 training_step_output, split_batch
@@ -459,7 +458,9 @@ class TrainLoop:
 
     def on_before_zero_grad(self, optimizer):
         model = self.trainer.get_model()
+        model._current_fx_name = "on_before_zero_grad"
         model.on_before_zero_grad(optimizer)
+        self.trainer.logger_connector.capture_logging()
 
     def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
         self.trainer.accelerator_backend.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
@@ -770,10 +771,8 @@ class TrainLoop:
 
         if self.trainer.train_loop.automatic_optimization:
             # backward pass
-            model_ref._current_fx_name = "backward"
             with self.trainer.profiler.profile("model_backward"):
                 self.backward(result, optimizer, opt_idx)
-            self.trainer.logger_connector.capture_logging()
 
             # hook
             self.on_after_backward(result.training_step_output, batch_idx, result.loss)

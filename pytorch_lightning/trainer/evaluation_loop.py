@@ -250,10 +250,9 @@ class EvaluationLoop(object):
                 model._current_fx_name = 'test_epoch_end'
                 if using_eval_result:
                     eval_results = self.__gather_epoch_end_eval_results(outputs)
-
+                model._current_fx_name = 'test_epoch_end'
                 eval_results = model.test_epoch_end(eval_results)
                 user_reduced = True
-
         else:
             if is_overridden('validation_epoch_end', model=model):
                 model._current_fx_name = 'validation_epoch_end'

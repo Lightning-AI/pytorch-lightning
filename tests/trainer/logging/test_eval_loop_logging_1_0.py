@@ -296,7 +296,7 @@ def test_eval_logging_auto_reduce(tmpdir):
     # make sure all the metrics are available for callbacks
     manual_mean = model.manual_epoch_end_mean
     callback_metrics = set(trainer.callback_metrics.keys())
-    assert callback_metrics == {'debug_epoch', 'val_loss', 'val_loss_epoch'}
+    assert callback_metrics == {'val_loss_epoch', 'val_loss', 'debug_epoch', 'val_loss_step'}
 
     # make sure values are correct
     assert trainer.logged_metrics['val_loss_epoch'] == manual_mean
@@ -690,7 +690,6 @@ def test_log_works_in_test_callback(tmpdir):
     # pop extra keys
     assert "debug_epoch" in trainer.callback_metrics
     trainer.callback_metrics.pop("debug_epoch")
-    trainer.callback_metrics.pop("epoch")
 
     for dl_idx in range(num_dataloaders):
         key = f"test_loss/dataloader_idx_{dl_idx}"
