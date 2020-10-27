@@ -66,6 +66,17 @@ class HookResults:
         assert num_batch_idx >= 0
         return self._internals[dl_idx][num_opt_idx][str(num_batch_idx)][-1]
 
+    def check_dataloader_idx(self, result: Result) -> bool:
+        add_dataloader_idx = False
+        try:
+            if len(result.keys()) > 1:
+                random_key = [*result.keys()][-1]
+                add_dataloader_idx = result["meta"][random_key]["dataloader_idx"] is not None
+                return add_dataloader_idx
+            return add_dataloader_idx
+        except:
+            return add_dataloader_idx
+
     def get_lastest(self, func_name, *args, latest=True, **kwargs):
         results = {}
         if latest:
@@ -75,9 +86,7 @@ class HookResults:
                     latest_result = self._internals[dl_idx][-1]
                 else:
                     latest_result = self.get_latest_from_dict(dl_idx)
-                if len(latest_result.keys()) > 1:
-                    random_key = [*latest_result.keys()][-1]
-                    add_dataloader_idx = latest_result["meta"][random_key]["dataloader_idx"] is not None
+                add_dataloader_idx = self.check_dataloader_idx(latest_result)
                 func = getattr(latest_result, func_name)
                 results.update(func(*args, add_dataloader_idx=add_dataloader_idx, **kwargs))
             return results
@@ -260,8 +269,7 @@ class EpochLoopResult:
         try:
             if key in self._internals:
                 return self._internals[key]
-            else:
-                return self[key]
+            return self[key]
         except KeyError:
             return None
 
@@ -351,9 +359,14 @@ class EpochLoopResult:
             epoch_log_metrics = self.get_epoch_log_metrics()
             logger_connector.logged_metrics.update(epoch_log_metrics)
 
+            # update forked_metrics
+            forked_metrics = self.get_forked_metrics()
+            logger_connector.callback_metrics.update(forked_metrics)
+
         # update callback_metrics
         logger_connector.callback_metrics.update(logger_connector.progress_bar_metrics)
         logger_connector.callback_metrics.update(logger_connector.logged_metrics)
+        logger_connector.callback_metrics.pop("epoch", None)
 
     def get_latest_batch_log_metrics(self):
         results = {}
@@ -391,6 +404,7 @@ class EpochLoopResult:
             # If batch loop has finished, reduce metrics
             self.auto_reduce_results_on_epoch_end()
         self._has_batch_loop_finished = has_batch_loop_finished
+        self.update_logger_connector()
 
     def get_epoch_pbar_metrics(self):
         if not self.has_reduced:

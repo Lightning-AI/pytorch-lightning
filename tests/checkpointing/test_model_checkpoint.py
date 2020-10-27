@@ -228,7 +228,7 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     ).format_checkpoint_name(4, {'val/loss': 0.03})
     assert ckpt_name == 'epoch=4_val/loss=0.03000.ckpt'
 
-    # FIXME: Checks with filepath. To be removed in v1.2
+    # todo: Checks with filepath. To be removed in v1.2
     # CWD
     ckpt_name = ModelCheckpoint(monitor='early_stop_on', filepath='.').format_checkpoint_name(3, {})
     assert ckpt_name == str(Path('.').resolve() / 'epoch=3.ckpt')

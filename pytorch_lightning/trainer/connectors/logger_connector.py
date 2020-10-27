@@ -95,8 +95,8 @@ class LoggerConnector:
     def capture_logging(self) -> Union[EpochLoopResult, None]:
         try:
             self._cached_results[self._current_stage].cache_result()
-        except Exception as e:
-            # FIXME: support all
+        except Exception:
+            # todo: support all
             pass
 
     def on_trainer_init(self, logger, flush_logs_every_n_steps, log_every_n_steps):
@@ -258,8 +258,7 @@ class LoggerConnector:
             self.log_metrics(metrics_to_log, {})
 
     def _track_callback_metrics(self, eval_results, using_eval_result):
-        is_not_none_or_result = eval_results[0] is None or not isinstance(eval_results[0], Result)
-        if len(eval_results) > 0 and is_not_none_or_result:
+        if len(eval_results) > 0 and (eval_results[0] is None or not isinstance(eval_results[0], Result)):
             return
 
         if using_eval_result:
@@ -575,7 +574,7 @@ class LoggerConnector:
         if should_log_metrics or self.trainer.fast_dev_run:
             # logs user requested information to logger
 
-            # TODO merge with all
+            # todo merge with all
             metrics = self._cached_results["train"].get_latest_batch_log_metrics()
             grad_norm_dic = batch_output.grad_norm_dic
 

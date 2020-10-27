@@ -758,6 +758,8 @@ class TrainLoop:
         """
         wrap the forward step in a closure so second order methods work
         """
+        model_ref = self.trainer.get_model()
+
         # lightning module hook
         result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
         self._curr_step_result = result
@@ -768,8 +770,10 @@ class TrainLoop:
 
         if self.trainer.train_loop.automatic_optimization:
             # backward pass
+            model_ref._current_fx_name = "backward"
             with self.trainer.profiler.profile("model_backward"):
                 self.backward(result, optimizer, opt_idx)
+            self.trainer.logger_connector.capture_logging()
 
             # hook
             self.on_after_backward(result.training_step_output, batch_idx, result.loss)

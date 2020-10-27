@@ -17,6 +17,7 @@ Tests to ensure that the training loop works with a dict (1.0)
 from pytorch_lightning.core.lightning import LightningModule
 from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
 import os
+from copy import deepcopy
 import numpy as np
 import collections
 import torch
@@ -238,7 +239,7 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
         'd/e/f',
         'epoch'
     }
-    assert logged_metrics == expected_logged_metrics
+    assert deepcopy(logged_metrics) == deepcopy(expected_logged_metrics)
 
     pbar_metrics = set(trainer.progress_bar_metrics.keys())
     expected_pbar_metrics = {'c', 'b_epoch', 'b_step'}
