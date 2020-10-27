@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict, Any
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
@@ -24,7 +24,7 @@ class DDPPlugin(object):
     """
 
     def __init__(self, **kwargs):
-        self.ddp_kwargs: Dict[str, Any] = kwargs
+        self._ddp_kwargs: Dict[str, Any] = kwargs
 
     def configure_ddp(
         self, model: LightningModule, device_ids: List[int]
@@ -53,12 +53,12 @@ class DDPPlugin(object):
 
         """
         # if unset, default `find_unused_parameters` `True`
-        self.ddp_kwargs["find_unused_parameters"] = self.ddp_kwargs.get(
+        self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get(
             "find_unused_parameters", True
         )
         model = LightningDistributedDataParallel(
             model,
             device_ids=device_ids,
-            **self.ddp_kwargs,
+            **self._ddp_kwargs,
         )
         return model
