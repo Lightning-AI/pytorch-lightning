@@ -97,7 +97,7 @@ class LoggerConnector:
     def capture_logging(self) -> Union[EpochLoopResult, None]:
         try:
             self._cached_results[self._current_stage].cache_result()
-        except:
+        except Exception:
             model_ref = self.trainer.get_model()
             fx_name = model_ref._current_hook_fx_name
             if fx_name == '':
