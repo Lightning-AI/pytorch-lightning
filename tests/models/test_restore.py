@@ -71,6 +71,18 @@ def test_model_properties_resume_from_checkpoint(tmpdir):
     trainer.fit(model)
 
 
+def test_try_resume_from_non_existing_checkpoint(tmpdir):
+    """ Test that trying to resume from non-existing `resume_from_checkpoint` fail without error."""
+    model = EvalModelTemplate()
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, logger=False, checkpoint_callback=checkpoint_callback)
+    # Generate checkpoint `last.ckpt` with template model
+    trainer.fit(model)
+    # `True` if resume/restore successfully else `False`
+    assert trainer.checkpoint_connector.restore(str(tmpdir / "last.ckpt"), trainer.on_gpu)
+    assert not trainer.checkpoint_connector.restore(str(tmpdir / "last_non_existing.ckpt"), trainer.on_gpu)
+
+
 class CaptureCallbacksBeforeTraining(Callback):
     callbacks = []
 

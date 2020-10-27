@@ -52,12 +52,12 @@ class CheckpointConnector:
         # used to validate checkpointing logic
         self.has_trained = False
 
-    def restore_weights(self, model: LightningModule):
+    def restore_weights(self, model: LightningModule) -> None:
         """
-        We attempt to restore weights in this order:
-        1. HPC weights.
-        2. if no HPC weights restore checkpoint_path weights
-        3. otherwise don't restore weights
+        Attempt to restore state from checkpoint in this priority:
+        1. HPC weights
+        2. `resume_from_checkpoint` file
+        3. don't restore
         """
         # clear cache before restore
         if self.trainer.on_gpu:
@@ -70,9 +70,8 @@ class CheckpointConnector:
         if self.trainer.on_gpu:
             torch.cuda.empty_cache()
 
-        if not did_restore_hpc_weights:
-            if self.trainer.resume_from_checkpoint is not None:
-                self.restore(self.trainer.resume_from_checkpoint, on_gpu=self.trainer.on_gpu)
+        if (not did_restore_hpc_weights) and (self.trainer.resume_from_checkpoint is not None):
+            self.restore(self.trainer.resume_from_checkpoint, on_gpu=self.trainer.on_gpu)
 
         # wait for all to catch up
         self.trainer.accelerator_backend.barrier('TrainerIOMixin.restore_weights')
@@ -81,21 +80,29 @@ class CheckpointConnector:
         if self.trainer.on_gpu:
             torch.cuda.empty_cache()
 
-    def restore(self, checkpoint_path: str, on_gpu: bool):
+    def restore(self, checkpoint_path: str, on_gpu: bool) -> bool:
         """
-        Restore training state from checkpoint.
+        Try to restore training state from checkpoint.
         Also restores all training state like:
         - epoch
         - callbacks
         - schedulers
         - optimizer
+
+        Returns:
+           `True` if restored successfully else `False`
         """
 
-        # if on_gpu:
-        #     checkpoint = torch.load(checkpoint_path)
-        # else:
-        # load on CPU first
-        checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
+        # Try to load checkpoint from `checkpoint_path`. If failed, do not restore checkpoint.
+        try:
+            # if on_gpu:
+            #     checkpoint = torch.load(checkpoint_path)
+            # else:
+            # load on CPU first
+            checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
+        except Exception as _:
+            log.info(f'failed to load model from checkpoint:{checkpoint_path}')
+            return False
 
         # load model state
         model = self.trainer.get_model()
@@ -121,6 +128,9 @@ class CheckpointConnector:
 
         # load training state (affects trainer only)
         self.restore_training_state(checkpoint)
+
+        log.info(f'Model restored from: {checkpoint_path}')
+        return True
 
     def restore_training_state(self, checkpoint):
         """
@@ -186,7 +196,7 @@ class CheckpointConnector:
         for scheduler, lrs_state in zip(self.trainer.lr_schedulers, lr_schedulers):
             scheduler['scheduler'].load_state_dict(lrs_state)
 
-    def restore_hpc_weights_if_needed(self, model: LightningModule):
+    def restore_hpc_weights_if_needed(self, model: LightningModule) -> bool:
         """If there is a set of hpc weights, use as signal to restore model."""
         did_restore = False
 
