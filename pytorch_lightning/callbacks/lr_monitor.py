@@ -59,13 +59,14 @@ class LearningRateMonitor(Callback):
             return [optimizer], [lr_scheduler]
 
     """
-    def __init__(self, logging_interval: Optional[str] = None):
+    def __init__(self, logging_interval: Optional[str] = None, log_momentum: bool = False):
         if logging_interval not in (None, 'step', 'epoch'):
             raise MisconfigurationException(
                 'logging_interval should be `step` or `epoch` or `None`.'
             )
 
         self.logging_interval = logging_interval
+        self.log_momentum = log_momentum
         self.lrs = None
         self.lr_sch_names = []
 
@@ -92,6 +93,7 @@ class LearningRateMonitor(Callback):
 
         # Initialize for storing values
         self.lrs = {name: [] for name in names}
+        self.last_momentum_values = {name + "-momentum": None for name in names}
 
     def on_train_batch_start(self, trainer, *args, **kwargs):
         if not self._should_log(trainer):
@@ -123,9 +125,17 @@ class LearningRateMonitor(Callback):
                         lr, key = pg['lr'], f'{name}/pg{i + 1}'
                         self.lrs[key].append(lr)
                         latest_stat[key] = lr
+                        if self.log_momentum and pg.get('momentum'):
+                            momentum_key, momentum_value = key + '-momentum', pg.get('momentum')
+                            self.last_momentum_values[momentum_key] = momentum_value
+                            latest_stat[momentum_key] = momentum_value
                 else:
                     self.lrs[name].append(param_groups[0]['lr'])
                     latest_stat[name] = param_groups[0]['lr']
+                    if self.log_momentum and param_groups[0].get('momentum'):
+                        momentum_key, momentum_value = name + '-momentum', param_groups[0].get('momentum')
+                        self.last_momentum_values[momentum_key] = momentum_value
+                        latest_stat[momentum_key] = momentum_value
 
         return latest_stat
 
