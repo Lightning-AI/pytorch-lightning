@@ -1598,11 +1598,10 @@ class LightningModule(
                 # dicts are not supported, so show the user an error; not raising an error to show the original error
                 if isinstance(example_inputs, Mapping):
                     log.error("`example_inputs` should be a Tensor or a tuple of Tensors,"
-                              f"but got {type(example_inputs)}.")
+                              f" but got {type(example_inputs)}.")
                 # automatically send example inputs to the right device and use trace
-                example_input_array_device = move_data_to_device(example_inputs, device=self.device)
-                torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_input_array_device,
-                                                     **kwargs)
+                example_inputs = move_data_to_device(example_inputs, device=self.device)
+                torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
             else:
                 raise ValueError(f"The 'method' parameter only supports 'script' or 'trace', but value given was:"
                                  f"{method}")
