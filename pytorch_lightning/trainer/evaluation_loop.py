@@ -84,7 +84,6 @@ class EvaluationLoop(object):
         return False
 
     def on_evaluation_start(self, *args, **kwargs):
-        self.trainer.logger_connector.cached_metrics(self.testing).reset()
         if self.testing:
             self.trainer.call_hook('on_test_start', *args, **kwargs)
         else:
@@ -104,21 +103,11 @@ class EvaluationLoop(object):
         else:
             model_ref.on_validation_model_train()
 
-    def _update_metrics_to_log_after_evaluation_epoch_end(self):
-        if not self.trainer.running_sanity_check:
-            self.trainer.logger_connector.cached_metrics(self.testing).update(self.trainer, "after_on_batch_end")
-            metrics_to_log = self.trainer.logger_connector.cached_metrics(self.testing)\
-                .get_as_list("after_on_batch_end", "epoch_log_metrics")
-            self.trainer.logger_connector._track_callback_metrics_1_0(self.trainer.get_model()._results,
-                                                                      metrics_to_log=metrics_to_log)
-
     def on_evaluation_end(self, *args, **kwargs):
         if self.testing:
             self.trainer.call_hook('on_test_end', *args, **kwargs)
         else:
             self.trainer.call_hook('on_validation_end', *args, **kwargs)
-
-        self._update_metrics_to_log_after_evaluation_epoch_end()
 
     def reload_evaluation_dataloaders(self):
         model = self.trainer.get_model()
@@ -145,44 +134,13 @@ class EvaluationLoop(object):
             max_batches = [max_batches] * len(dataloaders)
 
         self.max_batches = max_batches
-        self.num_dataloaders = len(dataloaders)
-
-    def _update_logger_connector_metrics(self):
-        model = self.trainer.get_model()
-
-        # set batch_pbar_metrics cached from "on_train_start" to "on_train_epoch_start"
-        cache_internal_batch_pbar_metrics = self.trainer.logger_connector.cached_metrics(self.testing).get_as_dict(
-            "before_on_batch_start", "batch_pbar_metrics")
-        if len(cache_internal_batch_pbar_metrics) > 0:
-            self.trainer.logger_connector.add_progress_bar_metrics(cache_internal_batch_pbar_metrics)
-
-        # set epoch_pbar_metrics cached from "on_train_start" to "on_train_epoch_start"
-        cache_internal_batch_log_metrics = self.trainer.logger_connector.cached_metrics(self.testing).get_as_dict(
-            "before_on_batch_start", "batch_log_metrics")
-        if len(cache_internal_batch_log_metrics) > 0:
-            self.trainer.logger_connector.callback_metrics.update(cache_internal_batch_log_metrics)
-
-        # set batch_pbar_metrics cached from "on_train_start" to "on_train_epoch_start"
-        cache_internal_epoch_pbar_metrics = self.trainer.logger_connector.cached_metrics(self.testing).get_as_dict(
-            "before_on_batch_start", "epoch_pbar_metrics")
-        if len(cache_internal_epoch_pbar_metrics) > 0:
-            self.trainer.logger_connector.add_progress_bar_metrics(cache_internal_epoch_pbar_metrics)
-
-        # set epoch_pbar_metrics cached from "on_train_start" to "on_train_epoch_start"
-        cache_internal_epoch_log_metrics = self.trainer.logger_connector.cached_metrics(self.testing).get_as_dict(
-            "before_on_batch_start", "epoch_log_metrics")
-        if len(cache_internal_epoch_log_metrics) > 0:
-            self.trainer.logger_connector.callback_metrics.update(cache_internal_epoch_log_metrics)
+        self.num_dataloaders = self._get_num_dataloaders(dataloaders)
 
     def on_evaluation_epoch_start(self, *args, **kwargs):
         if self.testing:
             self.trainer.call_hook('on_test_epoch_start', *args, **kwargs)
         else:
             self.trainer.call_hook('on_validation_epoch_start', *args, **kwargs)
-
-        # cache model._results logged values as it will be reset in next hook
-        self.trainer.logger_connector.cached_metrics(self.testing).update(self.trainer, "before_on_batch_start")
-        self._update_logger_connector_metrics()
 
     def build_args(self, test_mode, batch, batch_idx, dataloader_idx):
         # make dataloader_idx arg in validation_step optional
@@ -208,11 +166,17 @@ class EvaluationLoop(object):
         # configure args
         args = self.build_args(test_mode, batch, batch_idx, dataloader_idx)
 
+        model_ref = self.trainer.get_model()
         # run actual test step
         if self.testing:
+            model_ref._current_fx_name = "test_step"
             output = self.trainer.accelerator_backend.test_step(args)
         else:
+            model_ref._current_fx_name = "validation_step"
             output = self.trainer.accelerator_backend.validation_step(args)
+
+        # capture any logged information
+        self.trainer.logger_connector.capture_logging()
 
         # track batch size for weighted average
         is_result_obj = isinstance(output, Result)
@@ -233,22 +197,25 @@ class EvaluationLoop(object):
             output = self.trainer.call_hook('validation_step_end', *args, **kwargs)
         return output
 
-    def evaluation_epoch_end(self, num_dataloaders):
-        self._unset_dataloader_idx()
+    def evaluation_epoch_end(self):
+        # reset dataloader idx
+        model_ref = self.trainer.get_model()
+        model_ref._current_dataloader_idx = None
+
+        #inform logger_connector batch loop is finished
+        self.trainer.logger_connector.evaluation_epoch_end(self.testing)
+
         using_eval_result = self.is_using_eval_results()
 
         # call the model epoch end
-        deprecated_results = self.__run_eval_epoch_end(num_dataloaders, using_eval_result)
-
-        # 1.0
-        epoch_logs = self.trainer.get_model()._results
+        deprecated_results = self.__run_eval_epoch_end(self.num_dataloaders, using_eval_result)
 
         # enable returning anything
         for i, r in enumerate(deprecated_results):
             if not isinstance(r, (dict, Result, torch.Tensor)):
                 deprecated_results[i] = []
 
-        return deprecated_results, epoch_logs
+        return deprecated_results
 
     def track_metrics_before_on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, test_mode):
         using_eval_result = self.is_using_eval_results()
@@ -260,13 +227,8 @@ class EvaluationLoop(object):
         )
 
     def log_epoch_metrics_on_evaluation_end(self):
-        metrics_to_log = self.trainer.logger_connector.cached_metrics(self.testing)\
-            .get_as_list("before_on_batch_start", "epoch_log_metrics")
-        metrics_to_log += self.trainer.logger_connector.cached_metrics(self.testing)\
-            .get_as_list("after_on_batch_end", "epoch_log_metrics")
-        self.trainer.logger_connector.log_epoch_metrics_on_evaluation_end(metrics_to_log)
         # get the final loop results
-        eval_loop_results = self.trainer.logger_connector._get_evaluate_epoch_results(self.testing)
+        eval_loop_results = self.trainer.logger_connector.get_evaluate_epoch_results(self.testing)
         return eval_loop_results
 
     def __run_eval_epoch_end(self, num_dataloaders, using_eval_result):
@@ -314,6 +276,9 @@ class EvaluationLoop(object):
         if not isinstance(eval_results, list):
             eval_results = [eval_results]
 
+        # support depreceated tracking metrics
+        self.trainer.logger_connector.track_metrics_deprecated(eval_results, using_eval_result, self.testing)
+
         return eval_results
 
     def __gather_epoch_end_eval_results(self, outputs):
@@ -346,11 +311,6 @@ class EvaluationLoop(object):
 
         return eval_results
 
-    def _unset_dataloader_idx(self):
-        # reset the result of the PL module
-        model = self.trainer.get_model()
-        model._current_dataloader_idx = None
-
     def set_dataloader_idx(self, dl_idx):
         # reset the result of the PL module
         model = self.trainer.get_model()
@@ -358,10 +318,6 @@ class EvaluationLoop(object):
 
     def on_evaluation_batch_start(self, *args, **kwargs):
         # reset the result of the PL module
-        model = self.trainer.get_model()
-        model._results = Result()
-        model._current_fx_name = 'evaluation_step'
-
         if self.testing:
             self.trainer.call_hook('on_test_batch_start', *args, **kwargs)
         else:
@@ -384,26 +340,14 @@ class EvaluationLoop(object):
         self.trainer.dev_debugger.track_eval_loss_history(self.testing, batch_idx, dataloader_idx, output)
 
     def on_evaluation_epoch_end(self, *args, **kwargs):
-        # reset model result
-        model_ref = self.trainer.get_model()
-        model_ref._results = Result()
         # call the callback hook
         if self.testing:
             self.trainer.call_hook('on_test_epoch_end', *args, **kwargs)
         else:
             self.trainer.call_hook('on_validation_epoch_end', *args, **kwargs)
 
-        self._update_metrics_to_log_after_evaluation_epoch_end()
-
-    def log_evaluation_step_metrics(self, batch, batch_idx):
-        results = self.trainer.get_model()._results
-        if len(results) == 1:
-            return None
-
-        results.track_batch_size(batch)
-        self.__log_result_step_metrics(results, batch_idx)
-
-        return results
+    def log_evaluation_step_metrics(self, batch_idx):
+        self.__log_result_step_metrics(None, batch_idx)
 
     # TODO: deprecate at 1.0
     def log_evaluation_step_metrics_legacy(self, output, batch_idx):
@@ -414,11 +358,13 @@ class EvaluationLoop(object):
             self.__log_result_step_metrics(output, batch_idx)
 
     def __log_result_step_metrics(self, output, batch_idx):
-        step_log_metrics = output.get_batch_log_metrics(include_forked_originals=False)
-        step_pbar_metrics = output.get_batch_pbar_metrics(include_forked_originals=False)
-
-        batch_pbar_metrics = self.trainer.get_model()._results.batch_pbar_metrics
-        step_pbar_metrics.update(batch_pbar_metrics)
+        if output is not None:
+            step_log_metrics = output.get_batch_log_metrics(include_forked_originals=False)
+            step_pbar_metrics = output.get_batch_pbar_metrics(include_forked_originals=False)
+        else:
+            cached_results = self.trainer.logger_connector.cached_results(self.testing)
+            step_log_metrics = cached_results.get_latest_batch_log_metrics()
+            step_pbar_metrics = cached_results.get_latest_batch_pbar_metrics()
 
         if len(step_log_metrics) > 0:
             # make the metrics appear as a different line in the same graph

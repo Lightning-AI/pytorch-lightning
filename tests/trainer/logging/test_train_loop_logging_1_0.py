@@ -365,8 +365,8 @@ def test_tbptt_log(tmpdir):
     expected = {'a_step', 'a_epoch', 'epoch'}
     assert generated == expected
 
-def test_different_batch_types_for_sizing(tmpdir):
 
+def test_different_batch_types_for_sizing(tmpdir):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             assert isinstance(batch, dict)
@@ -520,8 +520,16 @@ def test_log_works_in_train_callback(tmpdir):
                 custom_func_name = f"{func_idx}_{idx}_{func_name}"
                 pl_module.log(custom_func_name, self.count * func_idx, on_step=on_step,
                               on_epoch=on_epoch, prog_bar=prog_bar)
+
                 # catch information for verification
-                self.callback_funcs_called[func_name].append([self.count * func_idx])
+
+                # on on_train_start is outside the main loop. Won't be called
+                if func_name == "on_train_start":
+                    self.callback_funcs_called[func_name].append([self.count * func_idx])
+
+                # Saved only values from second epoch, so we can compute its mean or latest.
+                if pl_module.trainer.current_epoch == 1:
+                    self.callback_funcs_called[func_name].append([self.count * func_idx])
 
                 forked = on_step and on_epoch
 
@@ -589,13 +597,16 @@ def test_log_works_in_train_callback(tmpdir):
 
     class TestModel(BoringModel):
 
+        manual_loss = []
+
         def training_step(self, batch, batch_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)
+            self.manual_loss.append(loss)
             self.log('train_loss', loss)
             return {"loss": loss}
 
-    max_epochs = 1
+    max_epochs = 2
     limit_train_batches = 2
     model = TestModel()
     test_callback = TestCallback()
@@ -613,14 +624,14 @@ def test_log_works_in_train_callback(tmpdir):
     trainer.fit(model)
 
     assert test_callback.funcs_called_count["on_train_start"] == 1
-    assert test_callback.funcs_called_count["on_epoch_start"] == 1
-    assert test_callback.funcs_called_count["on_train_epoch_start"] == 1
-    assert test_callback.funcs_called_count["on_batch_start"] == 2
-    assert test_callback.funcs_called_count["on_train_batch_start"] == 2
-    assert test_callback.funcs_called_count["on_batch_end"] == 2
-    assert test_callback.funcs_called_count["on_train_batch_end"] == 2
-    assert test_callback.funcs_called_count["on_epoch_end"] == 1
-    assert test_callback.funcs_called_count["on_train_epoch_end"] == 1
+    assert test_callback.funcs_called_count["on_epoch_start"] == 2
+    assert test_callback.funcs_called_count["on_train_epoch_start"] == 2
+    assert test_callback.funcs_called_count["on_batch_start"] == 4
+    assert test_callback.funcs_called_count["on_train_batch_start"] == 4
+    assert test_callback.funcs_called_count["on_batch_end"] == 4
+    assert test_callback.funcs_called_count["on_train_batch_end"] == 4
+    assert test_callback.funcs_called_count["on_epoch_end"] == 2
+    assert test_callback.funcs_called_count["on_train_epoch_end"] == 2
 
     # Make sure the func_name exists within callback_metrics. If not, we missed some
     callback_metrics_keys = [*trainer.callback_metrics.keys()]
@@ -644,7 +655,10 @@ def test_log_works_in_train_callback(tmpdir):
     # Make sure the func_name output equals the average from all logged values when on_epoch true
     # pop extra keys
     trainer.callback_metrics.pop("debug_epoch")
-    #trainer.callback_metrics.pop("train_loss")
+    assert trainer.logged_metrics["train_loss"] == model.manual_loss[-1]
+    assert trainer.callback_metrics["train_loss"] == model.manual_loss[-1]
+    trainer.callback_metrics.pop("train_loss")
+    trainer.callback_metrics.pop("epoch")
 
     for func_name, output_value in trainer.callback_metrics.items():
         if torch.is_tensor(output_value):

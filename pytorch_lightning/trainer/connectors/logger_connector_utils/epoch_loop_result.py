@@ -15,19 +15,28 @@
 from collections import defaultdict
 from copy import deepcopy
 from enum import Enum
+from typing import Union, Tuple, Any
 
 from pytorch_lightning.core.step_result import Result
+
 
 class LoggerStages(Enum):
     TRAIN = "train"
     VAL = "validation"
     TEST = "test"
 
-class HookResults:
 
+class HookResults:
     """
-    This class is used to hold all metrics logged during one callback or model hook. 
-    Can be used for both training and val, test
+    This class is used to hold all metrics logged during one callback or model hook.
+    Can be used for both training, val, test.
+
+    Result objects will be stored in the following way.
+
+    val and test: [dataloader_idx] is a list
+    training
+        - If opt_idx and step_idx are set, [dataloader_idx][optimizer_idx][training_step_idx] is a list
+        - else [dataloader_idx] is a list
     """
 
     _types = ["list", "dict"]
@@ -38,14 +47,16 @@ class HookResults:
         self._internals_reduced = {}
         self._internal_type = None
         self.has_reduced = False
-    
+
+    def get_reduced_metrics(self):
+        return self._internals_reduced
+
+    def add_dataloader_idx(self):
+        return len(self._internals) > 1
+
     @property
     def num_dataloaders(self):
         return len(self._internals)
-
-    @property
-    def add_dataloader_idx(self):
-        return True if self.num_dataloaders > 1 else False
 
     def get_latest_from_dict(self, dl_idx):
         num_opt_idx = len(self._internals[dl_idx]) - 1
@@ -54,7 +65,7 @@ class HookResults:
         num_batch_idx = len(self._internals[dl_idx][num_opt_idx]) - 1
         assert num_batch_idx >= 0
         return self._internals[dl_idx][num_opt_idx][str(num_batch_idx)][-1]
-    
+
     def get_lastest(self, func_name, *args, latest=True, **kwargs):
         results = {}
         if latest:
@@ -64,8 +75,11 @@ class HookResults:
                     latest_result = self._internals[dl_idx][-1]
                 else:
                     latest_result = self.get_latest_from_dict(dl_idx)
+                if len(latest_result.keys()) > 1:
+                    random_key = [*latest_result.keys()][-1]
+                    add_dataloader_idx = latest_result["meta"][random_key]["dataloader_idx"] is not None
                 func = getattr(latest_result, func_name)
-                results.update(func(*args, add_dataloader_idx=self.add_dataloader_idx, **kwargs))
+                results.update(func(*args, add_dataloader_idx=add_dataloader_idx, **kwargs))
             return results
         else:
             raise NotImplementedError
@@ -83,11 +97,11 @@ class HookResults:
             opt_metrics = self._internals_reduced[dl_idx]
             if isinstance(opt_metrics, defaultdict):
                 for opt_metric in opt_metrics.values():
-                    metrics_to_log = opt_metric.get_epoch_pbar_metrics(*args, 
+                    metrics_to_log = opt_metric.get_epoch_pbar_metrics(*args,
                         add_dataloader_idx=self.add_dataloader_idx, **kwargs)
                     results.update(metrics_to_log)
             else:
-                metrics_to_log = opt_metrics.get_epoch_pbar_metrics(*args, 
+                metrics_to_log = opt_metrics.get_epoch_pbar_metrics(*args,
                         add_dataloader_idx=self.add_dataloader_idx, **kwargs)
                 results.update(metrics_to_log)
         return results
@@ -99,11 +113,11 @@ class HookResults:
             opt_metrics = self._internals_reduced[dl_idx]
             if isinstance(opt_metrics, defaultdict):
                 for opt_metric in opt_metrics.values():
-                    metrics_to_log = opt_metric.get_epoch_log_metrics(*args, 
+                    metrics_to_log = opt_metric.get_epoch_log_metrics(*args,
                         add_dataloader_idx=self.add_dataloader_idx, **kwargs)
                     results.update(metrics_to_log)
             else:
-                metrics_to_log = opt_metrics.get_epoch_log_metrics(*args, 
+                metrics_to_log = opt_metrics.get_epoch_log_metrics(*args,
                         add_dataloader_idx=self.add_dataloader_idx, **kwargs)
                 results.update(metrics_to_log)
         return results
@@ -115,11 +129,11 @@ class HookResults:
             opt_metrics = self._internals_reduced[dl_idx]
             if isinstance(opt_metrics, defaultdict):
                 for opt_metric in opt_metrics.values():
-                    metrics_to_log = opt_metric.get_forked_metrics(*args, 
+                    metrics_to_log = opt_metric.get_forked_metrics(*args,
                         add_dataloader_idx=self.add_dataloader_idx, **kwargs)
                     results.update(metrics_to_log)
             else:
-                metrics_to_log = opt_metrics.get_forked_metrics(*args, 
+                metrics_to_log = opt_metrics.get_forked_metrics(*args,
                         add_dataloader_idx=self.add_dataloader_idx, **kwargs)
                 results.update(metrics_to_log)
         return results
@@ -128,7 +142,7 @@ class HookResults:
         if dataloader_idx is None:
             dataloader_idx = 0
 
-        primary_key = f"{dataloader_idx}" 
+        primary_key = f"{dataloader_idx}"
 
         # [dataloader_idx][optimizer_idx][training_step_idx] is a list
         if len(extra_info) > 0:
@@ -163,17 +177,17 @@ class HookResults:
                 epoch_metrics = self._internals[dl_idx]
 
                 if self._internal_type == self._types[-1]:
-                    
+
                     num_opt_idx = len(self._internals[dl_idx]) - 1
                     num_batch_idx = len(self._internals[dl_idx][str(num_opt_idx)]) - 1
-                    
-                    # Make sure we didn't create key 
+
+                    # Make sure we didn't create key
                     assert num_opt_idx >= 0 and num_batch_idx >= 0
 
                     for opt_idx in range(num_opt_idx + 1):
                         opt_idx = str(opt_idx)
-                        opt_outputs = epoch_metrics[opt_idx]
-                    
+                        opt_outputs = deepcopy(epoch_metrics[opt_idx])
+
                         # reduce across time first
                         time_reduced_outputs = []
                         for batch_idx in range(num_batch_idx + 1):
@@ -203,25 +217,43 @@ class HookResults:
                         reduced_epoch_metrics = epoch_metrics[0].__class__.reduce_on_epoch_end(deepcopy(epoch_metrics))
 
                     self._internals_reduced[dl_idx] = reduced_epoch_metrics
-            
+
             self.has_reduced = True
+
+    def __getitem__(self, key: str) -> Any:
+        try:
+            if key in self._internals:
+                return self._internals[key]
+            else:
+                return self[key]
+        except KeyError:
+            return None
 
     def __repr__(self):
         return self._internals.__repr__()
 
+
 class EpochLoopResult:
     """
-    This class is responsible to cache all logging metrics which happened during one epoch 
-    """
+    This class is responsible to cache all logging metrics which happened during one epoch
 
+    It will cache Result objects as follow.
+
+    self._internals = {"fx_name_0": HookResult(), ..., "fx_name_n": HookResult()}
+    """
     def __init__(self, trainer, stage):
         self.trainer = trainer
         self._stage = stage
-        self._internals = {}
-        self._dataloader_idx = None
-        self._split_idx = None
-        self._opt_idx = None
-        self._has_been_reduced = False
+        self.reset()
+
+    def __getitem__(self, key: str) -> Any:
+        try:
+            if key in self._internals:
+                return self._internals[key]
+            else:
+                return self[key]
+        except KeyError:
+            return None
 
     @property
     def has_split_and_opt_idx(self):
@@ -235,20 +267,29 @@ class EpochLoopResult:
                 "split_idx": self._split_idx,
                 "opt_idx": self._opt_idx}
 
-    def reset_model(self, model_ref):
+    def reset_model(self):
+        model_ref = self.trainer.get_model()
         model_ref._results = Result()
         model_ref._current_hook_fx_name = ''
         model_ref._current_fx_name = ''
 
-    def cache_result(self):
+    def current_model_info(self):
         model_ref = self.trainer.get_model()
-
         # extract hook information
-        hook_result = model_ref._results
         fx_name = model_ref._current_hook_fx_name
         if fx_name == '':
             fx_name = model_ref._current_fx_name
         dataloader_idx = model_ref._current_dataloader_idx
+        return fx_name, dataloader_idx
+
+    def cache_result(self):
+        model_ref = self.trainer.get_model()
+
+        # extract hook results
+        hook_result = model_ref._results
+
+        # extract model information
+        fx_name, dataloader_idx = self.current_model_info()
 
         # add only if anything as been logged
         # default len is 1 due to _internals
@@ -261,26 +302,43 @@ class EpochLoopResult:
             if self.has_split_and_opt_idx:
                 extra_info = self.extra_info
 
-            self._internals[fx_name].append(deepcopy(hook_result), 
+            self._internals[fx_name].append(deepcopy(hook_result),
                                                      dataloader_idx=dataloader_idx,
                                                      extra_info=extra_info)
 
             # update logged_metrics, progress_bar_metrics, callback_metrics
             self.update_logger_connector()
-        
+
         # reset _results, fx_name
-        self.reset_model(model_ref)
+        self.reset_model()
 
     def update_logger_connector(self):
+        """
+        This function is called every time we capture a hook
+        It automatically updates the logger_connector followings:
+            -  progress_bar_metrics with pbar_metrics
+            -  logged_metrics with log_metrics
+            -  callback_metrics with progress_bar_metrics + logged_metrics
+        """
+
         logger_connector = self.trainer.logger_connector
 
-        # update pbar
-        batch_pbar_metrics = self.get_latest_batch_pbar_metrics(include_forked_originals=True)
-        self.add_progress_bar_metrics(batch_pbar_metrics)
+        if not self._has_batch_loop_finished:
+            # update pbar
+            batch_pbar_metrics = self.get_latest_batch_pbar_metrics()
+            logger_connector.add_progress_bar_metrics(batch_pbar_metrics)
 
-        # update logged_metrics
-        batch_log_metrics = self.get_latest_batch_log_metrics()
-        logger_connector.logged_metrics.update(batch_log_metrics)
+            # update logged_metrics
+            batch_log_metrics = self.get_latest_batch_log_metrics()
+            logger_connector.logged_metrics.update(batch_log_metrics)
+        else:
+            # update pbar
+            epoch_pbar_metrics = self.get_epoch_pbar_metrics()
+            logger_connector.add_progress_bar_metrics(epoch_pbar_metrics)
+
+            # update logged_metrics
+            epoch_log_metrics = self.get_epoch_log_metrics()
+            logger_connector.logged_metrics.update(epoch_log_metrics)
 
         # update callback_metrics
         logger_connector.callback_metrics.update(logger_connector.progress_bar_metrics)
@@ -296,46 +354,70 @@ class EpochLoopResult:
     def get_latest_batch_pbar_metrics(self):
         results = {}
         for fx_name, hook_result in self._internals.items():
-            results.update(hook_result.get_batch_pbar_metrics(latest=True, 
+            results.update(hook_result.get_batch_pbar_metrics(latest=True,
                 include_forked_originals=False))
-        return results  
-    
+        return results
+
     @property
     def has_reduced(self):
         hook_results = self._internals.values()
         return len(hook_results) == sum([h.has_reduced for h in hook_results])
 
-    def _auto_reduce_results_on_epoch_end(self):
+    def auto_reduce_results_on_epoch_end(self):
         if not self.has_reduced:
             for fx_name, hook_result in self._internals.items():
                 hook_result.auto_reduce_results_on_epoch_end()
+
+    @property
+    def has_batch_loop_finished(self):
+        return self._has_batch_loop_finished
+
+    @has_batch_loop_finished.setter
+    def has_batch_loop_finished(self, has_batch_loop_finished):
+        if has_batch_loop_finished:
+            # If batch loop has finished, reduce metrics
+            self.auto_reduce_results_on_epoch_end()
+        self._has_batch_loop_finished = has_batch_loop_finished
+
+    def get_epoch_pbar_metrics(self):
+        if not self.has_reduced:
+            self.auto_reduce_results_on_epoch_end()
+        epoch_pbar_metrics = {}
+        for fx_name, hook_result in self._internals.items():
+            epoch_pbar_metrics.update(hook_result.get_epoch_pbar_metrics())
+        return epoch_pbar_metrics
+
+    def get_epoch_log_metrics(self):
+        if not self.has_reduced:
+            self.auto_reduce_results_on_epoch_end()
+        epoch_log_metrics = {}
+        for fx_name, hook_result in self._internals.items():
+            epoch_log_metrics.update(hook_result.get_epoch_log_metrics())
+        return epoch_log_metrics
+
+    def get_forked_metrics(self):
+        if not self.has_reduced:
+            self.auto_reduce_results_on_epoch_end()
+        forked_metrics = {}
+        for fx_name, hook_result in self._internals.items():
+            forked_metrics.update(hook_result.get_forked_metrics())
+        return forked_metrics
+
+    def get_reduced_metrics(self):
+        if not self.has_reduced:
+            self.auto_reduce_results_on_epoch_end()
+        reduced_metrics = {}
+        for fx_name, hook_result in self._internals.items():
+            reduced_metrics[fx_name] = hook_result.get_reduced_metrics()
+        return reduced_metrics
 
     def __repr__(self):
         return f"{self.__class__.__name__}(stage={self._stage}, internals={self._internals})"
 
     def reset(self):
-        self = EpochLoopResult(self.trainer, self._stage)
-
-    def get_epoch_pbar_metrics(self):
-        if not self.has_reduced:
-            self._auto_reduce_results_on_epoch_end()
-        epoch_pbar_metrics = {}
-        for fx_name, hook_result in self._internals.items():
-            epoch_pbar_metrics.update(hook_result.get_epoch_pbar_metrics())
-        return epoch_pbar_metrics 
-
-    def get_epoch_log_metrics(self):
-        if not self.has_reduced:
-            self._auto_reduce_results_on_epoch_end()
-        epoch_log_metrics = {}
-        for fx_name, hook_result in self._internals.items():
-            epoch_log_metrics.update(hook_result.get_epoch_log_metrics() )     
-        return epoch_log_metrics
-
-    def get_forked_metrics(self):
-        if not self.has_reduced:
-            self._auto_reduce_results_on_epoch_end()
-        forked_metrics = {}
-        for fx_name, hook_result in self._internals.items():
-            forked_metrics.update(hook_result.get_forked_metrics())     
-        return forked_metrics
+        self._internals = {}
+        self._dataloader_idx = None
+        self._split_idx = None
+        self._opt_idx = None
+        self._has_batch_loop_finished = False
+        self._num_dataloaders = 1

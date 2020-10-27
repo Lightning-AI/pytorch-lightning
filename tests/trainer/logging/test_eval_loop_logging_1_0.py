@@ -394,6 +394,7 @@ def test_log_works_in_val_callback(tmpdir):
                     "on_step": on_step,
                     "on_epoch": on_epoch,
                     "prog_bar": prog_bar,
+                    "forked": on_step and on_epoch,
                     "func_name": func_name}
 
                 if on_step and on_epoch:
@@ -401,12 +402,14 @@ def test_log_works_in_val_callback(tmpdir):
                         "on_step": True,
                         "on_epoch": False,
                         "prog_bar": prog_bar,
+                        "forked": False,
                         "func_name": func_name}
 
                     self.funcs_attr[f"{custom_func_name}_epoch"] = {
                         "on_step": False,
                         "on_epoch": True,
                         "prog_bar": prog_bar,
+                        "forked": False,
                         "func_name": func_name}
 
         def on_validation_start(self, trainer, pl_module):
@@ -509,6 +512,10 @@ def test_log_works_in_val_callback(tmpdir):
     trainer.callback_metrics.pop("debug_epoch")
     trainer.callback_metrics.pop("val_loss")
     for func_name, output_value in trainer.callback_metrics.items():
+        # not sure how to handle this now
+        if "epoch_0" in func_name:
+            func_name = '/'.join(func_name.split('/')[:-1])
+            continue
 
         if torch.is_tensor(output_value):
             output_value = output_value.item()
@@ -523,7 +530,7 @@ def test_log_works_in_val_callback(tmpdir):
         assert float(output_value) == float(expected_output)
 
     for func_name, func_attr in test_callback.funcs_attr.items():
-        if func_attr["prog_bar"] and (func_attr["on_step"] or func_attr["on_epoch"]):
+        if func_attr["prog_bar"] and (func_attr["on_step"] or func_attr["on_epoch"]) and not func_attr["forked"]:
             assert func_name in trainer.logger_connector.progress_bar_metrics
         else:
             assert func_name not in trainer.logger_connector.progress_bar_metrics
@@ -569,18 +576,21 @@ def test_log_works_in_test_callback(tmpdir):
                     "on_step": on_step,
                     "on_epoch": on_epoch,
                     "prog_bar": prog_bar,
+                    "forked": on_step and on_epoch,
                     "func_name": func_name}
                 if on_step and on_epoch:
                     self.funcs_attr[f"{custom_func_name}_step" + num_dl_ext] = {
                         "on_step": True,
                         "on_epoch": False,
                         "prog_bar": prog_bar,
+                        "forked": False,
                         "func_name": func_name}
 
                     self.funcs_attr[f"{custom_func_name}_epoch" + num_dl_ext] = {
                         "on_step": False,
                         "on_epoch": True,
                         "prog_bar": prog_bar,
+                        "forked": False,
                         "func_name": func_name}
 
         def on_test_start(self, trainer, pl_module):
@@ -616,7 +626,7 @@ def test_log_works_in_test_callback(tmpdir):
             self.make_logging(pl_module, 'on_test_epoch_end', 7, on_steps=[False],
                               on_epochs=self.choices, prob_bars=self.choices)
 
-    max_epochs = 1
+    max_epochs = 2
     num_dataloaders = 2
 
     class TestModel(BoringModel):
@@ -649,13 +659,13 @@ def test_log_works_in_test_callback(tmpdir):
     trainer.fit(model)
     trainer.test()
 
-    assert test_callback.funcs_called_count["on_epoch_start"] == 1
     assert test_callback.funcs_called_count["on_test_start"] == 1
+    assert test_callback.funcs_called_count["on_epoch_start"] == 2
     assert test_callback.funcs_called_count["on_test_epoch_start"] == 1
     assert test_callback.funcs_called_count["on_test_batch_start"] == 4
     assert test_callback.funcs_called_count["on_test_batch_end"] == 4
+    assert test_callback.funcs_called_count["on_epoch_end"] == 2
     assert test_callback.funcs_called_count["on_test_epoch_end"] == 1
-    assert test_callback.funcs_called_count["on_epoch_end"] == 1
 
     # Make sure the func_name exists within callback_metrics. If not, we missed some
     callback_metrics_keys = [*trainer.callback_metrics.keys()]
@@ -680,6 +690,8 @@ def test_log_works_in_test_callback(tmpdir):
     # pop extra keys
     assert "debug_epoch" in trainer.callback_metrics
     trainer.callback_metrics.pop("debug_epoch")
+    trainer.callback_metrics.pop("epoch")
+
     for dl_idx in range(num_dataloaders):
         key = f"test_loss/dataloader_idx_{dl_idx}"
         assert key in trainer.callback_metrics
@@ -687,6 +699,11 @@ def test_log_works_in_test_callback(tmpdir):
         trainer.callback_metrics.pop(key)
 
     for func_name, output_value in trainer.callback_metrics.items():
+        # not sure how to handle this now
+        if "epoch_1" in func_name:
+            func_name = '/'.join(func_name.split('/')[:-1])
+            continue
+
         if torch.is_tensor(output_value):
             output_value = output_value.item()
 
@@ -701,7 +718,7 @@ def test_log_works_in_test_callback(tmpdir):
         assert float(output_value) == float(expected_output)
 
     for func_name, func_attr in test_callback.funcs_attr.items():
-        if func_attr["prog_bar"] and (func_attr["on_step"] or func_attr["on_epoch"]):
+        if func_attr["prog_bar"] and (func_attr["on_step"] or func_attr["on_epoch"]) and not func_attr["forked"]:
             assert func_name in trainer.logger_connector.progress_bar_metrics
         else:
             assert func_name not in trainer.logger_connector.progress_bar_metrics

@@ -461,6 +461,7 @@ class Trainer(
         return results or 1
 
     def train(self):
+        # set stage for logging
         self.logger_connector.set_stage("train")
 
         self.run_sanity_check(self.get_model())
@@ -528,24 +529,25 @@ class Trainer(
                 self.train_loop.on_train_end()
 
     def run_evaluation(self, test_mode: bool = False, max_batches=None):
-        # used to know if we are logging for val, testl
-        self.trainer.logger_connector.set_stage(test_mode)
-        
+
+        # used to know if we are logging for val, test + reset cached results
+        self.logger_connector.set_stage(test_mode, reset=True)
+
         # bookkeeping
         self.evaluation_loop.testing = test_mode
+
+        # prepare dataloaders
         dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders(max_batches)
+
+        # check if we want to skip this evaluation
         if self.evaluation_loop.should_skip_evaluation(dataloaders, max_batches):
             return [], []
 
-        # Load model and reset Result
+        # ref model
         model = self.get_model()
-
-        # reset result
-        model._results = Result()
 
         # enable eval mode + no grads
         self.evaluation_loop.on_evaluation_model_eval()
-
         model.zero_grad()
         torch.set_grad_enabled(False)
 
@@ -556,18 +558,16 @@ class Trainer(
         self.evaluation_loop.setup(model, max_batches, dataloaders)
 
         # hook
-        # TODO: should this be insider the dataloader loop?
         self.evaluation_loop.on_evaluation_epoch_start()
 
         # run validation/testing
         for dataloader_idx, dataloader in enumerate(dataloaders):
             # bookkeeping
             dl_outputs = []
-            dl_step_metrics = []
             dataloader = self.accelerator_backend.process_dataloader(dataloader)
             dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
 
-            # set dataloader idx in pl_model, so we can handle multi dataloaders logging.
+            # set dataloader idx to pl_model to handle multi-dataloaders logging.
             self.evaluation_loop.set_dataloader_idx(dataloader_idx)
 
             for batch_idx, batch in enumerate(dataloader):
@@ -594,26 +594,17 @@ class Trainer(
                 # TODO: deprecate 1.0
                 self.evaluation_loop.log_evaluation_step_metrics_legacy(output, batch_idx)
 
-                # log step metrics
-                step_metrics = self.evaluation_loop.log_evaluation_step_metrics(batch, batch_idx)
-
-                if step_metrics is not None:
-                    dl_step_metrics.append(step_metrics)
+                # log batch metrics
+                self.evaluation_loop.log_evaluation_step_metrics(batch_idx)
 
                 # track epoch level outputs
                 if output is not None:
                     dl_outputs.append(output)
 
             self.evaluation_loop.outputs.append(dl_outputs)
-            self.evaluation_loop.step_metrics.append(dl_step_metrics)
 
-        # lightning module method
-        deprecated_eval_results, epoch_logs = self.evaluation_loop.evaluation_epoch_end(
-            num_dataloaders=len(dataloaders)
-        )
-
-        self.evaluation_loop.track_metrics_before_on_evaluation_epoch_end(
-            deprecated_eval_results, epoch_logs, test_mode)
+        # lightning module method + inform logger epoch finished
+        deprecated_eval_results = self.evaluation_loop.evaluation_epoch_end()
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
@@ -623,6 +614,8 @@ class Trainer(
 
         # bookkeeping
         eval_loop_results = self.evaluation_loop.log_epoch_metrics_on_evaluation_end()
+
+        # save predictions to disk
         self.evaluation_loop.predictions.to_disk()
 
         # enable train mode again
@@ -714,6 +707,8 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         self.verbose_test = verbose
+
+        self.logger_connector.set_stage("test")
 
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
         if test_dataloaders and datamodule:
@@ -845,13 +840,13 @@ class Trainer(
         if model_ref is not None:
             # capture logging for this hook
             self.logger_connector.capture_logging()
-            
+
             # reset result to the next hook
             model_ref._results = Result()
             model_ref._current_hook_fx_name = ''
 
     def call_hook(self, hook_name, *args, **kwargs):
-        
+        # set hook_name to model + reset Result obj
         self._prepare_logging_capture(hook_name)
 
         # always profile hooks
@@ -875,7 +870,6 @@ class Trainer(
                 accelerator_hook = getattr(self.accelerator_backend, hook_name)
                 output = accelerator_hook(*args, **kwargs)
 
-
-        # capture logging    
+        # capture logging
         self._capture_logging()
         return output

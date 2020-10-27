@@ -299,13 +299,14 @@ class TrainLoop:
 
         with self.trainer.profiler.profile("model_forward"):
             args = self.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
-            
+
             # manually capture logged metrics
             model_ref._current_fx_name = 'training_step'
             training_step_output = self.trainer.accelerator_backend.training_step(args)
             self.trainer.logger_connector.capture_logging()
-            
+
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
+            self.trainer.logger_connector.capture_logging()
 
             training_step_output_for_epoch_end, training_step_output = self._process_training_step_output(
                 training_step_output, split_batch
@@ -494,7 +495,6 @@ class TrainLoop:
         return splits
 
     def run_training_epoch(self):
-
         # get model
         model = self.trainer.get_model()
 
@@ -580,8 +580,8 @@ class TrainLoop:
 
             self.trainer.checkpoint_connector.has_trained = True
 
-        # hook
-        self.trainer.logger_connector.on_train_epoch_end(epoch_output)
+        # bookkeeping
+        self.trainer.logger_connector.on_train_epoch_end()
 
         # epoch end hook
         self.run_on_epoch_end_hook(epoch_output)
@@ -670,7 +670,6 @@ class TrainLoop:
                 # gradient update with accumulated gradients
 
                 else:
-
                     if self.automatic_optimization:
 
                         def train_step_and_backward_closure():
@@ -725,7 +724,6 @@ class TrainLoop:
             training_step_output_for_epoch_end=batch_outputs,
         )
         return result
-
 
     def _process_closure_result(
         self, batch_outputs: list, opt_idx: int
@@ -802,8 +800,6 @@ class TrainLoop:
             self.trainer.optimizer_connector.update_learning_rates(interval="step", monitor_metrics=monitor_metrics)
 
     def run_on_epoch_end_hook(self, epoch_output):
-        # reset result + internal metris to catch epoch end logging
-        model_ref = self.trainer.get_model()
         self.trainer.call_hook('on_epoch_end')
         self.trainer.call_hook('on_train_epoch_end', epoch_output)
 
