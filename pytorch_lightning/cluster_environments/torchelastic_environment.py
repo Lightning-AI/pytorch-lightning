@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import os
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import rank_zero_warn
@@ -44,4 +45,4 @@ class TorchElasticEnvironment(ClusterEnvironment):
         return port
 
     def world_size(self):
-        return os.environ.get('WORLD_SIZE', None)
+        return os.environ.get('WORLD_SIZE')

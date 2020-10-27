@@ -132,7 +132,7 @@ class ModelHooks:
         Called in the training loop after the batch.
 
         Args:
-            outputs: The outputs of validation_step_end(validation_step(x))
+            outputs: The outputs of training_step_end(training_step(x))
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
@@ -156,7 +156,7 @@ class ModelHooks:
         Called in the validation loop before anything happens for that batch.
 
         Args:
-            batch: The batched data as it is returned by the training DataLoader.
+            batch: The batched data as it is returned by the validation DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
         """
@@ -168,7 +168,7 @@ class ModelHooks:
 
         Args:
             outputs: The outputs of validation_step_end(validation_step(x))
-            batch: The batched data as it is returned by the training DataLoader.
+            batch: The batched data as it is returned by the validation DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
         """
@@ -179,7 +179,7 @@ class ModelHooks:
         Called in the test loop before anything happens for that batch.
 
         Args:
-            batch: The batched data as it is returned by the training DataLoader.
+            batch: The batched data as it is returned by the test DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
         """
@@ -191,7 +191,7 @@ class ModelHooks:
 
         Args:
             outputs: The outputs of test_step_end(test_step(x))
-            batch: The batched data as it is returned by the training DataLoader.
+            batch: The batched data as it is returned by the test DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
         """
