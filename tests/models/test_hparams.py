@@ -552,7 +552,7 @@ def test_args(tmpdir):
     trainer.fit(model)
 
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
-    with pytest.raises(TypeError, match="__init__\(\) got an unexpected keyword argument 'test'"):
+    with pytest.raises(TypeError, match=r"__init__\(\) got an unexpected keyword argument 'test'"):
         SubClassVarArgs.load_from_checkpoint(raw_checkpoint_path)
 
 

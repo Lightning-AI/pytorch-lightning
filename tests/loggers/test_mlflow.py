@@ -121,7 +121,7 @@ def test_mlflow_log_dir(client, mlflow, tmpdir):
 def test_mlflow_logger_dirs_creation(tmpdir):
     """ Test that the logger creates the folders and files in the right place. """
     if not importlib.util.find_spec('mlflow'):
-        pytest.xfail(f"test for explicit file creation requires mlflow dependency to be installed.")
+        pytest.xfail("test for explicit file creation requires mlflow dependency to be installed.")
 
     assert not os.listdir(tmpdir)
     logger = MLFlowLogger('test', save_dir=tmpdir)

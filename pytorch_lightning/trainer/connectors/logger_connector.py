@@ -87,7 +87,7 @@ class LoggerConnector:
         elif step is None:
             # added metrics by Lightning for convenience
             scalar_metrics['epoch'] = self.trainer.current_epoch
-            step = step if step is not None else self.trainer.global_step
+            step = self.trainer.global_step
 
         # log actual metrics
         if self.trainer.logger is not None:
@@ -173,6 +173,9 @@ class LoggerConnector:
         # now we log all of them
         for dl_idx, dl_metrics in enumerate(step_metrics):
             if len(dl_metrics) == 0:
+                # Ensure custom logged metrics are included if not included with step metrics
+                if len(epoch_logger_metrics) > 0:
+                    self.eval_loop_results.append(epoch_logger_metrics)
                 continue
 
             reduced_epoch_metrics = dl_metrics[0].__class__.reduce_on_epoch_end(dl_metrics)
@@ -203,7 +206,7 @@ class LoggerConnector:
         # log all the metrics as a s single dict
         metrics_to_log = dict(ChainMap(*metrics_to_log))
         if len(metrics_to_log) > 0:
-            self.log_metrics(metrics_to_log, {}, step=self.trainer.global_step)
+            self.log_metrics(metrics_to_log, {})
 
     def __rename_keys_by_dataloader_idx(self, metrics, dataloader_idx, num_loaders):
         if num_loaders == 1:

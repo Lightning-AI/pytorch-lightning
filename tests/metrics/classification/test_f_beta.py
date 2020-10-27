@@ -14,6 +14,7 @@ from tests.metrics.classification.inputs import (
     _multidim_multiclass_inputs,
     _multidim_multiclass_prob_inputs,
     _multilabel_inputs,
+    _multilabel_inputs_no_match,
     _multilabel_prob_inputs,
 )
 from tests.metrics.utils import NUM_CLASSES, THRESHOLD, MetricTester
@@ -87,21 +88,22 @@ def _sk_fbeta_multidim_multiclass(preds, target, average='micro', beta=1.0):
         (_binary_inputs.preds, _binary_inputs.target, _sk_fbeta_binary, 1, False),
         (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target, _sk_fbeta_multilabel_prob, NUM_CLASSES, True),
         (_multilabel_inputs.preds, _multilabel_inputs.target, _sk_fbeta_multilabel, NUM_CLASSES, True),
+        (_multilabel_inputs_no_match.preds, _multilabel_inputs_no_match.target, _sk_fbeta_multilabel, NUM_CLASSES, True),
         (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, _sk_fbeta_multiclass_prob, NUM_CLASSES, False),
         (_multiclass_inputs.preds, _multiclass_inputs.target, _sk_fbeta_multiclass, NUM_CLASSES, False),
         (
-                _multidim_multiclass_prob_inputs.preds,
-                _multidim_multiclass_prob_inputs.target,
-                _sk_fbeta_multidim_multiclass_prob,
-                NUM_CLASSES,
-                False,
+            _multidim_multiclass_prob_inputs.preds,
+            _multidim_multiclass_prob_inputs.target,
+            _sk_fbeta_multidim_multiclass_prob,
+            NUM_CLASSES,
+            False,
         ),
         (
-                _multidim_multiclass_inputs.preds,
-                _multidim_multiclass_inputs.target,
-                _sk_fbeta_multidim_multiclass,
-                NUM_CLASSES,
-                False,
+            _multidim_multiclass_inputs.preds,
+            _multidim_multiclass_inputs.target,
+            _sk_fbeta_multidim_multiclass,
+            NUM_CLASSES,
+            False,
         ),
     ],
 )
@@ -112,7 +114,7 @@ class TestFBeta(MetricTester):
     def test_fbeta(
         self, ddp, dist_sync_on_step, preds, target, sk_metric, metric_class, beta, num_classes, multilabel, average
     ):
-        self.run_metric_test(
+        self.run_class_metric_test(
             ddp=ddp,
             preds=preds,
             target=target,

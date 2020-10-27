@@ -406,6 +406,16 @@ def test_iou(half_ones, reduction, ignore_index, expected):
     assert torch.allclose(iou_val, expected, atol=1e-9)
 
 
+def test_iou_input_check():
+    with pytest.raises(ValueError, match=r"'pred' shape (.*) must equal 'target' shape (.*)"):
+        _ = iou(pred=torch.randint(0, 2, (3, 4, 3)),
+                target=torch.randint(0, 2, (3, 3)))
+
+    with pytest.raises(ValueError, match="'pred' must contain integer targets."):
+        _ = iou(pred=torch.rand((3, 3)),
+                target=torch.randint(0, 2, (3, 3)))
+
+
 @pytest.mark.parametrize('metric', [auroc])
 def test_error_on_multiclass_input(metric):
     """ check that these metrics raise an error if they are used for multiclass problems  """

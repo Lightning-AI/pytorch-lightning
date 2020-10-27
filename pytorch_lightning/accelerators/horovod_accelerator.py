@@ -107,9 +107,6 @@ class HorovodAccelerator(Accelerator):
         hvd.join()
         return results
 
-    def teardown(self):
-        pass
-
     def training_step(self, args):
         if self.trainer.on_gpu:
             batch = args[0]
@@ -152,7 +149,7 @@ class HorovodAccelerator(Accelerator):
         return output
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
-        super().backward(closure_loss, optimizer, opt_idx,  *args, **kwargs)
+        super().backward(closure_loss, optimizer, opt_idx, *args, **kwargs)
         optimizer.synchronize()
 
     def on_train_epoch_end(self, outputs):

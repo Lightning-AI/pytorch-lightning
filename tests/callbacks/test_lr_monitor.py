@@ -90,11 +90,14 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval):
     model.configure_optimizers = model.configure_optimizers__multiple_schedulers
 
     lr_monitor = LearningRateMonitor(logging_interval=logging_interval)
+    log_every_n_steps = 2
+
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
+        log_every_n_steps=log_every_n_steps,
+        limit_train_batches=7,
         limit_val_batches=0.1,
-        limit_train_batches=0.5,
         callbacks=[lr_monitor],
     )
     result = trainer.fit(model)
@@ -107,7 +110,7 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval):
         'Names of learning rates not set correctly'
 
     if logging_interval == 'step':
-        expected_number_logged = trainer.global_step
+        expected_number_logged = trainer.global_step // log_every_n_steps
     if logging_interval == 'epoch':
         expected_number_logged = trainer.max_epochs
 

@@ -12,23 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 import os
-import re
+from typing import List, Optional
 
 import torch
 import torch.distributed as torch_distrib
 import torch.distributed as dist
 import torch.multiprocessing as mp
+from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities.cloud_io import atomic_save, load as pl_load
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.distributed import find_free_network_port
 from pytorch_lightning.distributed.dist import LightningDistributed
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
-from torch.nn.parallel import DistributedDataParallel
-from typing import List, Optional
 
 try:
     from hydra.core.hydra_config import HydraConfig
@@ -41,8 +39,8 @@ else:
 
 class DDPCPUSpawnAccelerator(Accelerator):
 
-    def __init__(self, trainer, nprocs, cluster_environment=None):
-        super().__init__(trainer, cluster_environment)
+    def __init__(self, trainer, nprocs, cluster_environment=None, ddp_plugin=None):
+        super().__init__(trainer, cluster_environment, ddp_plugin)
         self.mp_queue = None
         self.nprocs = nprocs
         self.dist = LightningDistributed()
@@ -74,11 +72,11 @@ class DDPCPUSpawnAccelerator(Accelerator):
     def ddp_train(self, process_idx, mp_queue, model):
         """
         Entry point for ddp
+
         Args:
             process_idx:
             mp_queue: multiprocessing queue
             model:
-        Returns:
         """
         # show progressbar only on progress_rank 0
         if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:
@@ -210,14 +208,12 @@ class DDPCPUSpawnAccelerator(Accelerator):
             mp_queue.put(results)
 
     def configure_ddp(
-        self, model: "LightningModule", device_ids: List[int]
+        self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
-        model = LightningDistributedDataParallel(
-            model, device_ids=device_ids, find_unused_parameters=True
-        )
+        model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model
 
-    def configure_sync_batchnorm(self, model: "LightningModule") -> "LightningModule":
+    def configure_sync_batchnorm(self, model: LightningModule) -> LightningModule:
         """
         Add global batchnorm for a model spread across multiple GPUs and nodes.
 

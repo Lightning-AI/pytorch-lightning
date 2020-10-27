@@ -14,6 +14,7 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
+from pytorch_lightning.core.lightning import LightningModule
 from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
 import os
 import torch
@@ -68,7 +69,7 @@ def test__training_step__log(tmpdir):
             return acc
 
         def backward(self, loss, optimizer, optimizer_idx):
-            loss.backward()
+            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
 
     model = TestModel()
     model.val_dataloader = None
@@ -141,7 +142,7 @@ def test__training_step__epoch_end__log(tmpdir):
             self.log('b', outputs[0]['loss'], on_epoch=True, prog_bar=True, logger=True)
 
         def backward(self, loss, optimizer, optimizer_idx):
-            loss.backward()
+            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
 
     model = TestModel()
     model.val_dataloader = None
@@ -448,8 +449,8 @@ def test_nested_datasouce_batch(tmpdir):
             x = {
                 'post_text': ['bird is fast', 'big cat'],
                 'dense_0': [
-                    torch.tensor([-0.1000,  0.2000], dtype=torch.float64),
-                    torch.tensor([1, 1], dtype=torch.uint8)
+                    torch.tensor([-0.1000, 0.2000], dtype=torch.float64),
+                    torch.tensor([1, 1], dtype=torch.uint8),
                 ],
                 'post_id': ['115', '116'],
                 'label': [torch.tensor([0, 1]), torch.tensor([1, 1], dtype=torch.uint8)]

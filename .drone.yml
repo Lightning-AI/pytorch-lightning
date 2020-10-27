@@ -20,44 +20,21 @@ name: torch-GPU
 
 steps:
 - name: testing
-  image: pytorchlightning/pytorch_lightning:cuda-extras-py3.7-torch1.5
+  image: pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.5
 
   environment:
-    SLURM_LOCALID: 0
     CODECOV_TOKEN:
       from_secret: codecov_token
     MKL_THREADING_LAYER: GNU
-    HOROVOD_GPU_OPERATIONS: NCCL
-    HOROVOD_WITH_PYTORCH: 1
-    HOROVOD_WITHOUT_TENSORFLOW: 1
-    HOROVOD_WITHOUT_MXNET: 1
-    HOROVOD_WITH_GLOO: 1
-    HOROVOD_WITHOUT_MPI: 1
-
-  #volumes:
-  #  # Mount pip cache from host
-  #  - name: pip_cache
-  #    path: /opt/conda/lib/python3.7/site-packages
 
   commands:
-    # todo: remove unsets as in correct image Horovod shall be set
-    - unset HOROVOD_GPU_ALLREDUCE
-    - unset HOROVOD_GPU_BROADCAST
-    - export PATH="$PATH:/root/.local/bin"
     - python --version
-    - pip install pip -U
     - pip --version
     - nvidia-smi
-    #- bash ./requirements/install_AMP.sh
-    - apt-get update && apt-get install -y cmake
-    - pip uninstall -y horovod  # todo: this shall not be needed
-    - pip install -r ./requirements/devel.txt --user -q --upgrade-strategy only-if-needed  --no-cache-dir
-    #- pip install -r ./requirements/docs.txt --user -q
-    - pip install -r ./requirements/examples.txt --user -q --upgrade-strategy only-if-needed
+    - pip install -r ./requirements/devel.txt --upgrade-strategy only-if-needed -v --no-cache-dir
     - pip list
-    - python -c "import torch ; print(' & '.join([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())]) if torch.cuda.is_available() else 'only CPU')"
-    - coverage run --source pytorch_lightning -m py.test pytorch_lightning tests -v --durations=25 # --flake8
-    - python -m py.test benchmarks pl_examples -v --maxfail=2 --durations=0 # --flake8
+    - coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --color=yes --durations=25 # --flake8
+    - python -m pytest benchmarks pl_examples -v --color=yes --maxfail=2 --durations=0 # --flake8
     #- cd docs; make doctest; make coverage
     - coverage report
     # see: https://docs.codecov.io/docs/merging-reports
@@ -73,8 +50,3 @@ trigger:
     include:
     - push
     - pull_request
-
-#volumes:
-#  - name: pip_cache
-#    host:
-#      path: /tmp/cache/drone/pip

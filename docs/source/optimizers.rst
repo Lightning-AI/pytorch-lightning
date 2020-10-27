@@ -101,16 +101,35 @@ Every optimizer you use can be paired with any `LearningRateScheduler <https://p
    # Adam + LR scheduler
    def configure_optimizers(self):
       optimizer = Adam(...)
-      scheduler = ReduceLROnPlateau(optimizer, ...)
+      scheduler = LambdaLR(optimizer, ...)
       return [optimizer], [scheduler]
+
+   # The ReduceLROnPlateau scheduler requires a monitor
+   def configure_optimizers(self):
+      return {
+          'optimizer': Adam(...),
+          'scheduler': ReduceLROnPlateau(optimizer, ...),
+          'monitor': 'metric_to_track'
+      }
 
    # Two optimizers each with a scheduler
    def configure_optimizers(self):
       optimizer1 = Adam(...)
       optimizer2 = SGD(...)
-      scheduler1 = ReduceLROnPlateau(optimizer1, ...)
+      scheduler1 = LambdaLR(optimizer1, ...)
       scheduler2 = LambdaLR(optimizer2, ...)
       return [optimizer1, optimizer2], [scheduler1, scheduler2]
+
+   # Alternatively
+   def configure_optimizers(self):
+      optimizer1 = Adam(...)
+      optimizer2 = SGD(...)
+      scheduler1 = ReduceLROnPlateau(optimizer1, ...)
+      scheduler2 = LambdaLR(optimizer2, ...)
+      return (
+          {'optimizer': optimizer1, 'lr_scheduler': scheduler1, 'monitor': 'metric_to_track'},
+          {'optimizer': optimizer2, 'lr_scheduler': scheduler2},
+      )
 
    # Same as above with additional params passed to the first scheduler
    def configure_optimizers(self):
@@ -118,9 +137,10 @@ Every optimizer you use can be paired with any `LearningRateScheduler <https://p
       schedulers = [
          {
             'scheduler': ReduceLROnPlateau(optimizers[0], ...),
-            'monitor': 'val_recall', # Default: val_loss
+            'monitor': 'metric_to_track',
             'interval': 'epoch',
-            'frequency': 1
+            'frequency': 1,
+            'strict': True,
          },
          LambdaLR(optimizers[1], ...)
       ]
@@ -144,7 +164,7 @@ To use multiple optimizers return > 1 optimizers from :meth:`pytorch_lightning.c
 
    # Two optimizers, one scheduler for adam only
    def configure_optimizers(self):
-      return [Adam(...), SGD(...)], [ReduceLROnPlateau()]
+      return [Adam(...), SGD(...)], {'scheduler': ReduceLROnPlateau(), 'monitor': 'metric_to_track'}
 
 Lightning will call each optimizer sequentially:
 

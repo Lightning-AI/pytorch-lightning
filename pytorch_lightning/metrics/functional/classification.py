@@ -85,13 +85,13 @@ def get_num_classes(
     """
     Calculates the number of classes for a given prediction and target tensor.
 
-        Args:
-            pred: predicted values
-            target: true labels
-            num_classes: number of classes if known
+    Args:
+        pred: predicted values
+        target: true labels
+        num_classes: number of classes if known
 
-        Return:
-            An integer that represents the number of classes.
+    Return:
+        An integer that represents the number of classes.
     """
     num_target_classes = int(target.max().detach().item() + 1)
     num_pred_classes = int(pred.max().detach().item() + 1)
@@ -272,6 +272,7 @@ def accuracy(
             - ``'none'``: returns calculated metric per class
         return_state: returns a internal state that can be ddp reduced
             before doing the final calculation
+
     Return:
          A Tensor with the accuracy score.
 
@@ -805,7 +806,9 @@ def auc(
     Args:
         x: x-coordinates
         y: y-coordinates
-        reorder: reorder coordinates, so they are increasing
+        reorder: reorder coordinates, so they are increasing. The unstable algorithm of torch.argsort is
+            used internally to sort `x` which may in some cases cause inaccuracies in the result.
+            WARNING: Deprecated and will be removed in v1.1.
 
     Return:
         Tensor containing AUC score (float)
@@ -820,6 +823,11 @@ def auc(
     direction = 1.
 
     if reorder:
+        rank_zero_warn("The `reorder` parameter to `auc` has been deprecated and will be removed in v1.1"
+                       " Note that when `reorder` is True, the unstable algorithm of torch.argsort is"
+                       " used internally to sort 'x' which may in some cases cause inaccuracies"
+                       " in the result.",
+                       DeprecationWarning)
         # can't use lexsort here since it is not implemented for torch
         order = torch.argsort(x)
         x, y = x[order], y[order]
@@ -829,8 +837,9 @@ def auc(
             if (dx, 0).all():
                 direction = -1.
             else:
-                raise ValueError("Reordering is not turned on, and "
-                                 "the x array is not increasing: %s" % x)
+                # TODO: Update message on removing reorder
+                raise ValueError("Reorder is not turned on, and the 'x' array is"
+                                 f" neither increasing or decreasing: {x}")
 
     return direction * torch.trapz(y, x)
 
@@ -1001,8 +1010,8 @@ def iou(
     Intersection over union, or Jaccard index calculation.
 
     Args:
-        pred: Tensor containing predictions
-        target: Tensor containing targets
+        pred: Tensor containing integer predictions, with shape [N, d1, d2, ...]
+        target: Tensor containing integer targets, with shape [N, d1, d2, ...]
         ignore_index: optional int specifying a target class to ignore. If given, this class index does not contribute
             to the returned score, regardless of reduction method. Has no effect if given an int that is not in the
             range [0, num_classes-1], where num_classes is either given or derived from pred and target. By default, no
@@ -1024,13 +1033,19 @@ def iou(
 
     Example:
 
-        >>> target = torch.randint(0, 1, (10, 25, 25))
+        >>> target = torch.randint(0, 2, (10, 25, 25))
         >>> pred = torch.tensor(target)
         >>> pred[2:5, 7:13, 9:15] = 1 - pred[2:5, 7:13, 9:15]
         >>> iou(pred, target)
-        tensor(0.4914)
+        tensor(0.9660)
 
     """
+    if pred.size() != target.size():
+        raise ValueError(f"'pred' shape ({pred.size()}) must equal 'target' shape ({target.size()})")
+
+    if not torch.allclose(pred.float(), pred.int().float()):
+        raise ValueError("'pred' must contain integer targets.")
+
     num_classes = get_num_classes(pred=pred, target=target, num_classes=num_classes)
 
     tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred, target, num_classes)

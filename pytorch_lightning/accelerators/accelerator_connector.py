@@ -185,6 +185,7 @@ class AcceleratorConnector:
         # use the one the user passed in
         if self.accelerator is not None and isinstance(self.accelerator, Accelerator):
             self.accelerator.trainer = self.trainer
+            self.accelerator.ddp_plugin = self.trainer.plugin_connector.ddp_plugin
             acc = self.accelerator
             return acc
 
@@ -205,43 +206,69 @@ class AcceleratorConnector:
 
         # ddp script mode uses the same flags as TE
         # TODO: decouple from TE
-        if os.environ.get('PL_DDP_PID', False):
+        if os.environ.get('PL_IN_DDP_SUBPROCESS', False):
             use_torchelastic_ddp = False
 
         cluster_env = self._select_environment()
 
         # choose the appropriate accelerator backend
         if self.trainer.use_ddp2:
-            accelerator_backend = accelerators.DDP2Accelerator(self.trainer, cluster_env)
+            accelerator_backend = accelerators.DDP2Accelerator(
+                self.trainer,
+                cluster_env,
+                self.trainer.plugin_connector.ddp_plugin
+            )
 
         elif use_ddp_cpu_slurm:
-            accelerator_backend = accelerators.DDPCPUSLURMAccelerator(self.trainer, cluster_env)
+            accelerator_backend = accelerators.DDPCPUSLURMAccelerator(
+                self.trainer,
+                cluster_env,
+                self.trainer.plugin_connector.ddp_plugin
+            )
 
         elif use_slurm_ddp:
-            accelerator_backend = accelerators.DDPSLURMAccelerator(self.trainer, cluster_env)
+            accelerator_backend = accelerators.DDPSLURMAccelerator(
+                self.trainer,
+                cluster_env,
+                self.trainer.plugin_connector.ddp_plugin
+            )
 
         elif use_ddp_cpu_torch_elastic:
-            accelerator_backend = accelerators.DDPCPUTorchElasticAccelerator(self.trainer, cluster_env)
+            accelerator_backend = accelerators.DDPCPUTorchElasticAccelerator(
+                self.trainer,
+                cluster_env,
+                self.trainer.plugin_connector.ddp_plugin
+            )
 
         elif use_torchelastic_ddp:
-            accelerator_backend = accelerators.DDPTorchElasticAccelerator(self.trainer, cluster_env)
+            accelerator_backend = accelerators.DDPTorchElasticAccelerator(
+                self.trainer,
+                cluster_env,
+                self.trainer.plugin_connector.ddp_plugin
+            )
 
         elif use_ddp_spawn:
             accelerator_backend = accelerators.DDPSpawnAccelerator(
                 self.trainer,
                 nprocs=self.trainer.num_processes,
-                cluster_environment=cluster_env
+                cluster_environment=cluster_env,
+                ddp_plugin=self.trainer.plugin_connector.ddp_plugin
             )
 
         elif use_ddp_cpu_spawn:
             accelerator_backend = accelerators.DDPCPUSpawnAccelerator(
                 self.trainer,
                 nprocs=self.trainer.num_processes,
-                cluster_environment=cluster_env
+                cluster_environment=cluster_env,
+                ddp_plugin=self.trainer.plugin_connector.ddp_plugin
             )
 
         elif self.trainer.distributed_backend == "ddp":
-            accelerator_backend = accelerators.DDPAccelerator(self.trainer, cluster_env)
+            accelerator_backend = accelerators.DDPAccelerator(
+                self.trainer,
+                cluster_env,
+                ddp_plugin=self.trainer.plugin_connector.ddp_plugin
+            )
 
         elif self.trainer.use_dp:
             accelerator_backend = accelerators.DataParallelAccelerator(self.trainer, cluster_env)
@@ -370,18 +397,8 @@ class AcceleratorConnector:
 
         # set the correct cuda visible devices (using pci order)
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-
-        # when slurm is managing the task it sets the visible devices
-        if not is_slurm_managing_tasks and 'CUDA_VISIBLE_DEVICES' not in os.environ:
-            if isinstance(data_parallel_device_ids, int):
-                id_str = ','.join(str(x) for x in list(range(data_parallel_device_ids)))
-                os.environ["CUDA_VISIBLE_DEVICES"] = id_str
-            else:
-                gpu_str = ','.join([str(x) for x in data_parallel_device_ids])
-                os.environ["CUDA_VISIBLE_DEVICES"] = gpu_str
-
-        # don't make this debug... this is good UX
-        devices = os.environ["CUDA_VISIBLE_DEVICES"]
+        all_gpu_ids = ",".join([str(x) for x in range(torch.cuda.device_count())])
+        devices = os.environ.get("CUDA_VISIBLE_DEVICES", all_gpu_ids)
         log.info(f'LOCAL_RANK: {self.trainer.local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]')
 
     def determine_local_rank(self):
