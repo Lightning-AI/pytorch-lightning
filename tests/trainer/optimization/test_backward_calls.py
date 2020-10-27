@@ -31,10 +31,9 @@ def test_backward_count_with_grad_accumulation(torch_backward):
 
     torch_backward.reset_mock()
 
-    # TODO: this test fails on master, max_steps seems to fail together with accumulation
-    # trainer = Trainer(max_steps=6, accumulate_grad_batches=2)
-    # trainer.fit(model)
-    # assert torch_backward.call_count == 6
+    trainer = Trainer(max_steps=6, accumulate_grad_batches=2)
+    trainer.fit(model)
+    assert torch_backward.call_count == 12
 
 
 @patch("torch.Tensor.backward")
@@ -48,8 +47,6 @@ def test_backward_count_with_closure(torch_backward):
 
     torch_backward.reset_mock()
 
-    # TODO: max_steps seems to fail together with accumulation
-    # trainer = Trainer(max_steps=5, accumulate_grad_batches=2
-    trainer = Trainer(max_epochs=1, limit_train_batches=5, accumulate_grad_batches=2)
+    trainer = Trainer(max_steps=5, accumulate_grad_batches=2)
     trainer.fit(model)
-    assert torch_backward.call_count == 5
+    assert torch_backward.call_count == 10

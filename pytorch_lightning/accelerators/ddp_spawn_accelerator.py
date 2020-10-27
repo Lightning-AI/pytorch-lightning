@@ -24,7 +24,6 @@ from torch.nn.parallel import DistributedDataParallel
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.cloud_io import atomic_save, load as pl_load
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, find_free_network_port
@@ -42,8 +41,8 @@ else:
 
 class DDPSpawnAccelerator(Accelerator):
 
-    def __init__(self, trainer, nprocs, cluster_environment=None):
-        super().__init__(trainer, cluster_environment)
+    def __init__(self, trainer, nprocs, cluster_environment=None, ddp_plugin=None):
+        super().__init__(trainer, cluster_environment, ddp_plugin)
         self.mp_queue = None
         self.nprocs = nprocs
         self.dist = LightningDistributed()
@@ -163,7 +162,7 @@ class DDPSpawnAccelerator(Accelerator):
         self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
     def model_to_device(self, model, process_idx, is_master):
-        gpu_idx = process_idx
+        gpu_idx = self.trainer.data_parallel_device_ids[self.trainer.local_rank]
         self.trainer.root_gpu = gpu_idx
         torch.cuda.set_device(self.trainer.root_gpu)
         model.cuda(self.trainer.root_gpu)
@@ -236,9 +235,7 @@ class DDPSpawnAccelerator(Accelerator):
     def configure_ddp(
         self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
-        model = LightningDistributedDataParallel(
-            model, device_ids=device_ids, find_unused_parameters=True
-        )
+        model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model
 
     def configure_sync_batchnorm(self, model: LightningModule) -> LightningModule:
