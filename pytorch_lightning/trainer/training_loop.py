@@ -690,7 +690,7 @@ class TrainLoop:
                     self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens)
 
                     if no_sync:
-                        self.trainer.model.__exit__()
+                        self.trainer.model.no_sync.__exit__()
 
                     batch_outputs = self._process_closure_result(
                         batch_callback_metrics=batch_callback_metrics,
