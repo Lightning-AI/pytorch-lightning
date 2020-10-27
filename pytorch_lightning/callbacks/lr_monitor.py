@@ -36,6 +36,8 @@ class LearningRateMonitor(Callback):
         logging_interval: set to `epoch` or `step` to log `lr` of all optimizers
             at the same interval, set to `None` to log at individual interval
             according to the `interval` key of each scheduler. Defaults to ``None``.
+        log_momentum: option to also log the momentum values of the optimizer, if the optimizer
+            has the `momentum` attribute. Defaults to ``False``.
 
     Example::
 
