@@ -375,7 +375,7 @@ def test_model_checkpoint_topk_all(tmpdir):
         logger=False,
     )
     trainer.fit(model)
-    assert checkpoint_callback.best_model_path == tmpdir / "epoch=0.ckpt"
+    assert checkpoint_callback.best_model_path == tmpdir / "epoch=1.ckpt"
     assert checkpoint_callback.best_model_score > 0
     assert set(checkpoint_callback.best_k_models.keys()) == set(str(tmpdir / f"epoch={i}.ckpt") for i in range(epochs))
     assert checkpoint_callback.kth_best_model_path == tmpdir / "epoch=0.ckpt"
