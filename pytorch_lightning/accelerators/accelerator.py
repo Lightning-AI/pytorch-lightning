@@ -52,7 +52,8 @@ class Accelerator(object):
         pass
 
     def teardown(self):
-        pass
+        # Ensure if necessary all processes are finished
+        self.barrier()
 
     def barrier(self, name: Optional[str] = None):
         pass

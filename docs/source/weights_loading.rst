@@ -84,7 +84,8 @@ You can also control more advanced options, like `save_top_k`, to save the best 
     # saves a file like: my/path/sample-mnist-epoch=02-val_loss=0.32.ckpt
     checkpoint_callback = ModelCheckpoint(
         monitor='val_loss',
-        filepath='my/path/sample-mnist-{epoch:02d}-{val_loss:.2f}' ,
+        dirpath='my/path/,
+        filename='sample-mnist-{epoch:02d}-{val_loss:.2f}',
         save_top_k=3,
         mode='min')
 
@@ -94,7 +95,7 @@ You can retrieve the checkpoint after training by calling
 
 .. code-block:: python
 
-        checkpoint_callback = ModelCheckpoint(filepath='my/path/')
+        checkpoint_callback = ModelCheckpoint(dirpath='my/path/')
         trainer = Trainer(checkpoint_callback=checkpoint_callback)
         trainer.fit(model)
         checkpoint_callback.best_model_path
