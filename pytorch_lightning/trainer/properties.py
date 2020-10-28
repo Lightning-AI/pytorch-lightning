@@ -17,7 +17,7 @@ from abc import ABC
 from argparse import ArgumentParser, Namespace
 from typing import List, Optional, Union, Type, TypeVar
 
-from pytorch_lightning import Callback
+from pytorch_lightning.callbacks import Callback, ProgressBarBase
 from pytorch_lightning.callbacks import ProgressBarBase, ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
