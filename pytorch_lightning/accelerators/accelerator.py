@@ -93,7 +93,7 @@ class Accelerator(object):
             )
         else:
             # do backward pass
-            model = self.trainer.get_model()
+            model = self.trainer.model
             model.backward(closure_loss, optimizer, opt_idx, *args, **kwargs)
 
             # once backward has been applied, release graph
