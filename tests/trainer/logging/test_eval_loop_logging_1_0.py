@@ -140,16 +140,21 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
 
     # make sure all the metrics are available for callbacks
     logged_metrics = set(trainer.logged_metrics.keys())
+    # uniformize behaviour. When provided on_step=True, on_epoch=True, should return both _step and _epoch
+    # for training and testing
+    # For testing, extra _epoch-{} should be logged too.
     expected_logged_metrics = {
         'epoch',
         'a',
         'b_step',
         'b_epoch',
         'c',
+        'd_step',
         'd_step/epoch_0',
         'd_step/epoch_1',
         'd_epoch',
         'e',
+        'f_step',
         'f_step/epoch_0',
         'f_step/epoch_1',
         'f_epoch',
@@ -164,7 +169,7 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
     # we don't want to enable val metrics during steps because it is not something that users should do
     callback_metrics = set(trainer.callback_metrics.keys())
     callback_metrics.remove('debug_epoch')
-    expected_cb_metrics = {'a', 'b', 'c', 'd', 'e', 'b_epoch', 'd_epoch', 'f_epoch', 'f', 'g', 'b_step'}
+    expected_cb_metrics = {'a', 'b', 'c', 'd', 'e', 'd_step', 'd_epoch', 'b_step', 'b_epoch', 'f_step', 'f_epoch', 'f', 'g'}
     assert expected_cb_metrics == callback_metrics
 
 
