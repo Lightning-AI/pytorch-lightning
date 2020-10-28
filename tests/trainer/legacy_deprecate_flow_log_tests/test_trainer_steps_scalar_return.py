@@ -15,6 +15,7 @@
 Tests to ensure that the training loop works with a scalar
 """
 import torch
+import os
 
 from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
@@ -102,6 +103,8 @@ def test_full_training_loop_scalar(tmpdir):
     Checks train_step + training_step_end + training_epoch_end
     (all with scalar return from train_step)
     """
+    os.environ['PL_DEV_DEBUG'] = '0'
+
     model = DeterministicModel()
     model.training_step = model.training_step_scalar_return
     model.training_step_end = model.training_step_end_scalar
@@ -149,6 +152,9 @@ def test_train_step_epoch_end_scalar(tmpdir):
     Checks train_step + training_epoch_end (NO training_step_end)
     (with scalar return)
     """
+
+    os.environ['PL_DEV_DEBUG'] = '0'
+
     model = DeterministicModel()
     model.training_step = model.training_step_scalar_return
     model.training_step_end = None
