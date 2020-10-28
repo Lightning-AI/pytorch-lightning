@@ -174,8 +174,7 @@ def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
             # if the only arg type is bool
             if len(arg_types) == 1:
                 use_type = parsing.str_to_bool
-            # if only two args (str, bool)
-            elif len(arg_types) == 2 and set(arg_types) == {str, bool}:
+            elif str in arg_types:
                 use_type = parsing.str_to_bool_or_str
             else:
                 # filter out the bool as we need to use more general
