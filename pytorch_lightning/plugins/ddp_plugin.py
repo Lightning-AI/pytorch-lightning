@@ -1,6 +1,7 @@
 import os
 from typing import Any, Dict, List
 
+import torch.distributed as torch_distrib
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 
@@ -77,7 +78,7 @@ class DDPPlugin(object):
         os.environ["WORLD_SIZE"] = str(cluster_environment.world_size())
         torch_backend = "nccl" if trainer.on_gpu else "gloo"
 
-        if not torch.distributed.is_initialized():
+        if not torch_distrib.is_initialized():
             log.info(
                 f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}"
             )
