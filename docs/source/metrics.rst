@@ -104,7 +104,7 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
     # total accuracy over all validation batches
     total_valid_accuracy = valid_accuracy.compute()
 
-.. warning::
+.. note::
 
     Metrics contain internal states that keep track of the data seen so far.
     Do not mix metric states across training, validation and testing.
