@@ -184,6 +184,7 @@ def test_val_step_step_end_no_return(tmpdir):
     # out are the results of the full loop
     # eval_results are output of _evaluate
     callback_metrics, eval_results = trainer.run_evaluation(test_mode=False)
+    breakpoint()
     assert len(callback_metrics) == 0
     assert len(eval_results) == 0
 
@@ -215,7 +216,7 @@ def test_val_step_step_end(tmpdir):
     # out are the results of the full loop
     # eval_results are output of _evaluate
     callback_metrics, eval_results = trainer.run_evaluation(test_mode=False)
-    assert len(callback_metrics) == 2
+    assert len(callback_metrics) == 1
     assert len(callback_metrics[0]) == 6
 
     callback_metrics = callback_metrics[0]
@@ -315,6 +316,7 @@ def test_full_val_loop(tmpdir):
         assert k in eval_results
 
     # ensure all the keys ended up as candidates for callbacks
+
     assert len(trainer.logger_connector.callback_metrics) in [9, 10]
 
     # make sure correct steps were called

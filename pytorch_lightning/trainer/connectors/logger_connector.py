@@ -143,31 +143,43 @@ class LoggerConnector:
                 self.trainer.logger = logger
 
     def log_training_step_metrics(self, opt_closure_result):
-        # decide which metrics to log (results vs dict return)
-        callback_metrics = {}
+        """
+        This function is responsible to update
+        logger_connector internals metrics holder based for depreceated logging
+        """
         using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
+
+        logged_metrics_tmp = {}
+        pbar_metrics_tmp = {}
+        callback_metrics_tmp = {}
         if using_results_obj:
-            metrics_to_log = opt_closure_result.training_step_output.get_batch_log_metrics(
+            batch_log_metrics = opt_closure_result.training_step_output.get_batch_log_metrics(
                 include_forked_originals=False
             )
-            step_pbar_metrics = opt_closure_result.training_step_output.get_batch_pbar_metrics(
+            logged_metrics_tmp.update(batch_log_metrics)
+
+            batch_pbar_metrics = opt_closure_result.training_step_output.get_batch_pbar_metrics(
                 include_forked_originals=False
             )
+            pbar_metrics_tmp.update(batch_pbar_metrics)
+
             forked_metrics = opt_closure_result.training_step_output.get_forked_metrics()
-            callback_metrics.update(forked_metrics)
+            callback_metrics_tmp.update(forked_metrics)
+            callback_metrics_tmp.update(logged_metrics_tmp)
         else:
-            metrics_to_log = opt_closure_result.training_step_output.log_metrics
-            step_pbar_metrics = opt_closure_result.training_step_output.pbar_on_batch_end
+            batch_log_metrics = opt_closure_result.training_step_output.log_metrics
+            logged_metrics_tmp.update(batch_log_metrics)
 
-        # Gather pbar_metrics from `pl_module.log`
-        batch_pbar_metrics = self._cached_results["train"].get_latest_batch_pbar_metrics()
+            callback_metrics = opt_closure_result.training_step_output.callback_metrics
+            callback_metrics_tmp.update(callback_metrics)
 
-        batch_pbar_metrics.update(step_pbar_metrics)
-        callback_metrics.update(step_pbar_metrics)
+            batch_pbar_metrics = opt_closure_result.training_step_output.pbar_on_batch_end
+            pbar_metrics_tmp.update(batch_pbar_metrics)
 
-        # track progress bar metrics
-        self.trainer.logger_connector.add_progress_bar_metrics(batch_pbar_metrics)
-        self.trainer.logger_connector.callback_metrics.update(callback_metrics)
+        # track metrics
+        self.logged_metrics.update(logged_metrics_tmp)
+        self.add_progress_bar_metrics(pbar_metrics_tmp)
+        self.callback_metrics.update(callback_metrics_tmp)
 
     def log_metrics(self, metrics, grad_norm_dic, step=None):
         """Logs the metric dict passed in.
@@ -229,6 +241,13 @@ class LoggerConnector:
         for dl_idx in range(self.trainer.evaluation_loop.num_dataloaders):
             self.add_to_eval_loop_results(dl_idx)
 
+    def remove_train_metrics(self, callback_metrics):
+        callback_metrics_tmp = deepcopy(callback_metrics)
+        for key in callback_metrics.keys():
+            if "train" in key or 'loss' == key:
+                del callback_metrics_tmp[key]
+        return callback_metrics_tmp
+
     def get_evaluate_epoch_results(self, test_mode):
         # filter callback_metris to display per dataloader_idx.
         self.prepare_eval_loop_results()
@@ -248,7 +267,7 @@ class LoggerConnector:
                 pprint(results)
                 print('-' * 80)
 
-        results = [dict(ChainMap(*self.eval_loop_results))]
+        results = [self.remove_train_metrics(dict(ChainMap(*self.eval_loop_results)))]
 
         # clear mem
         self.eval_loop_results = []

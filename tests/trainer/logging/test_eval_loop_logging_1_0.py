@@ -74,6 +74,7 @@ def test__validation_step__log(tmpdir):
         'a2',
         'a_step',
         'a_epoch',
+        'b_step',
         'b_step/epoch_0',
         'b_step/epoch_1',
         'b_epoch',
@@ -86,7 +87,7 @@ def test__validation_step__log(tmpdir):
     # on purpose DO NOT allow step_b... it's silly to monitor val step metrics
     callback_metrics = set(trainer.callback_metrics.keys())
     callback_metrics.remove('debug_epoch')
-    expected_cb_metrics = {'a', 'a2', 'b', 'a_epoch', 'b_epoch', 'a_step'}
+    expected_cb_metrics = {'a', 'a2', 'b', 'a_epoch', 'b_epoch', 'a_step', 'b_step'}
     assert expected_cb_metrics == callback_metrics
 
 
