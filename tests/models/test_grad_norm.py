@@ -49,11 +49,11 @@ class ModelWithManualGradTracker(EvalModelTemplate):
             norm = np.linalg.norm(flat, self.norm_type)
             norms.append(norm)
 
-            out[prefix + name] = round(norm, 3)
+            out[prefix + name] = round(norm, 4)
 
         # handle total norm
         norm = np.linalg.norm(norms, self.norm_type)
-        out[prefix + 'total'] = round(norm, 3)
+        out[prefix + 'total'] = round(norm, 4)
         self.stored_grad_norms.append(out)
 
 
@@ -63,7 +63,7 @@ def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
 
     # rtol=5e-3 respects the 3 decimals rounding in `.grad_norms` and above
 
-    reset_seed(666)
+    reset_seed()
 
     # use a custom grad tracking module and a list logger
     model = ModelWithManualGradTracker(norm_type)
