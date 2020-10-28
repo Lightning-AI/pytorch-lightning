@@ -38,7 +38,6 @@ from pytorch_lightning.utilities.parsing import (
     collect_init_args,
     get_init_args,
 )
-from pytorch_lightning.utilities.apply_func import move_data_to_device
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
