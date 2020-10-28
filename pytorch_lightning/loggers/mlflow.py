@@ -151,6 +151,11 @@ class MLFlowLogger(LightningLoggerBase):
             if isinstance(v, str):
                 log.warning(f'Discarding metric with string value {k}={v}.')
                 continue
+            elif '(' in k or ')' in k:
+                # MLFlow does not support parenthesis in metric name.
+                sk = k.replace('(', '').replace(')', '')
+                log.warning(f'MLFlowLogger does not support parenthesis in metric name.\nReplacing {k} with {sk}.')
+                k = sk
             self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
 
     @rank_zero_only
