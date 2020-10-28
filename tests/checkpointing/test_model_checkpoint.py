@@ -507,10 +507,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     assert all(ckpt_last_epoch[k] == ckpt_last[k] for k in ("epoch", "global_step"))
 
     ch_type = type(model_checkpoint)
-    assert all(list(
-        ckpt_last["callbacks"][ch_type][k] == ckpt_last_epoch["callbacks"][ch_type][k]
-        for k in ("best_model_score", "best_model_path")
-    ))
+    assert ckpt_last["callbacks"][ch_type] == ckpt_last_epoch["callbacks"][ch_type]
 
     # it is easier to load the model objects than to iterate over the raw dict of tensors
     model_last_epoch = EvalModelTemplate.load_from_checkpoint(path_last_epoch)
