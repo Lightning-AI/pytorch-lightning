@@ -16,14 +16,15 @@ import os
 
 import torch
 import torch.distributed as torch_distrib
+
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from torch.nn.parallel import DistributedDataParallel
 from typing import List, Optional
 
@@ -38,8 +39,8 @@ else:
 
 class DDP2Accelerator(Accelerator):
 
-    def __init__(self, trainer, cluster_environment=None):
-        super().__init__(trainer, cluster_environment)
+    def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
+        super().__init__(trainer, cluster_environment, ddp_plugin)
         self.task_idx = None
         self.dist = LightningDistributed()
         self.nickname = 'ddp2'
@@ -120,11 +121,12 @@ class DDP2Accelerator(Accelerator):
         Entry point for ddp
 
         Args:
-            process_idx:
+            process_idx: current process rank
             mp_queue: multiprocessing queue
-            model:
+            model: pointer to current :class:`LightningModule`
 
         Returns:
+            Dict with evaluation results
 
         """
         # show progressbar only on progress_rank 0
@@ -191,14 +193,12 @@ class DDP2Accelerator(Accelerator):
         return results
 
     def configure_ddp(
-        self, model: "LightningModule", device_ids: List[int]
+        self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
-        model = LightningDistributedDataParallel(
-            model, device_ids=device_ids, find_unused_parameters=True
-        )
+        model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model
 
-    def configure_sync_batchnorm(self, model: "LightningModule") -> "LightningModule":
+    def configure_sync_batchnorm(self, model: LightningModule) -> LightningModule:
         """
         Add global batchnorm for a model spread across multiple GPUs and nodes.
 

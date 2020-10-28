@@ -9,14 +9,14 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
 
 jobs:
   conda:
-    runs-on: ${{ matrix.os }}
-    container: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python-version }}-torch${{ matrix.pytorch-version }}
+    runs-on: ubuntu-20.04
+    container: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python-version }}-torch${{ matrix.pytorch-version }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04]
+        # os: [ubuntu-20.04]
         python-version: [3.7]
-        pytorch-version: [1.3, 1.4, 1.5, 1.6, 1.7]
+        pytorch-version: [1.3, 1.4, 1.5, 1.6]  # , 1.7 # todo
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 35
@@ -41,7 +41,7 @@ jobs:
     - name: Tests
       run: |
         # NOTE: run coverage on tests does not propagare faler status for Win, https://github.com/nedbat/coveragepy/issues/1003
-        python -m pytest pytorch_lightning tests -v --durations=0 --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+        python -m pytest pytorch_lightning tests -v --color=yes --durations=0 --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         # coverage report
       shell: bash -l {0}
 

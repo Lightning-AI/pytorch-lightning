@@ -90,18 +90,18 @@ def _sk_prec_recall_multidim_multiclass(preds, target, sk_fn=precision_score, av
         (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, _sk_prec_recall_multiclass_prob, NUM_CLASSES, False),
         (_multiclass_inputs.preds, _multiclass_inputs.target, _sk_prec_recall_multiclass, NUM_CLASSES, False),
         (
-                _multidim_multiclass_prob_inputs.preds,
-                _multidim_multiclass_prob_inputs.target,
-                _sk_prec_recall_multidim_multiclass_prob,
-                NUM_CLASSES,
-                False,
+            _multidim_multiclass_prob_inputs.preds,
+            _multidim_multiclass_prob_inputs.target,
+            _sk_prec_recall_multidim_multiclass_prob,
+            NUM_CLASSES,
+            False,
         ),
         (
-                _multidim_multiclass_inputs.preds,
-                _multidim_multiclass_inputs.target,
-                _sk_prec_recall_multidim_multiclass,
-                NUM_CLASSES,
-                False,
+            _multidim_multiclass_inputs.preds,
+            _multidim_multiclass_inputs.target,
+            _sk_prec_recall_multidim_multiclass,
+            NUM_CLASSES,
+            False,
         ),
     ],
 )
@@ -112,7 +112,7 @@ class TestPrecisionRecall(MetricTester):
     def test_precision_recall(
         self, ddp, dist_sync_on_step, preds, target, sk_metric, metric_class, sk_fn, num_classes, multilabel, average
     ):
-        self.run_metric_test(
+        self.run_class_metric_test(
             ddp=ddp,
             preds=preds,
             target=target,

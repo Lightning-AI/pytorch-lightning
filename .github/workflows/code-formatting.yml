@@ -25,7 +25,7 @@ jobs:
 
   python-types:
     name: Python static type checking with Pyright
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 15
@@ -71,3 +71,24 @@ jobs:
       - name: Run type checking
         run: |
           $(npm bin)/pyright --project .pyrightconfig.json
+
+  python-pep8:
+    name: Python formatting PEP8
+    runs-on: ubuntu-20.04
+
+    # Timeout: https://stackoverflow.com/a/59076067/4521646
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - name: Install dependencies
+        run: |
+          pip install flake8
+
+      - name: Run checking
+        run: |
+          flake8 .

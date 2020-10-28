@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from typing import Union
+
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.datamodule import LightningDataModule
-from typing import Union
 
 
 def is_overridden(method_name: str, model: Union[LightningModule, LightningDataModule]) -> bool:
@@ -21,9 +23,7 @@ def is_overridden(method_name: str, model: Union[LightningModule, LightningDataM
     # TODO - refector this function to accept model_name, instance, parent so it makes more sense
     super_object = LightningModule if not isinstance(model, LightningDataModule) else LightningDataModule
 
-    # assert model, 'no model passes'
-
-    if not hasattr(model, method_name):
+    if not hasattr(model, method_name) or not hasattr(super_object, method_name):
         # in case of calling deprecated method
         return False
 

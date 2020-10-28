@@ -542,7 +542,7 @@ and passing it to :class:`~pytorch_lightning.trainer.Trainer` `checkpoint_callba
 
     # default used by the Trainer
     checkpoint_callback = ModelCheckpoint(
-        filepath=os.getcwd(),
+        dirpath=os.getcwd(),
         save_top_k=True,
         verbose=True,
         monitor='checkpoint_on',
@@ -979,13 +979,9 @@ The Trainer uses 2 steps by default. Turn it off or modify it here.
     # check all validation data
     trainer = Trainer(num_sanity_val_steps=-1)
 
-Example::
 
-    python -m torch_xla.distributed.xla_dist
-    --tpu=$TPU_POD_NAME
-    --conda-env=torch-xla-nightly
-    --env=XLA_USE_BF16=1
-    -- python your_trainer_file.py
+This option will reset the validation dataloader unless ``num_sanity_val_steps=0``.
+
 
 plugins
 ^^^^^^^
@@ -1203,14 +1199,11 @@ See the :ref:`profiler documentation <profiler>`. for more details.
     # default used by the Trainer
     trainer = Trainer(profiler=None)
 
-    # to profile standard training events
-    trainer = Trainer(profiler=True)
+    # to profile standard training events, equivalent to `profiler=SimpleProfiler()`
+    trainer = Trainer(profiler="simple")
 
-    # equivalent to profiler=True
-    trainer = Trainer(profiler=SimpleProfiler())
-
-    # advanced profiler for function-level stats
-    trainer = Trainer(profiler=AdvancedProfiler())
+    # advanced profiler for function-level stats, equivalent to `profiler=AdvancedProfiler()`
+    trainer = Trainer(profiler="advanced")
 
 progress_bar_refresh_rate
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1278,6 +1271,8 @@ replace_sampler_ddp
 Enables auto adding of distributed sampler. By default it will add ``shuffle=True``
 for train sampler and ``shuffle=False`` for val/test sampler. If you want to customize
 it, you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
+If ``replace_sampler_ddp=True`` and a distributed sampler was already added,
+Lightning will not replace the existing one.
 
 .. testcode::
 
@@ -1526,7 +1521,7 @@ Example::
 
     # if checkpoint callback used, then overrides the weights path
     # **NOTE: this saves weights to some/path NOT my/path
-    checkpoint = ModelCheckpoint(filepath='some/path')
+    checkpoint = ModelCheckpoint(dirpath='some/path')
     trainer = Trainer(
         checkpoint_callback=checkpoint,
         weights_save_path='my/path'

@@ -19,10 +19,9 @@ from typing import Dict, Iterable, List, Optional, Union
 import torch
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import EvalResult
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import BaseProfiler
@@ -121,7 +120,7 @@ class Trainer(
         num_sanity_val_steps: int = 2,
         truncated_bptt_steps: Optional[int] = None,
         resume_from_checkpoint: Optional[str] = None,
-        profiler: Optional[Union[BaseProfiler, bool]] = None,
+        profiler: Optional[Union[BaseProfiler, bool, str]] = None,
         benchmark: bool = False,
         deterministic: bool = False,
         reload_dataloaders_every_epoch: bool = False,
@@ -213,7 +212,8 @@ class Trainer(
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
                 Ignored when a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
-            profiler:  To profile individual steps during training and assist in identifying bottlenecks.
+            profiler: To profile individual steps during training and assist in identifying bottlenecks. Passing bool
+                value is deprecated in v1.1 and will be removed in v1.3.
 
             overfit_batches: Overfit a percent of training data (float) or a set number of batches (int). Default: 0.0
 
@@ -460,6 +460,8 @@ class Trainer(
 
     def train(self):
         self.run_sanity_check(self.get_model())
+
+        self.checkpoint_connector.has_trained = False
 
         # enable train mode
         model = self.get_model()
