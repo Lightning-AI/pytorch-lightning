@@ -179,7 +179,7 @@ class LoggerConnector:
             pbar_metrics_tmp.update(batch_pbar_metrics)
 
         # track metrics
-        self.logged_metrics.update(logged_metrics_tmp)
+        self.log_metrics(logged_metrics_tmp, {})
         self.add_progress_bar_metrics(pbar_metrics_tmp)
         self.callback_metrics.update(callback_metrics_tmp)
 
@@ -218,9 +218,10 @@ class LoggerConnector:
                 self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
                 self.trainer.logger.save()
 
-            # track the logged metrics
-            self.logged_metrics.update(scalar_metrics)
-            self.trainer.dev_debugger.track_logged_metrics_history(scalar_metrics)
+            if len(scalar_metrics) > 0:
+                # track the logged metrics
+                self.logged_metrics.update(scalar_metrics)
+                self.trainer.dev_debugger.track_logged_metrics_history(scalar_metrics)
 
     def add_progress_bar_metrics(self, metrics):
         for k, v in metrics.items():
@@ -256,7 +257,8 @@ class LoggerConnector:
 
         if not self.trainer.running_sanity_check:
             epoch_log_metrics = self.cached_results(test_mode).get_epoch_log_metrics()
-            self.trainer.dev_debugger.track_logged_metrics_history(epoch_log_metrics)
+            if len(epoch_log_metrics) > 0:
+                self.trainer.dev_debugger.track_logged_metrics_history(epoch_log_metrics)
 
         # reset for next epoch
         self.cached_results(test_mode).reset()
@@ -373,7 +375,7 @@ class LoggerConnector:
                     self.eval_loop_results.append(dataloader_result_metrics)
 
     def on_train_epoch_end(self):
-        # inform logger connector epoch finished
+        # inform cached logger connector epoch finished
         self.cached_results("train").has_batch_loop_finished = True
 
     def log_train_epoch_end_metrics(self,

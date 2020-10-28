@@ -581,9 +581,6 @@ class TrainLoop:
 
             self.trainer.checkpoint_connector.has_trained = True
 
-        # bookkeeping
-        self.trainer.logger_connector.on_train_epoch_end()
-
         # epoch end hook
         self.run_on_epoch_end_hook(epoch_output)
 
@@ -800,6 +797,9 @@ class TrainLoop:
             self.trainer.optimizer_connector.update_learning_rates(interval="step", monitor_metrics=monitor_metrics)
 
     def run_on_epoch_end_hook(self, epoch_output):
+        # bookkeeping
+        self.trainer.logger_connector.on_train_epoch_end()
+
         self.trainer.call_hook('on_epoch_end')
         self.trainer.call_hook('on_train_epoch_end', epoch_output)
 

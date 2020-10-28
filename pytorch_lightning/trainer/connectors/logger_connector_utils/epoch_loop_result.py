@@ -33,10 +33,13 @@ class HookResults:
 
     Result objects will be stored in the following way.
 
-    val and test: [dataloader_idx] is a list
+    val and test: self._internals = {"dataloader_idx": []}
     training
-        - If opt_idx and step_idx are set, [dataloader_idx][optimizer_idx][training_step_idx] is a list
-        - else [dataloader_idx] is a list
+        - IF optimizer_idx and training_step_idx are set,
+          THEN self._internals = {"dataloader_idx": {"optimizer_idx": {"training_step_idx": [] } } }
+        - ELSE self._internals = {"dataloader_idx": []}
+
+
     """
 
     _types = ["list", "dict"]
