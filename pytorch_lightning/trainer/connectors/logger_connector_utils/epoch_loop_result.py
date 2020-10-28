@@ -63,8 +63,9 @@ class HookResults:
         assert num_opt_idx >= 0
         num_opt_idx = str(num_opt_idx)
         num_batch_idx = len(self._internals[dl_idx][num_opt_idx]) - 1
+        batch_idx = sorted(self._internals[dl_idx][num_opt_idx].keys())
         assert num_batch_idx >= 0
-        return self._internals[dl_idx][num_opt_idx][str(num_batch_idx)][-1]
+        return self._internals[dl_idx][num_opt_idx][batch_idx[-1]][-1]
 
     def check_dataloader_idx(self, result: Result) -> bool:
         add_dataloader_idx = False
@@ -98,65 +99,44 @@ class HookResults:
     def get_batch_log_metrics(self, latest=True, *args, **kwargs):
         return self.get_lastest("get_batch_log_metrics", *args, latest=latest, **kwargs)
 
-    def get_epoch_pbar_metrics(self, *args, **kwargs):
+    def run_epoch_func(self, results, opt_metric, func_name, *args, **kwargs):
+        func = getattr(opt_metric, func_name)
+        metrics_to_log = func(
+            *args,
+            add_dataloader_idx=self.add_dataloader_idx,
+            **kwargs)
+        results.update(metrics_to_log)
+
+    def get_epoch_func(self, func_name, *args, **kwargs):
         results = {}
         for dl_idx in range(self.num_dataloaders):
             dl_idx = str(dl_idx)
             opt_metrics = self._internals_reduced[dl_idx]
-            if isinstance(opt_metrics, defaultdict):
+            if isinstance(opt_metrics, dict):
                 for opt_metric in opt_metrics.values():
-                    metrics_to_log = opt_metric.get_epoch_pbar_metrics(
-                        *args,
-                        add_dataloader_idx=self.add_dataloader_idx,
-                        **kwargs)
-                    results.update(metrics_to_log)
+                    self.run_epoch_func(results, opt_metric, func_name, *args, **kwargs)
             else:
-                metrics_to_log = opt_metrics.get_epoch_pbar_metrics(
-                    *args,
-                    add_dataloader_idx=self.add_dataloader_idx,
-                    **kwargs)
-                results.update(metrics_to_log)
+                self.run_epoch_func(results, opt_metric, func_name, *args, **kwargs)
         return results
+
+    def get_epoch_pbar_metrics(self, *args, **kwargs):
+        return self.get_epoch_func("get_epoch_pbar_metrics")
 
     def get_epoch_log_metrics(self, *args, **kwargs):
-        results = {}
-        for dl_idx in range(self.num_dataloaders):
-            dl_idx = str(dl_idx)
-            opt_metrics = self._internals_reduced[dl_idx]
-            if isinstance(opt_metrics, defaultdict):
-                for opt_metric in opt_metrics.values():
-                    metrics_to_log = opt_metric.get_epoch_log_metrics(
-                        *args,
-                        add_dataloader_idx=self.add_dataloader_idx,
-                        **kwargs)
-                    results.update(metrics_to_log)
-            else:
-                metrics_to_log = opt_metrics.get_epoch_log_metrics(
-                    *args,
-                    add_dataloader_idx=self.add_dataloader_idx,
-                    **kwargs)
-                results.update(metrics_to_log)
-        return results
+        return self.get_epoch_func("get_epoch_log_metrics")
 
     def get_forked_metrics(self, *args, **kwargs):
-        results = {}
-        for dl_idx in range(self.num_dataloaders):
-            dl_idx = str(dl_idx)
-            opt_metrics = self._internals_reduced[dl_idx]
-            if isinstance(opt_metrics, defaultdict):
-                for opt_metric in opt_metrics.values():
-                    metrics_to_log = opt_metric.get_forked_metrics(
-                        *args,
-                        add_dataloader_idx=self.add_dataloader_idx,
-                        **kwargs)
-                    results.update(metrics_to_log)
-            else:
-                metrics_to_log = opt_metrics.get_forked_metrics(
-                    *args,
-                    add_dataloader_idx=self.add_dataloader_idx,
-                    **kwargs)
-                results.update(metrics_to_log)
-        return results
+        return self.get_epoch_func("get_forked_metrics")
+
+    @staticmethod
+    def _append_to_structure(primary_dict, opt_idx, batch_idx, result):
+        if opt_idx not in primary_dict:
+            primary_dict[opt_idx] = {}
+
+        if batch_idx not in primary_dict[opt_idx]:
+            primary_dict[opt_idx][batch_idx] = []
+
+        primary_dict[opt_idx][batch_idx].append(result)
 
     def append(self, result, dataloader_idx=None, extra_info: dict = {}):
         if dataloader_idx is None:
@@ -169,16 +149,14 @@ class HookResults:
             self._internal_type = self._types[-1]
             # initialize dictionary
             if primary_key not in self._internals:
-                self._internals[primary_key] = defaultdict(lambda : defaultdict(list))
-                # need to capture reduction by opt_ix
-                self._internals_reduced[primary_key] = defaultdict(dict)
+                self._internals[primary_key] = {}
+                self._internals_reduced[primary_key] = {}
 
             # extract infos
             opt_idx = str(extra_info["opt_idx"])
             batch_idx = str(extra_info["batch_idx"])
 
-            # add to cache
-            self._internals[primary_key][opt_idx][batch_idx].append(result)
+            self._append_to_structure(self._internals[primary_key], opt_idx, batch_idx, result)
 
         # [dataloader_idx] is a list
         else:
@@ -199,18 +177,21 @@ class HookResults:
                 if self._internal_type == self._types[-1]:
 
                     num_opt_idx = len(self._internals[dl_idx]) - 1
-                    num_batch_idx = len(self._internals[dl_idx][str(num_opt_idx)]) - 1
 
                     # Make sure we didn't create key
-                    assert num_opt_idx >= 0 and num_batch_idx >= 0
+                    assert num_opt_idx >= 0
 
                     for opt_idx in range(num_opt_idx + 1):
                         opt_idx = str(opt_idx)
                         opt_outputs = deepcopy(epoch_metrics[opt_idx])
 
+                        num_batch_idx = len(self._internals[dl_idx][str(num_opt_idx)]) - 1
+                        assert num_batch_idx >= 0
+                        batch_indexes = self._internals[dl_idx][str(num_opt_idx)].keys()
+
                         # reduce across time first
                         time_reduced_outputs = []
-                        for batch_idx in range(num_batch_idx + 1):
+                        for batch_idx in batch_indexes:
                             batch_idx = str(batch_idx)
                             tbptt_outs = opt_outputs[str(batch_idx)]
                             tbptt_outs = tbptt_outs[0].__class__.reduce_across_time(tbptt_outs)
@@ -227,8 +208,7 @@ class HookResults:
                         if opt_outputs.minimize is not None:
                             opt_outputs.minimize = opt_outputs.minimize.mean()
 
-                        if len(opt_outputs) > 0:
-                            self._internals_reduced[dl_idx][str(opt_idx)] = opt_outputs
+                        self._internals_reduced[dl_idx][str(opt_idx)] = opt_outputs
                 else:
                     # no need to reduce as called only once
                     if len(epoch_metrics) == 1:

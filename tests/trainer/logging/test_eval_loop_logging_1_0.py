@@ -333,6 +333,8 @@ def test_eval_epoch_only_logging(tmpdir, batches, log_interval, max_epochs):
     Tests that only test_epoch_end can be used to log, and we return them in the results.
     """
 
+    os.environ['PL_DEV_DEBUG'] = '0'
+
     class TestModel(BoringModel):
         def test_epoch_end(self, outputs):
             self.log('c', torch.tensor(2), on_epoch=True, prog_bar=True, logger=True)

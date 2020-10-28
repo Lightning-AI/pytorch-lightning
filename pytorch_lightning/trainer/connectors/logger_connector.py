@@ -113,7 +113,7 @@ class LoggerConnector:
             if fx_name == '':
                 fx_name = model_ref._current_fx_name = ''
             if fx_name == '':
-                pass
+                raise Exception
             log.warn(f"Skipping capture for {fx_name}")
 
     def on_trainer_init(self, logger, flush_logs_every_n_steps, log_every_n_steps):
