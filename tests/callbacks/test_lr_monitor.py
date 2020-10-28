@@ -39,10 +39,38 @@ def test_lr_monitor_single_lr(tmpdir):
     assert result
 
     assert lr_monitor.lrs, 'No learning rates logged'
+    assert all(v is None for v in lr_monitor.last_momentum_values.values()), \
+        'Momentum should not be logged by default'
     assert len(lr_monitor.lrs) == len(trainer.lr_schedulers), \
         'Number of learning rates logged does not match number of lr schedulers'
     assert all([k in ['lr-Adam'] for k in lr_monitor.lrs.keys()]), \
         'Names of learning rates not set correctly'
+
+
+def test_lr_monitor_single_lr_with_momentum(tmpdir):
+    """ Test that learning rates and momentum are extracted and logged for single lr scheduler. """
+    tutils.reset_seed()
+
+    model = EvalModelTemplate()
+    model.configure_optimizers = model.configure_optimizers__onecycle_scheduler
+
+    lr_monitor = LearningRateMonitor(log_momentum=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_val_batches=0.1,
+        limit_train_batches=0.5,
+        callbacks=[lr_monitor],
+    )
+    result = trainer.fit(model)
+    assert result
+
+    assert all(v is not None for v in lr_monitor.last_momentum_values.values()), \
+        'Expected momentum to be logged'
+    assert len(lr_monitor.last_momentum_values) == len(trainer.lr_schedulers), \
+        'Number of momentum values logged does not match number of lr schedulers'
+    assert all([k in ['lr-SGD-momentum'] for k in lr_monitor.last_momentum_values.keys()]), \
+        'Names of momentum values not set correctly'
 
 
 def test_lr_monitor_no_lr_scheduler(tmpdir):
