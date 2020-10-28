@@ -22,7 +22,7 @@ def get_len(d):
     else:
         return len(d)
 
-class MagicClass(object):
+class MultiIterator(object):
     def __init__(self, data) -> None:
         super(object, self).__init__()
         self.d = data
