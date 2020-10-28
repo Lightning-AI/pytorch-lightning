@@ -33,6 +33,7 @@ from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 from copy import deepcopy
 from typing import Iterable
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.trainer.train_loader_patch import MultiIterator
 
 TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 from pytorch_lightning.trainer.train_loader_patch import MagicClass
@@ -316,7 +317,7 @@ class TrainerDataLoadingMixin(ABC):
         Returns:
             The dataloader
         """
-        dataloader = MagicClass(dataloader_fx())
+        dataloader = MultiIterator(dataloader_fx())
         dataloader = self._flatten_dl_only(dataloader)
         
         if self.accelerator_backend is not None:
