@@ -84,15 +84,18 @@ def test_callbacks_state_resume_from_checkpoint(tmpdir):
     callback_capture = CaptureCallbacksBeforeTraining()
 
     def get_trainer_args():
+        checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True)
         trainer_args = dict(
             default_root_dir=tmpdir,
-            max_epochs=2,
+            max_steps=1,
             logger=False,
             callbacks=[
-                ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True),
+                checkpoint,
                 callback_capture,
             ]
         )
+        assert checkpoint.best_model_path == ""
+        assert checkpoint.best_model_score == 0
         return trainer_args
 
     # initial training
