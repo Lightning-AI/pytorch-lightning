@@ -131,8 +131,6 @@ class ModelCheckpoint(Callback):
 
     CHECKPOINT_JOIN_CHAR = "-"
     CHECKPOINT_NAME_LAST = "last"
-    CHECKPOINT_STATE_BEST_SCORE = "checkpoint_callback_best_model_score"
-    CHECKPOINT_STATE_BEST_PATH = "checkpoint_callback_best_model_path"
 
     def __init__(
         self,
@@ -187,6 +185,7 @@ class ModelCheckpoint(Callback):
 
     def on_save_checkpoint(self, trainer, pl_module) -> Dict[str, Any]:
         return {
+            "monitor": self.monitor,
             "best_model_score": self.best_model_score,
             "best_model_path": self.best_model_path,
         }
