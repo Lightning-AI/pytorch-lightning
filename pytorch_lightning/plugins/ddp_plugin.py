@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
@@ -62,3 +62,19 @@ class DDPPlugin(object):
             **self._ddp_kwargs,
         )
         return model
+
+    def init_ddp_connection(
+        self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
+    ) -> None:
+        os.environ["MASTER_ADDR"] = str(self.cluster_environment.master_address())
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
+        os.environ["WORLD_SIZE"] = str(self.cluster_environment.world_size())
+        torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
+
+        if not torch.distributed.is_initialized():
+            log.info(
+                f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}"
+            )
+            torch_distrib.init_process_group(
+                torch_backend, rank=global_rank, world_size=world_size
+            )
