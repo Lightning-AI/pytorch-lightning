@@ -783,5 +783,3 @@ def test_configure_model_checkpoint(tmpdir):
 
     with pytest.raises(MisconfigurationException, match="checkpoint_callback=False but found ModelCheckpoint"):
         Trainer(checkpoint_callback=False, callbacks=[callback1], **kwargs)
-
-
