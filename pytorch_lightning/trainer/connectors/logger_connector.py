@@ -486,7 +486,11 @@ class LoggerConnector:
 
             # run training_epoch_end
             # a list with a result per optimizer index
+            model._current_fx_name = 'training_epoch_end'
             epoch_output = model.training_epoch_end(epoch_output)
+
+            # capture logging
+            self.trainer.logger_connector.capture_logging()
 
             if isinstance(epoch_output, Result):
                 epoch_log_metrics = epoch_output.epoch_log_metrics

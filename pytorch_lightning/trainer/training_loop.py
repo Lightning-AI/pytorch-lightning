@@ -248,6 +248,9 @@ class TrainLoop:
         # figure out what to track for epoch end
         self.track_epoch_end_reduce_metrics(epoch_output, epoch_end_outputs)
 
+        # reset batch logger internals
+        self.trainer.logger_connector.on_train_batch_end()
+
     def reset_train_val_dataloaders(self, model):
         if not self.trainer.reload_dataloaders_every_epoch:
             self.trainer.reset_train_dataloader(model)
@@ -715,9 +718,6 @@ class TrainLoop:
 
                     # reset for next set of accumulated grads
                     self.accumulated_loss.reset()
-
-        # update_logger
-        self.trainer.logger_connector.on_train_batch_end()
 
         result = AttributeDict(
             signal=0,
