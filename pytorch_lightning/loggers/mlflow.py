@@ -152,9 +152,8 @@ class MLFlowLogger(LightningLoggerBase):
             if isinstance(v, str):
                 log.warning(f'Discarding metric with string value {k}={v}.')
                 continue
-
             # MLFlow does not support some special characters in metric name.
-            k = re.sub("[^a-zA-Z0-9_/, -]+", "", k)
+            k = re.sub("[^a-zA-Z0-9_/. -]+", "", k)
 
             self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
 
