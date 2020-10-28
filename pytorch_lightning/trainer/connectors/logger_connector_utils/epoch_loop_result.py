@@ -63,9 +63,11 @@ class HookResults:
         assert num_opt_idx >= 0
         num_opt_idx = str(num_opt_idx)
         num_batch_idx = len(self._internals[dl_idx][num_opt_idx]) - 1
-        batch_idx = sorted(self._internals[dl_idx][num_opt_idx].keys())
+        batch_indexes = [*self._internals[dl_idx][num_opt_idx].keys()]
+        # sort them by increasing order
+        batch_indexes.sort(key=float)
         assert num_batch_idx >= 0
-        return self._internals[dl_idx][num_opt_idx][batch_idx[-1]][-1]
+        return self._internals[dl_idx][num_opt_idx][batch_indexes[-1]][-1]
 
     def check_dataloader_idx(self, result: Result) -> bool:
         add_dataloader_idx = False
@@ -78,7 +80,7 @@ class HookResults:
         except Exception:
             return add_dataloader_idx
 
-    def get_lastest(self, func_name, *args, latest=True, **kwargs):
+    def get_lastest_from_func_name(self, func_name, *args, latest=True, **kwargs):
         results = {}
         if latest:
             for dl_idx in range(self.num_dataloaders):
@@ -94,39 +96,42 @@ class HookResults:
         raise NotImplementedError
 
     def get_batch_pbar_metrics(self, latest=True, *args, **kwargs):
-        return self.get_lastest("get_batch_pbar_metrics", *args, latest=latest, **kwargs)
+        return self.get_lastest_from_func_name("get_batch_pbar_metrics", *args, latest=latest, **kwargs)
 
     def get_batch_log_metrics(self, latest=True, *args, **kwargs):
-        return self.get_lastest("get_batch_log_metrics", *args, latest=latest, **kwargs)
+        return self.get_lastest_from_func_name("get_batch_log_metrics", *args, latest=latest, **kwargs)
 
     def run_epoch_func(self, results, opt_metric, func_name, *args, **kwargs):
-        func = getattr(opt_metric, func_name)
-        metrics_to_log = func(
-            *args,
-            add_dataloader_idx=self.add_dataloader_idx,
-            **kwargs)
-        results.update(metrics_to_log)
+        if isinstance(opt_metric, Result):
+            func = getattr(opt_metric, func_name)
+            metrics_to_log = func(
+                *args,
+                add_dataloader_idx=self.add_dataloader_idx,
+                **kwargs)
+            results.update(metrics_to_log)
+        else:
+            raise Exception("The provided opt_metric should be a Result Object. Something is wrong")
 
-    def get_epoch_func(self, func_name, *args, **kwargs):
+    def get_epoch_from_func_name(self, func_name, *args, **kwargs):
         results = {}
         for dl_idx in range(self.num_dataloaders):
             dl_idx = str(dl_idx)
             opt_metrics = self._internals_reduced[dl_idx]
-            if isinstance(opt_metrics, dict):
+            if isinstance(opt_metrics, defaultdict):
                 for opt_metric in opt_metrics.values():
                     self.run_epoch_func(results, opt_metric, func_name, *args, **kwargs)
             else:
-                self.run_epoch_func(results, opt_metric, func_name, *args, **kwargs)
+                self.run_epoch_func(results, opt_metrics, func_name, *args, **kwargs)
         return results
 
     def get_epoch_pbar_metrics(self, *args, **kwargs):
-        return self.get_epoch_func("get_epoch_pbar_metrics")
+        return self.get_epoch_from_func_name("get_epoch_pbar_metrics")
 
     def get_epoch_log_metrics(self, *args, **kwargs):
-        return self.get_epoch_func("get_epoch_log_metrics")
+        return self.get_epoch_from_func_name("get_epoch_log_metrics")
 
     def get_forked_metrics(self, *args, **kwargs):
-        return self.get_epoch_func("get_forked_metrics")
+        return self.get_epoch_from_func_name("get_forked_metrics")
 
     @staticmethod
     def _append_to_structure(primary_dict, opt_idx, batch_idx, result):
@@ -139,6 +144,9 @@ class HookResults:
         primary_dict[opt_idx][batch_idx].append(result)
 
     def append(self, result, dataloader_idx=None, extra_info: dict = {}):
+
+        assert isinstance(result, Result)
+
         if dataloader_idx is None:
             dataloader_idx = 0
 
@@ -150,7 +158,7 @@ class HookResults:
             # initialize dictionary
             if primary_key not in self._internals:
                 self._internals[primary_key] = {}
-                self._internals_reduced[primary_key] = {}
+                self._internals_reduced[primary_key] = defaultdict(dict)
 
             # extract infos
             opt_idx = str(extra_info["opt_idx"])

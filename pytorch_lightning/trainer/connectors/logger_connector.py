@@ -105,16 +105,18 @@ class LoggerConnector:
         )
 
     def capture_logging(self) -> Union[EpochLoopResult, None]:
-        try:
-            self._cached_results[self._current_stage].cache_result()
-        except Exception:
+        def display(self):
             model_ref = self.trainer.get_model()
             fx_name = model_ref._current_hook_fx_name
             if fx_name == '':
                 fx_name = model_ref._current_fx_name = ''
             if fx_name == '':
-                raise Exception
+                pass
             log.warn(f"Skipping capture for {fx_name}")
+        if self._current_stage is not None:
+            self._cached_results[self._current_stage].cache_result()
+        else:
+            display(self)
 
     def on_trainer_init(self, logger, flush_logs_every_n_steps, log_every_n_steps):
         # logging
