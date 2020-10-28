@@ -318,12 +318,15 @@ class EvaluationLoop(object):
         model = self.trainer.get_model()
         model._current_dataloader_idx = dl_idx if self.num_dataloaders > 1 else None
 
-    def on_evaluation_batch_start(self, *args, **kwargs):
-        # reset the result of the PL module
+    def on_evaluation_batch_start(self, batch, batch_idx, dataloader_idx):
+        # set dataloader_idx and track batch_size
+        self.trainer.logger_connector.on_evaluation_batch_start(
+            self.testing, batch, dataloader_idx, self.num_dataloaders)
+
         if self.testing:
-            self.trainer.call_hook('on_test_batch_start', *args, **kwargs)
+            self.trainer.call_hook('on_test_batch_start', batch, batch_idx, dataloader_idx)
         else:
-            self.trainer.call_hook('on_validation_batch_start', *args, **kwargs)
+            self.trainer.call_hook('on_validation_batch_start', batch, batch_idx, dataloader_idx)
 
     def on_evaluation_batch_end(self, *args, **kwargs):
         if self.testing:

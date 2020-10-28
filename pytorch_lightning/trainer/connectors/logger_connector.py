@@ -73,13 +73,23 @@ class LoggerConnector:
                                                                  on_step=on_step,
                                                                  on_epoch=on_epoch)
 
-    def on_batch_start(self, split_idx: int, opt_idx: int) -> None:
+    def on_evaluation_batch_start(self, testing, batch, dataloader_idx, num_dataloaders):
+        # reset the result of the PL module
+        model = self.trainer.get_model()
+        model._current_dataloader_idx = dataloader_idx if num_dataloaders > 1 else None
+
+        # track batch_size
+        self.cached_results(testing)._batch_size = Result.extract_batch_size(batch)
+
+    def on_batch_start(self, split_idx: int, opt_idx: int, split_batch) -> None:
         self._cached_results["train"]._split_idx = split_idx
         self._cached_results["train"]._opt_idx = opt_idx
+        self._cached_results["train"]._batch_size = Result.extract_batch_size(split_batch)
 
     def on_train_batch_end(self) -> None:
         self._cached_results["train"]._split_idx = None
         self._cached_results["train"]._opt_idx = None
+        self._cached_results["train"]._batch_size = None
 
     def _determine_stage(self, stage_or_testing: Union[str, bool]) -> str:
         stage_or_testing = str(stage_or_testing)

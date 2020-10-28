@@ -563,13 +563,11 @@ class Trainer(
 
         # run validation/testing
         for dataloader_idx, dataloader in enumerate(dataloaders):
+
             # bookkeeping
             dl_outputs = []
             dataloader = self.accelerator_backend.process_dataloader(dataloader)
             dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
-
-            # set dataloader idx to pl_model to handle multi-dataloaders logging.
-            self.evaluation_loop.set_dataloader_idx(dataloader_idx)
 
             for batch_idx, batch in enumerate(dataloader):
                 if batch is None:

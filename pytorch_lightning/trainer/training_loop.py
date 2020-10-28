@@ -651,7 +651,7 @@ class TrainLoop:
                     model.toggle_optimizer(optimizer, opt_idx)
 
                 # use to track metrics internally
-                self.trainer.logger_connector.on_batch_start(split_idx, opt_idx)
+                self.trainer.logger_connector.on_batch_start(split_idx, opt_idx, split_batch)
 
                 if not (accumulation_done or is_final_batch):
                     # For gradient accumulation

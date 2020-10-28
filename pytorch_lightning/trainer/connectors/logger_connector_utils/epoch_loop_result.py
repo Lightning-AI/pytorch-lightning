@@ -320,6 +320,9 @@ class EpochLoopResult:
             if self.has_split_and_opt_idx:
                 extra_info = self.extra_info
 
+            # attach capture batch_size
+            Result.attach_batch_size(self._batch_size, hook_result)
+
             self._internals[fx_name].append(
                 deepcopy(hook_result),
                 dataloader_idx=dataloader_idx,
@@ -413,6 +416,10 @@ class EpochLoopResult:
         if has_batch_loop_finished:
             # If batch loop has finished, reduce metrics
             self.auto_reduce_results_on_epoch_end()
+
+            # batch_size should be none as we finished batch loop
+            self._batch_size = None
+
         self._has_batch_loop_finished = has_batch_loop_finished
         self.update_logger_connector()
 
@@ -456,5 +463,6 @@ class EpochLoopResult:
         self._dataloader_idx = None
         self._split_idx = None
         self._opt_idx = None
+        self._batch_size = None
         self._has_batch_loop_finished = False
         self._num_dataloaders = 1

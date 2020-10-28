@@ -234,13 +234,22 @@ class Result(Dict):
         _internal['_reduce_on_epoch'] = max(_internal['_reduce_on_epoch'], on_epoch)
 
     def track_batch_size(self, batch):
+        batch_size = self.extract_batch_size(batch)
+        self.attach_batch_size(batch_size, self)
+
+    @staticmethod
+    def extract_batch_size(batch):
         try:
             batch_size = Result.unpack_batch_size(batch)
         except RecursionError as re:
             batch_size = 1
+        return batch_size
 
-        meta = self['meta']
-        meta['_internal']['batch_sizes'].append(batch_size)
+    @staticmethod
+    def attach_batch_size(self, batch_size: Union[int, None], result: 'Result') -> None:
+        if batch_size is not None:
+            meta = result['meta']
+            meta['_internal']['batch_sizes'].append(batch_size)
 
     def get_batch_sizes(self):
         meta = self['meta']
