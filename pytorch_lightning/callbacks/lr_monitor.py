@@ -103,7 +103,7 @@ class LearningRateMonitor(Callback):
 
         if self.logging_interval != 'epoch':
             interval = 'step' if self.logging_interval is None else 'any'
-            latest_stat = self._extract_lr(trainer, interval)
+            latest_stat = self._extract_stats(trainer, interval)
 
             if trainer.logger is not None and latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
@@ -111,12 +111,12 @@ class LearningRateMonitor(Callback):
     def on_train_epoch_start(self, trainer, *args, **kwargs):
         if self.logging_interval != 'step':
             interval = 'epoch' if self.logging_interval is None else 'any'
-            latest_stat = self._extract_lr(trainer, interval)
+            latest_stat = self._extract_stats(trainer, interval)
 
             if trainer.logger is not None and latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.current_epoch)
 
-    def _extract_lr(self, trainer, interval: str) -> Dict[str, float]:
+    def _extract_stats(self, trainer, interval: str) -> Dict[str, float]:
         latest_stat = {}
 
         for name, scheduler in zip(self.lr_sch_names, trainer.lr_schedulers):
@@ -124,22 +124,32 @@ class LearningRateMonitor(Callback):
                 param_groups = scheduler['scheduler'].optimizer.param_groups
                 if len(param_groups) != 1:
                     for i, pg in enumerate(param_groups):
-                        lr, key = pg['lr'], f'{name}/pg{i + 1}'
-                        self.lrs[key].append(lr)
-                        latest_stat[key] = lr
-                        if self.log_momentum and pg.get('momentum'):
-                            momentum_key, momentum_value = key + '-momentum', pg.get('momentum')
-                            self.last_momentum_values[momentum_key] = momentum_value
-                            latest_stat[momentum_key] = momentum_value
+                        lr = self._extract_lr(param_group=pg, name=f'{name}/pg{i + 1}')
+                        latest_stat.update(lr)
+                        momentum = self._extract_momentum(param_group=pg, name=f'{name}-momentum/pg{i + 1}')
+                        latest_stat.update(momentum)
+
                 else:
-                    self.lrs[name].append(param_groups[0]['lr'])
-                    latest_stat[name] = param_groups[0]['lr']
-                    if self.log_momentum and param_groups[0].get('momentum'):
-                        momentum_key, momentum_value = name + '-momentum', param_groups[0].get('momentum')
-                        self.last_momentum_values[momentum_key] = momentum_value
-                        latest_stat[momentum_key] = momentum_value
+                    pg = param_groups[0]
+                    lr = self._extract_lr(param_group=pg, name=name)
+                    latest_stat.update(lr)
+                    momentum = self._extract_momentum(param_group=pg, name=f'{name}-momentum')
+                    latest_stat.update(momentum)
 
         return latest_stat
+
+    def _extract_lr(self, param_group, name: str) -> Dict[str, float]:
+        lr = param_group.get('lr')
+        self.lrs[name].append(lr)
+        return {name: lr}
+
+    def _extract_momentum(self, param_group, name: str) -> Dict[str, float]:
+        if not self.log_momentum:
+            return {}
+
+        momentum = param_group.get('momentum')
+        self.last_momentum_values[name] = momentum
+        return {name: momentum}
 
     def _find_names(self, lr_schedulers) -> List[str]:
         # Create uniqe names in the case we have multiple of the same learning
