@@ -41,7 +41,6 @@ def test_wandb_logger(wandb):
     logger.log_metrics({'acc': 1.0}, step=3)
     wandb.init().log.assert_called_with({'acc': 1.0}, step=6)
 
-
     logger.log_hyperparams({'test': None, 'nested': {'a': 1}, 'b': [2, 3, 4]})
     wandb.init().config.update.assert_called_once_with(
         {'test': 'None', 'nested/a': 1, 'b': [2, 3, 4]},
