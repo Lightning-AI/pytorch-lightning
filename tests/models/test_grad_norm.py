@@ -63,7 +63,7 @@ def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
 
     # rtol=5e-3 respects the 3 decimals rounding in `.grad_norms` and above
 
-    reset_seed()
+    reset_seed(666)
 
     # use a custom grad tracking module and a list logger
     model = ModelWithManualGradTracker(norm_type)
