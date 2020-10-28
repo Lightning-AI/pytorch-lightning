@@ -52,6 +52,25 @@ class ModelTrainerPropertyParity(Callback):
         self._check_properties(trainer, pl_module)
 
 
+def test_model_properties_resume_from_checkpoint(tmpdir):
+    """ Test that properties like `current_epoch` and `global_step`
+    in model and trainer are always the same. """
+    model = EvalModelTemplate()
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True)
+    trainer_args = dict(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        logger=False,
+        callbacks=[checkpoint_callback, ModelTrainerPropertyParity()]  # this performs the assertions
+    )
+    trainer = Trainer(**trainer_args)
+    trainer.fit(model)
+
+    trainer_args.update(max_epochs=2)
+    trainer = Trainer(**trainer_args, resume_from_checkpoint=str(tmpdir / "last.ckpt"))
+    trainer.fit(model)
+
+
 class CaptureCallbacksBeforeTraining(Callback):
     callbacks = []
 
@@ -59,9 +78,8 @@ class CaptureCallbacksBeforeTraining(Callback):
         self.callbacks = deepcopy(trainer.callbacks)
 
 
-def test_resume_from_checkpoint(tmpdir):
-    """ Test that properties like `current_epoch` and `global_step`
-    in model and trainer are always the same. """
+def test_callbacks_state_resume_from_checkpoint(tmpdir):
+    """ Test that resuming from a checkpoint restores callbacks that persist state. """
     model = EvalModelTemplate()
     callback_capture = CaptureCallbacksBeforeTraining()
 
@@ -73,7 +91,6 @@ def test_resume_from_checkpoint(tmpdir):
             callbacks=[
                 ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True),
                 callback_capture,
-                ModelTrainerPropertyParity()  # this performs the assertions
             ]
         )
         return trainer_args
