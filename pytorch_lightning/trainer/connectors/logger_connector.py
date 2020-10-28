@@ -275,7 +275,7 @@ class LoggerConnector:
                 pprint(results)
                 print('-' * 80)
 
-        results = self.remove_train_metrics(dict(ChainMap(*self.eval_loop_results)))
+        results = [self.remove_train_metrics(dict(ChainMap(*self.eval_loop_results)))]
 
         # clear mem
         self.eval_loop_results = []
@@ -287,7 +287,7 @@ class LoggerConnector:
             metrics_to_log.append(batch_logger_metrics)
 
     def add_to_eval_loop_results(self, dl_idx):
-        callback_metrics = deepcopy(self.testing_callback_metrics)
+        callback_metrics = deepcopy(self.callback_metrics)
         for key in list(callback_metrics.keys()):
             if "dataloader_idx" in key:
                 if f"dataloader_idx_{dl_idx}" not in key:
