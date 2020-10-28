@@ -112,8 +112,9 @@ class InternalDebugger(object):
 
     @enabled_only
     def track_logged_metrics_history(self, scalar_metrics):
-        scalar_metrics['global_step'] = self.trainer.global_step
-        self.logged_metrics.append(scalar_metrics)
+        if len(scalar_metrics) > 0:
+            scalar_metrics['global_step'] = self.trainer.global_step
+            self.logged_metrics.append(scalar_metrics)
 
     @enabled_only
     def track_train_loss_history(self, batch_idx, loss):

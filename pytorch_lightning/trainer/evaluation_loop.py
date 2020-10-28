@@ -328,13 +328,16 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_batch_start', batch, batch_idx, dataloader_idx)
 
-    def on_evaluation_batch_end(self, *args, **kwargs):
+    def on_evaluation_batch_end(self, output, batch, batch_idx, dataloader_idx):
         if self.testing:
-            self.trainer.call_hook('on_test_batch_end', *args, **kwargs)
+            self.trainer.call_hook('on_test_batch_end', output, batch, batch_idx, dataloader_idx)
         else:
-            self.trainer.call_hook('on_validation_batch_end', *args, **kwargs)
+            self.trainer.call_hook('on_validation_batch_end', output, batch, batch_idx, dataloader_idx)
 
-    def evaluation_batch_end_cleanup(self, output, batch_idx, dataloader_idx):
+        # store predicitons if do_write_predictions and track eval loss history
+        self.store_predictions(output, batch_idx, dataloader_idx)
+
+    def store_predictions(self, output, batch_idx, dataloader_idx):
         # Add step predictions to prediction collection to write later
         if output is not None:
             do_write_predictions = isinstance(output, Result) and self.testing

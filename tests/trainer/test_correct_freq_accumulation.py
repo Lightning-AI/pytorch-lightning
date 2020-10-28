@@ -46,6 +46,7 @@ def test_training_step_scalar(tmpdir):
     )
     trainer.fit(model)
 
+    breakpoint()
     # epoch 0
     assert trainer.dev_debugger.logged_metrics[0]['global_step'] == 0
     assert trainer.dev_debugger.logged_metrics[1]['global_step'] == 1

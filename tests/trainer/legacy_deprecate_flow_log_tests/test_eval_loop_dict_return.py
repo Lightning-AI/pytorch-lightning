@@ -191,7 +191,7 @@ def test_val_step_step_end_no_return(tmpdir):
     # out are the results of the full loop
     # eval_results are output of _evaluate
     callback_metrics, eval_results = trainer.run_evaluation(test_mode=False)
-    assert len(callback_metrics) == 0
+    assert len(callback_metrics) == 1
     assert len(eval_results) == 0
 
     # make sure correct steps were called

@@ -38,8 +38,6 @@ class HookResults:
         - IF optimizer_idx and training_step_idx are set,
           THEN self._internals = {"dataloader_idx": {"optimizer_idx": {"training_step_idx": [] } } }
         - ELSE self._internals = {"dataloader_idx": []}
-
-
     """
 
     _types = ["list", "dict"]

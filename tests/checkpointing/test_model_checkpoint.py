@@ -53,11 +53,12 @@ def test_model_checkpoint_correct_score(tmpdir, save_top_k):
     trainer.fit(model)
 
     ckpt_files = list(Path(tmpdir).glob('*.ckpt'))
+    ckpt_files = {os.path.basename(ckpt_file) for ckpt_file in ckpt_files}
 
     metrics = trainer.dev_debugger.logged_metrics
-    expected_filenames = {f'val_acc={metric["val_acc"]:.4f}-epoch={metric["epoch"]}.ckpt' for metric in metrics}
-    for ckpt_file in ckpt_files:
-        assert os.path.basename(ckpt_file) in expected_filenames
+    expected_filenames = {f'val_acc={metric["val_acc"]:.4f}-epoch={metric["epoch"]}.ckpt'
+                          for metric in metrics if "val_acc" in metric}
+    assert ckpt_files == expected_filenames
 
 
 @pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])

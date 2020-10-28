@@ -35,7 +35,7 @@ from pytorch_lightning import _logger as log
 
 class LoggerConnector:
 
-    __lookup_stages = {"0": "test", "1": "validation", "True": "test", "False": "validation"}
+    __lookup_stages = {"1": "test", "0": "validation", "True": "test", "False": "validation"}
 
     def __init__(self, trainer):
         self.trainer = trainer
@@ -182,7 +182,8 @@ class LoggerConnector:
             pbar_metrics_tmp.update(batch_pbar_metrics)
 
         # track metrics
-        self.logged_metrics.update(logged_metrics_tmp)
+        if len(logged_metrics_tmp) > 0:
+            self.log_metrics(logged_metrics_tmp, {})
         self.add_progress_bar_metrics(pbar_metrics_tmp)
         self.callback_metrics.update(callback_metrics_tmp)
 
