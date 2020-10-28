@@ -101,7 +101,7 @@ class ConfusionMatrix(Metric):
         confmat = _confusion_matrix_update(preds, target, self.num_classes, self.threshold)
         self.confmat += confmat
 
-    def compute(self):
+    def compute(self) -> torch.Tensor:
         """
         Computes confusion matrix
         """
