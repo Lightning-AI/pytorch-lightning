@@ -6,7 +6,6 @@ from unittest import mock
 
 import torch
 
-from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate
 from pytorch_lightning.metrics.functional.classification import auc
 
