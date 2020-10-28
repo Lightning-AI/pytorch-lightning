@@ -365,9 +365,9 @@ def test_model_checkpoint_topk_zero(tmpdir):
 def test_model_checkpoint_topk_all(tmpdir):
     """ Test that save_top_k=-1 tracks the best models when monitor key is provided. """
     seed_everything(1000)
-    epochs = 2
+    epochs = 8
     model = EvalModelTemplate()
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="some_val", save_top_k=-1)
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_top_k=-1)
     trainer = Trainer(
         default_root_dir=tmpdir,
         checkpoint_callback=checkpoint_callback,
