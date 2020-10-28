@@ -478,10 +478,7 @@ callbacks
 
 |
 
-Add a list of :class:`~pytorch_lightning.callbacks.Callback`. These callbacks DO NOT replace the explicit callbacks
-(loggers or :class:`~pytorch_lightning.callbacks.ModelCheckpoint`).
-
-.. note:: Only user defined callbacks (ie: Not :class:`~pytorch_lightning.callbacks.ModelCheckpoint`)
+Add a list of :class:`~pytorch_lightning.callbacks.Callback`.
 
 .. code-block:: python
 
