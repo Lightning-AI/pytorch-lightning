@@ -351,25 +351,28 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_epoch_end', *args, **kwargs)
 
-    def log_evaluation_step_metrics(self, batch_idx):
-        self.__log_result_step_metrics(None, batch_idx)
+    def log_evaluation_step_metrics(self, output, batch_idx):
+        # TODO: deprecate 1.0
+        if self.trainer.running_sanity_check:
+            self.trainer.logger_connector.log_metrics({}, {}, step=0)
+            return
+
+        step_log_metrics = self.log_evaluation_step_metrics_legacy(output, batch_idx)
+
+        self.__log_result_step_metrics(step_log_metrics, batch_idx)
 
     # TODO: deprecate at 1.0
     def log_evaluation_step_metrics_legacy(self, output, batch_idx):
-        if self.trainer.running_sanity_check:
-            return
-
         if isinstance(output, EvalResult):
-            self.__log_result_step_metrics(output, batch_idx)
-
-    def __log_result_step_metrics(self, output, batch_idx):
-        if output is not None:
-            step_log_metrics = output.get_batch_log_metrics(include_forked_originals=False)
-            step_pbar_metrics = output.get_batch_pbar_metrics(include_forked_originals=False)
+            return output.get_batch_log_metrics(include_forked_originals=False)
         else:
-            cached_results = self.trainer.logger_connector.cached_results(self.testing)
-            step_log_metrics = cached_results.get_latest_batch_log_metrics()
-            step_pbar_metrics = cached_results.get_latest_batch_pbar_metrics()
+            return {}
+
+    def __log_result_step_metrics(self, step_log_metrics, batch_idx):
+        cached_results = self.trainer.logger_connector.cached_results(self.testing)
+        cached_step_log_metrics = cached_results.get_latest_batch_log_metrics()
+
+        step_log_metrics.update(cached_step_log_metrics)
 
         if len(step_log_metrics) > 0:
             # make the metrics appear as a different line in the same graph
@@ -378,6 +381,3 @@ class EvaluationLoop(object):
                 metrics_by_epoch[f'{k}/epoch_{self.trainer.current_epoch}'] = v
 
             self.trainer.logger_connector.log_metrics(metrics_by_epoch, {}, step=batch_idx)
-
-        if len(step_pbar_metrics) > 0:
-            self.trainer.logger_connector.add_progress_bar_metrics(step_pbar_metrics)

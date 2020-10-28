@@ -311,6 +311,7 @@ def test_eval_logging_auto_reduce(tmpdir):
     # make sure correct values were logged
     logged_val = trainer.dev_debugger.logged_metrics
 
+    breakpoint()
     # sanity check
     assert logged_val[0]['global_step'] == 0
     assert logged_val[1]['global_step'] == 0

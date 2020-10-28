@@ -151,9 +151,11 @@ class LoggerConnector:
         """
         using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
 
+        # temporary dict to collect metrics
         logged_metrics_tmp = {}
         pbar_metrics_tmp = {}
         callback_metrics_tmp = {}
+
         if using_results_obj:
             batch_log_metrics = opt_closure_result.training_step_output.get_batch_log_metrics(
                 include_forked_originals=False
@@ -168,6 +170,7 @@ class LoggerConnector:
             forked_metrics = opt_closure_result.training_step_output.get_forked_metrics()
             callback_metrics_tmp.update(forked_metrics)
             callback_metrics_tmp.update(logged_metrics_tmp)
+
         else:
             batch_log_metrics = opt_closure_result.training_step_output.log_metrics
             logged_metrics_tmp.update(batch_log_metrics)
@@ -179,7 +182,7 @@ class LoggerConnector:
             pbar_metrics_tmp.update(batch_pbar_metrics)
 
         # track metrics
-        self.log_metrics(logged_metrics_tmp, {})
+        self.logged_metrics.update(logged_metrics_tmp)
         self.add_progress_bar_metrics(pbar_metrics_tmp)
         self.callback_metrics.update(callback_metrics_tmp)
 
@@ -218,10 +221,9 @@ class LoggerConnector:
                 self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
                 self.trainer.logger.save()
 
-            if len(scalar_metrics) > 0:
-                # track the logged metrics
-                self.logged_metrics.update(scalar_metrics)
-                self.trainer.dev_debugger.track_logged_metrics_history(scalar_metrics)
+            # track the logged metrics
+            self.logged_metrics.update(scalar_metrics)
+            self.trainer.dev_debugger.track_logged_metrics_history(scalar_metrics)
 
     def add_progress_bar_metrics(self, metrics):
         for k, v in metrics.items():

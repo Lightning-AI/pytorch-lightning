@@ -590,11 +590,8 @@ class Trainer(
                 # clean up
                 self.evaluation_loop.evaluation_batch_end_cleanup(output, batch_idx, dataloader_idx)
 
-                # TODO: deprecate 1.0
-                self.evaluation_loop.log_evaluation_step_metrics_legacy(output, batch_idx)
-
                 # log batch metrics
-                self.evaluation_loop.log_evaluation_step_metrics(batch_idx)
+                self.evaluation_loop.log_evaluation_step_metrics(output, batch_idx)
 
                 # track epoch level outputs
                 if output is not None:
