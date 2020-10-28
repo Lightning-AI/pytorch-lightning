@@ -64,11 +64,15 @@ class DDPPlugin(object):
         return model
 
     def init_ddp_connection(
-        self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
+        self,
+        cluster_environment,
+        global_rank: int,
+        world_size: int,
+        is_slurm_managing_tasks: bool = True,
     ) -> None:
-        os.environ["MASTER_ADDR"] = str(self.cluster_environment.master_address())
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        os.environ["WORLD_SIZE"] = str(self.cluster_environment.world_size())
+        os.environ["MASTER_ADDR"] = str(cluster_environment.master_address())
+        os.environ["MASTER_PORT"] = str(cluster_environment.master_port())
+        os.environ["WORLD_SIZE"] = str(cluster_environment.world_size())
         torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
 
         if not torch.distributed.is_initialized():
