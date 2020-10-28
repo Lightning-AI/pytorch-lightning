@@ -1,3 +1,4 @@
+import os
 from typing import Any, Dict, List
 
 from pytorch_lightning.core.lightning import LightningModule
@@ -65,6 +66,7 @@ class DDPPlugin(object):
 
     def init_ddp_connection(
         self,
+        trainer,
         cluster_environment,
         global_rank: int,
         world_size: int,
@@ -73,7 +75,7 @@ class DDPPlugin(object):
         os.environ["MASTER_ADDR"] = str(cluster_environment.master_address())
         os.environ["MASTER_PORT"] = str(cluster_environment.master_port())
         os.environ["WORLD_SIZE"] = str(cluster_environment.world_size())
-        torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
+        torch_backend = "nccl" if trainer.on_gpu else "gloo"
 
         if not torch.distributed.is_initialized():
             log.info(

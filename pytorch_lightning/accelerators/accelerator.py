@@ -201,7 +201,11 @@ class Accelerator(object):
         self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
     ) -> None:
         self.ddp_plugin.init_ddp_connection(
-            self.cluster_environment, global_rank, world_size, is_slurm_managing_tasks
+            self.trainer,
+            self.cluster_environment,
+            global_rank,
+            world_size,
+            is_slurm_managing_tasks,
         )
 
     def __getstate__(self):
