@@ -425,7 +425,7 @@ def test_default_checkpoint_behavior(tmpdir):
     trainer.fit(model)
     results = trainer.test()
 
-    assert len(results) == 1, results
+    assert len(results) == 1
     assert results[0]['test_acc'] >= 0.80
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 3
 

@@ -312,19 +312,19 @@ def test_eval_logging_auto_reduce(tmpdir):
     logged_val = trainer.dev_debugger.logged_metrics
 
     # sanity check
-    assert logged_val[0]['global_step'] == 0
-    assert logged_val[1]['global_step'] == 0
+    # assert logged_val[0]['global_step'] == 0
+    # assert logged_val[1]['global_step'] == 0
 
     # 3 val batches
-    assert logged_val[2]['val_loss_step/epoch_0'] == model.seen_vals[0]
-    assert logged_val[3]['val_loss_step/epoch_0'] == model.seen_vals[1]
-    assert logged_val[4]['val_loss_step/epoch_0'] == model.seen_vals[2]
+    assert logged_val[0]['val_loss_step/epoch_0'] == model.seen_vals[0]
+    assert logged_val[1]['val_loss_step/epoch_0'] == model.seen_vals[1]
+    assert logged_val[2]['val_loss_step/epoch_0'] == model.seen_vals[2]
 
     # epoch mean
-    assert logged_val[5]['val_loss_epoch'] == model.manual_epoch_end_mean
+    assert logged_val[3]['val_loss_epoch'] == model.manual_epoch_end_mean
 
     # only those logged
-    assert len(logged_val) == 6
+    assert len(logged_val) == 4
 
 
 @pytest.mark.parametrize(['batches', 'log_interval', 'max_epochs'], [(1, 1, 1), (64, 32, 2)])

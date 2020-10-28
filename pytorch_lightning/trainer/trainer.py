@@ -462,10 +462,10 @@ class Trainer(
         return results or 1
 
     def train(self):
+        self.run_sanity_check(self.get_model())
+
         # set stage for logging
         self.logger_connector.set_stage("train")
-
-        self.run_sanity_check(self.get_model())
 
         self.checkpoint_connector.has_trained = False
 
