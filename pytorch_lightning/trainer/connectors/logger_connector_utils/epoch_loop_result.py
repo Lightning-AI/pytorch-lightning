@@ -366,6 +366,11 @@ class EpochLoopResult:
             callback_metrics.update(epoch_log_metrics)
             callback_metrics.update(forked_metrics)
 
+        if self._stage in [LoggerStages.VAL.value, LoggerStages.TEST.value]:
+            # update callback_metrics
+            logger_connector.testing_callback_metrics.update(callback_metrics)
+            logger_connector.testing_callback_metrics.pop("epoch", None)
+
         # update callback_metrics
         logger_connector.callback_metrics.update(callback_metrics)
         logger_connector.callback_metrics.pop("epoch", None)
