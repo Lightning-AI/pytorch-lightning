@@ -19,7 +19,7 @@ import inspect
 import re
 from abc import ABC
 from argparse import Namespace
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union, Mapping
 
 import torch
 from pytorch_lightning import _logger as log
@@ -1553,7 +1553,7 @@ class LightningModule(
 
     def to_torchscript(
         self, file_path: Optional[str] = None, method: Optional[str] = 'script',
-            example_inputs: Optional[torch.Tensor] = None, **kwargs
+            example_inputs: Optional[Union[torch.Tensor, Tuple[torch.Tensor]]] = None, **kwargs
     ) -> Union[ScriptModule, Dict[str, ScriptModule]]:
         """
         By default compiles the whole model to a :class:`~torch.jit.ScriptModule`.
@@ -1590,6 +1590,9 @@ class LightningModule(
             >>> model = SimpleModel()
             >>> torch.jit.save(model.to_torchscript(), "model.pt")  # doctest: +SKIP
             >>> os.path.isfile("model.pt")  # doctest: +SKIP
+            >>> torch.jit.save(model.to_torchscript(file_path="model_trace.pt", method='trace', # doctest: +SKIP
+            ...                                     example_inputs=torch.randn(1, 64)))  # doctest: +SKIP
+            >>> os.path.isfile("model_trace.pt")  # doctest: +SKIP
             True
 
         Return:
@@ -1606,8 +1609,8 @@ class LightningModule(
                 if example_inputs is None:
                     example_inputs = self.example_input_array
                 # automatically send example inputs to the right device and use trace
-                torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs.to(self.device),
-                                                     **kwargs)
+                example_inputs = self.transfer_batch_to_device(example_inputs, device=self.device)
+                torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
             else:
                 raise ValueError(f"The 'method' parameter only supports 'script' or 'trace', but value given was:"
                                  f"{method}")
