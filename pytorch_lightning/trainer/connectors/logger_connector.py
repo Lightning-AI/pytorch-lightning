@@ -226,7 +226,7 @@ class LoggerConnector:
         # log actual metrics
         if self.trainer.logger is not None:
             if self.trainer.is_global_zero:
-                if self.should_flush_logs or len(grad_norm_dic) > 0:
+                if self.should_update_logs:
                     self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
                     self.trainer.logger.save()
 
