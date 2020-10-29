@@ -226,13 +226,12 @@ class LoggerConnector:
         # log actual metrics
         if self.trainer.logger is not None:
             if self.trainer.is_global_zero:
-                if self.should_flush_logs:
-                    self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
-                    self.trainer.logger.save()
+                self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
+                self.trainer.logger.save()
 
-            # track the logged metrics
-            self.logged_metrics.update(scalar_metrics)
-            self.trainer.dev_debugger.track_logged_metrics_history(scalar_metrics)
+        # track the logged metrics
+        self.logged_metrics.update(scalar_metrics)
+        self.trainer.dev_debugger.track_logged_metrics_history(scalar_metrics)
 
     def add_progress_bar_metrics(self, metrics):
         for k, v in metrics.items():

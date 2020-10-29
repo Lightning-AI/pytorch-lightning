@@ -109,6 +109,5 @@ def test_grad_tracking_interval(tmpdir, log_every_n_steps):
             grad_norm_dict = {k: v for k, v in metrics.items() if k.startswith("grad_")}
             if grad_norm_dict:
                 grad_norm_dicts.append(grad_norm_dict)
-
         assert len(grad_norm_dicts) == expected
         assert all(grad_norm_dicts[0].keys() == g.keys() for g in grad_norm_dicts)
