@@ -368,7 +368,7 @@ def test_model_checkpoint_topk_all(tmpdir):
     epochs = 5
     model = EvalModelTemplate()
     checkpoint_callback = ModelCheckpoint(
-        dirpath=tmpdir, filename='{early_stop_on:0.5f}', monitor="early_stop_on", save_top_k=-1)
+        dirpath=tmpdir, filename='{early_stop_on}', monitor="early_stop_on", save_top_k=-1)
     trainer = Trainer(
         default_root_dir=tmpdir,
         checkpoint_callback=checkpoint_callback,
@@ -376,16 +376,13 @@ def test_model_checkpoint_topk_all(tmpdir):
         logger=False,
     )
     trainer.fit(model)
-    best_model_score = round(checkpoint_callback.best_model_score.item(), 5)
-    best_k_values = [round(v.item(), 5) for v in checkpoint_callback.best_k_models.values()]
-    kth_value = round(checkpoint_callback.kth_value.item(), 5)
 
     assert checkpoint_callback.monitor == 'early_stop_on'
-    assert checkpoint_callback.best_model_path == tmpdir / f"early_stop_on={best_model_score}.ckpt"
+    assert checkpoint_callback.best_model_path == tmpdir / f"early_stop_on={checkpoint_callback.best_model_score}.ckpt"
     assert checkpoint_callback.best_model_score > 0
     assert set(checkpoint_callback.best_k_models.keys()) == set(
-        str(tmpdir / f"early_stop_on={i}.ckpt") for i in best_k_values)
-    assert checkpoint_callback.kth_best_model_path == tmpdir / f'early_stop_on={kth_value}.ckpt'
+        str(tmpdir / f"early_stop_on={i}.ckpt") for i in checkpoint_callback.best_k_models.values())
+    assert checkpoint_callback.kth_best_model_path == tmpdir / f'early_stop_on={checkpoint_callback.kth_value}.ckpt'
 
 
 def test_ckpt_metric_names(tmpdir):
