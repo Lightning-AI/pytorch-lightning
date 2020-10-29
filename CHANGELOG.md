@@ -31,6 +31,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Trainer args `auto_select_gpus=True` and `gpus=-1` now correctly selects all available GPUs ([#4209](https://github.com/PyTorchLightning/pytorch-lightning/pull/4209))
+
 
 ## [1.0.3] - 2020-10-20
 
