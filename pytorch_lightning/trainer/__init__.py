@@ -985,13 +985,9 @@ The Trainer uses 2 steps by default. Turn it off or modify it here.
     # check all validation data
     trainer = Trainer(num_sanity_val_steps=-1)
 
-Example::
 
-    python -m torch_xla.distributed.xla_dist
-    --tpu=$TPU_POD_NAME
-    --conda-env=torch-xla-nightly
-    --env=XLA_USE_BF16=1
-    -- python your_trainer_file.py
+This option will reset the validation dataloader unless ``num_sanity_val_steps=0``.
+
 
 plugins
 ^^^^^^^
@@ -1209,14 +1205,11 @@ See the :ref:`profiler documentation <profiler>`. for more details.
     # default used by the Trainer
     trainer = Trainer(profiler=None)
 
-    # to profile standard training events
-    trainer = Trainer(profiler=True)
+    # to profile standard training events, equivalent to `profiler=SimpleProfiler()`
+    trainer = Trainer(profiler="simple")
 
-    # equivalent to profiler=True
-    trainer = Trainer(profiler=SimpleProfiler())
-
-    # advanced profiler for function-level stats
-    trainer = Trainer(profiler=AdvancedProfiler())
+    # advanced profiler for function-level stats, equivalent to `profiler=AdvancedProfiler()`
+    trainer = Trainer(profiler="advanced")
 
 progress_bar_refresh_rate
 ^^^^^^^^^^^^^^^^^^^^^^^^^
