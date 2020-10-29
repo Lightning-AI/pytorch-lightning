@@ -93,16 +93,17 @@ class CheckpointConnector:
            `True` if restored successfully else `False`
         """
 
-        # Try to load checkpoint from `checkpoint_path`. If failed, do not restore checkpoint.
-        try:
-            # if on_gpu:
-            #     checkpoint = torch.load(checkpoint_path)
-            # else:
-            # load on CPU first
-            checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
-        except Exception as _:
+        # Try to read the checkpoint file at `checkpoint_path`. If not exist, do not restore checkpoint.
+        fs = get_filesystem(checkpoint_path)
+        if not fs.exists(checkpoint_path):
             log.info(f'failed to load model from checkpoint:{checkpoint_path}')
             return False
+
+        # if on_gpu:
+        #     checkpoint = torch.load(checkpoint_path)
+        # else:
+        # load on CPU first
+        checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
 
         # load model state
         model = self.trainer.get_model()
