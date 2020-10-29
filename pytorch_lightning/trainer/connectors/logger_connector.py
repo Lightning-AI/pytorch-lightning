@@ -189,10 +189,7 @@ class LoggerConnector:
             pbar_metrics_tmp.update(batch_pbar_metrics)
 
         # track metrics
-        if len(logged_metrics_tmp) > 0:
-            if not self.should_update_logs:
-                grad_norm_dic = {}
-            self.log_metrics(logged_metrics_tmp, grad_norm_dic)
+        self.logged_metrics.update(logged_metrics_tmp)
         self.add_progress_bar_metrics(pbar_metrics_tmp)
         self.callback_metrics.update(callback_metrics_tmp)
 
@@ -629,8 +626,11 @@ class LoggerConnector:
             # logs user requested information to logger
 
             # todo merge with all
-            metrics = self._cached_results["train"].get_latest_batch_log_metrics()
+            metrics = self.logged_metrics
+            grad_norm_dic = batch_output.grad_norm_dic
             if metrics is None:
                 metrics = {}
-            if len(metrics) > 0:
-                self.log_metrics(metrics, {})
+            if grad_norm_dic is None:
+                grad_norm_dic = {}
+            if len(metrics) > 0 or len(grad_norm_dic) > 0:
+                self.log_metrics(metrics, grad_norm_dic)
