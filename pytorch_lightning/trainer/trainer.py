@@ -170,9 +170,8 @@ class Trainer(
             callbacks: Add a list of callbacks.
 
             checkpoint_callback: If ``True``, enable checkpointing.
-                It will configure a default ModelCheckpoint callback
-                if there is no custom ModelCheckpoint callback in `:paramref:~Trainer.callbacks`.
-                Default: ``True``.
+                It will configure a default ModelCheckpoint callback if there is no user-defined ModelCheckpoint in
+                :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks`. Default: ``True``.
 
                 .. warning:: Passing a ModelCheckpoint instance to this argument is deprecated since
                     v1.1.0 and will be unsupported from v1.4.0.
