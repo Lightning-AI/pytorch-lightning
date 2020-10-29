@@ -115,6 +115,27 @@ def test_callbacks_state_resume_from_checkpoint(tmpdir):
             assert before.best_model_score == after.best_model_score
 
 
+def test_callbacks_references_resume_from_checkpoint(tmpdir):
+    """ Test that resuming from a checkpoint sets references as expected. """
+    model = EvalModelTemplate()
+    args = {'default_root_dir': tmpdir, 'max_steps': 1, 'logger': False}
+
+    # initial training
+    checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True)
+    trainer = Trainer(**args, callbacks=[checkpoint])
+    assert checkpoint is trainer.callbacks[0] is trainer.checkpoint_callback
+    trainer.fit(model)
+
+    # resumed training
+    new_checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True)
+    # pass in a new checkpoint object, which should take
+    # precedence over the one in the last.ckpt file
+    trainer = Trainer(**args, callbacks=[new_checkpoint], resume_from_checkpoint=str(tmpdir / "last.ckpt"))
+    assert checkpoint is not new_checkpoint
+    assert new_checkpoint is trainer.callbacks[0] is trainer.checkpoint_callback
+    trainer.fit(model)
+
+
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_running_test_pretrained_model_distrib_dp(tmpdir):
     """Verify `test()` on pretrained model."""
