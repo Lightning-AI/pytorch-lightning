@@ -190,7 +190,7 @@ class LightningLoggerBase(ABC):
                 except Exception:
                     try:
                         return val.__name__
-                    except:
+                    except Exception:
                         return None
             return val
 
