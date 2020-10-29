@@ -188,7 +188,10 @@ class LightningLoggerBase(ABC):
                         return val.__name__
                     return _val
                 except Exception:
-                    return val.__name__
+                    try:
+                        return val.__name__
+                    except:
+                        return None
             return val
 
         return {key: _sanitize_callable(val) for key, val in params.items()}
