@@ -1438,3 +1438,18 @@ def test_trainer_profiler_incorrect_arg_type(profiler):
                        match=r"Only None, bool, str and subclasses of `BaseProfiler` "
                        r"are valid values for `Trainer`'s `profiler` parameter. *"):
         Trainer(profiler=profiler)
+
+
+def test_trainer_num_processes_no_accelerator(tmpdir):
+    """Test num_processes is ignored"""
+    with pytest.warns(UserWarning, match="num_processes is only used"):
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            weights_summary=None,
+            logger=False,
+            checkpoint_callback=False,
+            progress_bar_refresh_rate=0,
+            fast_dev_run=True,
+            num_processes=2,
+        )
+    trainer.fit(EvalModelTemplate())

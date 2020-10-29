@@ -97,8 +97,10 @@ class AcceleratorConnector:
         self.trainer.tpu_id = self.trainer.tpu_cores[0] if isinstance(self.trainer.tpu_cores, list) else None
 
         if num_processes != 1 and distributed_backend != "ddp_cpu":
-            rank_zero_warn("num_processes is only used for distributed_backend=\"ddp_cpu\". Ignoring it.")
-        self.trainer.num_processes = num_processes
+            self.trainer.num_processes = 1
+            rank_zero_warn('num_processes is only used for accelerator="ddp_cpu". Ignoring it.')
+        else:
+            self.trainer.num_processes = num_processes
 
         # override with environment flag
         gpus = os.environ.get('PL_TRAINER_GPUS', gpus)
