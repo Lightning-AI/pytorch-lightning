@@ -111,7 +111,7 @@ You can disable checkpointing by passing
 
 
 The Lightning checkpoint also saves the arguments passed into the LightningModule init
-under the `module_arguments` key in the checkpoint.
+under the `hyper_parameters` key in the checkpoint.
 
 .. code-block:: python
 
@@ -122,7 +122,7 @@ under the `module_arguments` key in the checkpoint.
 
     # all init args were saved to the checkpoint
     checkpoint = torch.load(CKPT_PATH)
-    print(checkpoint['module_arguments'])
+    print(checkpoint['hyper_parameters'])
     # {'learning_rate': the_value}
 
 Manual saving
@@ -140,7 +140,7 @@ You can manually save checkpoints and restore your model from the checkpointed s
 Checkpoint loading
 ******************
 
-To load a model along with its weights, biases and `module_arguments` use the following method:
+To load a model along with its weights, biases and hyperparameters use the following method:
 
 .. code-block:: python
 
