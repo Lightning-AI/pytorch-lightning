@@ -834,10 +834,8 @@ class TrainLoop:
 
     def save_loggers_on_train_batch_end(self):
         # when loggers should save to disk
-        should_save_log = (
-            self.trainer.global_step + 1
-        ) % self.trainer.flush_logs_every_n_steps == 0 or self.trainer.should_stop
-        if should_save_log or self.trainer.fast_dev_run:
+        should_flush_logs = self.trainer.logger_connector.should_flush_logs
+        if should_flush_logs or self.trainer.fast_dev_run:
             if self.trainer.is_global_zero and self.trainer.logger is not None:
                 self.trainer.logger.save()
 

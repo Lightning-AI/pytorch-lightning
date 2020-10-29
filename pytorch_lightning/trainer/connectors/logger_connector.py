@@ -125,6 +125,14 @@ class LoggerConnector:
         self.trainer.flush_logs_every_n_steps = flush_logs_every_n_steps
         self.trainer.log_every_n_steps = log_every_n_steps
 
+    @property
+    def should_flush_logs(self):
+        return (self.trainer.global_step + 1) % self.trainer.flush_logs_every_n_steps == 0 or self.trainer.should_stop
+
+    @property
+    def should_update_logs(self):
+        return (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0 or self.trainer.should_stop
+
     def configure_logger(self, logger):
         if logger is True:
             version = os.environ.get('PL_EXP_VERSION', self.trainer.slurm_job_id)
@@ -218,8 +226,9 @@ class LoggerConnector:
         # log actual metrics
         if self.trainer.logger is not None:
             if self.trainer.is_global_zero:
-                self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
-                self.trainer.logger.save()
+                if self.should_flush_logs:
+                    self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
+                    self.trainer.logger.save()
 
             # track the logged metrics
             self.logged_metrics.update(scalar_metrics)
@@ -614,10 +623,7 @@ class LoggerConnector:
 
     def log_train_step_metrics(self, batch_output):
         # when metrics should be logged
-        should_log_metrics = (
-            (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0 or self.trainer.should_stop
-        )
-        if should_log_metrics or self.trainer.fast_dev_run:
+        if self.should_update_logs or self.trainer.fast_dev_run:
             # logs user requested information to logger
 
             # todo merge with all
