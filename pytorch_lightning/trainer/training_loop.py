@@ -711,8 +711,7 @@ class TrainLoop:
 
         if opt_closure_result is not None:
 
-            # log metrics
-            self.trainer.logger_connector.log_training_step_metrics(opt_closure_result)
+            self.trainer.logger_connector.log_training_step_metrics(opt_closure_result, self._cur_grad_norm_dict)
 
             # track hiddens
             self.trainer.hiddens = self.process_hiddens(opt_closure_result)

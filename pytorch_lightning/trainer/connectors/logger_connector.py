@@ -151,7 +151,7 @@ class LoggerConnector:
             else:
                 self.trainer.logger = logger
 
-    def log_training_step_metrics(self, opt_closure_result):
+    def log_training_step_metrics(self, opt_closure_result, grad_norm_dic):
         """
         This function is responsible to update
         logger_connector internals metrics holder based for depreceated logging
@@ -190,7 +190,9 @@ class LoggerConnector:
 
         # track metrics
         if len(logged_metrics_tmp) > 0:
-            self.log_metrics(logged_metrics_tmp, {})
+            if not self.should_update_logs:
+                grad_norm_dic = {}
+            self.log_metrics(logged_metrics_tmp, grad_norm_dic)
         self.add_progress_bar_metrics(pbar_metrics_tmp)
         self.callback_metrics.update(callback_metrics_tmp)
 
@@ -225,9 +227,10 @@ class LoggerConnector:
 
         # log actual metrics
         if self.trainer.logger is not None:
-            if self.trainer.is_global_zero and (self.should_flush_logs or self.trainer.fast_dev_run):
-                self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
-                self.trainer.logger.save()
+            if self.trainer.is_global_zero:
+                if (self.should_update_logs or self.trainer.fast_dev_run):
+                    self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
+                    self.trainer.logger.save()
 
             # track the logged metrics
             self.logged_metrics.update(scalar_metrics)
@@ -627,13 +630,7 @@ class LoggerConnector:
 
             # todo merge with all
             metrics = self._cached_results["train"].get_latest_batch_log_metrics()
-            grad_norm_dic = batch_output.grad_norm_dic
-
             if metrics is None:
                 metrics = {}
-
-            if grad_norm_dic is None:
-                grad_norm_dic = {}
-
-            if len(metrics) > 0 or len(grad_norm_dic) > 0:
-                self.log_metrics(metrics, grad_norm_dic)
+            if len(metrics) > 0:
+                self.log_metrics(metrics, {})
