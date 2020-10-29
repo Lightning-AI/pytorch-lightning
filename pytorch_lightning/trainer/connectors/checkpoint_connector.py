@@ -44,18 +44,16 @@ else:
     OMEGACONF_AVAILABLE = True
 
 
-"""
-[Save & Load scheme]
-                <<========= save =========>>              <<========== load ==========>>
-                dump                   write              read                   restore
-various states -----> checkpoint dict ------> .ckpt file -----> checkpoint dict --------> various states
-                                        |                  |
-   filename -----------------------------      filename-----
-
-[corresponding implementation]
-                <<== `save_checkpoint` ===>>              <<====== `restore` ========>>                                                                
-             `dump_checkpoint`   `atomic_save`            `pl_load`   (part of) `restore`
-"""
+# [Save & Load scheme]
+#                 <<========= save =========>>              <<========== load ==========>>
+#                 dump                   write              read                   restore
+# various states -----> checkpoint dict ------> .ckpt file -----> checkpoint dict --------> various states
+#                                         |                  |
+#    filename -----------------------------      filename-----
+#
+# [corresponding implementation]
+#                 <<== `save_checkpoint` ===>>              <<====== `restore` ========>>
+#              `dump_checkpoint`   `atomic_save`            `pl_load`   (part of) `restore`
 
 
 class CheckpointConnector:
@@ -259,7 +257,7 @@ class CheckpointConnector:
 
     def dump_checkpoint(self, weights_only: bool = False) -> dict:
         """Creating a model checkpoint dictionary object from various component states.
- 
+
         Args:
             weights_only: saving model weights only
 
@@ -274,9 +272,9 @@ class CheckpointConnector:
                 'native_amp_scaling_state':  PT amp's state_dict         # if not weights_only and use native amp
                 'amp_scaling_state':         Apex's state_dict           # if not weights_only and use apex amp
                 'state_dict':                Model's state_dict (e.g. network weights)
-                CHECKPOINT_HYPER_PARAMS_NAME:    
+                CHECKPOINT_HYPER_PARAMS_NAME:
                 CHECKPOINT_HYPER_PARAMS_KEY:
-                CHECKPOINT_HYPER_PARAMS_TYPE:                
+                CHECKPOINT_HYPER_PARAMS_TYPE:
                 something_cool_i_want_to_save: anything you define through model.on_save_checkpoint
                 LightningDataModule.__class__.__name__: pl DataModule's state
             }
