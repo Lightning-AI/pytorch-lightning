@@ -223,15 +223,14 @@ class LoggerConnector:
             step = self.trainer.global_step
 
         # log actual metrics
-        if self.trainer.logger is not None:
-            if self.trainer.is_global_zero:
-                if (self.should_update_logs or self.trainer.fast_dev_run):
-                    self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
-                    self.trainer.logger.save()
+        if self.should_update_logs or self.trainer.fast_dev_run:
+            if self.trainer.is_global_zero and self.trainer.logger is not None:
+                self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
+                self.trainer.logger.save()
 
             # track the logged metrics
             self.logged_metrics.update(scalar_metrics)
-            self.trainer.dev_debugger.track_logged_metrics_history(scalar_metrics)
+            #self.trainer.dev_debugger.track_logged_metrics_history(scalar_metrics)
 
     def add_progress_bar_metrics(self, metrics):
         for k, v in metrics.items():
@@ -370,16 +369,16 @@ class LoggerConnector:
                 dataloader_result_metrics = {**prog_bar_metrics, **log_metrics, **callback_metrics}
 
                 # add metrics to prog bar
-                self.trainer.logger_connector.add_progress_bar_metrics(prog_bar_metrics)
+                self.add_progress_bar_metrics(prog_bar_metrics)
 
                 # log metrics
                 if len(log_metrics) > 0:
                     self.trainer.logger_connector.log_metrics(log_metrics, {})
 
                 # track metrics for callbacks (all prog bar, logged and callback metrics)
-                self.trainer.logger_connector.callback_metrics.update(callback_metrics)
-                self.trainer.logger_connector.callback_metrics.update(log_metrics)
-                self.trainer.logger_connector.callback_metrics.update(prog_bar_metrics)
+                self.callback_metrics.update(callback_metrics)
+                self.callback_metrics.update(log_metrics)
+                self.callback_metrics.update(prog_bar_metrics)
 
                 if len(dataloader_result_metrics) > 0:
                     self.eval_loop_results.append(dataloader_result_metrics)
