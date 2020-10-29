@@ -212,15 +212,15 @@ def test_tensorboard_with_accumulate_grad_batches(tmpdir):
 
     class ExtendedModel(BoringModel):
 
-        _count = 0
-
         def training_step(self, batch, batch_idx):
-            self.log("count", self._count, on_step=True, on_epoch=True)
-            self._count += 1
+            self.log("step", self.trainer.global_step, on_step=True, on_epoch=True)
             output = self.layer(batch)
             loss = self.loss(batch, output)
+            self.log("loss", loss, on_step=True, on_epoch=True)
             return {"loss": loss}
 
+    max_epochs = 25
+    limit_train_batches = 12
 
     accumulate_grad_batches = 1
     model = ExtendedModel()
@@ -228,10 +228,10 @@ def test_tensorboard_with_accumulate_grad_batches(tmpdir):
     trainer = Trainer(
         logger=TensorBoardLogger(tmpdir),
         accumulate_grad_batches=accumulate_grad_batches,
-        limit_train_batches=12,
+        limit_train_batches=limit_train_batches,
         limit_val_batches=2,
         limit_test_batches=0,
-        max_epochs=2,
+        max_epochs=max_epochs,
     )
     trainer.fit(model)
 
@@ -242,16 +242,16 @@ def test_tensorboard_with_accumulate_grad_batches(tmpdir):
 
     seed_everything(42)
 
-    accumulate_grad_batches = 8
+    accumulate_grad_batches = 4
     model = ExtendedModel()
     model.training_epoch_end = None
     trainer = Trainer(
         logger=TensorBoardLogger(tmpdir),
         accumulate_grad_batches=accumulate_grad_batches,
-        limit_train_batches=12,
+        limit_train_batches=limit_train_batches,
         limit_val_batches=2,
         limit_test_batches=0,
-        max_epochs=2,
+        max_epochs=max_epochs,
     )
     trainer.fit(model)
 
@@ -260,6 +260,4 @@ def test_tensorboard_with_accumulate_grad_batches(tmpdir):
     saved_train_running_losses_wi_accumulate = trainer.dev_debugger.saved_train_running_losses
     outputs_wi_accumulate = trainer.evaluation_loop.outputs
 
-    breakpoint()
-    print(saved_train_accumulated_losses_wo_accumulate)
-    print()
+    print(f"tensorboard --logdir {tmpdir}")
