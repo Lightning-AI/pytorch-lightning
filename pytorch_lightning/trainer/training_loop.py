@@ -46,7 +46,6 @@ class TrainLoop:
         self.automatic_optimization = True
         self._curr_step_result = None
         self._cur_grad_norm_dict = None
-        self._updated_model_last_step = False
 
     def on_trainer_init(
         self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps, automatic_optimization
@@ -696,16 +695,12 @@ class TrainLoop:
                         opt_idx=opt_idx,
                     )
 
-                    self._updated_model_last_step = False
-
                 # ------------------------------
                 # BACKWARD PASS
                 # ------------------------------
                 # gradient update with accumulated gradients
 
                 else:
-                    self._updated_model_last_step = True
-
                     if self.automatic_optimization:
 
                         def train_step_and_backward_closure():
