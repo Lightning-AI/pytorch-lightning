@@ -119,6 +119,7 @@ under the `hyper_parameters` key in the checkpoint.
 
        def __init__(self, learning_rate, *args, **kwargs):
             super().__init__()
+            self.save_hyperparameters()
 
     # all init args were saved to the checkpoint
     checkpoint = torch.load(CKPT_PATH)
