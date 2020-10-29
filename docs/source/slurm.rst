@@ -24,7 +24,7 @@ To train a model using multiple nodes, do the following:
     .. code-block:: python
 
        # train on 32 GPUs across 4 nodes
-       trainer = Trainer(gpus=8, num_nodes=4, distributed_backend='ddp')
+       trainer = Trainer(gpus=8, num_nodes=4, accelerator='ddp')
 
 3.  It's a good idea to structure your training script like this:
 
@@ -37,7 +37,7 @@ To train a model using multiple nodes, do the following:
             trainer = pl.Trainer(
                 gpus=8,
                 num_nodes=4,
-                distributed_backend='ddp'
+                accelerator='ddp'
             )
 
             trainer.fit(model)
