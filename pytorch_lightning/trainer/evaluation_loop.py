@@ -176,7 +176,7 @@ class EvaluationLoop(object):
             output = self.trainer.accelerator_backend.validation_step(args)
 
         # capture any logged information
-        self.trainer.logger_connector.capture_logging()
+        self.trainer.logger_connector.cache_logged_metrics()
 
         # track batch size for weighted average
         is_result_obj = isinstance(output, Result)
@@ -263,7 +263,7 @@ class EvaluationLoop(object):
                 user_reduced = True
 
         # capture logging
-        self.trainer.logger_connector.capture_logging()
+        self.trainer.logger_connector.cache_logged_metrics()
 
         # depre warning
         if eval_results is not None and user_reduced:
@@ -382,5 +382,4 @@ class EvaluationLoop(object):
             metrics_by_epoch = {}
             for k, v in step_log_metrics.items():
                 metrics_by_epoch[f'{k}/epoch_{self.trainer.current_epoch}'] = v
-
             self.trainer.logger_connector.log_metrics(metrics_by_epoch, {}, step=batch_idx)

@@ -39,12 +39,10 @@ class LoggerConnector:
 
     def __init__(self, trainer):
         self.trainer = trainer
-        self.testing_callback_metrics = {}
         self.callback_metrics = {}
         self.logged_metrics = {}
         self.progress_bar_metrics = {}
         self.eval_loop_results = []
-        self._current_stage = None
         self.__stages = sorted([s.value for s in LoggerStages])
         self._cached_results = {stage: EpochLoopResult(trainer, stage) for stage in self.__stages}
         self._callback_hook_validator = CallbackHookNameValidator()
@@ -105,7 +103,7 @@ class LoggerConnector:
             f" or {self.__lookup_stages.keys()}"
         )
 
-    def capture_logging(self) -> Union[EpochLoopResult, None]:
+    def cache_logged_metrics(self) -> Union[EpochLoopResult, None]:
         def display(self):
             model_ref = self.trainer.get_model()
             fx_name = model_ref._current_hook_fx_name
@@ -371,7 +369,6 @@ class LoggerConnector:
                     self.trainer.logger_connector.log_metrics(log_metrics, {})
 
                 # track metrics for callbacks (all prog bar, logged and callback metrics)
-                self.trainer.logger_connector.testing_callback_metrics.update(callback_metrics)
                 self.trainer.logger_connector.callback_metrics.update(callback_metrics)
                 self.trainer.logger_connector.callback_metrics.update(log_metrics)
                 self.trainer.logger_connector.callback_metrics.update(prog_bar_metrics)
@@ -487,7 +484,7 @@ class LoggerConnector:
             raise MisconfigurationException('training_epoch_end expects a return of None. '
                                             'HINT: remove the return statement in training_epoch_end')
         # capture logging
-        self.trainer.logger_connector.capture_logging()
+        self.trainer.logger_connector.cache_logged_metrics()
 
     def __run_legacy_training_epoch_end(
             self,
@@ -518,7 +515,7 @@ class LoggerConnector:
             epoch_output = model.training_epoch_end(epoch_output)
 
             # capture logging
-            self.trainer.logger_connector.capture_logging()
+            self.trainer.logger_connector.cache_logged_metrics()
 
             if isinstance(epoch_output, Result):
                 epoch_log_metrics = epoch_output.epoch_log_metrics

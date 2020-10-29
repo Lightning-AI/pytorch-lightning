@@ -33,11 +33,17 @@ class HookResults:
 
     Result objects will be stored in the following way.
 
-    val and test: self._internals = {"dataloader_idx": []}
+    val and test: self._internals = {"dataloader_idx": [Result(), ..., Result()]}
     training
         - IF optimizer_idx and training_step_idx are set,
-          THEN self._internals = {"dataloader_idx": {"optimizer_idx": {"training_step_idx": [] } } }
-        - ELSE self._internals = {"dataloader_idx": []}
+          THEN self._internals = {"dataloader_idx":
+                                    {"optimizer_idx":
+                                        {"training_step_idx":
+                                            [Result(), Result()]
+                                        }
+                                    }
+                                }
+        - ELSE self._internals = {"dataloader_idx": [Result(), ..., Result()]}
     """
 
     _types = ["list", "dict"]
@@ -192,6 +198,8 @@ class HookResults:
 
                     for opt_idx in range(num_opt_idx + 1):
                         opt_idx = str(opt_idx)
+                        # TODO: Figure out to reduce memory
+                        # TODO: How to start training in middle of epoch
                         opt_outputs = deepcopy(epoch_metrics[opt_idx])
 
                         num_batch_idx = len(self._internals[dl_idx][str(num_opt_idx)]) - 1
@@ -318,12 +326,12 @@ class EpochLoopResult:
                 extra_info=extra_info)
 
             # update logged_metrics, progress_bar_metrics, callback_metrics
-            self.update_logger_connector()
+            self.update_logger_connector(fx_name)
 
         # reset _results, fx_name
         self.reset_model()
 
-    def update_logger_connector(self):
+    def update_logger_connector(self, fx_name=None):
         """
         This function is called every time we capture a hook
         It automatically updates the logger_connector followings:
@@ -341,12 +349,13 @@ class EpochLoopResult:
             batch_pbar_metrics = self.get_latest_batch_pbar_metrics()
             logger_connector.add_progress_bar_metrics(batch_pbar_metrics)
 
-            # get logged_metrics
-            batch_log_metrics = self.get_latest_batch_log_metrics()
-            logger_connector.logged_metrics.update(batch_log_metrics)
+            if self._stage in LoggerStages.TRAIN.value:
+                # Only log and add to callback epoch step during evaluation, test.
+                batch_log_metrics = self.get_latest_batch_log_metrics()
+                logger_connector.logged_metrics.update(batch_log_metrics)
 
-            callback_metrics.update(batch_pbar_metrics)
-            callback_metrics.update(batch_log_metrics)
+                callback_metrics.update(batch_pbar_metrics)
+                callback_metrics.update(batch_log_metrics)
         else:
             epoch_dict = {"epoch": self.trainer.current_epoch}
 
@@ -365,11 +374,6 @@ class EpochLoopResult:
             callback_metrics.update(epoch_pbar_metrics)
             callback_metrics.update(epoch_log_metrics)
             callback_metrics.update(forked_metrics)
-
-        if self._stage in [LoggerStages.VAL.value, LoggerStages.TEST.value]:
-            # update callback_metrics
-            logger_connector.testing_callback_metrics.update(callback_metrics)
-            logger_connector.testing_callback_metrics.pop("epoch", None)
 
         # update callback_metrics
         logger_connector.callback_metrics.update(callback_metrics)

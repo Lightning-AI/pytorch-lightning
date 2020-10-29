@@ -74,7 +74,6 @@ def test__validation_step__log(tmpdir):
         'a2',
         'a_step',
         'a_epoch',
-        'b_step',
         'b_step/epoch_0',
         'b_step/epoch_1',
         'b_epoch',
@@ -87,7 +86,7 @@ def test__validation_step__log(tmpdir):
     # on purpose DO NOT allow step_b... it's silly to monitor val step metrics
     callback_metrics = set(trainer.callback_metrics.keys())
     callback_metrics.remove('debug_epoch')
-    expected_cb_metrics = {'a', 'a2', 'b', 'a_epoch', 'b_epoch', 'a_step', 'b_step'}
+    expected_cb_metrics = {'a', 'a2', 'b', 'a_epoch', 'b_epoch', 'a_step'}
     assert expected_cb_metrics == callback_metrics
 
 
@@ -150,12 +149,10 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
         'b_step',
         'b_epoch',
         'c',
-        'd_step',
         'd_step/epoch_0',
         'd_step/epoch_1',
         'd_epoch',
         'e',
-        'f_step',
         'f_step/epoch_0',
         'f_step/epoch_1',
         'f_epoch',
@@ -170,7 +167,7 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
     # we don't want to enable val metrics during steps because it is not something that users should do
     callback_metrics = set(trainer.callback_metrics.keys())
     callback_metrics.remove('debug_epoch')
-    expected_cb_metrics = {'a', 'b', 'c', 'd', 'e', 'd_step', 'd_epoch', 'b_step', 'b_epoch', 'f_step', 'f_epoch', 'f', 'g'}
+    expected_cb_metrics = {'a', 'b', 'c', 'd', 'e', 'b_epoch', 'd_epoch', 'f_epoch', 'f', 'g', 'b_step'}
     assert expected_cb_metrics == callback_metrics
 
 
@@ -302,7 +299,7 @@ def test_eval_logging_auto_reduce(tmpdir):
     # make sure all the metrics are available for callbacks
     manual_mean = model.manual_epoch_end_mean
     callback_metrics = set(trainer.callback_metrics.keys())
-    assert callback_metrics == {'val_loss_epoch', 'val_loss', 'debug_epoch', 'val_loss_step'}
+    assert callback_metrics == {'debug_epoch', 'val_loss', 'val_loss_epoch'}
 
     # make sure values are correct
     assert trainer.logged_metrics['val_loss_epoch'] == manual_mean
