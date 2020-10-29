@@ -62,7 +62,7 @@ class ModelIO(object):
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
         it stores the arguments passed to `__init__`  in the checkpoint under `hyper_parameters`
 
-        Any arguments specified through \*args and \*\*kwargs will override args stored in `hparams`.
+        Any arguments specified through \*args and \*\*kwargs will override args stored in `hyper_parameters`.
 
         Args:
             checkpoint_path: Path to checkpoint. This can also be a URL, or file-like object

@@ -112,7 +112,7 @@ Often times we train many versions of a model. You might share that model or com
 at which point it is very useful to know how that model was trained (i.e.: what learning rate, neural network, etc...).
 
 Lightning has a few ways of saving that information for you in checkpoints and yaml files. The goal here is to
-improve readability and reproducibility
+improve readability and reproducibility.
 
 1. The first way is to ask lightning to save the values of anything in the __init__ for you to the checkpoint. This also
 makes those values available via `self.hparams`.
@@ -152,25 +152,8 @@ In that case, choose only a few
     model = LitMNIST.load_from_checkpoint(PATH, loss_fx=torch.nn.SomeOtherLoss, generator_network=MyGenerator())
 
 
-3. Assign to `self.hparams`. Anything assigned to `self.hparams` will also be saved automatically
 
-.. code-block:: python
-
-    # using a argparse.Namespace
-    class LitMNIST(LightningModule):
-
-        def __init__(self, hparams, *args, **kwargs):
-            super().__init__()
-            self.hparams = hparams
-
-            self.layer_1 = torch.nn.Linear(28 * 28, self.hparams.layer_1_dim)
-            self.layer_2 = torch.nn.Linear(self.hparams.layer_1_dim, self.hparams.layer_2_dim)
-            self.layer_3 = torch.nn.Linear(self.hparams.layer_2_dim, 10)
-
-        def train_dataloader(self):
-            return DataLoader(mnist_train, batch_size=self.hparams.batch_size)
-
-4. You can also save full objects such as `dict` or `Namespace` to the checkpoint.
+3. You can also save full objects such as `dict` or `Namespace` to the checkpoint.
 
 .. code-block:: python
 
