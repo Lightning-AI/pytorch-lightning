@@ -225,10 +225,9 @@ class LoggerConnector:
 
         # log actual metrics
         if self.trainer.logger is not None:
-            if self.trainer.is_global_zero:
-                if self.should_flush_logs:
-                    self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
-                    self.trainer.logger.save()
+            if self.trainer.is_global_zero and (self.should_flush_logs or self.trainer.fast_dev_run):
+                self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
+                self.trainer.logger.save()
 
             # track the logged metrics
             self.logged_metrics.update(scalar_metrics)
