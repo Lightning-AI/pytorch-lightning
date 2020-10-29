@@ -206,6 +206,8 @@ Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
     `auto_select_gpus=True` will automatically help you find `k` gpus that are not
     occupied by other processes. This is especially useful when GPUs are configured
     to be in "exclusive mode", such that only one process at a time can access them.
+    For more details see the :ref:`Trainer guide <trainer>`.
+
 
 Remove CUDA flags
 ^^^^^^^^^^^^^^^^^
