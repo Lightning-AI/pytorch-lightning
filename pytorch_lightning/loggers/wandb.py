@@ -94,6 +94,8 @@ class WandbLogger(LightningLoggerBase):
         self._offline = offline
         self._log_model = log_model
         self._kwargs = kwargs
+        # logging multiple Trainer on a single W&B run (k-fold, etc)
+        self._step_offset = 0
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -141,8 +143,7 @@ class WandbLogger(LightningLoggerBase):
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
-
-        self.experiment.log({'global_step': step, **metrics} if step is not None else metrics)
+        self.experiment.log(metrics, step=(step + self._step_offset) if step is not None else None)
 
     @property
     def save_dir(self) -> Optional[str]:
@@ -159,6 +160,10 @@ class WandbLogger(LightningLoggerBase):
         return self._experiment.id if self._experiment else self._id
 
     def finalize(self, status: str) -> None:
+        # offset future training logged on same W&B run
+        if self._experiment is not None:
+            self._step_offset = self._experiment.step
+
         # upload all checkpoints from saving dir
         if self._log_model:
             wandb.save(os.path.join(self.save_dir, "*.ckpt"))

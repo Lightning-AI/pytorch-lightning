@@ -381,6 +381,12 @@ Example::
     # enable auto selection (will find two available gpus on system)
     trainer = Trainer(gpus=2, auto_select_gpus=True)
 
+    # specifies all GPUs regardless of its availability
+    Trainer(gpus=-1, auto_select_gpus=False)
+
+    # specifies all available GPUs (if only one GPU is not occupied, uses one gpu)
+    Trainer(gpus=-1, auto_select_gpus=True)
+
 auto_lr_find
 ^^^^^^^^^^^^
 
