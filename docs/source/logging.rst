@@ -128,13 +128,17 @@ decorator to make sure that only the first process in DDP training logs data.
 
     class MyLogger(LightningLoggerBase):
 
+        @property
         def name(self):
             return 'MyLogger'
 
+        @property
+        @rank_zero_only
         def experiment(self):
             # Return the experiment object associated with this logger.
             pass
-          
+         
+        @property 
         def version(self):
             # Return the experiment version, int or str.
             return '0.1'
@@ -151,6 +155,7 @@ decorator to make sure that only the first process in DDP training logs data.
             # your code to record metrics goes here
             pass
 
+        @rank_zero_only
         def save(self):
             # Optional. Any code necessary to save logger data goes here
             # If you implement this, remember to call `super().save()`
