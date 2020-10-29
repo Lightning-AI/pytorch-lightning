@@ -169,9 +169,13 @@ class Trainer(
 
             callbacks: Add a list of callbacks.
 
-            checkpoint_callback: If ``True``, will configure a default ModelCheckpoint callback.
-                Passing a ModelCheckpoint instance to this argument is deprecated since
-                v1.1.0 and will be unsupported from v1.4.0. Default: ``True``
+            checkpoint_callback: If ``True``, enable checkpointing.
+                It will configure a default ModelCheckpoint callback
+                if there is no custom ModelCheckpoint callback in `:paramref:~Trainer.callbacks`.
+                Default: ``True``.
+
+                .. warning:: Passing a ModelCheckpoint instance to this argument is deprecated since
+                    v1.1.0 and will be unsupported from v1.4.0.
 
             check_val_every_n_epoch: Check val every n train epochs.
 
