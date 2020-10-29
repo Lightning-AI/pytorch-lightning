@@ -32,6 +32,7 @@ from pytorch_lightning import Callback, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.profiler.profilers import AdvancedProfiler, PassThroughProfiler, SimpleProfiler
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -1408,3 +1409,32 @@ def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, l
     trainer.fit(model)
     expected_calls = [call(metrics=ANY, step=s) for s in range(log_interval - 1, max_steps, log_interval)]
     log_metrics_mock.assert_has_calls(expected_calls)
+
+
+@pytest.mark.parametrize(['profiler', 'expected'], [
+    (None, PassThroughProfiler),
+    (SimpleProfiler(), SimpleProfiler),
+    (AdvancedProfiler(), AdvancedProfiler),
+    ('simple', SimpleProfiler),
+    ('Simple', SimpleProfiler),
+    ('advanced', AdvancedProfiler),
+])
+def test_trainer_profiler_correct_args(profiler, expected):
+    kwargs = {'profiler': profiler} if profiler is not None else {}
+    trainer = Trainer(**kwargs)
+    assert isinstance(trainer.profiler, expected)
+
+
+def test_trainer_profiler_incorrect_str_arg():
+    with pytest.raises(ValueError, match=r".*can only be 'simple' or 'advanced'"):
+        Trainer(profiler="unknown_profiler")
+
+
+@pytest.mark.parametrize('profiler', (
+    42, [42], {"a": 42}, torch.tensor(42), Trainer(),
+))
+def test_trainer_profiler_incorrect_arg_type(profiler):
+    with pytest.raises(MisconfigurationException,
+                       match=r"Only None, bool, str and subclasses of `BaseProfiler` "
+                       r"are valid values for `Trainer`'s `profiler` parameter. *"):
+        Trainer(profiler=profiler)
