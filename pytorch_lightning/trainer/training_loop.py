@@ -762,7 +762,7 @@ class TrainLoop:
     @contextmanager
     def block_ddp_sync_behaviour(self):
         if isinstance(self.trainer.model, torch.nn.parallel.DistributedDataParallel):
-            yield from self.trainer.model.no_sync()
+            yield self.trainer.model.no_sync()
         else:
             yield
 
