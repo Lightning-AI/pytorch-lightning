@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from pprint import pprint
+from typing import Iterable, Union
+from copy import deepcopy
+from collections import ChainMap
 import torch
 from pytorch_lightning.core import memory
 from pytorch_lightning.loggers import TensorBoardLogger, LoggerCollection
@@ -19,13 +23,16 @@ from pytorch_lightning.utilities import flatten_dict
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pprint import pprint
-from typing import Iterable
-from copy import deepcopy
-from collections import ChainMap
+from pytorch_lightning.trainer.connectors.logger_connector import (
+    CallbackHookNameValidator,
+    EpochResultStore,
+    LoggerStages
+)
 
 
 class LoggerConnector:
+
+    __lookup_stages = {"1": "test", "0": "validation", "True": "test", "False": "validation"}
 
     def __init__(self, trainer):
         self.trainer = trainer
@@ -33,6 +40,70 @@ class LoggerConnector:
         self.logged_metrics = {}
         self.progress_bar_metrics = {}
         self.eval_loop_results = []
+        self._stages = sorted([s.value for s in LoggerStages])
+        self._cached_results = {stage: EpochResultStore(trainer, stage) for stage in self._stages}
+        self._callback_hook_validator = CallbackHookNameValidator()
+        self._current_stage = None
+
+    def cached_results(self, stage_or_testing: Union[str, bool]) -> Union[EpochResultStore, None]:
+        """ Function to access cached_results using str or bool. Bool is used only for testing"""
+        stage_or_testing = str(stage_or_testing)
+        stages = self._stages
+        if stage_or_testing in self._stages:
+            return self._cached_results[stage_or_testing]
+        if stage_or_testing in self.__lookup_stages:
+            # Acces using trainer.testing
+            stage = self.__lookup_stages[stage_or_testing]
+            return self._cached_results[stage]
+        raise MisconfigurationException(
+            f"Provide stage_or_testing {stage_or_testing} doesn't belong either to {self._stages}"
+            f" or {self.__lookup_stages.keys()}"
+        )
+
+    def set_stage(self, stage_or_testing: str, reset:bool = False) -> None:
+        self._current_stage = self._determine_stage(stage_or_testing)
+        if reset:
+            self.cached_results(stage_or_testing).reset()
+
+    def check_logging_in_callbacks(self, hook_fx_name, on_step: bool = None, on_epoch: bool = None) -> None:
+        self._callback_hook_validator.check_logging_in_callbacks(current_hook_fx_name=hook_fx_name,
+                                                                 on_step=on_step,
+                                                                 on_epoch=on_epoch)
+
+    def on_evaluation_batch_start(self, testing, batch, dataloader_idx, num_dataloaders):
+        # reset the result of the PL module
+        model = self.trainer.get_model()
+        model._current_dataloader_idx = dataloader_idx if num_dataloaders > 1 else None
+
+        # track batch_size
+        self.cached_results(testing)._batch_size = Result.extract_batch_size(batch)
+
+    def on_batch_start(self, split_idx: int, opt_idx: int, split_batch) -> None:
+        self._cached_results["train"]._split_idx = split_idx
+        self._cached_results["train"]._opt_idx = opt_idx
+        self._cached_results["train"]._batch_size = Result.extract_batch_size(split_batch)
+
+    def on_train_batch_end(self) -> None:
+        self._cached_results["train"]._split_idx = None
+        self._cached_results["train"]._opt_idx = None
+        self._cached_results["train"]._batch_size = None
+
+    def _determine_stage(self, stage_or_testing: Union[str, bool]) -> str:
+        stage_or_testing = str(stage_or_testing)
+        stages = self._stages
+        if stage_or_testing in stages:
+            return stage_or_testing
+        if stage_or_testing in self.__lookup_stages:
+            # Acces using trainer.testing
+            return self.__lookup_stages[stage_or_testing]
+        raise MisconfigurationException(
+            f"Provide stage_or_testing {stage_or_testing} doesn't belong either to {stages}"
+            f" or {self.__lookup_stages.keys()}"
+        )
+
+    def cache_logged_metrics(self) -> Union[EpochResultStore, None]:
+        if self._current_stage is not None:
+            self._cached_results[self._current_stage].cache_result()
 
     def on_trainer_init(self, logger, flush_logs_every_n_steps, log_every_n_steps):
         # logging
