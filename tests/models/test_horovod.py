@@ -25,6 +25,7 @@ import torch
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.utilities import APEX_AVAILABLE
 from tests.base import EvalModelTemplate
 from tests.base.models import BasicGAN
 
@@ -127,6 +128,7 @@ def test_horovod_multi_gpu(tmpdir):
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 @pytest.mark.skipif(not _nccl_available(), reason="test requires Horovod with NCCL support")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not APEX_AVAILABLE, reason="test requires apex")
 def test_horovod_amp(tmpdir):
     """Test Horovod with multi-GPU support."""
     trainer_options = dict(
@@ -140,6 +142,7 @@ def test_horovod_amp(tmpdir):
         gpus=2,
         deterministic=True,
         distributed_backend='horovod',
+        amp_backend='apex',
         precision=16,
     )
     _run_horovod(trainer_options, on_gpu=True)
