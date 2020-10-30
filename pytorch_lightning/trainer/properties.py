@@ -17,7 +17,7 @@ from abc import ABC
 from argparse import ArgumentParser, Namespace
 from typing import List, Optional, Union, Type, TypeVar
 
-from pytorch_lightning.callbacks import ProgressBarBase
+from pytorch_lightning.callbacks import Callback, ProgressBarBase, ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
@@ -46,6 +46,7 @@ class TrainerProperties(ABC):
     _weights_save_path: str
     model_connector: ModelConnector
     checkpoint_connector: CheckpointConnector
+    callbacks: List[Callback]
 
     @property
     def use_amp(self) -> bool:
@@ -186,6 +187,20 @@ class TrainerProperties(ABC):
         if get_filesystem(self._weights_save_path).protocol == "file":
             return os.path.normpath(self._weights_save_path)
         return self._weights_save_path
+
+    @property
+    def checkpoint_callback(self) -> Optional[ModelCheckpoint]:
+        """
+        The first checkpoint callback in the Trainer.callbacks list, or ``None`` if
+        no checkpoint callbacks exist.
+        """
+        callbacks = self.checkpoint_callbacks
+        return callbacks[0] if len(callbacks) > 0 else None
+
+    @property
+    def checkpoint_callbacks(self) -> List[ModelCheckpoint]:
+        """ A list of all instances of ModelCheckpoint found in the Trainer.callbacks list. """
+        return [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
 
     def save_checkpoint(self, filepath, weights_only: bool = False):
         self.checkpoint_connector.save_checkpoint(filepath, weights_only)
