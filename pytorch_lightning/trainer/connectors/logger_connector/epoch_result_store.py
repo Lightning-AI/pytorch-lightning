@@ -15,7 +15,7 @@
 from collections import defaultdict
 from copy import deepcopy
 from enum import Enum
-from typing import Union, Tuple, Any
+from typing import Union, Tuple, Any, Mapping
 
 from pytorch_lightning.core.step_result import Result
 
@@ -118,7 +118,7 @@ class HookResultStore:
     def get_batch_log_metrics(self, latest=True, *args, **kwargs):
         return self.get_lastest_from_func_name("get_batch_log_metrics", *args, latest=latest, **kwargs)
 
-    def run_epoch_func(self, results, opt_metric, func_name, *args, **kwargs):
+    def run_epoch_func(self, results, opt_metric, func_name, *args, **kwargs) -> None:
         if isinstance(opt_metric, Result):
             func = getattr(opt_metric, func_name)
             metrics_to_log = func(
@@ -129,7 +129,7 @@ class HookResultStore:
         else:
             raise Exception("The provided opt_metric should be a Result Object. Something is wrong")
 
-    def get_epoch_from_func_name(self, func_name, *args, **kwargs):
+    def get_epoch_from_func_name(self, func_name, *args, **kwargs) -> Mapping:
         results = {}
         for dl_idx in range(self.num_dataloaders):
             dl_idx = str(dl_idx)
@@ -141,17 +141,17 @@ class HookResultStore:
                 self.run_epoch_func(results, opt_metrics, func_name, *args, **kwargs)
         return results
 
-    def get_epoch_pbar_metrics(self, *args, **kwargs):
+    def get_epoch_pbar_metrics(self, *args, **kwargs) -> Mapping:
         return self.get_epoch_from_func_name("get_epoch_pbar_metrics")
 
-    def get_epoch_log_metrics(self, *args, **kwargs):
+    def get_epoch_log_metrics(self, *args, **kwargs) -> Mapping:
         return self.get_epoch_from_func_name("get_epoch_log_metrics")
 
-    def get_forked_metrics(self, *args, **kwargs):
+    def get_forked_metrics(self, *args, **kwargs) -> Mapping:
         return self.get_epoch_from_func_name("get_forked_metrics")
 
     @staticmethod
-    def _append_to_structure(primary_dict, opt_idx, batch_idx, result):
+    def _append_to_structure(primary_dict, opt_idx, batch_idx, result) -> None:
         if opt_idx not in primary_dict:
             primary_dict[opt_idx] = {}
 
@@ -160,7 +160,7 @@ class HookResultStore:
 
         primary_dict[opt_idx][batch_idx].append(result)
 
-    def append(self, result, dataloader_idx=None, extra_info: dict = {}):
+    def append(self, result, dataloader_idx=None, extra_info: dict = {}) -> None:
 
         assert isinstance(result, Result)
 
@@ -190,7 +190,12 @@ class HookResultStore:
                 self._internals[primary_key] = []
             self._internals[primary_key].append(result)
 
-    def auto_reduce_results_on_epoch_end(self):
+    def auto_reduce_results_on_epoch_end(self) -> None:
+        """
+        This function is called to reduce `self._internals` Result object.
+        The reduced Result object will be saved into `self._internals_reduced`
+        The `self._internals` stored Result objects will be deleted to save memory.
+        """
         if not self.has_reduced:
             epoch_log_metrics = {}
             epoch_progress_bar_metrics = {}
@@ -299,24 +304,36 @@ class EpochResultStore:
 
     @property
     def has_split_and_opt_idx(self):
+        """
+        This function informs if we are running within training batch loop
+        """
         if self._split_idx is not None and self._opt_idx is not None:
             return True
         return False
 
     @property
     def extra_info(self):
+        """
+        This function provides necessary parameters to properly configure HookResultStore obj
+        """
         return {"batch_idx": self.trainer.batch_idx,
                 "split_idx": self._split_idx,
                 "opt_idx": self._opt_idx}
 
     def reset_model(self):
-        # reset model to its capture state
+        """
+        This function is used to reset model state at the end of the capture
+        """
         model_ref = self.trainer.get_model()
         model_ref._results = Result()
         model_ref._current_hook_fx_name = None
         model_ref._current_fx_name = ''
 
     def current_model_info(self):
+        """
+        This function is used to extract
+        information related to current function scoping `self.log` call.
+        """
         model_ref = self.trainer.get_model()
         # extract hook information
         fx_name = model_ref._current_hook_fx_name
@@ -325,7 +342,7 @@ class EpochResultStore:
         dataloader_idx = model_ref._current_dataloader_idx
         return fx_name, dataloader_idx
 
-    def cache_result(self):
+    def cache_result(self) -> None:
         """
         This function is called after every hook
         and store the result object
@@ -363,7 +380,7 @@ class EpochResultStore:
         # reset _results, fx_name
         self.reset_model()
 
-    def update_logger_connector(self, fx_name=None):
+    def update_logger_connector(self, fx_name: str = None) -> None:
         """
         This function is called every time we capture a hook
         It automatically updates the logger_connector followings:
@@ -411,34 +428,31 @@ class EpochResultStore:
         logger_connector.callback_metrics.update(callback_metrics)
         logger_connector.callback_metrics.pop("epoch", None)
 
-    def get_latest_batch_log_metrics(self):
+    def run_batch_from_func_name(self, func_name) -> Mapping:
         results = {}
         for fx_name, hook_result in self._internals.items():
-            results.update(hook_result.get_batch_log_metrics(
-                latest=True,
-                include_forked_originals=False))
+            func = getattr(hook_result, func_name)
+            results.update(func(latest=True, include_forked_originals=False))
         return results
 
-    def get_latest_batch_pbar_metrics(self):
-        results = {}
-        for fx_name, hook_result in self._internals.items():
-            results.update(hook_result.get_batch_pbar_metrics(
-                latest=True,
-                include_forked_originals=False))
-        return results
+    def get_latest_batch_log_metrics(self) -> Mapping:
+        return self.run_batch_from_func_name("get_batch_log_metrics")
+
+    def get_latest_batch_pbar_metrics(self) -> Mapping:
+        return self.run_batch_from_func_name("get_batch_pbar_metrics")
 
     @property
-    def has_reduced(self):
+    def has_reduced(self) -> bool:
         hook_results = self._internals.values()
         return len(hook_results) == sum([h.has_reduced for h in hook_results])
 
-    def auto_reduce_results_on_epoch_end(self):
+    def auto_reduce_results_on_epoch_end(self) -> None:
         if not self.has_reduced:
             for fx_name, hook_result in self._internals.items():
                 hook_result.auto_reduce_results_on_epoch_end()
 
     @property
-    def has_batch_loop_finished(self):
+    def has_batch_loop_finished(self) -> bool:
         return self._has_batch_loop_finished
 
     @has_batch_loop_finished.setter
@@ -453,7 +467,7 @@ class EpochResultStore:
         self._has_batch_loop_finished = has_batch_loop_finished
         self.update_logger_connector()
 
-    def run_by_func_name(self, func_name):
+    def run_epoch_by_func_name(self, func_name) -> Mapping:
         if not self.has_reduced:
             self.auto_reduce_results_on_epoch_end()
         results = {}
@@ -462,17 +476,17 @@ class EpochResultStore:
             results.update(func())
         return results
 
-    def get_epoch_pbar_metrics(self):
-        return self.run_by_func_name("get_epoch_pbar_metrics")
+    def get_epoch_pbar_metrics(self) -> Mapping:
+        return self.run_epoch_by_func_name("get_epoch_pbar_metrics")
 
-    def get_epoch_log_metrics(self):
-        return self.run_by_func_name("get_epoch_log_metrics")
+    def get_epoch_log_metrics(self) -> Mapping:
+        return self.run_epoch_by_func_name("get_epoch_log_metrics")
 
-    def get_forked_metrics(self):
-        return self.run_by_func_name("get_forked_metrics")
+    def get_forked_metrics(self) -> Mapping:
+        return self.run_epoch_by_func_name("get_forked_metrics")
 
-    def get_reduced_metrics(self):
-        return self.run_by_func_name("get_reduced_metrics")
+    def get_reduced_metrics(self) -> Mapping:
+        return self.run_epoch_by_func_name("get_reduced_metrics")
 
     def reset(self):
         self._internals = {}

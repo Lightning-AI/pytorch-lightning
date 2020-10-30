@@ -24,7 +24,7 @@ from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
-from pytorch_lightning.trainer.connectors.logger_connector.epoch_loop_result import (
+from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import (
     EpochResultStore,
     LoggerStages
 )
