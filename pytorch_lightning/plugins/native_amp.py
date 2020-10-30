@@ -38,6 +38,10 @@ class NativeAMPPlugin:
 
         # once backward has been applied, release graph
         closure_loss = closure_loss.detach()
+
+        # unscale gradient to allow analyze within `on_after_backward`
+        self.trainer.scaler.unscale_(optimizer)
+
         return closure_loss
 
     def training_step(self, fx, args):
