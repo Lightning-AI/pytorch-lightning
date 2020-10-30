@@ -383,7 +383,8 @@ def test_model_checkpoint_topk_all(tmpdir):
 
     assert checkpoint_callback.monitor == 'epoch'
     assert checkpoint_callback.best_model_path == tmpdir / "epoch=2.ckpt"
-    assert checkpoint_callback.best_model_score > 0
+    assert checkpoint_callback.best_model_score == epochs - 1
+    assert len(os.listdir(tmpdir)) == len(checkpoint_callback.best_k_models) == epochs
     assert set(checkpoint_callback.best_k_models.keys()) == set(str(tmpdir / f"epoch={i}.ckpt") for i in range(epochs))
     assert checkpoint_callback.kth_best_model_path == tmpdir / 'epoch=0.ckpt'
 
