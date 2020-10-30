@@ -285,7 +285,7 @@ class EpochResultStore:
     def reset_model(self):
         model_ref = self.trainer.get_model()
         model_ref._results = Result()
-        model_ref._current_hook_fx_name = ''
+        model_ref._current_hook_fx_name = None
         model_ref._current_fx_name = ''
 
     def current_model_info(self):

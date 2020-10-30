@@ -111,7 +111,7 @@ class LightningModule(
         self._datamodule = None
         self._results: Optional[Result] = None
         self._current_fx_name = ''
-        self._current_hook_fx_name = ''
+        self._current_hook_fx_name = None
         self._current_dataloader_idx = None
 
     def optimizers(self):
@@ -246,7 +246,7 @@ class LightningModule(
             on_step = self.__auto_choose_log_on_step(on_step)
             on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
-            if self._current_hook_fx_name != '':
+            if self._current_hook_fx_name is not None:
                 self.trainer.logger_connector\
                     .check_logging_in_callbacks(self._current_hook_fx_name,
                                                 on_step=on_step,

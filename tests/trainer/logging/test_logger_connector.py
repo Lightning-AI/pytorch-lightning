@@ -246,4 +246,4 @@ def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, n
     for dl_idx in range(num_dataloaders):
         expected = torch.stack(model.test_losses[str(dl_idx)]).mean()
         generated = trainer.logger_connector.cached_results("test")["test_step"]._internals_reduced[str(dl_idx)]["test_loss_epoch"]
-        assert expected.item() == generated.item()
+        assert abs(expected.item() - generated.item()) < 1e-6
