@@ -73,10 +73,16 @@ def confusion_matrix(
             ``(N, C, ...)`` where C is the number of classes, tensor with logits/probabilities
         target: ``target`` (long tensor), tensor with shape ``(N, ...)`` with ground true labels
         num_classes: Number of classes in the dataset.
-        normalize: normalization mode for confusion matrix. Default is None,
-            meaning no normalization. Choose between normalization over the
-            targets (`'true`', most commonly used), the predictions (`'pred`') or
-            over hole matrix (`'all'`)
+        normalize: Normalization mode for confusion matrix. Choose from
+
+            * `None`, no normalization (default)
+
+            * `'true'`, normalization over the targets (most commonly used)
+
+            * `'pred'`, normalization over the predictions
+
+            * `'all'`, normalization over the hole matrix
+
         threshold:
             Threshold value for binary or multi-label logits. default: 0.5
 
