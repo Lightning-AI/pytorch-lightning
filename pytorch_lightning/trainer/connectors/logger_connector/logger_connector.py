@@ -26,13 +26,14 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
 from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import (
     EpochResultStore,
-    LoggerStages
+    LoggerStages,
+    LOOKUP_TABLE
 )
 
 
 class LoggerConnector:
 
-    __lookup_stages = {"1": "test", "0": "validation", "True": "test", "False": "validation"}
+    __lookup_stages = LOOKUP_TABLE
 
     def __init__(self, trainer):
         self.trainer = trainer

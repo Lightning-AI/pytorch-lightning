@@ -19,11 +19,20 @@ from typing import Union, Tuple, Any, Mapping
 
 from pytorch_lightning.core.step_result import Result
 
+# used to map boolean to right LoggerStage values
+LOOKUP_TABLE = {"1": "test", "0": "validation", "True": "test", "False": "validation"}
+
 
 class LoggerStages(Enum):
     TRAIN = "train"
     VAL = "validation"
     TEST = "test"
+
+
+class StorageType:
+
+    INSIDE_BATCH_TRAIN_LOOP = "inside_batch_train_loop"
+    ELSE = "else"
 
 
 class HookResultStore:
@@ -55,9 +64,6 @@ class HookResultStore:
 
     Those data structures enables us to reduce properly Result object when batch loop is finished.
     """
-
-    _types = ["list", "dict"]
-
     def __init__(self, fx_name):
         self._fx_name = fx_name
         self._internals = {}
@@ -102,7 +108,7 @@ class HookResultStore:
         if latest:
             for dl_idx in range(self.num_dataloaders):
                 dl_idx = str(dl_idx)
-                if self._internal_type == self._types[0]:
+                if self._internal_type == StorageType.ELSE:
                     latest_result = self._internals[dl_idx][-1]
                 else:
                     latest_result = self.get_latest_from_dict(dl_idx)
@@ -171,7 +177,7 @@ class HookResultStore:
 
         # [dataloader_idx][optimizer_idx][training_step_idx] is a list
         if len(extra_info) > 0:
-            self._internal_type = self._types[-1]
+            self._internal_type = StorageType.INSIDE_BATCH_TRAIN_LOOP
             # initialize dictionary
             if primary_key not in self._internals:
                 self._internals[primary_key] = {}
@@ -185,7 +191,7 @@ class HookResultStore:
 
         # [dataloader_idx] is a list
         else:
-            self._internal_type = self._types[0]
+            self._internal_type = StorageType.ELSE
             if primary_key not in self._internals:
                 self._internals[primary_key] = []
             self._internals[primary_key].append(result)
@@ -204,7 +210,7 @@ class HookResultStore:
                 dl_idx = str(dl_idx)
                 epoch_metrics = self._internals[dl_idx]
 
-                if self._internal_type == self._types[-1]:
+                if self._internal_type == StorageType.INSIDE_BATCH_TRAIN_LOOP:
 
                     num_opt_idx = len(self._internals[dl_idx]) - 1
 
