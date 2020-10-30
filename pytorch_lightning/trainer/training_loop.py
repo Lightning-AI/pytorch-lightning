@@ -835,10 +835,6 @@ class TrainLoop:
             )
 
         if not self.should_accumulate():
-            # unscale gradients only when accumulated
-            if self.trainer.amp_backend == AMPType.NATIVE:
-                self.trainer.scaler.unscale_(optimizer)
-
             # track gradients
             self.trainer.train_loop.track_and_norm_grad(optimizer=optimizer)
 

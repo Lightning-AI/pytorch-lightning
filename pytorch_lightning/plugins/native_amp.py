@@ -40,7 +40,8 @@ class NativeAMPPlugin:
         closure_loss = closure_loss.detach()
 
         # unscale gradient to allow analyze within `on_after_backward`
-        self.trainer.scaler.unscale_(optimizer)
+        if not self.trainer.should_accumulate():
+            self.trainer.scaler.unscale_(optimizer)
 
         return closure_loss
 
