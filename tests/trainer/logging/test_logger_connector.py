@@ -90,7 +90,7 @@ def test__logger_connector__epoch_result_store__train(tmpdir):
     assert trainer.logger_connector.cached_results("train").has_reduced is False
 
     # Launch reduction
-    trainer.logger_connector.cached_results("train").has_batch_loop_finished is True
+    trainer.logger_connector.cached_results("train").has_batch_loop_finished = True
 
     # assert reduction did happen
     assert trainer.logger_connector.cached_results("train").has_reduced is True
@@ -184,7 +184,7 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
     assert trainer.logger_connector.cached_results("train").has_reduced is False
 
     # Launch reduction
-    trainer.logger_connector.cached_results("train").has_batch_loop_finished is True
+    trainer.logger_connector.cached_results("train").has_batch_loop_finished = True
 
     # assert reduction did happen
     assert trainer.logger_connector.cached_results("train").has_reduced is True
