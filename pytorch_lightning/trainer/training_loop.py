@@ -836,7 +836,7 @@ class TrainLoop:
 
         if not self.should_accumulate():
             # track gradients
-            self.trainer.train_loop.track_and_norm_grad(optimizer=optimizer)
+            self.track_and_norm_grad(optimizer=optimizer)
 
     def update_train_loop_lr_schedulers(self, monitor_metrics=None):
         num_accumulated_batches_reached = self._accumulated_batches_reached()
