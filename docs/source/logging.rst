@@ -133,7 +133,7 @@ decorator to make sure that only the first process in DDP training logs data.
             return 'MyLogger'
 
         @property
-        @rank_zero_only
+        @rank_zero_experiment
         def experiment(self):
             # Return the experiment object associated with this logger.
             pass
