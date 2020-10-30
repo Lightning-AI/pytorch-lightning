@@ -26,8 +26,9 @@ class TestModel(BoringModel):
         with mock.patch('pytorch_lightning.loggers.base.LightningLoggerBase.agg_and_log_metrics') as m:
             self.trainer.logger_connector.log_metrics({'a': 2}, {})
             logged_times = m.call_count
-            expected = 1 if self.global_rank == 0 else 0
-            assert logged_times == expected, 'actual logger called from non-global zero'
+            expected = 1 if self.trainer.is_global_zero else 0
+            msg = f'actual logger called from non-global zero, logged_times: {logged_times}, expected: {expected}'
+            assert logged_times == expected, msg
 
 
 @pytest.mark.skipif(platform.system() == "Windows",
@@ -49,6 +50,7 @@ def test_global_zero_only_logging_ddp_cpu(tmpdir):
         limit_val_batches=1,
         max_epochs=1,
         weights_summary=None,
+        fast_dev_run=True,
     )
     trainer.fit(model)
 
