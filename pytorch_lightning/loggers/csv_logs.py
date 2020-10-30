@@ -52,7 +52,7 @@ class ExperimentWriter(object):
         self.metrics = []
 
         self.log_dir = log_dir
-        if os.path.exists(self.log_dir):
+        if os.path.exists(self.log_dir) and os.listdir(self.log_dir):
             rank_zero_warn(
                 f"Experiment logs directory {self.log_dir} exists and is not empty."
                 " Previous log files in this directory will be deleted when the new ones are saved!"
