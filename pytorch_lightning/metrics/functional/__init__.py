@@ -21,6 +21,7 @@ from pytorch_lightning.metrics.functional.classification import (
     fbeta_score,
     multiclass_precision_recall_curve,
     multiclass_roc,
+    multiclass_auroc,
     precision,
     precision_recall,
     precision_recall_curve,
