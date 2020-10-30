@@ -75,13 +75,10 @@ def confusion_matrix(
         num_classes: Number of classes in the dataset.
         normalize: Normalization mode for confusion matrix. Choose from
 
-            * `None`, no normalization (default)
-
-            * `'true'`, normalization over the targets (most commonly used)
-
-            * `'pred'`, normalization over the predictions
-
-            * `'all'`, normalization over the hole matrix
+            - ``None``: no normalization (default)
+            - ``'true'``: normalization over the targets (most commonly used)
+            - ``'pred'``: normalization over the predictions
+            - ``'all'``: normalization over the whole matrix
 
         threshold:
             Threshold value for binary or multi-label logits. default: 0.5
