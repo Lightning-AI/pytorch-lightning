@@ -87,10 +87,8 @@ def test_amp_choice_custom_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
 
 
 @pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.6.0"),
+    LooseVersion(torch.__version__) <= LooseVersion("1.6.0"),
     reason="Minimal PT version is set to 1.6",
-)
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_amp_gradient_unscale(tmpdir):
 
@@ -120,10 +118,8 @@ def test_amp_gradient_unscale(tmpdir):
 
 
 @pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.6.0"),
+    LooseVersion(torch.__version__) <= LooseVersion("1.6.0"),
     reason="Minimal PT version is set to 1.6",
-)
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_amp_gradient_unscale_accumulate_grad_batches(tmpdir):
 
