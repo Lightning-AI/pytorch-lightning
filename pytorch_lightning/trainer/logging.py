@@ -92,7 +92,7 @@ class TrainerLoggingMixin(ABC):
         # ---------------
         # all keys not progress_bar or log are candidates for callbacks
         callback_metrics = {}
-        if isinstance(output, dict):
+        if isinstance(output, Mapping):
             for k, v in output.items():
                 if k not in ['progress_bar', 'log', 'hiddens']:
                     callback_metrics[k] = v
