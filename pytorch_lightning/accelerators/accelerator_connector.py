@@ -15,6 +15,7 @@ from pytorch_lightning import accelerators
 import os
 import torch
 
+from pytorch_lightning.accelerators.pipe_accelerator import PipeAccelerator
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
@@ -186,6 +187,9 @@ class AcceleratorConnector:
         if self.accelerator is not None and isinstance(self.accelerator, Accelerator):
             self.accelerator.trainer = self.trainer
             self.accelerator.ddp_plugin = self.trainer.plugin_connector.ddp_plugin
+            if type(self.accelerator) == PipeAccelerator:
+                self.trainer.num_processes = self.trainer.num_gpus
+                self.trainer.use_pipe = True
             acc = self.accelerator
             return acc
 
@@ -295,6 +299,7 @@ class AcceleratorConnector:
         self.trainer.use_dp = False
         self.trainer.use_ddp = False
         self.trainer.use_ddp2 = False
+        self.trainer.use_pipe = False
         self.trainer.use_horovod = False
         self.trainer.use_single_gpu = False
 
