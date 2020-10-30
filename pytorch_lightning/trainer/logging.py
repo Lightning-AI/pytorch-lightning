@@ -156,7 +156,7 @@ class TrainerLoggingMixin(ABC):
         # ---------------
         # EXTRACT HIDDEN
         # ---------------
-        hiddens = output.get('hiddens', None) if isinstance(output, dict) else None
+        hiddens = output.get('hiddens', None) if isinstance(output, Mapping) else None
 
         # use every metric passed in as a candidate for callback
         callback_metrics.update(progress_bar_metrics)
