@@ -543,7 +543,7 @@ Or multiple nodes
 
     # (32 GPUs)
     model = LitMNIST()
-    trainer = Trainer(gpus=8, num_nodes=4, distributed_backend='ddp')
+    trainer = Trainer(gpus=8, num_nodes=4, accelerator='ddp')
     trainer.fit(model, train_loader)
 
 Refer to the :ref:`distributed computing guide for more details <multi_gpu>`.

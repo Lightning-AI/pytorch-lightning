@@ -9,7 +9,6 @@ from sklearn.metrics import (
     recall_score as sk_recall,
     f1_score as sk_f1_score,
     fbeta_score as sk_fbeta_score,
-    confusion_matrix as sk_confusion_matrix,
     roc_curve as sk_roc_curve,
     roc_auc_score as sk_roc_auc_score,
     precision_recall_curve as sk_precision_recall_curve
@@ -23,7 +22,6 @@ from pytorch_lightning.metrics.functional.classification import (
     stat_scores,
     stat_scores_multiple_classes,
     accuracy,
-    confusion_matrix,
     precision,
     recall,
     fbeta_score,
@@ -48,7 +46,6 @@ from pytorch_lightning.metrics.functional.classification import (
     pytest.param(partial(sk_f1_score, average='micro'), f1_score, False, id='f1_score'),
     pytest.param(partial(sk_fbeta_score, average='micro', beta=2),
                  partial(fbeta_score, beta=2), False, id='fbeta_score'),
-    pytest.param(sk_confusion_matrix, confusion_matrix, False, id='confusion_matrix'),
     pytest.param(sk_roc_curve, roc, True, id='roc'),
     pytest.param(sk_precision_recall_curve, precision_recall_curve, True, id='precision_recall_curve'),
     pytest.param(sk_roc_auc_score, auroc, True, id='auroc')
@@ -215,33 +212,6 @@ def test_accuracy():
     acc = accuracy(pred, target)
 
     assert acc.item() == 0.50
-
-
-def test_confusion_matrix():
-    target = (torch.arange(120) % 3).view(-1, 1)
-    pred = target.clone()
-    cm = confusion_matrix(pred, target, normalize=True)
-
-    assert torch.allclose(cm, torch.tensor([[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]]))
-
-    pred = torch.zeros_like(pred)
-    cm = confusion_matrix(pred, target, normalize=True)
-    assert torch.allclose(cm, torch.tensor([[1., 0., 0.], [1., 0., 0.], [1., 0., 0.]]))
-
-    target = torch.LongTensor([0, 0, 0, 0, 0])
-    pred = target.clone()
-    cm = confusion_matrix(pred, target, normalize=False, num_classes=3)
-    assert torch.allclose(cm, torch.tensor([[5., 0., 0.], [0., 0., 0.], [0., 0., 0.]]))
-
-    # Example taken from https://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html
-    target = torch.LongTensor([0] * 13 + [1] * 16 + [2] * 9)
-    pred = torch.LongTensor([0] * 13 + [1] * 10 + [2] * 15)
-    cm = confusion_matrix(pred, target, normalize=False, num_classes=3)
-    assert torch.allclose(cm, torch.tensor([[13., 0., 0.], [0., 10., 6.], [0., 0., 9.]]))
-    to_compare = cm / torch.tensor([[13.], [16.], [9.]])
-
-    cm = confusion_matrix(pred, target, normalize=True, num_classes=3)
-    assert torch.allclose(cm, to_compare)
 
 
 @pytest.mark.parametrize(['pred', 'target', 'expected_prec', 'expected_rec'], [
