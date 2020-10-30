@@ -114,3 +114,4 @@ def test_amp_gradient_unscale(tmpdir):
         track_grad_norm=2,
         log_every_n_steps=1
     )
+    trainer.fit(model)
