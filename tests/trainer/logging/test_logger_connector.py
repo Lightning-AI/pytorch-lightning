@@ -96,7 +96,7 @@ def test__logger_connector__epoch_result_store__train(tmpdir):
     assert trainer.logger_connector.cached_results("train").has_reduced is True
 
     assert trainer.logger_connector.cached_results("train")["training_step"]\
-        ._internals_reduced["0"]["0"]['train_loss_epoch'] == torch.stack(model.train_losses).mean()
+        ._internals_reduced["0"]["0"]['train_loss_epoch'].item() == torch.stack(model.train_losses).mean().item()
 
 
 def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
@@ -190,7 +190,7 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
     assert trainer.logger_connector.cached_results("train").has_reduced is True
 
     assert trainer.logger_connector.cached_results("train")['training_step']\
-        ._internals_reduced['0']['0']["a_epoch"] == torch.stack(model.train_losses).mean()
+        ._internals_reduced['0']['0']["a_epoch"].item() == torch.stack(model.train_losses).mean().item()
 
 
 @pytest.mark.parametrize('num_dataloaders', [1, 2])
@@ -246,4 +246,4 @@ def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, n
     for dl_idx in range(num_dataloaders):
         expected = torch.stack(model.test_losses[str(dl_idx)]).mean()
         generated = trainer.logger_connector.cached_results("test")["test_step"]._internals_reduced[str(dl_idx)]["test_loss_epoch"]
-        assert expected == generated
+        assert expected.item() == generated.item()

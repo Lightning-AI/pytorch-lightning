@@ -522,8 +522,7 @@ class LoggerConnector:
         for opt_outputs in epoch_output:
             # reduce across time first
             time_reduced_outputs = []
-            for train_step_idx in range(len(opt_outputs)):
-                tbptt_outs = opt_outputs[train_step_idx]
+            for tbptt_outs in opt_outputs:
                 tbptt_outs = tbptt_outs[0].__class__.reduce_across_time(tbptt_outs)
                 if len(tbptt_outs) > 1:
                     time_reduced_outputs.append(tbptt_outs)
@@ -553,8 +552,7 @@ class LoggerConnector:
         for opt_outputs in epoch_output:
             # gather across time first
             time_gathered_outputs = []
-            for train_step_idx in range(len(opt_outputs)):
-                tbptt_outs = opt_outputs[train_step_idx]
+            for tbptt_outs in opt_outputs:
                 result = []
                 for x in tbptt_outs:
                     out = x.extra
@@ -582,8 +580,7 @@ class LoggerConnector:
         for opt_outputs in epoch_output:
             # gather across time first
             time_gathered_outputs = []
-            for train_step_idx in range(len(opt_outputs)):
-                tbptt_outs = opt_outputs[train_step_idx]
+            for tbptt_outs in opt_outputs:
                 tbptt_outs = tbptt_outs[0].__class__.gather(tbptt_outs)
                 time_gathered_outputs.append(tbptt_outs)
 
