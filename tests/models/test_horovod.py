@@ -61,6 +61,7 @@ def _run_horovod(trainer_options, on_gpu=False):
     cmdline = [
         'horovodrun',
         '-np', str(num_processes),
+        '--verbose',
         sys.executable, TEST_SCRIPT,
         '--trainer-options', shlex.quote(json.dumps(trainer_options))
     ]
