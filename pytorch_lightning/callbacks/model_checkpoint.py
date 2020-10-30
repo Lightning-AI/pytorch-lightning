@@ -78,7 +78,7 @@ class ModelCheckpoint(Callback):
 
         dirpath: directory to save the model file.
 
-            Example:
+            Example::
 
                 # custom path
                 # saves a file like: my/path/epoch=0.ckpt
@@ -92,7 +92,7 @@ class ModelCheckpoint(Callback):
 
         filename: checkpoint filename. Can contain named formatting options to be auto-filled.
 
-            Example:
+            Example::
 
                 # save any arbitrary metrics like `val_loss`, etc. in name
                 # saves a file like: my/path/epoch=2-val_loss=0.02-other_metric=0.03.ckpt
@@ -104,7 +104,7 @@ class ModelCheckpoint(Callback):
             By default, filename is ``None`` and will be set to ``'{epoch}'``.
 
 
-    Example:
+    Example::
 
         >>> from pytorch_lightning import Trainer
         >>> from pytorch_lightning.callbacks import ModelCheckpoint
@@ -131,8 +131,6 @@ class ModelCheckpoint(Callback):
 
     CHECKPOINT_JOIN_CHAR = "-"
     CHECKPOINT_NAME_LAST = "last"
-    CHECKPOINT_STATE_BEST_SCORE = "checkpoint_callback_best_model_score"
-    CHECKPOINT_STATE_BEST_PATH = "checkpoint_callback_best_model_path"
 
     def __init__(
         self,
@@ -187,6 +185,7 @@ class ModelCheckpoint(Callback):
 
     def on_save_checkpoint(self, trainer, pl_module) -> Dict[str, Any]:
         return {
+            "monitor": self.monitor,
             "best_model_score": self.best_model_score,
             "best_model_path": self.best_model_path,
         }

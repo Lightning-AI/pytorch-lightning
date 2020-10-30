@@ -301,48 +301,6 @@ def _confmat_normalize(cm):
     return cm
 
 
-def confusion_matrix(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        normalize: bool = False,
-        num_classes: Optional[int] = None
-) -> torch.Tensor:
-    """
-    Computes the confusion matrix C where each entry C_{i,j} is the number of observations
-    in group i that were predicted in group j.
-
-    Args:
-        pred: estimated targets
-        target: ground truth labels
-        normalize: normalizes confusion matrix
-        num_classes: number of classes
-
-    Return:
-        Tensor, confusion matrix C [num_classes, num_classes ]
-
-    Example:
-
-        >>> x = torch.tensor([1, 2, 3])
-        >>> y = torch.tensor([0, 2, 3])
-        >>> confusion_matrix(x, y)
-        tensor([[0., 1., 0., 0.],
-                [0., 0., 0., 0.],
-                [0., 0., 1., 0.],
-                [0., 0., 0., 1.]])
-    """
-    num_classes = get_num_classes(pred, target, num_classes)
-
-    unique_labels = (target.view(-1) * num_classes + pred.view(-1)).to(torch.int)
-
-    bins = torch.bincount(unique_labels, minlength=num_classes ** 2)
-    cm = bins.reshape(num_classes, num_classes).squeeze().float()
-
-    if normalize:
-        cm = _confmat_normalize(cm)
-
-    return cm
-
-
 def precision_recall(
         pred: torch.Tensor,
         target: torch.Tensor,
@@ -806,7 +764,9 @@ def auc(
     Args:
         x: x-coordinates
         y: y-coordinates
-        reorder: reorder coordinates, so they are increasing
+        reorder: reorder coordinates, so they are increasing. The unstable algorithm of torch.argsort is
+            used internally to sort `x` which may in some cases cause inaccuracies in the result.
+            WARNING: Deprecated and will be removed in v1.1.
 
     Return:
         Tensor containing AUC score (float)
@@ -821,6 +781,11 @@ def auc(
     direction = 1.
 
     if reorder:
+        rank_zero_warn("The `reorder` parameter to `auc` has been deprecated and will be removed in v1.1"
+                       " Note that when `reorder` is True, the unstable algorithm of torch.argsort is"
+                       " used internally to sort 'x' which may in some cases cause inaccuracies"
+                       " in the result.",
+                       DeprecationWarning)
         # can't use lexsort here since it is not implemented for torch
         order = torch.argsort(x)
         x, y = x[order], y[order]
@@ -830,8 +795,9 @@ def auc(
             if (dx, 0).all():
                 direction = -1.
             else:
-                raise ValueError("Reordering is not turned on, and "
-                                 "the x array is not increasing: %s" % x)
+                # TODO: Update message on removing reorder
+                raise ValueError("Reorder is not turned on, and the 'x' array is"
+                                 f" neither increasing or decreasing: {x}")
 
     return direction * torch.trapz(y, x)
 
