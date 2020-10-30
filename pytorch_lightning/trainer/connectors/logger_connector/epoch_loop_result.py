@@ -28,22 +28,32 @@ class LoggerStages(Enum):
 
 class HookResultStore:
     """
-    This class is used to hold all metrics logged during one callback or model hook.
-    Can be used for both training, val, test.
+    This class is defined for internal usage.
+    It holds all metrics logged using the self.log function
+    in the scope of ModelHooks or Callback functions.
 
-    Result objects will be stored in the following way.
+    We need to differiante 3 different scenarios:
+        - (1): We are outside of a batch loop
+            * It means no dataloader_idx, no optimizer idx, etc..
+        - (2): We are inside the training batch loop
+            * We have an optimizer idx and split idx to track
+        - (3): We are inside the evaluation loop
+            * We have a dataloader_idx to track
 
-    val and test: self._internals = {"dataloader_idx": [Result(), ..., Result()]}
-    training
-        - IF optimizer_idx and training_step_idx are set,
-          THEN self._internals = {"dataloader_idx":
+    The data store `Result` objects for those 3 scenarios in `self._internals`.
+
+    (1): self._internals = {"dataloader_idx": [Result(), ..., Result()]}
+        * dataloader_idx not being defined, it is set to 0 b default
+    (2): self._internals = {"dataloader_idx":
                                     {"optimizer_idx":
-                                        {"training_step_idx":
+                                        {"batch_idx":
                                             [Result(), Result()]
                                         }
                                     }
                                 }
-        - ELSE self._internals = {"dataloader_idx": [Result(), ..., Result()]}
+    (3): Same as (1) for simplicity
+
+    Those data structures enables us to reduce properly Result object when batch loop is finished.
     """
 
     _types = ["list", "dict"]
@@ -200,7 +210,7 @@ class HookResultStore:
                         opt_idx = str(opt_idx)
                         # TODO: Figure out to reduce memory
                         # TODO: How to start training in middle of epoch
-                        opt_outputs = deepcopy(epoch_metrics[opt_idx])
+                        opt_outputs = epoch_metrics[opt_idx]
 
                         num_batch_idx = len(self._internals[dl_idx][str(num_opt_idx)]) - 1
                         assert num_batch_idx >= 0
@@ -226,14 +236,20 @@ class HookResultStore:
                             opt_outputs.minimize = opt_outputs.minimize.mean()
 
                         self._internals_reduced[dl_idx][str(opt_idx)] = opt_outputs
+
+                        # free memory
+                        del self._internals[dl_idx]
                 else:
                     # no need to reduce as called only once
                     if len(epoch_metrics) == 1:
-                        reduced_epoch_metrics = deepcopy(epoch_metrics[0])
+                        reduced_epoch_metrics = epoch_metrics[0]
                     else:
-                        reduced_epoch_metrics = epoch_metrics[0].__class__.reduce_on_epoch_end(deepcopy(epoch_metrics))
+                        reduced_epoch_metrics = epoch_metrics[0].__class__.reduce_on_epoch_end(epoch_metrics)
 
                     self._internals_reduced[dl_idx] = reduced_epoch_metrics
+
+                    # free memory
+                    del self._internals[dl_idx]
 
             self.has_reduced = True
 
@@ -251,11 +267,22 @@ class HookResultStore:
 
 class EpochResultStore:
     """
-    This class is responsible to cache all logging metrics which happened during one epoch
+    This class is defined for internal usage.
 
-    It will cache Result objects as follow.
+    It holds all metrics logged using the self.log function using `HookResultStore` object.
 
-    self._internals = {"fx_name_0": HookResult(), ..., "fx_name_n": HookResult()}
+    The internal datastructure is as follow:
+
+    self._internals = {"fx_name_0": HookResultStore(), ..., "fx_name_n": HookResultStore()}
+
+    Pseudo Code Example:
+    ```
+    model._current_fx_name = 'something'
+    model._results = Result()
+    model.log('a', ...)
+    epoch_result_store.cache_result()
+    ```
+
     """
     def __init__(self, trainer, stage):
         self.trainer = trainer
@@ -283,6 +310,7 @@ class EpochResultStore:
                 "opt_idx": self._opt_idx}
 
     def reset_model(self):
+        # reset model to its capture state
         model_ref = self.trainer.get_model()
         model_ref._results = Result()
         model_ref._current_hook_fx_name = None
@@ -425,40 +453,26 @@ class EpochResultStore:
         self._has_batch_loop_finished = has_batch_loop_finished
         self.update_logger_connector()
 
-    def get_epoch_pbar_metrics(self):
+    def run_by_func_name(self, func_name):
         if not self.has_reduced:
             self.auto_reduce_results_on_epoch_end()
-        epoch_pbar_metrics = {}
+        results = {}
         for fx_name, hook_result in self._internals.items():
-            epoch_pbar_metrics.update(hook_result.get_epoch_pbar_metrics())
-        return epoch_pbar_metrics
+            func = getattr(hook_result, func_name)
+            results.update(func())
+        return results
+
+    def get_epoch_pbar_metrics(self):
+        return self.run_by_func_name("get_epoch_pbar_metrics")
 
     def get_epoch_log_metrics(self):
-        if not self.has_reduced:
-            self.auto_reduce_results_on_epoch_end()
-        epoch_log_metrics = {}
-        for fx_name, hook_result in self._internals.items():
-            epoch_log_metrics.update(hook_result.get_epoch_log_metrics())
-        return epoch_log_metrics
+        return self.run_by_func_name("get_epoch_log_metrics")
 
     def get_forked_metrics(self):
-        if not self.has_reduced:
-            self.auto_reduce_results_on_epoch_end()
-        forked_metrics = {}
-        for fx_name, hook_result in self._internals.items():
-            forked_metrics.update(hook_result.get_forked_metrics())
-        return forked_metrics
+        return self.run_by_func_name("get_forked_metrics")
 
     def get_reduced_metrics(self):
-        if not self.has_reduced:
-            self.auto_reduce_results_on_epoch_end()
-        reduced_metrics = {}
-        for fx_name, hook_result in self._internals.items():
-            reduced_metrics[fx_name] = hook_result.get_reduced_metrics()
-        return reduced_metrics
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}(stage={self._stage}, internals={self._internals})"
+        return self.run_by_func_name("get_reduced_metrics")
 
     def reset(self):
         self._internals = {}
@@ -467,4 +481,6 @@ class EpochResultStore:
         self._opt_idx = None
         self._batch_size = None
         self._has_batch_loop_finished = False
-        self._num_dataloaders = 1
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(stage={self._stage}, internals={self._internals})"
