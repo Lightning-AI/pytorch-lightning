@@ -111,6 +111,6 @@ def test_amp_gradient_unscale(tmpdir):
         distributed_backend='ddp',
         gpus=2,
         precision=16,
-        track_grad_norm=-1,
+        track_grad_norm=2,
         log_every_n_steps=1
     )
