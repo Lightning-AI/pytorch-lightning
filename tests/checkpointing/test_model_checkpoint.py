@@ -365,10 +365,14 @@ def test_model_checkpoint_topk_zero(tmpdir):
 def test_model_checkpoint_topk_all(tmpdir):
     """ Test that save_top_k=-1 tracks the best models when monitor key is provided. """
     seed_everything(1000)
-    epochs = 5
-    model = EvalModelTemplate()
-    checkpoint_callback = ModelCheckpoint(
-        dirpath=tmpdir, filename='{early_stop_on}', monitor="early_stop_on", save_top_k=-1)
+    epochs = 3
+
+    class CustomModel(EvalModelTemplate):
+        def validation_epoch_end(self, outputs):
+            return {'epoch': self.current_epoch}
+
+    model = CustomModel()
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="epoch", mode='max', save_top_k=-1)
     trainer = Trainer(
         default_root_dir=tmpdir,
         checkpoint_callback=checkpoint_callback,
@@ -377,12 +381,11 @@ def test_model_checkpoint_topk_all(tmpdir):
     )
     trainer.fit(model)
 
-    assert checkpoint_callback.monitor == 'early_stop_on'
-    assert checkpoint_callback.best_model_path == tmpdir / f"early_stop_on={checkpoint_callback.best_model_score}.ckpt"
+    assert checkpoint_callback.monitor == 'epoch'
+    assert checkpoint_callback.best_model_path == tmpdir / "epoch=2.ckpt"
     assert checkpoint_callback.best_model_score > 0
-    assert set(checkpoint_callback.best_k_models.keys()) == set(
-        str(tmpdir / f"early_stop_on={i}.ckpt") for i in checkpoint_callback.best_k_models.values())
-    assert checkpoint_callback.kth_best_model_path == tmpdir / f'early_stop_on={checkpoint_callback.kth_value}.ckpt'
+    assert set(checkpoint_callback.best_k_models.keys()) == set(str(tmpdir / f"epoch={i}.ckpt") for i in range(epochs))
+    assert checkpoint_callback.kth_best_model_path == tmpdir / 'epoch=0.ckpt'
 
 
 def test_ckpt_metric_names(tmpdir):
