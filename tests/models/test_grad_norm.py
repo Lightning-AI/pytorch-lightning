@@ -49,11 +49,11 @@ class ModelWithManualGradTracker(EvalModelTemplate):
             norm = np.linalg.norm(flat, self.norm_type)
             norms.append(norm)
 
-            out[prefix + name] = round(norm, 3)
+            out[prefix + name] = round(norm, 4)
 
         # handle total norm
         norm = np.linalg.norm(norms, self.norm_type)
-        out[prefix + 'total'] = round(norm, 3)
+        out[prefix + 'total'] = round(norm, 4)
         self.stored_grad_norms.append(out)
 
 
