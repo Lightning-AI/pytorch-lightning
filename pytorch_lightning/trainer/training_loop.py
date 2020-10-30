@@ -671,7 +671,7 @@ class TrainLoop:
                     model = self.trainer.get_model()
                     model.toggle_optimizer(optimizer, opt_idx)
 
-                if self.should_accumulate:
+                if self.should_accumulate():
                     # For gradient accumulation
 
                     # -------------------
@@ -814,7 +814,7 @@ class TrainLoop:
 
             # hook - call this hook only
             # when gradients have finished to accumulate
-            if not self.should_accumulate:
+            if not self.should_accumulate():
                 self.on_after_backward(result.training_step_output, batch_idx, result.loss)
 
             # check if loss or model weights are nan
@@ -834,7 +834,7 @@ class TrainLoop:
                 result.closure_loss, optimizer, opt_idx, *args, **kwargs
             )
 
-        if not self.should_accumulate:
+        if not self.should_accumulate():
             # unscale gradients only when accumulated
             if self.trainer.amp_backend == AMPType.NATIVE:
                 self.trainer.scaler.unscale_(optimizer)
