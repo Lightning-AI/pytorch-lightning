@@ -206,6 +206,8 @@ Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
     `auto_select_gpus=True` will automatically help you find `k` gpus that are not
     occupied by other processes. This is especially useful when GPUs are configured
     to be in "exclusive mode", such that only one process at a time can access them.
+    For more details see the :ref:`Trainer guide <trainer>`.
+
 
 Remove CUDA flags
 ^^^^^^^^^^^^^^^^^
@@ -229,11 +231,11 @@ Distributed modes
 -----------------
 Lightning allows multiple ways of training
 
-- Data Parallel (`distributed_backend='dp'`) (multiple-gpus, 1 machine)
-- DistributedDataParallel (`distributed_backend='ddp'`) (multiple-gpus across many machines (python script based)).
-- DistributedDataParallel (`distributed_backend='ddp_spawn'`) (multiple-gpus across many machines (spawn based)).
-- DistributedDataParallel 2 (`distributed_backend='ddp2'`) (DP in a machine, DDP across machines).
-- Horovod (`distributed_backend='horovod'`) (multi-machine, multi-gpu, configured at runtime)
+- Data Parallel (`accelerator='dp'`) (multiple-gpus, 1 machine)
+- DistributedDataParallel (`accelerator='ddp'`) (multiple-gpus across many machines (python script based)).
+- DistributedDataParallel (`accelerator='ddp_spawn'`) (multiple-gpus across many machines (spawn based)).
+- DistributedDataParallel 2 (`accelerator='ddp2'`) (DP in a machine, DDP across machines).
+- Horovod (`accelerator='horovod'`) (multi-machine, multi-gpu, configured at runtime)
 - TPUs (`tpu_cores=8|x`) (tpu or TPU pod)
 
 .. note::
@@ -256,7 +258,7 @@ after which the root node will aggregate the results.
     :skipif: torch.cuda.device_count() < 2
 
     # train on 2 GPUs (using DP mode)
-    trainer = Trainer(gpus=2, distributed_backend='dp')
+    trainer = Trainer(gpus=2, accelerator='dp')
 
 Distributed Data Parallel
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -279,10 +281,10 @@ Distributed Data Parallel
 .. code-block:: python
 
     # train on 8 GPUs (same machine (ie: node))
-    trainer = Trainer(gpus=8, distributed_backend='ddp')
+    trainer = Trainer(gpus=8, accelerator='ddp')
 
     # train on 32 GPUs (4 nodes)
-    trainer = Trainer(gpus=8, distributed_backend='ddp', num_nodes=4)
+    trainer = Trainer(gpus=8, accelerator='ddp', num_nodes=4)
 
 This Lightning implementation of DDP calls your script under the hood multiple times with the correct environment
 variables:
@@ -328,7 +330,7 @@ In  this case, we can use DDP2 which behaves like DP in a machine and DDP across
 .. code-block:: python
 
     # train on 32 GPUs (4 nodes)
-    trainer = Trainer(gpus=8, distributed_backend='ddp2', num_nodes=4)
+    trainer = Trainer(gpus=8, accelerator='ddp2', num_nodes=4)
 
 Distributed Data Parallel Spawn
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -346,7 +348,7 @@ project module) you can use the following method:
 .. code-block:: python
 
     # train on 8 GPUs (same machine (ie: node))
-    trainer = Trainer(gpus=8, distributed_backend='ddp')
+    trainer = Trainer(gpus=8, accelerator='ddp')
 
 We STRONGLY discourage this use because it has limitations (due to Python and PyTorch):
 
@@ -398,7 +400,7 @@ You can then call your scripts anywhere
 .. code-block:: bash
 
     cd /project/src
-    python some_file.py --distributed_backend 'ddp' --gpus 8
+    python some_file.py --accelerator 'ddp' --gpus 8
 
 
 Horovod
@@ -419,10 +421,10 @@ Horovod can be configured in the training script to run with any number of GPUs 
 .. code-block:: python
 
     # train Horovod on GPU (number of GPUs / machines provided on command-line)
-    trainer = Trainer(distributed_backend='horovod', gpus=1)
+    trainer = Trainer(accelerator='horovod', gpus=1)
 
     # train Horovod on CPU (number of processes / machines provided on command-line)
-    trainer = Trainer(distributed_backend='horovod')
+    trainer = Trainer(accelerator='horovod')
 
 When starting the training job, the driver application will then be used to specify the total
 number of worker processes:
@@ -552,13 +554,13 @@ Below are the possible configurations we support.
 +=======+=========+====+=====+=========+============================================================+
 | Y     |         |    |     |         | `Trainer(gpus=1)`                                          |
 +-------+---------+----+-----+---------+------------------------------------------------------------+
-| Y     |         |    |     | Y       | `Trainer(gpus=1, use_amp=True)`                            |
+| Y     |         |    |     | Y       | `Trainer(gpus=1, precision=16)`                            |
 +-------+---------+----+-----+---------+------------------------------------------------------------+
-|       | Y       | Y  |     |         | `Trainer(gpus=k, distributed_backend='dp')`                |
+|       | Y       | Y  |     |         | `Trainer(gpus=k, accelerator='dp')`                        |
 +-------+---------+----+-----+---------+------------------------------------------------------------+
-|       | Y       |    | Y   |         | `Trainer(gpus=k, distributed_backend='ddp')`               |
+|       | Y       |    | Y   |         | `Trainer(gpus=k, accelerator='ddp')`                       |
 +-------+---------+----+-----+---------+------------------------------------------------------------+
-|       | Y       |    | Y   | Y       | `Trainer(gpus=k, distributed_backend='ddp', use_amp=True)` |
+|       | Y       |    | Y   | Y       | `Trainer(gpus=k, accelerator='ddp', precision=16)`         |
 +-------+---------+----+-----+---------+------------------------------------------------------------+
 
 
@@ -588,10 +590,10 @@ In (DDP, Horovod) your effective batch size will be 7 * gpus * num_nodes.
 .. code-block:: python
 
     # effective batch size = 7 * 8
-    Trainer(gpus=8, distributed_backend='ddp|horovod')
+    Trainer(gpus=8, accelerator='ddp|horovod')
 
     # effective batch size = 7 * 8 * 10
-    Trainer(gpus=8, num_nodes=10, distributed_backend='ddp|horovod')
+    Trainer(gpus=8, num_nodes=10, accelerator='ddp|horovod')
 
 
 In DDP2, your effective batch size will be 7 * num_nodes.
@@ -600,10 +602,10 @@ The reason is that the full batch is visible to all GPUs on the node when using 
 .. code-block:: python
 
     # effective batch size = 7
-    Trainer(gpus=8, distributed_backend='ddp2')
+    Trainer(gpus=8, accelerator='ddp2')
 
     # effective batch size = 7 * 10
-    Trainer(gpus=8, num_nodes=10, distributed_backend='ddp2')
+    Trainer(gpus=8, num_nodes=10, accelerator='ddp2')
 
 
 .. note:: Huge batch sizes are actually really bad for convergence. Check out:
@@ -617,7 +619,7 @@ Lightning supports the use of PytorchElastic to enable fault-tolerent and elasti
 
 .. code-block:: python
 
-    Trainer(gpus=8, distributed_backend='ddp')
+    Trainer(gpus=8, accelerator='ddp')
     
     
 Following the `PytorchElastic Quickstart documentation <https://pytorch.org/elastic/latest/quickstart.html>`_, you then need to start a single-node etcd server on one of the hosts:

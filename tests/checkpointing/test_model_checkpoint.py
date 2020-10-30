@@ -514,10 +514,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     assert all(ckpt_last_epoch[k] == ckpt_last[k] for k in ("epoch", "global_step"))
 
     ch_type = type(model_checkpoint)
-    assert all(list(
-        ckpt_last["callbacks"][ch_type][k] == ckpt_last_epoch["callbacks"][ch_type][k]
-        for k in ("best_model_score", "best_model_path")
-    ))
+    assert ckpt_last["callbacks"][ch_type] == ckpt_last_epoch["callbacks"][ch_type]
 
     # it is easier to load the model objects than to iterate over the raw dict of tensors
     model_last_epoch = EvalModelTemplate.load_from_checkpoint(path_last_epoch)
@@ -753,6 +750,46 @@ def test_filepath_decomposition_dirpath_filename(tmpdir, filepath, dirpath, file
 
     assert mc_cb.dirpath == dirpath
     assert mc_cb.filename == filename
+
+
+def test_configure_model_checkpoint(tmpdir):
+    """ Test all valid and invalid ways a checkpoint callback can be passed to the Trainer. """
+    kwargs = dict(default_root_dir=tmpdir)
+    callback1 = ModelCheckpoint()
+    callback2 = ModelCheckpoint()
+
+    # no callbacks
+    trainer = Trainer(checkpoint_callback=False, callbacks=[], **kwargs)
+    assert not any(isinstance(c, ModelCheckpoint) for c in trainer.callbacks)
+    assert trainer.checkpoint_callback is None
+
+    # default configuration
+    trainer = Trainer(checkpoint_callback=True, callbacks=[], **kwargs)
+    assert len([c for c in trainer.callbacks if isinstance(c, ModelCheckpoint)]) == 1
+    assert isinstance(trainer.checkpoint_callback, ModelCheckpoint)
+
+    # custom callback passed to callbacks list, checkpoint_callback=True is ignored
+    trainer = Trainer(checkpoint_callback=True, callbacks=[callback1], **kwargs)
+    assert [c for c in trainer.callbacks if isinstance(c, ModelCheckpoint)] == [callback1]
+    assert trainer.checkpoint_callback == callback1
+
+    # multiple checkpoint callbacks
+    trainer = Trainer(callbacks=[callback1, callback2], **kwargs)
+    assert trainer.checkpoint_callback == callback1
+    assert trainer.checkpoint_callbacks == [callback1, callback2]
+
+    with pytest.warns(DeprecationWarning, match='will no longer be supported in v1.4'):
+        trainer = Trainer(checkpoint_callback=callback1, callbacks=[], **kwargs)
+        assert [c for c in trainer.callbacks if isinstance(c, ModelCheckpoint)] == [callback1]
+        assert trainer.checkpoint_callback == callback1
+
+    with pytest.warns(DeprecationWarning, match="will no longer be supported in v1.4"):
+        trainer = Trainer(checkpoint_callback=callback1, callbacks=[callback2], **kwargs)
+        assert trainer.checkpoint_callback == callback2
+        assert trainer.checkpoint_callbacks == [callback2, callback1]
+
+    with pytest.raises(MisconfigurationException, match="checkpoint_callback=False but found ModelCheckpoint"):
+        Trainer(checkpoint_callback=False, callbacks=[callback1], **kwargs)
 
 
 def test_val_check_interval_checkpoint_files(tmpdir):
