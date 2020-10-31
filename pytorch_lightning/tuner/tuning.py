@@ -21,6 +21,7 @@ from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.tuner.lr_finder import _run_lr_finder_internally, lr_find
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.datamodule import LightningDataModule
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 
 class Tuner:
@@ -31,6 +32,8 @@ class Tuner:
     def on_trainer_init(self, auto_lr_find, auto_scale_batch_size):
         self.trainer.auto_lr_find = auto_lr_find
         self.trainer.auto_scale_batch_size = auto_scale_batch_size
+        dirpath = self.trainer.default_root_dir
+        self._fs = get_filesystem(str(dirpath) if dirpath else '')
 
     def tune(self, model, train_dataloader, val_dataloaders, datamodule):
         # setup data, etc...
@@ -54,7 +57,7 @@ class Tuner:
 
         # Run learning rate finder:
         if self.trainer.auto_lr_find:
-            self.internal_find_lr(self.trainer, model)
+            self.internal_find_lr(model)
             model.logger = self.trainer.logger  # reset logger binding
 
     def scale_batch_size(self,
@@ -102,7 +105,15 @@ class Tuner:
 
         """
         return scale_batch_size(
-            self.trainer, model, mode, steps_per_trial, init_val, max_trials, batch_arg_name, **fit_kwargs
+            self.trainer,
+            self._fs,
+            model,
+            mode,
+            steps_per_trial,
+            init_val,
+            max_trials,
+            batch_arg_name,
+            **fit_kwargs,
         )
 
     def lr_find(
@@ -119,6 +130,7 @@ class Tuner:
     ):
         return lr_find(
             self.trainer,
+            self._fs,
             model,
             train_dataloader,
             val_dataloaders,
@@ -130,8 +142,8 @@ class Tuner:
             datamodule,
         )
 
-    def internal_find_lr(self, trainer, model: LightningModule):
-        return _run_lr_finder_internally(trainer, model)
+    def internal_find_lr(self, model: LightningModule):
+        return _run_lr_finder_internally(self.trainer, self._fs, model)
 
     def pick_multiple_gpus(self, num_gpus: int):
         return pick_multiple_gpus(num_gpus)

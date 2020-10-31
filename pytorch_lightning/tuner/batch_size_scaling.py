@@ -25,6 +25,7 @@ from pytorch_lightning import _logger as log
 
 
 def scale_batch_size(trainer,
+                     fs,
                      model: LightningModule,
                      mode: str = 'power',
                      steps_per_trial: int = 3,
@@ -90,7 +91,7 @@ def scale_batch_size(trainer,
     __scale_batch_reset_params(trainer, model, steps_per_trial)
 
     # Save initial model, that is loaded after batch size is found
-    save_path = os.path.join(trainer.default_root_dir, 'temp_model.ckpt')
+    save_path = os.path.join(trainer.default_root_dir, 'scale_batch_size_temp_model.ckpt')
     trainer.save_checkpoint(str(save_path))
 
     if trainer.progress_bar_callback:
@@ -110,7 +111,8 @@ def scale_batch_size(trainer,
 
     # Restore initial state of model
     trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer.on_gpu)
-    os.remove(save_path)
+    if fs.exists(save_path):
+        fs.rm(save_path)
 
     # Finish by resetting variables so trainer is ready to fit model
     __scale_batch_restore_params(trainer)

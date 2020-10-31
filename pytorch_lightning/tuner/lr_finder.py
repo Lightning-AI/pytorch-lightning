@@ -38,9 +38,9 @@ else:
     from tqdm import tqdm
 
 
-def _run_lr_finder_internally(trainer, model: LightningModule):
+def _run_lr_finder_internally(trainer, fs, model: LightningModule):
     """ Call lr finder internally during Trainer.fit() """
-    lr_finder = lr_find(trainer, model)
+    lr_finder = lr_find(trainer, fs, model)
     lr = lr_finder.suggestion()
 
     # TODO: log lr.results to self.logger
@@ -67,6 +67,7 @@ def _run_lr_finder_internally(trainer, model: LightningModule):
 
 def lr_find(
         trainer,
+        fs,
         model: LightningModule,
         train_dataloader: Optional[DataLoader] = None,
         val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
@@ -130,7 +131,7 @@ def lr_find(
         trainer.fit(model)
 
     """
-    save_path = os.path.join(trainer.default_root_dir, 'lr_find_temp.ckpt')
+    save_path = os.path.join(trainer.default_root_dir, 'lr_find_temp_model.ckpt')
 
     __lr_finder_dump_params(trainer, model)
 
@@ -182,7 +183,8 @@ def lr_find(
 
     # Reset model state
     trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer.on_gpu)
-    os.remove(save_path)
+    if fs.exists(save_path):
+        fs.rm(save_path)
 
     # Finish by resetting variables so trainer is ready to fit model
     __lr_finder_restore_params(trainer, model)

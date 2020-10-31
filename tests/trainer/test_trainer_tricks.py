@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from copy import deepcopy
 import pytest
 import torch
@@ -228,6 +229,9 @@ def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
     after_batch_size = model.batch_size
     assert before_batch_size != after_batch_size, \
         'Batch size was not altered after running auto scaling of batch size'
+
+    tmp_file = os.path.join(tmpdir, 'scale_batch_size_temp_model.ckpt')
+    assert not os.path.exists(tmp_file)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
