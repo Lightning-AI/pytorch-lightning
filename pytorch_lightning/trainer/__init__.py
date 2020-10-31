@@ -552,6 +552,10 @@ and adding it to the :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callb
 See :ref:`Saving and Loading Weights <weights_loading>` for how to customize checkpointing.
 
 
+.. warning:: Passing a ModelCheckpoint instance to this argument is deprecated since
+    v1.1.0 and will be unsupported from v1.4.0.
+
+
 default_root_dir
 ^^^^^^^^^^^^^^^^
 
