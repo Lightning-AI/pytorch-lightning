@@ -699,7 +699,7 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
         model.validation_epoch_end = None
         return model
 
-    ckpt_dir = osp.join(tmpdir, 'rep_checkpoint_dir')
+    ckpt_dir = osp.join(tmpdir, 'checkpoints')
     checkpoint_cb = ModelCheckpoint(dirpath=ckpt_dir, save_top_k=-1)
     epochs = 2
     limit_train_batches = 2

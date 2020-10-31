@@ -579,6 +579,7 @@ class TrainLoop:
             monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
             monitor_metrics.update(batch_output.batch_log_metrics)
             self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
+            self.trainer.checkpoint_connector.has_trained = True
 
             # max steps reached, end training
             if self.trainer.max_steps is not None and self.trainer.max_steps == self.trainer.global_step + 1:
@@ -594,8 +595,6 @@ class TrainLoop:
                 break
 
             self.trainer.total_batch_idx += 1
-
-            self.trainer.checkpoint_connector.has_trained = True
 
             # stop epoch if we limited the number of training batches
             if batch_idx + 1 >= self.trainer.num_training_batches:
