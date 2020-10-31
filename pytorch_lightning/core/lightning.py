@@ -1492,7 +1492,8 @@ class LightningModule(
             self._hparams = hp
 
     @torch.no_grad()
-    def to_onnx(self, file_path: Union[str, Path], input_sample: Optional[Union[Tensor, Tuple[Tensor]]] = None, **kwargs):
+    def to_onnx(self, file_path: Union[str, Path],
+                input_sample: Optional[Union[Tensor, Tuple[Tensor]]] = None, **kwargs):
         """Saves the model in ONNX format
 
         Args:
