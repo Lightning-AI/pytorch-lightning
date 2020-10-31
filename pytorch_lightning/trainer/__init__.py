@@ -203,18 +203,18 @@ The accelerator backend to use (previously known as distributed_backend).
 .. testcode::
 
     # default used by the Trainer
-    trainer = Trainer(distributed_backend=None)
+    trainer = Trainer(accelerator=None)
 
 Example::
 
     # dp = DataParallel
-    trainer = Trainer(gpus=2, distributed_backend='dp')
+    trainer = Trainer(gpus=2, accelerator='dp')
 
     # ddp = DistributedDataParallel
-    trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp')
+    trainer = Trainer(gpus=2, num_nodes=2, accelerator='ddp')
 
     # ddp2 = DistributedDataParallel + dp
-    trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp2')
+    trainer = Trainer(gpus=2, num_nodes=2, accelerator='ddp2')
 
 .. note:: this option does not apply to TPU. TPUs use ```ddp``` by default (over each core)
 
@@ -380,6 +380,12 @@ Example::
 
     # enable auto selection (will find two available gpus on system)
     trainer = Trainer(gpus=2, auto_select_gpus=True)
+
+    # specifies all GPUs regardless of its availability
+    Trainer(gpus=-1, auto_select_gpus=False)
+
+    # specifies all available GPUs (if only one GPU is not occupied, uses one gpu)
+    Trainer(gpus=-1, auto_select_gpus=True)
 
 auto_lr_find
 ^^^^^^^^^^^^
@@ -928,8 +934,8 @@ num_processes
 |
 
 Number of processes to train with. Automatically set to the number of GPUs
-when using ``distrbuted_backend="ddp"``. Set to a number greater than 1 when
-using ``distributed_backend="ddp_cpu"`` to mimic distributed training on a
+when using ``accelerator="ddp"``. Set to a number greater than 1 when
+using ``accelerator="ddp_cpu"`` to mimic distributed training on a
 machine without GPUs. This is useful for debugging, but **will not** provide
 any speedup, since single-process Torch already makes effient use of multiple
 CPUs.
@@ -937,7 +943,7 @@ CPUs.
 .. testcode::
 
     # Simulate DDP for debugging on your GPU-less laptop
-    trainer = Trainer(distributed_backend="ddp_cpu", num_processes=2)
+    trainer = Trainer(accelerator="ddp_cpu", num_processes=2)
 
 num_sanity_val_steps
 ^^^^^^^^^^^^^^^^^^^^

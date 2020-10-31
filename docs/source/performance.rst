@@ -33,9 +33,9 @@ The best thing to do is to increase the ``num_workers`` slowly and stop once you
 
 Spawn
 ^^^^^
-When using ``distributed_backend=ddp_spawn`` (the ddp default) or TPU training, the way multiple GPUs/TPU cores are used is by calling ``.spawn()`` under the hood.
+When using ``accelerator=ddp_spawn`` (the ddp default) or TPU training, the way multiple GPUs/TPU cores are used is by calling ``.spawn()`` under the hood.
 The problem is that PyTorch has issues with ``num_workers > 0`` when using ``.spawn()``. For this reason we recommend you
-use ``distributed_backend=ddp`` so you can increase the ``num_workers``, however your script has to be callable like so:
+use ``accelerator=ddp`` so you can increase the ``num_workers``, however your script has to be callable like so:
 
 .. code-block:: bash
 

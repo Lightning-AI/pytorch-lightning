@@ -140,7 +140,7 @@ Lightning supports training on a single TPU core. Just pass the TPU core ID [1-8
 
 Distributed Backend with TPU
 ----------------------------
-The ```distributed_backend``` option used for GPUs does not apply to TPUs.
+The ``accelerator`` option used for GPUs does not apply to TPUs.
 TPUs work in DDP mode by default (distributing over each core)
 
 ----------------
