@@ -271,6 +271,13 @@ auroc [func]
     :noindex:
 
 
+multiclass_auroc [func]
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.multiclass_auroc
+    :noindex:
+
+
 average_precision [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
