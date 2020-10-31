@@ -2,7 +2,7 @@ name: Nightly events
 
 # https://jasonet.co/posts/scheduled-actions/
 on:
-  push:
+  pull_request:
     branches: [master]
   # schedule:
   #   # At the end of every day
