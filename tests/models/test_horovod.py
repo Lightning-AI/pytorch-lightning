@@ -130,7 +130,7 @@ def test_horovod_multi_gpu(tmpdir):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not APEX_AVAILABLE, reason="test requires apex")
 def test_horovod_apex(tmpdir):
-    """Test Horovod with multi-GPU support."""
+    """Test Horovod with multi-GPU support using apex amp."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
         weights_save_path=str(tmpdir),
@@ -153,7 +153,7 @@ def test_horovod_apex(tmpdir):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not NATIVE_AMP_AVALAIBLE, reason="test requires torch.cuda.amp")
 def test_horovod_amp(tmpdir):
-    """Test Horovod with multi-GPU support."""
+    """Test Horovod with multi-GPU support using native amp."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
         weights_save_path=str(tmpdir),
