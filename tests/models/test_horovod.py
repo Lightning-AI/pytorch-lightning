@@ -25,7 +25,7 @@ import torch
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities import APEX_AVAILABLE
+from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVALAIBLE
 from tests.base import EvalModelTemplate
 from tests.base.models import BasicGAN
 
@@ -129,7 +129,7 @@ def test_horovod_multi_gpu(tmpdir):
 @pytest.mark.skipif(not _nccl_available(), reason="test requires Horovod with NCCL support")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not APEX_AVAILABLE, reason="test requires apex")
-def test_horovod_amp(tmpdir):
+def test_horovod_apex(tmpdir):
     """Test Horovod with multi-GPU support."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
@@ -143,6 +143,29 @@ def test_horovod_amp(tmpdir):
         deterministic=True,
         distributed_backend='horovod',
         amp_backend='apex',
+        precision=16,
+    )
+    _run_horovod(trainer_options, on_gpu=True)
+
+
+@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
+@pytest.mark.skipif(not _nccl_available(), reason="test requires Horovod with NCCL support")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not NATIVE_AMP_AVALAIBLE, reason="test requires torch.cuda.amp")
+def test_horovod_amp(tmpdir):
+    """Test Horovod with multi-GPU support."""
+    trainer_options = dict(
+        default_root_dir=str(tmpdir),
+        weights_save_path=str(tmpdir),
+        gradient_clip_val=1.0,
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
+        gpus=2,
+        deterministic=True,
+        distributed_backend='horovod',
+        amp_backend='native',
         precision=16,
     )
     _run_horovod(trainer_options, on_gpu=True)
