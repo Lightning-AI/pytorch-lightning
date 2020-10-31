@@ -243,7 +243,8 @@ class TPUAccelerator(Accelerator):
         # model hook
         model_ref.optimizer_step(
             self.trainer.current_epoch,
-            batch_idx, optimizer,
+            batch_idx,
+            optimizer,
             opt_idx,
             lambda_closure,
             on_tpu=True,

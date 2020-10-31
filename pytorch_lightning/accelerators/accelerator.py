@@ -118,6 +118,7 @@ class Accelerator(object):
             optimizer,
             opt_idx,
             lambda_closure,
+            on_tpu=False,  # TPUAccelerator sets this as True
             using_native_amp=native_amp,
             using_lbfgs=is_lbfgs
         )
