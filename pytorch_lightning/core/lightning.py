@@ -1542,7 +1542,7 @@ class LightningModule(
 
     @torch.no_grad()
     def to_torchscript(
-        self, file_path: Optional[str] = None, method: Optional[str] = 'script',
+        self, file_path: Optional[Union[str, Path]] = None, method: Optional[str] = 'script',
         example_inputs: Optional[Union[Tensor, Tuple[Tensor]]] = None, **kwargs
     ) -> Union[ScriptModule, Dict[str, ScriptModule]]:
         """
