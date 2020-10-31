@@ -108,7 +108,7 @@ def test_verbose_param(tmpdir, capsys):
 
 
 def test_error_if_no_input(tmpdir):
-    """Test that an exception is thrown when there is no input tensor"""
+    """Test that an error is thrown when there is no input tensor"""
     model = EvalModelTemplate()
     model.example_input_array = None
     file_path = os.path.join(tmpdir, "model.onnx")
@@ -141,3 +141,43 @@ def test_if_inference_output_is_valid(tmpdir):
 
     # compare ONNX Runtime and PyTorch results
     assert np.allclose(to_numpy(torch_out), ort_outs[0], rtol=1e-03, atol=1e-05)
+
+
+def test_model_saves_with_tuple_input(tmpdir):
+    """Test that ONNX model saves when input is tuple of tensors"""
+    class CustomModel(EvalModelTemplate):
+        def forward(self, x, y=None):
+            return super().forward(x)
+
+    model = CustomModel()
+    trainer = Trainer(max_epochs=1)
+    trainer.fit(model)
+
+    file_path = os.path.join(tmpdir, "model.onnx")
+    input_sample = (torch.randn(1, 28 * 28), torch.randn(1, 28 * 28))
+    model.to_onnx(file_path, input_sample)
+    assert os.path.exists(file_path) is True
+
+    input_sample = (torch.randn(1, 28 * 28), np.random.randn(1, 28 * 28))
+    with pytest.raises(ValueError, match='neither a Tensor nor tuple of Tensors'):
+        model.to_onnx(file_path, input_sample)
+
+
+def test_error_with_invalid_input(tmpdir):
+    """Test that an error is thrown with invalid input"""
+    class CustomModel(EvalModelTemplate):
+        def forward(self, x):
+            if isinstance(x, dict):
+                x = x['x']
+
+            return super().forward(x)
+
+    model = CustomModel()
+    trainer = Trainer(max_epochs=1)
+    trainer.fit(model)
+
+    file_path = os.path.join(tmpdir, "model.onnx")
+    input_sample = {'x': torch.randn((1, 28 * 28))}
+
+    with pytest.raises(ValueError, match='neither a Tensor nor tuple of Tensors'):
+        model.to_onnx(file_path, input_sample)
