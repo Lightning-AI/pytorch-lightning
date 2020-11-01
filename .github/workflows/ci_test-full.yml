@@ -89,7 +89,7 @@ jobs:
       run: |
         # python -m pip install --upgrade --user pip
         pip install --requirement requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet --upgrade
-        pip install --requirement ./requirements/devel.txt --quiet --upgrade
+        pip install --requirement ./requirements/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet --upgrade
         python --version
         pip --version
         pip list
