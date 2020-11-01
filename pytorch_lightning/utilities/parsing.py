@@ -177,29 +177,12 @@ class AttributeDict(Dict):
 def lightning_hasattr(model, attribute):
     """ Special hasattr for lightning. Checks for attribute in model namespace,
         the old hparams namespace/dict, and the datamodule. """
+    try:
+        lightning_getattr(model, attribute)
+    except AttributeError:
+        return False
 
-    # Check if model has attribute
-    if hasattr(model, attribute):
-        attr = True
-
-    # Check if model.hparams has attribute
-    elif hasattr(model, 'hparams'):
-        if isinstance(model.hparams, dict):
-            attr = attribute in model.hparams
-        else:
-            attr = hasattr(model.hparams, attribute)
-
-    # Check if model.trainer.datamodule has attribute
-    elif hasattr(model, 'trainer'):
-        if hasattr(model.trainer, 'datamodule'):
-            attr = hasattr(model.trainer.datamodule, attribute)
-        else:
-            attr = False
-
-    else:
-        attr = False
-
-    return attr
+    return True
 
 
 def lightning_getattr(model, attribute):
