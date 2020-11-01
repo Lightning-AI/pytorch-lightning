@@ -205,7 +205,7 @@ def lightning_getattr(model, attribute):
                 raise AttributeError(
                     f'{attribute} is neither stored in the model namespace'
                     ' nor the `hparams` namespace/dict, nor the datamodule.'
-                    ) from None
+                ) from None
         else:
             attr = getattr(model.hparams, attribute)
 
