@@ -166,7 +166,7 @@ def test_horovod_amp(tmpdir):
         deterministic=True,
         distributed_backend='horovod',
         amp_backend='native',
-        precision=16,
+        # precision=16,
     )
     _run_horovod(trainer_options, on_gpu=True)
 
