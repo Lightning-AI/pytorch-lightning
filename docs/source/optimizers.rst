@@ -108,7 +108,7 @@ Every optimizer you use can be paired with any `LearningRateScheduler <https://p
    def configure_optimizers(self):
       return {
           'optimizer': Adam(...),
-          'scheduler': ReduceLROnPlateau(optimizer, ...),
+          'lr_scheduler': ReduceLROnPlateau(optimizer, ...),
           'monitor': 'metric_to_track'
       }
 

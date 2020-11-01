@@ -155,9 +155,6 @@ def lr_find(
     if trainer.progress_bar_callback:
         trainer.progress_bar_callback.disable()
 
-    # Disable standard checkpoint & early stopping
-    trainer.checkpoint_callback = False
-
     # Required for saving the model
     trainer.optimizers, trainer.schedulers = [], [],
     trainer.model = model
@@ -212,7 +209,6 @@ def __lr_finder_restore_params(trainer, model):
     trainer.logger = trainer.__dumped_params['logger']
     trainer.callbacks = trainer.__dumped_params['callbacks']
     trainer.max_steps = trainer.__dumped_params['max_steps']
-    trainer.checkpoint_callback = trainer.__dumped_params['checkpoint_callback']
     model.configure_optimizers = trainer.__dumped_params['configure_optimizers']
     del trainer.__dumped_params
 
