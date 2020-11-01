@@ -377,7 +377,13 @@ def test_model_checkpoint_topk_all(tmpdir):
             return {'epoch': self.current_epoch}
 
     model = CustomModel()
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="epoch", mode='max', save_top_k=-1)
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=tmpdir,
+        filename="{epoch}",
+        monitor="epoch",
+        mode='max',
+        save_top_k=-1,
+    )
     trainer = Trainer(
         default_root_dir=tmpdir,
         checkpoint_callback=checkpoint_callback,
