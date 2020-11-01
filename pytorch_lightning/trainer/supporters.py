@@ -177,7 +177,6 @@ class PredictionCollection(object):
             # Write predictions for current file to disk
             with fs.open(filepath, "wb") as fp:
                 torch.save(outputs, fp)
-                return getattr(self.memory[:self.current_idx], how)()
 
 
 class CycleIterator(object):

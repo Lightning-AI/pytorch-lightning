@@ -184,7 +184,7 @@ class TrainerDataLoadingMixin(ABC):
 
         # automatically add samplers
         self.train_dataloader = apply_to_collection(
-            self.train_dataloader, DataLoader, self.auto_add_sampler, train=True)
+            self.train_dataloader, DataLoader, self.auto_add_sampler, shuffle=True)
 
         self.num_training_batches = len(self.train_dataloader) if has_len(self.train_dataloader) else float('inf')
         self._worker_check(self.train_dataloader, 'train dataloader')
@@ -341,7 +341,8 @@ class TrainerDataLoadingMixin(ABC):
         Returns:
             The dataloader
         """
-        dataloader = MultiIterator(dataloader_fx())
+        # dataloader = MultiIterator(dataloader_fx())
+        dataloader = dataloader_fx()
         dataloader = self._flatten_dl_only(dataloader)
         
         if self.accelerator_backend is not None:
