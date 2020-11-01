@@ -269,12 +269,12 @@ class Metric(nn.Module, ABC):
                 setattr(self, key, [fn(cur_v) for cur_v in current_val])
         return self
 
-    def persistant(self, mode: bool = True):
+    def persistent(self, mode: bool = True):
         """ Method for post-init to change if metric states should be saved to
             its state_dict
         """
         for key in self._persistent.keys():
-            self._persistant[key] = mode
+            self._persistent[key] = mode
 
 
 def add_metrics_state_dict(self, state_dict, prefix, local_metadata):
