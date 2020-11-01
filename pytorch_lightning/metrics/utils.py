@@ -68,8 +68,34 @@ def _check_same_shape(pred: torch.Tensor, target: torch.Tensor):
     if pred.shape != target.shape:
         raise RuntimeError('Predictions and targets are expected to have the same shape')
 
+def _get_topk_preds(preds: torch.Tensor, target: torch.Tensor, topk: Optional[int] = None):
+    if (topk is not None) and (topk <= 0):
+        raise ValueError(
+            f'topk should be >= 1 but got topk={topk}'
+        )
 
-def _input_format_classification(preds: torch.Tensor, target: torch.Tensor, threshold: float):
+    if (target.ndim > 1) and (preds.ndim == target.ndim) and (topk is not None):
+        raise ValueError(
+            f'topk={topk} is not supported for multi-label target values'
+        )
+
+    if ((target.ndim > 1) and (preds.ndim == target.ndim)) or (preds.ndim == 1):  # multi-label or binary probs
+        return preds
+
+    if topk is None:
+        topk = 1
+
+    if topk > preds.size(1):
+        raise ValueError(
+            f'topk={topk} cannot be greater than num_classes={preds.size(1)}'
+        )
+
+    preds = preds.topk(k=topk, dim=1)[1]
+    tmp = (preds == target.unsqueeze(1)).max(dim=1)[0]
+    preds = torch.where(tmp, target, preds[:, 0])
+    return preds
+
+def _input_format_classification(preds: torch.Tensor, target: torch.Tensor, threshold: float, topk: Optional[int] = None):
     """ Convert preds and target tensors into label tensors
 
     Args:
@@ -87,11 +113,16 @@ def _input_format_classification(preds: torch.Tensor, target: torch.Tensor, thre
             "preds and target must have same number of dimensions, or one additional dimension for preds"
         )
 
-    if len(preds.shape) == len(target.shape) + 1:
+    # topk is possible with probabilities only
+    if preds.dtype == torch.float:
+        preds = _get_topk_preds(preds, target, topk)
+
+    # if len(preds.shape) == len(target.shape) + 1:
         # multi class probabilites
-        preds = torch.argmax(preds, dim=1)
+        # preds = torch.argmax(preds, dim=1)
 
     if len(preds.shape) == len(target.shape) and preds.dtype == torch.float:
         # binary or multilabel probablities
         preds = (preds >= threshold).long()
+
     return preds, target

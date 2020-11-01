@@ -43,6 +43,9 @@ class Accuracy(Metric):
     Args:
         threshold:
             Threshold value for binary or multi-label logits. default: 0.5
+        topk:
+            number of most likely outcomes considered to find the correct label.
+            default: None (which is top1 in case of binary and multiclass).
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
@@ -64,6 +67,7 @@ class Accuracy(Metric):
     def __init__(
         self,
         threshold: float = 0.5,
+        topk: Optional[int] = None,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -78,6 +82,7 @@ class Accuracy(Metric):
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
         self.threshold = threshold
+        self.topk = topk
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
@@ -87,7 +92,7 @@ class Accuracy(Metric):
             preds: Predictions from model
             target: Ground truth values
         """
-        preds, target = _input_format_classification(preds, target, self.threshold)
+        preds, target = _input_format_classification(preds, target, self.threshold, self.topk)
         assert preds.shape == target.shape
 
         self.correct += torch.sum(preds == target)
