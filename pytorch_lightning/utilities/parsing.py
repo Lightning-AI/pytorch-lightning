@@ -177,21 +177,25 @@ class AttributeDict(Dict):
 def lightning_hasattr(model, attribute):
     """ Special hasattr for lightning. Checks for attribute in model namespace,
         the old hparams namespace/dict, and the datamodule. """
+
     # Check if model has attribute
     if hasattr(model, attribute):
         attr = True
+
     # Check if model.hparams has attribute
     elif hasattr(model, 'hparams'):
         if isinstance(model.hparams, dict):
             attr = attribute in model.hparams
         else:
             attr = hasattr(model.hparams, attribute)
+
     # Check if model.trainer.datamodule has attribute
     elif hasattr(model, 'trainer'):
         if hasattr(model.trainer, 'datamodule'):
             attr = hasattr(model.trainer.datamodule, attribute)
         else:
             attr = False
+
     else:
         attr = False
 
@@ -201,26 +205,29 @@ def lightning_hasattr(model, attribute):
 def lightning_getattr(model, attribute):
     """ Special getattr for lightning. Checks for attribute in model namespace,
         the old hparams namespace/dict, and the datamodule. """
+
     trainer = getattr(model, 'trainer', None)
     datamodule = getattr(trainer, 'datamodule', None)
 
     # Check if attribute in model
     if hasattr(model, attribute):
         attr = getattr(model, attribute)
-        
+
     # Check if attribute in model.hparams, either namespace or dict
     elif hasattr(model, 'hparams'):
         if isinstance(model.hparams, dict):
             attr = model.hparams[attribute]
         else:
             attr = getattr(model.hparams, attribute)
-            
+
     # Check if the attribute in datamodule (datamodule gets registered in Trainer)
     elif hasattr(datamodule, attribute):
         attr = getattr(datamodule, attribute)
+
     else:
         raise ValueError(f'{attribute} is neither stored in the model namespace'
                          ' nor the `hparams` namespace/dict, nor the datamodule.')
+
     return attr
 
 
@@ -229,6 +236,7 @@ def lightning_setattr(model, attribute, value):
         and the old hparams namespace/dict.
         Will also set the attribute on datamodule, if it exists.
     """
+    
     if not lightning_hasattr(model, attribute):
         raise ValueError(f'{attribute} is neither stored in the model namespace'
                          ' nor the `hparams` namespace/dict, nor the datamodule.')
