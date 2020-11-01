@@ -56,7 +56,19 @@ def run_test_from_config(trainer_options):
     ckpt_path = trainer_options['weights_save_path']
     trainer_options.update(checkpoint_callback=ModelCheckpoint(dirpath=ckpt_path))
 
-    model = EvalModelTemplate()
+    class CustomModel(EvalModelTemplate):
+        def on_after_backward(self):
+            for k, v in self.state_dict().items():
+                print(f'Model Key {k}: value {v}')
+
+        def on_before_zero_grad(self, optimizer):
+            for k, v in self.state_dict().items():
+                print(f'Model Key {k}: value {v}')
+
+            for k, v in optimizer.state_dict().items():
+                print(f'Optim key {k}: value {v}')
+
+    model = CustomModel()
 
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
