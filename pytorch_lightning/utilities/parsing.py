@@ -233,7 +233,8 @@ def lightning_setattr(model, attribute, value):
         raise ValueError(f'{attribute} is neither stored in the model namespace'
                          ' nor the `hparams` namespace/dict, nor the datamodule.')
 
-    trainer = model.trainer
+    trainer = getattr(model, 'trainer', None)
+    datamodule = getattr(trainer, 'datamodule', None)
 
     # Check if attribute in model
     if hasattr(model, attribute):
@@ -247,5 +248,5 @@ def lightning_setattr(model, attribute, value):
             setattr(model.hparams, attribute, value)
 
     # Check if the attribute in datamodule (datamodule gets registered in Trainer)
-    if trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
-        setattr(trainer.datamodule, attribute, value)
+    if hasattr(datamodule, attribute):
+        setattr(datamodule, attribute, value)
