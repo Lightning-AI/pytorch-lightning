@@ -199,7 +199,13 @@ def lightning_getattr(model, attribute):
     # Check if attribute in model.hparams, either namespace or dict
     elif hasattr(model, 'hparams'):
         if isinstance(model.hparams, dict):
-            attr = model.hparams[attribute]
+            try:
+                attr = model.hparams[attribute]
+            except KeyError:
+                raise AttributeError(
+                    f'{attribute} is neither stored in the model namespace'
+                    ' nor the `hparams` namespace/dict, nor the datamodule.'
+                    ) from None
         else:
             attr = getattr(model.hparams, attribute)
 
