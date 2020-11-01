@@ -75,9 +75,14 @@ class Metric(nn.Module, ABC):
         self._computed = None
         self._forward_cache = None
 
+        # Hook that will add metric states to state_dict
+        self._register_state_dict_hook(add_metrics_state_dict)
+
         # initialize state
-        self._reductions = {}
         self._defaults = {}
+        self._persistent = {}
+        self._reductions = {}
+
 
     def add_state(
         self, name: str, default, dist_reduce_fx: Optional[Union[str, Callable]] = None, persistent: bool = True
@@ -133,16 +138,10 @@ class Metric(nn.Module, ABC):
                 "`dist_reduce_fx` must be callable or one of ['mean', 'sum', 'cat', None]"
             )
 
-        if isinstance(default, torch.Tensor):
-            if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
-                # persistent keyword is only supported in torch >= 1.6.0
-                self.register_buffer(name, default, persistent=persistent)
-            else:
-                self.register_buffer(name, default)
-        else:
-            setattr(self, name, default)
+        setattr(self, name, default)
 
         self._defaults[name] = deepcopy(default)
+        self._persistent[name] = persistent
         self._reductions[name] = dist_reduce_fx
 
     def forward(self, *args, **kwargs):
@@ -255,3 +254,33 @@ class Metric(nn.Module, ABC):
         self.__dict__.update(state)
         self.update = self._wrap_update(self.update)
         self.compute = self._wrap_compute(self.compute)
+
+    def _apply(self, fn):
+        """ Overwrite _apply function such that we can also move metric states
+            to the correct divice when `.to`, `.cuda` ect methods are called
+        """
+        self = super()._apply(fn)
+        # Also apply fn to metric states
+        for key in self._defaults.keys():
+            current_val = getattr(self, key, None)
+            if current_val is not None and isinstance(current_val, torch.Tensor):
+                setattr(self, key, fn(current_val))
+            else:
+                setattr(self, key, [fn(cur_v) for cur_v in current_val])
+        return self
+
+    def persistant(self, mode: bool = True):
+        """ Method for post-init to change if metric states should be saved to
+            its state_dict
+        """
+        for key in self._persistent.keys():
+            self._persistant[key] = mode
+
+
+def add_metrics_state_dict(self, state_dict, prefix, local_metadata):
+    """ Register metric states to be part of the state_dict """
+    for key in self._defaults.keys():
+        if self._persistent[key]:
+            current_val = getattr(self, key)
+            state_dict.update({key: current_val})
+    return state_dict
