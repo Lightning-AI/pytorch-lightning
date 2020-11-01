@@ -201,21 +201,23 @@ def lightning_hasattr(model, attribute):
 def lightning_getattr(model, attribute):
     """ Special getattr for lightning. Checks for attribute in model namespace,
         the old hparams namespace/dict, and the datamodule. """
-    trainer = model.trainer
+    trainer = getattr(model, 'trainer', None)
+    datamodule = getattr(trainer, 'datamodule', None)
 
     # Check if attribute in model
     if hasattr(model, attribute):
         attr = getattr(model, attribute)
+        
     # Check if attribute in model.hparams, either namespace or dict
     elif hasattr(model, 'hparams'):
         if isinstance(model.hparams, dict):
             attr = model.hparams[attribute]
         else:
             attr = getattr(model.hparams, attribute)
-
+            
     # Check if the attribute in datamodule (datamodule gets registered in Trainer)
-    elif trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
-        attr = getattr(trainer.datamodule, attribute)
+    elif hasattr(datamodule, attribute):
+        attr = getattr(datamodule, attribute)
     else:
         raise ValueError(f'{attribute} is neither stored in the model namespace'
                          ' nor the `hparams` namespace/dict, nor the datamodule.')
