@@ -219,7 +219,7 @@ def lightning_setattr(model, attribute, value):
         and the old hparams namespace/dict.
         Will also set the attribute on datamodule, if it exists.
     """
-    
+
     if not lightning_hasattr(model, attribute):
         raise AttributeError(f'{attribute} is neither stored in the model namespace'
                              ' nor the `hparams` namespace/dict, nor the datamodule.')
