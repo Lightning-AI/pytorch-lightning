@@ -157,7 +157,7 @@ def test_horovod_amp(tmpdir):
     trainer_options = dict(
         default_root_dir=str(tmpdir),
         weights_save_path=str(tmpdir),
-        gradient_clip_val=1.0,
+        # gradient_clip_val=1.0,
         # progress_bar_refresh_rate=0,
         max_epochs=1,
         limit_train_batches=0.4,
