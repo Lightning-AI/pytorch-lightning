@@ -20,11 +20,11 @@ from pytorch_lightning.overrides.fairscale import LightningOSS, LightningSharded
 from pytorch_lightning.utilities import AMPType
 
 
-class FairScaleAccelerator(DDPAccelerator):
+class DDPShardedAccelerator(DDPAccelerator):
 
     def __init__(self, trainer, cluster_environment=None):
         super().__init__(trainer, cluster_environment)
-        self.nickname = 'fairscale'
+        self.nickname = 'ddp_sharded'
 
     def setup_optimizers(self, model):
         if self.trainer.testing is True:

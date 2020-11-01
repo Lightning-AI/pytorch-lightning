@@ -276,8 +276,8 @@ class AcceleratorConnector:
         elif self.trainer.use_horovod:
             accelerator_backend = accelerators.HorovodAccelerator(self.trainer, cluster_env)
 
-        elif self.trainer.use_fairscale:
-            accelerator_backend = accelerators.FairScaleAccelerator(self.trainer, cluster_env)
+        elif self.trainer.use_ddp_sharded:
+            accelerator_backend = accelerators.DDPShardedAccelerator(self.trainer, cluster_env)
 
         elif self.trainer.use_single_gpu:
             accelerator_backend = accelerators.GPUAccelerator(self.trainer, cluster_env)
@@ -299,7 +299,7 @@ class AcceleratorConnector:
         self.trainer.use_ddp = False
         self.trainer.use_ddp2 = False
         self.trainer.use_horovod = False
-        self.trainer.use_fairscale = False
+        self.trainer.use_ddp_sharded = False
         self.trainer.use_single_gpu = False
 
         if self.trainer.distributed_backend is None:
@@ -349,8 +349,8 @@ class AcceleratorConnector:
             self.trainer.use_ddp = True
             self.trainer.data_parallel_device_ids = None
             self.trainer.on_gpu = False
-        elif self.trainer.distributed_backend == 'fairscale':
-            self.trainer.use_fairscale = True
+        elif self.trainer.distributed_backend == 'ddp_sharded':
+            self.trainer.use_ddp_sharded = True
             self.trainer.num_processes = self.trainer.num_gpus
         elif self.trainer.distributed_backend == "horovod":
             self._set_horovod_backend()

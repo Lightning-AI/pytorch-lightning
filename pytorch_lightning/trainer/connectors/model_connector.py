@@ -17,7 +17,7 @@ Root module for all distributed operations in Lightning.
 Currently supports training on CPU, GPU (dp, ddp, ddp2, horovod) and TPU.
 
 """
-from pytorch_lightning.accelerators.fairscale_accelerator import LightningShardedDataParallel
+from pytorch_lightning.accelerators.ddp_sharded_accelerator import LightningShardedDataParallel
 from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
@@ -44,7 +44,7 @@ class ModelConnector:
             m.use_dp = self.trainer.use_dp
             m.use_ddp2 = self.trainer.use_ddp2
             m.use_ddp = self.trainer.use_ddp
-            m.use_fairscale = self.trainer.use_fairscale
+            m.use_ddp_sharded = self.trainer.use_ddp_sharded
             m.use_amp = self.trainer.amp_backend is not None
             m.testing = self.trainer.testing
             m.use_single_gpu = self.trainer.use_single_gpu

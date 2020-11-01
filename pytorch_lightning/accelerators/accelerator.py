@@ -238,6 +238,6 @@ class BackendType(Enum):
     # decuple distrib and device
     DDP_CPU = 'ddp_cpu'
     HOROVOD = 'horovod'
-    FAIRSCALE = 'fairscale'
+    DDP_SHARDED = 'ddp_sharded'
     # this is rather device
     TPU = 'tpu'

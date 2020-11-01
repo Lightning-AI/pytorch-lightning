@@ -57,7 +57,7 @@ class TrainerDataLoadingMixin(ABC):
     use_ddp: bool
     use_ddp2: bool
     use_horovod: bool
-    use_fairscale: bool
+    use_ddp_sharded: bool
     shown_warnings: ...
     val_check_interval: float
     use_tpu: bool
@@ -151,7 +151,7 @@ class TrainerDataLoadingMixin(ABC):
             world_size = {
                 "ddp": self.num_nodes * self.num_processes,
                 "ddp_spawn": self.num_nodes * self.num_processes,
-                "fairscale": self.num_nodes * self.num_processes,
+                "ddp_sharded": self.num_nodes * self.num_processes,
                 "ddp2": self.num_nodes,
                 "ddp_cpu": self.num_processes * self.num_nodes
             }
