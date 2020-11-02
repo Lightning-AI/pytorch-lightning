@@ -1605,7 +1605,10 @@ class LightningModule(
 
             if isinstance(example_inputs, Tensor):
                 example_inputs = (example_inputs,)
-            elif not (isinstance(example_inputs, collections.Sequence) and all(isinstance(inp, Tensor) for inp in example_inputs)):
+            elif not (
+                isinstance(example_inputs, collections.Sequence)
+                and all(isinstance(inp, Tensor) for inp in example_inputs)
+            ):
                 raise ValueError(
                     "Could not export to torchscript since example_inputs is neither a Tensor nor tuple of Tensors"
                 )
