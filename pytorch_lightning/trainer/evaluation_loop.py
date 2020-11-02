@@ -109,6 +109,9 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_end', *args, **kwargs)
 
+        # reset stage to train
+        self.trainer.logger_connector.set_stage("train")
+
     def reload_evaluation_dataloaders(self):
         model = self.trainer.get_model()
         if self.testing:
@@ -295,16 +298,20 @@ class EvaluationLoop(object):
 
         return eval_results
 
-    def on_evaluation_batch_start(self, *args, **kwargs):
+    def on_evaluation_batch_start(self, batch, batch_idx, dataloader_idx):
         # reset the result of the PL module
         model = self.trainer.get_model()
         model._results = Result()
         model._current_fx_name = 'evaluation_step'
 
+        # set dataloader_idx and track batch_size
+        self.trainer.logger_connector.on_evaluation_batch_start(
+            self.testing, batch, dataloader_idx, self.num_dataloaders)
+
         if self.testing:
-            self.trainer.call_hook('on_test_batch_start', *args, **kwargs)
+            self.trainer.call_hook('on_test_batch_start', batch, batch_idx, dataloader_idx)
         else:
-            self.trainer.call_hook('on_validation_batch_start', *args, **kwargs)
+            self.trainer.call_hook('on_validation_batch_start', batch, batch_idx, dataloader_idx)
 
     def on_evaluation_batch_end(self, *args, **kwargs):
         if self.testing:
