@@ -11,22 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import math
-import functools
-from abc import ABC, abstractmethod
-from typing import Any, Callable, Optional, Union
-from collections.abc import Mapping, Sequence
-from collections import namedtuple
+from typing import Any, Optional
 
 import torch
-from torch import nn
+
 from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.metrics.utils import _input_format_classification
+from pytorch_lightning.metrics.functional.confusion_matrix import (
+    _confusion_matrix_update,
+    _confusion_matrix_compute
+)
 
 
-class Accuracy(Metric):
+class ConfusionMatrix(Metric):
     """
-    Computes accuracy. Works with binary, multiclass, and multilabel data.
+    Computes the confusion matrix. Works with binary, multiclass, and multilabel data.
     Accepts logits from a model output or integer class values in prediction.
     Works with multi-dimensional preds and target.
 
@@ -41,6 +39,14 @@ class Accuracy(Metric):
     If preds has an extra dimension as in the case of multi-class scores we perform an argmax on ``dim=1``.
 
     Args:
+        num_classes: Number of classes in the dataset.
+        normalize: Normalization mode for confusion matrix. Choose from
+
+            - ``None``: no normalization (default)
+            - ``'true'``: normalization over the targets (most commonly used)
+            - ``'pred'``: normalization over the predictions
+            - ``'all'``: normalization over the whole matrix
+
         threshold:
             Threshold value for binary or multi-label logits. default: 0.5
         compute_on_step:
@@ -53,31 +59,39 @@ class Accuracy(Metric):
 
     Example:
 
-        >>> from pytorch_lightning.metrics import Accuracy
-        >>> target = torch.tensor([0, 1, 2, 3])
-        >>> preds = torch.tensor([0, 2, 1, 3])
-        >>> accuracy = Accuracy()
-        >>> accuracy(preds, target)
-        tensor(0.5000)
+        >>> from pytorch_lightning.metrics import ConfusionMatrix
+        >>> target = torch.tensor([1, 1, 0, 0])
+        >>> preds = torch.tensor([0, 1, 0, 0])
+        >>> confmat = ConfusionMatrix(num_classes=2)
+        >>> confmat(preds, target)
+        tensor([[2., 0.],
+                [1., 1.]])
 
     """
     def __init__(
         self,
+        num_classes: int,
+        normalize: Optional[str] = None,
         threshold: float = 0.5,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
     ):
+
         super().__init__(
             compute_on_step=compute_on_step,
             dist_sync_on_step=dist_sync_on_step,
             process_group=process_group,
         )
-
-        self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
-        self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
-
+        self.num_classes = num_classes
+        self.normalize = normalize
         self.threshold = threshold
+
+        allowed_normalize = ('true', 'pred', 'all', None)
+        assert self.normalize in allowed_normalize, \
+            f"Argument average needs to one of the following: {allowed_normalize}"
+
+        self.add_state("confmat", default=torch.zeros(num_classes, num_classes), dist_reduce_fx="sum")
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
@@ -87,14 +101,11 @@ class Accuracy(Metric):
             preds: Predictions from model
             target: Ground truth values
         """
-        preds, target = _input_format_classification(preds, target, self.threshold)
-        assert preds.shape == target.shape
+        confmat = _confusion_matrix_update(preds, target, self.num_classes, self.threshold)
+        self.confmat += confmat
 
-        self.correct += torch.sum(preds == target)
-        self.total += target.numel()
-
-    def compute(self):
+    def compute(self) -> torch.Tensor:
         """
-        Computes accuracy over state.
+        Computes confusion matrix
         """
-        return self.correct.float() / self.total
+        return _confusion_matrix_compute(self.confmat, self.normalize)
