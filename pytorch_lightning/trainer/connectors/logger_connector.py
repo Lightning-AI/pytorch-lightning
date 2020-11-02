@@ -110,10 +110,11 @@ class LoggerConnector:
 
     def on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, using_eval_result, test_mode):
         self._track_callback_metrics(deprecated_eval_results, using_eval_result)
-        self._log_on_evaluation_epoch_end_metrics(epoch_logs)
 
         # TODO: deprecate parts of this for 1.0 (when removing results)
         self.__process_eval_epoch_end_results_and_log_legacy(deprecated_eval_results, test_mode)
+
+        self._log_on_evaluation_epoch_end_metrics(epoch_logs)
 
         # get the final loop results
         eval_loop_results = self._get_evaluate_epoch_results(test_mode)
@@ -200,7 +201,7 @@ class LoggerConnector:
             self.callback_metrics.update(forked_metrics)
 
             # track the final results for the dataloader
-            self.add_to_eval_loop_results(dl_idx)
+            self.add_to_eval_loop_results(dl_idx, num_loaders)
 
             # actually log
             if len(logger_metrics) > 0:
@@ -211,8 +212,12 @@ class LoggerConnector:
         if len(metrics_to_log) > 0:
             self.log_metrics(metrics_to_log, {})
 
-    def add_to_eval_loop_results(self, dl_idx):
+    def add_to_eval_loop_results(self, dl_idx, num_loaders):
         callback_metrics = deepcopy(self.callback_metrics)
+        if num_loaders == 1:
+            self.eval_loop_results[0].update(callback_metrics)
+            return
+
         for key in list(callback_metrics.keys()):
             if "dataloader_idx" in key:
                 if f"dataloader_idx_{dl_idx}" not in key:
@@ -267,6 +272,25 @@ class LoggerConnector:
                     flat['early_stop_on'] = flat['val_loss']
                 self.trainer.logger_connector.callback_metrics.update(flat)
 
+    def __process_eval_epoch_end_results_and_log_legacy_udpate(self, prog_bar_metrics, log_metrics, callback_metrics):
+        # eval loop returns all metrics
+        dataloader_result_metrics = {**prog_bar_metrics, **log_metrics, **callback_metrics}
+
+        # add metrics to prog bar
+        self.trainer.logger_connector.add_progress_bar_metrics(prog_bar_metrics)
+
+        # log metrics
+        if len(log_metrics) > 0:
+            self.trainer.logger_connector.log_metrics(log_metrics, {})
+
+        # track metrics for callbacks (all prog bar, logged and callback metrics)
+        self.trainer.logger_connector.callback_metrics.update(callback_metrics)
+        self.trainer.logger_connector.callback_metrics.update(log_metrics)
+        self.trainer.logger_connector.callback_metrics.update(prog_bar_metrics)
+
+        if len(dataloader_result_metrics) > 0:
+            self.eval_loop_results.append(dataloader_result_metrics)
+
     def __process_eval_epoch_end_results_and_log_legacy(self, eval_results, test_mode):
         if self.trainer.running_sanity_check:
             return
@@ -276,6 +300,8 @@ class LoggerConnector:
             # in eval, the user may return something at every validation step without final reduction
             if not isinstance(eval_results, list):
                 eval_results = [eval_results]
+
+            num_loaders = self.trainer.evaluation_loop.num_dataloaders
 
             for result_idx, result in enumerate(eval_results):
                 if isinstance(result, EvalResult):
@@ -289,23 +315,11 @@ class LoggerConnector:
                 else:
                     _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.trainer.process_dict_result(result)
 
-                # eval loop returns all metrics
-                dataloader_result_metrics = {**prog_bar_metrics, **log_metrics, **callback_metrics}
+                if num_loaders > 1:
+                    self.__process_eval_epoch_end_results_and_log_legacy_udpate(prog_bar_metrics, log_metrics, callback_metrics)
 
-                # add metrics to prog bar
-                self.trainer.logger_connector.add_progress_bar_metrics(prog_bar_metrics)
-
-                # log metrics
-                if len(log_metrics) > 0:
-                    self.trainer.logger_connector.log_metrics(log_metrics, {})
-
-                # track metrics for callbacks (all prog bar, logged and callback metrics)
-                self.trainer.logger_connector.callback_metrics.update(callback_metrics)
-                self.trainer.logger_connector.callback_metrics.update(log_metrics)
-                self.trainer.logger_connector.callback_metrics.update(prog_bar_metrics)
-
-                if len(dataloader_result_metrics) > 0:
-                    self.eval_loop_results.append(dataloader_result_metrics)
+            if num_loaders == 1:
+                self.__process_eval_epoch_end_results_and_log_legacy_udpate(prog_bar_metrics, log_metrics, callback_metrics)
 
     def on_train_epoch_end(self, epoch_output):
         pass

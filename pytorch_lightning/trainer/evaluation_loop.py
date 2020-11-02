@@ -29,6 +29,7 @@ class EvaluationLoop(object):
         self.predictions = None
         self.max_batches = None
         self.warning_cache = WarningCache()
+        self.num_dataloaders = None
 
     def on_trainer_init(self):
         self.trainer.num_val_batches = []
@@ -133,6 +134,7 @@ class EvaluationLoop(object):
             max_batches = [max_batches] * len(dataloaders)
 
         self.max_batches = max_batches
+        self.num_dataloaders = self._get_num_dataloaders(dataloaders)
 
     def on_evaluation_epoch_start(self, *args, **kwargs):
         if self.testing:

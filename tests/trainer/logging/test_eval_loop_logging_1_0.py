@@ -387,3 +387,35 @@ def test_multi_dataloaders_add_suffix_properly(tmpdir):
     )
     results = trainer.test(model)
     assert len(results[0]) == len(results[1])
+    assert "test_loss_epoch/dataloader_idx_0" in results[0]
+    assert "test_loss_epoch/dataloader_idx_1" in results[1]
+
+
+def test_single_dataloader_no_suffix_added(tmpdir):
+    class TestModel(BoringModel):
+
+        def test_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log("test_loss", loss, on_step=True, on_epoch=True)
+            return {"y": loss}
+
+        def test_dataloader(self):
+            return torch.utils.data.DataLoader(RandomDataset(32, 64))
+
+    model = TestModel()
+    model.test_epoch_end = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=0,
+        limit_val_batches=0,
+        limit_test_batches=5,
+        max_epochs=1,
+        log_every_n_steps=1,
+        weights_summary=None,
+    )
+    results = trainer.test(model)
+    assert len(results) == 1
+    # TODO: It is wrong there. `y` should equal test_loss_epoch
+    assert results[0]['test_loss'] == results[0]['y']
