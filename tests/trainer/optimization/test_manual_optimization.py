@@ -355,3 +355,33 @@ def test_multiple_optimizers_manual_apex(tmpdir):
 
     num_manual_backward_calls = 3
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * num_manual_backward_calls
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_ddp_and_automatic_optimization_false(tmpdir):
+
+    class ExtendedModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            opt = self.optimizers()
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.manual_backward(loss, opt)
+            opt.step()
+            opt.zero_grad()
+            loss = loss.detach()
+            return loss
+
+    model = ExtendedModel()
+    model.training_step_end = None
+    model.training_epoch_end = None
+
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=os.getcwd(),
+        limit_train_batches=10,
+        limit_test_batches=0,
+        limit_val_batches=0,
+        distributed_backend="ddp_spawn",
+        gpus=2,
+        automatic_optimization=False
+    )
