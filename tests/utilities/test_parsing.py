@@ -13,7 +13,10 @@
 # limitations under the License.
 import pytest
 
-from pytorch_lightning.utilities.parsing import lightning_getattr, lightning_hasattr, lightning_setattr
+from pytorch_lightning.utilities.parsing import lightning_getattr
+from pytorch_lightning.utilities.parsing import lightning_hasattr
+from pytorch_lightning.utilities.parsing import lightning_setattr
+from pytorch_lightning.utilities.parsing import str_to_bool_or_str
 
 
 def _get_test_cases():
@@ -72,3 +75,18 @@ def test_lightning_setattr(tmpdir):
         lightning_setattr(m, 'learning_rate', 10)
         assert lightning_getattr(m, 'learning_rate') == 10, \
             'attribute not correctly set'
+
+
+def test_str_to_bool_or_str(tmpdir):
+    true_cases = ['y', 'yes', 't', 'true', 'on', '1']
+    false_cases = ['n', 'no', 'f', 'false', 'off', '0']
+    other_cases = ['yyeess', 'noooo', 'lightning']
+
+    for case in true_cases:
+        assert str_to_bool_or_str(case) == True
+
+    for case in false_cases:
+        assert str_to_bool_or_str(case) == False
+
+    for case in other_cases:
+        assert str_to_bool_or_str(case) == case
