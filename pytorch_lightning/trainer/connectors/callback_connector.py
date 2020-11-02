@@ -55,10 +55,10 @@ class CallbackConnector:
 
     def configure_checkpoint_callbacks(self, checkpoint_callback: Union[ModelCheckpoint, bool]):
         if isinstance(checkpoint_callback, ModelCheckpoint):
-            # TODO: deprecated, remove this block in v1.4.0
+            # TODO: deprecated, remove this block in v1.3.0
             rank_zero_warn(
                 "Passing a ModelCheckpoint instance to Trainer(checkpoint_callbacks=...)"
-                " is deprecated since v1.1 and will no longer be supported in v1.4.",
+                " is deprecated since v1.1 and will no longer be supported in v1.3.",
                 DeprecationWarning
             )
             self.trainer.callbacks.append(checkpoint_callback)
