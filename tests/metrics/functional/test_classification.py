@@ -30,6 +30,7 @@ from pytorch_lightning.metrics.functional.classification import (
     dice_score,
     average_precision,
     auroc,
+    multiclass_auroc,
     precision_recall_curve,
     roc,
     auc,
@@ -314,6 +315,47 @@ def test_roc_curve(pred, target, expected_tpr, expected_fpr):
 def test_auroc(pred, target, expected):
     score = auroc(torch.tensor(pred), torch.tensor(target)).item()
     assert score == expected
+
+
+def test_multiclass_auroc():
+    with pytest.raises(ValueError,
+                       match=r".*probabilities, i.e. they should sum up to 1.0 over classes"):
+        _ = multiclass_auroc(pred=torch.tensor([[0.9, 0.9],
+                                                [1.0, 0]]),
+                             target=torch.tensor([0, 1]))
+
+    with pytest.raises(ValueError,
+                       match=r".*not defined when all of the classes do not occur in the target.*"):
+        _ = multiclass_auroc(pred=torch.rand((4, 3)).softmax(dim=1),
+                             target=torch.tensor([1, 0, 1, 0]))
+
+    with pytest.raises(ValueError,
+                       match=r".*does not equal the number of classes passed in 'num_classes'.*"):
+        _ = multiclass_auroc(pred=torch.rand((5, 4)).softmax(dim=1),
+                             target=torch.tensor([0, 1, 2, 2, 3]),
+                             num_classes=6)
+
+
+@pytest.mark.parametrize('n_cls', [2, 5, 10, 50])
+def test_multiclass_auroc_against_sklearn(n_cls):
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    n_samples = 300
+    pred = torch.rand(n_samples, n_cls, device=device).softmax(dim=1)
+    target = torch.randint(n_cls, (n_samples,), device=device)
+    # Make sure target includes all class labels so that multiclass AUROC is defined
+    target[10:10 + n_cls] = torch.arange(n_cls)
+
+    pl_score = multiclass_auroc(pred, target)
+    # For the binary case, sklearn expects an (n_samples,) array of probabilities of
+    # the positive class
+    pred = pred[:, 1] if n_cls == 2 else pred
+    sk_score = sk_roc_auc_score(target.cpu().detach().numpy(),
+                                pred.cpu().detach().numpy(),
+                                multi_class="ovr")
+
+    sk_score = torch.tensor(sk_score, dtype=torch.float, device=device)
+    assert torch.allclose(sk_score, pl_score)
 
 
 @pytest.mark.parametrize(['x', 'y', 'expected'], [
