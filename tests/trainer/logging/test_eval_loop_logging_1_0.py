@@ -18,7 +18,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning import Trainer
 from pytorch_lightning import callbacks, seed_everything
 from tests.base.deterministic_model import DeterministicModel
-from tests.base import SimpleModule, BoringModel
+from tests.base import SimpleModule, BoringModel, RandomDataset
 import os
 import torch
 import pytest
@@ -358,3 +358,32 @@ def test_monitor_val_epoch_end(tmpdir):
         checkpoint_callback=checkpoint_callback,
     )
     trainer.fit(model)
+
+
+def test_multi_dataloaders_add_suffix_properly(tmpdir):
+    class TestModel(BoringModel):
+
+        def test_step(self, batch, batch_idx, dataloader_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log("test_loss", loss, on_step=True, on_epoch=True)
+            return {"y": loss}
+
+        def test_dataloader(self):
+            return [torch.utils.data.DataLoader(RandomDataset(32, 64)),
+                    torch.utils.data.DataLoader(RandomDataset(32, 64))]
+
+    model = TestModel()
+    model.test_epoch_end = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=0,
+        limit_val_batches=0,
+        limit_test_batches=2,
+        max_epochs=1,
+        log_every_n_steps=1,
+        weights_summary=None,
+    )
+    results = trainer.test(model)
+    assert len(results[0]) == len(results[1])
