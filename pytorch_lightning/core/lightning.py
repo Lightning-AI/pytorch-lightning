@@ -1543,7 +1543,7 @@ class LightningModule(
     @torch.no_grad()
     def to_torchscript(
         self, file_path: Optional[Union[str, Path]] = None, method: Optional[str] = 'script',
-        example_inputs: Optional[Union[Tensor, Tuple[Tensor]]] = None, **kwargs
+        example_inputs: Optional[Union[Tensor, Sequence[Tensor]]] = None, **kwargs
     ) -> Union[ScriptModule, Dict[str, ScriptModule]]:
         """
         By default compiles the whole model to a :class:`~torch.jit.ScriptModule`.
@@ -1605,7 +1605,7 @@ class LightningModule(
 
             if isinstance(example_inputs, Tensor):
                 example_inputs = (example_inputs,)
-            elif not (isinstance(example_inputs, tuple) and all(isinstance(inp, Tensor) for inp in example_inputs)):
+            elif not (isinstance(example_inputs, collections.Sequence) and all(isinstance(inp, Tensor) for inp in example_inputs)):
                 raise ValueError(
                     "Could not export to torchscript since example_inputs is neither a Tensor nor tuple of Tensors"
                 )

@@ -76,6 +76,7 @@ class BoringModel(LightningModule):
         """
         super().__init__()
         self.layer = torch.nn.Linear(32, 2)
+        self.example_input_array = torch.rand(5, 32)
 
     def forward(self, x):
         return self.layer(x)

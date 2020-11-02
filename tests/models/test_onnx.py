@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from collections import namedtuple
 
 import numpy as np
 import onnxruntime
@@ -21,44 +22,44 @@ import torch
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
-from tests.base import EvalModelTemplate
+from tests.base import BoringModel
 
 
 def test_model_saves_with_input_sample(tmpdir):
     """Test that ONNX model saves with input sample and size is greater than 3 MB"""
-    model = EvalModelTemplate()
+    model = BoringModel()
     trainer = Trainer(max_epochs=1)
     trainer.fit(model)
 
     file_path = os.path.join(tmpdir, "model.onnx")
-    input_sample = torch.randn((1, 28 * 28))
+    input_sample = torch.randn((1, 32))
     model.to_onnx(file_path, input_sample)
     assert os.path.isfile(file_path)
-    assert os.path.getsize(file_path) > 3e+06
+    assert os.path.getsize(file_path) > 4e2
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_model_saves_on_gpu(tmpdir):
     """Test that model saves on gpu"""
-    model = EvalModelTemplate()
+    model = BoringModel()
     trainer = Trainer(gpus=1, max_epochs=1)
     trainer.fit(model)
 
     file_path = os.path.join(tmpdir, "model.onnx")
-    input_sample = torch.randn((1, 28 * 28))
+    input_sample = torch.randn((1, 32))
     model.to_onnx(file_path, input_sample)
     assert os.path.isfile(file_path)
-    assert os.path.getsize(file_path) > 3e+06
+    assert os.path.getsize(file_path) > 4e2
 
 
 def test_model_saves_with_example_output(tmpdir):
     """Test that ONNX model saves when provided with example output"""
-    model = EvalModelTemplate()
+    model = BoringModel()
     trainer = Trainer(max_epochs=1)
     trainer.fit(model)
 
     file_path = os.path.join(tmpdir, "model.onnx")
-    input_sample = torch.randn((1, 28 * 28))
+    input_sample = torch.randn((1, 32))
     model.eval()
     example_outputs = model.forward(input_sample)
     model.to_onnx(file_path, input_sample, example_outputs=example_outputs)
@@ -67,11 +68,11 @@ def test_model_saves_with_example_output(tmpdir):
 
 def test_model_saves_with_example_input_array(tmpdir):
     """Test that ONNX model saves with_example_input_array and size is greater than 3 MB"""
-    model = EvalModelTemplate()
+    model = BoringModel()
     file_path = os.path.join(tmpdir, "model.onnx")
     model.to_onnx(file_path)
     assert os.path.exists(file_path) is True
-    assert os.path.getsize(file_path) > 3e+06
+    assert os.path.getsize(file_path) > 4e2
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -89,7 +90,7 @@ def test_model_saves_on_multi_gpu(tmpdir):
         progress_bar_refresh_rate=0
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     tpipes.run_model_test(trainer_options, model)
 
@@ -100,7 +101,7 @@ def test_model_saves_on_multi_gpu(tmpdir):
 
 def test_verbose_param(tmpdir, capsys):
     """Test that output is present when verbose parameter is set"""
-    model = EvalModelTemplate()
+    model = BoringModel()
     file_path = os.path.join(tmpdir, "model.onnx")
     model.to_onnx(file_path, verbose=True)
     captured = capsys.readouterr()
@@ -109,7 +110,7 @@ def test_verbose_param(tmpdir, capsys):
 
 def test_error_if_no_input(tmpdir):
     """Test that an error is thrown when there is no input tensor"""
-    model = EvalModelTemplate()
+    model = BoringModel()
     model.example_input_array = None
     file_path = os.path.join(tmpdir, "model.onnx")
     with pytest.raises(ValueError, match=r'Could not export to ONNX since neither `input_sample` nor'
@@ -119,8 +120,8 @@ def test_error_if_no_input(tmpdir):
 
 def test_if_inference_output_is_valid(tmpdir):
     """Test that the output inferred from ONNX model is same as from PyTorch"""
-    model = EvalModelTemplate()
-    trainer = Trainer(max_epochs=5)
+    model = BoringModel()
+    trainer = Trainer(max_epochs=2)
     trainer.fit(model)
 
     model.eval()
@@ -143,29 +144,38 @@ def test_if_inference_output_is_valid(tmpdir):
     assert np.allclose(to_numpy(torch_out), ort_outs[0], rtol=1e-03, atol=1e-05)
 
 
-def test_model_saves_with_tuple_input(tmpdir):
+def test_model_saves_with_sequence_input(tmpdir):
     """Test that ONNX model saves when input is tuple of tensors"""
-    class CustomModel(EvalModelTemplate):
+    class CustomModel(BoringModel):
         def forward(self, x, y=None):
             return super().forward(x)
+
+    def test_onnx_export(model, input_sample):
+        file_path = os.path.join(tmpdir, "model.onnx")
+        model.to_onnx(file_path, input_sample)
+        assert os.path.exists(file_path) is True
 
     model = CustomModel()
     trainer = Trainer(max_epochs=1)
     trainer.fit(model)
 
-    file_path = os.path.join(tmpdir, "model.onnx")
-    input_sample = (torch.randn(1, 28 * 28), torch.randn(1, 28 * 28))
-    model.to_onnx(file_path, input_sample)
-    assert os.path.exists(file_path) is True
+    # tuple input
+    input_sample = (torch.randn(1, 32), torch.randn(1, 32))
+    test_onnx_export(model, input_sample)
 
-    input_sample = (torch.randn(1, 28 * 28), np.random.randn(1, 28 * 28))
+    # NamedTuple input
+    input_sample = namedtuple('sample', ['x', 'y'])
+    input_sample = input_sample(torch.randn(1, 32), torch.randn(1, 32))
+    test_onnx_export(model, input_sample)
+
     with pytest.raises(ValueError, match='neither a Tensor nor tuple of Tensors'):
-        model.to_onnx(file_path, input_sample)
+        input_sample = (torch.randn(1, 32), np.random.randn(1, 32))
+        test_onnx_export(model, input_sample)
 
 
 def test_error_with_invalid_input(tmpdir):
     """Test that an error is thrown with invalid input"""
-    class CustomModel(EvalModelTemplate):
+    class CustomModel(BoringModel):
         def forward(self, x):
             if isinstance(x, dict):
                 x = x['x']
@@ -177,7 +187,7 @@ def test_error_with_invalid_input(tmpdir):
     trainer.fit(model)
 
     file_path = os.path.join(tmpdir, "model.onnx")
-    input_sample = {'x': torch.randn((1, 28 * 28))}
+    input_sample = {'x': torch.randn((2, 32))}
 
     with pytest.raises(ValueError, match='neither a Tensor nor tuple of Tensors'):
         model.to_onnx(file_path, input_sample)

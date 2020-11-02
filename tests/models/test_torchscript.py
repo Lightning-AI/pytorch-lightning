@@ -13,17 +13,18 @@
 # limitations under the License.
 from distutils.version import LooseVersion
 import numpy as np
+from collections import namedtuple
 
 import pytest
 import torch
 
-from tests.base import EvalModelTemplate
+from tests.base import BoringModel
 from tests.base.datamodules import TrialMNISTDataModule
 from tests.base.models import ParityModuleRNN, BasicGAN
 
 
 @pytest.mark.parametrize("modelclass", [
-    EvalModelTemplate,
+    BoringModel,
     ParityModuleRNN,
     BasicGAN,
 ])
@@ -41,7 +42,7 @@ def test_torchscript_input_output(modelclass):
 
 
 @pytest.mark.parametrize("modelclass", [
-    EvalModelTemplate,
+    BoringModel,
     ParityModuleRNN,
     BasicGAN,
 ])
@@ -60,8 +61,8 @@ def test_torchscript_example_input_output_trace(modelclass):
 
 def test_torchscript_input_output_trace():
     """ Test that traced LightningModule forward works with example_inputs """
-    model = EvalModelTemplate()
-    example_inputs = torch.randn(1, 28 * 28)
+    model = BoringModel()
+    example_inputs = torch.randn(1, 32)
     script = model.to_torchscript(example_inputs=example_inputs, method='trace')
     assert isinstance(script, torch.jit.ScriptModule)
 
@@ -79,7 +80,7 @@ def test_torchscript_input_output_trace():
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
 def test_torchscript_device(device):
     """ Test that scripted module is on the correct device. """
-    model = EvalModelTemplate().to(device)
+    model = BoringModel().to(device)
     script = model.to_torchscript()
     assert next(script.parameters()).device == device
     script_output = script(model.example_input_array.to(device))
@@ -88,7 +89,7 @@ def test_torchscript_device(device):
 
 def test_torchscript_retain_training_state():
     """ Test that torchscript export does not alter the training mode of original model. """
-    model = EvalModelTemplate()
+    model = BoringModel()
     model.train(True)
     script = model.to_torchscript()
     assert model.training
@@ -100,7 +101,7 @@ def test_torchscript_retain_training_state():
 
 
 @pytest.mark.parametrize("modelclass", [
-    EvalModelTemplate,
+    BoringModel,
     ParityModuleRNN,
     BasicGAN,
 ])
@@ -119,7 +120,7 @@ def test_torchscript_properties(modelclass):
 
 
 @pytest.mark.parametrize("modelclass", [
-    EvalModelTemplate,
+    BoringModel,
     ParityModuleRNN,
     BasicGAN,
 ])
@@ -138,7 +139,7 @@ def test_torchscript_save_load(tmpdir, modelclass):
 
 def test_torchcript_invalid_method(tmpdir):
     """Test that an error is thrown with invalid torchscript method"""
-    model = EvalModelTemplate()
+    model = BoringModel()
     model.train(True)
 
     with pytest.raises(ValueError, match="only supports 'script' or 'trace'"):
@@ -147,38 +148,52 @@ def test_torchcript_invalid_method(tmpdir):
 
 def test_torchscript_with_no_input(tmpdir):
     """Test that an error is thrown when there is no input tensor"""
-    model = EvalModelTemplate()
+    model = BoringModel()
     model.example_input_array = None
 
     with pytest.raises(ValueError, match='requires either `example_inputs` or `model.example_input_array`'):
         model.to_torchscript(method='trace')
 
 
-def test_torchscript_with_tuple_input(tmpdir):
+def test_torchscript_with_sequence_input(tmpdir):
     """Test that traced LightningModule is created when input is tuple of tensors"""
-    class CustomModel(EvalModelTemplate):
+    class CustomModel(BoringModel):
         def forward(self, x, y=None):
             return super().forward(x)
 
-    example_inputs = (torch.randn(1, 28 * 28), torch.randn(1, 28 * 28))
+    def test_torchscript_export(model, example_inputs):
+        script = model.to_torchscript(example_inputs=example_inputs, method='trace')
+        assert isinstance(script, torch.jit.ScriptModule)
+
+        model.eval()
+        with torch.no_grad():
+            model_output = model(*example_inputs)
+            script_output = script(*example_inputs)
+        assert torch.allclose(script_output, model_output)
+
     model = CustomModel()
-    script = model.to_torchscript(example_inputs=example_inputs, method='trace')
-    assert isinstance(script, torch.jit.ScriptModule)
 
-    model.eval()
-    with torch.no_grad():
-        model_output = model(*example_inputs)
-        script_output = script(*example_inputs)
-    assert torch.allclose(script_output, model_output)
+    # tuple input
+    example_inputs = (torch.randn(1, 32), torch.randn(1, 32))
+    test_torchscript_export(model, example_inputs)
 
-    example_inputs = (torch.randn(1, 28 * 28), np.random.randn(1, 28 * 28))
+    # list input
+    example_inputs = [torch.randn(1, 32), torch.randn(1, 32)]
+    test_torchscript_export(model, example_inputs)
+
+    # NamedTuple input
+    example_inputs = namedtuple('sample', ['x', 'y'])
+    example_inputs = example_inputs(torch.randn(1, 32), torch.randn(1, 32))
+    test_torchscript_export(model, example_inputs)
+
     with pytest.raises(ValueError, match='neither a Tensor nor tuple of Tensors'):
-        model.to_torchscript(example_inputs=example_inputs, method='trace')
+        example_inputs = (torch.randn(1, 32), np.random.randn(1, 32))
+        test_torchscript_export(model, example_inputs)
 
 
 def test_error_with_invalid_input(tmpdir):
     """Test that an error is thrown with invalid input"""
-    class CustomModel(EvalModelTemplate):
+    class CustomModel(BoringModel):
         def forward(self, x):
             if isinstance(x, dict):
                 x = x['x']
@@ -186,7 +201,7 @@ def test_error_with_invalid_input(tmpdir):
             return super().forward(x)
 
     model = CustomModel()
-    example_inputs = {'x': torch.randn(1, 28 * 28)}
+    example_inputs = {'x': torch.randn(1, 32)}
 
     with pytest.raises(ValueError, match='neither a Tensor nor tuple of Tensors'):
         model.to_torchscript(example_inputs=example_inputs, method='trace')
