@@ -50,6 +50,10 @@ class DDPPipeAccelerator(DDPAccelerator):
         self.nickname = 'ddp_pipe'
         self.pipe_module = None  # Initialized at model setup
 
+    def setup(self, model):
+        self.pipe_module = self._find_pipe_module(model)
+        super().setup(model)
+
     def init_ddp_connection(
             self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
     ) -> None:
@@ -84,7 +88,6 @@ class DDPPipeAccelerator(DDPAccelerator):
     def model_to_device(self, model, process_idx):
         self.trainer.root_gpu = self.trainer.data_parallel_device_ids[self.trainer.local_rank]
         torch.cuda.set_device(self.trainer.root_gpu)
-        self.pipe_module = self._find_pipe_module(model)
         self.pipe_module.init_pipe()
         model.cuda(self.trainer.root_gpu)
 
