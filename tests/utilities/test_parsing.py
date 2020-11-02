@@ -140,7 +140,7 @@ def test_clean_namespace(tmpdir):
     def unpicklable_function():
         pass
 
-    test_cases = {
+    test_case = {
         "1": None,
         "2": True,
         "3": 123,
@@ -148,6 +148,6 @@ def test_clean_namespace(tmpdir):
         "5": UnpicklableClass,
     }
 
-    clean_namespace(test_cases)
+    clean_namespace(test_case)
 
-    assert test_cases == {"1": None, "2": True, "3": 123}
+    assert test_case == {"1": None, "2": True, "3": 123}
