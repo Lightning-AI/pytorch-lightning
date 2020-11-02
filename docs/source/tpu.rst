@@ -134,7 +134,7 @@ TPU core training
 
 Lightning supports training on a single TPU core or 8 TPU cores.
 
-The Trainer parameters `tpu_cores` defines how many TPU cores to train on (1 or 8) / Single TPU to train on [1].
+The Trainer parameters ``tpu_cores`` defines how many TPU cores to train on (1 or 8) / Single TPU to train on [1].
 
 For Single TPU training, Just pass the TPU core ID [1-8] in a list.
 
