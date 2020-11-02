@@ -1575,7 +1575,7 @@ class LightningModule(
         Args:
             file_path: Path where to save the torchscript. Default: None (no file saved).
             method: Whether to use TorchScript's script or trace method. Default: 'script'
-            example_inputs: An input tensor or tuple of tensors to be used to do tracing when method is set to 'trace'.
+            example_inputs: An input tensor or tuple/list of tensors to be used to do tracing when method is set to 'trace'.
               Default: None (Use self.example_input_array)
             **kwargs: Additional arguments that will be passed to the :func:`torch.jit.script` or
               :func:`torch.jit.trace` function.
