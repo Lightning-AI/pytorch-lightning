@@ -250,9 +250,10 @@ class EvaluationLoop(object):
         # depre warning
         if eval_results is not None and user_reduced:
             step = 'testing_epoch_end' if self.testing else 'validation_epoch_end'
-            m = f'The {step} should not return anything as of 9.1.' \
-                f'to log, use self.log(...) or self.write(...) directly in the LightningModule'
-            self.warning_cache.warn(m)
+            self.warning_cache.warn(
+                f'The {step} should not return anything as of 9.1.'
+                ' To log, use self.log(...) or self.write(...) directly in the LightningModule'
+            )
 
         if using_eval_result and not user_reduced:
             eval_results = self.__auto_reduce_result_objs(outputs)
