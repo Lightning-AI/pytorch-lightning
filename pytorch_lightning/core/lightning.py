@@ -111,6 +111,7 @@ class LightningModule(
         self._datamodule = None
         self._results: Optional[Result] = None
         self._current_fx_name = ''
+        self._running_manual_optim = False
 
     def optimizers(self):
         opts = self.trainer.optimizers
@@ -1078,8 +1079,10 @@ class LightningModule(
         # make sure we're using manual opt
         self._verify_is_manual_optimization('manual_backward')
 
+        self._running_manual_optim = True
         # backward
         self.trainer.train_loop.backward(loss, optimizer, -1, *args, **kwargs)
+        self._running_manual_optim = False
 
     def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
         """
@@ -1100,7 +1103,7 @@ class LightningModule(
                 loss.backward()
 
         """
-        if self.trainer.train_loop.automatic_optimization:
+        if self.trainer.train_loop.automatic_optimization or self._running_manual_optim:
             loss.backward(*args, **kwargs)
         self.trainer.train_loop.track_and_norm_grad(optimizer=optimizer)
 
