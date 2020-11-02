@@ -17,6 +17,7 @@ from pytorch_lightning.utilities.parsing import lightning_getattr
 from pytorch_lightning.utilities.parsing import lightning_hasattr
 from pytorch_lightning.utilities.parsing import lightning_setattr
 from pytorch_lightning.utilities.parsing import str_to_bool_or_str
+from pytorch_lightning.utilities.parsing import str_to_bool
 
 
 def _get_test_cases():
@@ -90,3 +91,19 @@ def test_str_to_bool_or_str(tmpdir):
 
     for case in other_cases:
         assert str_to_bool_or_str(case) == case
+
+
+def test_str_to_bool(tmpdir):
+    true_cases = ['y', 'yes', 't', 'true', 'on', '1']
+    false_cases = ['n', 'no', 'f', 'false', 'off', '0']
+    other_cases = ['yyeess', 'noooo', 'lightning']
+
+    for case in true_cases:
+        assert str_to_bool(case) is True
+
+    for case in false_cases:
+        assert str_to_bool(case) is False
+
+    for case in other_cases:
+        with pytest.raises(ValueError):
+            str_to_bool(case)
