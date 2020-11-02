@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from pprint import pprint
-from typing import Iterable, Union
+from typing import Iterable, Union, cast
 from copy import deepcopy
 from collections import ChainMap
 import torch
@@ -251,12 +251,15 @@ class LoggerConnector:
                 continue
 
             reduced_epoch_metrics = dl_metrics[0].__class__.reduce_on_epoch_end(dl_metrics)
-            # make the keys 'k/dl'
-            reduced_epoch_metrics = self.__rename_keys_by_dataloader_idx(reduced_epoch_metrics, dl_idx, num_loaders)
 
             # track the metrics
             logger_metrics = reduced_epoch_metrics.get_epoch_log_metrics()
             pbar_metrics = reduced_epoch_metrics.get_epoch_pbar_metrics()
+
+            # make the keys 'k/dl'
+            logger_metrics = self.__rename_keys_by_dataloader_idx(logger_metrics, dl_idx, num_loaders)
+            pbar_metrics = self.__rename_keys_by_dataloader_idx(pbar_metrics, dl_idx, num_loaders)
+
             self.logged_metrics.update(logger_metrics)
             self.add_progress_bar_metrics(pbar_metrics)
 
@@ -301,6 +304,7 @@ class LoggerConnector:
             else:
                 self.trainer.logger_connector.callback_metrics.update(eval_results.callback_metrics)
         else:
+            flat = {}
             if isinstance(eval_results, list):
                 for eval_result in eval_results:
                     # with a scalar return, auto set it to "val_loss" for callbacks

@@ -496,10 +496,10 @@ class EpochResultStore:
 
     def reset(self):
         self._internals = {}
-        self._dataloader_idx = None
-        self._split_idx = None
-        self._opt_idx = None
-        self._batch_size = None
+        self._dataloader_idx: Union[int, None] = None
+        self._split_idx: Union[int, None] = None
+        self._opt_idx: Union[int, None] = None
+        self._batch_size: Union[int, None] = None
         self._has_batch_loop_finished = False
 
     def __repr__(self):
