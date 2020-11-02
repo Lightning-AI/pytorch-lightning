@@ -15,6 +15,12 @@ from pytorch_lightning.profiler.profilers import PassThroughProfiler, SimpleProf
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
+def test_tbd_remove_in_v1_3_0(tmpdir):
+    with pytest.deprecated_call(match='will no longer be supported in v1.3'):
+        callback = ModelCheckpoint()
+        Trainer(checkpoint_callback=callback, callbacks=[], default_root_dir=tmpdir)
+
+
 def test_tbd_remove_in_v1_2_0():
     with pytest.deprecated_call(match='will be removed in v1.2'):
         checkpoint_cb = ModelCheckpoint(filepath='.')
