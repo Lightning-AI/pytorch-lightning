@@ -52,10 +52,10 @@ class LoggerStages(Enum):
     TEST = "test"
 
 
-class StorageType(Enum):
+class ResultStoreType(Enum):
 
     INSIDE_BATCH_TRAIN_LOOP = "inside_batch_train_loop"
-    ELSE = "else"
+    OUTSIDE_BATCH_TRAIN_LOOP = "outside_batch_train_loop"
 
 
 class HookResultStore:
@@ -131,7 +131,7 @@ class HookResultStore:
         if latest:
             for dl_idx in range(self.num_dataloaders):
                 dl_idx = str(dl_idx)
-                if self._internal_type == StorageType.ELSE:
+                if self._internal_type == ResultStoreType.OUTSIDE_BATCH_TRAIN_LOOP:
                     latest_result = self._internals[dl_idx][-1]
                 else:
                     latest_result = self.get_latest_from_dict(dl_idx)
@@ -200,7 +200,7 @@ class HookResultStore:
 
         # [dataloader_idx][optimizer_idx][training_step_idx] is a list
         if len(extra_info) > 0:
-            self._internal_type = StorageType.INSIDE_BATCH_TRAIN_LOOP
+            self._internal_type = ResultStoreType.INSIDE_BATCH_TRAIN_LOOP
             # initialize dictionary
             if primary_key not in self._internals:
                 self._internals[primary_key] = {}
@@ -214,7 +214,7 @@ class HookResultStore:
 
         # [dataloader_idx] is a list
         else:
-            self._internal_type = StorageType.ELSE
+            self._internal_type = ResultStoreType.OUTSIDE_BATCH_TRAIN_LOOP
             if primary_key not in self._internals:
                 self._internals[primary_key] = []
             self._internals[primary_key].append(result)
@@ -233,7 +233,7 @@ class HookResultStore:
                 dl_idx = str(dl_idx)
                 epoch_metrics = self._internals[dl_idx]
 
-                if self._internal_type == StorageType.INSIDE_BATCH_TRAIN_LOOP:
+                if self._internal_type == ResultStoreType.INSIDE_BATCH_TRAIN_LOOP:
 
                     num_opt_idx = len(self._internals[dl_idx]) - 1
 
