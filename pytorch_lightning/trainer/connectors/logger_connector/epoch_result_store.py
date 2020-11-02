@@ -53,7 +53,6 @@ class LoggerStages(Enum):
 
 
 class ResultStoreType(Enum):
-
     INSIDE_BATCH_TRAIN_LOOP = "inside_batch_train_loop"
     OUTSIDE_BATCH_TRAIN_LOOP = "outside_batch_train_loop"
 
