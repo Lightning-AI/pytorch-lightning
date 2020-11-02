@@ -183,7 +183,7 @@ def test_torchscript_with_sequence_input(tmpdir):
 
     # NamedTuple input
     example_inputs = namedtuple('sample', ['x', 'y'])
-    example_inputs = example_inputs(torch.randn(1, 32), torch.randn(1, 32))
+    example_inputs = example_inputs(x=torch.randn(1, 32), y=torch.randn(1, 32))
     test_torchscript_export(model, example_inputs)
 
     with pytest.raises(ValueError, match='neither a Tensor nor tuple of Tensors'):

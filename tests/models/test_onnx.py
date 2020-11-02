@@ -165,7 +165,7 @@ def test_model_saves_with_sequence_input(tmpdir):
 
     # NamedTuple input
     input_sample = namedtuple('sample', ['x', 'y'])
-    input_sample = input_sample(torch.randn(1, 32), torch.randn(1, 32))
+    input_sample = input_sample(x=torch.randn(1, 32), y=torch.randn(1, 32))
     test_onnx_export(model, input_sample)
 
     with pytest.raises(ValueError, match='neither a Tensor nor tuple of Tensors'):
