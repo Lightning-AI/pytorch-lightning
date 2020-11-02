@@ -14,6 +14,7 @@ from pytorch_lightning import LightningModule
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators import DDPAccelerator
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def get_worker_map():
@@ -43,11 +44,11 @@ class LightningPipeModule(nn.Module):
         return x
 
 
-class PipeAccelerator(DDPAccelerator):
-    def __init__(self, pipe_module: LightningPipeModule, trainer=None, cluster_environment=None, ddp_plugin=None):
+class DDPPipeAccelerator(DDPAccelerator):
+    def __init__(self, trainer=None, cluster_environment=None, ddp_plugin=None):
         super().__init__(trainer, cluster_environment, ddp_plugin)
-        self.pipe_module = pipe_module
         self.nickname = 'ddp_pipe'
+        self.pipe_module = None  # Initialized at model setup
 
     def init_ddp_connection(
             self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
@@ -83,8 +84,24 @@ class PipeAccelerator(DDPAccelerator):
     def model_to_device(self, model, process_idx):
         self.trainer.root_gpu = self.trainer.data_parallel_device_ids[self.trainer.local_rank]
         torch.cuda.set_device(self.trainer.root_gpu)
+        self.pipe_module = self._find_pipe_module(model)
         self.pipe_module.init_pipe()
         model.cuda(self.trainer.root_gpu)
+
+    def _find_pipe_module(self, model):
+        pipe_module = None
+        found_module = False
+        for m in model.modules():
+            if type(m) is LightningPipeModule:
+                pipe_module = m
+                if found_module:
+                    raise MisconfigurationException('Currently DDP Pipe only supports one PipeLightningModule')
+                found_module = True
+        if not found_module:
+            raise MisconfigurationException(
+                'Could not find a PipeLightningModule within the model. '
+                'Did you wrap your sequential model with the PipeLightningModule class?')
+        return pipe_module
 
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]

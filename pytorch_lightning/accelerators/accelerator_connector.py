@@ -15,7 +15,7 @@ from pytorch_lightning import accelerators
 import os
 import torch
 
-from pytorch_lightning.accelerators.pipe_accelerator import PipeAccelerator
+from pytorch_lightning.accelerators.pipe_accelerator import DDPPipeAccelerator
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
@@ -187,9 +187,6 @@ class AcceleratorConnector:
         if self.accelerator is not None and isinstance(self.accelerator, Accelerator):
             self.accelerator.trainer = self.trainer
             self.accelerator.ddp_plugin = self.trainer.plugin_connector.ddp_plugin
-            if type(self.accelerator) == PipeAccelerator:
-                self.trainer.num_processes = self.trainer.num_gpus
-                self.trainer.use_pipe = True
             acc = self.accelerator
             return acc
 
@@ -221,6 +218,12 @@ class AcceleratorConnector:
                 self.trainer,
                 cluster_env,
                 self.trainer.plugin_connector.ddp_plugin
+            )
+
+        elif self.trainer.use_ddp_pipe:
+            accelerator_backend = accelerators.DDPPipeAccelerator(
+                self.trainer,
+                cluster_env
             )
 
         elif use_ddp_cpu_slurm:
@@ -299,7 +302,7 @@ class AcceleratorConnector:
         self.trainer.use_dp = False
         self.trainer.use_ddp = False
         self.trainer.use_ddp2 = False
-        self.trainer.use_pipe = False
+        self.trainer.use_ddp_pipe = False
         self.trainer.use_horovod = False
         self.trainer.use_single_gpu = False
 
@@ -338,6 +341,9 @@ class AcceleratorConnector:
                 self.trainer.use_ddp = True
                 self.trainer.num_processes = self.trainer.num_gpus
 
+        elif self.trainer.distributed_backend == "ddp_pipe":
+            self.trainer.use_ddp_pipe = True
+            self.trainer.num_processes = self.trainer.num_gpus
         elif self.trainer.distributed_backend == "ddp2":
             # do nothing if num_gpus == 0
             if self.trainer.num_gpus >= 1:
