@@ -111,7 +111,7 @@ class ModelCheckpoint(Callback):
 
         # saves checkpoints to 'my/path/' at every epoch
         >>> checkpoint_callback = ModelCheckpoint(dirpath='my/path/')
-        >>> trainer = Trainer(checkpoint_callback=checkpoint_callback)
+        >>> trainer = Trainer(callbacks=[checkpoint_callback])
 
         # save epoch and val_loss in name
         # saves a file like: my/path/sample-mnist-epoch=02-val_loss=0.32.ckpt
@@ -123,7 +123,7 @@ class ModelCheckpoint(Callback):
 
         # retrieve the best checkpoint after training
         checkpoint_callback = ModelCheckpoint(dirpath='my/path/')
-        trainer = Trainer(checkpoint_callback=checkpoint_callback)
+        trainer = Trainer(callbacks=[checkpoint_callback])
         model = ...
         trainer.fit(model)
         checkpoint_callback.best_model_path
