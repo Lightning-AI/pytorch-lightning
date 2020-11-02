@@ -37,7 +37,7 @@ from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
-from tests.base import EvalModelTemplate
+from tests.base import EvalModelTemplate, BoringModel
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -751,7 +751,7 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
 def test_disabled_training(tmpdir):
     """Verify that `limit_train_batches=0` disables the training loop unless `fast_dev_run=True`."""
 
-    class CurrentModel(EvalModelTemplate):
+    class CurrentModel(BoringModel):
 
         training_step_invoked = False
         training_epoch_end_invoked = False
@@ -764,8 +764,7 @@ def test_disabled_training(tmpdir):
             self.training_epoch_end_invoked = True
             return super().training_epoch_end(*args, **kwargs)
 
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = CurrentModel(**hparams)
+    model = CurrentModel()
 
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -793,7 +792,7 @@ def test_disabled_training(tmpdir):
     assert not model.training_epoch_end_invoked, "`training_epoch_end` should not run when `limit_train_batches=0`"
 
     # check that limit_train_batches has no influence when fast_dev_run is turned on
-    model = CurrentModel(**hparams)
+    model = CurrentModel()
     trainer_options.update(fast_dev_run=True)
     before_state_dict = deepcopy(model.state_dict())
 
