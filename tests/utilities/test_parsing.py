@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
+import pickle
 
 from pytorch_lightning.utilities.parsing import lightning_getattr
 from pytorch_lightning.utilities.parsing import lightning_hasattr
 from pytorch_lightning.utilities.parsing import lightning_setattr
 from pytorch_lightning.utilities.parsing import str_to_bool_or_str
 from pytorch_lightning.utilities.parsing import str_to_bool
+from pytorch_lightning.utilities.parsing import is_picklable
 
 
 def _get_test_cases():
@@ -107,3 +109,24 @@ def test_str_to_bool(tmpdir):
     for case in other_cases:
         with pytest.raises(ValueError):
             str_to_bool(case)
+
+
+def test_is_picklable(tmpdir):
+    # See the full list of picklable types at
+    # https://docs.python.org/3/library/pickle.html#pickle-picklable
+    class UnpicklableClass:
+        # Only classes defined at the top level of a module are picklable.
+        pass
+
+    def unpicklable_function():
+        # Only functions defined at the top level of a module are picklable.
+        pass
+    
+    true_cases = [None, True, 123, "str", (123, "str"), max]
+    false_cases = [unpicklable_function, UnpicklableClass]
+
+    for case in true_cases:
+        assert is_picklable(case) is True
+        
+    for case in false_cases:
+        assert is_picklable(case) is False
