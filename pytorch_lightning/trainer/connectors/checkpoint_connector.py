@@ -44,18 +44,6 @@ else:
     OMEGACONF_AVAILABLE = True
 
 
-# [Save & Load scheme]
-#                 <<========= save =========>>              <<========== load ==========>>
-#                 dump                   write              read                   restore
-# various states -----> checkpoint dict ------> .ckpt file -----> checkpoint dict --------> various states
-#                                         |                  |
-#    filename -----------------------------      filename-----
-#
-# [corresponding implementation]
-#                 <<== `save_checkpoint` ===>>              <<====== `restore` ========>>
-#              `dump_checkpoint`   `atomic_save`            `pl_load`   (part of) `restore`
-
-
 class CheckpointConnector:
 
     def __init__(self, trainer):
@@ -95,7 +83,7 @@ class CheckpointConnector:
 
     def restore(self, checkpoint_path: str, on_gpu: bool):
         """
-        Restore model state and training state from checkpoint.
+        Load model/training states from the checkpoint file through file-read and state-restore.
         Also restores all training state like:
         - epoch
         - callbacks
@@ -111,6 +99,7 @@ class CheckpointConnector:
         # read a checkpoint dictionary object from the checkpoint file at `checkpoint_path`
         checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
 
+        # restore states from the checkpoint dictionary object
         # load model state
         model = self.trainer.get_model()
 
@@ -388,10 +377,17 @@ class CheckpointConnector:
         return max(ckpt_vs)
 
     def save_checkpoint(self, filepath, weights_only: bool = False):
+        """Save model/training states as a checkpoint file through state-dump and file-write.
+
+        Args:
+            filepath: write-target file's path
+            weights_only: saving model weights only
+        """
+        # dump states as a checkpoint dictionary object
         checkpoint = self.dump_checkpoint(weights_only)
 
         if self.trainer.is_global_zero:
-            # do the actual save
+            # write the checkpoint dictionary on the file
             try:
                 atomic_save(checkpoint, filepath)
             except AttributeError as err:
