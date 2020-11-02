@@ -215,7 +215,10 @@ class LoggerConnector:
     def add_to_eval_loop_results(self, dl_idx, num_loaders):
         callback_metrics = deepcopy(self.callback_metrics)
         if num_loaders == 1:
-            self.eval_loop_results[0].update(callback_metrics)
+            if len(self.eval_loop_results) > 0:
+                self.eval_loop_results[0].update(callback_metrics)
+            else:
+                self.eval_loop_results.append(callback_metrics)
             return
 
         for key in list(callback_metrics.keys()):
