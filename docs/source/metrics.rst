@@ -194,6 +194,12 @@ ConfusionMatrix
 .. autoclass:: pytorch_lightning.metrics.classification.ConfusionMatrix
     :noindex:
 
+PrecisionRecallCurve
+~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.PrecisionRecallCurve
+    :noindex:
+
 Regression Metrics
 ------------------
 
@@ -344,7 +350,7 @@ precision_recall [func]
 precision_recall_curve [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.precision_recall_curve
+.. autofunction:: pytorch_lightning.metrics.functional.precision_recall_curve
     :noindex:
 
 
