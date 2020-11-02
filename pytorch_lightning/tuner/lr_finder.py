@@ -29,6 +29,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
@@ -38,9 +39,9 @@ else:
     from tqdm import tqdm
 
 
-def _run_lr_finder_internally(trainer, fs, model: LightningModule):
+def _run_lr_finder_internally(trainer, model: LightningModule):
     """ Call lr finder internally during Trainer.fit() """
-    lr_finder = lr_find(trainer, fs, model)
+    lr_finder = lr_find(trainer, model)
     lr = lr_finder.suggestion()
 
     # TODO: log lr.results to self.logger
@@ -67,7 +68,6 @@ def _run_lr_finder_internally(trainer, fs, model: LightningModule):
 
 def lr_find(
         trainer,
-        fs,
         model: LightningModule,
         train_dataloader: Optional[DataLoader] = None,
         val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
@@ -182,9 +182,11 @@ def lr_find(
     lr_finder._total_batch_idx = trainer.total_batch_idx  # for debug purpose
 
     # Reset model state
-    trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer.on_gpu)
-    if fs.exists(save_path):
-        fs.rm(save_path)
+    if trainer.is_global_zero:
+        trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer.on_gpu)
+        fs = get_filesystem(str(save_path))
+        if fs.exists(save_path):
+            fs.rm(save_path)
 
     # Finish by resetting variables so trainer is ready to fit model
     __lr_finder_restore_params(trainer, model)

@@ -22,10 +22,10 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import is_oom_error, garbage_collection_cuda
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning import _logger as log
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 
 def scale_batch_size(trainer,
-                     fs,
                      model: LightningModule,
                      mode: str = 'power',
                      steps_per_trial: int = 3,
@@ -110,9 +110,11 @@ def scale_batch_size(trainer,
     log.info(f'Finished batch size finder, will continue with full run using batch size {new_size}')
 
     # Restore initial state of model
-    trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer.on_gpu)
-    if fs.exists(save_path):
-        fs.rm(save_path)
+    if trainer.is_global_zero:
+        trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer.on_gpu)
+        fs = get_filesystem(str(save_path))
+        if fs.exists(save_path):
+            fs.rm(save_path)
 
     # Finish by resetting variables so trainer is ready to fit model
     __scale_batch_restore_params(trainer)

@@ -21,7 +21,6 @@ from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.tuner.lr_finder import _run_lr_finder_internally, lr_find
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 
 class Tuner:
@@ -32,8 +31,6 @@ class Tuner:
     def on_trainer_init(self, auto_lr_find, auto_scale_batch_size):
         self.trainer.auto_lr_find = auto_lr_find
         self.trainer.auto_scale_batch_size = auto_scale_batch_size
-        dirpath = self.trainer.default_root_dir
-        self._fs = get_filesystem(str(dirpath) if dirpath else '')
 
     def tune(self, model, train_dataloader, val_dataloaders, datamodule):
         # setup data, etc...
@@ -60,14 +57,16 @@ class Tuner:
             self.internal_find_lr(model)
             model.logger = self.trainer.logger  # reset logger binding
 
-    def scale_batch_size(self,
-                         model,
-                         mode: str = 'power',
-                         steps_per_trial: int = 3,
-                         init_val: int = 2,
-                         max_trials: int = 25,
-                         batch_arg_name: str = 'batch_size',
-                         **fit_kwargs):
+    def scale_batch_size(
+            self,
+            model,
+            mode: str = 'power',
+            steps_per_trial: int = 3,
+            init_val: int = 2,
+            max_trials: int = 25,
+            batch_arg_name: str = 'batch_size',
+            **fit_kwargs
+    ):
         r"""
         Will iteratively try to find the largest batch size for a given model
         that does not give an out of memory (OOM) error.
@@ -106,7 +105,6 @@ class Tuner:
         """
         return scale_batch_size(
             self.trainer,
-            self._fs,
             model,
             mode,
             steps_per_trial,
@@ -130,7 +128,6 @@ class Tuner:
     ):
         return lr_find(
             self.trainer,
-            self._fs,
             model,
             train_dataloader,
             val_dataloaders,
@@ -143,7 +140,7 @@ class Tuner:
         )
 
     def internal_find_lr(self, model: LightningModule):
-        return _run_lr_finder_internally(self.trainer, self._fs, model)
+        return _run_lr_finder_internally(self.trainer, model)
 
     def pick_multiple_gpus(self, num_gpus: int):
         return pick_multiple_gpus(num_gpus)
