@@ -19,8 +19,31 @@ from typing import Union, Tuple, Any, Mapping
 
 from pytorch_lightning.core.step_result import Result
 
+
 # used to map boolean to right LoggerStage values
-LOOKUP_TABLE = {"1": "test", "0": "validation", "True": "test", "False": "validation"}
+class FrozenDict(dict):
+    def __init__(self, *args, **kwargs):
+        self._hash = None
+        super(FrozenDict, self).__init__(*args, **kwargs)
+
+    def __hash__(self):
+        if self._hash is None:
+            self._hash = hash(tuple(sorted(self.items())))  # iteritems() on py2
+        return self._hash
+
+    def _immutable(self, *args, **kws):
+        raise TypeError('cannot change object - object is immutable')
+
+    __setitem__ = _immutable
+    __delitem__ = _immutable
+    pop = _immutable
+    popitem = _immutable
+    clear = _immutable
+    update = _immutable
+    setdefault = _immutable
+
+
+LOOKUP_TABLE = FrozenDict({"1": "test", "0": "validation", "True": "test", "False": "validation"})
 
 
 class LoggerStages(Enum):

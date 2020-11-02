@@ -33,8 +33,6 @@ from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store im
 
 class LoggerConnector:
 
-    __lookup_stages = LOOKUP_TABLE
-
     def __init__(self, trainer):
         self.trainer = trainer
         self.callback_metrics = {}
@@ -52,13 +50,13 @@ class LoggerConnector:
         stages = self._stages
         if stage_or_testing in self._stages:
             return self._cached_results[stage_or_testing]
-        if stage_or_testing in self.__lookup_stages:
+        if stage_or_testing in LOOKUP_TABLE:
             # Acces using trainer.testing
-            stage = self.__lookup_stages[stage_or_testing]
+            stage = LOOKUP_TABLE[stage_or_testing]
             return self._cached_results[stage]
         raise MisconfigurationException(
             f"Provide stage_or_testing {stage_or_testing} doesn't belong either to {self._stages}"
-            f" or {self.__lookup_stages.keys()}"
+            f" or {LOOKUP_TABLE.keys()}"
         )
 
     def set_stage(self, stage_or_testing: str, reset:bool = False) -> None:
@@ -94,12 +92,12 @@ class LoggerConnector:
         stages = self._stages
         if stage_or_testing in stages:
             return stage_or_testing
-        if stage_or_testing in self.__lookup_stages:
+        if stage_or_testing in LOOKUP_TABLE:
             # Acces using trainer.testing
-            return self.__lookup_stages[stage_or_testing]
+            return LOOKUP_TABLE[stage_or_testing]
         raise MisconfigurationException(
             f"Provide stage_or_testing {stage_or_testing} doesn't belong either to {stages}"
-            f" or {self.__lookup_stages.keys()}"
+            f" or {LOOKUP_TABLE.keys()}"
         )
 
     def cache_logged_metrics(self) -> Union[EpochResultStore, None]:
