@@ -188,6 +188,12 @@ Fbeta
 .. autoclass:: pytorch_lightning.metrics.classification.Fbeta
     :noindex:
 
+ConfusionMatrix
+~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.ConfusionMatrix
+    :noindex:
+
 Regression Metrics
 ------------------
 
@@ -265,6 +271,13 @@ auroc [func]
     :noindex:
 
 
+multiclass_auroc [func]
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.multiclass_auroc
+    :noindex:
+
+
 average_precision [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -275,7 +288,7 @@ average_precision [func]
 confusion_matrix [func]
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.confusion_matrix
+.. autofunction:: pytorch_lightning.metrics.functional.confusion_matrix
     :noindex:
 
 

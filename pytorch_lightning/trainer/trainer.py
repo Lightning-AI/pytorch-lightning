@@ -86,7 +86,7 @@ class Trainer(
     def __init__(
         self,
         logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
-        checkpoint_callback: Union[ModelCheckpoint, bool] = True,
+        checkpoint_callback: bool = True,
         callbacks: Optional[List[Callback]] = None,
         default_root_dir: Optional[str] = None,
         gradient_clip_val: float = 0,
@@ -170,7 +170,12 @@ class Trainer(
 
             callbacks: Add a list of callbacks.
 
-            checkpoint_callback: Callback for checkpointing.
+            checkpoint_callback: If ``True``, enable checkpointing.
+                It will configure a default ModelCheckpoint callback if there is no user-defined ModelCheckpoint in
+                :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks`. Default: ``True``.
+
+                .. warning:: Passing a ModelCheckpoint instance to this argument is deprecated since
+                    v1.1.0 and will be unsupported from v1.3.0.
 
             check_val_every_n_epoch: Check val every n train epochs.
 
@@ -300,7 +305,6 @@ class Trainer(
 
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init
-        self.checkpoint_callback: Union[ModelCheckpoint, bool] = checkpoint_callback
         self.callback_connector.on_trainer_init(
             callbacks,
             checkpoint_callback,
