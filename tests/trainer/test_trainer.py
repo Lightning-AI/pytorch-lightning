@@ -313,7 +313,6 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_bat
         def on_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
             self.on_train_batch_start_end_dict = self.state_dict()
             for key in self.on_train_batch_start_end_dict.keys():
-                # exclude the check for batch_norm parameters
                 if (batch_idx + 1) == self.trainer.num_training_batches:
                     assert torch.equal(self.on_train_batch_start_state_dict[key], self.on_train_batch_start_end_dict[key])
                 else:
