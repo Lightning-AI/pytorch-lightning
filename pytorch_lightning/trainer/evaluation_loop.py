@@ -368,8 +368,7 @@ class EvaluationLoop(object):
     def log_evaluation_step_metrics_legacy(self, output, batch_idx):
         if isinstance(output, EvalResult):
             return output.get_batch_log_metrics(include_forked_originals=False)
-        else:
-            return {}
+        return {}
 
     def __log_result_step_metrics(self, step_log_metrics, batch_idx):
         cached_results = self.trainer.logger_connector.cached_results(self.testing)
