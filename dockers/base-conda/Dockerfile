@@ -74,7 +74,7 @@ ENV CONDA_ENV=lightning
 COPY environment.yml environment.yml
 
 # conda init
-RUN conda create -y --name $CONDA_ENV && \
+RUN conda create -y --name $CONDA_ENV cudatoolkit=${CUDA_VERSION} && \
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages
     # replace channel to nigtly if needed, fix PT version and remove Horovod as it will be installe later
