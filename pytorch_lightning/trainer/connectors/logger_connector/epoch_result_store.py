@@ -29,7 +29,7 @@ class LoggerStages(Enum):
     TEST = "test"
 
 
-class StorageType:
+class StorageType(Enum):
 
     INSIDE_BATCH_TRAIN_LOOP = "inside_batch_train_loop"
     ELSE = "else"
