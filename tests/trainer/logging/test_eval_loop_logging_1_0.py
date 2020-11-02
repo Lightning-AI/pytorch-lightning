@@ -417,5 +417,5 @@ def test_single_dataloader_no_suffix_added(tmpdir):
     )
     results = trainer.test(model)
     assert len(results) == 1
-    # TODO: It is wrong there. `y` should equal test_loss_epoch
+    # error : It is wrong there. `y` should equal test_loss_epoch
     assert results[0]['test_loss'] == results[0]['y']
