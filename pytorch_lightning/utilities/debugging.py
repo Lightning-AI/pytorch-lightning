@@ -42,8 +42,6 @@ class InternalDebugger(object):
         self.logged_metrics = []
         self.pbar_added_metrics = []
         self.saved_train_losses = []
-        self.saved_train_accumulated_losses = []
-        self.saved_train_running_losses = []
         self.saved_val_losses = []
         self.saved_test_losses = []
         self.early_stopping_history = []
@@ -120,30 +118,6 @@ class InternalDebugger(object):
     def track_train_loss_history(self, batch_idx, loss):
         loss_dict = {'batch_idx': batch_idx, 'epoch': self.trainer.current_epoch, 'loss': loss.detach()}
         self.saved_train_losses.append(loss_dict)
-
-
-    @enabled_only
-    def track_train_running_loss_history(self, batch_idx, running_loss):
-        _loss_mean = running_loss.mean()
-        _loss_last = running_loss.last()
-        loss_dict = {'batch_idx': batch_idx, 'epoch': self.trainer.current_epoch,
-                     'loss_mean': self._try_detach(_loss_mean), '_loss_last': self._try_detach(_loss_last)}
-        self.saved_train_running_losses.append(loss_dict)
-
-    @staticmethod
-    def _try_detach(t):
-        try:
-            return t.detach()
-        except:
-            return t
-
-    @enabled_only
-    def track_train_accumulated_loss_history(self, batch_idx, accumulated_loss):
-        _loss_mean = accumulated_loss.mean()
-        _loss_last = accumulated_loss.last()
-        loss_dict = {'batch_idx': batch_idx, 'epoch': self.trainer.current_epoch,
-                     'loss_mean': self._try_detach(_loss_mean), '_loss_last': self._try_detach(_loss_last)}
-        self.saved_train_accumulated_losses.append(loss_dict)
 
     @enabled_only
     def track_lr_schedulers_update(self, batch_idx, interval, scheduler_idx, old_lr, new_lr, monitor_key=None):

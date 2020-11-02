@@ -294,7 +294,6 @@ class TrainLoop:
         # when in dev debugging track the losses
         self.trainer.dev_debugger.track_train_loss_history(batch_idx, untouched_loss.detach())
 
-
     def training_step(self, split_batch, batch_idx, opt_idx, hiddens):
         # give the PL module a result for logging
         model = self.trainer.get_model()
@@ -749,11 +748,6 @@ class TrainLoop:
                     # reset for next set of accumulated grads
                     self.accumulated_loss.reset()
 
-                if self.accumulated_loss is not None:
-                    # when in dev debugging track the accumulated_losses
-                    self.trainer.dev_debugger.track_train_accumulated_loss_history(batch_idx, self.accumulated_loss)
-                    self.trainer.dev_debugger.track_train_running_loss_history(self.trainer.global_step, self.running_loss)
-
         # collapse all metrics into one dict
         batch_log_metrics = {k: v for d in batch_log_metrics for k, v in d.items()}
 
@@ -801,9 +795,7 @@ class TrainLoop:
 
             if self.automatic_optimization:
                 # track total loss for logging (avoid mem leaks)
-                print(opt_closure_result.loss)
                 self.accumulated_loss.append(opt_closure_result.loss)
-                print(self.accumulated_loss.memory)
 
         self._curr_step_result = None
 
