@@ -138,13 +138,13 @@ The Trainer parameters `tpu_cores` defines how many TPU cores to train on (1 or 
 
 For Single TPU training, Just pass the TPU core ID [1-8] in a list.
 
-Single TPU core training
+Single TPU core training. Model will train on TPU core ID 5.
 
 .. code-block:: python
 
     trainer = pl.Trainer(tpu_cores=[5])
 
-8 TPU cores training
+8 TPU cores training. Model will train on 8 TPU cores.
 
 .. code-block:: python
 
