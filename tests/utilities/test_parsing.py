@@ -20,6 +20,7 @@ from pytorch_lightning.utilities.parsing import lightning_setattr
 from pytorch_lightning.utilities.parsing import str_to_bool_or_str
 from pytorch_lightning.utilities.parsing import str_to_bool
 from pytorch_lightning.utilities.parsing import is_picklable
+from pytorch_lightning.utilities.parsing import clean_namespace
 
 
 def _get_test_cases():
@@ -130,3 +131,23 @@ def test_is_picklable(tmpdir):
         
     for case in false_cases:
         assert is_picklable(case) is False
+
+
+def test_clean_namespace(tmpdir):
+    class UnpicklableClass:
+        pass
+
+    def unpicklable_function():
+        pass
+
+    test_cases = {
+        "1": None,
+        "2": True,
+        "3": 123,
+        "4": unpicklable_function,
+        "5": UnpicklableClass,
+    }
+
+    clean_namespace(test_cases)
+
+    assert test_cases == {"1": None, "2": True, "3": 123}
