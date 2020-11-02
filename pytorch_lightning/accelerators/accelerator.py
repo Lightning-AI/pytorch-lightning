@@ -113,12 +113,12 @@ class Accelerator(object):
 
         # model hook
         model_ref.optimizer_step(
-            self.trainer.current_epoch,
-            batch_idx,
-            optimizer,
-            opt_idx,
-            lambda_closure,
-            on_tpu=False,  # TPUAccelerator sets this as True
+            epoch=self.trainer.current_epoch,
+            batch_idx=batch_idx,
+            optimizer=optimizer,
+            optimizer_idx=opt_idx,
+            optimizer_closure=lambda_closure,
+            on_tpu=False,  # TPUAccelerator class sets this as True
             using_native_amp=native_amp,
             using_lbfgs=is_lbfgs
         )
