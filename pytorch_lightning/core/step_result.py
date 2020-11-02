@@ -284,7 +284,7 @@ class Result(Dict):
 
             if options['logger'] and options['on_step']:
                 if isinstance(self[k], Metric):
-                    result[dl_key] = self[k]._forward_cache
+                    result[dl_key] = self[k]._forward_cache.detach()
                 else:
                     result[dl_key] = self[k]
 
@@ -308,7 +308,7 @@ class Result(Dict):
 
             if options['logger'] and options['on_epoch']:
                 if isinstance(self[k], Metric):
-                    result[dl_key] = self[k].compute()
+                    result[dl_key] = self[k].compute().detach()
                 else:
                     result[dl_key] = self[k]
 
@@ -336,7 +336,7 @@ class Result(Dict):
 
             if options['prog_bar'] and options['on_epoch']:
                 if isinstance(self[k], Metric):
-                    result[dl_key] = self[k].compute()
+                    result[dl_key] = self[k].compute().detach()
                 else:
                     result[dl_key] = self[k]
 
