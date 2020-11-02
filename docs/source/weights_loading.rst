@@ -65,8 +65,8 @@ You can customize the checkpointing behavior to monitor any quantity of your tra
     # 3. Init ModelCheckpoint callback, monitoring 'val_loss'
     checkpoint_callback = ModelCheckpoint(monitor='val_loss')
 
-    # 4. Pass your callback to checkpoint_callback trainer flag
-    trainer = Trainer(checkpoint_callback=checkpoint_callback)
+    # 4. Add your callback to the callbacks list
+    trainer = Trainer(callbacks=[checkpoint_callback])
 
 You can also control more advanced options, like `save_top_k`, to save the best k models and the mode of the monitored quantity (min/max/auto, where the mode is automatically inferred from the name of the monitored quantity), `save_weights_only` or `period` to set the interval of epochs between checkpoints, to avoid slowdowns.
 
@@ -89,14 +89,14 @@ You can also control more advanced options, like `save_top_k`, to save the best 
         save_top_k=3,
         mode='min')
 
-    trainer = Trainer(checkpoint_callback=checkpoint_callback)
+    trainer = Trainer(callbacks=[checkpoint_callback])
     
 You can retrieve the checkpoint after training by calling
 
 .. code-block:: python
 
         checkpoint_callback = ModelCheckpoint(dirpath='my/path/')
-        trainer = Trainer(checkpoint_callback=checkpoint_callback)
+        trainer = Trainer(callbacks=[checkpoint_callback])
         trainer.fit(model)
         checkpoint_callback.best_model_path
 
