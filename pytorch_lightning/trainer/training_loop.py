@@ -602,6 +602,7 @@ class TrainLoop:
             # progress global step according to grads progress
             self.increment_accumulated_grad_global_step()
 
+            # used during checkpointing for current_epoch and global_step
             self.trainer.checkpoint_connector.has_trained = True
 
         # log epoch metrics
