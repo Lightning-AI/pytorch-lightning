@@ -83,10 +83,10 @@ def test_str_to_bool_or_str(tmpdir):
     other_cases = ['yyeess', 'noooo', 'lightning']
 
     for case in true_cases:
-        assert str_to_bool_or_str(case) == True
+        assert str_to_bool_or_str(case) is True
 
     for case in false_cases:
-        assert str_to_bool_or_str(case) == False
+        assert str_to_bool_or_str(case) is False
 
     for case in other_cases:
         assert str_to_bool_or_str(case) == case
