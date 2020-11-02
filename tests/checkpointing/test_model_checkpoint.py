@@ -235,12 +235,16 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
 
     # dir does not exist so it is used as filename
     filepath = tmpdir / 'dir'
-    ckpt_name = ModelCheckpoint(monitor='early_stop_on', filepath=filepath, prefix='test').format_checkpoint_name(3, 2, {})
+    ckpt_name = ModelCheckpoint(
+        monitor='early_stop_on', filepath=filepath, prefix='test'
+    ).format_checkpoint_name(3, 2, {})
     assert ckpt_name == tmpdir / 'test-dir.ckpt'
 
     # now, dir exists
     os.mkdir(filepath)
-    ckpt_name = ModelCheckpoint(monitor='early_stop_on', filepath=filepath, prefix='test').format_checkpoint_name(3, 2, {})
+    ckpt_name = ModelCheckpoint(
+        monitor='early_stop_on', filepath=filepath, prefix='test'
+    ).format_checkpoint_name(3, 2, {})
     assert ckpt_name == filepath / 'test-epoch=3-step=2.ckpt'
 
 
@@ -263,7 +267,10 @@ def test_model_checkpoint_save_last(tmpdir):
     )
     last_filename = last_filename + '.ckpt'
     assert str(tmpdir / last_filename) == model_checkpoint.last_model_path
-    assert set(os.listdir(tmpdir)) == set([f'epoch={i}-step={j}.ckpt' for i, j in zip(range(epochs), [9, 19, 29])] + [last_filename])
+    assert set(os.listdir(tmpdir)) == set(
+        [f"epoch={i}-step={j}.ckpt" for i, j in zip(range(epochs), [9, 19, 29])] + [last_filename]
+    )
+
     ModelCheckpoint.CHECKPOINT_NAME_LAST = 'last'
 
 
