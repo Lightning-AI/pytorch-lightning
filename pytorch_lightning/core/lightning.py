@@ -1129,10 +1129,10 @@ class LightningModule(
         batch_idx: int,
         optimizer: Optimizer,
         optimizer_idx: int,
-        optimizer_closure: Optional[Callable] = None,
-        on_tpu: bool = False,
-        using_native_amp: bool = False,
-        using_lbfgs: bool = False,
+        optimizer_closure: Optional[Callable],
+        on_tpu: bool,
+        using_native_amp: bool,
+        using_lbfgs: bool,
     ) -> None:
         r"""
         Override this method to adjust the default way the
