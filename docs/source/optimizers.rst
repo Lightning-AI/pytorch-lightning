@@ -48,6 +48,10 @@ to manually manage the optimization process. To do so, do the following:
         opt_d.step()
         opt_d.zero_grad()
 
+        # log losses
+        self.log('loss_a', loss_a)
+        self.log('loss_b', loss_b)
+
 .. note:: This is only recommended for experts who need ultimate flexibility
 
 Manual optimization does not yet support accumulated gradients but will be live in 1.1.0
@@ -108,7 +112,7 @@ Every optimizer you use can be paired with any `LearningRateScheduler <https://p
    def configure_optimizers(self):
       return {
           'optimizer': Adam(...),
-          'scheduler': ReduceLROnPlateau(optimizer, ...),
+          'lr_scheduler': ReduceLROnPlateau(optimizer, ...),
           'monitor': 'metric_to_track'
       }
 

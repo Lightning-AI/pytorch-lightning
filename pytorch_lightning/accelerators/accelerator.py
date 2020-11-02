@@ -52,7 +52,8 @@ class Accelerator(object):
         pass
 
     def teardown(self):
-        pass
+        # Ensure if necessary all processes are finished
+        self.barrier()
 
     def barrier(self, name: Optional[str] = None):
         pass
@@ -130,11 +131,6 @@ class Accelerator(object):
         model_ref.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
     def clip_gradients(self, optimizer, clip_val=None):
-
-        if self.trainer.amp_backend == AMPType.NATIVE:
-            self.trainer.scaler.unscale_(optimizer)
-
-        # apply clip gradients
         # TODO: separate TPU case from here
         self._clip_gradients(optimizer, clip_val)
 

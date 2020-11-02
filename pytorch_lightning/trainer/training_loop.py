@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess
+from contextlib import contextmanager
 from copy import copy, deepcopy
 
 import numpy as np
@@ -454,8 +454,7 @@ class TrainLoop:
             )
 
     def on_before_zero_grad(self, optimizer):
-        model = self.trainer.get_model()
-        model.on_before_zero_grad(optimizer)
+        self.trainer.call_hook('on_before_zero_grad', optimizer)
 
     def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
         self.trainer.accelerator_backend.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
@@ -653,10 +652,6 @@ class TrainLoop:
         if response == -1:
             return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
 
-        # checks if backward or backward + optimizer step (via closure)
-        accumulation_done = self._accumulated_batches_reached()
-        is_final_batch = self._num_training_batches_reached()
-
         # lightning module hook
         splits = self.tbptt_split_batch(batch)
 
@@ -676,13 +671,17 @@ class TrainLoop:
                     model = self.trainer.get_model()
                     model.toggle_optimizer(optimizer, opt_idx)
 
-                if not (accumulation_done or is_final_batch):
+                if self.should_accumulate():
                     # For gradient accumulation
 
                     # -------------------
                     # calculate loss (train step + train step end)
                     # -------------------
-                    self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens)
+
+                    # perform dpp sync only when performing optimizer_step
+                    with self.block_ddp_sync_behaviour():
+                        self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens)
+
                     batch_outputs = self._process_closure_result(
                         batch_callback_metrics=batch_callback_metrics,
                         batch_log_metrics=batch_log_metrics,
@@ -696,7 +695,6 @@ class TrainLoop:
                 # gradient update with accumulated gradients
 
                 else:
-
                     if self.automatic_optimization:
 
                         def train_step_and_backward_closure():
@@ -761,6 +759,13 @@ class TrainLoop:
         )
         return result
 
+    @contextmanager
+    def block_ddp_sync_behaviour(self):
+        if isinstance(self.trainer.model, torch.nn.parallel.DistributedDataParallel):
+            yield self.trainer.model.no_sync()
+        else:
+            yield
+
     def _process_closure_result(
         self, batch_callback_metrics: list, batch_log_metrics: list, batch_outputs: list, opt_idx: int
     ) -> list:
@@ -807,8 +812,10 @@ class TrainLoop:
             with self.trainer.profiler.profile("model_backward"):
                 self.backward(result, optimizer, opt_idx)
 
-            # hook
-            self.on_after_backward(result.training_step_output, batch_idx, result.loss)
+            # hook - call this hook only
+            # when gradients have finished to accumulate
+            if not self.should_accumulate():
+                self.on_after_backward(result.training_step_output, batch_idx, result.loss)
 
             # check if loss or model weights are nan
             if self.trainer.terminate_on_nan:
@@ -826,6 +833,10 @@ class TrainLoop:
             result.closure_loss = self.trainer.accelerator_backend.backward(
                 result.closure_loss, optimizer, opt_idx, *args, **kwargs
             )
+
+        if not self.should_accumulate():
+            # track gradients
+            self.track_and_norm_grad(optimizer=optimizer)
 
     def update_train_loop_lr_schedulers(self, monitor_metrics=None):
         num_accumulated_batches_reached = self._accumulated_batches_reached()
@@ -852,6 +863,12 @@ class TrainLoop:
 
     def _num_training_batches_reached(self):
         return (self.trainer.batch_idx + 1) == self.trainer.num_training_batches
+
+    def should_accumulate(self):
+        # checks if backward or backward + optimizer step (via closure)
+        accumulation_done = self._accumulated_batches_reached()
+        is_final_batch = self._num_training_batches_reached()
+        return not (accumulation_done or is_final_batch)
 
     def should_check_val_fx(self, batch_idx, is_last_batch):
         # decide if we should run validation
