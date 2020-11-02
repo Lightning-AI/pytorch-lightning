@@ -1079,8 +1079,8 @@ class LightningModule(
         # make sure we're using manual opt
         self._verify_is_manual_optimization('manual_backward')
 
-        self._running_manual_optim = True
         # backward
+        self._running_manual_optim = True
         self.trainer.train_loop.backward(loss, optimizer, -1, *args, **kwargs)
         self._running_manual_optim = False
 
