@@ -70,5 +70,6 @@ def test_global_zero_only_logging_ddp_spawn(tmpdir):
         limit_val_batches=1,
         max_epochs=1,
         weights_summary=None,
+        fast_dev_run=True,
     )
     trainer.fit(model)
