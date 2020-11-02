@@ -146,6 +146,7 @@ def test_horovod_apex(tmpdir):
     )
     _run_horovod(trainer_options, on_gpu=True)
 
+
 @pytest.mark.skip(reason="Skip till Horovod fixes integration with Native torch.cuda.amp")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 @pytest.mark.skipif(not _nccl_available(), reason="test requires Horovod with NCCL support")
