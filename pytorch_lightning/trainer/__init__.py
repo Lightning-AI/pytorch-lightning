@@ -203,18 +203,18 @@ The accelerator backend to use (previously known as distributed_backend).
 .. testcode::
 
     # default used by the Trainer
-    trainer = Trainer(distributed_backend=None)
+    trainer = Trainer(accelerator=None)
 
 Example::
 
     # dp = DataParallel
-    trainer = Trainer(gpus=2, distributed_backend='dp')
+    trainer = Trainer(gpus=2, accelerator='dp')
 
     # ddp = DistributedDataParallel
-    trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp')
+    trainer = Trainer(gpus=2, num_nodes=2, accelerator='ddp')
 
     # ddp2 = DistributedDataParallel + dp
-    trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp2')
+    trainer = Trainer(gpus=2, num_nodes=2, accelerator='ddp2')
 
 .. note:: this option does not apply to TPU. TPUs use ```ddp``` by default (over each core)
 
@@ -381,6 +381,12 @@ Example::
     # enable auto selection (will find two available gpus on system)
     trainer = Trainer(gpus=2, auto_select_gpus=True)
 
+    # specifies all GPUs regardless of its availability
+    Trainer(gpus=-1, auto_select_gpus=False)
+
+    # specifies all available GPUs (if only one GPU is not occupied, uses one gpu)
+    Trainer(gpus=-1, auto_select_gpus=True)
+
 auto_lr_find
 ^^^^^^^^^^^^
 
@@ -478,10 +484,7 @@ callbacks
 
 |
 
-Add a list of :class:`~pytorch_lightning.callbacks.Callback`. These callbacks DO NOT replace the explicit callbacks
-(loggers or :class:`~pytorch_lightning.callbacks.ModelCheckpoint`).
-
-.. note:: Only user defined callbacks (ie: Not :class:`~pytorch_lightning.callbacks.ModelCheckpoint`)
+Add a list of :class:`~pytorch_lightning.callbacks.Callback`.
 
 .. code-block:: python
 
@@ -531,34 +534,27 @@ checkpoint_callback
 
 |
 
-Pass in a callback for checkpointing. Checkpoints capture the exact value of all parameters used by a model.
 By default Lightning saves a checkpoint for you in your current working directory, with the state of your last training epoch,
-but you can override the default behavior by Initializing the :class:`~pytorch_lightning.callbacks.ModelCheckpoint` callback,
-and passing it to :class:`~pytorch_lightning.trainer.Trainer` `checkpoint_callback` flag.
-
-.. code-block:: python
-
-    from pytorch_lightning.callbacks import ModelCheckpoint
-
-    # default used by the Trainer
-    checkpoint_callback = ModelCheckpoint(
-        dirpath=os.getcwd(),
-        save_top_k=True,
-        verbose=True,
-        monitor='checkpoint_on',
-        mode='min',
-        prefix=''
-    )
-
-    trainer = Trainer(checkpoint_callback=checkpoint_callback)
-
+Checkpoints capture the exact value of all parameters used by a model.
 To disable automatic checkpointing, set this to `False`.
 
 .. code-block:: python
 
+    # default used by Trainer
+    trainer = Trainer(checkpoint_callback=True)
+
+    # turn off automatic checkpointing
     trainer = Trainer(checkpoint_callback=False)
 
-See also :ref:`Saving and Loading Weights <weights_loading>`.
+
+You can override the default behavior by initializing the :class:`~pytorch_lightning.callbacks.ModelCheckpoint`
+callback, and adding it to the :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks` list.
+See :ref:`Saving and Loading Weights <weights_loading>` for how to customize checkpointing.
+
+
+.. warning:: Passing a ModelCheckpoint instance to this argument is deprecated since
+    v1.1.0 and will be unsupported from v1.3.0.
+
 
 default_root_dir
 ^^^^^^^^^^^^^^^^
@@ -942,8 +938,8 @@ num_processes
 |
 
 Number of processes to train with. Automatically set to the number of GPUs
-when using ``distrbuted_backend="ddp"``. Set to a number greater than 1 when
-using ``distributed_backend="ddp_cpu"`` to mimic distributed training on a
+when using ``accelerator="ddp"``. Set to a number greater than 1 when
+using ``accelerator="ddp_cpu"`` to mimic distributed training on a
 machine without GPUs. This is useful for debugging, but **will not** provide
 any speedup, since single-process Torch already makes effient use of multiple
 CPUs.
@@ -951,7 +947,7 @@ CPUs.
 .. testcode::
 
     # Simulate DDP for debugging on your GPU-less laptop
-    trainer = Trainer(distributed_backend="ddp_cpu", num_processes=2)
+    trainer = Trainer(accelerator="ddp_cpu", num_processes=2)
 
 num_sanity_val_steps
 ^^^^^^^^^^^^^^^^^^^^
@@ -979,13 +975,9 @@ The Trainer uses 2 steps by default. Turn it off or modify it here.
     # check all validation data
     trainer = Trainer(num_sanity_val_steps=-1)
 
-Example::
 
-    python -m torch_xla.distributed.xla_dist
-    --tpu=$TPU_POD_NAME
-    --conda-env=torch-xla-nightly
-    --env=XLA_USE_BF16=1
-    -- python your_trainer_file.py
+This option will reset the validation dataloader unless ``num_sanity_val_steps=0``.
+
 
 plugins
 ^^^^^^^
@@ -1203,14 +1195,11 @@ See the :ref:`profiler documentation <profiler>`. for more details.
     # default used by the Trainer
     trainer = Trainer(profiler=None)
 
-    # to profile standard training events
-    trainer = Trainer(profiler=True)
+    # to profile standard training events, equivalent to `profiler=SimpleProfiler()`
+    trainer = Trainer(profiler="simple")
 
-    # equivalent to profiler=True
-    trainer = Trainer(profiler=SimpleProfiler())
-
-    # advanced profiler for function-level stats
-    trainer = Trainer(profiler=AdvancedProfiler())
+    # advanced profiler for function-level stats, equivalent to `profiler=AdvancedProfiler()`
+    trainer = Trainer(profiler="advanced")
 
 progress_bar_refresh_rate
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1530,7 +1519,7 @@ Example::
     # **NOTE: this saves weights to some/path NOT my/path
     checkpoint = ModelCheckpoint(dirpath='some/path')
     trainer = Trainer(
-        checkpoint_callback=checkpoint,
+        callbacks=[checkpoint],
         weights_save_path='my/path'
     )
 

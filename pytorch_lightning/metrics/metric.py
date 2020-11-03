@@ -149,7 +149,8 @@ class Metric(nn.Module, ABC):
         Automatically calls ``update()``. Returns the metric value over inputs if ``compute_on_step`` is True.
         """
         # add current step
-        self.update(*args, **kwargs)
+        with torch.no_grad():
+            self.update(*args, **kwargs)
         self._forward_cache = None
 
         if self.compute_on_step:

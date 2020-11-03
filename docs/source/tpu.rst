@@ -128,19 +128,33 @@ That's it! Your model will train on all 8 TPU cores.
 
 ----------------
 
-Single TPU core training
+TPU core training
+
 ------------------------
-Lightning supports training on a single TPU core. Just pass the TPU core ID [1-8] in a list.
+
+Lightning supports training on a single TPU core or 8 TPU cores.
+
+The Trainer parameters ``tpu_cores`` defines how many TPU cores to train on (1 or 8) / Single TPU to train on [1].
+
+For Single TPU training, Just pass the TPU core ID [1-8] in a list.
+
+Single TPU core training. Model will train on TPU core ID 5.
 
 .. code-block:: python
 
-    trainer = pl.Trainer(tpu_cores=[1])
+    trainer = pl.Trainer(tpu_cores=[5])
+
+8 TPU cores training. Model will train on 8 TPU cores.
+
+.. code-block:: python
+
+    trainer = pl.Trainer(tpu_cores=8)
 
 ----------------
 
 Distributed Backend with TPU
 ----------------------------
-The ```distributed_backend``` option used for GPUs does not apply to TPUs.
+The ``accelerator`` option used for GPUs does not apply to TPUs.
 TPUs work in DDP mode by default (distributing over each core)
 
 ----------------

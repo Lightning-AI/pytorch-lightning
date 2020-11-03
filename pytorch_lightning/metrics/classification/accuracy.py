@@ -21,6 +21,7 @@ from collections import namedtuple
 import torch
 from torch import nn
 from pytorch_lightning.metrics.metric import Metric
+from pytorch_lightning.metrics.utils import _input_format_classification
 
 
 class Accuracy(Metric):
@@ -60,7 +61,6 @@ class Accuracy(Metric):
         tensor(0.5000)
 
     """
-
     def __init__(
         self,
         threshold: float = 0.5,
@@ -79,21 +79,6 @@ class Accuracy(Metric):
 
         self.threshold = threshold
 
-    def _input_format(self, preds: torch.Tensor, target: torch.Tensor):
-        if not (len(preds.shape) == len(target.shape) or len(preds.shape) == len(target.shape) + 1):
-            raise ValueError(
-                "preds and target must have same number of dimensions, or one additional dimension for preds"
-            )
-
-        if len(preds.shape) == len(target.shape) + 1:
-            # multi class probabilites
-            preds = torch.argmax(preds, dim=1)
-
-        if len(preds.shape) == len(target.shape) and preds.dtype == torch.float:
-            # binary or multilabel probablities
-            preds = (preds >= self.threshold).long()
-        return preds, target
-
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
         Update state with predictions and targets.
@@ -102,7 +87,7 @@ class Accuracy(Metric):
             preds: Predictions from model
             target: Ground truth values
         """
-        preds, target = self._input_format(preds, target)
+        preds, target = _input_format_classification(preds, target, self.threshold)
         assert preds.shape == target.shape
 
         self.correct += torch.sum(preds == target)
