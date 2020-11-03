@@ -238,7 +238,7 @@ class CheckpointConnector:
             if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
                 del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
             rank_zero_warn(
-                'warning, `module_arguments` dropped from checkpoint.' f' An attribute is not picklable {err}'
+                'warning, `hyper_parameters` dropped from checkpoint.' f' An attribute is not picklable {err}'
             )
             atomic_save(checkpoint, filepath)
 
@@ -275,9 +275,8 @@ class CheckpointConnector:
         has_reached_max_steps = self.trainer.max_steps and self.trainer.max_steps <= global_step
 
         global_step += 1
-        if self.has_trained:
-            if not has_reached_max_steps:
-                current_epoch += 1
+        if not has_reached_max_steps:
+            current_epoch += 1
 
         checkpoint = {
             'epoch': current_epoch,
@@ -309,6 +308,7 @@ class CheckpointConnector:
             elif self.trainer.amp_backend == AMPType.APEX:
                 checkpoint['amp_scaling_state'] = amp.state_dict()
 
+        # add the hyper_parameters and state_dict from the model
         model = self.trainer.get_model()
 
         # dump the module_arguments and state_dict from the model
@@ -394,6 +394,6 @@ class CheckpointConnector:
                 if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
                     del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
                 rank_zero_warn(
-                    'Warning, `module_arguments` dropped from checkpoint.' f' An attribute is not picklable {err}'
+                    'Warning, `hyper_parameters` dropped from checkpoint.' f' An attribute is not picklable {err}'
                 )
                 atomic_save(checkpoint, filepath)

@@ -11,13 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os
+import tempfile
 import collections
 import copy
 import inspect
-import os
 import re
-import tempfile
 from abc import ABC
 from argparse import Namespace
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union, Mapping
@@ -28,16 +27,17 @@ from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
+from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities import rank_zero_warn, AMPType
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities.parsing import (
     AttributeDict,
     collect_init_args,
     get_init_args,
 )
+from pytorch_lightning.callbacks import Callback
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
@@ -111,6 +111,8 @@ class LightningModule(
         self._datamodule = None
         self._results: Optional[Result] = None
         self._current_fx_name = ''
+        self._current_hook_fx_name = None
+        self._current_dataloader_idx = None
 
     def optimizers(self):
         opts = self.trainer.optimizers
@@ -244,6 +246,18 @@ class LightningModule(
             on_step = self.__auto_choose_log_on_step(on_step)
             on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
+            if self._current_hook_fx_name is not None:
+                self.trainer.logger_connector.check_logging_in_callbacks(
+                    self._current_hook_fx_name,
+                    on_step=on_step,
+                    on_epoch=on_epoch
+                )
+
+            # make sure user doesn't introduce logic for multi-dataloaders
+            if "/dataloader_idx_" in name:
+                raise MisconfigurationException(
+                    f"Logged key: {name} should not contain information about dataloader_idx.")
+
             self._results.log(
                 name,
                 value,
@@ -257,7 +271,8 @@ class LightningModule(
                 enable_graph,
                 sync_dist,
                 sync_dist_op,
-                sync_dist_group
+                sync_dist_group,
+                self._current_dataloader_idx,
             )
 
     def log_dict(
@@ -1101,7 +1116,6 @@ class LightningModule(
 
         """
         loss.backward(*args, **kwargs)
-        self.trainer.train_loop.track_and_norm_grad(optimizer=optimizer)
 
     def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):
         """
@@ -1129,16 +1143,22 @@ class LightningModule(
         batch_idx: int,
         optimizer: Optimizer,
         optimizer_idx: int,
-        optimizer_closure: Optional[Callable] = None,
-        on_tpu: bool = False,
-        using_native_amp: bool = False,
-        using_lbfgs: bool = False,
+        optimizer_closure: Optional[Callable],
+        on_tpu: bool,
+        using_native_amp: bool,
+        using_lbfgs: bool,
     ) -> None:
         r"""
         Override this method to adjust the default way the
         :class:`~pytorch_lightning.trainer.trainer.Trainer` calls each optimizer.
         By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example
         once per optimizer.
+
+        Warning:
+            If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter
+            to ``optimizer.step()`` function as shown in the examples. This ensures that
+            ``train_step_and_backward_closure`` is called within
+            :meth:`~pytorch_lightning.trainer.training_loop.TrainLoop.run_training_batch`.
 
         Args:
             epoch: Current epoch
@@ -1154,23 +1174,23 @@ class LightningModule(
             .. code-block:: python
 
                 # DEFAULT
-                def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
+                def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
                                    optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
-                    optimizer.step()
+                    optimizer.step(closure=optimizer_closure)
 
                 # Alternating schedule for optimizer steps (i.e.: GANs)
-                def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
+                def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
                                    optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
                     # update generator opt every 2 steps
                     if optimizer_idx == 0:
                         if batch_idx % 2 == 0 :
-                            optimizer.step()
+                            optimizer.step(closure=optimizer_closure)
                             optimizer.zero_grad()
 
                     # update discriminator opt every 4 steps
                     if optimizer_idx == 1:
                         if batch_idx % 4 == 0 :
-                            optimizer.step()
+                            optimizer.step(closure=optimizer_closure)
                             optimizer.zero_grad()
 
                     # ...
@@ -1183,8 +1203,8 @@ class LightningModule(
             .. code-block:: python
 
                 # learning rate warm-up
-                def optimizer_step(self, current_epoch, batch_idx, optimizer,
-                                    optimizer_idx, optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
+                def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
+                                   optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
                     # warm up lr
                     if self.trainer.global_step < 500:
                         lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
@@ -1192,7 +1212,7 @@ class LightningModule(
                             pg['lr'] = lr_scale * self.learning_rate
 
                     # update params
-                    optimizer.step()
+                    optimizer.step(closure=optimizer_closure)
                     optimizer.zero_grad()
 
         Note:
@@ -1278,11 +1298,11 @@ class LightningModule(
             batch_split = []
             for i, x in enumerate(batch):
                 if isinstance(x, torch.Tensor):
-                    split_x = x[:, t : t + split_size]
+                    split_x = x[:, t: t + split_size]
                 elif isinstance(x, collections.Sequence):
                     split_x = [None] * len(x)
                     for batch_idx in range(len(x)):
-                        split_x[batch_idx] = x[batch_idx][t : t + split_size]
+                        split_x[batch_idx] = x[batch_idx][t: t + split_size]
 
                 batch_split.append(split_x)
 
@@ -1395,7 +1415,7 @@ class LightningModule(
         frame_args = collect_init_args(frame.f_back, [])
         self_arguments = frame_args[-1]
 
-        # set module_arguments in child
+        # set hyper_parameters in child
         self_arguments = self_arguments
         parents_arguments = {}
 
