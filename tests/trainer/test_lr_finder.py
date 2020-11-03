@@ -59,8 +59,7 @@ def test_model_reset_correctly(tmpdir):
         assert torch.all(torch.eq(before_state_dict[key], after_state_dict[key])), \
             'Model was not reset correctly after learning rate finder'
 
-    tmp_file = os.path.join(tmpdir, 'lr_find_temp_model.ckpt')
-    assert not os.path.exists(tmp_file)
+    assert not os.path.exists(tmpdir / 'lr_find_temp_model.ckpt')
 
 
 def test_trainer_reset_correctly(tmpdir):
