@@ -77,6 +77,15 @@ class TrainLoop:
         num_optimizers = len(self.get_optimizers_iterable())
         return num_optimizers
 
+    def should_skip_training(self):
+        if self.trainer.current_epoch >= self.trainer.max_epochs:
+            return True
+
+        if self.trainer.limit_train_batches == 0:
+            return True
+
+        return False
+
     def on_train_start(self):
         # clear cache before training
         if self.trainer.on_gpu and self.trainer.root_gpu is not None:
@@ -203,7 +212,7 @@ class TrainLoop:
 
     def check_checkpoint_callback(self, should_save, is_last=False):
         # TODO bake this logic into the checkpoint callback
-        if should_save:
+        if should_save and self.trainer.checkpoint_connector.has_trained:
             checkpoint_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
             if is_last and any(c.save_last for c in checkpoint_callbacks):
                 rank_zero_info("Saving latest checkpoint...")
@@ -579,6 +588,7 @@ class TrainLoop:
             monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
             monitor_metrics.update(batch_output.batch_log_metrics)
             self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
+            self.trainer.checkpoint_connector.has_trained = True
 
             # max steps reached, end training
             if self.trainer.max_steps is not None and self.trainer.max_steps == self.trainer.global_step + 1:
@@ -596,13 +606,11 @@ class TrainLoop:
             self.trainer.total_batch_idx += 1
 
             # stop epoch if we limited the number of training batches
-            if batch_idx + 1 >= self.trainer.num_training_batches:
+            if (batch_idx + 1) >= self.trainer.num_training_batches:
                 break
 
             # progress global step according to grads progress
             self.increment_accumulated_grad_global_step()
-
-            self.trainer.checkpoint_connector.has_trained = True
 
         # log epoch metrics
         self.trainer.logger_connector.log_train_epoch_end_metrics(
