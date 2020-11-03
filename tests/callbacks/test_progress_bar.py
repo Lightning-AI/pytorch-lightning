@@ -231,7 +231,7 @@ def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches, expected):
         default_root_dir=tmpdir,
         max_epochs=1,
         num_sanity_val_steps=2,
-        limit_train_batches=0,
+        limit_train_batches=1,
         limit_val_batches=limit_val_batches,
         callbacks=[progress_bar],
         logger=False,
