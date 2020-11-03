@@ -86,9 +86,17 @@ def test__logger_connector__epoch_result_store__train(tmpdir):
     train_results = model.train_results
 
     assert len(train_results(fx_name="training_step", dl_idx="0", opt_idx="0")) == 2
-    generated = train_results(fx_name="training_step", dl_idx="0", opt_idx="0", batch_idx="0", split_idx="0")["train_loss"]
+    generated = train_results(fx_name="training_step",
+                              dl_idx="0",
+                              opt_idx="0",
+                              batch_idx="0",
+                              split_idx="0")["train_loss"]
     assert generated == model.train_losses[0]
-    generated = train_results(fx_name="training_step", dl_idx="0", opt_idx="0", batch_idx="1", split_idx="0")["train_loss"]
+    generated = train_results(fx_name="training_step",
+                              dl_idx="0",
+                              opt_idx="0",
+                              batch_idx="1",
+                              split_idx="0")["train_loss"]
     assert generated == model.train_losses[1]
 
     assert train_results.has_reduced is not True
