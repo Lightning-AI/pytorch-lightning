@@ -120,7 +120,7 @@ def test_scriptable(tmpdir):
 
     # save to file and re-load to ensure export + load still works for inference
     path = os.path.join(tmpdir, "tmp_script.pt")
-    torch.jit.save(script_model, path)
+    script_model.save(path)
     load_script_model = torch.jit.load(path)
     load_script_model_output = load_script_model(rand_input)
     assert torch.allclose(output, load_script_model_output)
