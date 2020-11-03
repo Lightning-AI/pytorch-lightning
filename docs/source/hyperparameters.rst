@@ -129,7 +129,7 @@ improve readability and reproducibility.
                 # equivalent
                 self.save_hyperparameters('layer_1_dim', 'learning_rate')
 
-                # this now works
+                # Now possible to access layer_1_dim from hparams
                 self.hparams.layer_1_dim
 
 
