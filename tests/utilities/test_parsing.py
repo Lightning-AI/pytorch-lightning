@@ -21,6 +21,7 @@ from pytorch_lightning.utilities.parsing import str_to_bool_or_str
 from pytorch_lightning.utilities.parsing import str_to_bool
 from pytorch_lightning.utilities.parsing import is_picklable
 from pytorch_lightning.utilities.parsing import clean_namespace
+from pytorch_lightning.utilities.parsing import AttributeDict
 
 
 def _get_test_cases():
@@ -151,3 +152,24 @@ def test_clean_namespace(tmpdir):
     clean_namespace(test_case)
 
     assert test_case == {"1": None, "2": True, "3": 123}
+
+
+def test_AttributeDict(tmpdir):
+    # Test initialization
+    inputs = {
+        'key1': 1,
+        'key2': 'abc',
+    }
+    ad = AttributeDict(inputs)
+    for key, value in inputs.items():
+        assert getattr(ad, key) == value
+
+    # Test adding new items
+    ad = AttributeDict()
+    ad.update({'key1': 1})
+    assert ad.key1 == 1
+
+    # Test updating existing items
+    ad = AttributeDict({'key1': 1})
+    ad.key1 = 123
+    assert ad.key1 == 123
