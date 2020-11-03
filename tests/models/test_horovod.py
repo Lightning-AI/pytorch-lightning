@@ -27,7 +27,7 @@ from sklearn.metrics import accuracy_score
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.horovod_backend import HorovodBackend
+from pytorch_lightning.accelerators.horovod_accelerator import HorovodAccelerator
 from pytorch_lightning.core.step_result import Result, TrainResult, EvalResult
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
 from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVALAIBLE
@@ -321,7 +321,7 @@ def test_accuracy_metric_horovod():
         )
 
         accelerator_backend = trainer.accelerator_connector.select_accelerator()
-        assert isinstance(accelerator_backend, HorovodBackend)
+        assert isinstance(accelerator_backend, HorovodAccelerator)
 
         metric = Accuracy(compute_on_step=True,
                           dist_sync_on_step=True,

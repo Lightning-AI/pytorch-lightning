@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.metrics.functional.mean_squared_log_error import (

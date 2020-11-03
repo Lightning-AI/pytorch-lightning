@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import ExitStack
-from typing import Optional
+from typing import Any, Optional, Union
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
-from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
 

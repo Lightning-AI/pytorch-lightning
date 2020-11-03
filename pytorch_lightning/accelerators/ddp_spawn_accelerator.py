@@ -13,7 +13,7 @@
 # limitations under the License
 import os
 import re
-from typing import List, Optional
+from typing import Any, List, Optional, Union
 
 import torch
 import torch.multiprocessing as mp
@@ -22,11 +22,12 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.cloud_io import atomic_save, load as pl_load
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, find_free_network_port
+from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning.distributed.dist import LightningDistributed
 
