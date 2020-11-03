@@ -230,7 +230,7 @@ def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
     assert before_batch_size != after_batch_size, \
         'Batch size was not altered after running auto scaling of batch size'
 
-    assert not os.path.exists(tmpdir /'scale_batch_size_temp_model.ckpt')
+    assert not os.path.exists(tmpdir / 'scale_batch_size_temp_model.ckpt')
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
