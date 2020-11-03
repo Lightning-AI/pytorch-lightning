@@ -107,7 +107,7 @@ def test_amp_gradient_unscale(tmpdir):
         limit_test_batches=2,
         limit_val_batches=2,
         amp_backend='native',
-        distributed_backend='ddo_spawn',
+        distributed_backend='ddp_spawn',
         gpus=2,
         precision=16,
         track_grad_norm=2,
