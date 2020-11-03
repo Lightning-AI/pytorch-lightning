@@ -22,6 +22,7 @@ from pytorch_lightning.utilities.parsing import str_to_bool
 from pytorch_lightning.utilities.parsing import is_picklable
 from pytorch_lightning.utilities.parsing import clean_namespace
 from pytorch_lightning.utilities.parsing import AttributeDict
+from pytorch_lightning.utilities.parsing import flatten_dict
 
 
 def _get_test_cases():
@@ -173,3 +174,19 @@ def test_AttributeDict(tmpdir):
     ad = AttributeDict({'key1': 1})
     ad.key1 = 123
     assert ad.key1 == 123
+
+
+def test_flatten_dict(tmpdir):
+    d = {
+        '1': 1,
+        '_': {'2': 2, '_': {'3': 3, '4': 4}}
+    }
+
+    expected = {
+        '1': 1,
+        '2': 2,
+        '3': 3,
+        '4': 4,
+    }
+
+    assert flatten_dict(d) == expected
