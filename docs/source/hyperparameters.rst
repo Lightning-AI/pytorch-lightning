@@ -189,7 +189,7 @@ improve readability and reproducibility.
         conf = OmegaConf.create(...)
         model = LitMNIST(conf)
 
-        # this works
+        # Now possible to access any stored variables from hparams
         model.hparams.anything
 
 
