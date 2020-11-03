@@ -77,6 +77,15 @@ class TrainLoop:
         num_optimizers = len(self.get_optimizers_iterable())
         return num_optimizers
 
+    def should_skip_training(self):
+        if self.trainer.current_epoch >= self.trainer.max_epochs:
+            return True
+
+        if self.trainer.limit_train_batches == 0:
+            return True
+
+        return False
+
     def on_train_start(self):
         # clear cache before training
         if self.trainer.on_gpu and self.trainer.root_gpu is not None:
@@ -203,7 +212,7 @@ class TrainLoop:
 
     def check_checkpoint_callback(self, should_save, is_last=False):
         # TODO bake this logic into the checkpoint callback
-        if should_save:
+        if should_save and self.trainer.checkpoint_connector.has_trained:
             checkpoint_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
             if is_last and any(c.save_last for c in checkpoint_callbacks):
                 rank_zero_info("Saving latest checkpoint...")
@@ -579,6 +588,7 @@ class TrainLoop:
             monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
             monitor_metrics.update(batch_output.batch_log_metrics)
             self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
+            self.trainer.checkpoint_connector.has_trained = True
 
             # max steps reached, end training
             if self.trainer.max_steps is not None and self.trainer.max_steps == self.trainer.global_step + 1:
@@ -596,13 +606,11 @@ class TrainLoop:
             self.trainer.total_batch_idx += 1
 
             # stop epoch if we limited the number of training batches
-            if batch_idx + 1 >= self.trainer.num_training_batches:
+            if (batch_idx + 1) >= self.trainer.num_training_batches:
                 break
 
             # progress global step according to grads progress
             self.increment_accumulated_grad_global_step()
-
-            self.trainer.checkpoint_connector.has_trained = True
 
         # log epoch metrics
         self.trainer.logger_connector.log_train_epoch_end_metrics(
@@ -656,20 +664,12 @@ class TrainLoop:
         splits = self.tbptt_split_batch(batch)
 
         for split_idx, split_batch in enumerate(splits):
-            self.trainer.split_idx = split_idx
 
-            # in manual optimization we loop over all optimizers at once
-            optimizers = self.get_optimizers_iterable()
-            if not self.automatic_optimization:
-                optimizers = [optimizers[0]]
+            # create an iterable for optimizers and loop over them
+            for opt_idx, optimizer in self.prepare_optimizers():
 
-            # loop over optimizers
-            for opt_idx, optimizer in optimizers:
-                # make sure only the gradients of the current optimizer's parameters are calculated
-                # in the training step to prevent dangling gradients in multiple-optimizer setup.
-                if self.automatic_optimization and len(self.trainer.optimizers) > 1:
-                    model = self.trainer.get_model()
-                    model.toggle_optimizer(optimizer, opt_idx)
+                # toggle model params + set info to logger_connector
+                self.run_train_split_start(split_idx, split_batch, opt_idx, optimizer)
 
                 if self.should_accumulate():
                     # For gradient accumulation
@@ -724,6 +724,7 @@ class TrainLoop:
                         opt_idx=opt_idx,
                     )
 
+                    # todo: Properly aggregate grad_norm accros opt_idx and split_idx
                     grad_norm_dic = self._cur_grad_norm_dict
                     self._cur_grad_norm_dict = None
 
@@ -733,14 +734,8 @@ class TrainLoop:
                     # clear gradients
                     self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
-                    accumulated_loss = self.accumulated_loss.mean()
-
-                    if accumulated_loss is not None:
-                        # calculate running loss for display
-                        self.running_loss.append(self.accumulated_loss.mean() * self.trainer.accumulate_grad_batches)
-
-                    # reset for next set of accumulated grads
-                    self.accumulated_loss.reset()
+                    # update running loss + reset accumulated loss
+                    self.update_running_loss()
 
         # collapse all metrics into one dict
         batch_log_metrics = {k: v for d in batch_log_metrics for k, v in d.items()}
@@ -941,3 +936,33 @@ class TrainLoop:
                 epoch_end_outputs.append(optimizer_idx_outputs)
 
         return epoch_end_outputs
+
+    def prepare_optimizers(self):
+        # in manual optimization we loop over all optimizers at once
+        optimizers = self.get_optimizers_iterable()
+        if not self.automatic_optimization:
+            optimizers = [optimizers[0]]
+        return optimizers
+
+    def run_train_split_start(self, split_idx, split_batch, opt_idx, optimizer):
+        # set split_idx to trainer for tracking
+        self.trainer.split_idx = split_idx
+
+        # make sure only the gradients of the current optimizer's parameters are calculated
+        # in the training step to prevent dangling gradients in multiple-optimizer setup.
+        if self.automatic_optimization and len(self.trainer.optimizers) > 1:
+            model = self.trainer.get_model()
+            model.toggle_optimizer(optimizer, opt_idx)
+
+        # use to track metrics internally
+        self.trainer.logger_connector.on_batch_start(split_idx, opt_idx, split_batch)
+
+    def update_running_loss(self):
+        accumulated_loss = self.accumulated_loss.mean()
+
+        if accumulated_loss is not None:
+            # calculate running loss for display
+            self.running_loss.append(self.accumulated_loss.mean() * self.trainer.accumulate_grad_batches)
+
+        # reset for next set of accumulated grads
+        self.accumulated_loss.reset()

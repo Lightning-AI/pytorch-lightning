@@ -255,9 +255,8 @@ class CheckpointConnector:
         has_reached_max_steps = self.trainer.max_steps and self.trainer.max_steps <= global_step
 
         global_step += 1
-        if self.has_trained:
-            if not has_reached_max_steps:
-                current_epoch += 1
+        if not has_reached_max_steps:
+            current_epoch += 1
 
         checkpoint = {
             'epoch': current_epoch,
