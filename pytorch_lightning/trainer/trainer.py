@@ -838,7 +838,23 @@ class Trainer(
         self.setup(stage_name)
         model.setup(stage_name)
 
+    def _reset_result_and_set_hook_fx_name(self, hook_name):
+        model_ref = self.get_model()
+        if model_ref is not None:
+            # used to track current hook name called
+            model_ref._results = Result()
+            model_ref._current_hook_fx_name = hook_name
+
+    def _cache_logged_metrics(self):
+        model_ref = self.get_model()
+        if model_ref is not None:
+            # capture logging for this hook
+            self.logger_connector.cache_logged_metrics()
+
     def call_hook(self, hook_name, *args, **kwargs):
+        # set hook_name to model + reset Result obj
+        self._reset_result_and_set_hook_fx_name(hook_name)
+
         # always profile hooks
         with self.profiler.profile(hook_name):
 
@@ -860,4 +876,6 @@ class Trainer(
                 accelerator_hook = getattr(self.accelerator_backend, hook_name)
                 output = accelerator_hook(*args, **kwargs)
 
-            return output
+        # capture logging
+        self._cache_logged_metrics()
+        return output

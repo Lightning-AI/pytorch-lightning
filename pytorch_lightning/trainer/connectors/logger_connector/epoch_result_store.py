@@ -97,11 +97,11 @@ class HookResultStore:
         return self._internals_reduced
 
     def add_dataloader_idx(self):
-        return len(self._internals) > 1
+        return len(self._internals_reduced) > 1 if self.has_reduced else len(self._internals) > 1
 
     @property
     def num_dataloaders(self):
-        return len(self._internals)
+        return len(self._internals_reduced) if self.has_reduced else len(self._internals)
 
     def get_latest_from_dict(self, dl_idx):
         num_opt_idx = len(self._internals[dl_idx]) - 1
@@ -151,7 +151,7 @@ class HookResultStore:
             func = getattr(opt_metric, func_name)
             metrics_to_log = func(
                 *args,
-                add_dataloader_idx=self.add_dataloader_idx,
+                add_dataloader_idx=self.add_dataloader_idx(),
                 **kwargs)
             results.update(metrics_to_log)
         else:
@@ -271,7 +271,7 @@ class HookResultStore:
                         self._internals_reduced[dl_idx][str(opt_idx)] = opt_outputs
 
                         # free memory
-                        del self._internals[dl_idx]
+                        del self._internals[dl_idx][opt_idx]
                 else:
                     # no need to reduce as called only once
                     if len(epoch_metrics) == 1:
@@ -365,7 +365,7 @@ class EpochResultStore:
         model_ref = self.trainer.get_model()
         # extract hook information
         fx_name = model_ref._current_hook_fx_name
-        if fx_name == '':
+        if fx_name is None:
             fx_name = model_ref._current_fx_name
         dataloader_idx = model_ref._current_dataloader_idx
         return fx_name, dataloader_idx
@@ -464,10 +464,14 @@ class EpochResultStore:
         return results
 
     def get_latest_batch_log_metrics(self) -> Mapping:
-        return self.run_batch_from_func_name("get_batch_log_metrics")
+        batch_log_metrics = self.run_batch_from_func_name("get_batch_log_metrics")
+        batch_log_metrics.update(self.legacy_batch_log_metrics)
+        return batch_log_metrics
 
     def get_latest_batch_pbar_metrics(self) -> Mapping:
-        return self.run_batch_from_func_name("get_batch_pbar_metrics")
+        batch_pbar_metrics = self.run_batch_from_func_name("get_batch_pbar_metrics")
+        batch_pbar_metrics.update(self.legacy_batch_pbar_metrics)
+        return batch_pbar_metrics
 
     @property
     def has_reduced(self) -> bool:
@@ -523,6 +527,8 @@ class EpochResultStore:
         self._opt_idx: Union[int, None] = None
         self._batch_size: Union[int, None] = None
         self._has_batch_loop_finished = False
+        self.legacy_batch_log_metrics = {}
+        self.legacy_batch_pbar_metrics = {}
 
     def __repr__(self):
         return f"{self.__class__.__name__}(stage={self._stage}, internals={self._internals})"
