@@ -1118,9 +1118,8 @@ class LightningModule(
                 loss.backward()
 
         """
-        #if self.trainer.train_loop.automatic_optimization or self._running_manual_optim:
-        loss.backward(*args, **kwargs)
-        self.trainer.train_loop.track_and_norm_grad(optimizer=optimizer)
+        if self.trainer.train_loop.automatic_optimization or self._running_manual_optim:
+            loss.backward(*args, **kwargs)
 
     def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):
         """

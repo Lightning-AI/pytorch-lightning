@@ -358,6 +358,8 @@ def test_multiple_optimizers_manual_apex(tmpdir):
     num_manual_backward_calls = 3
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * num_manual_backward_calls
 
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_automatic_optimization_false(tmpdir):
     """
     This test verify that in `automatic_optimization` we don't add gradient if the user return loss.
@@ -373,7 +375,7 @@ def test_automatic_optimization_false(tmpdir):
             return self.count % 2 == 0
 
         def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
-            self.called["on_batch_start"] += 1
+            self.called["on_train_batch_start"] += 1
             self.weight_before = self.layer.weight.clone()
 
         def training_step(self, batch, batch_idx):
@@ -389,7 +391,8 @@ def test_automatic_optimization_false(tmpdir):
                 after_before = self.layer.weight.clone()
                 assert not torch.equal(weight_before, after_before)
                 opt.zero_grad()
-            loss = loss.detach()
+
+            # the loss should be ignored
             return loss
 
         def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
@@ -412,10 +415,14 @@ def test_automatic_optimization_false(tmpdir):
         limit_train_batches=10,
         limit_test_batches=0,
         limit_val_batches=0,
-        automatic_optimization=False
+        automatic_optimization=False,
+        precision=16,
+        amp_backend='native',
+        accelerator="ddp",
+        gpus=2,
     )
     trainer.fit(model)
 
     assert model.called["training_step"] == 10
-    assert model.called["on_batch_start"] == 10
+    assert model.called["on_train_batch_start"] == 10
     assert model.called["on_train_batch_end"] == 10
