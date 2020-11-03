@@ -155,6 +155,10 @@ def test_torchscript_with_no_input(tmpdir):
         model.to_torchscript(method='trace')
 
 
+@pytest.mark.skipif(
+    LooseVersion(torch.__version__) < LooseVersion("1.4.0"),
+    reason="torch has bug parsing namedtuples on torch < 1.4",
+)
 def test_torchscript_with_sequence_input(tmpdir):
     """Test that traced LightningModule is created when input is tuple of tensors"""
     class CustomModel(BoringModel):
