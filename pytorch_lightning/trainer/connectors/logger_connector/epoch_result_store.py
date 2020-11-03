@@ -15,7 +15,7 @@ import os
 from collections import defaultdict
 from copy import deepcopy
 from enum import Enum
-from typing import Union, Tuple, Any, Mapping
+from typing import Union, Tuple, Any, Dict
 
 from pytorch_lightning.core.step_result import Result
 
@@ -157,7 +157,7 @@ class HookResultStore:
         else:
             raise Exception("The provided opt_metric should be a Result Object. Something is wrong")
 
-    def get_epoch_from_func_name(self, func_name, *args, **kwargs) -> Mapping:
+    def get_epoch_from_func_name(self, func_name, *args, **kwargs) -> Dict:
         results = {}
         for dl_idx in range(self.num_dataloaders):
             dl_idx = str(dl_idx)
@@ -169,13 +169,13 @@ class HookResultStore:
                 self.run_epoch_func(results, opt_metrics, func_name, *args, **kwargs)
         return results
 
-    def get_epoch_pbar_metrics(self, *args, **kwargs) -> Mapping:
+    def get_epoch_pbar_metrics(self, *args, **kwargs) -> Dict:
         return self.get_epoch_from_func_name("get_epoch_pbar_metrics")
 
-    def get_epoch_log_metrics(self, *args, **kwargs) -> Mapping:
+    def get_epoch_log_metrics(self, *args, **kwargs) -> Dict:
         return self.get_epoch_from_func_name("get_epoch_log_metrics")
 
-    def get_forked_metrics(self, *args, **kwargs) -> Mapping:
+    def get_forked_metrics(self, *args, **kwargs) -> Dict:
         return self.get_epoch_from_func_name("get_forked_metrics")
 
     @staticmethod
@@ -456,20 +456,20 @@ class EpochResultStore:
         logger_connector.callback_metrics.update(callback_metrics)
         logger_connector.callback_metrics.pop("epoch", None)
 
-    def run_batch_from_func_name(self, func_name) -> Mapping:
+    def run_batch_from_func_name(self, func_name) -> Dict:
         results = {}
         for fx_name, hook_result in self._internals.items():
             func = getattr(hook_result, func_name)
             results.update(func(latest=True, include_forked_originals=False))
         return results
 
-    def get_latest_batch_log_metrics(self) -> Mapping:
-        batch_log_metrics: Mapping = self.run_batch_from_func_name("get_batch_log_metrics")
+    def get_latest_batch_log_metrics(self) -> Dict:
+        batch_log_metrics: Dict = self.run_batch_from_func_name("get_batch_log_metrics")
         batch_log_metrics.update(self.legacy_batch_log_metrics)
         return batch_log_metrics
 
-    def get_latest_batch_pbar_metrics(self) -> Mapping:
-        batch_pbar_metrics: Mapping = self.run_batch_from_func_name("get_batch_pbar_metrics")
+    def get_latest_batch_pbar_metrics(self) -> Dict:
+        batch_pbar_metrics: Dict = self.run_batch_from_func_name("get_batch_pbar_metrics")
         batch_pbar_metrics.update(self.legacy_batch_pbar_metrics)
         return batch_pbar_metrics
 
@@ -499,7 +499,7 @@ class EpochResultStore:
         self._has_batch_loop_finished = has_batch_loop_finished
         self.update_logger_connector()
 
-    def run_epoch_by_func_name(self, func_name) -> Mapping:
+    def run_epoch_by_func_name(self, func_name) -> Dict:
         if not self.has_reduced:
             self.auto_reduce_results_on_epoch_end()
         results = {}
@@ -508,16 +508,16 @@ class EpochResultStore:
             results.update(func())
         return results
 
-    def get_epoch_pbar_metrics(self) -> Mapping:
+    def get_epoch_pbar_metrics(self) -> Dict:
         return self.run_epoch_by_func_name("get_epoch_pbar_metrics")
 
-    def get_epoch_log_metrics(self) -> Mapping:
+    def get_epoch_log_metrics(self) -> Dict:
         return self.run_epoch_by_func_name("get_epoch_log_metrics")
 
-    def get_forked_metrics(self) -> Mapping:
+    def get_forked_metrics(self) -> Dict:
         return self.run_epoch_by_func_name("get_forked_metrics")
 
-    def get_reduced_metrics(self) -> Mapping:
+    def get_reduced_metrics(self) -> Dict:
         return self.run_epoch_by_func_name("get_reduced_metrics")
 
     def reset(self):
