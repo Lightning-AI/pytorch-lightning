@@ -203,7 +203,7 @@ class TrainLoop:
 
     def check_checkpoint_callback(self, should_save, is_last=False):
         # TODO bake this logic into the checkpoint callback
-        if should_save:
+        if should_save and self.trainer.checkpoint_connector.has_trained:
             checkpoint_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
             if is_last and any(c.save_last for c in checkpoint_callbacks):
                 rank_zero_info("Saving latest checkpoint...")
@@ -579,6 +579,7 @@ class TrainLoop:
             monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
             monitor_metrics.update(batch_output.batch_log_metrics)
             self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
+            self.trainer.checkpoint_connector.has_trained = True
 
             # max steps reached, end training
             if self.trainer.max_steps is not None and self.trainer.max_steps == self.trainer.global_step + 1:
@@ -601,9 +602,6 @@ class TrainLoop:
 
             # progress global step according to grads progress
             self.increment_accumulated_grad_global_step()
-
-            # used during checkpointing for current_epoch and global_step
-            self.trainer.checkpoint_connector.has_trained = True
 
         # log epoch metrics
         self.trainer.logger_connector.log_train_epoch_end_metrics(
