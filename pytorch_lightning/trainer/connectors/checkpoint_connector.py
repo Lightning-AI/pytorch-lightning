@@ -96,7 +96,6 @@ class CheckpointConnector:
         # Try to read the checkpoint file at `checkpoint_path`. If not exist, do not restore checkpoint.
         fs = get_filesystem(checkpoint_path)
         if not fs.exists(checkpoint_path):
-            log.info(f'failed to load model from checkpoint:{checkpoint_path}')
             return False
 
         # if on_gpu:
@@ -130,7 +129,6 @@ class CheckpointConnector:
         # load training state (affects trainer only)
         self.restore_training_state(checkpoint)
 
-        log.info(f'Model restored from: {checkpoint_path}')
         return True
 
     def restore_training_state(self, checkpoint):
