@@ -14,7 +14,7 @@
 
 from abc import ABC
 import inspect
-from typing import Union, Iterable
+from typing import Union, Iterable, Mapping
 
 import torch
 
@@ -92,7 +92,7 @@ class TrainerLoggingMixin(ABC):
         # ---------------
         # all keys not progress_bar or log are candidates for callbacks
         callback_metrics = {}
-        if output:
+        if isinstance(output, Mapping):
             for k, v in output.items():
                 if k not in ['progress_bar', 'log', 'hiddens']:
                     callback_metrics[k] = v
@@ -156,7 +156,7 @@ class TrainerLoggingMixin(ABC):
         # ---------------
         # EXTRACT HIDDEN
         # ---------------
-        hiddens = output.get('hiddens') if output else None
+        hiddens = output.get('hiddens', None) if isinstance(output, Mapping) else None
 
         # use every metric passed in as a candidate for callback
         callback_metrics.update(progress_bar_metrics)

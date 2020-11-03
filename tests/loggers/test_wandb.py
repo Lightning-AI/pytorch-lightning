@@ -19,7 +19,7 @@ import types
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
-from tests.base import EvalModelTemplate
+from tests.base import EvalModelTemplate, BoringModel
 
 
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
@@ -116,7 +116,7 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
     trainer.fit(model)
 
     assert trainer.checkpoint_callback.dirpath == str(tmpdir / 'project' / version / 'checkpoints')
-    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0.ckpt'}
+    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=9.ckpt'}
 
 
 def test_wandb_sanitize_callable_params(tmpdir):
@@ -135,6 +135,8 @@ def test_wandb_sanitize_callable_params(tmpdir):
 
     def wrapper_something():
         return return_something
+
+    params.wrapper_something_wo_name = lambda: lambda: '1'
     params.wrapper_something = wrapper_something
 
     assert isinstance(params.gpus, types.FunctionType)
@@ -144,3 +146,4 @@ def test_wandb_sanitize_callable_params(tmpdir):
     assert params["gpus"] == '_gpus_arg_default'
     assert params["something"] == "something"
     assert params["wrapper_something"] == "wrapper_something"
+    assert params["wrapper_something_wo_name"] == "<lambda>"

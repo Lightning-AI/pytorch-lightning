@@ -43,7 +43,7 @@ class TensorRunningAccum(object):
 
     def __init__(self, window_length: int):
         self.window_length = window_length
-        self.memory = torch.Tensor(self.window_length)
+        self.memory = torch.zeros(self.window_length)
         self.current_idx: int = 0
         self.last_idx: Optional[int] = None
         self.rotated: bool = False
