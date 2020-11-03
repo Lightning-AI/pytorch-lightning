@@ -837,7 +837,6 @@ class TrainLoop:
         self.trainer.call_hook('on_epoch_end')
         self.trainer.call_hook('on_train_epoch_end', epoch_output)
 
-        # bookkeeping
         self.trainer.logger_connector.on_train_epoch_end()
 
     def increment_accumulated_grad_global_step(self):

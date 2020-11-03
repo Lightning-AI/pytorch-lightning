@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os
 from collections import defaultdict
 from copy import deepcopy
 from enum import Enum
@@ -464,12 +464,12 @@ class EpochResultStore:
         return results
 
     def get_latest_batch_log_metrics(self) -> Mapping:
-        batch_log_metrics = self.run_batch_from_func_name("get_batch_log_metrics")
+        batch_log_metrics: Mapping = self.run_batch_from_func_name("get_batch_log_metrics")
         batch_log_metrics.update(self.legacy_batch_log_metrics)
         return batch_log_metrics
 
     def get_latest_batch_pbar_metrics(self) -> Mapping:
-        batch_pbar_metrics = self.run_batch_from_func_name("get_batch_pbar_metrics")
+        batch_pbar_metrics: Mapping = self.run_batch_from_func_name("get_batch_pbar_metrics")
         batch_pbar_metrics.update(self.legacy_batch_pbar_metrics)
         return batch_pbar_metrics
 

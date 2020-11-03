@@ -852,8 +852,10 @@ class Trainer(
             self.logger_connector.cache_logged_metrics()
 
     def call_hook(self, hook_name, *args, **kwargs):
-        # set hook_name to model + reset Result obj
-        self._reset_result_and_set_hook_fx_name(hook_name)
+        # temporary. Don't modify evaluation behaviour
+        if self.logger_connector._current_stage == "train":
+            # set hook_name to model + reset Result obj
+            self._reset_result_and_set_hook_fx_name(hook_name)
 
         # always profile hooks
         with self.profiler.profile(hook_name):
@@ -876,6 +878,8 @@ class Trainer(
                 accelerator_hook = getattr(self.accelerator_backend, hook_name)
                 output = accelerator_hook(*args, **kwargs)
 
-        # capture logging
-        self._cache_logged_metrics()
+        # temporary. Don't modify evaluation behaviour
+        if self.logger_connector._current_stage == "train":
+            # capture logging
+            self._cache_logged_metrics()
         return output

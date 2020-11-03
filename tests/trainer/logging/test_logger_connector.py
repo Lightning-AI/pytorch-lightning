@@ -17,15 +17,16 @@ Tests to ensure that the training loop works with a dict (1.0)
 import os
 import torch
 import pytest
-
+from copy import deepcopy
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
+from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore
 from tests.base.boring_model import BoringModel, RandomDataset
 
 
 class Helper:
-    def decorator_with_arguments(fx_name='', hook_fx_name=''):
+    def decorator_with_arguments(fx_name='', hook_fx_name=None):
         def decorator(func):
             def wrapper(self, *args, **kwargs):
                 # Set information
@@ -65,9 +66,9 @@ def test__logger_connector__epoch_result_store__train(tmpdir):
             self.log("train_loss", loss, on_step=True, on_epoch=True)
             return {"loss": loss}
 
-        def val_dataloader(self):
-            return [torch.utils.data.DataLoader(RandomDataset(32, 64)),
-                    torch.utils.data.DataLoader(RandomDataset(32, 64))]
+        def on_train_epoch_end(self, outputs):
+            # save objects as it will be reset at the end of epoch.
+            self.train_results = deepcopy(self.trainer.logger_connector.cached_results("train"))
 
     model = TestModel()
     model.val_dataloader = None
@@ -82,20 +83,19 @@ def test__logger_connector__epoch_result_store__train(tmpdir):
     )
     trainer.fit(model)
 
-    assert len(trainer.logger_connector.cached_results("train")['training_step']['0']['0']) == 2
-    assert trainer.logger_connector.cached_results("train")['training_step']['0']['0']['0'][0]["train_loss"] == model.train_losses[0]
-    assert trainer.logger_connector.cached_results("train")['training_step']['0']['0']['1'][0]["train_loss"] == model.train_losses[1]
+    train_results = model.train_results
 
-    # assert reduction didn't happen yet
-    assert trainer.logger_connector.cached_results("train").has_reduced is False
+    assert len(train_results['training_step']['0']['0']) == 2
+    assert train_results['training_step']['0']['0']['0'][0]["train_loss"] == model.train_losses[0]
+    assert train_results['training_step']['0']['0']['1'][0]["train_loss"] == model.train_losses[1]
 
-    # Launch reduction
-    trainer.logger_connector.cached_results("train").has_batch_loop_finished = True
+    assert train_results.has_reduced is not True
 
-    # assert reduction did happen
-    assert trainer.logger_connector.cached_results("train").has_reduced is True
+    train_results.has_batch_loop_finished = True
 
-    assert trainer.logger_connector.cached_results("train")["training_step"]\
+    assert train_results.has_reduced is True
+
+    assert train_results["training_step"]\
         ._internals_reduced["0"]["0"]['train_loss_epoch'].item() == torch.stack(model.train_losses).mean().item()
 
 
@@ -163,6 +163,10 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
                 sampler=None,
             )
 
+        def on_train_epoch_end(self, outputs):
+            # save objects as it will be reset at the end of epoch.
+            self.train_results = deepcopy(self.trainer.logger_connector.cached_results("train"))
+
     model = TestModel()
     model.training_epoch_end = None
     model.example_input_array = torch.randn(5, truncated_bptt_steps)
@@ -178,18 +182,20 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
     )
     trainer.fit(model)
 
-    assert len(trainer.logger_connector.cached_results("train")['training_step']['0']['0']['0']) == len(model.train_losses)
+    train_results = model.train_results
+
+    assert len(train_results['training_step']['0']['0']['0']) == len(model.train_losses)
 
     # assert reduction didn't happen yet
-    assert trainer.logger_connector.cached_results("train").has_reduced is False
+    assert train_results.has_reduced is False
 
     # Launch reduction
-    trainer.logger_connector.cached_results("train").has_batch_loop_finished = True
+    train_results.has_batch_loop_finished = True
 
     # assert reduction did happen
-    assert trainer.logger_connector.cached_results("train").has_reduced is True
+    assert train_results.has_reduced is True
 
-    assert trainer.logger_connector.cached_results("train")['training_step']\
+    assert train_results['training_step']\
         ._internals_reduced['0']['0']["a_epoch"].item() == torch.stack(model.train_losses).mean().item()
 
 

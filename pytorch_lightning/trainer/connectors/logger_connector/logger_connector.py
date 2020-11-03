@@ -177,11 +177,12 @@ class LoggerConnector:
 
         # track progress bar metrics
         if len(pbar_metrics_tmp) > 0:
-            self.trainer.logger_connector.add_progress_bar_metrics(pbar_metrics_tmp)
+            self.add_progress_bar_metrics(pbar_metrics_tmp)
 
-        self.trainer.logger_connector.callback_metrics.update(callback_metrics_tmp)
+        self.callback_metrics.update(callback_metrics_tmp)
 
         # save legacy log metrics
+        self.logged_metrics.update(logged_metrics_tmp)
         self.cached_results("train").legacy_batch_log_metrics.update(logged_metrics_tmp)
 
     def log_metrics(self, metrics, grad_norm_dic, step=None):
