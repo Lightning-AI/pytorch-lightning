@@ -188,36 +188,28 @@ def lightning_hasattr(model, attribute):
 def lightning_getattr(model, attribute):
     """ Special getattr for lightning. Checks for attribute in model namespace,
         the old hparams namespace/dict, and the datamodule. """
-
-    trainer = getattr(model, 'trainer', None)
-    datamodule = getattr(trainer, 'datamodule', None)
-
     # Check if attribute in model
     if hasattr(model, attribute):
-        attr = getattr(model, attribute)
+        return getattr(model, attribute)
 
     # Check if attribute in model.hparams, either namespace or dict
-    elif hasattr(model, 'hparams'):
+    if hasattr(model, 'hparams'):
         if isinstance(model.hparams, dict):
             try:
-                attr = model.hparams[attribute]
+                return model.hparams[attribute]
             except KeyError:
-                raise AttributeError(
-                    f'{attribute} is neither stored in the model namespace'
-                    ' nor the `hparams` namespace/dict, nor the datamodule.'
-                ) from None
+                pass
         else:
-            attr = getattr(model.hparams, attribute)
+            return getattr(model.hparams, attribute)
 
     # Check if the attribute in datamodule (datamodule gets registered in Trainer)
-    elif hasattr(datamodule, attribute):
-        attr = getattr(datamodule, attribute)
+    trainer = getattr(model, 'trainer', None)
+    datamodule = getattr(trainer, 'datamodule', None)
+    if hasattr(datamodule, attribute):
+        return getattr(datamodule, attribute)
 
-    else:
-        raise AttributeError(f'{attribute} is neither stored in the model namespace'
-                             ' nor the `hparams` namespace/dict, nor the datamodule.')
-
-    return attr
+    raise AttributeError(f'{attribute} is neither stored in the model namespace'
+                         ' nor the `hparams` namespace/dict, nor the datamodule.')
 
 
 def lightning_setattr(model, attribute, value):
