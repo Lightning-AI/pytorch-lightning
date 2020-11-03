@@ -183,7 +183,7 @@ trainer = pl.Trainer()
 trainer.fit(autoencoder, DataLoader(train), DataLoader(val))
 ```
 
-#### And without changing a single line of code, you could run on GPU/TPUss
+#### And without changing a single line of code, you could run on GPUs/TPUs
 ```python
 # 8 GPUs
 trainer = Trainer(max_epochs=1, gpus=8)
