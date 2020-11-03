@@ -44,25 +44,14 @@ class LoggerConnector:
         self._callback_hook_validator = CallbackHookNameValidator()
         self._current_stage = None
 
-    def cached_results(self, stage_or_testing: Union[str, bool]) -> Union[EpochResultStore, None]:
-        """ Function to access cached_results using str or bool. Bool is used only for testing"""
-        stage_or_testing = str(stage_or_testing)
-        stages = self._stages
-        if stage_or_testing in self._stages:
-            return self._cached_results[stage_or_testing]
-        if stage_or_testing in LOOKUP_TABLE:
-            # Acces using trainer.testing
-            stage = LOOKUP_TABLE[stage_or_testing]
-            return self._cached_results[stage]
-        raise MisconfigurationException(
-            f"Provide stage_or_testing {stage_or_testing} doesn't belong either to {self._stages}"
-            f" or {LOOKUP_TABLE.keys()}"
-        )
+    @property
+    def cached_results(self) -> Union[EpochResultStore, None]:
+        return self._cached_results[self._current_stage]
 
     def set_stage(self, stage_or_testing: str, reset:bool = False) -> None:
         self._current_stage = self._determine_stage(stage_or_testing)
         if reset:
-            self.cached_results(stage_or_testing).reset()
+            self.cached_results.reset()
 
     def check_logging_in_callbacks(self, hook_fx_name, on_step: bool = None, on_epoch: bool = None) -> None:
         self._callback_hook_validator.check_logging_in_callbacks(current_hook_fx_name=hook_fx_name,
@@ -75,17 +64,17 @@ class LoggerConnector:
         model._current_dataloader_idx = dataloader_idx if num_dataloaders > 1 else None
 
         # track batch_size
-        self.cached_results(testing)._batch_size = Result.extract_batch_size(batch)
+        self.cached_results._batch_size = Result.extract_batch_size(batch)
 
-    def on_batch_start(self, split_idx: int, opt_idx: int, split_batch) -> None:
-        self._cached_results["train"]._split_idx = split_idx
-        self._cached_results["train"]._opt_idx = opt_idx
-        self._cached_results["train"]._batch_size = Result.extract_batch_size(split_batch)
+    def on_train_split_start(self, split_idx: int, opt_idx: int, split_batch) -> None:
+        self.cached_results._split_idx = split_idx
+        self.cached_results._opt_idx = opt_idx
+        self.cached_results._batch_size = Result.extract_batch_size(split_batch)
 
     def on_train_batch_end(self) -> None:
-        self._cached_results["train"]._split_idx = None
-        self._cached_results["train"]._opt_idx = None
-        self._cached_results["train"]._batch_size = None
+        self.cached_results._split_idx = None
+        self.cached_results._opt_idx = None
+        self.cached_results._batch_size = None
 
     def _determine_stage(self, stage_or_testing: Union[str, bool]) -> str:
         stage_or_testing = str(stage_or_testing)
@@ -114,11 +103,13 @@ class LoggerConnector:
 
     @property
     def should_flush_logs(self):
-        return (self.trainer.global_step + 1) % self.trainer.flush_logs_every_n_steps == 0 or self.trainer.should_stop
+        should_flush = (self.trainer.global_step + 1) % self.trainer.flush_logs_every_n_steps == 0
+        return should_flush or self.trainer.should_stop
 
     @property
     def should_update_logs(self):
-        return (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0 or self.trainer.should_stop
+        should_log_every_n_steps = (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0
+        return should_log_every_n_steps or self.trainer.should_stop
 
     def configure_logger(self, logger):
         if logger is True:
@@ -183,7 +174,7 @@ class LoggerConnector:
 
         # save legacy log metrics
         self.logged_metrics.update(logged_metrics_tmp)
-        self.cached_results("train").legacy_batch_log_metrics.update(logged_metrics_tmp)
+        self.cached_results.legacy_batch_log_metrics.update(logged_metrics_tmp)
 
     def log_metrics(self, metrics, grad_norm_dic, step=None):
         """Logs the metric dict passed in.
@@ -426,7 +417,7 @@ class LoggerConnector:
 
     def on_train_epoch_end(self):
         # inform cached logger connector epoch finished
-        self.cached_results("train").has_batch_loop_finished = True
+        self.cached_results.has_batch_loop_finished = True
 
     def log_train_epoch_end_metrics(self,
                                     epoch_output,
@@ -487,8 +478,8 @@ class LoggerConnector:
             epoch_log_metrics, epoch_progress_bar_metrics, epoch_callback_metrics = out
 
         # it will perform reduction over epoch and return log metrics
-        cached_epoch_log_metrics = self._cached_results["train"].get_epoch_log_metrics()
-        cached_epoch_pbar_metrics = self._cached_results["train"].get_epoch_pbar_metrics()
+        cached_epoch_log_metrics = self.cached_results.get_epoch_log_metrics()
+        cached_epoch_pbar_metrics = self.cached_results.get_epoch_pbar_metrics()
 
         # update
         epoch_log_metrics.update(cached_epoch_log_metrics)
@@ -511,7 +502,7 @@ class LoggerConnector:
             self.callback_metrics.update(epoch_progress_bar_metrics)
 
         # reset epoch loop result for next epoch
-        self._cached_results["train"].reset()
+        self.cached_results.reset()
 
     def training_epoch_end(self, model, epoch_output, num_optimizers):
         if not is_overridden('training_epoch_end', model=model):

@@ -358,7 +358,7 @@ class EvaluationLoop(object):
         step_log_metrics = output.get_batch_log_metrics(include_forked_originals=False)
         step_pbar_metrics = output.get_batch_pbar_metrics(include_forked_originals=False)
 
-        cached_batch_log_metrics = self.trainer.logger_connector.cached_results(self.testing)\
+        cached_batch_log_metrics = self.trainer.logger_connector.cached_results\
             .get_latest_batch_log_metrics()
 
         if len(step_log_metrics) > 0:

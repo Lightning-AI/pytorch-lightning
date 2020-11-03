@@ -947,7 +947,7 @@ class TrainLoop:
             model.toggle_optimizer(optimizer, opt_idx)
 
         # use to track metrics internally
-        self.trainer.logger_connector.on_batch_start(split_idx, opt_idx, split_batch)
+        self.trainer.logger_connector.on_train_split_start(split_idx, opt_idx, split_batch)
 
     def update_running_loss(self):
         accumulated_loss = self.accumulated_loss.mean()

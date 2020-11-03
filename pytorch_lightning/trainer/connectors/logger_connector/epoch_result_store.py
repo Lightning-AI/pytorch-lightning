@@ -16,7 +16,7 @@ from collections import defaultdict
 from copy import deepcopy
 from enum import Enum
 from typing import Union, Tuple, Any, Dict
-
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.core.step_result import Result
 
 
@@ -96,14 +96,16 @@ class HookResultStore:
     def get_reduced_metrics(self):
         return self._internals_reduced
 
-    def add_dataloader_idx(self):
-        return len(self._internals_reduced) > 1 if self.has_reduced else len(self._internals) > 1
+    @property
+    def add_dataloader_idx(self) -> bool:
+        return self.num_dataloaders > 1
 
     @property
-    def num_dataloaders(self):
-        return len(self._internals_reduced) if self.has_reduced else len(self._internals)
+    def num_dataloaders(self) -> int:
+        _inter = self._internals_reduced if self.has_reduced else self._internals
+        return len(_inter)
 
-    def get_latest_from_dict(self, dl_idx):
+    def get_latest_from_dict(self, dl_idx: str) -> Result:
         num_opt_idx = len(self._internals[dl_idx]) - 1
         assert num_opt_idx >= 0
         num_opt_idx = str(num_opt_idx)
@@ -125,7 +127,7 @@ class HookResultStore:
         except Exception:
             return add_dataloader_idx
 
-    def get_lastest_from_func_name(self, func_name, *args, latest=True, **kwargs):
+    def get_lastest_from_func_name(self, func_name: str, *args, latest=True, **kwargs) -> Dict:
         results = {}
         if latest:
             for dl_idx in range(self.num_dataloaders):
@@ -151,7 +153,7 @@ class HookResultStore:
             func = getattr(opt_metric, func_name)
             metrics_to_log = func(
                 *args,
-                add_dataloader_idx=self.add_dataloader_idx(),
+                add_dataloader_idx=self.add_dataloader_idx,
                 **kwargs)
             results.update(metrics_to_log)
         else:
@@ -301,13 +303,9 @@ class HookResultStore:
 class EpochResultStore:
     """
     This class is defined for internal usage.
-
     It holds all metrics logged using the self.log function using `HookResultStore` object.
-
     The internal datastructure is as follow:
-
     self._internals = {"fx_name_0": HookResultStore(), ..., "fx_name_n": HookResultStore()}
-
     Pseudo Code Example:
     ```
     model._current_fx_name = 'something'
@@ -315,7 +313,6 @@ class EpochResultStore:
     model.log('a', ...)
     epoch_result_store.cache_result()
     ```
-
     """
     def __init__(self, trainer, stage):
         self.trainer = trainer
@@ -529,6 +526,54 @@ class EpochResultStore:
         self._has_batch_loop_finished = False
         self.legacy_batch_log_metrics = {}
         self.legacy_batch_pbar_metrics = {}
+
+    def __call__(self,
+                 fx_name: Union[str, int, None] = None,
+                 dl_idx: Union[str, int, None] = None,
+                 opt_idx: Union[str, int, None] = None,
+                 batch_idx: Union[str, int, None] = None,
+                 split_idx: Union[str, int, None] = None,
+                 reduced=False):
+        """
+        This function is used to easily acces saved logged data.
+        """
+
+        hook_result = self[str(fx_name)]
+
+        dl_idx = str(dl_idx) if dl_idx is not None else None
+        opt_idx = str(opt_idx) if opt_idx is not None else None
+        batch_idx = str(batch_idx) if batch_idx is not None else None
+        split_idx = int(split_idx) if split_idx is not None else None
+
+        internal_type = hook_result._internal_type
+        if internal_type is None:
+            return Result()
+
+        if reduced:
+            result = hook_result._internals_reduced
+        else:
+            result = hook_result._internals
+
+        if internal_type == ResultStoreType.INSIDE_BATCH_TRAIN_LOOP:
+            if not reduced:
+                if dl_idx is not None:
+                    result = result[dl_idx]
+                    if opt_idx is not None:
+                        result = result[opt_idx]
+                        if batch_idx is not None:
+                            result = result[batch_idx]
+                            if split_idx is not None:
+                                result = result[split_idx]
+            else:
+                if dl_idx is not None:
+                    result = result[dl_idx]
+                    if opt_idx is not None:
+                        result = result[opt_idx]
+        else:
+            if dl_idx is not None:
+                result = result[dl_idx]
+
+        return result
 
     def __repr__(self):
         return f"{self.__class__.__name__}(stage={self._stage}, internals={self._internals})"

@@ -68,7 +68,7 @@ def test__logger_connector__epoch_result_store__train(tmpdir):
 
         def on_train_epoch_end(self, outputs):
             # save objects as it will be reset at the end of epoch.
-            self.train_results = deepcopy(self.trainer.logger_connector.cached_results("train"))
+            self.train_results = deepcopy(self.trainer.logger_connector.cached_results)
 
     model = TestModel()
     model.val_dataloader = None
@@ -85,9 +85,11 @@ def test__logger_connector__epoch_result_store__train(tmpdir):
 
     train_results = model.train_results
 
-    assert len(train_results['training_step']['0']['0']) == 2
-    assert train_results['training_step']['0']['0']['0'][0]["train_loss"] == model.train_losses[0]
-    assert train_results['training_step']['0']['0']['1'][0]["train_loss"] == model.train_losses[1]
+    assert len(train_results(fx_name="training_step", dl_idx="0", opt_idx="0")) == 2
+    generated = train_results(fx_name="training_step", dl_idx="0", opt_idx="0", batch_idx="0", split_idx="0")["train_loss"]
+    assert generated == model.train_losses[0]
+    generated = train_results(fx_name="training_step", dl_idx="0", opt_idx="0", batch_idx="1", split_idx="0")["train_loss"]
+    assert generated == model.train_losses[1]
 
     assert train_results.has_reduced is not True
 
@@ -95,8 +97,9 @@ def test__logger_connector__epoch_result_store__train(tmpdir):
 
     assert train_results.has_reduced is True
 
-    assert train_results["training_step"]\
-        ._internals_reduced["0"]["0"]['train_loss_epoch'].item() == torch.stack(model.train_losses).mean().item()
+    generated = train_results(fx_name="training_step", dl_idx="0", opt_idx="0", reduced=True)['train_loss_epoch'].item()
+    excepted = torch.stack(model.train_losses).mean().item()
+    assert generated == excepted
 
 
 def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
@@ -165,7 +168,7 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
 
         def on_train_epoch_end(self, outputs):
             # save objects as it will be reset at the end of epoch.
-            self.train_results = deepcopy(self.trainer.logger_connector.cached_results("train"))
+            self.train_results = deepcopy(self.trainer.logger_connector.cached_results)
 
     model = TestModel()
     model.training_epoch_end = None
@@ -184,7 +187,8 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
 
     train_results = model.train_results
 
-    assert len(train_results['training_step']['0']['0']['0']) == len(model.train_losses)
+    generated = train_results(fx_name="training_step", dl_idx="0", opt_idx="0", batch_idx="0")
+    assert len(generated) == len(model.train_losses)
 
     # assert reduction didn't happen yet
     assert train_results.has_reduced is False
@@ -195,8 +199,8 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
     # assert reduction did happen
     assert train_results.has_reduced is True
 
-    assert train_results['training_step']\
-        ._internals_reduced['0']['0']["a_epoch"].item() == torch.stack(model.train_losses).mean().item()
+    generated = train_results(fx_name="training_step", dl_idx="0", opt_idx="0", reduced=True)['a_epoch'].item()
+    assert generated == torch.stack(model.train_losses).mean().item()
 
 
 @pytest.mark.parametrize('num_dataloaders', [1, 2])
@@ -212,11 +216,11 @@ def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, n
         test_losses = {}
 
         @Helper.decorator_with_arguments(fx_name="test_step")
-        def test_step(self, batch, batch_idx, dataloader_idx=0):
+        def test_step(self, batch, batch_idx, dl_idx=0):
             output = self.layer(batch)
             loss = self.loss(batch, output)
 
-            primary_key = str(dataloader_idx)
+            primary_key = str(dl_idx)
             if primary_key not in self.test_losses:
                 self.test_losses[primary_key] = []
 
@@ -245,11 +249,18 @@ def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, n
     )
     trainer.test(model)
 
-    assert len(trainer.logger_connector.cached_results("test")["test_step"]._internals) == num_dataloaders
+    test_results = trainer.logger_connector._cached_results["test"]
+
+    generated = test_results(fx_name="test_step")
+    assert len(generated) == num_dataloaders
+
     for dl_idx in range(num_dataloaders):
-        assert len(trainer.logger_connector.cached_results("test")["test_step"]._internals[str(dl_idx)]) == limit_test_batches
-    trainer.logger_connector.cached_results("test").has_batch_loop_finished = True
+        generated = len(test_results(fx_name="test_step", dl_idx=str(dl_idx)))
+        assert generated == limit_test_batches
+
+    test_results.has_batch_loop_finished = True
+
     for dl_idx in range(num_dataloaders):
         expected = torch.stack(model.test_losses[str(dl_idx)]).mean()
-        generated = trainer.logger_connector.cached_results("test")["test_step"]._internals_reduced[str(dl_idx)]["test_loss_epoch"]
+        generated = test_results(fx_name="test_step", dl_idx=str(dl_idx), reduced=True)["test_loss_epoch"]
         assert abs(expected.item() - generated.item()) < 1e-6
