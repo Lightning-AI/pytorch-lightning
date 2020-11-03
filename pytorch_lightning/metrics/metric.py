@@ -72,6 +72,7 @@ class Metric(nn.Module, ABC):
         self.dist_sync_on_step = dist_sync_on_step
         self.compute_on_step = compute_on_step
         self.process_group = process_group
+        self.dist_sync_fn = dist_sync_fn
         self._to_sync = True
 
         self.update = self._wrap_update(self.update)
