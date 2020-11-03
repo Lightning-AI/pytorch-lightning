@@ -58,7 +58,8 @@ class Accelerator(object):
         pass
 
     def teardown(self):
-        pass
+        # Ensure if necessary all processes are finished
+        self.barrier()
 
     def barrier(self, name: Optional[str] = None):
         pass
@@ -118,11 +119,12 @@ class Accelerator(object):
 
         # model hook
         model_ref.optimizer_step(
-            self.trainer.current_epoch,
-            batch_idx,
-            optimizer,
-            opt_idx,
-            lambda_closure,
+            epoch=self.trainer.current_epoch,
+            batch_idx=batch_idx,
+            optimizer=optimizer,
+            optimizer_idx=opt_idx,
+            optimizer_closure=lambda_closure,
+            on_tpu=False,  # TPUAccelerator class sets this as True
             using_native_amp=native_amp,
             using_lbfgs=is_lbfgs
         )
@@ -136,11 +138,6 @@ class Accelerator(object):
         model_ref.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
     def clip_gradients(self, optimizer, clip_val=None):
-
-        if self.trainer.amp_backend == AMPType.NATIVE:
-            self.trainer.scaler.unscale_(optimizer)
-
-        # apply clip gradients
         # TODO: separate TPU case from here
         self._clip_gradients(optimizer, clip_val)
 

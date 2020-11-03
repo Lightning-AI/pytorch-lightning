@@ -14,7 +14,7 @@
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.plugins.apex import ApexPlugin
-from pytorch_lightning.plugins.native_amp import NativeAMP
+from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
 from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVALAIBLE, AMPType, rank_zero_warn
 
 
@@ -56,7 +56,7 @@ class PrecisionConnector:
             else:
                 log.info('Using native 16bit precision.')
                 self.trainer.amp_backend = AMPType.NATIVE
-                self.backend = NativeAMP(self.trainer)
+                self.backend = NativeAMPPlugin(self.trainer)
 
         if amp_type == 'apex':
             if not APEX_AVAILABLE:

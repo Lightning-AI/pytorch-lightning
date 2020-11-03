@@ -107,9 +107,6 @@ class HorovodAccelerator(Accelerator):
         hvd.join()
         return results
 
-    def teardown(self):
-        pass
-
     def training_step(self, args):
         if self.trainer.on_gpu:
             batch = args[0]
