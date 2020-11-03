@@ -1,5 +1,6 @@
-import torch
+import os
 
+import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.metrics import Metric
 from tests.base.boring_model import BoringModel
@@ -78,3 +79,48 @@ def test_metric_lightning_log(tmpdir):
 
     logged = trainer.logged_metrics
     assert torch.allclose(torch.tensor(logged["sum"]), model.sum)
+
+
+def test_scriptable(tmpdir):
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            # the metric is not used in the module's `forward`
+            # so the module should be exportable to TorchScript
+            self.metric = SumMetric()
+            self.sum = 0.0
+
+        def training_step(self, batch, batch_idx):
+            x = batch
+            self.metric(x.sum())
+            self.sum += x.sum()
+            self.log("sum", self.metric, on_epoch=True, on_step=False)
+            return self.step(x)
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
+        log_every_n_steps=1,
+        weights_summary=None,
+        logger=False,
+        checkpoint_callback=False,
+    )
+    trainer.fit(model)
+    rand_input = torch.randn(10, 32)
+
+    script_model = model.to_torchscript()
+
+    # test that we can still do inference
+    output = model(rand_input)
+    script_output = script_model(rand_input)
+    assert torch.allclose(output, script_output)
+
+    # save to file and re-load to ensure export + load still works for inference
+    path = os.path.join(tmpdir, "tmp_script.pt")
+    torch.jit.save(script_model, path)
+    load_script_model = torch.jit.load(path)
+    load_script_model_output = load_script_model(rand_input)
+    assert torch.allclose(output, load_script_model_output)
