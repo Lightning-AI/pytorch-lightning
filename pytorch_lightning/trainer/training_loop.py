@@ -76,6 +76,15 @@ class TrainLoop:
         num_optimizers = len(self.get_optimizers_iterable())
         return num_optimizers
 
+    def should_skip_training(self):
+        if self.trainer.current_epoch >= self.trainer.max_epochs:
+            return True
+
+        if self.trainer.limit_train_batches == 0:
+            return True
+
+        return False
+
     def on_train_start(self):
         # clear cache before training
         if self.trainer.on_gpu and self.trainer.root_gpu is not None:
@@ -202,7 +211,7 @@ class TrainLoop:
 
     def check_checkpoint_callback(self, should_save, is_last=False):
         # TODO bake this logic into the checkpoint callback
-        if should_save:
+        if should_save and self.trainer.checkpoint_connector.has_trained:
             checkpoint_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
             if is_last and any(c.save_last for c in checkpoint_callbacks):
                 rank_zero_info("Saving latest checkpoint...")
@@ -556,6 +565,7 @@ class TrainLoop:
             # update LR schedulers
             monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
             self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
+            self.trainer.checkpoint_connector.has_trained = True
 
             # max steps reached, end training
             if self.trainer.max_steps is not None and self.trainer.max_steps == self.trainer.global_step + 1:
@@ -573,13 +583,11 @@ class TrainLoop:
             self.trainer.total_batch_idx += 1
 
             # stop epoch if we limited the number of training batches
-            if batch_idx + 1 >= self.trainer.num_training_batches:
+            if (batch_idx + 1) >= self.trainer.num_training_batches:
                 break
 
             # progress global step according to grads progress
             self.increment_accumulated_grad_global_step()
-
-            self.trainer.checkpoint_connector.has_trained = True
 
         # epoch end hook
         self.run_on_epoch_end_hook(epoch_output)
@@ -624,11 +632,6 @@ class TrainLoop:
         if response == -1:
             return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
 
-        # checks if backward or backward + optimizer step (via closure)
-        accumulation_done = self._accumulated_batches_reached()
-        is_final_batch = self._num_training_batches_reached()
-        should_accumulate = not (accumulation_done or is_final_batch)
-
         # lightning module hook
         splits = self.tbptt_split_batch(batch)
 
@@ -640,7 +643,7 @@ class TrainLoop:
                 # toggle model params + set info to logger_connector
                 self.run_train_split_start(split_idx, split_batch, opt_idx, optimizer)
 
-                if should_accumulate:
+                if self.should_accumulate():
                     # For gradient accumulation
 
                     # -------------------
@@ -712,7 +715,7 @@ class TrainLoop:
     @contextmanager
     def block_ddp_sync_behaviour(self):
         if isinstance(self.trainer.model, torch.nn.parallel.DistributedDataParallel):
-            yield from self.trainer.model.no_sync()
+            yield self.trainer.model.no_sync()
         else:
             yield
 
@@ -764,8 +767,10 @@ class TrainLoop:
             with self.trainer.profiler.profile("model_backward"):
                 self.backward(result, optimizer, opt_idx)
 
-            # hook
-            self.on_after_backward(result.training_step_output, batch_idx, result.loss)
+            # hook - call this hook only
+            # when gradients have finished to accumulate
+            if not self.should_accumulate():
+                self.on_after_backward(result.training_step_output, batch_idx, result.loss)
 
             # check if loss or model weights are nan
             if self.trainer.terminate_on_nan:
@@ -783,6 +788,10 @@ class TrainLoop:
             result.closure_loss = self.trainer.accelerator_backend.backward(
                 result.closure_loss, optimizer, opt_idx, *args, **kwargs
             )
+
+        if not self.should_accumulate():
+            # track gradients
+            self.track_and_norm_grad(optimizer=optimizer)
 
     def update_train_loop_lr_schedulers(self, monitor_metrics=None):
         num_accumulated_batches_reached = self._accumulated_batches_reached()
@@ -812,6 +821,12 @@ class TrainLoop:
 
     def _num_training_batches_reached(self):
         return (self.trainer.batch_idx + 1) == self.trainer.num_training_batches
+
+    def should_accumulate(self):
+        # checks if backward or backward + optimizer step (via closure)
+        accumulation_done = self._accumulated_batches_reached()
+        is_final_batch = self._num_training_batches_reached()
+        return not (accumulation_done or is_final_batch)
 
     def should_check_val_fx(self, batch_idx, is_last_batch):
         # decide if we should run validation

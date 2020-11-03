@@ -109,6 +109,9 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_end', *args, **kwargs)
 
+        # reset stage to train
+        self.trainer.logger_connector.set_stage("train")
+
     def reload_evaluation_dataloaders(self):
         model = self.trainer.get_model()
         if self.testing:
@@ -268,9 +271,10 @@ class EvaluationLoop(object):
         # depre warning
         if eval_results is not None and user_reduced:
             step = 'testing_epoch_end' if self.testing else 'validation_epoch_end'
-            m = f'The {step} should not return anything as of 9.1.' \
-                f'to log, use self.log(...) or self.write(...) directly in the LightningModule'
-            self.warning_cache.warn(m)
+            self.warning_cache.warn(
+                f'The {step} should not return anything as of 9.1.'
+                ' To log, use self.log(...) or self.write(...) directly in the LightningModule'
+            )
 
         if using_eval_result and not user_reduced:
             eval_results = self.__auto_reduce_result_objs(outputs)
@@ -313,12 +317,16 @@ class EvaluationLoop(object):
 
         return eval_results
 
-    def set_dataloader_idx(self, dl_idx):
+    def on_evaluation_batch_start(self, batch, batch_idx, dataloader_idx):
         # reset the result of the PL module
         model = self.trainer.get_model()
         model._current_dataloader_idx = dl_idx if self.num_dataloaders > 1 else None
 
     def on_evaluation_batch_start(self, batch, batch_idx, dataloader_idx):
+        # set dataloader_idx and track batch_size
+        self.trainer.logger_connector.on_evaluation_batch_start(
+            self.testing, batch, dataloader_idx, self.num_dataloaders)
+
         # set dataloader_idx and track batch_size
         self.trainer.logger_connector.on_evaluation_batch_start(
             self.testing, batch, dataloader_idx, self.num_dataloaders)
