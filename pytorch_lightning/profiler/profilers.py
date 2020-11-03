@@ -20,10 +20,12 @@ import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
+from typing import Optional, Union
 
+import fsspec
 import numpy as np
-
 from pytorch_lightning import _logger as log
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 
 class BaseProfiler(ABC):
@@ -31,10 +33,10 @@ class BaseProfiler(ABC):
     If you wish to write a custom profiler, you should inhereit from this class.
     """
 
-    def __init__(self, output_streams: list = None):
+    def __init__(self, output_streams: Optional[Union[list, tuple]] = None):
         """
-        Params:
-            stream_out: callable
+        Args:
+            output_streams: callable
         """
         if output_streams:
             if not isinstance(output_streams, (list, tuple)):
@@ -117,17 +119,20 @@ class SimpleProfiler(BaseProfiler):
     the mean duration of each action and the total time spent over the entire training run.
     """
 
-    def __init__(self, output_filename: str = None):
+    def __init__(self, output_filename: Optional[str] = None):
         """
-        Params:
-            output_filename (str): optionally save profile results to file instead of printing
+        Args:
+            output_filename: optionally save profile results to file instead of printing
                 to std out when training is finished.
         """
         self.current_actions = {}
         self.recorded_durations = defaultdict(list)
 
         self.output_fname = output_filename
-        self.output_file = open(self.output_fname, 'w') if self.output_fname else None
+        self.output_file = None
+        if self.output_fname:
+            fs = get_filesystem(self.output_fname)
+            self.output_file = fs.open(self.output_fname, "w")
 
         streaming_out = [self.output_file.write] if self.output_file else [log.info]
         super().__init__(output_streams=streaming_out)
@@ -159,7 +164,7 @@ class SimpleProfiler(BaseProfiler):
         output_string += f"{os.linesep}{'-' * 65}"
         for action, durations in self.recorded_durations.items():
             output_string += log_row(
-                action, f"{np.mean(durations):.5}", f"{np.sum(durations):.5}",
+                action, f"{np.mean(durations):.5}", f"{np.sum(durations):.5}"
             )
         output_string += os.linesep
         return output_string
@@ -183,7 +188,7 @@ class AdvancedProfiler(BaseProfiler):
     verbose and you should only use this if you want very detailed reports.
     """
 
-    def __init__(self, output_filename: str = None, line_count_restriction: float = 1.0):
+    def __init__(self, output_filename: Optional[str] = None, line_count_restriction: float = 1.0):
         """
         Args:
             output_filename: optionally save profile results to file instead of printing
@@ -196,7 +201,10 @@ class AdvancedProfiler(BaseProfiler):
         self.line_count_restriction = line_count_restriction
 
         self.output_fname = output_filename
-        self.output_file = open(self.output_fname, 'w') if self.output_fname else None
+        self.output_file = None
+        if self.output_fname:
+            fs = get_filesystem(self.output_fname)
+            self.output_file = fs.open(self.output_fname, "w")
 
         streaming_out = [self.output_file.write] if self.output_file else [log.info]
         super().__init__(output_streams=streaming_out)
@@ -225,7 +233,9 @@ class AdvancedProfiler(BaseProfiler):
         # log to standard out
         output_string = f"{os.linesep}Profiler Report{os.linesep}"
         for action, stats in recorded_stats.items():
-            output_string += f"{os.linesep}Profile stats for: {action}{os.linesep}{stats}"
+            output_string += (
+                f"{os.linesep}Profile stats for: {action}{os.linesep}{stats}"
+            )
 
         return output_string
 

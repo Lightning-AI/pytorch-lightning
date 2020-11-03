@@ -17,7 +17,8 @@ from pytorch_lightning.metrics.classification import (
     Accuracy,
     Precision,
     Recall,
-    Fbeta
+    Fbeta,
+    ConfusionMatrix
 )
 
 from pytorch_lightning.metrics.regression import (
@@ -25,4 +26,6 @@ from pytorch_lightning.metrics.regression import (
     MeanAbsoluteError,
     MeanSquaredLogError,
     ExplainedVariance,
+    PSNR,
+    SSIM,
 )

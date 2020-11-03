@@ -14,10 +14,12 @@
 import os
 import pickle
 from unittest import mock
+from argparse import ArgumentParser
+import types
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
-from tests.base import EvalModelTemplate
+from tests.base import EvalModelTemplate, BoringModel
 
 
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
@@ -27,11 +29,17 @@ def test_wandb_logger(wandb):
     logger = WandbLogger(anonymous=True, offline=True)
 
     logger.log_metrics({'acc': 1.0})
-    wandb.init().log.assert_called_once_with({'acc': 1.0})
+    wandb.init().log.assert_called_once_with({'acc': 1.0}, step=None)
 
     wandb.init().log.reset_mock()
     logger.log_metrics({'acc': 1.0}, step=3)
-    wandb.init().log.assert_called_once_with({'global_step': 3, 'acc': 1.0})
+    wandb.init().log.assert_called_once_with({'acc': 1.0}, step=3)
+
+    # continue training on same W&B run
+    wandb.init().step = 3
+    logger.finalize('success')
+    logger.log_metrics({'acc': 1.0}, step=3)
+    wandb.init().log.assert_called_with({'acc': 1.0}, step=6)
 
     logger.log_hyperparams({'test': None, 'nested': {'a': 1}, 'b': [2, 3, 4]})
     wandb.init().config.update.assert_called_once_with(
@@ -108,4 +116,34 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
     trainer.fit(model)
 
     assert trainer.checkpoint_callback.dirpath == str(tmpdir / 'project' / version / 'checkpoints')
-    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0.ckpt'}
+    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=9.ckpt'}
+
+
+def test_wandb_sanitize_callable_params(tmpdir):
+    """
+    Callback function are not serializiable. Therefore, we get them a chance to return
+    something and if the returned type is not accepted, return None.
+    """
+    opt = "--max_epochs 1".split(" ")
+    parser = ArgumentParser()
+    parser = Trainer.add_argparse_args(parent_parser=parser)
+    params = parser.parse_args(opt)
+
+    def return_something():
+        return "something"
+    params.something = return_something
+
+    def wrapper_something():
+        return return_something
+
+    params.wrapper_something_wo_name = lambda: lambda: '1'
+    params.wrapper_something = wrapper_something
+
+    assert isinstance(params.gpus, types.FunctionType)
+    params = WandbLogger._convert_params(params)
+    params = WandbLogger._flatten_dict(params)
+    params = WandbLogger._sanitize_callable_params(params)
+    assert params["gpus"] == '_gpus_arg_default'
+    assert params["something"] == "something"
+    assert params["wrapper_something"] == "wrapper_something"
+    assert params["wrapper_something_wo_name"] == "<lambda>"

@@ -19,11 +19,11 @@ from typing import Dict, Iterable, List, Optional, Union
 import torch
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.core.step_result import EvalResult
+from pytorch_lightning.core.step_result import Result, EvalResult
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import BaseProfiler
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
@@ -86,7 +86,7 @@ class Trainer(
     def __init__(
         self,
         logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
-        checkpoint_callback: Union[ModelCheckpoint, bool] = True,
+        checkpoint_callback: bool = True,
         callbacks: Optional[List[Callback]] = None,
         default_root_dir: Optional[str] = None,
         gradient_clip_val: float = 0,
@@ -121,7 +121,7 @@ class Trainer(
         num_sanity_val_steps: int = 2,
         truncated_bptt_steps: Optional[int] = None,
         resume_from_checkpoint: Optional[str] = None,
-        profiler: Optional[Union[BaseProfiler, bool]] = None,
+        profiler: Optional[Union[BaseProfiler, bool, str]] = None,
         benchmark: bool = False,
         deterministic: bool = False,
         reload_dataloaders_every_epoch: bool = False,
@@ -130,7 +130,7 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
-        plugins: list = None,
+        plugins: Optional[list] = None,
         amp_backend: str = 'native',
         amp_level: str = 'O2',
         distributed_backend: Optional[str] = None,
@@ -170,7 +170,12 @@ class Trainer(
 
             callbacks: Add a list of callbacks.
 
-            checkpoint_callback: Callback for checkpointing.
+            checkpoint_callback: If ``True``, enable checkpointing.
+                It will configure a default ModelCheckpoint callback if there is no user-defined ModelCheckpoint in
+                :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks`. Default: ``True``.
+
+                .. warning:: Passing a ModelCheckpoint instance to this argument is deprecated since
+                    v1.1.0 and will be unsupported from v1.3.0.
 
             check_val_every_n_epoch: Check val every n train epochs.
 
@@ -213,7 +218,8 @@ class Trainer(
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
                 Ignored when a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
-            profiler:  To profile individual steps during training and assist in identifying bottlenecks.
+            profiler: To profile individual steps during training and assist in identifying bottlenecks. Passing bool
+                value is deprecated in v1.1 and will be removed in v1.3.
 
             overfit_batches: Overfit a percent of training data (float) or a set number of batches (int). Default: 0.0
 
@@ -297,7 +303,6 @@ class Trainer(
 
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init
-        self.checkpoint_callback: Union[ModelCheckpoint, bool] = checkpoint_callback
         self.callback_connector.on_trainer_init(
             callbacks,
             checkpoint_callback,
@@ -461,6 +466,11 @@ class Trainer(
     def train(self):
         self.run_sanity_check(self.get_model())
 
+        # set stage for logging
+        self.logger_connector.set_stage("train")
+
+        self.checkpoint_connector.has_trained = False
+
         # enable train mode
         model = self.get_model()
         model.train()
@@ -471,6 +481,10 @@ class Trainer(
 
         # hook
         self.train_loop.on_train_start()
+
+        if self.train_loop.should_skip_training():
+            self.train_loop.on_train_end()
+            return
 
         try:
             # run all epochs
@@ -522,16 +536,25 @@ class Trainer(
                 self.train_loop.on_train_end()
 
     def run_evaluation(self, test_mode: bool = False, max_batches=None):
+
+        # used to know if we are logging for val, test + reset cached results
+        self.logger_connector.set_stage(test_mode, reset=True)
+
         # bookkeeping
         self.evaluation_loop.testing = test_mode
+
+        # prepare dataloaders
         dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders(max_batches)
+
+        # check if we want to skip this evaluation
         if self.evaluation_loop.should_skip_evaluation(dataloaders, max_batches):
             return [], []
 
-        # enable eval mode + no grads
+        # ref model
         model = self.get_model()
-        self.evaluation_loop.on_evaluation_model_eval()
 
+        # enable eval mode + no grads
+        self.evaluation_loop.on_evaluation_model_eval()
         model.zero_grad()
         torch.set_grad_enabled(False)
 
@@ -694,6 +717,8 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         self.verbose_test = verbose
+
+        self.logger_connector.set_stage("test")
 
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
         if test_dataloaders and datamodule:

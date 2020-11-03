@@ -213,7 +213,7 @@ def test_multiple_optimizers_manual_return_and_log(tmpdir):
     num_manual_backward_calls = 3
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * num_manual_backward_calls
 
-    expected = {'a', 'a_step', 'a_epoch', 'epoch'}
+    expected = {'a_step', 'a_epoch', 'epoch'}
     logged = set(trainer.logged_metrics.keys())
     assert expected == logged
 
