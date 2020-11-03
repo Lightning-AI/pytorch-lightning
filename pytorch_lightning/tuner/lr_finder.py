@@ -43,7 +43,7 @@ else:
 def _run_lr_finder_internally(trainer, model: LightningModule):
     """ Call lr finder internally during Trainer.fit() """
     lr_finder = lr_find(trainer, model)
-    
+
     if lr_finder is None:
         return
 
