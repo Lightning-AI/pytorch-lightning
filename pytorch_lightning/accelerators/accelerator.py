@@ -14,7 +14,7 @@
 import os
 import math
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import torch
 
@@ -214,6 +214,22 @@ class Accelerator(object):
             torch_distrib.init_process_group(
                 torch_backend, rank=global_rank, world_size=world_size
             )
+
+    def sync_tensor(self,
+                    tensor: Union[torch.Tensor],
+                    group: Optional[Any] = None,
+                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
+        """
+        Function to reduce a tensor from several distributed processes to one aggregated tensor.
+        Args:
+            tensor: the tensor to sync and reduce
+            group: the process group to gather results from. Defaults to all processes (world)
+            reduce_op: the reduction operation. Defaults to sum.
+                Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
+        Return:
+            reduced value
+        """
+        raise NotImplementedError()
 
     def __getstate__(self):
         return {
