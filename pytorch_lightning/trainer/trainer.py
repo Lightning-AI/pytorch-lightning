@@ -482,6 +482,10 @@ class Trainer(
         # hook
         self.train_loop.on_train_start()
 
+        if self.train_loop.should_skip_training():
+            self.train_loop.on_train_end()
+            return
+
         try:
             # run all epochs
             for epoch in range(self.current_epoch, self.max_epochs):
