@@ -105,7 +105,14 @@ class BoringModel(LightningModule):
         return [optimizer], [lr_scheduler]
 
 
+#  NOTE: If you are using a cmd line to run your script,
+#  provide the cmd line as below.
+#  opt = "--max_epochs 1 --limit_train_batches 1".split(" ")
+#  parser = ArgumentParser()
+#  args = parser.parse_args(opt)
+
 def run_test():
+
     class TestModel(BoringModel):
 
         def on_train_epoch_start(self) -> None:
