@@ -1,7 +1,18 @@
-from unittest import mock
 import platform
-import torch
+from unittest import mock
+
 import pytest
+import torch
+
+try:
+    from nvidia.dali.pipeline import Pipeline
+    import nvidia.dali.ops as ops
+    import nvidia.dali.types as types
+    from nvidia.dali.plugin.pytorch import DALIClassificationIterator
+
+    DALI_AVAILABLE = True
+except (ImportError, ModuleNotFoundError):
+    DALI_AVAILABLE = False
 
 dp_16_args = """
 --max_epochs 1 \
@@ -95,6 +106,7 @@ def test_examples_cpu(cli_args):
             cli_cmd()
 
 
+@pytest.mark.skipif(not DALI_AVAILABLE, reason="Nvidia DALI required")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.skipif(platform.system() != 'Linux', reason='Only applies to Linux platform.')
 @pytest.mark.parametrize('cli_args', [cpu_args])

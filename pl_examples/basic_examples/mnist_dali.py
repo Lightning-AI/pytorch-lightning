@@ -12,15 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from argparse import ArgumentParser
+from random import shuffle
 
 import numpy as np
-from random import shuffle
-import sys
-
 import torch
-import pytorch_lightning as pl
 from torch.nn import functional as F
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import random_split
+
+import pytorch_lightning as pl
 
 try:
     from torchvision.datasets.mnist import MNIST
@@ -34,13 +33,14 @@ try:
     import nvidia.dali.types as types
     from nvidia.dali.plugin.pytorch import DALIClassificationIterator
 except (ImportError, ModuleNotFoundError):
-    sys.exit('NVIDIA DALI is not available, exiting')
+    raise RuntimeError('NVIDIA DALI is not available')
 
 
 class ExternalMNISTInputIterator(object):
     """
     This iterator class wraps torchvision's MNIST dataset and returns the images and labels in batches
     """
+
     def __init__(self, mnist_ds, batch_size):
         self.batch_size = batch_size
         self.mnist_ds = mnist_ds
@@ -68,6 +68,7 @@ class ExternalSourcePipeline(Pipeline):
     """
     This DALI pipeline class just contains the MNIST iterator
     """
+
     def __init__(self, batch_size, eii, num_threads, device_id):
         super(ExternalSourcePipeline, self).__init__(batch_size, num_threads, device_id, seed=12)
         self.source = ops.ExternalSource(source=eii, num_outputs=2)
@@ -81,15 +82,16 @@ class DALIClassificationLoader(DALIClassificationIterator):
     """
     This class extends DALI's original DALIClassificationIterator with the __len__() function so that we can call len() on it
     """
+
     def __init__(
-        self,
-        pipelines,
-        size=-1,
-        reader_name=None,
-        auto_reset=False,
-        fill_last_batch=True,
-        dynamic_shape=False,
-        last_batch_padded=False,
+            self,
+            pipelines,
+            size=-1,
+            reader_name=None,
+            auto_reset=False,
+            fill_last_batch=True,
+            dynamic_shape=False,
+            last_batch_padded=False,
     ):
         super().__init__(pipelines, size, reader_name, auto_reset, fill_last_batch, dynamic_shape, last_batch_padded)
 
@@ -104,8 +106,8 @@ class LitClassifier(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters()
 
-        self.l1 = torch.nn.Linear(28 * 28, self.hparams.hidden_dim)
-        self.l2 = torch.nn.Linear(self.hparams.hidden_dim, 10)
+        self.l1 = torch.nn.Linear(28 * 28, hidden_dim)
+        self.l2 = torch.nn.Linear(hidden_dim, 10)
 
     def forward(self, x):
         x = x.view(x.size(0), -1)
@@ -120,23 +122,20 @@ class LitClassifier(pl.LightningModule):
         x, y = self.split_batch(batch)
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
+        self.log('loss', loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
         x, y = self.split_batch(batch)
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
-        result = pl.EvalResult(checkpoint_on=loss)
-        result.log("valid_loss", loss)
-        return result
+        self.log("valid_loss", loss)
 
     def test_step(self, batch, batch_idx):
         x, y = self.split_batch(batch)
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
-        result = pl.EvalResult(checkpoint_on=loss)
-        result.log("test_loss", loss)
-        return result
+        self.log("test_loss", loss)
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
