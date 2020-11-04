@@ -75,7 +75,7 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir, cli_args):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_automatic_optimization_false_ddp(tmpdir):
 
-    cli_args = f"--func_name test_automatic_optimization_false --max_epochs 1 --gpus 2 --accelerator ddp"
+    cli_args = "--func_name test_automatic_optimization_false --max_epochs 1 --gpus 2 --accelerator ddp"
 
     # call the script
     test_runner(test_template_ddp, cli_args, tmpdir, timeout=20)

@@ -20,6 +20,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import APEX_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
+
 def test_automatic_optimization_false_ddp(args):
     """
     This test verify that in `automatic_optimization` we don't add gradient if the user return loss.
@@ -54,8 +55,6 @@ def test_automatic_optimization_false_ddp(args):
 
                 assert torch.sum(self.layer.weight.grad) != 0
 
-                #self.trainer.scaler.unscale_(opt)
-
                 print(self.device, self.layer.weight.grad)
 
                 opt.step()
@@ -75,7 +74,7 @@ def test_automatic_optimization_false_ddp(args):
             if self.should_update:
                 assert not torch.equal(self.weight_before, after_before)
             else:
-                #if not torch.isnan(after_before) or
+                # if not torch.isnan(after_before) or
                 assert torch.equal(self.weight_before, after_before)
             assert torch.sum(self.layer.weight.grad) == 0
             self.count += 1

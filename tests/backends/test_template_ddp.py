@@ -18,15 +18,20 @@ from argparse import ArgumentParser
 import coverage
 from pytorch_lightning import Trainer, seed_everything
 from tests.base import EvalModelTemplate
-import os
 import torch
-from tests.backends.ddp import *
+import os
+import subprocess
+from subprocess import TimeoutExpired
+import sys
+from pathlib import Path
+import pytorch_lightning
+from tests.backends.ddp import * # noqa F403
 
-def test_runner(module_file, cli_args, method, tmpdir, timeout=60):
+
+def test_runner(module_file, cli_args, tmpdir, timeout=60):
     file = Path(module_file.__file__).absolute()
     cli_args = cli_args.split(' ') if cli_args else []
     cli_args += ['--tmpdir', str(tmpdir)]
-    cli_args += ['--trainer_method', method]
     command = [sys.executable, str(file)] + cli_args
 
     # need to set the PYTHONPATH in case pytorch_lightning was not installed into the environment
@@ -54,15 +59,14 @@ if __name__ == '__main__':
     seed_everything(1234)
     parser = ArgumentParser(add_help=False)
     parser = Trainer.add_argparse_args(parser)
-    parser.add_argument('--trainer_method', default='fit')
     parser.add_argument('--tmpdir')
-    parser.set_defaults(gpus=2)
-    parser.set_defaults(distributed_backend="ddp")
     args = parser.parse_args()
 
     func_name = args.func_name
-    func = getattr(locals(), func_name, None)
+    func = getattr(globals(), func_name, None)
+
     result = func(args)
+
     if len(result) > 0:
         file_path = os.path.join(args.tmpdir, 'ddp.result')
         torch.save(result, file_path)
