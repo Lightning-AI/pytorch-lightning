@@ -200,6 +200,18 @@ PrecisionRecallCurve
 .. autoclass:: pytorch_lightning.metrics.classification.PrecisionRecallCurve
     :noindex:
 
+AveragePrecision
+~~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.AveragePrecision
+    :noindex:
+
+ROC
+~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.ROC
+    :noindex:
+
 Regression Metrics
 ------------------
 
@@ -287,7 +299,7 @@ multiclass_auroc [func]
 average_precision [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.average_precision
+.. autofunction:: pytorch_lightning.metrics.functional.average_precision
     :noindex:
 
 
@@ -326,10 +338,10 @@ iou [func]
     :noindex:
 
 
-multiclass_roc [func]
+roc [func]
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.multiclass_roc
+.. autofunction:: pytorch_lightning.metrics.functional.roc
     :noindex:
 
 
