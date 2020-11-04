@@ -15,6 +15,8 @@ import pytest
 import torch
 import os
 from tests.backends import ddp_model
+from tests.backends import test_template_ddp
+from tests.backends.test_template_ddp import test_runner
 from tests.utilities.dist import call_training_script
 
 
@@ -57,6 +59,26 @@ def test_multi_gpu_model_ddp_test_only(tmpdir, cli_args):
 def test_multi_gpu_model_ddp_fit_test(tmpdir, cli_args):
     # call the script
     call_training_script(ddp_model, cli_args, 'fit_test', tmpdir, timeout=20)
+
+    # load the results of the script
+    result_path = os.path.join(tmpdir, 'ddp.result')
+    result = torch.load(result_path)
+
+    # verify the file wrote the expected outputs
+    assert result['status'] == 'complete'
+
+    model_outs = result['result']
+    for out in model_outs:
+        assert out['test_acc'] > 0.90
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_automatic_optimization_false_ddp(tmpdir):
+
+    cli_args = f"--func_name test_automatic_optimization_false --max_epochs 1 --gpus 2 --accelerator ddp"
+
+    # call the script
+    test_runner(test_template_ddp, cli_args, tmpdir, timeout=20)
 
     # load the results of the script
     result_path = os.path.join(tmpdir, 'ddp.result')
