@@ -307,7 +307,7 @@ def test_trainer_model_hook_system(tmpdir):
 
     trainer.fit(model)
 
-    excepted = [
+    expected = [
         'on_fit_start',
         'on_pretrain_routine_start',
         'on_pretrain_routine_end',
