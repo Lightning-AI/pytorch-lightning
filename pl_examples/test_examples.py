@@ -9,10 +9,10 @@ try:
     import nvidia.dali.ops as ops
     import nvidia.dali.types as types
     from nvidia.dali.plugin.pytorch import DALIClassificationIterator
-
-    DALI_AVAILABLE = True
 except (ImportError, ModuleNotFoundError):
     DALI_AVAILABLE = False
+else:
+    DALI_AVAILABLE = True
 
 dp_16_args = """
 --max_epochs 1 \

@@ -24,7 +24,7 @@ import pytorch_lightning as pl
 try:
     from torchvision.datasets.mnist import MNIST
     from torchvision import transforms
-except Exception as e:
+except Exception:
     from tests.base.datasets import MNIST
 
 try:
@@ -33,7 +33,7 @@ try:
     import nvidia.dali.types as types
     from nvidia.dali.plugin.pytorch import DALIClassificationIterator
 except (ImportError, ModuleNotFoundError):
-    raise RuntimeError('NVIDIA DALI is not available')
+    raise ImportError('NVIDIA DALI is not available')
 
 
 class ExternalMNISTInputIterator(object):
