@@ -16,17 +16,17 @@ import os
 from pytorch_lightning import Trainer
 import warnings
 
+class TestModel(BoringModel):
+    def training_step(self, batch, batch_idx):
+        acc = self.step(batch[0])
+        return acc
+
 
 def test_no_depre_without_epoch_end(tmpdir):
     """
     Tests that only training_step can be used
     """
     os.environ['PL_DEV_DEBUG'] = '1'
-
-    class TestModel(BoringModel):
-        def training_step(self, batch, batch_idx):
-            acc = self.step(batch[0])
-            return acc
 
     model = TestModel()
     model.validation_epoch_end = None
