@@ -18,15 +18,16 @@ torch.manual_seed(42)
 
 
 def sk_average_precision_score(y_true, probas_pred, num_classes=1):
-    if num_classes==1:
+    if num_classes == 1:
         return _sk_average_precision_score(y_true, probas_pred)
 
-    res = [ ]
+    res = []
     for i in range(num_classes):
         y_true_temp = np.zeros_like(y_true)
-        y_true_temp[y_true==i] = 1
-        res.append(_sk_average_precision_score(y_true_temp, probas_pred[:,i]))
+        y_true_temp[y_true == i] = 1
+        res.append(_sk_average_precision_score(y_true_temp, probas_pred[:, i]))
     return res
+
 
 def _binary_prob_sk_metric(preds, target, num_classes=1):
     sk_preds = preds.view(-1).numpy()
@@ -43,7 +44,7 @@ def _multiclass_prob_sk_metric(preds, target, num_classes=1):
 
 
 def _multidim_multiclass_prob_sk_metric(preds, target, num_classes=1):
-    sk_preds = preds.transpose(0,1).reshape(num_classes, -1).transpose(0,1).numpy()
+    sk_preds = preds.transpose(0, 1).reshape(num_classes, -1).transpose(0, 1).numpy()
     sk_target = target.view(-1).numpy()
     return sk_average_precision_score(y_true=sk_target, probas_pred=sk_preds, num_classes=num_classes)
 
@@ -67,14 +68,14 @@ class TestAveragePrecision(MetricTester):
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
     def test_average_precision(self, preds, target, sk_metric, num_classes, ddp, dist_sync_on_step):
         self.run_class_metric_test(
-                          ddp=ddp,
-                          preds=preds,
-                          target=target,
-                          metric_class=AveragePrecision,
-                          sk_metric=partial(sk_metric, num_classes=num_classes),
-                          dist_sync_on_step=dist_sync_on_step,
-                          metric_args={"num_classes": num_classes}
-                          )
+            ddp=ddp,
+            preds=preds,
+            target=target,
+            metric_class=AveragePrecision,
+            sk_metric=partial(sk_metric, num_classes=num_classes),
+            dist_sync_on_step=dist_sync_on_step,
+            metric_args={"num_classes": num_classes}
+        )
 
     def test_average_precision_functional(self, preds, target, sk_metric, num_classes):
         self.run_functional_metric_test(preds,

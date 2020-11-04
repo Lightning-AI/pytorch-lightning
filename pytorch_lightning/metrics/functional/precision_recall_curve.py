@@ -92,7 +92,7 @@ def _precision_recall_curve_update(
             raise ValueError(f'Argument `num_classes` was set to {num_classes} in'
                              f'metric `precision_recall_curve` but detected {preds.shape[1]}'
                              'number of classes from predictions')
-        preds = preds.transpose(0,1).reshape(num_classes,-1).transpose(0,1)
+        preds = preds.transpose(0, 1).reshape(num_classes, -1).transpose(0, 1)
         target = target.flatten()
 
     return preds, target, num_classes, pos_label

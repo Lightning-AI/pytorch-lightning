@@ -44,8 +44,8 @@ def _average_precision_compute(
         precision, recall, _ = output
         return -torch.sum((recall[1:] - recall[:-1]) * precision[:-1])
 
-    res = [ ]
-    for (p,r,_) in output:
+    res = []
+    for (p, r, _) in output:
         res.append(-torch.sum((r[1:] - r[:-1]) * p[:-1]))
     return res
 
