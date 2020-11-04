@@ -359,57 +359,57 @@ def test_multiple_optimizers_manual_apex(tmpdir):
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * num_manual_backward_calls
 
 
+class ExtendedModel(BoringModel):
+
+    count = 0
+    called = collections.defaultdict(int)
+
+    @property
+    def should_update(self):
+        return self.count % 2 == 0
+
+    def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
+        self.called["on_train_batch_start"] += 1
+        self.weight_before = self.layer.weight.clone()
+
+    def training_step(self, batch, batch_idx):
+        self.called["training_step"] += 1
+        opt = self.optimizers()
+        output = self.layer(batch)
+        loss = 0.1 * self.loss(batch, output)
+        if self.should_update:
+            weight_before = self.layer.weight.clone()
+            self.manual_backward(loss, opt)
+            self.trainer.scaler.unscale_(opt)
+
+            print(torch.sum(self.layer.weight.grad))
+            assert torch.sum(self.layer.weight.grad) != 0
+
+            opt.step()
+            self.trainer.scaler.update()
+            after_before = self.layer.weight.clone()
+            assert not torch.equal(weight_before, after_before)
+            opt.zero_grad()
+
+        # the loss should be ignored
+        return loss.detach()
+
+    def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+        self.called["on_train_batch_end"] += 1
+        after_before = self.layer.weight.clone()
+        if self.should_update:
+            assert not torch.equal(self.weight_before, after_before)
+        else:
+            assert torch.equal(self.weight_before, after_before)
+        assert torch.sum(self.layer.weight.grad) == 0
+        self.count += 1
+
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_automatic_optimization_false(tmpdir):
     """
     This test verify that in `automatic_optimization` we don't add gradient if the user return loss.
     """
-
-    class ExtendedModel(BoringModel):
-
-        count = 0
-        called = collections.defaultdict(int)
-
-        @property
-        def should_update(self):
-            return self.count % 2 == 0
-
-        def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
-            self.called["on_train_batch_start"] += 1
-            self.weight_before = self.layer.weight.clone()
-
-        def training_step(self, batch, batch_idx):
-            self.called["training_step"] += 1
-            opt = self.optimizers()
-            output = self.layer(batch)
-            loss = 0.1 * self.loss(batch, output)
-            if self.should_update:
-                weight_before = self.layer.weight.clone()
-                self.manual_backward(loss, opt)
-                self.trainer.scaler.unscale_(opt)
-
-                print(torch.sum(self.layer.weight.grad))
-                assert torch.sum(self.layer.weight.grad) != 0
-
-                opt.step()
-                self.trainer.scaler.update()
-                after_before = self.layer.weight.clone()
-                assert not torch.equal(weight_before, after_before)
-                opt.zero_grad()
-
-            # the loss should be ignored
-            return loss.detach()
-
-        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
-            self.called["on_train_batch_end"] += 1
-            after_before = self.layer.weight.clone()
-            if self.should_update:
-                assert not torch.equal(self.weight_before, after_before)
-            else:
-                assert torch.equal(self.weight_before, after_before)
-            assert torch.sum(self.layer.weight.grad) == 0
-            self.count += 1
 
     model = ExtendedModel()
     model.training_step_end = None
@@ -424,7 +424,7 @@ def test_automatic_optimization_false(tmpdir):
         automatic_optimization=False,
         precision=16,
         amp_backend='native',
-        accelerator="ddp",
+        accelerator="ddp_spawn",
         gpus=2,
     )
     trainer.fit(model)
