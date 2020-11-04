@@ -245,7 +245,10 @@ def test_horovod_multi_optimizer(tmpdir):
 @pytest.mark.skipif(not HOROVOD_AVAILABLE, reason="Horovod is unavailable")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 def test_result_reduce_horovod(tmpdir):
-    """Make sure result logging works with Horovod."""
+    """Make sure result logging works with Horovod.
+
+    This test mirrors tests/core/test_results.py::_ddp_test_fn
+    """
     tutils.reset_seed()
     tutils.set_random_master_port()
 
@@ -267,6 +270,8 @@ def test_result_reduce_horovod(tmpdir):
                          on_step=True, on_epoch=True)
 
                 res = self._results
+
+                # Check that `tensor` is summed across all ranks automatically
                 assert res["test_tensor"].item() == hvd.size(), \
                     "Result-Log does not work properly with Horovod and Tensors"
 

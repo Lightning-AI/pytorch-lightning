@@ -77,9 +77,11 @@ def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None)
     """
     Function to gather all tensors from several ddp processes onto a list that
     is broadcasted to all processes
+
     Args:
         result: the value to sync
         group: the process group to gather results from. Defaults to all processes (world)
+
     Return:
         gathered_result: list with size equal to the process group where
             gathered_result[i] corresponds to result tensor from process i
