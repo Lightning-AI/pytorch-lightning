@@ -29,7 +29,7 @@ jobs:
 
     # We do this, since failures on test.pypi aren't that bad
     - name: Publish to Test PyPI
-      uses: pypa/gh-action-pypi-publish@master
+      uses: pypa/gh-action-pypi-publish@v1.4
       with:
         user: __token__
         password: ${{ secrets.test_pypi_password }}
@@ -57,7 +57,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Publish XLA to Docker Hub
-        # publish master
+        # publish master/release
         uses: docker/build-push-action@v2
         with:
           build-args: |
@@ -104,7 +104,7 @@ jobs:
         id: extend
 
       - name: Publish CUDA to Docker Hub
-        # publish master
+        # publish master/release
         uses: docker/build-push-action@v2
         with:
           build-args: |
@@ -119,7 +119,7 @@ jobs:
         timeout-minutes: 55
 
       - name: Publish Conda to Docker Hub
-        # publish master
+        # publish master/release
         uses: docker/build-push-action@v2
         with:
           build-args: |
