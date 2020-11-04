@@ -650,12 +650,9 @@ class LoggerConnector:
 
     def log_train_step_metrics(self, batch_output):
         # when metrics should be logged
-        should_log_metrics = (
-            (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0 or self.trainer.should_stop
-        )
-        if should_log_metrics or self.trainer.fast_dev_run:
+        if self.should_update_logs or self.trainer.fast_dev_run:
             # logs user requested information to logger
-            metrics = self._cached_results["train"].get_latest_batch_log_metrics()
+            metrics = self.cached_results.get_latest_batch_log_metrics()
             grad_norm_dic = batch_output.grad_norm_dic
             if len(metrics) > 0 or len(grad_norm_dic) > 0:
                 self.log_metrics(metrics, grad_norm_dic)
