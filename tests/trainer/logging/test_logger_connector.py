@@ -372,6 +372,6 @@ def test_call_back_validator(tmpdir):
                                                      on_epoch=on_epoch)
 
         result = validator.check_logging_in_callbacks(current_hook_fx_name=None,
-                                                on_step=None,
-                                                on_epoch=None)
+                                                      on_step=None,
+                                                      on_epoch=None)
         assert result is None
