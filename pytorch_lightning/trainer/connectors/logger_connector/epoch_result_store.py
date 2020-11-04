@@ -558,7 +558,7 @@ class EpochResultStore:
         Example:
 
         result: Result = self(fx_name="training_step", dl_idx="0", opt_idx="0", reduced=True)
-        Result['train_loss_epoch'] # aggregated train_loss over one epoch.
+        result['train_loss_epoch'] # aggregated train_loss over one epoch.
 
         Args:
 
