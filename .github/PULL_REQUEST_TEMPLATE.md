@@ -4,6 +4,8 @@
 Please include a summary of the change and which issue is fixed.
  Please also include relevant motivation and context.
  List any dependencies that are required for this change.
+
+If we didn't discuss your PR in Github issues there's a high chance it will not be merged.
 -->
 
 Fixes # (issue)
@@ -20,10 +22,14 @@ Fixes # (issue)
 <!-- For CHANGELOG separate each item in unreleased section by a blank line to reduce collisions -->
 
 ## PR review
- - [ ] Is this pull request ready for review? (if not, please submit in draft mode)
+Anyone in the community is free to review the PR once the tests have passed.
+Before you start reviewing make sure you have read [Review guidelines](https://github.com/PyTorchLightning/pytorch-lightning/wiki/Review-guidelines). In in short, see following bullet-list:  
 
-Anyone in the community is free to review the PR once the tests have passed.    
-If we didn't discuss your PR in Github issues there's a high chance it will not be merged.
+ - [ ] Is this pull request ready for review? (if not, please submit in draft mode)
+ - [ ] Check that all items from **Before submitting** are resolved
+ - [ ] Check that title is self explanatory and description well explains what is this PR about
+ - [ ] Add labels and milestones (and optionally projects) to the PR so it can be classified
+ 
 
 ## Did you have fun?
 Make sure you had fun coding 🙃
