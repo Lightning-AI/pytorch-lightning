@@ -17,6 +17,7 @@ python mnist.py --gpus 2 --distributed_backend 'dp'
 ---
 #### MNIST with DALI
 The MNIST example above using [NVIDIA DALI](https://developer.nvidia.com/DALI).
+Requires NVIDIA DALI to be installed based on your CUDA version, see [here](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/installation.html).
 ```bash
 python mnist_dali.py
 ```
