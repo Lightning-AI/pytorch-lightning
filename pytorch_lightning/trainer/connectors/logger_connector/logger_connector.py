@@ -346,7 +346,7 @@ class LoggerConnector:
                     flat['early_stop_on'] = flat['val_loss']
                 self.trainer.logger_connector.callback_metrics.update(flat)
 
-    def __process_eval_epoch_end_results_and_log_legacy_udpate(self, prog_bar_metrics, log_metrics, callback_metrics):
+    def __process_eval_epoch_end_results_and_log_legacy_update(self, prog_bar_metrics, log_metrics, callback_metrics):
         # eval loop returns all metrics
         dataloader_result_metrics = {**prog_bar_metrics, **log_metrics, **callback_metrics}
 
