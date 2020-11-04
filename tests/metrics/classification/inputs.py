@@ -19,7 +19,7 @@ _binary_prob_inputs = Input(
 
 
 _binary_inputs = Input(
-    preds=torch.randint(high=2, size=(NUM_BATCHES, BATCH_SIZE,)),
+    preds=torch.randint(high=2, size=(NUM_BATCHES, BATCH_SIZE,)).to(torch.float),
     target=torch.randint(high=2, size=(NUM_BATCHES, BATCH_SIZE,))
 )
 

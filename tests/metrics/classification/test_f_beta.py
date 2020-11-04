@@ -1,11 +1,11 @@
 from functools import partial
 
-import numpy as np
 import pytest
 import torch
 from sklearn.metrics import fbeta_score
 
-from pytorch_lightning.metrics import Fbeta
+from pytorch_lightning.metrics.classification.utils import _input_format_classification
+from pytorch_lightning.metrics import FBeta
 from tests.metrics.classification.inputs import (
     _binary_inputs,
     _binary_prob_inputs,
@@ -22,110 +22,82 @@ from tests.metrics.utils import NUM_CLASSES, THRESHOLD, MetricTester
 torch.manual_seed(42)
 
 
-def _sk_fbeta_binary_prob(preds, target, average='micro', beta=1.0):
-    sk_preds = (preds.view(-1).numpy() >= THRESHOLD).astype(np.uint8)
-    sk_target = target.view(-1).numpy()
-
-    return fbeta_score(y_true=sk_target, y_pred=sk_preds, average='binary', beta=beta)
-
-
-def _sk_fbeta_binary(preds, target, average='micro', beta=1.0):
-    sk_preds = preds.view(-1).numpy()
-    sk_target = target.view(-1).numpy()
-
-    return fbeta_score(y_true=sk_target, y_pred=sk_preds, average='binary', beta=beta)
-
-
-def _sk_fbeta_multilabel_prob(preds, target, average='micro', beta=1.0):
-    sk_preds = (preds.view(-1, NUM_CLASSES).numpy() >= THRESHOLD).astype(np.uint8)
-    sk_target = target.view(-1, NUM_CLASSES).numpy()
+def _sk_fbeta(preds, target, average, beta, num_classes):
+    average = None if average == "none" else average
+    sk_preds, sk_target = _input_format_classification(preds, target, THRESHOLD, num_classes)
+    sk_preds, sk_target = sk_preds.numpy(), sk_target.numpy()
 
     return fbeta_score(y_true=sk_target, y_pred=sk_preds, average=average, beta=beta)
-
-
-def _sk_fbeta_multilabel(preds, target, average='micro', beta=1.0):
-    sk_preds = preds.view(-1, NUM_CLASSES).numpy()
-    sk_target = target.view(-1, NUM_CLASSES).numpy()
-
-    return fbeta_score(y_true=sk_target, y_pred=sk_preds, average=average, beta=beta)
-
-
-def _sk_fbeta_multiclass_prob(preds, target, average='micro', beta=1.0):
-    sk_preds = torch.argmax(preds, dim=len(preds.shape) - 1).view(-1).numpy()
-    sk_target = target.view(-1).numpy()
-
-    return fbeta_score(y_true=sk_target, y_pred=sk_preds, average=average, beta=beta)
-
-
-def _sk_fbeta_multiclass(preds, target, average='micro', beta=1.0):
-    sk_preds = preds.view(-1).numpy()
-    sk_target = target.view(-1).numpy()
-
-    return fbeta_score(y_true=sk_target, y_pred=sk_preds, average=average, beta=beta)
-
-
-def _sk_fbeta_multidim_multiclass_prob(preds, target, average='micro', beta=1.0):
-    sk_preds = torch.argmax(preds, dim=len(preds.shape) - 2).view(-1).numpy()
-    sk_target = target.view(-1).numpy()
-
-    return fbeta_score(y_true=sk_target, y_pred=sk_preds, average=average, beta=beta)
-
-
-def _sk_fbeta_multidim_multiclass(preds, target, average='micro', beta=1.0):
-    sk_preds = preds.view(-1).numpy()
-    sk_target = target.view(-1).numpy()
-
-    return fbeta_score(y_true=sk_target, y_pred=sk_preds, average=average, beta=beta)
-
 
 @pytest.mark.parametrize("ddp", [True, False])
 @pytest.mark.parametrize("dist_sync_on_step", [True, False])
-@pytest.mark.parametrize("average", ['micro', 'macro'])
+@pytest.mark.parametrize("average", ["binary"])
 @pytest.mark.parametrize(
-    "preds, target, sk_metric, num_classes, multilabel",
+    "preds, target, num_classes",
     [
-        (_binary_prob_inputs.preds, _binary_prob_inputs.target, _sk_fbeta_binary_prob, 1, False),
-        (_binary_inputs.preds, _binary_inputs.target, _sk_fbeta_binary, 1, False),
-        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target, _sk_fbeta_multilabel_prob, NUM_CLASSES, True),
-        (_multilabel_inputs.preds, _multilabel_inputs.target, _sk_fbeta_multilabel, NUM_CLASSES, True),
-        (_multilabel_inputs_no_match.preds, _multilabel_inputs_no_match.target, _sk_fbeta_multilabel, NUM_CLASSES, True),
-        (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, _sk_fbeta_multiclass_prob, NUM_CLASSES, False),
-        (_multiclass_inputs.preds, _multiclass_inputs.target, _sk_fbeta_multiclass, NUM_CLASSES, False),
-        (
-            _multidim_multiclass_prob_inputs.preds,
-            _multidim_multiclass_prob_inputs.target,
-            _sk_fbeta_multidim_multiclass_prob,
-            NUM_CLASSES,
-            False,
-        ),
-        (
-            _multidim_multiclass_inputs.preds,
-            _multidim_multiclass_inputs.target,
-            _sk_fbeta_multidim_multiclass,
-            NUM_CLASSES,
-            False,
-        ),
+        (_binary_prob_inputs.preds, _binary_prob_inputs.target, 1),
+        (_binary_inputs.preds, _binary_inputs.target, 1),
     ],
 )
 @pytest.mark.parametrize(
-    "metric_class, beta", [(Fbeta, 0.5), (Fbeta, 1.0)],
+    "metric_class, beta",
+    [(FBeta, 0.5), (FBeta, 1.0)],
 )
-class TestFBeta(MetricTester):
-    def test_fbeta(
-        self, ddp, dist_sync_on_step, preds, target, sk_metric, metric_class, beta, num_classes, multilabel, average
+class TestPrecisionRecallBinary(MetricTester):
+    def test_fbeta_binary(
+        self, ddp, dist_sync_on_step, preds, target, metric_class, beta, num_classes, average
     ):
         self.run_class_metric_test(
             ddp=ddp,
             preds=preds,
             target=target,
             metric_class=metric_class,
-            sk_metric=partial(sk_metric, average=average, beta=beta),
+            sk_metric=partial(_sk_fbeta, average=average, beta=beta, num_classes=num_classes),
+            dist_sync_on_step=dist_sync_on_step,
+            metric_args={
+                "num_classes": num_classes,
+                "average": average,
+                "threshold": THRESHOLD,
+                "beta": beta
+            },
+            check_dist_sync_on_step=True,
+            check_batch=True,
+        )
+
+@pytest.mark.parametrize("ddp", [False])
+@pytest.mark.parametrize("dist_sync_on_step", [False])
+@pytest.mark.parametrize("average", ["micro", "macro", "weighted", "none"])
+@pytest.mark.parametrize(
+    "preds, target, num_classes",
+    [
+        (_binary_prob_inputs.preds, _binary_prob_inputs.target, 2),
+        (_binary_inputs.preds, _binary_inputs.target, 2),
+        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target, NUM_CLASSES),
+        (_multilabel_inputs.preds, _multilabel_inputs.target, NUM_CLASSES),
+        (_multilabel_inputs_no_match.preds, _multilabel_inputs_no_match.target, NUM_CLASSES),
+        (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, NUM_CLASSES),
+        (_multiclass_inputs.preds, _multiclass_inputs.target, NUM_CLASSES),
+        (_multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target, NUM_CLASSES),
+        # (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target, NUM_CLASSES),
+    ],
+)
+@pytest.mark.parametrize(
+    "metric_class, beta",
+    [(FBeta, 0.5), (FBeta, 1.0)],
+)
+class TestFBeta(MetricTester):
+    def test_fbeta(self, ddp, dist_sync_on_step, preds, target, metric_class, beta, num_classes, average):
+        self.run_class_metric_test(
+            ddp=ddp,
+            preds=preds,
+            target=target,
+            metric_class=metric_class,
+            sk_metric=partial(_sk_fbeta, average=average, beta=beta, num_classes=num_classes),
             dist_sync_on_step=dist_sync_on_step,
             metric_args={
                 "beta": beta,
                 "num_classes": num_classes,
                 "average": average,
-                "multilabel": multilabel,
                 "threshold": THRESHOLD,
             },
             check_dist_sync_on_step=False,

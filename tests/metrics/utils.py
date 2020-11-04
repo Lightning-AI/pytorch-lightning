@@ -11,7 +11,7 @@ from torch.multiprocessing import Pool, set_start_method
 
 from pytorch_lightning.metrics import Metric
 
-NUM_PROCESSES = 2
+NUM_PROCESSES = 1
 NUM_BATCHES = 10
 BATCH_SIZE = 16
 NUM_CLASSES = 5
@@ -71,8 +71,8 @@ def _class_test(
 
         if metric.dist_sync_on_step:
             if rank == 0:
-                ddp_preds = torch.stack([preds[i + r] for r in range(worldsize)])
-                ddp_target = torch.stack([target[i + r] for r in range(worldsize)])
+                ddp_preds = torch.cat([preds[i + r] for r in range(worldsize)])
+                ddp_target = torch.cat([target[i + r] for r in range(worldsize)])
                 sk_batch_result = sk_metric(ddp_preds, ddp_target)
                 # assert for dist_sync_on_step
                 if check_dist_sync_on_step:
@@ -87,8 +87,8 @@ def _class_test(
     result = metric.compute()
     assert isinstance(result, torch.Tensor)
 
-    total_preds = torch.stack([preds[i] for i in range(NUM_BATCHES)])
-    total_target = torch.stack([target[i] for i in range(NUM_BATCHES)])
+    total_preds = torch.cat([preds[i] for i in range(NUM_BATCHES)])
+    total_target = torch.cat([target[i] for i in range(NUM_BATCHES)])
     sk_result = sk_metric(total_preds, total_target)
 
     # assert after aggregation

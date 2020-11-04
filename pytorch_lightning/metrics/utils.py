@@ -13,13 +13,11 @@
 # limitations under the License.
 import torch
 
-from typing import Any, Callable, Optional, Union
-
-
 METRIC_EPS = 1e-6
 
 
 def dim_zero_cat(x):
+    x = x if isinstance(x, (list, tuple)) else [x]
     return torch.cat(x, dim=0)
 
 
@@ -36,8 +34,8 @@ def _flatten(x):
 
 
 def to_onehot(
-        tensor: torch.Tensor,
-        num_classes: int,
+    tensor: torch.Tensor,
+    num_classes: int,
 ) -> torch.Tensor:
     """
     Converts a dense label tensor to one-hot format
@@ -57,8 +55,7 @@ def to_onehot(
                 [0, 0, 0, 1]])
     """
     dtype, device, shape = tensor.dtype, tensor.device, tensor.shape
-    tensor_onehot = torch.zeros(shape[0], num_classes, *shape[1:],
-                                dtype=dtype, device=device)
+    tensor_onehot = torch.zeros(shape[0], num_classes, *shape[1:], dtype=dtype, device=device)
     index = tensor.long().unsqueeze(1).expand_as(tensor_onehot)
     return tensor_onehot.scatter_(1, index, 1.0)
 
@@ -66,32 +63,4 @@ def to_onehot(
 def _check_same_shape(pred: torch.Tensor, target: torch.Tensor):
     """ Check that predictions and target have the same shape, else raise error """
     if pred.shape != target.shape:
-        raise RuntimeError('Predictions and targets are expected to have the same shape')
-
-
-def _input_format_classification(preds: torch.Tensor, target: torch.Tensor, threshold: float):
-    """ Convert preds and target tensors into label tensors
-
-    Args:
-        preds: either tensor with labels, tensor with probabilities/logits or
-            multilabel tensor
-        target: tensor with ground true labels
-        threshold: float used for thresholding multilabel input
-
-    Returns:
-        preds: tensor with labels
-        target: tensor with labels
-    """
-    if not (len(preds.shape) == len(target.shape) or len(preds.shape) == len(target.shape) + 1):
-        raise ValueError(
-            "preds and target must have same number of dimensions, or one additional dimension for preds"
-        )
-
-    if len(preds.shape) == len(target.shape) + 1:
-        # multi class probabilites
-        preds = torch.argmax(preds, dim=1)
-
-    if len(preds.shape) == len(target.shape) and preds.dtype == torch.float:
-        # binary or multilabel probablities
-        preds = (preds >= threshold).long()
-    return preds, target
+        raise RuntimeError("Predictions and targets are expected to have the same shape")

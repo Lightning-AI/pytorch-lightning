@@ -11,59 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import math
-import functools
-from abc import ABC, abstractmethod
-from typing import Any, Callable, Optional, Union
-from collections.abc import Mapping, Sequence
-from collections import namedtuple
+from typing import Any, Optional
 
 import torch
-from torch import nn
 from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.metrics.utils import _input_format_classification
+from pytorch_lightning.metrics.classification.utils import _input_format_classification
 
 
 class Accuracy(Metric):
-    """
-    Computes accuracy. Works with binary, multiclass, and multilabel data.
-    Accepts logits from a model output or integer class values in prediction.
-    Works with multi-dimensional preds and target.
-
-    Forward accepts
-
-    - ``preds`` (float or long tensor): ``(N, ...)`` or ``(N, C, ...)`` where C is the number of classes
-    - ``target`` (long tensor): ``(N, ...)``
-
-    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument.
-    This is the case for binary and multi-label logits.
-
-    If preds has an extra dimension as in the case of multi-class scores we perform an argmax on ``dim=1``.
-
-    Args:
-        threshold:
-            Threshold value for binary or multi-label logits. default: 0.5
-        compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False. default: True
-        dist_sync_on_step:
-            Synchronize metric state across processes at each ``forward()``
-            before returning the value at the step. default: False
-        process_group:
-            Specify the process group on which synchronization is called. default: None (which selects the entire world)
-
-    Example:
-
-        >>> from pytorch_lightning.metrics import Accuracy
-        >>> target = torch.tensor([0, 1, 2, 3])
-        >>> preds = torch.tensor([0, 2, 1, 3])
-        >>> accuracy = Accuracy()
-        >>> accuracy(preds, target)
-        tensor(0.5000)
-
-    """
     def __init__(
         self,
         threshold: float = 0.5,
+        logits: bool = False,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -78,20 +37,19 @@ class Accuracy(Metric):
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
         self.threshold = threshold
+        self.logits = logits
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
         Update state with predictions and targets.
-
         Args:
             preds: Predictions from model
             target: Ground truth values
         """
-        preds, target = _input_format_classification(preds, target, self.threshold)
-        assert preds.shape == target.shape
+        preds, target = _input_format_classification(preds, target, self.threshold, None, self.logits)
 
-        self.correct += torch.sum(preds == target)
-        self.total += target.numel()
+        self.correct += torch.min(preds == target, dim=1)[0].sum()
+        self.total += preds.shape[0]
 
     def compute(self):
         """

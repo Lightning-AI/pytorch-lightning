@@ -16,14 +16,14 @@ from typing import Optional
 import torch
 
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.metrics.utils import _input_format_classification
+from pytorch_lightning.metrics.classification.utils import _input_format_classification
 
 
 def _confusion_matrix_update(preds: torch.Tensor,
                              target: torch.Tensor,
                              num_classes: int,
                              threshold: float = 0.5) -> torch.Tensor:
-    preds, target = _input_format_classification(preds, target, threshold)
+    preds, target = _input_format_classification(preds, target, threshold, num_classes)
     unique_mapping = (target.view(-1) * num_classes + preds.view(-1)).to(torch.long)
     bins = torch.bincount(unique_mapping, minlength=num_classes ** 2)
     confmat = bins.reshape(num_classes, num_classes)
