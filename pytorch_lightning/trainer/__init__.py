@@ -484,10 +484,7 @@ callbacks
 
 |
 
-Add a list of :class:`~pytorch_lightning.callbacks.Callback`. These callbacks DO NOT replace the explicit callbacks
-(loggers or :class:`~pytorch_lightning.callbacks.ModelCheckpoint`).
-
-.. note:: Only user defined callbacks (ie: Not :class:`~pytorch_lightning.callbacks.ModelCheckpoint`)
+Add a list of :class:`~pytorch_lightning.callbacks.Callback`.
 
 .. code-block:: python
 
@@ -537,34 +534,27 @@ checkpoint_callback
 
 |
 
-Pass in a callback for checkpointing. Checkpoints capture the exact value of all parameters used by a model.
 By default Lightning saves a checkpoint for you in your current working directory, with the state of your last training epoch,
-but you can override the default behavior by Initializing the :class:`~pytorch_lightning.callbacks.ModelCheckpoint` callback,
-and passing it to :class:`~pytorch_lightning.trainer.Trainer` `checkpoint_callback` flag.
-
-.. code-block:: python
-
-    from pytorch_lightning.callbacks import ModelCheckpoint
-
-    # default used by the Trainer
-    checkpoint_callback = ModelCheckpoint(
-        dirpath=os.getcwd(),
-        save_top_k=True,
-        verbose=True,
-        monitor='checkpoint_on',
-        mode='min',
-        prefix=''
-    )
-
-    trainer = Trainer(checkpoint_callback=checkpoint_callback)
-
+Checkpoints capture the exact value of all parameters used by a model.
 To disable automatic checkpointing, set this to `False`.
 
 .. code-block:: python
 
+    # default used by Trainer
+    trainer = Trainer(checkpoint_callback=True)
+
+    # turn off automatic checkpointing
     trainer = Trainer(checkpoint_callback=False)
 
-See also :ref:`Saving and Loading Weights <weights_loading>`.
+
+You can override the default behavior by initializing the :class:`~pytorch_lightning.callbacks.ModelCheckpoint`
+callback, and adding it to the :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks` list.
+See :ref:`Saving and Loading Weights <weights_loading>` for how to customize checkpointing.
+
+
+.. warning:: Passing a ModelCheckpoint instance to this argument is deprecated since
+    v1.1.0 and will be unsupported from v1.3.0.
+
 
 default_root_dir
 ^^^^^^^^^^^^^^^^
@@ -1529,7 +1519,7 @@ Example::
     # **NOTE: this saves weights to some/path NOT my/path
     checkpoint = ModelCheckpoint(dirpath='some/path')
     trainer = Trainer(
-        checkpoint_callback=checkpoint,
+        callbacks=[checkpoint],
         weights_save_path='my/path'
     )
 
