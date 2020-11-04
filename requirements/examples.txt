@@ -1,2 +1,3 @@
 torchvision>=0.4.1,<0.9.0
 gym>=0.17.0
+nvidia-dali --extra-index-url https://developer.download.nvidia.com/compute/redist
