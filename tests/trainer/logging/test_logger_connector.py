@@ -22,6 +22,9 @@ from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore
+from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
+from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel, RandomDataset
 
 
@@ -272,3 +275,98 @@ def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, n
         expected = torch.stack(model.test_losses[str(dl_idx)]).mean()
         generated = test_results(fx_name="test_step", dl_idx=str(dl_idx), reduced=True)["test_loss_epoch"]
         assert abs(expected.item() - generated.item()) < 1e-6
+
+
+def test_call_back_validator(tmpdir):
+
+    funcs_name = sorted([f for f in dir(Callback) if not f.startswith('_')])
+
+    callbacks_func = [
+        'on_after_backward',
+        'on_batch_end',
+        'on_batch_start',
+        'on_before_zero_grad',
+        'on_epoch_end',
+        'on_epoch_start',
+        'on_fit_end',
+        'on_fit_start',
+        'on_init_end', 'on_init_start',
+        'on_keyboard_interrupt',
+        'on_load_checkpoint',
+        'on_pretrain_routine_end',
+        'on_pretrain_routine_start',
+        'on_sanity_check_end',
+        'on_sanity_check_start',
+        'on_save_checkpoint',
+        'on_test_batch_end',
+        'on_test_batch_start',
+        'on_test_end',
+        'on_test_epoch_end',
+        'on_test_epoch_start',
+        'on_test_start',
+        'on_train_batch_end',
+        'on_train_batch_start',
+        'on_train_end',
+        'on_train_epoch_end',
+        'on_train_epoch_start',
+        'on_train_start',
+        'on_validation_batch_end',
+        'on_validation_batch_start',
+        'on_validation_end',
+        'on_validation_epoch_end',
+        'on_validation_epoch_start',
+        'on_validation_start',
+        'setup',
+        'teardown',
+    ]
+
+    not_supported = [
+        "on_fit_end",
+        "on_fit_start",
+        "on_init_end",
+        "on_init_start",
+        "on_keyboard_interrupt",
+        "on_load_checkpoint",
+        "on_pretrain_routine_end",
+        "on_pretrain_routine_start",
+        "on_sanity_check_end",
+        "on_sanity_check_start",
+        "on_save_checkpoint",
+        "on_test_end",
+        "on_train_end",
+        "on_validation_end",
+        "setup",
+        "teardown",
+    ]
+
+    assert funcs_name == callbacks_func, """Detected new callback function.
+        Need to add its logging permission to CallbackHookNameValidator and update this test"""
+
+    validator = CallbackHookNameValidator()
+
+    for func_name in funcs_name:
+        # This summurize where and what is currently possible to log using `self.log` function.
+        is_stage = 'train' in func_name or "test" in func_name or 'validation' in func_name
+        is_start = 'start' in func_name or 'batch' in func_name
+        on_step = is_stage and is_start
+        on_epoch = True
+        allowed = is_stage
+        allowed |= 'batch' in func_name or 'epoch' in func_name   # noqa: E225
+        allowed |= 'grad'in func_name or 'backward'in func_name   # noqa: E225
+        allowed &= not ('pretrain' in func_name)
+        allowed &= func_name not in ["on_train_end", "on_test_end", "on_validation_end"]
+        if allowed:
+            validator.check_logging_in_callbacks(current_hook_fx_name=func_name,
+                                                 on_step=on_step,
+                                                 on_epoch=on_epoch)
+            if not is_start and is_stage:
+                with pytest.raises(MisconfigurationException, match="function supports only"):
+                    validator.check_logging_in_callbacks(current_hook_fx_name=func_name,
+                                                         on_step=True,
+                                                         on_epoch=on_epoch)
+        else:
+            assert func_name in not_supported
+            with pytest.raises(MisconfigurationException, match="function doesn't support"):
+                validator.check_logging_in_callbacks(current_hook_fx_name=func_name,
+                                                     on_step=on_step,
+                                                     on_epoch=on_epoch)
