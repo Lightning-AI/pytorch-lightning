@@ -527,13 +527,15 @@ class EpochResultStore:
         self.legacy_batch_log_metrics = {}
         self.legacy_batch_pbar_metrics = {}
 
-    def __call__(self,
-                 fx_name: Union[str, int, None] = None,
-                 dl_idx: Union[str, int, None] = None,
-                 opt_idx: Union[str, int, None] = None,
-                 batch_idx: Union[str, int, None] = None,
-                 split_idx: Union[str, int, None] = None,
-                 reduced=False):
+    def __call__(
+            self,
+            fx_name: Optional[Union[str, int]] = None,
+            dl_idx: Optional[Union[str, int]] = None,
+            opt_idx: Optional[Union[str, int]] = None,
+            batch_idx: Optional[Union[str, int]] = None,
+            split_idx: Optional[Union[str, int]] = None,
+            reduced: bool = False,
+    ):
         """
         This function is used to easily acces saved logged data.
         """
