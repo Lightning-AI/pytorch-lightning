@@ -375,7 +375,8 @@ class LoggerConnector:
             if not isinstance(eval_results, list):
                 eval_results = [eval_results]
 
-            num_loaders = self.trainer.evaluation_loop.num_dataloaders
+            num_loaders: int = self.trainer.evaluation_loop.num_dataloaders
+            prog_bar_metrics, log_metrics, callback_metrics = {}, {}, {}
 
             for result_idx, result in enumerate(eval_results):
                 if isinstance(result, EvalResult):
@@ -393,7 +394,7 @@ class LoggerConnector:
                     self.__process_eval_epoch_end_results_and_log_legacy_update(prog_bar_metrics, log_metrics, callback_metrics)
 
             if num_loaders == 1:
-                self.__process_eval_epoch_end_results_and_log_legacy_udpate(prog_bar_metrics, log_metrics, callback_metrics)
+                self.__process_eval_epoch_end_results_and_log_legacy_update(prog_bar_metrics, log_metrics, callback_metrics)
 
     def on_train_epoch_end(self, epoch_output):
         pass
