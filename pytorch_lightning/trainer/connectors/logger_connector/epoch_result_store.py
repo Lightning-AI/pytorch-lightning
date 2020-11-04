@@ -15,7 +15,7 @@ import os
 from collections import defaultdict
 from copy import deepcopy
 from enum import Enum
-from typing import Union, Tuple, Any, Dict
+from typing import Union, Tuple, Any, Dict, Optional
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.core.step_result import Result
 
@@ -97,7 +97,7 @@ class HookResultStore:
         return self._internals_reduced
 
     @property
-    def add_dataloader_idx(self) -> bool:
+    def has_several_dataloaders(self) -> bool:
         return self.num_dataloaders > 1
 
     @property
@@ -153,7 +153,7 @@ class HookResultStore:
             func = getattr(opt_metric, func_name)
             metrics_to_log = func(
                 *args,
-                add_dataloader_idx=self.add_dataloader_idx,
+                add_dataloader_idx=self.has_several_dataloaders,
                 **kwargs)
             results.update(metrics_to_log)
         else:
@@ -461,12 +461,12 @@ class EpochResultStore:
         return results
 
     def get_latest_batch_log_metrics(self) -> Dict:
-        batch_log_metrics: Dict = self.run_batch_from_func_name("get_batch_log_metrics")
+        batch_log_metrics = self.run_batch_from_func_name("get_batch_log_metrics")
         batch_log_metrics.update(self.legacy_batch_log_metrics)
         return batch_log_metrics
 
     def get_latest_batch_pbar_metrics(self) -> Dict:
-        batch_pbar_metrics: Dict = self.run_batch_from_func_name("get_batch_pbar_metrics")
+        batch_pbar_metrics = self.run_batch_from_func_name("get_batch_pbar_metrics")
         batch_pbar_metrics.update(self.legacy_batch_pbar_metrics)
         return batch_pbar_metrics
 
@@ -537,7 +537,44 @@ class EpochResultStore:
             reduced: bool = False,
     ):
         """
-        This function is used to easily acces saved logged data.
+        This function is an helper to access stored data
+
+        It access data from the HookResultStore. Please,
+        check its data structure for better understanding
+
+        Data can be accessed with the following chains:
+
+        IF REDUCED:
+            * IF accessing a fx_name defined in batch training loop:
+                fx_name -> dl_idx -> opt_idx -> batch_idx -> split_idx
+            * ELSE fx_name -> dl_idx -> batch_idx
+        ELSE:
+            * IF accessing a fx_name defined in batch training loop:
+                fx_name -> dl_idx -> opt_idx
+            * ELSE fx_name -> dl_idx
+
+        Note: As soon as a param is None, it breaks the chain and return associated stored data.
+
+        Example:
+
+        result: Result = self(fx_name="training_step", dl_idx="0", opt_idx="0", reduced=True)
+        Result['train_loss_epoch'] # aggregated train_loss over one epoch.
+
+        Args:
+
+            fx_name: Hook name from ModelHooks or Callback. Example: `training_step`
+
+            dl_idx: Dataloader idx in short. It starts from 0 to num_dataloaders - 1
+
+            opt_idx: Optimizer idx in short. It starts from 0 to num_optimizers - 1
+
+            batch_idx: Index of batch idx seen during batch training or evaluation.
+                Works only with reduced=False
+
+            split_idx: Index of split idx in training loop when ttbt is used.
+
+            reduced: Data are being aggregated on on_epoch_end.
+                Indicates if we want to access aggregated Result or not.
         """
 
         hook_result = self[str(fx_name)]
@@ -574,6 +611,8 @@ class EpochResultStore:
         else:
             if dl_idx is not None:
                 result = result[dl_idx]
+                if batch_idx and not reduced:
+                    result = result[batch_idx]
 
         return result
 
