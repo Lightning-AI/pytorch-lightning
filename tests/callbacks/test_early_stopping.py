@@ -22,7 +22,7 @@ import torch
 
 from pytorch_lightning import _logger, seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.trainer.states import TrainerState
+from tests.base import BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel, EvalModelTemplate
 
@@ -51,7 +51,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     https://github.com/PyTorchLightning/pytorch-lightning/issues/1463
     """
     seed_everything(42)
-    model = EvalModelTemplate()
+    model = BoringModel()
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_top_k=1)
     early_stop_callback = EarlyStoppingTestRestore()
     trainer = Trainer(
@@ -86,8 +86,9 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_early_stopping_no_extraneous_invocations(tmpdir):
     """Test to ensure that callback methods aren't being invoked outside of the callback handler."""
-    model = EvalModelTemplate()
-    early_stop_callback = EarlyStopping()
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    model = BoringModel()
     expected_count = 4
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -104,12 +105,12 @@ def test_early_stopping_no_extraneous_invocations(tmpdir):
 
 @pytest.mark.parametrize(
     "loss_values, patience, expected_stop_epoch",
-    [([6, 5, 5, 5, 5, 5], 3, 4), ([6, 5, 4, 4, 3, 3], 1, 3), ([6, 5, 6, 5, 5, 5], 3, 4),],
+    [([6, 5, 5, 5, 5, 5], 3, 4), ([6, 5, 4, 4, 3, 3], 1, 3), ([6, 5, 6, 5, 5, 5], 3, 4)],
 )
 def test_early_stopping_patience(tmpdir, loss_values, patience, expected_stop_epoch):
     """Test to ensure that early stopping is not triggered before patience is exhausted."""
 
-    class ModelOverrideValidationReturn(EvalModelTemplate):
+    class ModelOverrideValidationReturn(BoringModel):
         validation_return_values = torch.Tensor(loss_values)
         count = 0
 
@@ -146,10 +147,11 @@ def test_pickling(tmpdir):
 def test_early_stopping_no_val_step(tmpdir):
     """Test that early stopping callback falls back to training metrics when no validation defined."""
 
-    class CurrentModel(EvalModelTemplate):
+    class CurrentModel(BoringModel):
         def training_step(self, *args, **kwargs):
             output = super().training_step(*args, **kwargs)
-            output.update({'my_train_metric': output['loss']})  # could be anything else
+            losses = (0., 1., 2., 3., 4., 5., 6., 7., 8., 9.)
+            self.log('my_train_metric', torch.tensor(losses[self.current_epoch]))  # could be anything else
             return output
 
     model = CurrentModel()
@@ -171,7 +173,7 @@ def test_early_stopping_no_val_step(tmpdir):
 
 def test_early_stopping_functionality(tmpdir):
 
-    class CurrentModel(EvalModelTemplate):
+    class CurrentModel(BoringModel):
         def validation_epoch_end(self, outputs):
             losses = [8, 4, 2, 3, 4, 5, 8, 10]
             val_loss = losses[self.current_epoch]
@@ -192,7 +194,7 @@ def test_early_stopping_functionality(tmpdir):
 def test_early_stopping_functionality_arbitrary_key(tmpdir):
     """Tests whether early stopping works with a custom key and dictionary results on val step."""
 
-    class CurrentModel(EvalModelTemplate):
+    class CurrentModel(BoringModel):
         def validation_epoch_end(self, outputs):
             losses = [8, 4, 2, 3, 4, 5, 8, 10]
             val_loss = losses[self.current_epoch]
