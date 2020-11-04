@@ -3,9 +3,9 @@ name: Install pkg
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches: [master]
+    branches: [master, "release/*"]  # include release branches like release/1.0.x
   pull_request:
-    branches: [master]
+    branches: [master, "release/*"]
 
 jobs:
 
@@ -20,7 +20,7 @@ jobs:
         python-version: [3.6, 3.8]
 
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
