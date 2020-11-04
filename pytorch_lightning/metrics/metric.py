@@ -150,6 +150,7 @@ class Metric(nn.Module, ABC):
         self._defaults[name] = deepcopy(default)
         self._reductions[name] = dist_reduce_fx
 
+    @torch.jit.unused
     def forward(self, *args, **kwargs):
         """
         Automatically calls ``update()``. Returns the metric value over inputs if ``compute_on_step`` is True.
