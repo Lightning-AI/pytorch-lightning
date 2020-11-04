@@ -268,7 +268,7 @@ def test_result_reduce_horovod(tmpdir):
 
                 res = self._results
                 assert res["test_tensor"].item() == hvd.size(), \
-                        "Result-Log does not work properly with Horovod and Tensors"
+                    "Result-Log does not work properly with Horovod and Tensors"
 
             def training_epoch_end(self, outputs) -> None:
                 assert len(outputs) == 0
