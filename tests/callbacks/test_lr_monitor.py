@@ -16,7 +16,7 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
+from tests.base import BoringModel
 import tests.base.develop_utils as tutils
 
 
@@ -24,7 +24,7 @@ def test_lr_monitor_single_lr(tmpdir):
     """ Test that learning rates are extracted and logged for single lr scheduler. """
     tutils.reset_seed()
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     model.configure_optimizers = model.configure_optimizers__single_scheduler
 
     lr_monitor = LearningRateMonitor()
@@ -51,7 +51,7 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir):
     """ Test that learning rates and momentum are extracted and logged for single lr scheduler. """
     tutils.reset_seed()
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     model.configure_optimizers = model.configure_optimizers__onecycle_scheduler
 
     lr_monitor = LearningRateMonitor(log_momentum=True)
@@ -76,7 +76,7 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir):
 def test_lr_monitor_no_lr_scheduler(tmpdir):
     tutils.reset_seed()
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
@@ -95,7 +95,7 @@ def test_lr_monitor_no_lr_scheduler(tmpdir):
 def test_lr_monitor_no_logger(tmpdir):
     tutils.reset_seed()
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
@@ -114,7 +114,7 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval):
     """ Test that learning rates are extracted and logged for multi lr schedulers. """
     tutils.reset_seed()
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     model.configure_optimizers = model.configure_optimizers__multiple_schedulers
 
     lr_monitor = LearningRateMonitor(logging_interval=logging_interval)
@@ -150,7 +150,7 @@ def test_lr_monitor_param_groups(tmpdir):
     """ Test that learning rates are extracted and logged for single lr scheduler. """
     tutils.reset_seed()
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     model.configure_optimizers = model.configure_optimizers__param_groups
 
     lr_monitor = LearningRateMonitor()
