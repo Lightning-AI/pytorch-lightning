@@ -214,9 +214,9 @@ class Metric(nn.Module, ABC):
                 return self._computed
 
             dist_sync_fn = self.dist_sync_fn
-            if dist_sync_fn is None and \
-                    torch.distributed.is_available() and \
-                    torch.distributed.is_initialized():
+            if (dist_sync_fn is None
+                    and torch.distributed.is_available()
+                    and torch.distributed.is_initialized()):
                 # User provided a bool, so we assume DDP if available
                 dist_sync_fn = gather_all_tensors
 
