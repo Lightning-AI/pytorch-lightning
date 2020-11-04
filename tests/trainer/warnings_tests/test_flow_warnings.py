@@ -16,6 +16,7 @@ import os
 from pytorch_lightning import Trainer
 import warnings
 
+
 class TestModel(BoringModel):
     def training_step(self, batch, batch_idx):
         acc = self.step(batch[0])

@@ -404,6 +404,7 @@ class ExtendedModel(BoringModel):
         assert torch.sum(self.layer.weight.grad) == 0
         self.count += 1
 
+
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_automatic_optimization_false(tmpdir):
