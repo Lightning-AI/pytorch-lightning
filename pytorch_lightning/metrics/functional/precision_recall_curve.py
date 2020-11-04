@@ -20,7 +20,7 @@ from pytorch_lightning.utilities import rank_zero_warn
 
 
 def _binary_clf_curve(
-        pred: torch.Tensor,
+        preds: torch.Tensor,
         target: torch.Tensor,
         sample_weights: Optional[Sequence] = None,
         pos_label: int = 1.,
@@ -29,14 +29,14 @@ def _binary_clf_curve(
     adapted from https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/metrics/_ranking.py
     """
     if sample_weights is not None and not isinstance(sample_weights, torch.Tensor):
-        sample_weights = torch.tensor(sample_weights, device=pred.device, dtype=torch.float)
+        sample_weights = torch.tensor(sample_weights, device=preds.device, dtype=torch.float)
 
     # remove class dimension if necessary
-    if pred.ndim > target.ndim:
-        pred = pred[:, 0]
-    desc_score_indices = torch.argsort(pred, descending=True)
+    if preds.ndim > target.ndim:
+        preds = preds[:, 0]
+    desc_score_indices = torch.argsort(preds, descending=True)
 
-    pred = pred[desc_score_indices]
+    preds = preds[desc_score_indices]
     target = target[desc_score_indices]
 
     if sample_weights is not None:
@@ -47,9 +47,8 @@ def _binary_clf_curve(
     # pred typically has many tied values. Here we extract
     # the indices associated with the distinct values. We also
     # concatenate a value for the end of the curve.
-    distinct_value_indices = torch.where(pred[1:] - pred[:-1])[0]
+    distinct_value_indices = torch.where(preds[1:] - preds[:-1])[0]
     threshold_idxs = F.pad(distinct_value_indices, (0, 1), value=target.size(0) - 1)
-
     target = (target == pos_label).to(torch.long)
     tps = torch.cumsum(target * weight, dim=0)[threshold_idxs]
 
@@ -60,7 +59,7 @@ def _binary_clf_curve(
     else:
         fps = 1 + threshold_idxs - tps
 
-    return fps, tps, pred[threshold_idxs]
+    return fps, tps, preds[threshold_idxs]
 
 
 def _precision_recall_curve_update(
@@ -68,12 +67,11 @@ def _precision_recall_curve_update(
         target: torch.Tensor,
         num_classes: Optional[int] = None,
         pos_label: Optional[int] = None,
-) -> Tuple[torch.Tensor, torch.Tensor, int]:
+) -> Tuple[torch.Tensor, torch.Tensor, int, int]:
     if not (len(preds.shape) == len(target.shape) or len(preds.shape) == len(target.shape) + 1):
         raise ValueError(
             "preds and target must have same number of dimensions, or one additional dimension for preds"
         )
-
     # single class evaluation
     if len(preds.shape) == len(target.shape):
         if num_classes is not None and num_classes != 1:
@@ -94,10 +92,10 @@ def _precision_recall_curve_update(
             raise ValueError(f'Argument `num_classes` was set to {num_classes} in'
                              f'metric `precision_recall_curve` but detected {preds.shape[1]}'
                              'number of classes from predictions')
-        preds = preds.transpose(0,1).reshape(-1,num_classes).transpose(0,1)
-        target = target.transpose(0,1).reshape(-1,num_classes).transpose(0,1)
+        preds = preds.transpose(0,1).reshape(num_classes,-1).transpose(0,1)
+        target = target.flatten()
 
-    return preds, target, num_classes
+    return preds, target, num_classes, pos_label
 
 
 def _precision_recall_curve_compute(
@@ -163,5 +161,6 @@ def precision_recall_curve(
         sample_weights: Optional[Sequence] = None,
 ) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
            List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]]:
-    preds, target, num_classes = _precision_recall_curve_update(preds, target, num_classes, pos_label)
+    preds, target, num_classes, pos_label = _precision_recall_curve_update(preds, target,
+                                                                           num_classes, pos_label)
     return _precision_recall_curve_compute(preds, target, num_classes, pos_label, sample_weights)
