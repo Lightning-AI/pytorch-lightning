@@ -124,13 +124,13 @@ def test_is_picklable(tmpdir):
     def unpicklable_function():
         # Only functions defined at the top level of a module are picklable.
         pass
-    
+
     true_cases = [None, True, 123, "str", (123, "str"), max]
     false_cases = [unpicklable_function, UnpicklableClass]
 
     for case in true_cases:
         assert is_picklable(case) is True
-        
+
     for case in false_cases:
         assert is_picklable(case) is False
 
