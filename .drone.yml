@@ -46,6 +46,7 @@ steps:
 trigger:
   branch:
     - master
+    - release/*
   event:
     include:
     - push
