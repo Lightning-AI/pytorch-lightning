@@ -292,13 +292,6 @@ def test_result_reduce_horovod(tmpdir):
 
         trainer.fit(model)
 
-        # tensor = torch.tensor([1.0])
-        #
-        # res = result_cls()
-        # res.log("test_tensor", tensor, sync_dist=True, sync_dist_op='sum')
-        # assert res["test_tensor"].item() == hvd.size(), \
-        #     "Result-Log does not work properly with Horovod and Tensors"
-
     horovod.run(hvd_test_fn, np=2)
 
 
