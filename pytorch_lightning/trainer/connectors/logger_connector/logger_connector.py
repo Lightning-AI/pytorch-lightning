@@ -390,7 +390,7 @@ class LoggerConnector:
                     _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.trainer.process_dict_result(result)
 
                 if num_loaders > 1:
-                    self.__process_eval_epoch_end_results_and_log_legacy_udpate(prog_bar_metrics, log_metrics, callback_metrics)
+                    self.__process_eval_epoch_end_results_and_log_legacy_update(prog_bar_metrics, log_metrics, callback_metrics)
 
             if num_loaders == 1:
                 self.__process_eval_epoch_end_results_and_log_legacy_udpate(prog_bar_metrics, log_metrics, callback_metrics)
