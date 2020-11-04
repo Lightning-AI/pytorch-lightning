@@ -55,7 +55,7 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             XLA_VERSION=${{ matrix.xla_version }}
-          cache-from: pytorchlightning/pytorch_lightning:base-xla-cache-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
+          cache-from: pytorchlightning/pytorch_lightning:base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
           file: dockers/base-xla/Dockerfile
           push: false
         timeout-minutes: 50
@@ -93,7 +93,7 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
-          cache-from: pytorchlightning/pytorch_lightning:base-cuda-cache-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
+          cache-from: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
           file: dockers/base-cuda/Dockerfile
           push: false
         timeout-minutes: 50
@@ -137,7 +137,7 @@ jobs:
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             PYTORCH_CHANNEL=${{ steps.extend.outputs.CHANNEL }}
             CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
-          cache-from: pytorchlightning/pytorch_lightning:base-conda-cache-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
+          cache-from: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
           file: dockers/base-conda/Dockerfile
           push: false
         timeout-minutes: 50
