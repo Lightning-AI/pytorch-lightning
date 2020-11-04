@@ -15,12 +15,11 @@
 Runs either `.fit()` or `.test()` on a single node across multiple gpus.
 """
 from argparse import ArgumentParser
-
 from pytorch_lightning import Trainer, seed_everything
 from tests.base import EvalModelTemplate
 import os
 import torch
-from tests.backends.ddp import * # noqa F403
+from tests.backends.ddp import *    # noqa F403
 
 
 def main():
