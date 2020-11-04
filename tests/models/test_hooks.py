@@ -341,7 +341,7 @@ def test_trainer_model_hook_system(tmpdir):
         'on_fit_end',
     ]
 
-    assert model.called == excepted
+    assert model.called == expected
 
     model2 = HookedModel()
     trainer.test(model2)
