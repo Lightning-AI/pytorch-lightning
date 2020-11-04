@@ -363,6 +363,7 @@ class ExtendedModel(BoringModel):
 
     count = 0
     called = collections.defaultdict(int)
+    detach = False
 
     @property
     def should_update(self):
@@ -376,23 +377,24 @@ class ExtendedModel(BoringModel):
         self.called["training_step"] += 1
         opt = self.optimizers()
         output = self.layer(batch)
+
         loss = 0.1 * self.loss(batch, output)
         if self.should_update:
             weight_before = self.layer.weight.clone()
-            self.manual_backward(loss, opt)
+            self.manual_backward(loss.clone(), opt)
+            loss.detach()
             self.trainer.scaler.unscale_(opt)
 
-            print(torch.sum(self.layer.weight.grad))
             assert torch.sum(self.layer.weight.grad) != 0
-
             opt.step()
+
             self.trainer.scaler.update()
             after_before = self.layer.weight.clone()
+            mask = torch.logical_and(torch.isnan(after_before), torch.isinf(after_before))
             assert not torch.equal(weight_before, after_before)
             opt.zero_grad()
 
-        # the loss should be ignored
-        return loss.detach()
+        return loss.detach() if self.detach else loss
 
     def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
         self.called["on_train_batch_end"] += 1
@@ -403,6 +405,11 @@ class ExtendedModel(BoringModel):
             assert torch.equal(self.weight_before, after_before)
         assert torch.sum(self.layer.weight.grad) == 0
         self.count += 1
+
+    def on_train_end(self):
+        assert self.called["training_step"] == 10
+        assert self.called["on_train_batch_start"] == 10
+        assert self.called["on_train_batch_end"] == 10
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
@@ -425,11 +432,27 @@ def test_automatic_optimization_false(tmpdir):
         automatic_optimization=False,
         precision=16,
         amp_backend='native',
-        accelerator="ddp_spawn",
+        accelerator="ddp",
         gpus=2,
     )
     trainer.fit(model)
 
-    assert model.called["training_step"] == 10
-    assert model.called["on_train_batch_start"] == 10
-    assert model.called["on_train_batch_end"] == 10
+    model = ExtendedModel()
+    model.detach = True
+    model.training_step_end = None
+    model.training_epoch_end = None
+
+    with pytest.raises(MisconfigurationException, match='`training_step` should not'):
+        trainer = Trainer(
+            max_epochs=1,
+            default_root_dir=tmpdir,
+            limit_train_batches=10,
+            limit_test_batches=0,
+            limit_val_batches=0,
+            automatic_optimization=False,
+            precision=16,
+            amp_backend='native',
+            accelerator="ddp",
+            gpus=2,
+        )
+        trainer.fit(model)
