@@ -1,10 +1,23 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import math
 from abc import ABC
 from collections import OrderedDict
 
 import torch
 
-from pytorch_lightning import TrainResult, EvalResult
+from pytorch_lightning.core.step_result import TrainResult, EvalResult
 
 
 class TrainingStepVariations(ABC):
@@ -145,11 +158,11 @@ class TrainingStepVariations(ABC):
         Full loop flow train step (result obj + dp)
         """
         eval_name = 'validation' if not self.trainer.testing else 'test'
-        reduced = getattr(result, f'step_{eval_name}_step_metric').mean()
-        setattr(result, f'step_{eval_name}_step_metric', reduced)
+        reduced = getattr(result, f'{eval_name}_step_metric_step').mean()
+        setattr(result, f'{eval_name}_step_metric_step', reduced)
 
-        reduced = getattr(result, f'epoch_{eval_name}_step_metric').mean()
-        setattr(result, f'epoch_{eval_name}_step_metric', reduced)
+        reduced = getattr(result, f'{eval_name}_step_metric_epoch').mean()
+        setattr(result, f'{eval_name}_step_metric_epoch', reduced)
 
         reduced = getattr(result, f'{eval_name}_step_metric').mean()
         setattr(result, f'{eval_name}_step_metric', reduced)
@@ -172,11 +185,11 @@ class TrainingStepVariations(ABC):
         setattr(self, f'{eval_name}_epoch_end_called', True)
 
         # reduce the parametrized values
-        reduced = getattr(result, f'step_{eval_name}_step_metric').mean()
-        setattr(result, f'step_{eval_name}_step_metric', reduced)
+        reduced = getattr(result, f'{eval_name}_step_metric_step').mean()
+        setattr(result, f'{eval_name}_step_metric_step', reduced)
 
-        reduced = getattr(result, f'epoch_{eval_name}_step_metric').mean()
-        setattr(result, f'epoch_{eval_name}_step_metric', reduced)
+        reduced = getattr(result, f'{eval_name}_step_metric_epoch').mean()
+        setattr(result, f'{eval_name}_step_metric_epoch', reduced)
 
         reduced = getattr(result, f'{eval_name}_step_end_metric').mean()
         setattr(result, f'{eval_name}_step_end_metric', reduced)

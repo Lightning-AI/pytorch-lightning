@@ -1,7 +1,96 @@
 .. _optimizers:
 
+************
 Optimization
-===============
+************
+
+Lightning offers two modes for managing the optimization process:
+
+- automatic optimization (AutoOpt)
+- manual optimization
+
+For the majority of research cases, **automatic optimization** will do the right thing for you and it is what
+most users should use.
+
+For advanced/expert users who want to do esoteric optimization schedules or techniques, use **manual optimization**.
+
+------
+
+Manual optimization
+===================
+For advanced research topics like reinforcement learning, sparse coding, or GAN research, it may be desirable
+to manually manage the optimization process. To do so, do the following:
+
+* Disable automatic optimization in Trainer:  Trainer(automatic_optimization=False)
+* Drop or ignore the optimizer_idx argument
+* Use `self.manual_backward(loss)` instead of `loss.backward()` to automatically scale your loss
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx, optimizer_idx):
+        # ignore optimizer_idx
+        (opt_g, opt_d) = self.optimizers()
+
+        # do anything you want
+        loss_a = ...
+
+        # use self.backward which will also handle scaling the loss when using amp
+        self.manual_backward(loss_a, opt_g)
+        opt_g.step()
+        opt_g.zero_grad()
+
+        # do anything you want
+        loss_b = ...
+
+        # pass in any args that loss.backward() normally takes
+        self.manual_backward(loss_b, opt_d, retain_graph=True)
+        self.manual_backward(loss_b, opt_d)
+        opt_d.step()
+        opt_d.zero_grad()
+
+        # log losses
+        self.log('loss_a', loss_a)
+        self.log('loss_b', loss_b)
+
+.. note:: This is only recommended for experts who need ultimate flexibility
+
+Manual optimization does not yet support accumulated gradients but will be live in 1.1.0
+
+------
+
+Automatic optimization
+======================
+With Lightning most users don't have to think about when to call .backward(), .step(), .zero_grad(), since
+Lightning automates that for you.
+
+Under the hood Lightning does the following:
+
+.. code-block:: python
+
+    for epoch in epochs:
+        for batch id data:
+            loss = model.training_step(batch, batch_idx, ...)
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+
+        for scheduler in scheduler:
+            scheduler.step()
+
+In the case of multiple optimizers, Lightning does the following:
+
+.. code-block:: python
+
+    for epoch in epochs:
+      for batch in data:
+         for opt in optimizers:
+            disable_grads_for_other_optimizers()
+            train_step(opt)
+            opt.step()
+
+      for scheduler in scheduler:
+         scheduler.step()
+
 
 Learning rate scheduling
 ------------------------
@@ -16,16 +105,35 @@ Every optimizer you use can be paired with any `LearningRateScheduler <https://p
    # Adam + LR scheduler
    def configure_optimizers(self):
       optimizer = Adam(...)
-      scheduler = ReduceLROnPlateau(optimizer, ...)
+      scheduler = LambdaLR(optimizer, ...)
       return [optimizer], [scheduler]
+
+   # The ReduceLROnPlateau scheduler requires a monitor
+   def configure_optimizers(self):
+      return {
+          'optimizer': Adam(...),
+          'lr_scheduler': ReduceLROnPlateau(optimizer, ...),
+          'monitor': 'metric_to_track'
+      }
 
    # Two optimizers each with a scheduler
    def configure_optimizers(self):
       optimizer1 = Adam(...)
       optimizer2 = SGD(...)
-      scheduler1 = ReduceLROnPlateau(optimizer1, ...)
+      scheduler1 = LambdaLR(optimizer1, ...)
       scheduler2 = LambdaLR(optimizer2, ...)
       return [optimizer1, optimizer2], [scheduler1, scheduler2]
+
+   # Alternatively
+   def configure_optimizers(self):
+      optimizer1 = Adam(...)
+      optimizer2 = SGD(...)
+      scheduler1 = ReduceLROnPlateau(optimizer1, ...)
+      scheduler2 = LambdaLR(optimizer2, ...)
+      return (
+          {'optimizer': optimizer1, 'lr_scheduler': scheduler1, 'monitor': 'metric_to_track'},
+          {'optimizer': optimizer2, 'lr_scheduler': scheduler2},
+      )
 
    # Same as above with additional params passed to the first scheduler
    def configure_optimizers(self):
@@ -33,9 +141,10 @@ Every optimizer you use can be paired with any `LearningRateScheduler <https://p
       schedulers = [
          {
             'scheduler': ReduceLROnPlateau(optimizers[0], ...),
-            'monitor': 'val_recall', # Default: val_loss
+            'monitor': 'metric_to_track',
             'interval': 'epoch',
-            'frequency': 1
+            'frequency': 1,
+            'strict': True,
          },
          LambdaLR(optimizers[1], ...)
       ]
@@ -59,7 +168,7 @@ To use multiple optimizers return > 1 optimizers from :meth:`pytorch_lightning.c
 
    # Two optimizers, one scheduler for adam only
    def configure_optimizers(self):
-      return [Adam(...), SGD(...)], [ReduceLROnPlateau()]
+      return [Adam(...), SGD(...)], {'scheduler': ReduceLROnPlateau(), 'monitor': 'metric_to_track'}
 
 Lightning will call each optimizer sequentially:
 

@@ -29,6 +29,7 @@ class EvaluationLoop(object):
         self.predictions = None
         self.max_batches = None
         self.warning_cache = WarningCache()
+        self.num_dataloaders = None
 
     def on_trainer_init(self):
         self.trainer.num_val_batches = []
@@ -88,11 +89,28 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_start', *args, **kwargs)
 
+    def on_evaluation_model_eval(self, *args, **kwargs):
+        model_ref = self.trainer.get_model()
+        if self.testing:
+            model_ref.on_test_model_eval()
+        else:
+            model_ref.on_validation_model_eval()
+
+    def on_evaluation_model_train(self, *args, **kwargs):
+        model_ref = self.trainer.get_model()
+        if self.testing:
+            model_ref.on_test_model_train()
+        else:
+            model_ref.on_validation_model_train()
+
     def on_evaluation_end(self, *args, **kwargs):
         if self.testing:
             self.trainer.call_hook('on_test_end', *args, **kwargs)
         else:
             self.trainer.call_hook('on_validation_end', *args, **kwargs)
+
+        # reset stage to train
+        self.trainer.logger_connector.set_stage("train")
 
     def reload_evaluation_dataloaders(self):
         model = self.trainer.get_model()
@@ -119,6 +137,7 @@ class EvaluationLoop(object):
             max_batches = [max_batches] * len(dataloaders)
 
         self.max_batches = max_batches
+        self.num_dataloaders = self._get_num_dataloaders(dataloaders)
 
     def on_evaluation_epoch_start(self, *args, **kwargs):
         if self.testing:
@@ -130,13 +149,21 @@ class EvaluationLoop(object):
         # make dataloader_idx arg in validation_step optional
         args = [batch, batch_idx]
 
-        multiple_val_loaders = (not test_mode and len(self.trainer.val_dataloaders) > 1)
-        multiple_test_loaders = (test_mode and len(self.trainer.test_dataloaders) > 1)
+        multiple_val_loaders = (not test_mode and self._get_num_dataloaders(self.trainer.val_dataloaders) > 1)
+        multiple_test_loaders = (test_mode and self._get_num_dataloaders(self.trainer.test_dataloaders) > 1)
 
         if multiple_test_loaders or multiple_val_loaders:
             args.append(dataloader_idx)
 
         return args
+
+    def _get_num_dataloaders(self, dataloaders):
+        # case where user does:
+        # return dl1, dl2
+        length = len(dataloaders)
+        if len(dataloaders) > 0 and isinstance(dataloaders[0], (list, tuple)):
+            length = len(dataloaders[0])
+        return length
 
     def evaluation_step(self, test_mode, batch, batch_idx, dataloader_idx):
         # configure args
@@ -151,7 +178,7 @@ class EvaluationLoop(object):
         # track batch size for weighted average
         is_result_obj = isinstance(output, Result)
         if is_result_obj:
-            output.track_batch_size(len(batch))
+            output.track_batch_size(batch)
 
         # allow only EvalResult when using structured results (from val_step)
         if is_result_obj and not isinstance(output, EvalResult):
@@ -171,19 +198,23 @@ class EvaluationLoop(object):
         using_eval_result = self.is_using_eval_results()
 
         # call the model epoch end
-        eval_results = self.__run_eval_epoch_end(num_dataloaders, using_eval_result)
+        deprecated_results = self.__run_eval_epoch_end(num_dataloaders, using_eval_result)
+
+        # 1.0
+        epoch_logs = self.trainer.get_model()._results
 
         # enable returning anything
-        for r in eval_results:
+        for i, r in enumerate(deprecated_results):
             if not isinstance(r, (dict, Result, torch.Tensor)):
-                return []
+                deprecated_results[i] = []
 
-        return eval_results
+        return deprecated_results, epoch_logs
 
-    def log_epoch_metrics(self, eval_results, test_mode):
+    def log_epoch_metrics(self, deprecated_eval_results, epoch_logs, test_mode):
         using_eval_result = self.is_using_eval_results()
         eval_loop_results = self.trainer.logger_connector.on_evaluation_epoch_end(
-            eval_results,
+            deprecated_eval_results,
+            epoch_logs,
             using_eval_result,
             test_mode
         )
@@ -191,6 +222,9 @@ class EvaluationLoop(object):
 
     def __run_eval_epoch_end(self, num_dataloaders, using_eval_result):
         model = self.trainer.get_model()
+
+        # reset results
+        model._results = Result()
 
         # with a single dataloader don't pass an array
         outputs = self.outputs
@@ -219,11 +253,12 @@ class EvaluationLoop(object):
                 user_reduced = True
 
         # depre warning
-        if eval_results is not None:
+        if eval_results is not None and user_reduced:
             step = 'testing_epoch_end' if self.testing else 'validation_epoch_end'
-            m = f'The {step} should not return anything as of 9.1.' \
-                f'to log, use self.log(...) or self.write(...) directly in the LightningModule'
-            self.warning_cache.warn(m)
+            self.warning_cache.warn(
+                f'The {step} should not return anything as of 9.1.'
+                ' To log, use self.log(...) or self.write(...) directly in the LightningModule'
+            )
 
         if using_eval_result and not user_reduced:
             eval_results = self.__auto_reduce_result_objs(outputs)
@@ -263,16 +298,20 @@ class EvaluationLoop(object):
 
         return eval_results
 
-    def on_evaluation_batch_start(self, *args, **kwargs):
+    def on_evaluation_batch_start(self, batch, batch_idx, dataloader_idx):
         # reset the result of the PL module
         model = self.trainer.get_model()
         model._results = Result()
         model._current_fx_name = 'evaluation_step'
 
+        # set dataloader_idx and track batch_size
+        self.trainer.logger_connector.on_evaluation_batch_start(
+            self.testing, batch, dataloader_idx, self.num_dataloaders)
+
         if self.testing:
-            self.trainer.call_hook('on_test_batch_start', *args, **kwargs)
+            self.trainer.call_hook('on_test_batch_start', batch, batch_idx, dataloader_idx)
         else:
-            self.trainer.call_hook('on_validation_batch_start', *args, **kwargs)
+            self.trainer.call_hook('on_validation_batch_start', batch, batch_idx, dataloader_idx)
 
     def on_evaluation_batch_end(self, *args, **kwargs):
         if self.testing:
@@ -302,7 +341,7 @@ class EvaluationLoop(object):
         if len(results) == 1:
             return None
 
-        results.track_batch_size(len(batch))
+        results.track_batch_size(batch)
         self.__log_result_step_metrics(results, batch_idx)
 
         return results

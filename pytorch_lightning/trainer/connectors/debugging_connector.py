@@ -24,7 +24,6 @@ class DebuggingConnector:
 
     def on_init_start(
             self,
-            overfit_pct,
             limit_train_batches,
             limit_val_batches,
             limit_test_batches,

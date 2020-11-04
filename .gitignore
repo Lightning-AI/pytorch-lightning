@@ -15,6 +15,7 @@ test_tube_exp/
 # Documentations
 docs/source/api
 docs/source/*.md
+docs/source/generated
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -137,3 +138,4 @@ mlruns/
 *.ckpt
 pytorch\ lightning
 test-reports/
+wandb

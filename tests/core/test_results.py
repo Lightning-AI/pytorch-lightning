@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import sys
 from pathlib import Path
 
@@ -71,6 +84,9 @@ def test_result_reduce_ddp(result_cls):
             6, False, 0, id='dict_list_predictions'
         ),
         pytest.param(
+            7, True, 0, id='write_dict_predictions'
+        ),
+        pytest.param(
             0, True, 1, id='full_loop_single_gpu', marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires single-GPU machine")
         )
     ]
@@ -117,63 +133,6 @@ def test_result_obj_predictions(tmpdir, test_option, do_train, gpus):
     assert prediction_file.exists()
     predictions = torch.load(prediction_file)
     assert len(predictions) == len(dm.mnist_test)
-
-
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_result_obj_predictions_ddp_spawn(tmpdir):
-    seed_everything(4321)
-
-    distributed_backend = 'ddp_spawn'
-    option = 0
-
-    import os
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
-
-    dm = TrialMNISTDataModule(tmpdir)
-
-    prediction_file = Path(tmpdir) / 'predictions.pt'
-
-    model = EvalModelTemplate(learning_rate=0.005)
-    model.test_option = option
-    model.prediction_file = prediction_file.as_posix()
-    model.test_step = model.test_step_result_preds
-    model.test_step_end = None
-    model.test_epoch_end = None
-    model.test_end = None
-
-    prediction_files = [Path(tmpdir) / 'predictions_rank_0.pt', Path(tmpdir) / 'predictions_rank_1.pt']
-    for prediction_file in prediction_files:
-        if prediction_file.exists():
-            prediction_file.unlink()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=3,
-        weights_summary=None,
-        deterministic=True,
-        distributed_backend=distributed_backend,
-        gpus=[0, 1]
-    )
-
-    # Prediction file shouldn't exist yet because we haven't done anything
-    # assert not model.prediction_file.exists()
-
-    result = trainer.fit(model, dm)
-    assert result == 1
-    result = trainer.test(datamodule=dm)
-    result = result[0]
-    assert result['test_loss'] < 0.6
-    assert result['test_acc'] > 0.8
-
-    dm.setup('test')
-
-    # check prediction file now exists and is of expected length
-    size = 0
-    for prediction_file in prediction_files:
-        assert prediction_file.exists()
-        predictions = torch.load(prediction_file)
-        size += len(predictions)
-    assert size == len(dm.mnist_test)
 
 
 def test_result_gather_stack():
@@ -241,6 +200,6 @@ def test_result_gather_mixed_types():
 def test_result_retrieve_last_logged_item():
     result = Result()
     result.log('a', 5., on_step=True, on_epoch=True)
-    assert result['epoch_a'] == 5.
-    assert result['step_a'] == 5.
+    assert result['a_epoch'] == 5.
+    assert result['a_step'] == 5.
     assert result['a'] == 5.
