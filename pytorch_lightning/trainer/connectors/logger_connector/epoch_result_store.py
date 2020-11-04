@@ -127,7 +127,7 @@ class HookResultStore:
         except Exception:
             return add_dataloader_idx
 
-    def get_lastest_from_func_name(self, func_name: str, *args, latest=True, **kwargs) -> Dict:
+    def get_lastest_from_func_name(self, func_name: str, *args, latest: bool = True, **kwargs) -> Dict:
         results = {}
         if latest:
             for dl_idx in range(self.num_dataloaders):
