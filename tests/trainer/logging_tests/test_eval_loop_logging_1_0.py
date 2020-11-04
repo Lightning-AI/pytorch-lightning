@@ -18,7 +18,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning import Trainer
 from pytorch_lightning import callbacks, seed_everything
 from tests.base.deterministic_model import DeterministicModel
-from tests.base import SimpleModule, BoringModel
+from tests.base import SimpleModule, BoringModel, RandomDataset
 import os
 import torch
 import pytest
@@ -283,7 +283,7 @@ def test_eval_logging_auto_reduce(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         weights_summary=None,
-        checkpoint_callback=callbacks.ModelCheckpoint('val_loss')
+        checkpoint_callback=callbacks.ModelCheckpoint(dirpath='val_loss')
     )
     trainer.fit(model)
 
@@ -351,10 +351,71 @@ def test_eval_epoch_only_logging(tmpdir, batches, log_interval, max_epochs):
 def test_monitor_val_epoch_end(tmpdir):
     epoch_min_loss_override = 0
     model = SimpleModule()
-    checkpoint_callback = callbacks.ModelCheckpoint(save_top_k=1, monitor="avg_val_loss")
+    checkpoint_callback = callbacks.ModelCheckpoint(dirpath=tmpdir, save_top_k=1, monitor="avg_val_loss")
     trainer = Trainer(
         max_epochs=epoch_min_loss_override + 2,
         logger=False,
         checkpoint_callback=checkpoint_callback,
     )
     trainer.fit(model)
+
+
+def test_multi_dataloaders_add_suffix_properly(tmpdir):
+    class TestModel(BoringModel):
+
+        def test_step(self, batch, batch_idx, dataloader_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log("test_loss", loss, on_step=True, on_epoch=True)
+            return {"y": loss}
+
+        def test_dataloader(self):
+            return [torch.utils.data.DataLoader(RandomDataset(32, 64)),
+                    torch.utils.data.DataLoader(RandomDataset(32, 64))]
+
+    model = TestModel()
+    model.test_epoch_end = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=0,
+        limit_val_batches=0,
+        limit_test_batches=2,
+        max_epochs=1,
+        log_every_n_steps=1,
+        weights_summary=None,
+    )
+    results = trainer.test(model)
+    assert len(results[0]) == len(results[1])
+    assert "test_loss_epoch/dataloader_idx_0" in results[0]
+    assert "test_loss_epoch/dataloader_idx_1" in results[1]
+
+
+def test_single_dataloader_no_suffix_added(tmpdir):
+    class TestModel(BoringModel):
+
+        def test_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log("test_loss", loss, on_step=True, on_epoch=True)
+            return {"y": loss}
+
+        def test_dataloader(self):
+            return torch.utils.data.DataLoader(RandomDataset(32, 64))
+
+    model = TestModel()
+    model.test_epoch_end = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=0,
+        limit_val_batches=0,
+        limit_test_batches=5,
+        max_epochs=1,
+        log_every_n_steps=1,
+        weights_summary=None,
+    )
+    results = trainer.test(model)
+    assert len(results) == 1
+    # error : It is wrong there. `y` should equal test_loss_epoch
+    assert results[0]['test_loss'] == results[0]['y']

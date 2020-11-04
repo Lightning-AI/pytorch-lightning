@@ -14,6 +14,8 @@
 
 FROM google/cloud-sdk:slim
 
+MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
+
 # CALL: docker image build -t pytorch-lightning:XLA-extras-py3.6 -f dockers/base-xla/Dockerfile . --build-arg PYTHON_VERSION=3.6
 # This Dockerfile installs pytorch/xla 3.7 wheels. There are also 3.6 wheels available; see below.
 ARG PYTHON_VERSION=3.7
@@ -21,6 +23,7 @@ ARG XLA_VERSION=1.6
 
 SHELL ["/bin/bash", "-c"]
 
+ARG CONDA_VERSION=4.7.12
 # for skipping configurations
 ENV DEBIAN_FRONTEND=noninteractive
 ENV CONDA_ENV=lightning
@@ -38,14 +41,12 @@ RUN apt-get update && \
         ca-certificates \
         libomp5 \
     && \
-
 # Install conda and python.
 # NOTE new Conda does not forward the exit status... https://github.com/conda/conda/issues/8385
-    curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-4.7.12-Linux-x86_64.sh  && \
+    curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-${CONDA_VERSION}-Linux-x86_64.sh  && \
     chmod +x ~/miniconda.sh && \
     ~/miniconda.sh -b && \
     rm ~/miniconda.sh && \
-
 # Cleaning
     apt-get autoremove -y && \
     apt-get clean && \
@@ -74,7 +75,6 @@ ENV CONDA_DEFAULT_ENV=${CONDA_ENV}
 # Disable cache
 RUN pip --version && \
     pip config set global.cache-dir false && \
-
     conda remove pytorch torchvision && \
 # Install Pytorch XLA
     py_version=${PYTHON_VERSION/./} && \
@@ -110,4 +110,4 @@ RUN \
     conda info && \
     pip list && \
     python -c "import sys; assert sys.version[:3] == '$PYTHON_VERSION', sys.version" && \
-    python -c "import torch; ver = '$XLA_VERSION' ; ver = dict(nightly='1.7').get(ver, ver) ; assert torch.__version__[:3] == ver, torch.__version__"
+    python -c "import torch; ver = '$XLA_VERSION' ; ver = dict(nightly='1.8').get(ver, ver) ; assert torch.__version__[:3] == ver, torch.__version__"

@@ -15,9 +15,12 @@
 import torch
 
 
-class NativeAMP:
+class NativeAMPPlugin:
 
-    def __init__(self, trainer):
+    def __init__(self, trainer=None):
+        """
+        Integrates native amp into Lightning's internals.
+        """
         self.trainer = trainer
 
     def connect(self, model, optimizers):
@@ -26,8 +29,10 @@ class NativeAMP:
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         closure_loss = self.trainer.scaler.scale(closure_loss)
 
+        automatic_optimization = self.trainer.train_loop.automatic_optimization
+
         # do backward pass
-        if self.trainer.train_loop.automatic_optimization:
+        if automatic_optimization:
             model = self.trainer.get_model()
             model.backward(closure_loss, optimizer, opt_idx)
         else:
@@ -35,6 +40,11 @@ class NativeAMP:
 
         # once backward has been applied, release graph
         closure_loss = closure_loss.detach()
+
+        # unscale gradient to allow analyze within `on_after_backward`
+        if not self.trainer.train_loop.should_accumulate() and automatic_optimization:
+            self.trainer.scaler.unscale_(optimizer)
+
         return closure_loss
 
     def training_step(self, fx, args):

@@ -65,8 +65,8 @@ You can customize the checkpointing behavior to monitor any quantity of your tra
     # 3. Init ModelCheckpoint callback, monitoring 'val_loss'
     checkpoint_callback = ModelCheckpoint(monitor='val_loss')
 
-    # 4. Pass your callback to checkpoint_callback trainer flag
-    trainer = Trainer(checkpoint_callback=checkpoint_callback)
+    # 4. Add your callback to the callbacks list
+    trainer = Trainer(callbacks=[checkpoint_callback])
 
 You can also control more advanced options, like `save_top_k`, to save the best k models and the mode of the monitored quantity (min/max/auto, where the mode is automatically inferred from the name of the monitored quantity), `save_weights_only` or `period` to set the interval of epochs between checkpoints, to avoid slowdowns.
 
@@ -84,18 +84,19 @@ You can also control more advanced options, like `save_top_k`, to save the best 
     # saves a file like: my/path/sample-mnist-epoch=02-val_loss=0.32.ckpt
     checkpoint_callback = ModelCheckpoint(
         monitor='val_loss',
-        filepath='my/path/sample-mnist-{epoch:02d}-{val_loss:.2f}' ,
+        dirpath='my/path/,
+        filename='sample-mnist-{epoch:02d}-{val_loss:.2f}',
         save_top_k=3,
         mode='min')
 
-    trainer = Trainer(checkpoint_callback=checkpoint_callback)
+    trainer = Trainer(callbacks=[checkpoint_callback])
     
 You can retrieve the checkpoint after training by calling
 
 .. code-block:: python
 
-        checkpoint_callback = ModelCheckpoint(filepath='my/path/')
-        trainer = Trainer(checkpoint_callback=checkpoint_callback)
+        checkpoint_callback = ModelCheckpoint(dirpath='my/path/')
+        trainer = Trainer(callbacks=[checkpoint_callback])
         trainer.fit(model)
         checkpoint_callback.best_model_path
 
@@ -110,7 +111,7 @@ You can disable checkpointing by passing
 
 
 The Lightning checkpoint also saves the arguments passed into the LightningModule init
-under the `module_arguments` key in the checkpoint.
+under the `hyper_parameters` key in the checkpoint.
 
 .. code-block:: python
 
@@ -118,10 +119,11 @@ under the `module_arguments` key in the checkpoint.
 
        def __init__(self, learning_rate, *args, **kwargs):
             super().__init__()
+            self.save_hyperparameters()
 
     # all init args were saved to the checkpoint
     checkpoint = torch.load(CKPT_PATH)
-    print(checkpoint['module_arguments'])
+    print(checkpoint['hyper_parameters'])
     # {'learning_rate': the_value}
 
 Manual saving
@@ -139,7 +141,7 @@ You can manually save checkpoints and restore your model from the checkpointed s
 Checkpoint loading
 ******************
 
-To load a model along with its weights, biases and `module_arguments` use the following method:
+To load a model along with its weights, biases and hyperparameters use the following method:
 
 .. code-block:: python
 

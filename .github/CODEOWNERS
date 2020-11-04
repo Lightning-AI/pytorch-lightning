@@ -5,4 +5,11 @@
 # the repo. Unless a later match takes precedence,
 # @global-owner1 and @global-owner2 will be requested for
 # review when someone opens a pull request.
-*       @williamfalcon @borda @teddykoker @awaelchli @nateraw @justusschock @tchaton @SeanNaren @ananyahjha93
+* @williamfalcon @borda @teddykoker @awaelchli @nateraw @justusschock @tchaton @SeanNaren @ananyahjha93
+
+# Metrics
+/pytorch_lightning/metrics/*  @teddykoker @ananyahjha93 @justusschock
+/tests/metrics/*              @teddykoker @ananyahjha93 @justusschock
+/docs/source/metrics.rst      @teddykoker @ananyahjha93 @justusschock
+
+
