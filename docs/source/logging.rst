@@ -293,6 +293,17 @@ Supported Loggers
 
 The following are loggers we support
 
+.. note::
+    The following loggers will normally plot the following charts with the values logged with ``self.log()`` -
+
+    - **global_step VS epoch**
+    - **global_step VS train_loss_step** (suffix _step will be appended for step level values if ``on_step`` and ``on_epoch`` is True in ``self.log('train_loss', ...)``)
+    - **global_step VS train_loss_epoch** (suffix _epoch will be appended if epoch level values ``on_step`` and ``on_epoch`` is True in ``self.log('train_loss', ...)``)
+    - **global_step VS val_loss** (when ``on_step`` is True and ``on_epoch`` is False, no suffix appended)
+    - **global_step VS test_loss** (when ``on_step`` is True and ``on_epoch`` is False, no suffix appended)
+
+    Depending on the functionalities of the loggers, the other charts might be plotted too.
+
 .. currentmodule:: pytorch_lightning.loggers
 
 .. autosummary::
