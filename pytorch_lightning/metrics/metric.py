@@ -179,7 +179,7 @@ class Metric(nn.Module, ABC):
 
             return self._forward_cache
 
-    def _sync_dist(self, dist_sync_fn):
+    def _sync_dist(self, dist_sync_fn=gather_all_tensors):
         input_dict = {attr: getattr(self, attr) for attr in self._reductions.keys()}
         output_dict = apply_to_collection(
             input_dict,
