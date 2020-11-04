@@ -23,7 +23,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 def test_cli(args):
     """
-    This test verify we can call function from using func_name
+    This test verify we can call function using test_cli name
     """
 
     return 1
