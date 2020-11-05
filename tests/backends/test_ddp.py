@@ -19,6 +19,7 @@ from tests.utilities.dist import call_training_script
 
 os.environ["PL_ENABLE_DDP_COVERAGE"] = '1'
 
+
 @pytest.mark.parametrize('cli_args', [
     pytest.param('--max_epochs 1 --gpus 2 --distributed_backend ddp'),
 ])
