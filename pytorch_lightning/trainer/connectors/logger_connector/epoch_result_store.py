@@ -91,6 +91,7 @@ class HookResultStore:
         self._internals_reduced = {}
         self._internal_type = None
         self.has_reduced = False
+        self._ref_lastest_result = None
 
     def get_reduced_metrics(self):
         return self._internals_reduced
@@ -104,48 +105,11 @@ class HookResultStore:
         _inter = self._internals_reduced if self.has_reduced else self._internals
         return len(_inter)
 
-    def get_latest_from_dict(self, dl_idx: str) -> Result:
-        num_opt_idx = len(self._internals[dl_idx]) - 1
-        assert num_opt_idx >= 0
-        num_opt_idx = str(num_opt_idx)
-        num_batch_idx = len(self._internals[dl_idx][num_opt_idx]) - 1
-        batch_indexes = [*self._internals[dl_idx][num_opt_idx].keys()]
-        # sort them by increasing order
-        batch_indexes.sort(key=float)
-        assert num_batch_idx >= 0
-        return self._internals[dl_idx][num_opt_idx][batch_indexes[-1]][-1]
-
-    def check_dataloader_idx(self, result: Result) -> bool:
-        add_dataloader_idx = False
-        try:
-            if len(result.keys()) > 1:
-                random_key = [*result.keys()][-1]
-                add_dataloader_idx = result["meta"][random_key]["dataloader_idx"] is not None
-                return add_dataloader_idx
-            return add_dataloader_idx
-        except Exception:
-            return add_dataloader_idx
-
-    def get_lastest_from_func_name(self, func_name: str, *args, latest: bool = True, **kwargs) -> Dict:
-        results = {}
-        if latest:
-            for dl_idx in range(self.num_dataloaders):
-                dl_idx = str(dl_idx)
-                if self._internal_type == ResultStoreType.OUTSIDE_BATCH_TRAIN_LOOP:
-                    latest_result = self._internals[dl_idx][-1]
-                else:
-                    latest_result = self.get_latest_from_dict(dl_idx)
-                add_dataloader_idx = self.check_dataloader_idx(latest_result)
-                func = getattr(latest_result, func_name)
-                results.update(func(*args, add_dataloader_idx=add_dataloader_idx, **kwargs))
-            return results
-        raise NotImplementedError
-
     def get_batch_pbar_metrics(self, latest=True, *args, **kwargs):
-        return self.get_lastest_from_func_name("get_batch_pbar_metrics", *args, latest=latest, **kwargs)
+        return self._ref_lastest_result.get_batch_pbar_metrics(*args, **kwargs)
 
     def get_batch_log_metrics(self, latest=True, *args, **kwargs):
-        return self.get_lastest_from_func_name("get_batch_log_metrics", *args, latest=latest, **kwargs)
+        return self._ref_lastest_result.get_batch_pbar_metrics(*args, **kwargs)
 
     def run_epoch_func(self, results, opt_metric, func_name, *args, **kwargs) -> None:
         if isinstance(opt_metric, Result):
@@ -211,6 +175,7 @@ class HookResultStore:
             batch_idx = str(extra_info["batch_idx"])
 
             self._append_to_structure(self._internals[primary_key], opt_idx, batch_idx, result)
+            self._ref_lastest_result = result
 
         # [dataloader_idx] is a list
         else:
@@ -218,6 +183,7 @@ class HookResultStore:
             if primary_key not in self._internals:
                 self._internals[primary_key] = []
             self._internals[primary_key].append(result)
+            self._ref_lastest_result = result
 
     def auto_reduce_results_on_epoch_end(self) -> None:
         """
