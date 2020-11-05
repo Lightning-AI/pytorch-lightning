@@ -20,8 +20,6 @@ from typing import IO, Union
 import fsspec
 import torch
 
-from pytorch_lightning.utilities import move_data_to_device
-
 
 def load(path_or_url: Union[str, IO, Path], map_location=None):
     if not isinstance(path_or_url, (str, Path)):

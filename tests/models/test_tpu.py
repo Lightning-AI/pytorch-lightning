@@ -15,7 +15,6 @@ import os
 from unittest import mock
 
 import pytest
-import torch
 from torch.utils.data import DataLoader
 
 import tests.base.develop_pipelines as tpipes
