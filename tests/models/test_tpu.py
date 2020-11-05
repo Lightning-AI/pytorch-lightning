@@ -295,35 +295,3 @@ def test_broadcast_on_tpu():
         assert result == ("ver_0.5", "logger_name", 0)
 
     xmp.spawn(test_broadcast, nprocs=8, start_method='fork')
-
-
-@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-@pl_multi_process_test
-def test_resume_training_on_cpu():
-    """ Checks if training can be resumed from a saved checkpoint on CPU"""
-
-    # Train a model on TPU
-    model = EvalModelTemplate()
-    trainer = Trainer(
-        checkpoint_callback=True,
-        max_epochs=10,
-        tpu_cores=8,
-    )
-    trainer.fit(model)
-
-    model_path = trainer.checkpoint_callback.best_model_path
-
-    # Verify saved Tensors are on CPU
-    ckpt = torch.load(model_path)
-    weight_tensor = list(ckpt["state_dict"].values())[0]
-    assert weight_tensor.device == torch.device("cpu")
-
-    # Verify that training is resumed on CPU
-    trainer = Trainer(
-        resume_from_checkpoint=model_path,
-        checkpoint_callback=True,
-        max_epochs=20,
-    )
-    result = trainer.fit(model)
-
-    assert result == 1
