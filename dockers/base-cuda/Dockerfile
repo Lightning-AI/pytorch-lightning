@@ -28,6 +28,7 @@ FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel-ubuntu18.04
 
 ARG PYTHON_VERSION=3.7
 ARG PYTORCH_VERSION=1.6
+ARG NVIDIA_DALI_VERSION=100
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
@@ -93,6 +94,7 @@ RUN \
 
     # Install all requirements
     pip install -r requirements/devel.txt --upgrade-strategy only-if-needed --use-feature=2020-resolver && \
+    pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda${NVIDIA_DALI_VERSION} && \
     rm -rf requirements*
 
 RUN \

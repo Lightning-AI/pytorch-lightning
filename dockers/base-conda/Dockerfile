@@ -30,6 +30,7 @@ ARG PYTHON_VERSION=3.7
 ARG PYTORCH_VERSION=1.6
 ARG PYTORCH_CHANNEL=pytorch
 ARG CONDA_VERSION=4.7.12
+ARG NVIDIA_DALI_VERSION=100
 
 SHELL ["/bin/bash", "-c"]
 
@@ -104,6 +105,7 @@ RUN \
     # Install remaining requirements
     pip install -r requirements-extra.txt --upgrade-strategy only-if-needed && \
     pip install -r requirements-test.txt --upgrade-strategy only-if-needed && \
+    pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda${NVIDIA_DALI_VERSION} && \
     rm requirements*
 
 RUN \
