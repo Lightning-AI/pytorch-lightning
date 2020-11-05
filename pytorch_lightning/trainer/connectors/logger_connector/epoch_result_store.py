@@ -94,10 +94,10 @@ class HookResultStore:
         self._ref_lastest_result = None
 
         self._cached_ref_pbar_lastest_result = None
-        self._cache_batch_pbar_metrics = None
+        #self._cache_batch_pbar_metrics = None
 
         self._cached_ref_log_lastest_result = None
-        self._cache_batch_log_metrics = None
+        #self._cache_batch_log_metrics = None
 
     def get_reduced_metrics(self):
         return self._internals_reduced
@@ -114,20 +114,14 @@ class HookResultStore:
     def get_batch_pbar_metrics(self, latest=True, *args, **kwargs):
         if self._cached_ref_pbar_lastest_result != self._ref_lastest_result:
             self._cached_ref_pbar_lastest_result = self._ref_lastest_result
-            result = self._ref_lastest_result.get_batch_pbar_metrics(*args, **kwargs)
-            self._cache_batch_pbar_metrics = result
-            return result
-        else:
-            return self._cache_batch_pbar_metrics
+            return self._ref_lastest_result.get_batch_pbar_metrics(*args, **kwargs)
+        return {}
 
     def get_batch_log_metrics(self, latest=True, *args, **kwargs):
         if self._cached_ref_log_lastest_result != self._ref_lastest_result:
             self._cached_ref_log_lastest_result = self._ref_lastest_result
-            result = self._ref_lastest_result.get_batch_pbar_metrics(*args, **kwargs)
-            self._cache_batch_log_metrics = result
-            return result
-        else:
-            return self._cache_batch_log_metrics
+            return self._ref_lastest_result.get_batch_pbar_metrics(*args, **kwargs)
+        return {}
 
     def run_epoch_func(self, results, opt_metric, func_name, *args, **kwargs) -> None:
         if isinstance(opt_metric, Result):
