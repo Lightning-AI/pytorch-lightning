@@ -91,16 +91,7 @@ class HookResultStore:
         self._internals_reduced = {}
         self._internal_type = None
         self.has_reduced = False
-
         self._latest_ref = {}
-        self._cached_latest_pbar_ref = {}
-        self._cached_latest_pbar_metrics = {}
-
-        self._cached_latest_log_ref = {}
-        self._cached_latest_log_metrics = {}
-
-    def get_reduced_metrics(self):
-        return self._internals_reduced
 
     @property
     def has_several_dataloaders(self) -> bool:
@@ -111,27 +102,10 @@ class HookResultStore:
         _inter = self._internals_reduced if self.has_reduced else self._internals
         return len(_inter)
 
-    def get_latest_from_dict(self, dl_idx: str) -> Result:
-        num_opt_idx = len(self._internals[dl_idx]) - 1
-        assert num_opt_idx >= 0
-        num_opt_idx = str(num_opt_idx)
-        num_batch_idx = len(self._internals[dl_idx][num_opt_idx]) - 1
-        batch_indexes = [*self._internals[dl_idx][num_opt_idx].keys()]
-        # sort them by increasing order
-        batch_indexes.sort(key=float)
-        assert num_batch_idx >= 0
-        return self._internals[dl_idx][num_opt_idx][batch_indexes[-1]][-1]
-
     def check_dataloader_idx(self, result: Result) -> bool:
-        add_dataloader_idx = False
-        try:
-            if len(result.keys()) > 1:
-                random_key = [*result.keys()][-1]
-                add_dataloader_idx = result["meta"][random_key]["dataloader_idx"] is not None
-                return add_dataloader_idx
-            return add_dataloader_idx
-        except Exception:
-            return add_dataloader_idx
+        random_key = [*result.keys()][-1]
+        add_dataloader_idx = result["meta"][random_key]["dataloader_idx"] is not None
+        return add_dataloader_idx
 
     def get_lastest_from_func_name(self, latest_result, func_name: str, *args, **kwargs) -> Dict:
         results = {}
@@ -140,7 +114,7 @@ class HookResultStore:
         results.update(func(*args, add_dataloader_idx=add_dataloader_idx, **kwargs))
         return results
 
-    def run_lastest_from_func_name(self, func_name, cached_ref, cache_result, *args, **kwargs) -> Dict:
+    def run_lastest_from_func_name(self, func_name, *args, **kwargs) -> Dict:
         """
         This function used cache_ref and cache_result to optimize loading metrics
 
@@ -153,33 +127,17 @@ class HookResultStore:
         results = []
         for dl_idx in range(self.num_dataloaders):
             dl_idx = str(dl_idx)
-
             latest_result = self._latest_ref[dl_idx]
-
-            is_dl_idx_in = dl_idx in cached_ref
-            is_same_ref = False
-            if is_dl_idx_in:
-                is_same_ref = cached_ref[dl_idx] == self._latest_ref
-
-            if not is_dl_idx_in or not is_same_ref:
-                cached_ref[dl_idx] = latest_result
-                result = self.get_lastest_from_func_name(latest_result, func_name, *args, **kwargs)
-                cache_result[dl_idx] = result
-                results.append(result)
-            else:
-                results.append(cache_result[dl_idx])
+            result = self.get_lastest_from_func_name(latest_result, func_name, *args, **kwargs)
+            results.append(result)
         return dict(ChainMap(*results))
 
     def get_batch_pbar_metrics(self, *args, **kwargs):
         return self.run_lastest_from_func_name("get_batch_pbar_metrics",
-                                               self._cached_latest_pbar_ref,
-                                               self._cached_latest_pbar_metrics,
                                                *args, **kwargs)
 
     def get_batch_log_metrics(self, *args, **kwargs):
         return self.run_lastest_from_func_name("get_batch_log_metrics",
-                                               self._cached_latest_log_ref,
-                                               self._cached_latest_log_metrics,
                                                *args, **kwargs)
 
     def run_epoch_func(self, results, opt_metric, func_name, *args, **kwargs) -> None:
@@ -552,9 +510,6 @@ class EpochResultStore:
     def get_forked_metrics(self) -> Dict:
         return self.run_epoch_by_func_name("get_forked_metrics")
 
-    def get_reduced_metrics(self) -> Dict:
-        return self.run_epoch_by_func_name("get_reduced_metrics")
-
     def reset(self):
         self._internals = {}
         self._dataloader_idx: Union[int, None] = None
@@ -623,8 +578,6 @@ class EpochResultStore:
         split_idx = int(split_idx) if split_idx is not None else None
 
         internal_type = hook_result._internal_type
-        if internal_type is None:
-            return Result()
 
         if reduced:
             result = hook_result._internals_reduced
