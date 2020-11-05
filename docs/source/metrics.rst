@@ -78,7 +78,6 @@ If ``on_epoch`` is True, the logger automatically logs the end of epoch metric v
         self.valid_acc(logits, y)
         self.log('valid_acc', self.valid_acc, on_step=True, on_epoch=True)
 
-
 This metrics API is independent of PyTorch Lightning. Metrics can directly be used in PyTorch as shown in the example:
 
 .. code-block:: python
@@ -104,6 +103,13 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
 
     # total accuracy over all validation batches
     total_valid_accuracy = valid_accuracy.compute()
+
+.. note::
+
+    Metrics contain internal states that keep track of the data seen so far.
+    Do not mix metric states across training, validation and testing.
+    It is highly recommended to re-initialize the metric per mode as
+    shown in the examples above.
 
 *********************
 Implementing a Metric
@@ -144,6 +150,19 @@ Example implementation:
         def compute(self):
             return self.correct.float() / self.total
 
+Metrics support backpropagation, if all computations involved in the metric calculation
+are differentiable. However, note that the cached state is detached from the computational
+graph and cannot be backpropagated. Not doing this would mean storing the computational
+graph for each update call, which can lead to out-of-memory errors.
+In practise this means that:
+
+.. code-block:: python
+
+    metric = MyMetric()
+    val = metric(pred, target) # this value can be backpropagated
+    val = metric.compute() # this value cannot be backpropagated
+
+
 **********
 Metric API
 **********
@@ -180,6 +199,12 @@ Fbeta
 ~~~~~
 
 .. autoclass:: pytorch_lightning.metrics.classification.Fbeta
+    :noindex:
+
+ConfusionMatrix
+~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.ConfusionMatrix
     :noindex:
 
 Regression Metrics
@@ -259,6 +284,13 @@ auroc [func]
     :noindex:
 
 
+multiclass_auroc [func]
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.multiclass_auroc
+    :noindex:
+
+
 average_precision [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -269,7 +301,7 @@ average_precision [func]
 confusion_matrix [func]
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.confusion_matrix
+.. autofunction:: pytorch_lightning.metrics.functional.confusion_matrix
     :noindex:
 
 
@@ -434,4 +466,3 @@ embedding_similarity [func]
 
 .. autofunction:: pytorch_lightning.metrics.functional.self_supervised.embedding_similarity
     :noindex:
-

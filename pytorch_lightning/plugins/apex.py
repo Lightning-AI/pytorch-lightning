@@ -27,7 +27,7 @@ except ImportError:
 
 class ApexPlugin:
 
-    def __init__(self, trainer):
+    def __init__(self, trainer=None):
         self.trainer = trainer
 
     def connect(self, model, optimizers):

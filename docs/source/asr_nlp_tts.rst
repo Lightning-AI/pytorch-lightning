@@ -1,7 +1,8 @@
-#########
-ASR & TTS
-#########
-These are amazing ecosystems to help with Automatic Speech Recognition (ASR) and Text to speech (TTS).
+#################
+Conversational AI
+#################
+
+These are amazing ecosystems to help with Automatic Speech Recognition (ASR), Natural Language Processing (NLP), and Text to speech (TTS).
 
 ----
 
@@ -91,7 +92,7 @@ For Docker users, the NeMo container is available on
 
 .. code-block:: bash
 
-    docker run --runtime=nvidia -it --rm -v --shm-size=8g -p 8888:8888 -p 6006:6006 --ulimit memlock=-1 --ulimit stack=67108864 nvcr.io/nvidia/nemo:1.0.0b1
+    docker run --runtime=nvidia -it --rm -v --shm-size=8g -p 8888:8888 -p 6006:6006 --ulimit memlock=-1 --ulimit stack=67108864 nvcr.io/nvidia/nemo:v1.0.0b1
 
 Experiment Manager
 ------------------
@@ -134,13 +135,13 @@ that can be restored for immediate use.
 
 Some typical ASR tasks are included with NeMo:
 
-- `Audio transcription <https://github.com/NVIDIA/NeMo/blob/main/tutorials/asr/01_ASR_with_NeMo.ipynb>`_
-- `Byte Pair/Word Piece Training <https://github.com/NVIDIA/NeMo/blob/main/examples/asr/speech_to_text_bpe.py>`_
-- `Speech Commands <https://github.com/NVIDIA/NeMo/blob/main/tutorials/asr/03_Speech_Commands.ipynb>`_
-- `Voice Activity Detection <https://github.com/NVIDIA/NeMo/blob/main/tutorials/asr/06_Voice_Activiy_Detection.ipynb>`_
-- `Speaker Recognition <https://github.com/NVIDIA/NeMo/blob/main/examples/speaker_recognition/speaker_reco.py>`_
+- `Audio transcription <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/asr/01_ASR_with_NeMo.ipynb>`_
+- `Byte Pair/Word Piece Training <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/examples/asr/speech_to_text_bpe.py>`_
+- `Speech Commands <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/asr/03_Speech_Commands.ipynb>`_
+- `Voice Activity Detection <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/asr/06_Voice_Activiy_Detection.ipynb>`_
+- `Speaker Recognition <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/examples/speaker_recognition/speaker_reco.py>`_
 
-See this `asr notebook <https://github.com/NVIDIA/NeMo/blob/main/tutorials/asr/01_ASR_with_NeMo.ipynb>`_ 
+See this `asr notebook <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/asr/01_ASR_with_NeMo.ipynb>`_ 
 for a full tutorial on doing ASR with NeMo, PyTorch Lightning, and Hydra.
 
 Specify ASR Model Configurations with YAML File
@@ -148,7 +149,7 @@ Specify ASR Model Configurations with YAML File
 
 NeMo Models and the PyTorch Lightning Trainer can be fully configured from .yaml files using Hydra.
 
-See this `asr config <https://github.com/NVIDIA/NeMo/blob/main/examples/asr/conf/config.yaml>`_ 
+See this `asr config <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/examples/asr/conf/config.yaml>`_ 
 for the entire speech to text .yaml file.
 
 .. code-block:: yaml
@@ -165,11 +166,11 @@ for the entire speech to text .yaml file.
     model:
         ...
         encoder:
-            _target_: nemo.collections.asr.modules.ConvASREncoder
+            cls: nemo.collections.asr.modules.ConvASREncoder
             params:
-            feat_in: *n_mels
-            activation: relu
-            conv_mask: true
+                feat_in: *n_mels
+                activation: relu
+                conv_mask: true
 
             jasper:
                 - filters: 128
@@ -185,7 +186,7 @@ for the entire speech to text .yaml file.
 Developing ASR Model From Scratch
 ---------------------------------
 
-`speech_to_text.py <https://github.com/NVIDIA/NeMo/blob/main/examples/asr/speech_to_text.py>`_
+`speech_to_text.py <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/examples/asr/speech_to_text.py>`_
 
 .. code-block:: python
 
@@ -318,13 +319,13 @@ NeMo can also be used for pretraining BERT-based language models from HuggingFac
 Any of the HuggingFace encoders or Megatron-LM encoders can easily be used for the NLP tasks 
 that are included with NeMo:
 
-- `Glue Benchmark (All tasks) <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/GLUE_Benchmark.ipynb>`_
-- `Intent Slot Classification <https://github.com/NVIDIA/NeMo/tree/main/examples/nlp/intent_slot_classification>`_
-- `Language Modeling (BERT Pretraining) <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/01_Pretrained_Language_Models_for_Downstream_Tasks.ipynb>`_
-- `Question Answering <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/Question_Answering_Squad.ipynb>`_
-- `Text Classification <https://github.com/NVIDIA/NeMo/tree/main/examples/nlp/text_classification>`_ (including Sentiment Analysis)
-- `Token Classifcation <https://github.com/NVIDIA/NeMo/tree/main/examples/nlp/token_classification>`_ (including Named Entity Recognition)
-- `Punctuation and Capitalization <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/Punctuation_and_Capitalization.ipynb>`_
+- `Glue Benchmark (All tasks) <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/nlp/GLUE_Benchmark.ipynb>`_
+- `Intent Slot Classification <https://github.com/NVIDIA/NeMo/tree/v1.0.0b1/examples/nlp/intent_slot_classification>`_
+- `Language Modeling (BERT Pretraining) <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/nlp/01_Pretrained_Language_Models_for_Downstream_Tasks.ipynb>`_
+- `Question Answering <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/nlp/Question_Answering_Squad.ipynb>`_
+- `Text Classification <https://github.com/NVIDIA/NeMo/tree/v1.0.0b1/examples/nlp/text_classification>`_ (including Sentiment Analysis)
+- `Token Classifcation <https://github.com/NVIDIA/NeMo/tree/v1.0.0b1/examples/nlp/token_classification>`_ (including Named Entity Recognition)
+- `Punctuation and Capitalization <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/nlp/Punctuation_and_Capitalization.ipynb>`_
 
 Named Entity Recognition (NER)
 ------------------------------
@@ -332,15 +333,15 @@ Named Entity Recognition (NER)
 NER (or more generally token classifcation) is the NLP task of detecting and classifying key information (entities) in text.
 This task is very popular in Healthcare and Finance. In finance, for example, it can be important to identify
 geographical, geopolitical, organizational, persons, events, and natural phenomenon entities.
-See this `NER notebook <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/Token_Classification_Named_Entity_Recognition.ipynb>`_
+See this `NER notebook <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/nlp/Token_Classification_Named_Entity_Recognition.ipynb>`_
 for a full tutorial on doing NER with NeMo, PyTorch Lightning, and Hydra.
 
 Specify NER Model Configurations with YAML File
 -----------------------------------------------
 
-..note NeMo Models and the PyTorch Lightning Trainer can be fully configured from .yaml files using Hydra. 
+.. note:: NeMo Models and the PyTorch Lightning Trainer can be fully configured from .yaml files using Hydra. 
 
-See this `token classification config <https://github.com/NVIDIA/NeMo/blob/main/examples/nlp/token_classification/conf/token_classification_config.yaml>`_
+See this `token classification config <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/examples/nlp/token_classification/conf/token_classification_config.yaml>`_
 for the entire NER (token classification) .yaml file.
 
 .. code-block:: yaml
@@ -379,7 +380,7 @@ for the entire NER (token classification) .yaml file.
 Developing NER Model From Scratch
 ---------------------------------
 
-`token_classification.py <https://github.com/NVIDIA/NeMo/blob/main/examples/nlp/token_classification/token_classification.py>`_
+`token_classification.py <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/examples/nlp/token_classification/token_classification.py>`_
 
 .. code-block:: python
 
@@ -432,7 +433,7 @@ Hydra makes every aspect of the NeMo model, including the PyTorch Lightning Trai
 -----------
 
 Tokenizers
-==========
+----------
 
 Tokenization is the process of converting natural langauge text into integer arrays 
 which can be used for machine learning.
@@ -450,7 +451,7 @@ To see the list of supported tokenizers:
 
     nemo_nlp.modules.get_tokenizer_list()
 
-See this `tokenizer notebook <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/02_NLP_Tokenizers.ipynb>`_ 
+See this `tokenizer notebook <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/nlp/02_NLP_Tokenizers.ipynb>`_ 
 for a full tutorial on using tokenizers in NeMo.
 
 Language Models
@@ -460,7 +461,7 @@ Language models are used to extract information from (tokenized) text.
 Much of the state-of-the-art in natural language processing is achieved
 by fine-tuning pretrained language models on the downstream task. 
 
-With NeMo, you can either `pretrain <https://github.com/NVIDIA/NeMo/blob/main/examples/nlp/language_modeling/bert_pretraining.py>`_ 
+With NeMo, you can either `pretrain <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/examples/nlp/language_modeling/bert_pretraining.py>`_ 
 a BERT model on your data or use a pretrained lanugage model from `HuggingFace Transformers <https://github.com/huggingface/transformers>`_  
 or `NVIDIA Megatron-LM <https://github.com/NVIDIA/Megatron-LM>`_.
 
@@ -476,7 +477,7 @@ Easily switch between any language model in the above list by using `.get_lm_mod
 
     nemo_nlp.modules.get_lm_model(pretrained_model_name='distilbert-base-uncased')
 
-See this `language model notebook <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/01_Pretrained_Language_Models_for_Downstream_Tasks.ipynb>`_
+See this `language model notebook <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/nlp/01_Pretrained_Language_Models_for_Downstream_Tasks.ipynb>`_
 for a full tutorial on using pretrained language models in NeMo.
 
 Using a Pre-trained NER Model
@@ -573,22 +574,22 @@ Second, a model is used to generate audio from a mel spectrogram.
 
 Mel Spectrogram Generators:
 
-- `Tacotron 2 <https://github.com/NVIDIA/NeMo/blob/main/examples/tts/tacotron2.py>`_
-- `Glow-TTS <https://github.com/NVIDIA/NeMo/blob/main/examples/tts/glow_tts.py>`_
+- `Tacotron 2 <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/examples/tts/tacotron2.py>`_
+- `Glow-TTS <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/examples/tts/glow_tts.py>`_
 
 Audio Generators:
 
 - Griffin-Lim
-- `WaveGlow <https://github.com/NVIDIA/NeMo/blob/main/examples/tts/waveglow.py>`_
-- `SqueezeWave <https://github.com/NVIDIA/NeMo/blob/main/examples/tts/squeezewave.py>`_
+- `WaveGlow <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/examples/tts/waveglow.py>`_
+- `SqueezeWave <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/examples/tts/squeezewave.py>`_
 
 
 Specify TTS Model Configurations with YAML File
 -----------------------------------------------
 
-..note NeMo Models and PyTorch Lightning Trainer can be fully configured from .yaml files using Hydra.
+.. note:: NeMo Models and PyTorch Lightning Trainer can be fully configured from .yaml files using Hydra.
 
-`tts/conf/glow_tts.yaml <https://github.com/NVIDIA/NeMo/blob/main/examples/tts/conf/glow_tts.yaml>`_
+`tts/conf/glow_tts.yaml <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/examples/tts/conf/glow_tts.yaml>`_
 
 .. code-block:: yaml
 
@@ -604,21 +605,21 @@ Specify TTS Model Configurations with YAML File
     model:
         ...
         encoder:
-            _target_: nemo.collections.tts.modules.glow_tts.TextEncoder
-            params:
-            n_vocab: 148
-            out_channels: *n_mels
-            hidden_channels: 192
-            filter_channels: 768
-            filter_channels_dp: 256
-            ...
+            cls: nemo.collections.tts.modules.glow_tts.TextEncoder
+                params:
+                n_vocab: 148
+                out_channels: *n_mels
+                hidden_channels: 192
+                filter_channels: 768
+                filter_channels_dp: 256
+                ...
     # all other configuration, data, optimizer, parser, preprocessor, etc
     ...
 
 Developing TTS Model From Scratch
 ---------------------------------
 
-`tts/glow_tts.py <https://github.com/NVIDIA/NeMo/blob/main/examples/tts/glow_tts.py>`_
+`tts/glow_tts.py <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/examples/tts/glow_tts.py>`_
 
 .. code-block:: python
 
@@ -641,7 +642,7 @@ Hydra makes every aspect of the NeMo model, including the PyTorch Lightning Trai
         validation_datasets=/path/to/val/data \
         model.train_ds.batch_size = 64 \
 
-..note Training NeMo TTTs models from scratch take days/weeks so it is highly recommended to use multiple GPUs and multiple nodes with the PyTorch Lightning Trainer.
+.. note:: Training NeMo TTS models from scratch can take days or weeks so it is highly recommended to use multiple GPUs and multiple nodes with the PyTorch Lightning Trainer.
 
 Using State-Of-The-Art Pre-trained TTS Model
 --------------------------------------------
@@ -649,7 +650,7 @@ Using State-Of-The-Art Pre-trained TTS Model
 Generate speech using models trained on `LJSpeech <https://keithito.com/LJ-Speech-Dataset/>`, 
 around 24 hours of single speaker data.
 
-See this `TTS notebook <https://github.com/NVIDIA/NeMo/blob/main/tutorials/tts/1_TTS_inference.ipynb>`_ 
+See this `TTS notebook <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/tts/1_TTS_inference.ipynb>`_ 
 for a full tutorial on generating speech with NeMo, PyTorch Lightning, and Hydra.
 
 .. code-block:: python
@@ -692,7 +693,7 @@ NeMo TTS Model Under the Hood
 Any aspect of TTS training or model architecture design can easily
 be customized with PyTorch Lightning since every NeMo model is a LightningModule.
 
-`glow_tts.py <https://github.com/NVIDIA/NeMo/blob/main/nemo/collections/tts/models/glow_tts.py>`_
+`glow_tts.py <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/nemo/collections/tts/models/glow_tts.py>`_
 
 .. code-block:: python
 
@@ -787,22 +788,15 @@ for a production-grade application.
 Learn More
 ==========
 
-Download pre-trained 
-`ASR <https://ngc.nvidia.com/catalog/models/nvidia:nemospeechmodels>`_, 
-`NLP <https://ngc.nvidia.com/catalog/models/nvidia:nemonlpmodels>`_, 
-and `TTS <https://ngc.nvidia.com/catalog/models/nvidia:nemospeechmodels>`_ models 
-on `NVIDIA NGC <https://ngc.nvidia.com/>`_ to quickly get started with NeMo.
+- Watch the `NVIDIA NeMo Intro Video <https://youtu.be/wBgpMf_KQVw>`_
+- Watch the `PyTorch Lightning and NVIDIA NeMo Discussion Video <https://youtu.be/rFAX1-4DSr4>`_
+- Visit the `NVIDIA NeMo Developer Website <https://developer.nvidia.com/nvidia-nemo>`_
+- Read the `NVIDIA NeMo PyTorch Blog <https://medium.com/pytorch/nvidia-nemo-neural-modules-and-models-for-conversational-ai-d660480d9696>`_
+- Download pre-trained `ASR <https://ngc.nvidia.com/catalog/models/nvidia:nemospeechmodels>`_, `NLP <https://ngc.nvidia.com/catalog/models/nvidia:nemonlpmodels>`_, and `TTS <https://ngc.nvidia.com/catalog/models/nvidia:nemospeechmodels>`_ models on `NVIDIA NGC <https://ngc.nvidia.com/>`_ to quickly get started with NeMo.
+- Become an expert on Building Conversational AI applications with our `tutorials <https://github.com/NVIDIA/NeMo#tutorials>`_, and `example scripts <https://github.com/NVIDIA/NeMo/tree/v1.0.0b1/examples>`_, 
+- See our `developer guide <https://docs.nvidia.com/deeplearning/nemo/user-guide/docs/en/main/>`_ for more information on core NeMo concepts, ASR/NLP/TTS collections, and the NeMo API.
 
+.. note:: NeMo tutorial notebooks can be run on `Google Colab <https://colab.research.google.com/notebooks/intro.ipynb>`_.
 
-Become an expert on Building Conversational AI applications with
-our `tutorials <https://github.com/NVIDIA/NeMo#tutorials>`_, 
-and `example scripts <https://github.com/NVIDIA/NeMo/tree/main/examples>`_, 
-
-.. note:: Most NeMo tutorial notebooks can be run on `Google Colab <https://colab.research.google.com/notebooks/intro.ipynb>`_.
-
-`NVIDIA NeMo <https://github.com/NVIDIA/NeMo>`_ is actively being developed on GitHub.
-`Contributions <https://github.com/NVIDIA/NeMo/blob/main/CONTRIBUTING.md>`_ are welcome!
-
-See our `developer guide <https://docs.nvidia.com/deeplearning/nemo/user-guide/docs/en/main/>`_ for 
-more information on core NeMo concepts, ASR/NLP/TTS collections, 
-and the NeMo API.
+NVIDIA `NeMo <https://github.com/NVIDIA/NeMo>`_ is actively being developed on GitHub.
+`Contributions <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/CONTRIBUTING.md>`_ are welcome!
