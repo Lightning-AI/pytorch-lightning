@@ -226,7 +226,9 @@ class CheckpointConnector:
         checkpoint = self.dump_checkpoint()
 
         model.on_hpc_save(checkpoint)
-        checkpoint = self.trainer.accelerator_backend.on_save(checkpoint)
+
+        if self.trainer.accelerator_backend:
+            checkpoint = self.trainer.accelerator_backend.on_save(checkpoint)
 
         # do the actual save
         # TODO: fix for anything with multiprocess DP, DDP, DDP2
@@ -381,7 +383,8 @@ class CheckpointConnector:
 
         if self.trainer.is_global_zero:
             # write the checkpoint dictionary on the file
-            checkpoint = self.trainer.accelerator_backend.on_save(checkpoint)
+            if self.trainer.accelerator_backend:
+                checkpoint = self.trainer.accelerator_backend.on_save(checkpoint)
             try:
                 atomic_save(checkpoint, filepath)
             except AttributeError as err:
