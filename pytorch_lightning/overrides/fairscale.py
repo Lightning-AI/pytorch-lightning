@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, Any, List, Union, Tuple
-
-from fairscale.nn.data_parallel.sharded_ddp import ModelDispatch, DispatchLayer
-from fairscale.optim import OSS
+from typing import Dict, Any, List, Tuple, Union
 from torch import nn
+import torch
+from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel, Gatekeeper
+from fairscale.optim import OSS
 
 from pytorch_lightning.utilities import rank_zero_warn
 
@@ -59,78 +59,50 @@ class LightningOSS(OSS):
         }
 
 
-class LightningModelDispatch(ModelDispatch):
-    def forward(self, *inputs, **kwargs):  # type: ignore
-        if self.broadcast_model_buffers:
-            self.sync_buffers(non_blocking=False)
-        if self.base_model.training:
-            output = self.base_model.training_step(*inputs, **kwargs)
-        elif self.base_model.testing:
-            output = self.base_model.test_step(*inputs, **kwargs)
-        else:
-            output = self.base_model.validation_step(*inputs, **kwargs)
-
-        return output
-
-
-class LightningDispatchLayer(DispatchLayer):
-    @staticmethod
-    def backward(ctx, *grad_outputs):  # type: ignore
-        ctx.model.dispatch_grads()
-        return (None, *grad_outputs)
-
-
-class LightningShardedDataParallel(nn.Module):
-    """
-    Wrap the model, and reduce the gradients to the right rank after the backward pass.
-
-    - the partition is given by the sharded optimizer
-    - wrap the base model with a model which knows where to reduce each gradient
-    - add an autograd function which calls the model grad dispatch on the way back
-
-     Args:
-        base_model (nn.Module):
-            model to be wrapped
-        sharded_optimizer (OSS, or list of OSS):
-            the sharded optimizer(s) which will decide the gradient partitioning
-    Keyword Args:
-        process_group (torch.nn.Optimizer):
-            optimizer to shard (default: SGD)
-        process_group (group):
-            torch.distributed group (default: group.WORLD)
-        broadcast_buffers (bool):
-            whether to broadcast model buffers in between ranks at the beginning of each forward pass
-        buffer_size (int):
-            the size of the buffer in bits used to batch the small parameter tensors (default 128k).
-    """
-
+class LightningShardedDataParallel(ShardedDataParallel):
     def __init__(
             self,
             base_model: nn.Module,
             sharded_optimizer: Union[OSS, List[OSS]],
             process_group: Any = None,
             broadcast_buffers: bool = True,
-            buffer_size: int = 2 ** 17,
+            reduce_buffer_size: int = 2 ** 19,
     ):
-        super().__init__()
-        self.module = base_model  # Required for training reference
-        self.model_dispatch = LightningModelDispatch(
+        super().__init__(
             base_model=base_model,
             sharded_optimizer=sharded_optimizer,
             process_group=process_group,
             broadcast_buffers=broadcast_buffers,
-            reference_rank=0,
-            buffer_size=buffer_size,
+            reduce_buffer_size=reduce_buffer_size
         )
+        self.module = base_model
 
     def forward(self, *inputs, **kwargs):
         batch, batch_idx = inputs
+
+        if self.broadcast_buffers:
+            self.sync_buffers()
+
+        # Reset all the grad reduce and bucket state flags
+        self._grad_to_be_reduced = [True for _ in self._grad_to_be_reduced]
+        for sharded_optimizer in self.sharded_optimizers:
+            for device, per_rank_params in sharded_optimizer.per_device_params.items():
+                for r in range(self.world_size):
+                    self._bucket_state[sharded_optimizer][device][r] = (
+                        0,
+                        self._bucket_state[sharded_optimizer][device][r][1],
+                    )
+
         # All inputs need to required_grad for autograd to properly track the first dispatch layer
         for i in batch:
-            if i.is_floating_point():
+            if isinstance(i, torch.Tensor) and i.is_floating_point():
                 i.requires_grad = True
         # Register the model dispatch in the autograd graph
-        batch = LightningDispatchLayer.apply(self.model_dispatch, *batch)
-        # Normal model FW
-        outputs = self.model_dispatch(batch, batch_idx, **kwargs)
+        batch = Gatekeeper.apply(self._reduce_work_handles, *batch)
+        if self.base_model.training:
+            outputs = self.base_model.training_step(batch, batch_idx, **kwargs)
+        elif self.base_model.testing:
+            outputs = self.base_model.test_step(batch, batch_idx, **kwargs)
+        else:
+            outputs = self.base_model.validation_step(batch, batch_idx, **kwargs)
         return outputs
