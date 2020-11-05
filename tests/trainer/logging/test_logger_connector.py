@@ -350,6 +350,7 @@ def test_call_back_validator(tmpdir):
         is_start = 'start' in func_name or 'batch' in func_name
         on_step = is_stage and is_start
         on_epoch = True
+        # creating allowed condition
         allowed = ((is_stage or 'batch' in func_name or 'epoch' in func_name
                   or 'grad'in func_name or 'backward'in func_name)
                   and 'pretrain' not in func_name
