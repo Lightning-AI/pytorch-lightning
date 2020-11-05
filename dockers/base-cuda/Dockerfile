@@ -103,6 +103,20 @@ RUN \
     rm -rf apex
 
 RUN \
+    # Get DALI source code:
+    git clone --recursive https://github.com/NVIDIA/DALI
+    cd DALI
+    # Create a directory for CMake-generated Makefiles. This will be the directory, that DALI’s built in.
+    mkdir build
+    cd build
+    # Run CMake. For additional options you can pass to CMake, refer to Optional CMake build parameters.
+    cmake -D CMAKE_BUILD_TYPE=Release ..
+    # Build. You can use -j option to execute it in several threads
+    make -j"$(nproc)"
+    # In order to run DALI using Python API, you need to install Python bindings
+    pip install dali/python
+
+RUN \
     # Show what we have
     pip --version && \
     pip list && \
