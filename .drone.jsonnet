@@ -47,8 +47,8 @@ local pipeline(name, image) = {
   ],
   trigger: {
     branch: [
-        "master",
-        "release/*"
+      "master",
+      "release/*"
     ],
     event: [
       "push",
