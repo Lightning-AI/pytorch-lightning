@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 from collections import defaultdict
-from copy import deepcopy
 from enum import Enum
 from typing import Union, Tuple, Any, Dict, Optional
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -395,7 +394,7 @@ class EpochResultStore:
             Result.attach_batch_size(self._batch_size, hook_result)
 
             self._internals[fx_name].append(
-                deepcopy(hook_result),
+                hook_result,
                 dataloader_idx=dataloader_idx,
                 extra_info=extra_info)
 
