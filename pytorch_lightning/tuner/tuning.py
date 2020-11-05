@@ -54,17 +54,19 @@ class Tuner:
 
         # Run learning rate finder:
         if self.trainer.auto_lr_find:
-            self.internal_find_lr(self.trainer, model)
+            self.internal_find_lr(model)
             model.logger = self.trainer.logger  # reset logger binding
 
-    def scale_batch_size(self,
-                         model,
-                         mode: str = 'power',
-                         steps_per_trial: int = 3,
-                         init_val: int = 2,
-                         max_trials: int = 25,
-                         batch_arg_name: str = 'batch_size',
-                         **fit_kwargs):
+    def scale_batch_size(
+            self,
+            model,
+            mode: str = 'power',
+            steps_per_trial: int = 3,
+            init_val: int = 2,
+            max_trials: int = 25,
+            batch_arg_name: str = 'batch_size',
+            **fit_kwargs
+    ):
         r"""
         Will iteratively try to find the largest batch size for a given model
         that does not give an out of memory (OOM) error.
@@ -102,7 +104,14 @@ class Tuner:
 
         """
         return scale_batch_size(
-            self.trainer, model, mode, steps_per_trial, init_val, max_trials, batch_arg_name, **fit_kwargs
+            self.trainer,
+            model,
+            mode,
+            steps_per_trial,
+            init_val,
+            max_trials,
+            batch_arg_name,
+            **fit_kwargs,
         )
 
     def lr_find(
@@ -130,8 +139,8 @@ class Tuner:
             datamodule,
         )
 
-    def internal_find_lr(self, trainer, model: LightningModule):
-        return _run_lr_finder_internally(trainer, model)
+    def internal_find_lr(self, model: LightningModule):
+        return _run_lr_finder_internally(self.trainer, model)
 
     def pick_multiple_gpus(self, num_gpus: int):
         return pick_multiple_gpus(num_gpus)
