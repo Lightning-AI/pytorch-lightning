@@ -14,7 +14,7 @@
 import os
 from collections import defaultdict, ChainMap
 from enum import Enum
-from typing import Union, Tuple, Any, Dict, Optional
+from typing import Union, Tuple, Any, Dict, Optional, List
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.core.step_result import Result
 
@@ -114,7 +114,7 @@ class HookResultStore:
         results.update(func(*args, add_dataloader_idx=add_dataloader_idx, **kwargs))
         return results
 
-    def run_lastest_from_func_name(self, func_name, *args, **kwargs) -> Dict:
+    def run_lastest_batch_metrics_with_func_name(self, func_name, *args, **kwargs) -> List[Dict]:
         """
         This function used cache_ref and cache_result to optimize loading metrics
 
@@ -130,14 +130,14 @@ class HookResultStore:
             latest_result = self._latest_ref[dl_idx]
             result = self.get_lastest_from_func_name(latest_result, func_name, *args, **kwargs)
             results.append(result)
-        return dict(ChainMap(*results))
+        return results
 
     def get_batch_pbar_metrics(self, *args, **kwargs):
-        return self.run_lastest_from_func_name("get_batch_pbar_metrics",
+        return self.run_lastest_batch_metrics_with_func_name("get_batch_pbar_metrics",
                                                *args, **kwargs)
 
     def get_batch_log_metrics(self, *args, **kwargs):
-        return self.run_lastest_from_func_name("get_batch_log_metrics",
+        return self.run_lastest_batch_metrics_with_func_name("get_batch_log_metrics",
                                                *args, **kwargs)
 
     def run_epoch_func(self, results, opt_metric, func_name, *args, **kwargs) -> None:
@@ -147,12 +147,12 @@ class HookResultStore:
                 *args,
                 add_dataloader_idx=self.has_several_dataloaders,
                 **kwargs)
-            results.update(metrics_to_log)
+            results.append(metrics_to_log)
         else:
             raise Exception("The provided opt_metric should be a Result Object. Something is wrong")
 
-    def get_epoch_from_func_name(self, func_name, *args, **kwargs) -> Dict:
-        results = {}
+    def get_epoch_from_func_name(self, func_name, *args, **kwargs) -> List[Dict]:
+        results = []
         for dl_idx in range(self.num_dataloaders):
             dl_idx = str(dl_idx)
             opt_metrics = self._internals_reduced[dl_idx]
@@ -163,13 +163,13 @@ class HookResultStore:
                 self.run_epoch_func(results, opt_metrics, func_name, *args, **kwargs)
         return results
 
-    def get_epoch_pbar_metrics(self, *args, **kwargs) -> Dict:
+    def get_epoch_pbar_metrics(self, *args, **kwargs) -> List[Dict]:
         return self.get_epoch_from_func_name("get_epoch_pbar_metrics")
 
-    def get_epoch_log_metrics(self, *args, **kwargs) -> Dict:
+    def get_epoch_log_metrics(self, *args, **kwargs) -> List[Dict]:
         return self.get_epoch_from_func_name("get_epoch_log_metrics")
 
-    def get_forked_metrics(self, *args, **kwargs) -> Dict:
+    def get_forked_metrics(self, *args, **kwargs) -> List[Dict]:
         return self.get_epoch_from_func_name("get_forked_metrics")
 
     @staticmethod
@@ -450,11 +450,11 @@ class EpochResultStore:
         logger_connector.callback_metrics.pop("epoch", None)
 
     def run_batch_from_func_name(self, func_name) -> Dict:
-        results = {}
+        results = []
         for fx_name, hook_result in self._internals.items():
             func = getattr(hook_result, func_name)
-            results.update(func(include_forked_originals=False))
-        return results
+            results.append(func(include_forked_originals=False))
+        return dict(ChainMap(*sum(results, [])))
 
     def get_latest_batch_log_metrics(self) -> Dict:
         batch_log_metrics = self.run_batch_from_func_name("get_batch_log_metrics")
@@ -495,11 +495,11 @@ class EpochResultStore:
     def run_epoch_by_func_name(self, func_name) -> Dict:
         if not self.has_reduced:
             self.auto_reduce_results_on_epoch_end()
-        results = {}
+        results = []
         for fx_name, hook_result in self._internals.items():
             func = getattr(hook_result, func_name)
-            results.update(func())
-        return results
+            results.append(func())
+        return dict(ChainMap(*sum(results, [])))
 
     def get_epoch_pbar_metrics(self) -> Dict:
         return self.run_epoch_by_func_name("get_epoch_pbar_metrics")
