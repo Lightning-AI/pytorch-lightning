@@ -303,6 +303,12 @@ class TrainLoop:
         # when in dev debugging track the losses
         self.trainer.dev_debugger.track_train_loss_history(batch_idx, untouched_loss.detach())
 
+    def _check_training_step_output(self, training_step_output):
+        if isinstance(training_step_output, torch.Tensor) and not self.automatic_optimization:
+            if training_step_output.grad_fn is None:
+                # TODO: Find why - RuntimeError: Expected to mark a variable ready only once ...
+                raise MisconfigurationException("In manual optimization, `training_step` should not return a Tensor")
+
     def training_step(self, split_batch, batch_idx, opt_idx, hiddens):
         # give the PL module a result for logging
         model = self.trainer.get_model()
@@ -312,6 +318,7 @@ class TrainLoop:
         with self.trainer.profiler.profile("model_forward"):
             args = self.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
             training_step_output = self.trainer.accelerator_backend.training_step(args)
+            self._check_training_step_output(training_step_output)
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
 
             training_step_output_for_epoch_end, training_step_output = self._process_training_step_output(
