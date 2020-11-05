@@ -160,7 +160,7 @@ class ModelSummary(object):
           | Name | Type       | Params | In sizes  | Out sizes
         ------------------------------------------------------------
         0 | net  | Sequential | 132 K  | [10, 256] | [10, 512]
-        --------------------------------------------------------------
+        ------------------------------------------------------------
                               Totals
         Trainable params      132 K
         Non-trainable params  0
@@ -271,8 +271,20 @@ class ModelSummary(object):
             arrays.append(["In sizes", self.in_sizes])
             arrays.append(["Out sizes", self.out_sizes])
 
-        total_params = sum(self.param_nums)
-        total_trainable_params = sum(self.trainable_param_nums)
+        if self._mode == ModelSummary.MODE_FULL:
+            # Ignore ModuleList and Sequential since they show the sum of parameters of its contents
+            modules_to_ignore = ["ModuleList", "Sequential"]
+            param_nums = [layer.num_parameters for i, layer in enumerate(self._layer_summary.values())
+                          if self.layer_types[i] not in modules_to_ignore]
+            trainable_param_nums = [layer.num_trainable_parameters for i, layer in enumerate(self._layer_summary.values())
+                                    if self.layer_types[i] not in modules_to_ignore]
+
+            total_params = sum(param_nums)
+            total_trainable_params = sum(trainable_param_nums)
+
+        elif self._mode == ModelSummary.MODE_TOP:
+            total_params = sum(self.param_nums)
+            total_trainable_params = sum(self.trainable_param_nums)
 
         return _format_summary_table(total_params, total_trainable_params, *arrays)
 
