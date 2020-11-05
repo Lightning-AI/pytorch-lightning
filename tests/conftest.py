@@ -2,9 +2,13 @@ import sys
 import threading
 from functools import wraps, partial
 from http.server import SimpleHTTPRequestHandler
-
 import pytest
 import torch.multiprocessing as mp
+import coverage
+
+rcfile = os.path.join(os.getcwd(), ".coveragerc")
+os.environ["COVERAGE_PROCESS_START"] = rcfile
+coverage.process_startup()
 
 
 def pytest_configure(config):
