@@ -95,7 +95,7 @@ class TestModel(BoringModel):
         self.p = torch.nn.Linear(1,1)  # fake params
 
     def training_step(self, batch, batch_idx):
-        val = self.metric(batch[0])
+        val = self.metric(batch[0].sum())
         self.log("sum", self.metric, on_step=False, on_epoch=True)
         return self.p(val.view(1,1))
 
