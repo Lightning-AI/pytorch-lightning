@@ -200,6 +200,7 @@ class ModelCheckpoint(Callback):
         This method runs on all ranks, it is the responsibility of `self.save_function`
         to handle correct behaviour in distributed training, i.e., saving only on rank 0.
         """
+        
         epoch = trainer.current_epoch
         global_step = trainer.global_step
 
