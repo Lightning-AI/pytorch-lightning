@@ -32,6 +32,7 @@ steps:
     - pip --version
     - nvidia-smi
     - pip install -r ./requirements/devel.txt --upgrade-strategy only-if-needed -v --no-cache-dir
+    - pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda100
     - pip list
     - coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --color=yes --durations=25 # --flake8
     - python -m pytest benchmarks pl_examples -v --color=yes --maxfail=2 --durations=0 # --flake8

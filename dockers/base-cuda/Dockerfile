@@ -21,7 +21,6 @@
 
 ARG CUDNN_VERSION=8
 ARG CUDA_VERSION=10.2
-ARG CUDA_DALI_VERSION=100
 
 # FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu20.04
 FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel-ubuntu18.04
