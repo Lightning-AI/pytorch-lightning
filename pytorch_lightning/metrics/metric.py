@@ -75,9 +75,6 @@ class Metric(nn.Module, ABC):
         self._computed = None
         self._forward_cache = None
 
-        # Hook that will add metric states to state_dict
-        self._register_state_dict_hook(add_metrics_state_dict)
-
         # initialize state
         self._defaults = {}
         self._persistent = {}
@@ -277,11 +274,11 @@ class Metric(nn.Module, ABC):
         for key in self._persistent.keys():
             self._persistent[key] = mode
 
-
-def add_metrics_state_dict(self, state_dict, prefix, local_metadata):
-    """ Register metric states to be part of the state_dict """
-    for key in self._defaults.keys():
-        if self._persistent[key]:
-            current_val = getattr(self, key)
-            state_dict.update({key: current_val})
-    return state_dict
+    def state_dict(self, *args, **kwargs):
+        # Register metric states to be part of the state_dict
+        state_dict = super().state_dict()
+        for key in self._defaults.keys():
+            if self._persistent[key]:
+                current_val = getattr(self, key)
+                state_dict.update({key: current_val})
+        return state_dict
