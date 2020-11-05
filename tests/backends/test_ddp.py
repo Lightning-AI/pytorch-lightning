@@ -23,6 +23,9 @@ from tests.utilities.dist import call_training_script
 ])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model_ddp_fit_only(tmpdir, cli_args):
+
+    os.environ["PL_ENABLE_DDP_COVERAGE"] = '1'
+
     # call the script
     std, err = call_training_script(ddp_model, cli_args, 'fit', tmpdir, timeout=120)
 
@@ -39,6 +42,7 @@ def test_multi_gpu_model_ddp_fit_only(tmpdir, cli_args):
 ])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model_ddp_test_only(tmpdir, cli_args):
+    os.environ["PL_ENABLE_DDP_COVERAGE"] = '1'
     # call the script
     call_training_script(ddp_model, cli_args, 'test', tmpdir)
 
@@ -55,6 +59,7 @@ def test_multi_gpu_model_ddp_test_only(tmpdir, cli_args):
 ])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model_ddp_fit_test(tmpdir, cli_args):
+    os.environ["PL_ENABLE_DDP_COVERAGE"] = '1'
     # call the script
     call_training_script(ddp_model, cli_args, 'fit_test', tmpdir, timeout=20)
 
@@ -72,7 +77,7 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir, cli_args):
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_cli(tmpdir):
-    print(tmpdir)
+    os.environ["PL_ENABLE_DDP_COVERAGE"] = '1'
     cli_args = "--max_epochs 1 --gpus 2 --accelerator ddp"
     # call the script
     std, err = call_training_script(ddp_model, cli_args, 'test_cli', tmpdir, timeout=120)
