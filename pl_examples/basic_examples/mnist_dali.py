@@ -35,6 +35,7 @@ try:
     from nvidia.dali.plugin.pytorch import DALIClassificationIterator
 except (ImportError, ModuleNotFoundError):
     warn('NVIDIA DALI is not available')
+    ops, types, Pipeline, DALIClassificationIterator = ..., ..., ..., ...
 
 
 class ExternalMNISTInputIterator(object):

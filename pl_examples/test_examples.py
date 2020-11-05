@@ -5,10 +5,7 @@ import pytest
 import torch
 
 try:
-    import nvidia.dali.ops as ops
-    import nvidia.dali.types as types
-    from nvidia.dali.pipeline import Pipeline
-    from nvidia.dali.plugin.pytorch import DALIClassificationIterator
+    from nvidia.dali import ops, types, pipeline, plugin
 except (ImportError, ModuleNotFoundError):
     DALI_AVAILABLE = False
 else:
