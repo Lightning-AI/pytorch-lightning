@@ -18,15 +18,19 @@ torch.manual_seed(42)
 
 
 def sk_roc_curve(y_true, probas_pred, num_classes=1):
+    """ Adjusted comparison function that can also handles multiclass """
     if num_classes == 1:
         return _sk_roc_curve(y_true, probas_pred, drop_intermediate=False)
 
-    res = []
+    fpr, tpr, thresholds = [], [], []
     for i in range(num_classes):
         y_true_temp = np.zeros_like(y_true)
         y_true_temp[y_true == i] = 1
-        res.append(_sk_roc_curve(y_true_temp, probas_pred[:, i], drop_intermediate=False))
-    return res
+        res = _sk_roc_curve(y_true_temp, probas_pred[:, i], drop_intermediate=False)
+        fpr.append(res[0])
+        tpr.append(res[1])
+        thresholds.append(res[2])
+    return fpr, tpr, thresholds
 
 
 def _binary_prob_sk_metric(preds, target, num_classes=1):

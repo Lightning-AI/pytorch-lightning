@@ -386,13 +386,6 @@ recall [func]
     :noindex:
 
 
-roc [func]
-~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.metrics.functional.classification.roc
-    :noindex:
-
-
 stat_scores [func]
 ~~~~~~~~~~~~~~~~~~
 

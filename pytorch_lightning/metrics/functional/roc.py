@@ -37,7 +37,7 @@ def _roc_compute(
         pos_label: int,
         sample_weights: Optional[Sequence] = None,
 ) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
-           List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]]:
+           Tuple[List[torch.Tensor],List[torch.Tensor],List[torch.Tensor]]]:
 
     if num_classes == 1:
         fps, tps, thresholds = _binary_clf_curve(
@@ -63,7 +63,7 @@ def _roc_compute(
         return fpr, tpr, thresholds
 
     # Recursively call per class
-    roc_vals = []
+    fpr, tpr, thresholds = [], [], []
     for c in range(num_classes):
         preds_c = preds[:, c]
         res = roc(
@@ -73,9 +73,11 @@ def _roc_compute(
             pos_label=c,
             sample_weights=sample_weights,
         )
-        roc_vals.append(res)
+        fpr.append(res[0])
+        tpr.append(res[1])
+        thresholds.append(res[2])
 
-    return roc_vals
+    return fpr, tpr, thresholds
 
 
 def roc(
@@ -85,7 +87,58 @@ def roc(
         pos_label: Optional[int] = None,
         sample_weights: Optional[Sequence] = None,
 ) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
-           List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]]:
+           Tuple[List[torch.Tensor],List[torch.Tensor],List[torch.Tensor]]]:
+    """
+    Computes the Receiver Operating Characteristic (ROC).
+
+    Args:
+        num_classes: integer with number of classes. Not nessesary to provide
+            for binary problems.
+        pos_label: integer determining the positive class. Default is ``None``
+            which for binary problem is translate to 1. For multiclass problems
+            this argument should not be set as we iteratively change it in the
+            range [0,num_classes-1]
+        sample_weight: sample weights for each data point
+
+    Returns: 3-element tuple containing
+
+        fpr:
+            tensor with false positive rates.
+            If multiclass, this is a list of such tensors, one for each class.
+        tpr:
+            tensor with true positive rates.
+            If multiclass, this is a list of such tensors, one for each class.
+        thresholds:
+            thresholds used for computing false- and true postive rates
+
+    Example (binary case):
+
+        >>> pred = torch.tensor([0, 1, 2, 3])
+        >>> target = torch.tensor([0, 1, 1, 1])
+        >>> fpr, tpr, thresholds = roc(pred, target, pos_label=1)
+        >>> fpr
+        tensor([0., 0., 0., 0., 1.])
+        >>> tpr
+        tensor([0.0000, 0.3333, 0.6667, 1.0000, 1.0000])
+        >>> thresholds
+        tensor([4, 3, 2, 1, 0])
+
+    Example (multiclass case):
+
+        >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
+        ...                      [0.05, 0.85, 0.05, 0.05],
+        ...                      [0.05, 0.05, 0.85, 0.05],
+        ...                      [0.05, 0.05, 0.05, 0.85]])
+        >>> target = torch.tensor([0, 1, 3, 2])
+        >>> fpr, tpr, thresholds = roc(pred, target, num_classes=4)
+        >>> fpr
+        [tensor([0., 0., 1.]), tensor([0., 0., 1.]), tensor([0.0000, 0.3333, 1.0000]), tensor([0.0000, 0.3333, 1.0000])]
+        >>> tpr
+        [tensor([0., 1., 1.]), tensor([0., 1., 1.]), tensor([0., 0., 1.]), tensor([0., 0., 1.])]
+        >>> thresholds
+        [tensor([1.8500, 0.8500, 0.0500]), tensor([1.8500, 0.8500, 0.0500]), tensor([1.8500, 0.8500, 0.0500]), tensor([1.8500, 0.8500, 0.0500])]
+
+    """
     preds, target, num_classes, pos_label = _roc_update(preds, target,
                                                         num_classes, pos_label)
     return _roc_compute(preds, target, num_classes, pos_label, sample_weights)

@@ -105,7 +105,7 @@ def _precision_recall_curve_compute(
         pos_label: int,
         sample_weights: Optional[Sequence] = None,
 ) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
-           List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]]:
+           Tuple[List[torch.Tensor],List[torch.Tensor],List[torch.Tensor]]]:
 
     if num_classes == 1:
         fps, tps, thresholds = _binary_clf_curve(
@@ -133,12 +133,12 @@ def _precision_recall_curve_compute(
                             torch.zeros(1, dtype=recall.dtype,
                                         device=recall.device)])
 
-        thresholds = torch.tensor(reversed(thresholds[sl]))
+        thresholds = reversed(thresholds[sl]).clone()
 
         return precision, recall, thresholds
 
     # Recursively call per class
-    pr_curves = []
+    precision, recall, thresholds = [],[],[]
     for c in range(num_classes):
         preds_c = preds[:, c]
         res = precision_recall_curve(
@@ -148,9 +148,11 @@ def _precision_recall_curve_compute(
             pos_label=c,
             sample_weights=sample_weights,
         )
-        pr_curves.append(res)
+        precision.append(res[0])
+        recall.append(res[1])
+        thresholds.append(res[2])
 
-    return pr_curves
+    return precision, recall, thresholds
 
 
 def precision_recall_curve(
@@ -160,7 +162,60 @@ def precision_recall_curve(
         pos_label: Optional[int] = None,
         sample_weights: Optional[Sequence] = None,
 ) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
-           List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]]:
+           Tuple[List[torch.Tensor],List[torch.Tensor],List[torch.Tensor]]]:
+    """
+    Computes precision-recall pairs for different thresholds.
+
+    Args:
+        num_classes: integer with number of classes. Not nessesary to provide
+            for binary problems.
+        pos_label: integer determining the positive class. Default is ``None``
+            which for binary problem is translate to 1. For multiclass problems
+            this argument should not be set as we iteratively change it in the
+            range [0,num_classes-1]
+        sample_weight: sample weights for each data point
+
+    Returns: 3-element tuple containing
+
+        precision:
+            tensor where element i is the precision of predictions with
+            score >= thresholds[i] and the last element is 1.
+            If multiclass, this is a list of such tensors, one for each class.
+        recall:
+            tensor where element i is the recall of predictions with
+            score >= thresholds[i] and the last element is 0.
+            If multiclass, this is a list of such tensors, one for each class.
+        thresholds:
+            Thresholds used for computing precision/recall scores
+
+    Example (binary case):
+
+        >>> pred = torch.tensor([0, 1, 2, 3])
+        >>> target = torch.tensor([0, 1, 1, 0])
+        >>> precision, recall, thresholds = precision_recall_curve(pred, target, pos_label=1)
+        >>> precision
+        tensor([0.6667, 0.5000, 0.0000, 1.0000])
+        >>> recall
+        tensor([1.0000, 0.5000, 0.0000, 0.0000])
+        >>> thresholds
+        tensor([1, 2, 3])
+
+    Example (multiclass case):
+
+        >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
+        ...                      [0.05, 0.85, 0.05, 0.05],
+        ...                      [0.05, 0.05, 0.85, 0.05],
+        ...                      [0.05, 0.05, 0.05, 0.85]])
+        >>> target = torch.tensor([0, 1, 3, 2])
+        >>> precision, recall, thresholds = precision_recall_curve(pred, target, num_classes=4)
+        >>> precision
+        [tensor([1., 1.]), tensor([1., 1.]), tensor([0.2500, 0.0000, 1.0000]), tensor([0.2500, 0.0000, 1.0000])]
+        >>> recall
+        [tensor([1., 0.]), tensor([1., 0.]), tensor([1., 0., 0.]), tensor([1., 0., 0.])]
+        >>> thresholds   # doctest: +NORMALIZE_WHITESPACE
+        [tensor([0.8500]), tensor([0.8500]), tensor([0.0500, 0.8500]), tensor([0.0500, 0.8500])]
+
+    """
     preds, target, num_classes, pos_label = _precision_recall_curve_update(preds, target,
                                                                            num_classes, pos_label)
     return _precision_recall_curve_compute(preds, target, num_classes, pos_label, sample_weights)

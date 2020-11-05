@@ -36,16 +36,15 @@ def _average_precision_compute(
         pos_label: int,
         sample_weights: Optional[Sequence] = None
 ) -> Union[List[torch.Tensor], torch.Tensor]:
-    output = _precision_recall_curve_compute(preds, target, num_classes, pos_label)
+    precision, recall, _ = _precision_recall_curve_compute(preds, target, num_classes, pos_label)
     # Return the step function integral
     # The following works because the last entry of precision is
     # guaranteed to be 1, as returned by precision_recall_curve
     if num_classes == 1:
-        precision, recall, _ = output
         return -torch.sum((recall[1:] - recall[:-1]) * precision[:-1])
 
     res = []
-    for (p, r, _) in output:
+    for p, r  in zip(precision, recall):
         res.append(-torch.sum((r[1:] - r[:-1]) * p[:-1]))
     return res
 
@@ -58,23 +57,38 @@ def average_precision(
         sample_weights: Optional[Sequence] = None,
 ) -> Union[List[torch.Tensor], torch.Tensor]:
     """
-    Compute average precision from prediction scores
+    Computes the average precision score.
 
     Args:
-        pred: estimated probabilities
-        target: ground-truth labels
-        sample_weight: sample weights
-        pos_label: the label for the positive class
+        num_classes: integer with number of classes. Not nessesary to provide
+            for binary problems.
+        pos_label: integer determining the positive class. Default is ``None``
+            which for binary problem is translate to 1. For multiclass problems
+            this argument should not be set as we iteratively change it in the
+            range [0,num_classes-1]
+        sample_weight: sample weights for each data point
 
-    Return:
-        Tensor containing average precision score
+    Returns:
+        tensor with average precision. If multiclass will return list
+        of such tensors, one for each class
 
-    Example:
+    Example (binary case):
 
-        >>> x = torch.tensor([0, 1, 2, 3])
-        >>> y = torch.tensor([0, 1, 2, 2])
-        >>> average_precision(x, y)
-        tensor(0.3333)
+        >>> pred = torch.tensor([0, 1, 2, 3])
+        >>> target = torch.tensor([0, 1, 1, 1])
+        >>> average_precision(pred, target, pos_label=1)
+        tensor(1.)
+
+    Example (multiclass case):
+
+        >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
+        ...                      [0.05, 0.85, 0.05, 0.05],
+        ...                      [0.05, 0.05, 0.85, 0.05],
+        ...                      [0.05, 0.05, 0.05, 0.85]])
+        >>> target = torch.tensor([0, 1, 3, 2])
+        >>> average_precision(pred, target, num_classes=4)
+        [tensor(1.), tensor(1.), tensor(0.2500), tensor(0.2500)]
+
     """
     preds, target, num_classes, pos_label = _average_precision_update(preds, target,
                                                                       num_classes, pos_label)

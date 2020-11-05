@@ -18,15 +18,19 @@ torch.manual_seed(42)
 
 
 def sk_precision_recall_curve(y_true, probas_pred, num_classes=1):
+    """ Adjusted comparison function that can also handles multiclass """
     if num_classes == 1:
         return _sk_precision_recall_curve(y_true, probas_pred)
 
-    res = []
+    precision, recall, thresholds = [],[],[]
     for i in range(num_classes):
         y_true_temp = np.zeros_like(y_true)
         y_true_temp[y_true == i] = 1
-        res.append(_sk_precision_recall_curve(y_true_temp, probas_pred[:, i]))
-    return res
+        res = _sk_precision_recall_curve(y_true_temp, probas_pred[:, i])
+        precision.append(res[0])
+        recall.append(res[1])
+        thresholds.append(res[2])
+    return precision, recall, thresholds
 
 
 def _binary_prob_sk_metric(preds, target, num_classes=1):
