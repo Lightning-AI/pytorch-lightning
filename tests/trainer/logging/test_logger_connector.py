@@ -346,15 +346,23 @@ def test_call_back_validator(tmpdir):
 
     for func_name in funcs_name:
         # This summurize where and what is currently possible to log using `self.log` function.
-        is_stage = 'train' in func_name or "test" in func_name or 'validation' in func_name
-        is_start = 'start' in func_name or 'batch' in func_name
+        is_stage = "train" in func_name or "test" in func_name or "validation" in func_name
+        is_start = "start" in func_name or "batch" in func_name
         on_step = is_stage and is_start
         on_epoch = True
         # creating allowed condition
-        allowed = ((is_stage or 'batch' in func_name or 'epoch' in func_name
-                  or 'grad'in func_name or 'backward'in func_name)
-                  and 'pretrain' not in func_name
-                  and func_name not in ["on_train_end", "on_test_end", "on_validation_end"])
+        allowed = (
+            is_stage
+            or "batch" in func_name
+            or "epoch" in func_name
+            or "grad" in func_name
+            or "backward" in func_name
+        )
+        allowed = (
+            allowed
+            and "pretrain" not in func_name
+            and func_name not in ["on_train_end", "on_test_end", "on_validation_end"]
+        )
         if allowed:
             validator.check_logging_in_callbacks(current_hook_fx_name=func_name,
                                                  on_step=on_step,

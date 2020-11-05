@@ -134,11 +134,13 @@ class HookResultStore:
 
     def get_batch_pbar_metrics(self, *args, **kwargs):
         return self.run_lastest_batch_metrics_with_func_name("get_batch_pbar_metrics",
-                                               *args, **kwargs)
+                                                             *args,
+                                                             **kwargs)
 
     def get_batch_log_metrics(self, *args, **kwargs):
         return self.run_lastest_batch_metrics_with_func_name("get_batch_log_metrics",
-                                               *args, **kwargs)
+                                                             *args,
+                                                             **kwargs)
 
     def run_epoch_func(self, results, opt_metric, func_name, *args, **kwargs) -> None:
         if isinstance(opt_metric, Result):
