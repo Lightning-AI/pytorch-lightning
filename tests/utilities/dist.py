@@ -31,11 +31,6 @@ def call_training_script(module_file, cli_args, method, tmpdir, timeout=60):
     # need to set the PYTHONPATH in case pytorch_lightning was not installed into the environment
     env = os.environ.copy()
     env['PYTHONPATH'] = f'{pytorch_lightning.__file__}:' + env.get('PYTHONPATH', '')
-    env['PL_ENABLE_DDP_COVERAGE'] = os.getenv('PL_ENABLE_DDP_COVERAGE', '0')
-
-    coverage_enabled = os.getenv('PL_ENABLE_DDP_COVERAGE', '0') == '1'
-    if coverage_enabled:
-        coverage.process_startup()
 
     # for running in ddp mode, we need to lauch it's own process or pytest will get stuck
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)

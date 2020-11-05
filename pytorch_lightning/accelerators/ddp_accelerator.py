@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 import os
-import coverage
 import torch
 import torch.distributed as torch_distrib
 import subprocess
@@ -110,8 +109,6 @@ class DDPAccelerator(Accelerator):
         num_gpus = len(self.trainer.data_parallel_device_ids)
         os.environ['WORLD_SIZE'] = f'{num_gpus * self.trainer.num_nodes}'
 
-        coverage_enabled = os.getenv('PL_ENABLE_DDP_COVERAGE', '0') == '1'
-
         self.interactive_ddp_procs = []
         for local_rank in range(1, self.trainer.num_processes):
             env_copy = os.environ.copy()
@@ -127,9 +124,6 @@ class DDPAccelerator(Accelerator):
             if HYDRA_AVAILABLE:
                 if HydraConfig.initialized():
                     cwd = get_original_cwd()
-
-            if coverage_enabled:
-                coverage.process_startup()
             proc = subprocess.Popen(command, env=env_copy, cwd=cwd)
             self.interactive_ddp_procs.append(proc)
 
