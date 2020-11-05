@@ -28,7 +28,7 @@ Before you start reviewing make sure you have read [Review guidelines](https://g
  - [ ] Is this pull request ready for review? (if not, please submit in draft mode)
  - [ ] Check that all items from **Before submitting** are resolved
  - [ ] Make sure the title is self explanatory and the description concisely explains the PR
- - [ ] Add labels and milestones (and optionally projects) to the PR so it can be classified
+ - [ ] Add labels and milestones (and optionally projects) to the PR so it can be classified; _Bugfixes should be including in bug-fix release milestones (m.f.X) and features should be included in (m.X.b) releases._
  
 
 ## Did you have fun?
