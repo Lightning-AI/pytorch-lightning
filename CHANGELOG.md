@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
+## [unreleased] - YYYY-MM-DD
+
+### Added
+
+- Added "monitor" key to saved `ModelCheckpoints` ([#4383](https://github.com/PyTorchLightning/pytorch-lightning/pull/4383))
+
+
+- Added `ConfusionMatrix` class interface ([#4348](https://github.com/PyTorchLightning/pytorch-lightning/pull/4348))
+
+
+- Added multiclass AUROC metric ([#4236](https://github.com/PyTorchLightning/pytorch-lightning/pull/4236))
+
+
+- Added global step indexing to the checkpoint name for a better sub-epoch checkpointing experience ([#3807](https://github.com/PyTorchLightning/pytorch-lightning/pull/3807))
+
+
+- Added optimizer hooks in callbacks ([#4379](https://github.com/PyTorchLightning/pytorch-lightning/pull/4379))
+
+
+- Added option to log momentum ([#4384](https://github.com/PyTorchLightning/pytorch-lightning/pull/4384))
+
+
+- Added `fsspec` to tuner ([#4458](https://github.com/PyTorchLightning/pytorch-lightning/pull/4458))
+
+
+- Added metrics aggregation in Horovod and fixed early stopping ([#3775](https://github.com/PyTorchLightning/pytorch-lightning/pull/3775)) 
+
+
+### Changed
+
+
+
+### Deprecated
+
+
+
+### Removed
+
+
+
+### Fixed
+
+
+
 ## [1.0.5] - 2020-11-03
 
 ### Added
