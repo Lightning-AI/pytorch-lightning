@@ -103,6 +103,17 @@ class CheckpointConnector:
         # load model state
         model = self.trainer.get_model()
 
+        # restore states
+        self.restore_model_states(model, checkpoint)
+        if on_gpu:
+            model.cuda(self.trainer.root_gpu)
+        self.restore_training_state(checkpoint)
+
+    def restore_model_states(self, model: LightningModule, checkpoint) -> None:
+        """
+        Restore model states from a 'PyTorch-Lihgtning checkpoint' dictionary object
+        """
+
         # give the datamodule a chance to load something
         if self.trainer.datamodule is not None:
             self.trainer.datamodule.on_load_checkpoint(checkpoint)
@@ -113,17 +124,11 @@ class CheckpointConnector:
         # restore the state_dict on the model
         model.load_state_dict(checkpoint['state_dict'])
 
-        if on_gpu:
-            model.cuda(self.trainer.root_gpu)
-
         # restore amp scaling
         if self.trainer.amp_backend == AMPType.NATIVE and 'native_amp_scaling_state' in checkpoint:
             self.trainer.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
         elif self.trainer.amp_backend == AMPType.APEX and 'amp_scaling_state' in checkpoint:
             amp.load_state_dict(checkpoint['amp_scaling_state'])
-
-        # load training state (affects trainer only)
-        self.restore_training_state(checkpoint)
 
     def restore_training_state(self, checkpoint):
         """
@@ -341,14 +346,8 @@ class CheckpointConnector:
         # load model state
         model = self.trainer.get_model()
 
-        # load the state_dict on the model automatically
-        model.load_state_dict(checkpoint['state_dict'])
-
-        # restore amp scaling
-        if self.trainer.amp_backend == AMPType.NATIVE and 'native_amp_scaling_state' in checkpoint:
-            self.trainer.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
-        elif self.trainer.amp_backend == AMPType.APEX and 'amp_scaling_state' in checkpoint:
-            amp.load_state_dict(checkpoint['amp_scaling_state'])
+        # restore states from 'PyTorch-Lightning checkpoint' dictionary object
+        self.restore_model_states(model, checkpoint)
 
         if self.trainer.root_gpu is not None:
             model.cuda(self.trainer.root_gpu)
