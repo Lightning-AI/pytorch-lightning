@@ -341,7 +341,7 @@ class CheckpointConnector:
         filepath = '{}/hpc_ckpt_{}.ckpt'.format(folderpath, self.max_ckpt_in_folder(folderpath))
 
         # load on CPU first
-        checkpoint = torch.load(filepath, map_location=lambda storage, loc: storage)
+        checkpoint = pl_load(filepath, map_location=lambda storage, loc: storage)
 
         # load model state
         model = self.trainer.get_model()
