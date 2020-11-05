@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from abc import ABC
 from argparse import ArgumentParser
 from random import shuffle
 from warnings import warn
@@ -35,7 +36,7 @@ try:
     from nvidia.dali.plugin.pytorch import DALIClassificationIterator
 except (ImportError, ModuleNotFoundError):
     warn('NVIDIA DALI is not available')
-    ops, types, Pipeline, DALIClassificationIterator = ..., ..., ..., ...
+    ops, types, Pipeline, DALIClassificationIterator = ..., ..., ABC, ABC
 
 
 class ExternalMNISTInputIterator(object):
