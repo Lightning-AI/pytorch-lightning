@@ -13,6 +13,7 @@
 # limitations under the License.
 from argparse import ArgumentParser
 from random import shuffle
+from warnings import warn
 
 import numpy as np
 import torch
@@ -28,12 +29,12 @@ except Exception:
     from tests.base.datasets import MNIST
 
 try:
-    from nvidia.dali.pipeline import Pipeline
     import nvidia.dali.ops as ops
     import nvidia.dali.types as types
+    from nvidia.dali.pipeline import Pipeline
     from nvidia.dali.plugin.pytorch import DALIClassificationIterator
 except (ImportError, ModuleNotFoundError):
-    raise ImportError('NVIDIA DALI is not available')
+    warn('NVIDIA DALI is not available')
 
 
 class ExternalMNISTInputIterator(object):
