@@ -11,7 +11,7 @@ from tests.base.models import ParityModuleRNN, ParityModuleMNIST
 
 @pytest.mark.parametrize('cls_model,max_diff', [
     (ParityModuleRNN, 0.05),
-    (ParityModuleMNIST, 0.67)
+    (ParityModuleMNIST, 0.65)
 ])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_pytorch_parity(tmpdir, cls_model, max_diff):
