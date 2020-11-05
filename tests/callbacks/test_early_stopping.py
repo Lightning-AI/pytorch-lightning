@@ -49,7 +49,14 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     https://github.com/PyTorchLightning/pytorch-lightning/issues/1463
     """
     seed_everything(42)
-    model = BoringModel()
+
+    class LessBoringModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            output = super().validation_step(batch, batch_idx)
+            self.log('early_stop_on', output['x'])
+            return output
+
+    model = LessBoringModel()
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_top_k=1)
     early_stop_callback = EarlyStoppingTestRestore()
     trainer = Trainer(
@@ -86,7 +93,13 @@ def test_early_stopping_no_extraneous_invocations(tmpdir):
     """Test to ensure that callback methods aren't being invoked outside of the callback handler."""
     os.environ['PL_DEV_DEBUG'] = '1'
 
-    model = BoringModel()
+    class LessBoringModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            output = super().validation_step(batch, batch_idx)
+            self.log('early_stop_on', output['x'])
+            return output
+
+    model = LessBoringModel()
     expected_count = 4
     trainer = Trainer(
         default_root_dir=tmpdir,

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
+from torch import optim
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor
@@ -24,8 +25,8 @@ def test_lr_monitor_single_lr(tmpdir):
     """ Test that learning rates are extracted and logged for single lr scheduler. """
     tutils.reset_seed()
 
+    # BoringModel already includes single lr scheduler in configure_optimizers method
     model = BoringModel()
-    model.configure_optimizers = model.configure_optimizers__single_scheduler
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
@@ -43,7 +44,7 @@ def test_lr_monitor_single_lr(tmpdir):
         'Momentum should not be logged by default'
     assert len(lr_monitor.lrs) == len(trainer.lr_schedulers), \
         'Number of learning rates logged does not match number of lr schedulers'
-    assert all([k in ['lr-Adam'] for k in lr_monitor.lrs.keys()]), \
+    assert all([k in ['lr-SGD'] for k in lr_monitor.lrs.keys()]), \
         'Names of learning rates not set correctly'
 
 
@@ -51,7 +52,19 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir):
     """ Test that learning rates and momentum are extracted and logged for single lr scheduler. """
     tutils.reset_seed()
 
-    model = BoringModel()
+    class LessBoringModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.learning_rate = 0.01
+
+        def configure_optimizers__onecycle_scheduler(self):
+            optimizer = optim.SGD(self.parameters(), lr=self.learning_rate, momentum=0.9)
+            lr_scheduler = optim.lr_scheduler.OneCycleLR(optimizer,
+                                                         max_lr=self.learning_rate,
+                                                         total_steps=10_000)
+            return [optimizer], [lr_scheduler]
+
+    model = LessBoringModel()
     model.configure_optimizers = model.configure_optimizers__onecycle_scheduler
 
     lr_monitor = LearningRateMonitor(log_momentum=True)
@@ -76,7 +89,11 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir):
 def test_lr_monitor_no_lr_scheduler(tmpdir):
     tutils.reset_seed()
 
-    model = BoringModel()
+    class LessBoringModel(BoringModel):
+        def configure_optimizers(self):
+            return optim.SGD(self.parameters(), lr=0.01)
+
+    model = LessBoringModel()
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
@@ -114,7 +131,24 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval):
     """ Test that learning rates are extracted and logged for multi lr schedulers. """
     tutils.reset_seed()
 
-    model = BoringModel()
+    class LessBoringModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.learning_rate = 0.01
+
+        def training_step(self, batch, batch_idx, optimizer_idx=None):
+            return super().training_step(batch, batch_idx)
+
+        def configure_optimizers__multiple_schedulers(self):
+            optimizer1 = optim.Adam(self.parameters(), lr=self.learning_rate)
+            optimizer2 = optim.Adam(self.parameters(), lr=self.learning_rate)
+            lr_scheduler1 = optim.lr_scheduler.StepLR(optimizer1, 1, gamma=0.1)
+            lr_scheduler2 = optim.lr_scheduler.StepLR(optimizer2, 1, gamma=0.1)
+
+            return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
+
+    model = LessBoringModel()
+    model.training_epoch_end = None
     model.configure_optimizers = model.configure_optimizers__multiple_schedulers
 
     lr_monitor = LearningRateMonitor(logging_interval=logging_interval)
@@ -150,7 +184,22 @@ def test_lr_monitor_param_groups(tmpdir):
     """ Test that learning rates are extracted and logged for single lr scheduler. """
     tutils.reset_seed()
 
-    model = BoringModel()
+    class LessBoringModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.learning_rate = 0.1
+
+        def configure_optimizers__param_groups(self):
+            param_groups = [
+                {'params': list(self.parameters())[:2], 'lr': self.learning_rate * 0.1},
+                {'params': list(self.parameters())[2:], 'lr': self.learning_rate}
+            ]
+
+            optimizer = optim.Adam(param_groups)
+            lr_scheduler = optim.lr_scheduler.StepLR(optimizer, 1, gamma=0.1)
+            return [optimizer], [lr_scheduler]
+
+    model = LessBoringModel()
     model.configure_optimizers = model.configure_optimizers__param_groups
 
     lr_monitor = LearningRateMonitor()
