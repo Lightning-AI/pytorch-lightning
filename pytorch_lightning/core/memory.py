@@ -161,10 +161,9 @@ class ModelSummary(object):
         ------------------------------------------------------------
         0 | net  | Sequential | 132 K  | [10, 256] | [10, 512]
         ------------------------------------------------------------
-                              Totals
-        Trainable params      132 K
-        Non-trainable params  0
-        Total params          132 K
+        132 K     Trainable params
+        0         Non-trainable params
+        132 K     Total params
         >>> ModelSummary(model, mode='full')  # doctest: +NORMALIZE_WHITESPACE
           | Name  | Type        | Params | In sizes  | Out sizes
         --------------------------------------------------------------
@@ -172,10 +171,9 @@ class ModelSummary(object):
         1 | net.0 | Linear      | 131 K  | [10, 256] | [10, 512]
         2 | net.1 | BatchNorm1d | 1 K    | [10, 512] | [10, 512]
         --------------------------------------------------------------
-                              Totals
-        Trainable params      132 K
-        Non-trainable params  0
-        Total params          132 K
+        132 K     Trainable params
+        0         Non-trainable params
+        132 K     Total params
     """
 
     MODE_TOP = "top"
@@ -276,7 +274,8 @@ class ModelSummary(object):
             modules_to_ignore = ["ModuleList", "Sequential"]
             param_nums = [layer.num_parameters for i, layer in enumerate(self._layer_summary.values())
                           if self.layer_types[i] not in modules_to_ignore]
-            trainable_param_nums = [layer.num_trainable_parameters for i, layer in enumerate(self._layer_summary.values())
+            trainable_param_nums = [layer.num_trainable_parameters
+                                    for i, layer in enumerate(self._layer_summary.values())
                                     if self.layer_types[i] not in modules_to_ignore]
 
             total_params = sum(param_nums)
@@ -423,14 +422,11 @@ def _format_summary_table(total_params: int, total_trainable_params: int, *cols)
         summary += "\n" + " | ".join(line)
     summary += "\n" + "-" * total_width
 
-    # Biggest text below is "Non-trainable params"
-    params_summary_margin = len("Non-trainable params") + 2
-    summary += "\n" + " " * params_summary_margin + "Totals"
-    summary += "\n" + s.format("Trainable params", params_summary_margin)
-    summary += get_human_readable_count(total_trainable_params)
-    summary += "\n" + s.format("Non-trainable params", params_summary_margin)
-    summary += get_human_readable_count(total_params - total_trainable_params)
-    summary += "\n" + s.format("Total params", params_summary_margin)
-    summary += get_human_readable_count(total_params)
+    summary += "\n" + s.format(get_human_readable_count(total_trainable_params), 10)
+    summary += "Trainable params"
+    summary += "\n" + s.format(get_human_readable_count(total_params - total_trainable_params), 10)
+    summary += "Non-trainable params"
+    summary += "\n" + s.format(get_human_readable_count(total_params), 10)
+    summary += "Total params"
 
     return summary
