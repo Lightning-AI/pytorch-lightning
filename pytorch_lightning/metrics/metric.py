@@ -80,7 +80,6 @@ class Metric(nn.Module, ABC):
         self._persistent = {}
         self._reductions = {}
 
-
     def add_state(
         self, name: str, default, dist_reduce_fx: Optional[Union[str, Callable]] = None, persistent: bool = True
     ):
@@ -141,6 +140,7 @@ class Metric(nn.Module, ABC):
         self._persistent[name] = persistent
         self._reductions[name] = dist_reduce_fx
 
+    @torch.jit.unused
     def forward(self, *args, **kwargs):
         """
         Automatically calls ``update()``. Returns the metric value over inputs if ``compute_on_step`` is True.

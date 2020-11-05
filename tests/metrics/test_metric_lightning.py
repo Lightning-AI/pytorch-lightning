@@ -7,6 +7,7 @@ from pytorch_lightning.metrics import Metric
 from tests.base.boring_model import BoringModel
 import tests.base.develop_utils as tutils
 
+
 class SumMetric(Metric):
     def __init__(self):
         super().__init__()
@@ -91,7 +92,7 @@ class TestModel(BoringModel):
     def __init__(self):
         super().__init__()
         self.metric = SumMetric()
-        self.p = torch.nn.Linear(1,1) # fake params
+        self.p = torch.nn.Linear(1,1)  # fake params
 
     def training_step(self, batch, batch_idx):
         val = self.metric(batch[0])
@@ -100,6 +101,7 @@ class TestModel(BoringModel):
 
     def configure_optimizers(self):
         return None
+
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_metric_lightning_ddp(tmpdir):
@@ -127,4 +129,39 @@ def test_metric_lightning_ddp(tmpdir):
         "Metrics did not accumulate correctly in ddp mode"
 
 
+def test_scriptable(tmpdir):
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            # the metric is not used in the module's `forward`
+            # so the module should be exportable to TorchScript
+            self.metric = SumMetric()
+            self.sum = 0.0
 
+        def training_step(self, batch, batch_idx):
+            x = batch
+            self.metric(x.sum())
+            self.sum += x.sum()
+            self.log("sum", self.metric, on_epoch=True, on_step=False)
+            return self.step(x)
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
+        log_every_n_steps=1,
+        weights_summary=None,
+        logger=False,
+        checkpoint_callback=False,
+    )
+    trainer.fit(model)
+    rand_input = torch.randn(10, 32)
+
+    script_model = model.to_torchscript()
+
+    # test that we can still do inference
+    output = model(rand_input)
+    script_output = script_model(rand_input)
+    assert torch.allclose(output, script_output)
