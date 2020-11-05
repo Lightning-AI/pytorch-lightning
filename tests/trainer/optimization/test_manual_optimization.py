@@ -414,7 +414,7 @@ class ExtendedModel(BoringModel):
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_automatic_optimization_false(tmpdir):
+def test_automatic_optimization_false_and_return_tensor(tmpdir):
     """
     This test verify that in `automatic_optimization` we don't add gradient if the user return loss.
     """
@@ -432,17 +432,27 @@ def test_automatic_optimization_false(tmpdir):
         automatic_optimization=False,
         precision=16,
         amp_backend='native',
-        accelerator="ddp",
+        accelerator="ddp_spawn",
         gpus=2,
     )
     trainer.fit(model)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_automatic_optimization_false_atest_automatic_optimization_falsend_return_detached_tensor(tmpdir):
+    """
+    This test verify that in `automatic_optimization`
+    we don't add gradient if the user return loss + raise an error
+    """
 
     model = ExtendedModel()
     model.detach = True
     model.training_step_end = None
     model.training_epoch_end = None
 
-    with pytest.raises(MisconfigurationException, match='`training_step` should not'):
+    match = "In manual optimization, `training_step` should not return a Tensor"
+    with pytest.raises(MisconfigurationException, match=match):
         trainer = Trainer(
             max_epochs=1,
             default_root_dir=tmpdir,
@@ -452,7 +462,7 @@ def test_automatic_optimization_false(tmpdir):
             automatic_optimization=False,
             precision=16,
             amp_backend='native',
-            accelerator="ddp_spawn",
+            accelerator="ddp",
             gpus=2,
         )
         trainer.fit(model)
