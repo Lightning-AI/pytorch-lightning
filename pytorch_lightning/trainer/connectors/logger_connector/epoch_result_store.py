@@ -546,7 +546,8 @@ class EpochResultStore:
                 fx_name -> dl_idx -> opt_idx
             * ELSE fx_name -> dl_idx
 
-        Note: As soon as a param is None, it breaks the chain and return associated stored data.
+        Note:
+            As soon as a param is None, it breaks the chain and returns associated stored data.
 
         Example:
 
