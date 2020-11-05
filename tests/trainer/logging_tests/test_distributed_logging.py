@@ -26,7 +26,7 @@ class TestModel(BoringModel):
         with mock.patch('pytorch_lightning.loggers.base.LightningLoggerBase.agg_and_log_metrics') as m:
             self.trainer.logger_connector.log_metrics({'a': 2}, {})
             logged_times = m.call_count
-            expected = 1 if self.trainer.is_global_zero else 0
+            expected = int(self.trainer.is_global_zero)
             msg = f'actual logger called from non-global zero, logged_times: {logged_times}, expected: {expected}'
             assert logged_times == expected, msg
 
