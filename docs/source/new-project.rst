@@ -176,7 +176,7 @@ Of course, nothing is stopping you from using forward from within the training_s
 
     def training_step(self, batch, batch_idx):
         ...
-        z = self(x)
+        z = self.forward(x)
 
 It really comes down to your application. We do however, recommend that you keep both intents separate.
 
