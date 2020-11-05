@@ -195,7 +195,7 @@ def test_train_step_epoch_end_scalar(tmpdir):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_dpp_reduce_mean_(tmpdir):
+def test_dpp_reduce_mean_pbar(tmpdir):
     class ExtentedModel(BoringModel):
 
         logged = []
@@ -209,22 +209,14 @@ def test_dpp_reduce_mean_(tmpdir):
     model.training_step_end = None
     model.training_epoch_end = None
 
-    debug = False
-    if debug:
-        distributed_backend = None
-        gpus = 0
-    else:
-        distributed_backend = "ddp"
-        gpus = 2
-
     trainer = Trainer(
         max_epochs=1,
         default_root_dir=os.getcwd(),
         limit_train_batches=10,
         limit_test_batches=2,
         limit_val_batches=2,
-        distributed_backend=distributed_backend,
-        gpus=gpus,
+        distributed_backend="ddp",
+        gpus=2,
         precision=32,
         )
 
