@@ -140,47 +140,47 @@ class HookResultStore:
         results.update(func(*args, add_dataloader_idx=add_dataloader_idx, **kwargs))
         return results
 
-    def get_batch_pbar_metrics(self, latest=True, *args, **kwargs):
+    def run_lastest_from_func_name(self, func_name, cached_ref, cache_result, *args, **kwargs) -> Dict:
+        """
+        This function used cache_ref and cache_result to optimize loading metrics
+
+        Context: As we update the logger_connector metrics on every `self.log` call,
+        and it can be pretty time consuming, especially when logging outside batch loop.
+
+        HookResultStore keeps track of its latest added result object,
+        and cache its pbar and log metrics if already called on,
+        """
         results = []
         for dl_idx in range(self.num_dataloaders):
             dl_idx = str(dl_idx)
 
             latest_result = self._latest_ref[dl_idx]
 
-            is_dl_idx_in = dl_idx in self._cached_latest_pbar_ref
+            is_dl_idx_in = dl_idx in cached_ref
             is_same_ref = False
             if is_dl_idx_in:
-                is_same_ref = self._cached_latest_pbar_ref[dl_idx] == self._latest_ref
+                is_same_ref = cached_ref[dl_idx] == self._latest_ref
 
             if not is_dl_idx_in or not is_same_ref:
-                self._cached_latest_pbar_ref[dl_idx] = latest_result
-                result = self.get_lastest_from_func_name(latest_result, "get_batch_pbar_metrics", *args, **kwargs)
-                self._cached_latest_pbar_metrics[dl_idx] = result
+                cached_ref[dl_idx] = latest_result
+                result = self.get_lastest_from_func_name(latest_result, func_name, *args, **kwargs)
+                cache_result[dl_idx] = result
                 results.append(result)
             else:
-                results.append(self._cached_latest_pbar_metrics[dl_idx])
+                results.append(cache_result[dl_idx])
         return dict(ChainMap(*results))
 
-    def get_batch_log_metrics(self, latest=True, *args, **kwargs):
-        results = []
-        for dl_idx in range(self.num_dataloaders):
-            dl_idx = str(dl_idx)
+    def get_batch_pbar_metrics(self, *args, **kwargs):
+        return self.run_lastest_from_func_name("get_batch_pbar_metrics",
+                                               self._cached_latest_pbar_ref,
+                                               self._cached_latest_pbar_metrics,
+                                               *args, **kwargs)
 
-            latest_result = self._latest_ref[dl_idx]
-
-            is_dl_idx_in = dl_idx in self._cached_latest_log_ref
-            is_same_ref = False
-            if is_dl_idx_in:
-                is_same_ref = self._cached_latest_log_ref[dl_idx] == self._latest_ref
-
-            if not is_dl_idx_in or not is_same_ref:
-                self._cached_latest_log_ref[dl_idx] = latest_result
-                result = self.get_lastest_from_func_name(latest_result, "get_batch_log_metrics", *args, **kwargs)
-                self._cached_latest_log_metrics[dl_idx] = result
-                results.append(result)
-            else:
-                results.append(self._cached_latest_log_metrics[dl_idx])
-        return dict(ChainMap(*results))
+    def get_batch_log_metrics(self, *args, **kwargs):
+        return self.run_lastest_from_func_name("get_batch_log_metrics",
+                                               self._cached_latest_log_ref,
+                                               self._cached_latest_log_metrics,
+                                               *args, **kwargs)
 
     def run_epoch_func(self, results, opt_metric, func_name, *args, **kwargs) -> None:
         if isinstance(opt_metric, Result):
@@ -495,7 +495,7 @@ class EpochResultStore:
         results = {}
         for fx_name, hook_result in self._internals.items():
             func = getattr(hook_result, func_name)
-            results.update(func(latest=True, include_forked_originals=False))
+            results.update(func(include_forked_originals=False))
         return results
 
     def get_latest_batch_log_metrics(self) -> Dict:
