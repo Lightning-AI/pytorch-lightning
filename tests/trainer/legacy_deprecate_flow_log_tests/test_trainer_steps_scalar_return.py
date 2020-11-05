@@ -14,10 +14,13 @@
 """
 Tests to ensure that the training loop works with a scalar
 """
+import os
 import torch
+import pytest
 
 from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
+from tests.base import BoringModel
 
 
 def test_training_step_scalar(tmpdir):
@@ -189,3 +192,40 @@ def test_train_step_epoch_end_scalar(tmpdir):
     opt_closure_result = trainer.train_loop.training_step_and_backward(
         batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
     assert opt_closure_result['loss'].item() == 171
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_dpp_reduce_mean_(tmpdir):
+    class ExtentedModel(BoringModel):
+
+        logged = []
+
+        def training_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            return {"loss": torch.ones(1).to(self.device)}
+
+    model = ExtentedModel()
+    model.training_step_end = None
+    model.training_epoch_end = None
+
+    debug = False
+    if debug:
+        distributed_backend = None
+        gpus = 0
+    else:
+        distributed_backend = "ddp"
+        gpus = 2
+
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=os.getcwd(),
+        limit_train_batches=10,
+        limit_test_batches=2,
+        limit_val_batches=2,
+        distributed_backend=distributed_backend,
+        gpus=gpus,
+        precision=32,
+        )
+
+    trainer.fit(model)
