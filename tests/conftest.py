@@ -7,10 +7,8 @@ import pytest
 import torch.multiprocessing as mp
 import coverage
 
-rcfile = os.path.join(os.getcwd(), ".coveragerc")
-os.environ["COVERAGE_PROCESS_START"] = rcfile
-coverage.process_startup()
-
+rcfile = os.path.join(os.path.dirname(__file__), ".coveragerc")
+os.environ["COVERAGE_PROCESS_START"] = os.path.abspath(rcfile)
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "spawn: spawn test in a separate process using torch.multiprocessing.spawn")
