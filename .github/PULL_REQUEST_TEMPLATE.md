@@ -27,7 +27,7 @@ Before you start reviewing make sure you have read [Review guidelines](https://g
 
  - [ ] Is this pull request ready for review? (if not, please submit in draft mode)
  - [ ] Check that all items from **Before submitting** are resolved
- - [ ] Check that title is self explanatory and description well explains what is this PR about
+ - [ ] Make sure the title is self explanatory and the description concisely explains the PR
  - [ ] Add labels and milestones (and optionally projects) to the PR so it can be classified
  
 
