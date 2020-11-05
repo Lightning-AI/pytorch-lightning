@@ -29,7 +29,7 @@ jobs:
 
     # We do this, since failures on test.pypi aren't that bad
     - name: Publish to Test PyPI
-      uses: pypa/gh-action-pypi-publish@v1.4
+      uses: pypa/gh-action-pypi-publish@v1
       with:
         user: __token__
         password: ${{ secrets.test_pypi_password }}
@@ -63,8 +63,8 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             XLA_VERSION=${{ matrix.xla_version }}
-          cache-from: pytorchlightning/pytorch_lightning:base-xla-cache-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
-          cache-to: pytorchlightning/pytorch_lightning:base-xla-cache-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
+          cache-from: pytorchlightning/pytorch_lightning:base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
+          cache-to: type=inline
           file: dockers/base-xla/Dockerfile
           push: true
           tags: pytorchlightning/pytorch_lightning:base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
@@ -111,8 +111,8 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
-          cache-from: pytorchlightning/pytorch_lightning:base-cuda-cache-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
-          cache-to: pytorchlightning/pytorch_lightning:base-cuda-cache-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
+          cache-from: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
+          cache-to: type=inline
           file: dockers/base-cuda/Dockerfile
           push: true
           tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
@@ -127,8 +127,8 @@ jobs:
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             PYTORCH_CHANNEL=${{ steps.extend.outputs.CHANNEL }}
             CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
-          cache-from: pytorchlightning/pytorch_lightning:base-conda-cache-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
-          cache-to: pytorchlightning/pytorch_lightning:base-conda-cache-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
+          cache-from: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
+          cache-to: type=inline
           file: dockers/base-conda/Dockerfile
           push: true
           tags: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
