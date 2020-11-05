@@ -25,7 +25,6 @@ local pipeline(name, image) = {
       name: "testing",
       image: image,
       environment: {
-        "SLURM_LOCALID": 0,
         "CODECOV_TOKEN": {
           from_secret: "codecov_token"
         },
