@@ -546,12 +546,13 @@ class EpochResultStore:
                 fx_name -> dl_idx -> opt_idx
             * ELSE fx_name -> dl_idx
 
-        Note: As soon as a param is None, it breaks the chain and return associated stored data.
+        Note:
+            As soon as a param is None, it breaks the chain and returns associated stored data.
 
-        Example:
+        Example::
 
-        result: Result = self(fx_name="training_step", dl_idx="0", opt_idx="0", reduced=True)
-        result['train_loss_epoch'] # aggregated train_loss over one epoch.
+            result: Result = self(fx_name="training_step", dl_idx="0", opt_idx="0", reduced=True)
+            result['train_loss_epoch'] # aggregated train_loss over one epoch.
 
         Args:
 
