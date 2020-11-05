@@ -30,40 +30,26 @@ local pipeline(name, image) = {
           from_secret: "codecov_token"
         },
         "MKL_THREADING_LAYER": "GNU",
-        "HOROVOD_GPU_OPERATIONS": "NCCL",
-        "HOROVOD_WITH_PYTORCH": 1,
-        "HOROVOD_WITHOUT_TENSORFLOW": 1,
-        "HOROVOD_WITHOUT_MXNET": 1,
-        "HOROVOD_WITH_GLOO": 1,
-        "HOROVOD_WITHOUT_MPI": 1,
       },
       commands: [
-        "export PATH=$PATH:/root/.local/bin",
         "python --version",
-        "pip install pip -U",
         "pip --version",
         "nvidia-smi",
-        "apt-get update && apt-get install -y cmake",
-        "pip install -r ./requirements/base.txt -q --upgrade-strategy only-if-needed",
-        "pip install -r ./requirements/devel.txt -q --upgrade-strategy only-if-needed",
-        "pip install -r ./requirements/examples.txt -q --upgrade-strategy only-if-needed",
-        // "pip install -r ./requirements/docs.txt -q --upgrade-strategy only-if-needed",
+        "pip install -r ./requirements/devel.txt --upgrade-strategy only-if-needed -v --no-cache-dir",
         "pip list",
-        "python -c 'import torch ; print(' & '.join([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())]) if torch.cuda.is_available() else 'only CPU')'",
-        "coverage run --source pytorch_lightning -m py.test pytorch_lightning tests -v --durations=25", // --flake8",
-        "python -m py.test benchmarks pl_examples -v --maxfail=2 --durations=0", // --flake8",
-        // "cd docs; make doctest; make coverage",
+        "coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --color=yes --durations=25",
+        "python -m pytest benchmarks pl_examples -v --color=yes --maxfail=2 --durations=0",
         "coverage report",
-        // see: https://docs.codecov.io/docs/merging-reports
         "codecov --token $CODECOV_TOKEN --flags=gpu,pytest --name='GPU-coverage' --env=linux --build $DRONE_BUILD_NUMBER --commit $DRONE_COMMIT",
-        // "--build $DRONE_BUILD_NUMBER --branch $DRONE_BRANCH --commit $DRONE_COMMIT --tag $DRONE_TAG --pr $DRONE_PULL_REQUEST",
-        // "- codecov --token $CODECOV_TOKEN --flags=gpu,pytest --build $DRONE_BUILD_NUMBER",
         "python tests/collect_env_details.py"
       ],
     },
   ],
   trigger: {
-    branch: "master",
+    branch: [
+        "master",
+        "release/*"
+    ],
     event: [
       "push",
       "pull_request"
