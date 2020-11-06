@@ -204,6 +204,8 @@ class AcceleratorConnector:
         use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and self._is_using_torchelastic()
         use_ddp_cpu_slurm = use_ddp_cpu_spawn and self.trainer.is_slurm_managing_tasks
 
+        use_horovod_ray = self.trainer.use_horovod and self.trainer.distributed_backend == "horovod_ray"
+
         # ddp script mode uses the same flags as TE
         # TODO: decouple from TE
         if os.environ.get('PL_IN_DDP_SUBPROCESS', False):
@@ -272,6 +274,9 @@ class AcceleratorConnector:
 
         elif self.trainer.use_dp:
             accelerator_backend = accelerators.DataParallelAccelerator(self.trainer, cluster_env)
+
+        elif use_horovod_ray:
+            accelerator_backend = accelerators.HorovodRayAccelerator(self.trainer, cluster_env)
 
         elif self.trainer.use_horovod:
             accelerator_backend = accelerators.HorovodAccelerator(self.trainer, cluster_env)
@@ -347,6 +352,8 @@ class AcceleratorConnector:
             self.trainer.on_gpu = False
         elif self.trainer.distributed_backend == "horovod":
             self._set_horovod_backend()
+        elif self.trainer.distributed_backend == "horovod_ray":
+            self.trainer.use_horovod = True
 
         # throw error to force user ddp or ddp2 choice
         if self.trainer.num_nodes > 1 and not (self.trainer.use_ddp2 or self.trainer.use_ddp):

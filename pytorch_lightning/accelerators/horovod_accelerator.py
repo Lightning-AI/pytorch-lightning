@@ -1,4 +1,5 @@
 # Copyright The PyTorch Lightning team.
+# Modifications copyright Uber Technologies, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,6 +38,9 @@ class HorovodAccelerator(Accelerator):
         self.nickname = 'horovod'
 
     def setup(self, model):
+        self.setup_worker(model)
+
+    def setup_worker(self, model):
         # call setup after the ddp process has connected
         self.trainer.call_setup_hook(model)
 
@@ -92,6 +96,9 @@ class HorovodAccelerator(Accelerator):
         self.trainer.model = model
 
     def train(self):
+        self.train_worker()
+
+    def train_worker(self):
         with ExitStack() as stack:
             for optimizer in self.trainer.optimizers:
                 # Synchronization will be performed explicitly following backward()
