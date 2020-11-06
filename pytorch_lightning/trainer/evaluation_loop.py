@@ -212,16 +212,6 @@ class EvaluationLoop(object):
 
         return deprecated_results
 
-    def log_epoch_metrics(self, deprecated_eval_results, epoch_logs, test_mode):
-        using_eval_result = self.is_using_eval_results()
-        eval_loop_results = self.trainer.logger_connector.on_evaluation_epoch_end(
-            deprecated_eval_results,
-            epoch_logs,
-            using_eval_result,
-            test_mode
-        )
-        return eval_loop_results
-
     def log_epoch_metrics_on_evaluation_end(self):
         # get the final loop results
         eval_loop_results = self.trainer.logger_connector.get_evaluate_epoch_results(self.testing)
