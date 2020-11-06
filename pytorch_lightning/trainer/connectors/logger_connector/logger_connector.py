@@ -287,7 +287,7 @@ class LoggerConnector:
                     self.trainer.logger_connector.evaluation_callback_metrics.update(eval_result.callback_metrics)
             else:
                 self.trainer.logger_connector.callback_metrics.update(eval_results.callback_metrics)
-                self.trainer.logger_connector.evaluation_callback_metrics.update(eval_result.callback_metrics)
+                self.trainer.logger_connector.evaluation_callback_metrics.update(eval_results.callback_metrics)
         else:
             flat = {}
             if isinstance(eval_results, list):
