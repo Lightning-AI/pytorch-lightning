@@ -393,12 +393,15 @@ class DummyLogger(LightningLoggerBase):
         self._experiment = DummyExperiment()
 
     @property
+    @rank_zero_experiment
     def experiment(self):
         return self._experiment
 
+    @rank_zero_only
     def log_metrics(self, metrics, step):
         pass
 
+    @rank_zero_only
     def log_hyperparams(self, params):
         pass
 
