@@ -105,7 +105,7 @@ def _precision_recall_curve_compute(
         pos_label: int,
         sample_weights: Optional[Sequence] = None,
 ) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
-           Tuple[List[torch.Tensor],List[torch.Tensor],List[torch.Tensor]]]:
+           Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]]:
 
     if num_classes == 1:
         fps, tps, thresholds = _binary_clf_curve(
@@ -138,7 +138,7 @@ def _precision_recall_curve_compute(
         return precision, recall, thresholds
 
     # Recursively call per class
-    precision, recall, thresholds = [],[],[]
+    precision, recall, thresholds = [], [], []
     for c in range(num_classes):
         preds_c = preds[:, c]
         res = precision_recall_curve(
@@ -162,7 +162,7 @@ def precision_recall_curve(
         pos_label: Optional[int] = None,
         sample_weights: Optional[Sequence] = None,
 ) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
-           Tuple[List[torch.Tensor],List[torch.Tensor],List[torch.Tensor]]]:
+           Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]]:
     """
     Computes precision-recall pairs for different thresholds.
 

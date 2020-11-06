@@ -22,7 +22,7 @@ def sk_precision_recall_curve(y_true, probas_pred, num_classes=1):
     if num_classes == 1:
         return _sk_precision_recall_curve(y_true, probas_pred)
 
-    precision, recall, thresholds = [],[],[]
+    precision, recall, thresholds = [], [], []
     for i in range(num_classes):
         y_true_temp = np.zeros_like(y_true)
         y_true_temp[y_true == i] = 1

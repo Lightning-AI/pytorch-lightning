@@ -77,8 +77,9 @@ class ROC(Metric):
         [tensor([0., 0., 1.]), tensor([0., 0., 1.]), tensor([0.0000, 0.3333, 1.0000]), tensor([0.0000, 0.3333, 1.0000])]
         >>> tpr
         [tensor([0., 1., 1.]), tensor([0., 1., 1.]), tensor([0., 0., 1.]), tensor([0., 0., 1.])]
-        >>> thresholds
-        [tensor([1.8500, 0.8500, 0.0500]), tensor([1.8500, 0.8500, 0.0500]), tensor([1.8500, 0.8500, 0.0500]), tensor([1.8500, 0.8500, 0.0500])]
+        >>> thresholds # doctest: +NORMALIZE_WHITESPACE
+        [tensor([1.8500, 0.8500, 0.0500]), tensor([1.8500, 0.8500, 0.0500]),
+         tensor([1.8500, 0.8500, 0.0500]), tensor([1.8500, 0.8500, 0.0500])]
 
     """
     def __init__(
@@ -127,7 +128,7 @@ class ROC(Metric):
         self.pos_label = pos_label
 
     def compute(self) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
-                               Tuple[List[torch.Tensor],List[torch.Tensor],List[torch.Tensor]]]:
+                               Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]]:
         """
         Compute the receiver operating characteristic
 

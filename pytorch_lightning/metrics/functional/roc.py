@@ -37,7 +37,7 @@ def _roc_compute(
         pos_label: int,
         sample_weights: Optional[Sequence] = None,
 ) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
-           Tuple[List[torch.Tensor],List[torch.Tensor],List[torch.Tensor]]]:
+           Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]]:
 
     if num_classes == 1:
         fps, tps, thresholds = _binary_clf_curve(
@@ -87,7 +87,7 @@ def roc(
         pos_label: Optional[int] = None,
         sample_weights: Optional[Sequence] = None,
 ) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
-           Tuple[List[torch.Tensor],List[torch.Tensor],List[torch.Tensor]]]:
+           Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]]:
     """
     Computes the Receiver Operating Characteristic (ROC).
 
@@ -135,8 +135,9 @@ def roc(
         [tensor([0., 0., 1.]), tensor([0., 0., 1.]), tensor([0.0000, 0.3333, 1.0000]), tensor([0.0000, 0.3333, 1.0000])]
         >>> tpr
         [tensor([0., 1., 1.]), tensor([0., 1., 1.]), tensor([0., 0., 1.]), tensor([0., 0., 1.])]
-        >>> thresholds
-        [tensor([1.8500, 0.8500, 0.0500]), tensor([1.8500, 0.8500, 0.0500]), tensor([1.8500, 0.8500, 0.0500]), tensor([1.8500, 0.8500, 0.0500])]
+        >>> thresholds # doctest: +NORMALIZE_WHITESPACE
+        [tensor([1.8500, 0.8500, 0.0500]), tensor([1.8500, 0.8500, 0.0500]),
+         tensor([1.8500, 0.8500, 0.0500]), tensor([1.8500, 0.8500, 0.0500])]
 
     """
     preds, target, num_classes, pos_label = _roc_update(preds, target,

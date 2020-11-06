@@ -127,7 +127,7 @@ class PrecisionRecallCurve(Metric):
         self.pos_label = pos_label
 
     def compute(self) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
-                               Tuple[List[torch.Tensor],List[torch.Tensor],List[torch.Tensor]]]:
+                               Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]]:
         """
         Compute the precision-recall curve
 
