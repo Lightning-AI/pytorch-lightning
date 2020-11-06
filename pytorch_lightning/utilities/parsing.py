@@ -233,7 +233,7 @@ def lightning_getattr(model, attribute):
     holder = lightning_get_attr_holder(model, attribute)
     if holder is None:
         raise ValueError(f'{attribute} is neither stored in the model namespace'
-                             ' nor the `hparams` namespace/dict, nor the datamodule.')
+                         ' nor the `hparams` namespace/dict, nor the datamodule.')
 
     if isinstance(holder, dict):
         return holder[attribute]
@@ -255,4 +255,3 @@ def lightning_setattr(model, attribute, value):
         holder[attribute] = value
     else:
         setattr(holder, attribute, value)
-
