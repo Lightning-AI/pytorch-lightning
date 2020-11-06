@@ -37,7 +37,7 @@ ENV TZ=Europe/Prague
 ENV PATH="$PATH:/root/.local/bin"
 ENV CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda"
 
-RUN apt-get update && \
+RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends \
         build-essential \
         pkg-config \
@@ -93,7 +93,6 @@ RUN \
 
     # Install all requirements
     pip install -r requirements/devel.txt --upgrade-strategy only-if-needed --use-feature=2020-resolver && \
-    pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda${CUDA_VERSION/./} && \
     rm -rf requirements*
 
 RUN \
@@ -102,7 +101,25 @@ RUN \
     pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./apex && \
     rm -rf apex
 
+ENV CMAKE_VERSION=3.16.9
+
 RUN \
+    # need to  install cmake > 3.13 for DALI build
+    apt-get remove cmake -y && \
+    wget https://cmake.org/files/v${CMAKE_VERSION%.*}/cmake-${CMAKE_VERSION}-Linux-x86_64.sh --progress=bar:force:noscroll && \
+    bash cmake-${CMAKE_VERSION}-Linux-x86_64.sh --skip-license && \
+    rm cmake-${CMAKE_VERSION}-Linux-x86_64.sh && \
+    cmake --version
+
+RUN \
+    apt-get update -qq && \
+    apt-get install -y \
+        libopencv-dev \
+        libsndfile-dev \
+        libavfilter-dev \
+        libprotobuf-dev \
+        protobuf-compiler \
+    && \
     # Get DALI source code:
     git clone --recursive https://github.com/NVIDIA/DALI && \
     cd DALI && \
@@ -110,14 +127,26 @@ RUN \
     mkdir build && \
     cd build && \
     # Run CMake. For additional options you can pass to CMake, refer to Optional CMake build parameters.
-    cmake -D CMAKE_BUILD_TYPE=Release .. && \
+    cmake \
+        -D CMAKE_BUILD_TYPE=Release \
+        -D CMAKE_CXX_STANDARD=14 \
+        .. && \
     # Build. You can use -j option to execute it in several threads
     make -j"$(nproc)" && \
     # In order to run DALI using Python API, you need to install Python bindings
     pip install dali/python && \
     # claan-up
     cd ../.. && \
-    rm -rf DALI
+    rm -rf DALI && \
+    apt-get remove -y \
+        libopencv-dev \
+        libsndfile-dev \
+        libavfilter-dev \
+        libprotobuf-dev \
+        protobuf-compiler \
+    && \
+    apt-get autoremove -y && \
+    apt-get clean && \
 
 RUN \
     # Show what we have

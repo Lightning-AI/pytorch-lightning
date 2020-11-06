@@ -104,7 +104,6 @@ RUN \
     # Install remaining requirements
     pip install -r requirements-extra.txt --upgrade-strategy only-if-needed && \
     pip install -r requirements-test.txt --upgrade-strategy only-if-needed && \
-    pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda${CUDA_VERSION/./} && \
     rm requirements*
 
 RUN \
@@ -112,6 +111,8 @@ RUN \
     git clone https://github.com/NVIDIA/apex && \
     pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./apex && \
     rm -rf apex
+
+# todo: add DALI
 
 RUN \
     # Show what we have
