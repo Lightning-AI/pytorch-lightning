@@ -326,7 +326,15 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
     TestTubeLogger,
     WandbLogger,
 ])
-def test_logger_with_prefix(tmpdir, logger_class):
+def test_logger_with_prefix_all(tmpdir, monkeypatch, logger_class):
+    _patch_comet_atexit(monkeypatch)
+    try:
+        _test_loggers_with_prefix(tmpdir, logger_class)
+    except (ImportError, ModuleNotFoundError):
+        pytest.xfail(f"pickle test requires {logger_class.__class__} dependencies to be installed.")
+
+
+def _test_loggers_with_prefix(tmpdir, logger_class):
     os.environ['PL_DEV_DEBUG'] = '0'
     model = EvalModelTemplate()
 
