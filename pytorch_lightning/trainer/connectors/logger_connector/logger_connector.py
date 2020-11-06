@@ -59,10 +59,9 @@ class LoggerConnector:
                                                                  on_epoch=on_epoch)
 
     def on_evaluation_batch_start(self, testing, batch, dataloader_idx, num_dataloaders):
-        # reset the result of the PL module
         model = self.trainer.get_model()
+        # set dataloader_idx only if multiple ones
         model._current_dataloader_idx = dataloader_idx if num_dataloaders > 1 else None
-
         # track batch_size
         self.cached_results._batch_size = Result.extract_batch_size(batch)
 
