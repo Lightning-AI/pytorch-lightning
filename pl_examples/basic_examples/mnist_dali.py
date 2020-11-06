@@ -75,6 +75,7 @@ class ExternalSourcePipeline(Pipeline):
     def __init__(self, batch_size, eii, num_threads, device_id):
         super(ExternalSourcePipeline, self).__init__(batch_size, num_threads, device_id, seed=12)
         self.source = ops.ExternalSource(source=eii, num_outputs=2)
+        self.build()
 
     def define_graph(self):
         images, labels = self.source()
@@ -174,15 +175,12 @@ def cli_main():
     eii_test = ExternalMNISTInputIterator(mnist_test, args.batch_size)
 
     pipe_train = ExternalSourcePipeline(batch_size=args.batch_size, eii=eii_train, num_threads=2, device_id=0)
-    pipe_train.build()
     train_loader = DALIClassificationLoader(pipe_train, size=len(mnist_train), auto_reset=True, fill_last_batch=False)
 
     pipe_val = ExternalSourcePipeline(batch_size=args.batch_size, eii=eii_val, num_threads=2, device_id=0)
-    pipe_val.build()
     val_loader = DALIClassificationLoader(pipe_val, size=len(mnist_val), auto_reset=True, fill_last_batch=False)
 
     pipe_test = ExternalSourcePipeline(batch_size=args.batch_size, eii=eii_test, num_threads=2, device_id=0)
-    pipe_test.build()
     test_loader = DALIClassificationLoader(pipe_test, size=len(mnist_test), auto_reset=True, fill_last_batch=False)
 
     # ------------
