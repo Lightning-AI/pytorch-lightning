@@ -127,12 +127,6 @@ class CheckpointConnector:
         # restore the state_dict on the model
         model.load_state_dict(checkpoint['state_dict'])
 
-        # restore amp scaling
-        if self.trainer.amp_backend == AMPType.NATIVE and 'native_amp_scaling_state' in checkpoint:
-            self.trainer.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
-        elif self.trainer.amp_backend == AMPType.APEX and 'amp_scaling_state' in checkpoint:
-            amp.load_state_dict(checkpoint['amp_scaling_state'])
-
     def restore_training_state(self, checkpoint):
         """
         Restore trainer state.
@@ -154,6 +148,12 @@ class CheckpointConnector:
                 " `python -m pytorch_lightning.utilities.upgrade_checkpoint --file model.ckpt`"
                 " where `model.ckpt` is your checkpoint file."
             )
+
+        # restore amp scaling
+        if self.trainer.amp_backend == AMPType.NATIVE and 'native_amp_scaling_state' in checkpoint:
+            self.trainer.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
+        elif self.trainer.amp_backend == AMPType.APEX and 'amp_scaling_state' in checkpoint:
+            amp.load_state_dict(checkpoint['amp_scaling_state'])
 
         # restore callback states
         self.trainer.on_load_checkpoint(checkpoint)
