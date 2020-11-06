@@ -22,8 +22,8 @@ from pytorch_lightning.utilities import AMPType
 
 class DDPShardedAccelerator(DDPAccelerator):
 
-    def __init__(self, trainer, cluster_environment=None):
-        super().__init__(trainer, cluster_environment)
+    def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
+        super().__init__(trainer, cluster_environment, ddp_plugin)
         self.nickname = 'ddp_sharded'
 
     def setup_optimizers(self, model):
@@ -46,14 +46,15 @@ class DDPShardedAccelerator(DDPAccelerator):
         """
         fairscale_zero_optimizers = []
         for optimizer in optimizers:
-            optim_class = type(optimizer)
-            zero_optimizer = LightningOSS(
-                params=optimizer.param_groups,
-                optim=optim_class,
-                **optimizer.defaults
-            )
-            fairscale_zero_optimizers.append(zero_optimizer)
-            del optimizer
+            if not isinstance(optimizer, LightningOSS):
+                optim_class = type(optimizer)
+                zero_optimizer = LightningOSS(
+                    params=optimizer.param_groups,
+                    optim=optim_class,
+                    **optimizer.defaults
+                )
+                fairscale_zero_optimizers.append(zero_optimizer)
+                del optimizer
         return fairscale_zero_optimizers
 
     def sync_optim_state(self):
@@ -63,7 +64,10 @@ class DDPShardedAccelerator(DDPAccelerator):
     def configure_ddp(
             self, model: "LightningModule", device_ids: List[int]
     ):
-        model = LightningShardedDataParallel(model, sharded_optimizer=self.trainer.optimizers)
+        if self.trainer.model.testing:  # Stick to standard DDP if using testing
+            model = self.ddp_plugin.configure_ddp(model, device_ids)
+        else:
+            model = LightningShardedDataParallel(model, sharded_optimizer=self.trainer.optimizers)
         return model
 
     def training_step(self, args):

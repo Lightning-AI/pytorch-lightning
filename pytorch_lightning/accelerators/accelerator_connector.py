@@ -270,14 +270,18 @@ class AcceleratorConnector:
                 ddp_plugin=self.trainer.plugin_connector.ddp_plugin
             )
 
+        elif self.trainer.use_ddp_sharded:
+            accelerator_backend = accelerators.DDPShardedAccelerator(
+                self.trainer,
+                cluster_env,
+                ddp_plugin=self.trainer.plugin_connector.ddp_plugin
+            )
+
         elif self.trainer.use_dp:
             accelerator_backend = accelerators.DataParallelAccelerator(self.trainer, cluster_env)
 
         elif self.trainer.use_horovod:
             accelerator_backend = accelerators.HorovodAccelerator(self.trainer, cluster_env)
-
-        elif self.trainer.use_ddp_sharded:
-            accelerator_backend = accelerators.DDPShardedAccelerator(self.trainer, cluster_env)
 
         elif self.trainer.use_single_gpu:
             accelerator_backend = accelerators.GPUAccelerator(self.trainer, cluster_env)
