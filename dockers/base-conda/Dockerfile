@@ -35,7 +35,8 @@ SHELL ["/bin/bash", "-c"]
 
 ENV PATH="$PATH:/root/.local/bin"
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
         git \
