@@ -111,7 +111,7 @@ class CheckpointConnector:
 
     def restore_model_states(self, model: LightningModule, checkpoint) -> None:
         """
-        Restore model states from a 'PyTorch-Lihgtning checkpoint' dictionary object
+        Restore model states from a 'PyTorch-Lightning checkpoint' dictionary object
         """
 
         # give the datamodule a chance to load something
