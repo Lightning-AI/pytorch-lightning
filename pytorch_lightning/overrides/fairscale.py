@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Dict, Any, List, Tuple, Union
-from torch import nn
-import torch
-from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel, Gatekeeper
+
+from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
 from fairscale.optim import OSS
+from torch import nn
 
 from pytorch_lightning.utilities import rank_zero_warn
 
@@ -78,8 +78,6 @@ class LightningShardedDataParallel(ShardedDataParallel):
         self.module = base_model
 
     def forward(self, *inputs, **kwargs):
-        batch, batch_idx = inputs
-
         if self.broadcast_buffers:
             self.sync_buffers()
 
@@ -93,16 +91,18 @@ class LightningShardedDataParallel(ShardedDataParallel):
                         self._bucket_state[sharded_optimizer][device][r][1],
                     )
 
-        # All inputs need to required_grad for autograd to properly track the first dispatch layer
-        for i in batch:
-            if isinstance(i, torch.Tensor) and i.is_floating_point():
-                i.requires_grad = True
-        # Register the model dispatch in the autograd graph
-        batch = Gatekeeper.apply(self._reduce_work_handles, *batch)
         if self.base_model.training:
-            outputs = self.base_model.training_step(batch, batch_idx, **kwargs)
+            outputs = self.base_model.training_step(*inputs, **kwargs)
         elif self.base_model.testing:
-            outputs = self.base_model.test_step(batch, batch_idx, **kwargs)
+            outputs = self.base_model.test_step(*inputs, **kwargs)
         else:
-            outputs = self.base_model.validation_step(batch, batch_idx, **kwargs)
+            outputs = self.base_model.validation_step(*inputs, **kwargs)
         return outputs
+
+    def clear_backward_handles(self):
+        # Consume the handles, make sure that all the reduces are done before the optimizer can step
+        while len(self._reduce_work_handles) > 0:
+            wh, callback = self._reduce_work_handles.pop()
+            if wh is not None:
+                wh.wait()
+                callback()

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List
+from typing import List, cast
 
 import torch
 
@@ -87,3 +87,16 @@ class DDPShardedAccelerator(DDPAccelerator):
         else:
             output = self.trainer.model(*args)
         return output
+
+    def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
+        closure_loss = super().backward(
+            closure_loss=closure_loss,
+            optimizer=optimizer,
+            opt_idx=opt_idx,
+            *args,
+            **kwargs
+        )
+        # Ensure all backward handles have been called before calling optimizer step
+        self.trainer.model = cast(LightningShardedDataParallel, self.trainer.model)
+        self.trainer.model.clear_backward_handles()
+        return closure_loss
