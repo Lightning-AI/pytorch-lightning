@@ -103,10 +103,13 @@ class CheckpointConnector:
         # load model state
         model = self.trainer.get_model()
 
-        # restore states
-        self.restore_model_states(model, checkpoint)
+        # restore model and datamodule state
+        self.restore_model_state(model, checkpoint)
+
         if on_gpu:
             model.cuda(self.trainer.root_gpu)
+
+        # restore training state
         self.restore_training_state(checkpoint)
 
     def restore_model_states(self, model: LightningModule, checkpoint) -> None:
