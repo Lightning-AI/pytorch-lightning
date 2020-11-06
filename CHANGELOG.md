@@ -33,7 +33,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added metrics aggregation in Horovod and fixed early stopping ([#3775](https://github.com/PyTorchLightning/pytorch-lightning/pull/3775))
 
 
-- Added logging using `self.log` in train and evaluation for most callbacks and model hooks ([#4552](https://github.com/PyTorchLightning/pytorch-lightning/pull/4552)) ([#4495](https://github.com/PyTorchLightning/pytorch-lightning/pull/4495)) ([#4439](https://github.com/PyTorchLightning/pytorch-lightning/pull/4439))
+- Added logging using `self.log` in train and evaluation for most callbacks and model hooks ([#4552](https://github.com/PyTorchLightning/pytorch-lightning/pull/4552),
+    [#4495](https://github.com/PyTorchLightning/pytorch-lightning/pull/4495),
+    [#4439](https://github.com/PyTorchLightning/pytorch-lightning/pull/4439))
 
 
 ### Changed
