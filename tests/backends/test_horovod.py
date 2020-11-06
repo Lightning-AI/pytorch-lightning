@@ -54,8 +54,6 @@ def _nccl_available():
     try:
         return nccl_built()
     except AttributeError:
-        # Horovod 0.19.1 nccl_built() does not yet work with Python 3.8:
-        # See: https://github.com/horovod/horovod/issues/1891
         return False
 
 
