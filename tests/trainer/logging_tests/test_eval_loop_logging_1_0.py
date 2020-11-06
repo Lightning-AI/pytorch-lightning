@@ -303,20 +303,16 @@ def test_eval_logging_auto_reduce(tmpdir):
     # make sure correct values were logged
     logged_val = trainer.dev_debugger.logged_metrics
 
-    # sanity check
-    assert logged_val[0]['global_step'] == 0
-    assert logged_val[1]['global_step'] == 0
-
     # 3 val batches
-    assert logged_val[2]['val_loss_step/epoch_0'] == model.seen_vals[0]
-    assert logged_val[3]['val_loss_step/epoch_0'] == model.seen_vals[1]
-    assert logged_val[4]['val_loss_step/epoch_0'] == model.seen_vals[2]
+    assert logged_val[1]['val_loss_step/epoch_0'] == model.seen_vals[0]
+    assert logged_val[2]['val_loss_step/epoch_0'] == model.seen_vals[1]
+    assert logged_val[3]['val_loss_step/epoch_0'] == model.seen_vals[2]
 
     # epoch mean
-    assert logged_val[5]['val_loss_epoch'] == model.manual_epoch_end_mean
+    assert logged_val[4]['val_loss_epoch'] == model.manual_epoch_end_mean
 
     # only those logged
-    assert len(logged_val) == 6
+    assert len(logged_val) == 4
 
 
 @pytest.mark.parametrize(['batches', 'log_interval', 'max_epochs'], [(1, 1, 1), (64, 32, 2)])
@@ -324,7 +320,7 @@ def test_eval_epoch_only_logging(tmpdir, batches, log_interval, max_epochs):
     """
     Tests that only test_epoch_end can be used to log, and we return them in the results.
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
+    os.environ['PL_DEV_DEBUG'] = '0'
 
     class TestModel(BoringModel):
         def test_epoch_end(self, outputs):
@@ -441,12 +437,15 @@ def test_log_works_in_val_callback(tmpdir):
         funcs_called_count = collections.defaultdict(int)
         funcs_attr = {}
 
-        def make_logging(self, pl_module: pl.LightningModule, func_name, func_idx, on_steps=[], on_epochs=[], prob_bars=[]):
+        def make_logging(self, pl_module: pl.LightningModule, func_name,
+                         func_idx, on_steps=[], on_epochs=[], prob_bars=[]):
             self.funcs_called_count[func_name] += 1
-            for idx, (on_step, on_epoch, prog_bar) in enumerate(list(itertools.product(*[on_steps, on_epochs, prob_bars]))):
+            product = [on_steps, on_epochs, prob_bars]
+            for idx, (on_step, on_epoch, prog_bar) in enumerate(list(itertools.product(*product))):
                 # run logging
                 custom_func_name = f"{func_idx}_{idx}_{func_name}"
-                pl_module.log(custom_func_name, self.count * func_idx, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
+                pl_module.log(custom_func_name, self.count * func_idx,
+                              on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
                 # catch information for verification
                 self.callback_funcs_called[func_name].append([self.count * func_idx])
                 self.funcs_attr[custom_func_name] = {
@@ -612,16 +611,19 @@ def test_log_works_in_test_callback(tmpdir):
         funcs_called_count = collections.defaultdict(int)
         funcs_attr = {}
 
-        def make_logging(self, pl_module: pl.LightningModule, func_name, func_idx, on_steps=[], on_epochs=[], prob_bars=[]):
+        def make_logging(self, pl_module: pl.LightningModule, func_name,
+                         func_idx, on_steps=[], on_epochs=[], prob_bars=[]):
             original_func_name = func_name[:]
             self.funcs_called_count[original_func_name] += 1
-            for idx, t in enumerate(list(itertools.product(*[on_steps, on_epochs, prob_bars]))):
+            product = [on_steps, on_epochs, prob_bars]
+            for idx, t in enumerate(list(itertools.product(*product))):
                 # run logging
                 func_name = original_func_name[:]
                 on_step, on_epoch, prog_bar = t
                 custom_func_name = f"{func_idx}_{idx}_{func_name}"
 
-                pl_module.log(custom_func_name, self.count * func_idx, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
+                pl_module.log(custom_func_name, self.count * func_idx,
+                              on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
 
                 num_dl_ext = ''
                 if pl_module._current_dataloader_idx is not None:
