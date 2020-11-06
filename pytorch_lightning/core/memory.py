@@ -182,9 +182,10 @@ class ModelSummary(object):
     MODES = [MODE_FULL, MODE_TOP]
 
     def __init__(self, model, mode: str = MODE_DEFAULT):
+        assert mode in ModelSummary.MODES, f"ModelSummary mode must be one of {ModelSummary.MODES} but is {mode}"
         self._model = model
         self._mode = mode
-        self._layer_summary = self.summarize()
+        self._layer_summary = self.summarize(self.named_modules)
 
     @property
     def named_modules(self) -> List[Tuple[str, nn.Module]]:
@@ -222,8 +223,8 @@ class ModelSummary(object):
     def trainable_param_nums(self) -> List[int]:
         return [layer.num_trainable_parameters for layer in self._layer_summary.values()]
 
-    def summarize(self) -> Dict[str, LayerSummary]:
-        summary = OrderedDict((name, LayerSummary(module)) for name, module in self.named_modules)
+    def summarize(self, named_modules: List[Tuple[str, nn.Module]]) -> Dict[str, LayerSummary]:
+        summary = OrderedDict((name, LayerSummary(module)) for name, module in named_modules)
         if self._model.example_input_array is not None:
             self._forward_example_input()
         for layer in summary.values():
@@ -270,18 +271,16 @@ class ModelSummary(object):
             arrays.append(["Out sizes", self.out_sizes])
 
         if self._mode == ModelSummary.MODE_FULL:
-            # Ignore ModuleList and Sequential since they show the sum of parameters of its contents
-            modules_to_ignore = ["ModuleList", "Sequential"]
-            param_nums = [layer.num_parameters for i, layer in enumerate(self._layer_summary.values())
-                          if self.layer_types[i] not in modules_to_ignore]
-            trainable_param_nums = [layer.num_trainable_parameters
-                                    for i, layer in enumerate(self._layer_summary.values())
-                                    if self.layer_types[i] not in modules_to_ignore]
+            # get only the top-level modules to calculate total params
+            named_modules = list(self._model.named_children())
+            layer_summary = self.summarize(named_modules)
+            param_nums = [layer.num_parameters for layer in layer_summary.values()]
+            trainable_param_nums = [layer.num_trainable_parameters for layer in layer_summary.values()]
 
             total_params = sum(param_nums)
             total_trainable_params = sum(trainable_param_nums)
 
-        elif self._mode == ModelSummary.MODE_TOP:
+        else:  # if self._mode == ModelSummary.MODE_TOP:
             total_params = sum(self.param_nums)
             total_trainable_params = sum(self.trainable_param_nums)
 
