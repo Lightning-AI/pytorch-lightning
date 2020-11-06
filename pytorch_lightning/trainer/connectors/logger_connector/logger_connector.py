@@ -36,6 +36,7 @@ class LoggerConnector:
     def __init__(self, trainer):
         self.trainer = trainer
         self.callback_metrics = {}
+        self.evaluation_callback_metrics = {}
         self.logged_metrics = {}
         self.progress_bar_metrics = {}
         self.eval_loop_results = []
@@ -237,7 +238,7 @@ class LoggerConnector:
         self.cached_results.has_batch_loop_finished = True
 
     def add_to_eval_loop_results(self, dl_idx, has_been_initialized):
-        callback_metrics = deepcopy(self.callback_metrics)
+        callback_metrics = deepcopy(self.evaluation_callback_metrics)
         for key in list(callback_metrics.keys()):
             if "dataloader_idx" in key:
                 if f"dataloader_idx_{dl_idx}" not in key:
@@ -283,8 +284,10 @@ class LoggerConnector:
             if isinstance(eval_results, list):
                 for eval_result in eval_results:
                     self.trainer.logger_connector.callback_metrics.update(eval_result.callback_metrics)
+                    self.trainer.logger_connector.evaluation_callback_metrics.update(eval_result.callback_metrics)
             else:
                 self.trainer.logger_connector.callback_metrics.update(eval_results.callback_metrics)
+                self.trainer.logger_connector.evaluation_callback_metrics.update(eval_result.callback_metrics)
         else:
             flat = {}
             if isinstance(eval_results, list):
@@ -300,6 +303,7 @@ class LoggerConnector:
                         flat['checkpoint_on'] = flat['val_loss']
                         flat['early_stop_on'] = flat['val_loss']
                     self.trainer.logger_connector.callback_metrics.update(flat)
+                    self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
             else:
                 # with a scalar return, auto set it to "val_loss" for callbacks
                 if isinstance(eval_results, torch.Tensor):
@@ -312,6 +316,7 @@ class LoggerConnector:
                     flat['checkpoint_on'] = flat['val_loss']
                     flat['early_stop_on'] = flat['val_loss']
                 self.trainer.logger_connector.callback_metrics.update(flat)
+                self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
 
     def __process_eval_epoch_end_results_and_log_legacy_update(self, prog_bar_metrics, log_metrics, callback_metrics):
         # eval loop returns all metrics
@@ -325,9 +330,10 @@ class LoggerConnector:
             self.trainer.logger_connector.log_metrics(log_metrics, {})
 
         # track metrics for callbacks (all prog bar, logged and callback metrics)
+        callback_metrics.update(log_metrics)
+        callback_metrics.update(prog_bar_metrics)
         self.trainer.logger_connector.callback_metrics.update(callback_metrics)
-        self.trainer.logger_connector.callback_metrics.update(log_metrics)
-        self.trainer.logger_connector.callback_metrics.update(prog_bar_metrics)
+        self.trainer.logger_connector.evaluation_callback_metrics.update(callback_metrics)
 
         if len(dataloader_result_metrics) > 0:
             self.eval_loop_results.append(dataloader_result_metrics)

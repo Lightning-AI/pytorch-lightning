@@ -452,6 +452,9 @@ class EpochResultStore:
             callback_metrics.update(epoch_log_metrics)
             callback_metrics.update(forked_metrics)
 
+        if not is_train:
+            logger_connector.evaluation_callback_metrics.update(callback_metrics)
+
         # update callback_metrics
         logger_connector.callback_metrics.update(callback_metrics)
         logger_connector.callback_metrics.pop("epoch", None)
