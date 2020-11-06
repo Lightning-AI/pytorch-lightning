@@ -84,7 +84,7 @@ class WandbLogger(LightningLoggerBase):
         project: Optional[str] = None,
         log_model: bool = False,
         experiment=None,
-        prefix: str='',
+        prefix: str = '',
         **kwargs
     ):
         if wandb is None:
