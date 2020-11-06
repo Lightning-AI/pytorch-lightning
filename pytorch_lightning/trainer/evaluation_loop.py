@@ -199,21 +199,21 @@ class EvaluationLoop(object):
             output = self.trainer.call_hook('validation_step_end', *args, **kwargs)
         return output
 
-    def evaluation_epoch_end(self, num_dataloaders):
+    def evaluation_epoch_end(self):
+        # inform logger_connector batch loop is finished
+        self.trainer.logger_connector.evaluation_epoch_end(self.testing)
+
         using_eval_result = self.is_using_eval_results()
 
         # call the model epoch end
-        deprecated_results = self.__run_eval_epoch_end(num_dataloaders, using_eval_result)
-
-        # 1.0
-        epoch_logs = self.trainer.get_model()._results
+        deprecated_results = self.__run_eval_epoch_end(self.num_dataloaders, using_eval_result)
 
         # enable returning anything
         for i, r in enumerate(deprecated_results):
             if not isinstance(r, (dict, Result, torch.Tensor)):
                 deprecated_results[i] = []
 
-        return deprecated_results, epoch_logs
+        return deprecated_results
 
     def log_epoch_metrics(self, deprecated_eval_results, epoch_logs, test_mode):
         using_eval_result = self.is_using_eval_results()
@@ -223,6 +223,11 @@ class EvaluationLoop(object):
             using_eval_result,
             test_mode
         )
+        return eval_loop_results
+
+    def log_epoch_metrics_on_evaluation_end(self):
+        # get the final loop results
+        eval_loop_results = self.trainer.logger_connector.get_evaluate_epoch_results(self.testing)
         return eval_loop_results
 
     def __run_eval_epoch_end(self, num_dataloaders, using_eval_result):
@@ -271,7 +276,7 @@ class EvaluationLoop(object):
         if not isinstance(eval_results, list):
             eval_results = [eval_results]
 
-        # support depreceated tracking metrics
+        # track depreceated metrics
         self.trainer.logger_connector.track_metrics_deprecated(eval_results, using_eval_result, self.testing)
 
         return eval_results
@@ -342,30 +347,26 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_epoch_end', *args, **kwargs)
 
-    def log_evaluation_step_metrics(self, batch, batch_idx):
-        results = self.trainer.get_model()._results
-        if len(results) == 1:
-            return None
-
-        results.track_batch_size(batch)
-        self.__log_result_step_metrics(results, batch_idx)
-
-        return results
-
-    # TODO: deprecate at 1.0
-    def log_evaluation_step_metrics_legacy(self, output, batch_idx):
+    def log_evaluation_step_metrics(self, output, batch_idx):
         if self.trainer.running_sanity_check:
             return
 
+        step_log_metrics = {}
+        step_pbar_metrics = {}
         if isinstance(output, EvalResult):
-            self.__log_result_step_metrics(output, batch_idx)
+            step_log_metrics = output.get_batch_log_metrics(include_forked_originals=False)
+            step_pbar_metrics = output.get_batch_pbar_metrics(include_forked_originals=False)
 
-    def __log_result_step_metrics(self, output, batch_idx):
-        step_log_metrics = output.get_batch_log_metrics(include_forked_originals=False)
-        step_pbar_metrics = output.get_batch_pbar_metrics(include_forked_originals=False)
+        self.__log_result_step_metrics(step_log_metrics, step_pbar_metrics, batch_idx)
 
+    def __log_result_step_metrics(self, step_log_metrics, step_pbar_metrics, batch_idx):
         cached_batch_log_metrics = \
             self.trainer.logger_connector.cached_results.get_latest_batch_log_metrics()
+        cached_batch_pbar_metrics = \
+            self.trainer.logger_connector.cached_results.get_latest_batch_pbar_metrics()
+
+        step_log_metrics.update(cached_batch_log_metrics)
+        step_pbar_metrics.update(cached_batch_pbar_metrics)
 
         if len(step_log_metrics) > 0:
             # make the metrics appear as a different line in the same graph

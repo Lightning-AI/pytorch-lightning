@@ -21,6 +21,7 @@ from pytorch_lightning import callbacks, seed_everything
 from tests.base.deterministic_model import DeterministicModel
 from tests.base import SimpleModule, BoringModel, RandomDataset
 import os
+import numpy as np
 import itertools
 import collections
 import torch
@@ -524,7 +525,7 @@ def test_log_works_in_val_callback(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        limit_train_batches=0,
+        limit_train_batches=1,
         limit_val_batches=4,
         limit_test_batches=0,
         val_check_interval=0.,
