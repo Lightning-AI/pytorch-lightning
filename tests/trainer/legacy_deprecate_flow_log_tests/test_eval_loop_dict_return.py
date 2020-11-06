@@ -44,7 +44,7 @@ def test_validation_step_no_return(tmpdir):
     # out are the results of the full loop
     # eval_results are output of _evaluate
     out, eval_results = trainer.run_evaluation(test_mode=False)
-    assert len(out) == 0
+    assert len(out) == 1
     assert len(eval_results) == 0
 
     # make sure correct steps were called
@@ -75,7 +75,7 @@ def test_validation_step_scalar_return(tmpdir):
     # out are the results of the full loop
     # eval_results are output of _evaluate
     out, eval_results = trainer.run_evaluation(test_mode=False)
-    assert len(out) == 0
+    assert len(out) == 1
     assert len(eval_results) == 2
     assert eval_results[0] == 171 and eval_results[1] == 171
 
@@ -148,7 +148,7 @@ def test_validation_step_dict_return(tmpdir):
     # eval_results are output of _evaluate
     callback_metrics, eval_results = trainer.run_evaluation(test_mode=False)
     assert len(callback_metrics) == 1
-    assert len(callback_metrics[0]) == 5
+    assert len(callback_metrics[0]) == 7
     assert len(eval_results) == 2
     assert eval_results[0]['log']['log_acc1'] == 12
     assert eval_results[1]['log']['log_acc1'] == 13
@@ -225,7 +225,7 @@ def test_val_step_step_end(tmpdir):
     # eval_results are output of _evaluate
     callback_metrics, eval_results = trainer.run_evaluation(test_mode=False)
     assert len(callback_metrics) == 1
-    assert len(callback_metrics[0]) == 6
+    assert len(callback_metrics[0]) == 8
 
     callback_metrics = callback_metrics[0]
     assert callback_metrics['val_step_end'] == 1802
@@ -273,7 +273,7 @@ def test_no_val_step_end(tmpdir):
     # eval_results are output of _evaluate
     callback_metrics, eval_results = trainer.run_evaluation(test_mode=False)
     assert len(callback_metrics) == 1
-    assert len(callback_metrics[0]) == 6
+    assert len(callback_metrics[0]) == 8
     assert len(eval_results) == 1
 
     eval_results = eval_results[0]
@@ -319,7 +319,7 @@ def test_full_val_loop(tmpdir):
     # eval_results are output of _evaluate
     callback_metrics, eval_results = trainer.run_evaluation(test_mode=False)
     assert len(callback_metrics) == 1
-    assert len(callback_metrics[0]) == 7
+    assert len(callback_metrics[0]) == 9
     assert len(eval_results) == 1
 
     eval_results = eval_results[0]
