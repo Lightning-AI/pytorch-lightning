@@ -30,7 +30,7 @@ To test models that require GPU make sure to run the above command on a GPU mach
 The GPU machine must have:
 1. At least 2 GPUs.
 2. [NVIDIA-apex](https://github.com/NVIDIA/apex#linux) installed.
-3. [Horovod with NCCL](https://horovod.readthedocs.io/en/stable/gpus_include.html) support: `HOROVOD_GPU_ALLREDUCE=NCCL HOROVOD_GPU_BROADCAST=NCCL pip install horovod`
+3. [Horovod with NCCL](https://horovod.readthedocs.io/en/stable/gpus_include.html) support: `HOROVOD_GPU_OPERATIONS=NCCL pip install horovod`
 
 
 ## Running Coverage   
