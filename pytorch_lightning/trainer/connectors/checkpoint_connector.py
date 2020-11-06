@@ -104,7 +104,7 @@ class CheckpointConnector:
         model = self.trainer.get_model()
 
         # restore model and datamodule state
-        self.restore_model_state(model, checkpoint)
+        self.restore_model_states(model, checkpoint)
 
         if on_gpu:
             model.cuda(self.trainer.root_gpu)
