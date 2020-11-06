@@ -29,7 +29,7 @@ jobs:
 
     # We do this, since failures on test.pypi aren't that bad
     - name: Publish to Test PyPI
-      uses: pypa/gh-action-pypi-publish@master
+      uses: pypa/gh-action-pypi-publish@v1.4.1
       with:
         user: __token__
         password: ${{ secrets.test_pypi_password }}
@@ -57,14 +57,14 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Publish XLA to Docker Hub
-        # publish master
+        # publish master/release
         uses: docker/build-push-action@v2
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             XLA_VERSION=${{ matrix.xla_version }}
-          cache-from: pytorchlightning/pytorch_lightning:base-xla-cache-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
-          cache-to: pytorchlightning/pytorch_lightning:base-xla-cache-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
+          cache-from: pytorchlightning/pytorch_lightning:base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
+          cache-to: type=inline
           file: dockers/base-xla/Dockerfile
           push: true
           tags: pytorchlightning/pytorch_lightning:base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
@@ -76,7 +76,7 @@ jobs:
       fail-fast: false
       matrix:
         python_version: [3.6, 3.7, 3.8]
-        pytorch_version: [1.3, 1.4, 1.5, 1.6]  # todo: , 1.7
+        pytorch_version: [1.3, 1.4, 1.5, 1.6, 1.7]
         exclude:
           # excludes PT 1.3 as it is missing on pypi
           - python_version: 3.8
@@ -104,22 +104,22 @@ jobs:
         id: extend
 
       - name: Publish CUDA to Docker Hub
-        # publish master
+        # publish master/release
         uses: docker/build-push-action@v2
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
-          cache-from: pytorchlightning/pytorch_lightning:base-cuda-cache-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
-          cache-to: pytorchlightning/pytorch_lightning:base-cuda-cache-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
+          cache-from: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
+          cache-to: type=inline
           file: dockers/base-cuda/Dockerfile
           push: true
           tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 55
 
       - name: Publish Conda to Docker Hub
-        # publish master
+        # publish master/release
         uses: docker/build-push-action@v2
         with:
           build-args: |
@@ -127,8 +127,8 @@ jobs:
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             PYTORCH_CHANNEL=${{ steps.extend.outputs.CHANNEL }}
             CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
-          cache-from: pytorchlightning/pytorch_lightning:base-conda-cache-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
-          cache-to: pytorchlightning/pytorch_lightning:base-conda-cache-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
+          cache-from: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
+          cache-to: type=inline
           file: dockers/base-conda/Dockerfile
           push: true
           tags: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
