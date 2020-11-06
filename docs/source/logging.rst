@@ -125,6 +125,7 @@ decorator to make sure that only the first process in DDP training logs data.
 
     from pytorch_lightning.utilities import rank_zero_only
     from pytorch_lightning.loggers import LightningLoggerBase
+    from pytorch_lightning.loggers.base import rank_zero_experiment
 
     class MyLogger(LightningLoggerBase):
 
