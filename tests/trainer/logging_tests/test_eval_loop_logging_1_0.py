@@ -386,7 +386,6 @@ def test_multi_dataloaders_add_suffix_properly(tmpdir):
         weights_summary=None,
     )
     results = trainer.test(model)
-    assert len(results[0]) == len(results[1])
     assert "test_loss_epoch/dataloader_idx_0" in results[0]
     assert "test_loss_epoch/dataloader_idx_1" in results[1]
 

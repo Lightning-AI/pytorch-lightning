@@ -246,7 +246,27 @@ class LoggerConnector:
         eval_loop_results = self._get_evaluate_epoch_results(test_mode)
         return eval_loop_results
 
+    def add_to_eval_loop_results(self, dl_idx, has_been_initialized):
+        callback_metrics = deepcopy(self.callback_metrics)
+        for key in list(callback_metrics.keys()):
+            if "dataloader_idx" in key:
+                if f"dataloader_idx_{dl_idx}" not in key:
+                    # remove dl_idx from self.callback_metrics not belonging to this dataset.
+                    del callback_metrics[key]
+        if has_been_initialized:
+            self.eval_loop_results[dl_idx].update(callback_metrics)
+        else:
+            self.eval_loop_results.append(callback_metrics)
+
+    def prepare_eval_loop_results(self):
+        num_dataloaders = self.trainer.evaluation_loop.num_dataloaders
+        has_been_initialized = len(self.eval_loop_results) == num_dataloaders
+        for dl_idx in range(self.trainer.evaluation_loop.num_dataloaders):
+            self.add_to_eval_loop_results(dl_idx, has_been_initialized)
+
     def get_evaluate_epoch_results(self, test_mode):
+
+        self.prepare_eval_loop_results()
 
         # log results of test
         if test_mode and self.trainer.is_global_zero and self.trainer.verbose_test:
@@ -338,22 +358,6 @@ class LoggerConnector:
         metrics_to_log = dict(ChainMap(*metrics_to_log))
         if len(metrics_to_log) > 0:
             self.log_metrics(metrics_to_log, {})
-
-    def add_to_eval_loop_results(self, dl_idx, num_loaders):
-        callback_metrics = deepcopy(self.callback_metrics)
-        if num_loaders == 1:
-            if len(self.eval_loop_results) > 0:
-                self.eval_loop_results[0].update(callback_metrics)
-            else:
-                self.eval_loop_results.append(callback_metrics)
-            return
-
-        for key in list(callback_metrics.keys()):
-            if "dataloader_idx" in key:
-                if f"dataloader_idx_{dl_idx}" not in key:
-                    # remove dl_idx from self.callback_metrics not belonging to this dataset.
-                    del callback_metrics[key]
-        self.eval_loop_results.append(callback_metrics)
 
     def __rename_keys_by_dataloader_idx(self, metrics, dataloader_idx, num_loaders):
         if num_loaders == 1:
