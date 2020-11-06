@@ -28,6 +28,7 @@ FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel-ubuntu18.04
 
 ARG PYTHON_VERSION=3.7
 ARG PYTORCH_VERSION=1.6
+ARG CMAKE_VERSION=3.18.4
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
@@ -126,10 +127,12 @@ RUN \
     # Create a directory for CMake-generated Makefiles. This will be the directory, that DALI’s built in.
     mkdir build && \
     cd build && \
+    wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.sh && \
+    bash cmake-${CMAKE_VERSION}-Linux-x86_64.sh --skip-license && \
+    rm cmake-${CMAKE_VERSION}-Linux-x86_64.sh && \
+    bin/cmake --version && \
     # Run CMake. For additional options you can pass to CMake, refer to Optional CMake build parameters.
-    cmake \
-        -D CMAKE_BUILD_TYPE=Release \
-        .. && \
+    bin/cmake -D CMAKE_BUILD_TYPE=Release .. && \
     # Build. You can use -j option to execute it in several threads
     make -j"$(nproc)" && \
     # In order to run DALI using Python API, you need to install Python bindings
