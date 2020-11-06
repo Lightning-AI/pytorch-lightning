@@ -104,7 +104,7 @@ class CheckpointConnector:
         model = self.trainer.get_model()
 
         # restore model and datamodule state
-        self.restore_model_states(model, checkpoint)
+        self.restore_model_state(model, checkpoint)
 
         if on_gpu:
             model.cuda(self.trainer.root_gpu)
@@ -112,7 +112,7 @@ class CheckpointConnector:
         # restore training state
         self.restore_training_state(checkpoint)
 
-    def restore_model_states(self, model: LightningModule, checkpoint) -> None:
+    def restore_model_state(self, model: LightningModule, checkpoint) -> None:
         """
         Restore model states from a 'PyTorch-Lightning checkpoint' dictionary object
         """
@@ -350,7 +350,7 @@ class CheckpointConnector:
         model = self.trainer.get_model()
 
         # restore states from 'PyTorch-Lightning checkpoint' dictionary object
-        self.restore_model_states(model, checkpoint)
+        self.restore_model_state(model, checkpoint)
 
         if self.trainer.root_gpu is not None:
             model.cuda(self.trainer.root_gpu)
