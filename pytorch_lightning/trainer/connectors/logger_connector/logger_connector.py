@@ -232,23 +232,42 @@ class LoggerConnector:
         model_ref = self.trainer.get_model()
         model_ref._current_dataloader_idx = None
 
-        # setting `has_batch_loop_finished` to True
-        # will perform Results reduction accross entire epoch.
-        self.cached_results.has_batch_loop_finished = True
-
     def on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, using_eval_result, test_mode):
         self._track_callback_metrics(deprecated_eval_results, using_eval_result)
 
         # TODO: deprecate parts of this for 1.0 (when removing results)
         self.__process_eval_epoch_end_results_and_log_legacy(deprecated_eval_results, test_mode)
 
-        self._log_on_evaluation_epoch_end_metrics(epoch_logs)
-
         # get the final loop results
         eval_loop_results = self._get_evaluate_epoch_results(test_mode)
         return eval_loop_results
 
+    def _get_evaluate_epoch_results(self, test_mode):
+        return None
+
+    def _cleanup_on_evaluation_end(self):
+        # free memory
+        self.cached_results.reset()
+
+        # set stage to train and don't reset its internal metrics.
+        self.set_stage("train", reset=False)
+
+    def prepare_eval_loop_results(self):
+        # setting `has_batch_loop_finished` to True
+        # will perform Results reduction accross entire epoch.
+        self.cached_results.has_batch_loop_finished = True
+
+        num_dataloaders = self.trainer.evaluation_loop.num_dataloaders
+        has_been_filed_already = num_dataloaders == len(self.eval_loop_results)
+
+        for dl_idx in range(self.trainer.evaluation_loop.num_dataloaders):
+            self.add_to_eval_loop_results(dl_idx, has_been_filed_already)
+
     def get_evaluate_epoch_results(self, test_mode):
+
+        # reduce + filter callback_metris to display per dataloader_idx.
+        self.prepare_eval_loop_results()
+
         # log results of test
         if test_mode and self.trainer.is_global_zero and self.trainer.verbose_test:
             print('-' * 80)
@@ -261,7 +280,23 @@ class LoggerConnector:
 
         # clear mem
         self.eval_loop_results = []
+
+        # cleanup for next evaluation.
+        self._cleanup_on_evaluation_end()
+
         return results
+
+    def add_to_eval_loop_results(self, dl_idx, has_been_filed_already):
+        callback_metrics = deepcopy(self.callback_metrics)
+        for key in list(callback_metrics.keys()):
+            if "dataloader_idx" in key:
+                if f"dataloader_idx_{dl_idx}" not in key:
+                    # remove dl_idx from self.callback_metrics not belonging to this dataset.
+                    del callback_metrics[key]
+        if has_been_filed_already:
+            self.eval_loop_results[dl_idx].update(callback_metrics)
+        else:
+            self.eval_loop_results.append(callback_metrics)
 
     def _log_on_evaluation_epoch_end_metrics(self, epoch_logs):
         step_metrics = self.trainer.evaluation_loop.step_metrics
@@ -339,22 +374,6 @@ class LoggerConnector:
         metrics_to_log = dict(ChainMap(*metrics_to_log))
         if len(metrics_to_log) > 0:
             self.log_metrics(metrics_to_log, {})
-
-    def add_to_eval_loop_results(self, dl_idx, num_loaders):
-        callback_metrics = deepcopy(self.callback_metrics)
-        if num_loaders == 1:
-            if len(self.eval_loop_results) > 0:
-                self.eval_loop_results[0].update(callback_metrics)
-            else:
-                self.eval_loop_results.append(callback_metrics)
-            return
-
-        for key in list(callback_metrics.keys()):
-            if "dataloader_idx" in key:
-                if f"dataloader_idx_{dl_idx}" not in key:
-                    # remove dl_idx from self.callback_metrics not belonging to this dataset.
-                    del callback_metrics[key]
-        self.eval_loop_results.append(callback_metrics)
 
     def __rename_keys_by_dataloader_idx(self, metrics, dataloader_idx, num_loaders):
         if num_loaders == 1:

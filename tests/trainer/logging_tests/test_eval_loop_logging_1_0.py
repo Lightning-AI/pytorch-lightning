@@ -303,20 +303,16 @@ def test_eval_logging_auto_reduce(tmpdir):
     # make sure correct values were logged
     logged_val = trainer.dev_debugger.logged_metrics
 
-    # sanity check
-    assert logged_val[0]['global_step'] == 0
-    assert logged_val[1]['global_step'] == 0
-
     # 3 val batches
-    assert logged_val[2]['val_loss_step/epoch_0'] == model.seen_vals[0]
-    assert logged_val[3]['val_loss_step/epoch_0'] == model.seen_vals[1]
-    assert logged_val[4]['val_loss_step/epoch_0'] == model.seen_vals[2]
+    assert logged_val[1]['val_loss_step/epoch_0'] == model.seen_vals[0]
+    assert logged_val[2]['val_loss_step/epoch_0'] == model.seen_vals[1]
+    assert logged_val[3]['val_loss_step/epoch_0'] == model.seen_vals[2]
 
     # epoch mean
-    assert logged_val[5]['val_loss_epoch'] == model.manual_epoch_end_mean
+    assert logged_val[4]['val_loss_epoch'] == model.manual_epoch_end_mean
 
     # only those logged
-    assert len(logged_val) == 6
+    assert len(logged_val) == 4
 
 
 @pytest.mark.parametrize(['batches', 'log_interval', 'max_epochs'], [(1, 1, 1), (64, 32, 2)])
@@ -324,7 +320,7 @@ def test_eval_epoch_only_logging(tmpdir, batches, log_interval, max_epochs):
     """
     Tests that only test_epoch_end can be used to log, and we return them in the results.
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
+    os.environ['PL_DEV_DEBUG'] = '0'
 
     class TestModel(BoringModel):
         def test_epoch_end(self, outputs):

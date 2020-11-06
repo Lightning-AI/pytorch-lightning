@@ -109,9 +109,6 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_end', *args, **kwargs)
 
-        # reset stage to train
-        self.trainer.logger_connector.set_stage("train")
-
     def reload_evaluation_dataloaders(self):
         model = self.trainer.get_model()
         if self.testing:
@@ -200,7 +197,7 @@ class EvaluationLoop(object):
         return output
 
     def evaluation_epoch_end(self):
-        # inform logger_connector batch loop is finished
+        # unset dataloder_idx in model
         self.trainer.logger_connector.evaluation_epoch_end(self.testing)
 
         using_eval_result = self.is_using_eval_results()
