@@ -3,9 +3,9 @@ name: "Docs check"
 
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches: [master]
+    branches: [master, "release/*"]  # include release branches like release/1.0.x
   pull_request:
-    branches: [master]
+    branches: [master, "release/*"]
 
 jobs:
   check-docs:
@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
@@ -68,7 +68,7 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
