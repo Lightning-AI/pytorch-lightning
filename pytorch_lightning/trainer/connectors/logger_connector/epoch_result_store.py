@@ -442,7 +442,8 @@ class EpochResultStore:
             logger_connector.logged_metrics.update(epoch_log_metrics)
             logger_connector.logged_metrics.update(epoch_dict)
             if not self.trainer.running_sanity_check and not is_train:
-                self.trainer.dev_debugger.track_logged_metrics_history(deepcopy(epoch_log_metrics))
+                if len(epoch_log_metrics) > 0:
+                    self.trainer.dev_debugger.track_logged_metrics_history(deepcopy(epoch_log_metrics))
 
             # get forked_metrics
             forked_metrics = self.get_forked_metrics()

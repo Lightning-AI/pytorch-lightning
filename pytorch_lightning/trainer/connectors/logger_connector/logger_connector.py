@@ -232,23 +232,21 @@ class LoggerConnector:
         model_ref = self.trainer.get_model()
         model_ref._current_dataloader_idx = None
 
-        # setting `has_batch_loop_finished` to True
-        # will perform Results reduction accross entire epoch.
-        self.cached_results.has_batch_loop_finished = True
-
     def on_evaluation_epoch_end(self, deprecated_eval_results, epoch_logs, using_eval_result, test_mode):
         self._track_callback_metrics(deprecated_eval_results, using_eval_result)
 
         # TODO: deprecate parts of this for 1.0 (when removing results)
         self.__process_eval_epoch_end_results_and_log_legacy(deprecated_eval_results, test_mode)
 
-        self._log_on_evaluation_epoch_end_metrics(epoch_logs)
-
         # get the final loop results
         eval_loop_results = self._get_evaluate_epoch_results(test_mode)
         return eval_loop_results
 
     def get_evaluate_epoch_results(self, test_mode):
+        # setting `has_batch_loop_finished` to True
+        # will perform Results reduction accross entire epoch.
+        self.cached_results.has_batch_loop_finished = True
+
         # log results of test
         if test_mode and self.trainer.is_global_zero and self.trainer.verbose_test:
             print('-' * 80)
