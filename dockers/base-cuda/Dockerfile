@@ -129,7 +129,6 @@ RUN \
     # Run CMake. For additional options you can pass to CMake, refer to Optional CMake build parameters.
     cmake \
         -D CMAKE_BUILD_TYPE=Release \
-        -D CMAKE_CXX_STANDARD=14 \
         .. && \
     # Build. You can use -j option to execute it in several threads
     make -j"$(nproc)" && \
@@ -152,5 +151,6 @@ RUN \
     # Show what we have
     pip --version && \
     pip list && \
+    python -c 'from nvidia.dali.pipeline import Pipeline' && \
     python -c "import sys; assert sys.version[:3] == '$PYTHON_VERSION', sys.version" && \
     python -c "import torch; assert torch.__version__[:3] == '$PYTORCH_VERSION', torch.__version__"
