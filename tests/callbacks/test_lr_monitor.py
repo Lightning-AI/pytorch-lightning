@@ -65,7 +65,7 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt):
             super().__init__()
             self.learning_rate = 0.01
 
-        def configure_optimizers__onecycle_scheduler(self):
+        def configure_optimizers(self):
             optimizer = optim.SGD(self.parameters(), lr=self.learning_rate, momentum=0.9)
             lr_scheduler = optim.lr_scheduler.OneCycleLR(optimizer,
                                                          max_lr=self.learning_rate,
@@ -73,7 +73,6 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt):
             return [optimizer], [lr_scheduler]
 
     model = LessBoringModel()
-    model.configure_optimizers = model.configure_optimizers__onecycle_scheduler
 
     model = LogMomentumModel(opt=opt)
     lr_monitor = LearningRateMonitor(log_momentum=True)
@@ -181,7 +180,7 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval):
         def training_step(self, batch, batch_idx, optimizer_idx=None):
             return super().training_step(batch, batch_idx)
 
-        def configure_optimizers__multiple_schedulers(self):
+        def configure_optimizers(self):
             optimizer1 = optim.Adam(self.parameters(), lr=self.learning_rate)
             optimizer2 = optim.Adam(self.parameters(), lr=self.learning_rate)
             lr_scheduler1 = optim.lr_scheduler.StepLR(optimizer1, 1, gamma=0.1)
@@ -191,7 +190,6 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval):
 
     model = LessBoringModel()
     model.training_epoch_end = None
-    model.configure_optimizers = model.configure_optimizers__multiple_schedulers
 
     lr_monitor = LearningRateMonitor(logging_interval=logging_interval)
     log_every_n_steps = 2
@@ -231,7 +229,7 @@ def test_lr_monitor_param_groups(tmpdir):
             super().__init__()
             self.learning_rate = 0.1
 
-        def configure_optimizers__param_groups(self):
+        def configure_optimizers(self):
             param_groups = [
                 {'params': list(self.parameters())[:2], 'lr': self.learning_rate * 0.1},
                 {'params': list(self.parameters())[2:], 'lr': self.learning_rate}
@@ -242,7 +240,6 @@ def test_lr_monitor_param_groups(tmpdir):
             return [optimizer], [lr_scheduler]
 
     model = LessBoringModel()
-    model.configure_optimizers = model.configure_optimizers__param_groups
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
