@@ -75,7 +75,7 @@ class ModelCheckpoint(Callback):
             saved (``model.save_weights(filepath)``), else the full model
             is saved (``model.save(filepath)``).
         period: Interval (number of epochs) between checkpoints.
-
+        prefix: A string to put at the beginning of metric keys.
         dirpath: directory to save the model file.
 
             Example::

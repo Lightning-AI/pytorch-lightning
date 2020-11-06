@@ -30,7 +30,7 @@ from pytorch_lightning.loggers import (
     WandbLogger,
 )
 from pytorch_lightning.loggers.base import DummyExperiment
-from tests.base import EvalModelTemplate
+from tests.base import BoringModel, EvalModelTemplate
 from tests.loggers.test_comet import _patch_comet_atexit
 from tests.loggers.test_mlflow import mock_mlflow_run_creation
 
@@ -316,3 +316,59 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
     )
     result = trainer.fit(model)
     assert result == 1
+
+
+@pytest.mark.parametrize('logger_class', [
+    CometLogger,
+    MLFlowLogger,
+    NeptuneLogger,
+    TensorBoardLogger,
+    TestTubeLogger,
+    WandbLogger,
+])
+def test_logger_with_prefix(tmpdir, logger_class):
+    os.environ['PL_DEV_DEBUG'] = '0'
+    model = EvalModelTemplate()
+
+    class StoreHistoryLogger(logger_class):
+        LOGGER_JOIN_CHAR = '_'
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.history = []
+
+        def log_metrics(self, metrics, step):
+            super().log_metrics(metrics, step)
+            metrics = self._add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
+            self.history.append((step, metrics))
+
+    logger_args = _get_logger_args(logger_class, tmpdir)
+    logger_args.update(prefix='tmp')
+    logger = StoreHistoryLogger(**logger_args)
+
+    trainer = Trainer(
+        max_epochs=1,
+        logger=logger,
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+    )
+    trainer.fit(model)
+    trainer.test()
+
+    log_metric_names = [(s, sorted(m.keys())) for s, m in logger.history]
+    if logger_class == TensorBoardLogger:
+        expected = [
+            (0, ['tmp_hp_metric']),
+            (0, ['tmp_epoch', 'tmp_train_some_val']),
+            (0, ['tmp_early_stop_on', 'tmp_epoch', 'tmp_val_acc']),
+            (0, ['tmp_hp_metric']),
+            (1, ['tmp_epoch', 'tmp_test_acc', 'tmp_test_loss'])
+        ]
+        assert log_metric_names == expected
+    else:
+        expected = [
+            (0, ['tmp_epoch', 'tmp_train_some_val']),
+            (0, ['tmp_early_stop_on', 'tmp_epoch', 'tmp_val_acc']),
+            (1, ['tmp_epoch', 'tmp_test_acc', 'tmp_test_loss'])
+        ]
+        assert log_metric_names == expected

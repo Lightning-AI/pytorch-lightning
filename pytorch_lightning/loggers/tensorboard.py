@@ -69,11 +69,13 @@ class TensorBoardLogger(LightningLoggerBase):
             model.
         default_hp_metric: Enables a placeholder metric with key `hp_metric` when `log_hyperparams` is
             called without a metric (otherwise calls to log_hyperparams without a metric are ignored).
+        prefix: A string to put at the beginning of metric keys.
         \**kwargs: Additional arguments like `comment`, `filename_suffix`, etc. used by
             :class:`SummaryWriter` can be passed as keyword arguments in this logger.
 
     """
     NAME_HPARAMS_FILE = 'hparams.yaml'
+    LOGGER_JOIN_CHAR = '-'
 
     def __init__(
         self,
@@ -82,6 +84,7 @@ class TensorBoardLogger(LightningLoggerBase):
         version: Optional[Union[int, str]] = None,
         log_graph: bool = False,
         default_hp_metric: bool = True,
+        prefix: str = '',
         **kwargs
     ):
         super().__init__()
@@ -90,6 +93,7 @@ class TensorBoardLogger(LightningLoggerBase):
         self._version = version
         self._log_graph = log_graph
         self._default_hp_metric = default_hp_metric
+        self._prefix = prefix
         self._fs = get_filesystem(save_dir)
 
         self._experiment = None
@@ -177,6 +181,8 @@ class TensorBoardLogger(LightningLoggerBase):
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
+
+        metrics = self._add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
 
         for k, v in metrics.items():
             if isinstance(v, torch.Tensor):
