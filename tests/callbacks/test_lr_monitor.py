@@ -215,3 +215,8 @@ def test_lr_monitor_param_groups(tmpdir):
         'Number of learning rates logged does not match number of param groups'
     assert all([k in ['lr-Adam/pg1', 'lr-Adam/pg2'] for k in lr_monitor.lrs.keys()]), \
         'Names of learning rates not set correctly'
+
+
+def test_lr_monitor_invalid_logging_interval():
+    with pytest.raises(MisconfigurationException, match=r'logging_interval should be .*'):
+        lr_monitor = LearningRateMonitor(logging_interval='test')

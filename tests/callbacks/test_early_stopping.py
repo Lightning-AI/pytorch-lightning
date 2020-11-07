@@ -219,3 +219,44 @@ def test_early_stopping_functionality_arbitrary_key(tmpdir):
     )
     trainer.fit(model)
     assert trainer.current_epoch >= 5, 'early_stopping failed'
+
+
+def test_early_stopping_invalid_mode():
+    """Tests EarlyStopping invalid mode changes to auto mode and then min and max mode based on monitor."""
+    es = EarlyStopping(mode='test', verbose=True)
+    assert es.mode == 'min'
+
+    es = EarlyStopping(mode='test', monitor='acc')
+    assert es.mode == 'max'
+
+
+def test_early_stopping_monitor_none(tmpdir):
+    """Tests EarlyStopping raises and warns if monitor is None, strict and verbose is True."""
+    model = BoringModel()
+
+    es = EarlyStopping(monitor=None, verbose=False, strict=True)
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=[es],
+                      max_epochs=1, logger=False, limit_train_batches=1, limit_val_batches=1)
+    with pytest.raises(RuntimeError, match=r'Early stopping conditioned on metric .* which is not available.'):
+        trainer.fit(model)
+
+    es = EarlyStopping(monitor=None, verbose=True, strict=False)
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=[es],
+                      max_epochs=1, logger=False, limit_train_batches=1, limit_val_batches=1)
+    with pytest.warns(RuntimeWarning, match=r'Early stopping conditioned on metric.* which is not available.'):
+        trainer.fit(model)
+
+
+def test_early_stopping_non_tensor_monitor(tmpdir):
+    """Tests EarlyStopping converts to Tensor if monitor's value is not Tensor type."""
+    class LessBoringModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            self.log('early_stop_on', 1.)
+            return super().validation_step(batch, batch_idx)
+
+    es = EarlyStopping(patience=0)
+    model = LessBoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=[es], max_epochs=1, logger=False,
+                      limit_train_batches=1, limit_val_batches=1)
+    trainer.fit(model)
+    assert isinstance(trainer.logger_connector.callback_metrics.get('early_stop_on'), torch.Tensor)

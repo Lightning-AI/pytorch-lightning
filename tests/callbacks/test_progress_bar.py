@@ -239,3 +239,15 @@ def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches, expected):
     )
     trainer.fit(model)
     assert trainer.progress_bar_callback.val_progress_bar_total == expected
+
+
+def test_progress_bar_not_implemented_error():
+    class CurrentProgressBar(ProgressBarBase):
+        def __init__(self):
+            super().__init__()
+            pass
+
+    pbar = CurrentProgressBar()
+    with pytest.raises(NotImplementedError):
+        pbar.disable()
+        pbar.enable()
