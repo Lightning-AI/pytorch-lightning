@@ -32,11 +32,6 @@ from torch_geometric.data import NeighborSampler
 
 from lightning import lightning_logo, nice_print
 
-"""
-This script would present how to train Pytorch Geometric
-DNA graph convolution model with Lighting on Cora dataset
-"""
-
 # use to make model jittable
 OptTensor = Optional[Tensor]
 ListTensor = List[Tensor]
@@ -297,7 +292,7 @@ def get_single_batch(datamodule):
 
 def run(args):
 
-    nice_print("You are about to a train TorchScripted Pytorch Geometric Lightning model !")
+    nice_print("You are about to train a TorchScripted Pytorch Geometric Lightning model !")
     nice_print(lightning_logo)
 
     datamodule: LightningDataModule = instantiate_datamodule(args)
