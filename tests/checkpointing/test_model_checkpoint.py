@@ -293,12 +293,9 @@ def test_none_monitor_top_k(tmpdir):
 
 
 def test_none_monitor_save_last(tmpdir):
-    """ Test that a warning appears for save_last=True with monitor=None. """
-    with pytest.raises(
-        MisconfigurationException, match=r'ModelCheckpoint\(save_last=True, monitor=None\) is not a valid.*'
-    ):
-        ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    """ Make sure monitor=None can work with save last. """
     # These should not fail
+    ModelCheckpoint(dirpath=tmpdir, save_last=True)
     ModelCheckpoint(dirpath=tmpdir, save_last=None)
     ModelCheckpoint(dirpath=tmpdir, save_last=False)
 
