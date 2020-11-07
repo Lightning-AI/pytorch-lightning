@@ -26,6 +26,8 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import argparse_utils
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.loggers.base import LightningLoggerBase
 
 
 class TrainerProperties(ABC):
@@ -45,6 +47,8 @@ class TrainerProperties(ABC):
     _default_root_dir: str
     _weights_save_path: str
     default_root_path: str
+    accelerator: Accelerator
+    logger: LightningLoggerBase
     model_connector: ModelConnector
     checkpoint_connector: CheckpointConnector
     callbacks: List[Callback]
@@ -54,12 +58,14 @@ class TrainerProperties(ABC):
         if self.checkpoint_callback is not None:
             dir = self.checkpoint_callback.dirpath
             dir = os.path.split(dir)[0]
-            return dir
         elif self.logger is not None:
-            return self.logger.log_dir
+            dir = self.logger.log_dir
         else:
             dir = self._default_root_dir
-            return dir
+
+        if self.accelerator_backend is not None:
+            dir = self.accelerator_backend.broadcast(dir)
+        return dir
 
     @property
     def use_amp(self) -> bool:
