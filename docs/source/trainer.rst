@@ -48,6 +48,42 @@ This is the basic use of the trainer:
     trainer = Trainer()
     trainer.fit(model, train_dataloader, val_dataloader)
 
+--------
+
+Under the hood
+--------------
+Under the hood, the Lightning Trainer handles the training loop details for you, some examples include:
+
+- Automatically eenabling/disabling grads
+- Running the training, validation and test dataloaders
+- Calling the Callbacks at the appropriate times
+- Putting batches and computations on the correct devices
+
+Here's the pseudocode for what the trainer does under the hood (showing the train loop only)
+
+.. code-block:: python
+
+    # put model in train mode
+    model.train()
+    torch.set_grad_enabled(True)
+
+    losses = []
+    for batch in train_dataloader:
+        # calls hooks like this one
+        on_train_batch_start()
+
+        # train step
+        loss = training_step(batch)
+
+        # backward
+        loss.backward()
+
+        # apply and clear grads
+        optimizer.step()
+        optimizer.zero_grad()
+
+        losses.append(loss)
+
 
 --------
 
