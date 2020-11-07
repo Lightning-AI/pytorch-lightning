@@ -245,18 +245,3 @@ def test_early_stopping_monitor_none(tmpdir):
                       max_epochs=1, logger=False, limit_train_batches=1, limit_val_batches=1)
     with pytest.warns(RuntimeWarning, match=r'Early stopping conditioned on metric.* which is not available.'):
         trainer.fit(model)
-
-
-def test_early_stopping_non_tensor_monitor(tmpdir):
-    """Tests EarlyStopping converts to Tensor if monitor's value is not Tensor type."""
-    class LessBoringModel(BoringModel):
-        def validation_step(self, batch, batch_idx):
-            self.log('early_stop_on', 1.)
-            return super().validation_step(batch, batch_idx)
-
-    es = EarlyStopping(patience=0)
-    model = LessBoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[es], max_epochs=1, logger=False,
-                      limit_train_batches=1, limit_val_batches=1)
-    trainer.fit(model)
-    assert isinstance(trainer.logger_connector.callback_metrics.get('early_stop_on'), torch.Tensor)
