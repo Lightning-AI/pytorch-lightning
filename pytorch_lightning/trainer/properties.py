@@ -47,7 +47,7 @@ class TrainerProperties(ABC):
     _default_root_dir: str
     _weights_save_path: str
     default_root_path: str
-    accelerator: Accelerator
+    accelerator_backend: Accelerator
     logger: LightningLoggerBase
     model_connector: ModelConnector
     checkpoint_connector: CheckpointConnector
