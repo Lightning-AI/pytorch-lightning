@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "lightning-geometric"
 version = "0.1.0"
-description = "TorchScripted Pytorch Geometric Examples with Pytorch Lightning and Hydra"
+description = "TorchScripted Pytorch Geometric Examples with Pytorch Lightning"
 authors = ["Thomas Chaton <thomas.ai@grid.com>"]
 
 [tool.poetry.dependencies]
