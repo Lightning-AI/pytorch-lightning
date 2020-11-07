@@ -24,7 +24,8 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.step_result import EvalResult
+from pytorch_lightning.core.memory import ModelSummary
+from pytorch_lightning.core.step_result import Result, EvalResult
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import BaseProfiler
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
@@ -467,6 +468,9 @@ class Trainer(
     def train(self):
         self.run_sanity_check(self.get_model())
 
+        # set stage for logging
+        self.logger_connector.set_stage("train")
+
         self.checkpoint_connector.has_trained = False
 
         # enable train mode
@@ -479,6 +483,10 @@ class Trainer(
 
         # hook
         self.train_loop.on_train_start()
+
+        if self.train_loop.should_skip_training():
+            self.train_loop.on_train_end()
+            return
 
         try:
             # run all epochs
@@ -530,16 +538,25 @@ class Trainer(
                 self.train_loop.on_train_end()
 
     def run_evaluation(self, test_mode: bool = False, max_batches=None):
+
+        # used to know if we are logging for val, test + reset cached results
+        self.logger_connector.set_stage(test_mode, reset=True)
+
         # bookkeeping
         self.evaluation_loop.testing = test_mode
+
+        # prepare dataloaders
         dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders(max_batches)
+
+        # check if we want to skip this evaluation
         if self.evaluation_loop.should_skip_evaluation(dataloaders, max_batches):
             return [], []
 
-        # enable eval mode + no grads
+        # ref model
         model = self.get_model()
-        self.evaluation_loop.on_evaluation_model_eval()
 
+        # enable eval mode + no grads
+        self.evaluation_loop.on_evaluation_model_eval()
         model.zero_grad()
         torch.set_grad_enabled(False)
 
@@ -703,6 +720,8 @@ class Trainer(
         # --------------------
         self.verbose_test = verbose
 
+        self.logger_connector.set_stage("test")
+
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
         if test_dataloaders and datamodule:
             raise MisconfigurationException(
@@ -821,7 +840,25 @@ class Trainer(
         self.setup(stage_name)
         model.setup(stage_name)
 
+    def _reset_result_and_set_hook_fx_name(self, hook_name):
+        model_ref = self.get_model()
+        if model_ref is not None:
+            # used to track current hook name called
+            model_ref._results = Result()
+            model_ref._current_hook_fx_name = hook_name
+
+    def _cache_logged_metrics(self):
+        model_ref = self.get_model()
+        if model_ref is not None:
+            # capture logging for this hook
+            self.logger_connector.cache_logged_metrics()
+
     def call_hook(self, hook_name, *args, **kwargs):
+        # temporary. Don't modify evaluation behaviour
+        if self.logger_connector._current_stage == "train":
+            # set hook_name to model + reset Result obj
+            self._reset_result_and_set_hook_fx_name(hook_name)
+
         # always profile hooks
         with self.profiler.profile(hook_name):
 
@@ -843,4 +880,8 @@ class Trainer(
                 accelerator_hook = getattr(self.accelerator_backend, hook_name)
                 output = accelerator_hook(*args, **kwargs)
 
-            return output
+        # temporary. Don't modify evaluation behaviour
+        if self.logger_connector._current_stage == "train":
+            # capture logging
+            self._cache_logged_metrics()
+        return output
