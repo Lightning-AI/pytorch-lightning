@@ -366,7 +366,8 @@ class ModelCheckpoint(Callback):
     ) -> str:
         if not filename:
             # filename is not set, use default name
-            filename = "{epoch}-{step}"
+            filename = "{epoch}" + cls.CHECKPOINT_JOIN_CHAR + "{step}"
+
         # check and parse user passed keys in the string
         groups = re.findall(r"(\{.*?)[:\}]", filename)
         if len(groups) >= 0:
