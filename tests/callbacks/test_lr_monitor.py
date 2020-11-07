@@ -260,22 +260,6 @@ def test_lr_monitor_param_groups(tmpdir):
         'Names of learning rates not set correctly'
 
 
-def test_lr_monitor_custom_name(tmpdir):
-    class TestModel(BoringModel):
-        def configure_optimizers(self):
-            optimizer, [scheduler] = super().configure_optimizers()
-            lr_scheduler = {'scheduler': scheduler, 'name': 'my_logging_name'}
-            return optimizer, [lr_scheduler]
-
-    lr_monitor = LearningRateMonitor()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        limit_val_batches=0.1,
-        limit_train_batches=0.5,
-        callbacks=[lr_monitor],
-        progress_bar_refresh_rate=0,
-        weights_summary=None,
-    )
-    trainer.fit(TestModel())
-    assert lr_monitor.lr_sch_names == list(lr_monitor.lrs.keys()) == ['my_logging_name']
+def test_lr_monitor_invalid_logging_interval():
+    with pytest.raises(MisconfigurationException, match=r'logging_interval should be .*'):
+        lr_monitor = LearningRateMonitor(logging_interval='test')
