@@ -53,6 +53,14 @@ class TensorBatch(NamedTuple):
 
 class CoraDataset(LightningDataModule):
 
+    r"""The citation network datasets "Cora", "CiteSeer" and "PubMed" from the
+    `"Revisiting Semi-Supervised Learning with Graph Embeddings"
+    <https://arxiv.org/abs/1603.08861>`_ paper.
+    Nodes represent documents and edges represent citation links.
+    Training, validation and test splits are given by binary masks.
+    c.f https://github.com/rusty1s/pytorch_geometric/blob/master/torch_geometric/datasets/planetoid.py
+    """
+
     NAME = "cora"
 
     def __init__(self,
@@ -138,6 +146,13 @@ class CoraDataset(LightningDataModule):
 ###############################
 
 class DNAConvNet(LightningModule):
+
+    r"""The dynamic neighborhood aggregation operator from the `"Just Jump:
+    Towards Dynamic Neighborhood Aggregation in Graph Neural Networks"
+    <https://arxiv.org/abs/1904.04849>`_ paper
+    c.f https://github.com/rusty1s/pytorch_geometric/blob/master/torch_geometric/nn/conv/dna_conv.py#L172
+    """
+
     def __init__(self,
                  num_layers: int = 2,
                  hidden_channels: int = 128,
