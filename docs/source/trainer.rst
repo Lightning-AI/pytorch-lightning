@@ -1668,7 +1668,15 @@ The metrics sent to the logger (visualizer).
 
 log_dir
 *******
-The directory
+The directory for the current experiment. Use this to save images to, etc...
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        img = ...
+        save_img(img, self.trainer.log_dir)
+
+
 
 is_global_zero
 **************
