@@ -2,6 +2,7 @@
 # python imports
 import os
 import os.path as osp
+import sys
 from functools import partial
 from collections import namedtuple
 from argparse import ArgumentParser
@@ -23,14 +24,17 @@ from pytorch_lightning import (
 )
 from pytorch_lightning.metrics import Accuracy
 
-# Pytorch Geometric imports
-from torch_geometric.nn import DNAConv, MessagePassing
-from torch_geometric.data import DataLoader
-from torch_geometric.datasets import Planetoid
-import torch_geometric.transforms as T
-from torch_geometric.data import NeighborSampler
-
-from lightning import lightning_logo, nice_print
+try:
+    # Pytorch Geometric imports
+    from torch_geometric.nn import DNAConv, MessagePassing
+    from torch_geometric.data import DataLoader
+    from torch_geometric.datasets import Planetoid
+    import torch_geometric.transforms as T
+    from torch_geometric.data import NeighborSampler
+    from lightning import lightning_logo, nice_print
+    HAS_PYTORCH_GEOMETRIC = True
+except:
+    HAS_PYTORCH_GEOMETRIC = False
 
 # use to make model jittable
 OptTensor = Optional[Tensor]
@@ -310,11 +314,14 @@ def run(args):
     nice_print("You trained your first TorchScripted Pytorch Geometric Lightning model !", last=True)
 
 if __name__ == "__main__":
-    parser = ArgumentParser(description="Pytorch Geometric Example")
-    parser = Trainer.add_argparse_args(parser)
-    parser = CoraDataset.add_argparse_args(parser)
-    parser = DNAConvNet.add_argparse_args(parser)
+    if not HAS_PYTORCH_GEOMETRIC:
+        print("Skip training. Pytorch Geometric isn't installed. Please, check README.md !")
+    else:
+        parser = ArgumentParser(description="Pytorch Geometric Example")
+        parser = Trainer.add_argparse_args(parser)
+        parser = CoraDataset.add_argparse_args(parser)
+        parser = DNAConvNet.add_argparse_args(parser)
 
-    cmd_line = '--max_epochs 1'.split(' ')
+        cmd_line = '--max_epochs 1'.split(' ')
 
-    run(parser.parse_args(cmd_line))
+        run(parser.parse_args(cmd_line))
