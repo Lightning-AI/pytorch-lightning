@@ -28,6 +28,7 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 
 
 class TrainerProperties(ABC):
@@ -59,7 +60,10 @@ class TrainerProperties(ABC):
             dir = self.checkpoint_callback.dirpath
             dir = os.path.split(dir)[0]
         elif self.logger is not None:
-            dir = self.logger.log_dir
+            if isinstance(self.logger, TensorBoardLogger):
+                dir = self.logger.log_dir
+            else:
+                dir = self.logger.save_dir
         else:
             dir = self._default_root_dir
 
