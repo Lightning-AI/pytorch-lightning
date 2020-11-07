@@ -247,5 +247,5 @@ def test_early_stopping_monitor_none(tmpdir):
     es = EarlyStopping(monitor=None, verbose=True, strict=False)
     trainer = Trainer(default_root_dir=tmpdir, callbacks=[es],
                       max_epochs=1, logger=False, limit_train_batches=1, limit_val_batches=1)
-    with pytest.warns(RuntimeWarning, match=r'Early stopping conditioned on metric.* which is not available.'):
+    with pytest.warns(RuntimeWarning, match=r'Early stopping conditioned on metric .* which is not available.'):
         trainer.fit(model)
