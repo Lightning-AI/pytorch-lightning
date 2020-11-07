@@ -36,8 +36,8 @@ local pipeline(name, image) = {
         "nvidia-smi",
         "pip install -r ./requirements/devel.txt --upgrade-strategy only-if-needed -v --no-cache-dir",
         "pip list",
-        "coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --color=yes --durations=25",
-        "python -m pytest benchmarks pl_examples -v --color=yes --maxfail=2 --durations=0",
+        "coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v -ra --color=yes --durations=25",
+        "python -m pytest benchmarks pl_examples -v -ra --color=yes --maxfail=2 --durations=0",
         "coverage report",
         "codecov --token $CODECOV_TOKEN --flags=gpu,pytest --name='GPU-coverage' --env=linux --build $DRONE_BUILD_NUMBER --commit $DRONE_COMMIT",
         "python tests/collect_env_details.py"
