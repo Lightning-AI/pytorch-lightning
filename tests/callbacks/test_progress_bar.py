@@ -250,4 +250,6 @@ def test_progress_bar_not_implemented_error():
     pbar = CurrentProgressBar()
     with pytest.raises(NotImplementedError):
         pbar.disable()
+
+    with pytest.raises(NotImplementedError):
         pbar.enable()
