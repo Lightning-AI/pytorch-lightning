@@ -223,7 +223,10 @@ class ModelSummary(object):
     def trainable_param_nums(self) -> List[int]:
         return [layer.num_trainable_parameters for layer in self._layer_summary.values()]
 
-    def summarize(self, named_modules: List[Tuple[str, nn.Module]]) -> Dict[str, LayerSummary]:
+    def summarize(self, named_modules: List[Tuple[str, nn.Module]] = None) -> Dict[str, LayerSummary]:
+        if named_modules is None:
+            named_modules = self.named_modules
+
         summary = OrderedDict((name, LayerSummary(module)) for name, module in named_modules)
         if self._model.example_input_array is not None:
             self._forward_example_input()
