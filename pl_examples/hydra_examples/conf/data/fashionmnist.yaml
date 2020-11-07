@@ -1,0 +1,27 @@
+# @package _group_
+
+ds:
+  target: torchvision.datasets.FashionMNIST
+  params:
+    root: ${hydra:runtime.cwd}/datasets
+    download: true
+    train: null
+
+tf:
+  - tensor:
+    target: torchvision.transforms.ToTensor
+  - normal:
+    target: torchvision.transforms.Normalize
+    params:
+      mean: .5
+      std: .2
+
+dl:
+  target: torch.utils.data.DataLoader
+  params:
+    batch_size: 5
+    shuffle: true
+    num_workers: 4
+    pin_memory: False
+    drop_last: False
+    timeout: 0

@@ -1,0 +1,9 @@
+defaults:
+  - model: basic
+  - trainer: trainer
+
+misc:
+  data_root: ${hydra:runtime.cwd}/data
+  batch_size: 128
+  learning_rate: 0.001 
+  num_workers: 4
