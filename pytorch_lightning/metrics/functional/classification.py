@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import Counter
 from functools import wraps
 from typing import Callable, Optional, Sequence, Tuple
 
@@ -630,6 +631,60 @@ def multiclass_auroc(
                                      sample_weight=sample_weight,
                                      num_classes=num_classes)
     return torch.mean(class_aurocs)
+
+
+def mean_average_precision(pred: torch.Tensor, target: torch.Tensor, iou_threshold: float, num_classes: int) -> torch.Tensor:
+    """
+    Compute mean average precision for object detection task
+
+    Args:
+        pred: Tensor containing image index, class prediction, class probability, and
+              bounding box prediction, with order [image_idx, class_pred, class_prob, d1, d2, ...]
+        target: Tensor containing image index, class label, and bounding box prediction,
+                with order [image_idx, class_label, d1, d2, ...]
+        iou_threshold: threshold for IoU score for determining true positive and
+                       false positive predictions.
+        num_classes: number of total classes
+
+    Returns:
+        mean of the average precision for each class in object detection task.
+    """
+    average_precisions = torch.zeros(num_classes)
+    eps = 1e-6
+    for c in range(num_classes):
+        c_pred = [p for p in pred if p[1] == c]
+        c_target = [t for t in target if t[1] == c]
+        if len(c_target) == 0:
+            continue
+        c_pred = sorted(c_pred, key=lambda x: x[2], reverse=True)
+        tps, fps = torch.zeros(len(c_pred)), torch.zeros(len(c_pred))
+        num_target_per_image = Counter(t[0] for t in c_target)
+        targets_dict = {image_idx: torch.zeros(count) for image_idx, count in
+                        num_target_per_image.items()}
+        for i, p in enumerate(c_pred):
+            targets = [t for t in c_target if t[0] == p[0]]
+            best_iou = 0
+            best_target_idx = 0
+            for j, t in enumerate(targets):
+                curr_iou = iou(p, t)
+                if curr_iou > best_iou:
+                    best_iou = curr_iou
+                    best_target_idx = j
+            if best_iou > iou_threshold and targets_dict[p[0].item()][best_target_idx] == 0:
+                tps[idx] = 1
+                targets_dict[p[0].item()][best_target_idx] = 1
+            else:
+                fps[idx] = 1
+            acc_tps, acc_fps = torch.cumsum(tps, dim=0), torch.cumsum(fps, dim=0)
+            precision = acc_tps / (acc_tps + acc_fps + eps)
+            reall = acc_tps / len(c_target)
+            last_ind = torch.where(tps == tps[-1])[0][0]
+            sl = slice(0, last_ind + 1)
+            precision = torch.cat([reversed(precision[sl]), torch.tensor([1])], dim=0)
+            recall = torch.cat([reversed(recall[sl]), torch.tensor([0])], dim=0)
+            average_precision = -torch.sum((recall[1:] - recall[:-1]) * precision[:-1])
+            average_precision[c] = average_precision
+        return torch.mean(average_precisions)
 
 
 def dice_score(
