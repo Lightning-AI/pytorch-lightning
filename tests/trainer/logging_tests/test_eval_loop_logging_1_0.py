@@ -14,7 +14,6 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
-import pytorch_lightning as pl
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning import Trainer
 from pytorch_lightning import callbacks, seed_everything
@@ -436,7 +435,7 @@ def test_log_works_in_val_callback(tmpdir):
         funcs_called_count = collections.defaultdict(int)
         funcs_attr = {}
 
-        def make_logging(self, pl_module: pl.LightningModule, func_name,
+        def make_logging(self, pl_module, func_name,
                          func_idx, on_steps=[], on_epochs=[], prob_bars=[]):
             self.funcs_called_count[func_name] += 1
             product = [on_steps, on_epochs, prob_bars]
@@ -610,7 +609,7 @@ def test_log_works_in_test_callback(tmpdir):
         funcs_called_count = collections.defaultdict(int)
         funcs_attr = {}
 
-        def make_logging(self, pl_module: pl.LightningModule, func_name,
+        def make_logging(self, pl_module, func_name,
                          func_idx, on_steps=[], on_epochs=[], prob_bars=[]):
             original_func_name = func_name[:]
             self.funcs_called_count[original_func_name] += 1
