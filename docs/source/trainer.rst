@@ -1666,6 +1666,9 @@ The metrics sent to the logger (visualizer).
     logged_metrics = trainer.logged_metrics
     assert logged_metrics['a_val'] == 2
 
+log_dir
+*******
+The directory
 
 is_global_zero
 **************

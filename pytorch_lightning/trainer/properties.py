@@ -44,9 +44,22 @@ class TrainerProperties(ABC):
     limit_val_batches: int
     _default_root_dir: str
     _weights_save_path: str
+    default_root_path: str
     model_connector: ModelConnector
     checkpoint_connector: CheckpointConnector
     callbacks: List[Callback]
+
+    @property
+    def log_dir(self):
+        if self.checkpoint_callback is not None:
+            dir = self.checkpoint_callback.dirpath
+            dir = os.path.split(dir)[0]
+            return dir
+        elif self.logger is not None:
+            return self.logger.log_dir
+        else:
+            dir = self._default_root_dir
+            return dir
 
     @property
     def use_amp(self) -> bool:

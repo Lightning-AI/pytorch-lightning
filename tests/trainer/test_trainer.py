@@ -1499,3 +1499,4 @@ def test_trainer_profiler_incorrect_arg_type(profiler):
                        match=r"Only None, bool, str and subclasses of `BaseProfiler` "
                        r"are valid values for `Trainer`'s `profiler` parameter. *"):
         Trainer(profiler=profiler)
+
