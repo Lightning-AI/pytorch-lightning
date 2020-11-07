@@ -19,8 +19,8 @@ _inputs = []
 for size, channel, coef, multichannel in [
     (16, 1, 0.9, False),
     (32, 3, 0.8, True),
-    (48, 4, 0.7, True),
-    (64, 5, 0.6, True),
+    (48, 1, 0.7, False),
+    (64, 3, 0.6, True),
 ]:
     preds = torch.rand(NUM_BATCHES, BATCH_SIZE, channel, size, size)
     _inputs.append(
@@ -41,7 +41,8 @@ def _sk_metric(preds, target, data_range, multichannel):
         sk_target = sk_target[:, :, :, 0]
 
     return structural_similarity(
-        sk_target, sk_preds, data_range=data_range, multichannel=multichannel, gaussian_weights=True, win_size=11
+        sk_target, sk_preds, data_range=data_range, multichannel=multichannel,
+        gaussian_weights=True, win_size=11, sigma=1.5, use_sample_covariance=False
     )
 
 
@@ -50,11 +51,11 @@ def _sk_metric(preds, target, data_range, multichannel):
     [(i.preds, i.target, i.multichannel) for i in _inputs],
 )
 class TestSSIM(MetricTester):
-    atol = 1e-3  # TODO: ideally tests should pass with lower tolerance
+    atol = 9e-5  # TODO: ideally tests should pass with lower tolerance
 
     # TODO: for some reason this test hangs with ddp=True
-    # @pytest.mark.parametrize("ddp", [True, False])
-    @pytest.mark.parametrize("ddp", [False])
+    @pytest.mark.parametrize("ddp", [True, False])
+    # @pytest.mark.parametrize("ddp", [False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
     def test_ssim(self, preds, target, multichannel, ddp, dist_sync_on_step):
         self.run_class_metric_test(

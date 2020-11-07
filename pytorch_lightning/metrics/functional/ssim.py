@@ -19,16 +19,24 @@ from pytorch_lightning.metrics.utils import _check_same_shape
 from torch.nn import functional as F
 
 
-def _gaussian_kernel(channel, kernel_size, sigma, device):
-    def _gaussian(kernel_size, sigma, device):
-        gauss = torch.arange(
-            start=(1 - kernel_size) / 2, end=(1 + kernel_size) / 2, step=1, dtype=torch.float32, device=device
-        )
-        gauss = torch.exp(-gauss.pow(2) / (2 * pow(sigma, 2)))
-        return (gauss / gauss.sum()).unsqueeze(dim=0)  # (1, kernel_size)
+def _gaussian(kernel_size, sigma, dtype, device):
+    gauss = torch.arange(
+        start=(1 - kernel_size) / 2, end=(1 + kernel_size) / 2, step=1, dtype=dtype, device=device
+    )
+    gauss = torch.exp(-gauss.pow(2) / (2 * pow(sigma, 2)))
+    return (gauss / gauss.sum()).unsqueeze(dim=0)  # (1, kernel_size)
 
-    gaussian_kernel_x = _gaussian(kernel_size[0], sigma[0], device)
-    gaussian_kernel_y = _gaussian(kernel_size[1], sigma[1], device)
+
+def _gaussian_kernel(channel, kernel_size, sigma, dtype, device):
+    # def _gaussian(kernel_size, sigma, device):
+    #     gauss = torch.arange(
+    #         start=(1 - kernel_size) / 2, end=(1 + kernel_size) / 2, step=1, dtype=torch.float32, device=device
+    #     )
+    #     gauss = torch.exp(-gauss.pow(2) / (2 * pow(sigma, 2)))
+    #     return (gauss / gauss.sum()).unsqueeze(dim=0)  # (1, kernel_size)
+
+    gaussian_kernel_x = _gaussian(kernel_size[0], sigma[0], dtype, device)
+    gaussian_kernel_y = _gaussian(kernel_size[1], sigma[1], dtype, device)
     kernel = torch.matmul(gaussian_kernel_x.t(), gaussian_kernel_y)
 
     return kernel.expand(channel, 1, kernel_size[0], kernel_size[1])
@@ -82,10 +90,12 @@ def _ssim_compute(
     device = preds.device
 
     channel = preds.size(1)
-    kernel = _gaussian_kernel(channel, kernel_size, sigma, device)
+    dtype = preds.dtype
+    kernel = _gaussian_kernel(channel, kernel_size, sigma, dtype, device)
 
     input_list = torch.cat([preds, target, preds * preds, target * target, preds * target])  # (5 * B, C, H, W)
-    outputs = F.conv2d(input_list, kernel, groups=channel)
+    outputs = F.conv2d(input_list, kernel,
+                       padding=((kernel_size[0] - 1) // 2, (kernel_size[1] - 1) // 2), groups=channel)
     output_list = [outputs[x * preds.size(0): (x + 1) * preds.size(0)] for x in range(len(outputs))]
 
     mu_pred_sq = output_list[0].pow(2)
