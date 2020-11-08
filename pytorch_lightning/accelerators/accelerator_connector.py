@@ -195,8 +195,8 @@ class AcceleratorConnector:
         use_slurm_ddp = self.trainer.use_ddp and self.trainer.is_slurm_managing_tasks
 
         # torchelastic or general non_slurm ddp
-        te_flags_passed = 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ)
-        use_torchelastic_ddp = self.trainer.use_ddp and te_flags_passed
+        use_torchelastic_ddp = self.trainer.use_ddp and self._is_using_torchelastic()
+        use_torchelastic_ddp_sharded = self.trainer.use_ddp_sharded and self._is_using_torchelastic()
 
         use_ddp_spawn = self.trainer.use_ddp and self.trainer.distributed_backend == "ddp_spawn"
         use_ddp_cpu_spawn = self.trainer.use_ddp and self.trainer.distributed_backend == "ddp_cpu"
@@ -208,6 +208,7 @@ class AcceleratorConnector:
         # TODO: decouple from TE
         if os.environ.get('PL_IN_DDP_SUBPROCESS', False):
             use_torchelastic_ddp = False
+            use_torchelastic_ddp_sharded = False
 
         cluster_env = self._select_environment()
 
@@ -246,7 +247,12 @@ class AcceleratorConnector:
                 cluster_env,
                 self.trainer.plugin_connector.ddp_plugin
             )
-
+        elif use_torchelastic_ddp_sharded:
+            accelerator_backend = accelerators.DDPShardedTorchElasticAccelerator(
+                self.trainer,
+                cluster_env,
+                self.trainer.plugin_connector.ddp_plugin
+            )
         elif use_ddp_spawn:
             accelerator_backend = accelerators.DDPSpawnAccelerator(
                 self.trainer,
