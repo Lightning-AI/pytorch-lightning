@@ -30,6 +30,7 @@
     "pytorch_lightning/trainer/training_tricks.py",
     "pytorch_lightning/trainer/batch_size_scaling.py",
     "pytorch_lightning/trainer/distrib_data_parallel.py",
+    "pytorch_lightning/trainer/properties.py",
     "pytorch_lightning/trainer/lr_scheduler_connector.py",
     "pytorch_lightning/trainer/training_loop_temp.py",
     "pytorch_lightning/trainer/connectors/checkpoint_connector.py",
