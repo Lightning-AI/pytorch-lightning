@@ -126,3 +126,57 @@ CPU Accelerator
 
 .. autoclass:: pytorch_lightning.accelerators.cpu_accelerator.CPUAccelerator
     :noindex:
+
+DDP Accelerator
+===============
+
+.. autoclass:: pytorch_lightning.accelerators.ddp_accelerator.DDPAccelerator
+    :noindex:
+
+DDP2 Accelerator
+================
+
+.. autoclass:: pytorch_lightning.accelerators.ddp2_accelerator.DDP2Accelerator
+    :noindex:
+
+DDP CPU HPC Accelerator
+=======================
+
+.. autoclass:: pytorch_lightning.accelerators.ddp_cpu_hpc_accelerator.DDPCPUHPCAccelerator
+    :noindex:
+
+DDP CPU Spawn Accelerator
+=========================
+
+.. autoclass:: pytorch_lightning.accelerators.ddp_cpu_spawn_accelerator.DDPCPUSpawnAccelerator
+    :noindex:
+
+DDP HPC Accelerator
+===================
+
+.. autoclass:: pytorch_lightning.accelerators.ddp_hpc_accelerator.DDPHPCAccelerator
+    :noindex:
+
+DDP Spawn Accelerator
+=====================
+
+.. autoclass:: pytorch_lightning.accelerators.ddp_spawn_accelerator.DDPSpawnAccelerator
+    :noindex:
+
+GPU Accelerator
+===============
+
+.. autoclass:: pytorch_lightning.accelerators.gpu_accelerator.GPUAccelerator
+    :noindex:
+
+Horovod Accelerator
+===================
+
+.. autoclass:: pytorch_lightning.accelerators.horovod_accelerator.HorovodAccelerator
+    :noindex:
+
+TPU Accelerator
+===============
+
+.. autoclass:: pytorch_lightning.accelerators.tpu_accelerator.TPUAccelerator
+    :noindex:
