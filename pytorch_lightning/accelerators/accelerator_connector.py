@@ -227,7 +227,7 @@ class AcceleratorConnector:
             )
 
         elif use_slurm_ddp:
-            accelerator_backend = accelerators.DDPSLURMAccelerator(
+            accelerator_backend = accelerators.DDPHPCAccelerator(
                 self.trainer,
                 cluster_env,
                 self.trainer.plugin_connector.ddp_plugin
@@ -241,7 +241,7 @@ class AcceleratorConnector:
             )
 
         elif use_torchelastic_ddp:
-            accelerator_backend = accelerators.DDPTorchElasticAccelerator(
+            accelerator_backend = accelerators.DDPHPCAccelerator(
                 self.trainer,
                 cluster_env,
                 self.trainer.plugin_connector.ddp_plugin
