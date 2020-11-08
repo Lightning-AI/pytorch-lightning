@@ -295,7 +295,9 @@ class CombinedLoaderIterator(object):
 
         # dataloaders are iterable but not sequence
         elif isinstance(self.loaders, Iterable):
-            self.loaders = CycleIterator(self.loaders, length=length)
+            # only one dataloader, just remain the same
+            pass
+            # self.loaders = CycleIterator(self.loaders, length=length)
         else:
             raise ValueError(f'Invalid Datatype for loaders: {type(self.loaders).__name__}')
 
