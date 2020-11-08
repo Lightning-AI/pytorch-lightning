@@ -111,7 +111,7 @@ def test_accelerator_choice_ddp_slurm(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer.use_ddp
-            assert isinstance(trainer.accelerator_backend, accelerators.DDPSLURMAccelerator)
+            assert isinstance(trainer.accelerator_backend, accelerators.DDPHPCAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, SLURMEnvironment)
             assert trainer.accelerator_backend.task_idx == 10
             assert trainer.accelerator_backend.cluster_environment.local_rank() == trainer.accelerator_backend.task_idx
@@ -172,7 +172,7 @@ def test_accelerator_choice_ddp_te(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer.use_ddp
-            assert isinstance(trainer.accelerator_backend, accelerators.DDPTorchElasticAccelerator)
+            assert isinstance(trainer.accelerator_backend, accelerators.DDPHPCAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
             assert trainer.accelerator_backend.task_idx == 10
             assert trainer.accelerator_backend.cluster_environment.local_rank() == trainer.accelerator_backend.task_idx
