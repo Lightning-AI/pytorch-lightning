@@ -22,10 +22,11 @@ from torch.nn.parallel import DistributedDataParallel
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.distributed import sync_ddp_if_available
+from pytorch_lightning.distributed.dist import LightningDistributed
+
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -36,12 +37,7 @@ else:
     HYDRA_AVAILABLE = True
 
 
-# -------------------------------------------
-# !!!!!!!!!!!!!! NOTE !!!!!!!!!!!!!!!!!!!!!!
-# TEMP CLASS WHILE WE DECOUPLE TE FROM DDP
-# !!!!!!!!!!!!!! NOTE !!!!!!!!!!!!!!!!!!!!!!
-# -------------------------------------------
-class DDPCPUTorchElasticAccelerator(Accelerator):
+class DDPCPUHPCAccelerator(Accelerator):
 
     def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
         super().__init__(trainer, cluster_environment, ddp_plugin)
