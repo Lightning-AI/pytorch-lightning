@@ -52,7 +52,7 @@ class DDPCPUTorchElasticAccelerator(Accelerator):
 
     def setup(self, model):
         self.trainer.model = model
-        self.task_idx = int(os.environ['LOCAL_RANK'])
+        self.task_idx = self.cluster_environment.local_rank()
 
     def train(self):
         model = self.trainer.model
@@ -117,7 +117,7 @@ class DDPCPUTorchElasticAccelerator(Accelerator):
         self.set_world_ranks(process_idx)
 
         # toggle prog bar
-        if self.trainer.global_rank == 0 and self.trainer.progress_bar_callback is not None:
+        if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:
             self.trainer.progress_bar_callback.disable()
 
         # set warning rank

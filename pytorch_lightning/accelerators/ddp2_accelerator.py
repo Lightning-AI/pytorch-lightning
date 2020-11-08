@@ -46,19 +46,8 @@ class DDP2Accelerator(Accelerator):
         self.nickname = 'ddp2'
 
     def setup(self, model):
-        self._resolve_task_idx()
         self.trainer.model = model
-
-    def _resolve_task_idx(self):
-        if self.trainer.is_slurm_managing_tasks:
-            self.task_idx = int(os.environ['SLURM_LOCALID'])
-        else:
-            # torchelastic or general non_slurm ddp2
-            try:
-                self.task_idx = int(os.environ['LOCAL_RANK'])
-            except Exception as exp:
-                m = 'ddp2 only works in SLURM or via torchelastic with the WORLD_SIZE, LOCAL_RANK, GROUP_RANK flags'
-                raise MisconfigurationException(m) from exp
+        self.task_idx = self.cluster_environment.local_rank()
 
     def train(self):
         model = self.trainer.model
