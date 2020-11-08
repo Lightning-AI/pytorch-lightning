@@ -307,7 +307,7 @@ class ProgressBar(ProgressBarBase):
     def on_sanity_check_start(self, trainer, pl_module):
         super().on_sanity_check_start(trainer, pl_module)
         self.val_progress_bar = self.init_sanity_tqdm()
-        self.val_progress_bar.total = convert_inf(sum(trainer.num_sanity_val_batches))
+        self.val_progress_bar.reset(convert_inf(sum(trainer.num_sanity_val_batches)))
         self.main_progress_bar = tqdm(disable=True)  # dummy progress bar
 
     def on_sanity_check_end(self, trainer, pl_module):
@@ -342,7 +342,7 @@ class ProgressBar(ProgressBarBase):
         super().on_validation_start(trainer, pl_module)
         if not trainer.running_sanity_check:
             self.val_progress_bar = self.init_validation_tqdm()
-            self.val_progress_bar.total = convert_inf(self.total_val_batches)
+            self.val_progress_bar.reset(convert_inf(self.total_val_batches))
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
@@ -362,7 +362,7 @@ class ProgressBar(ProgressBarBase):
     def on_test_start(self, trainer, pl_module):
         super().on_test_start(trainer, pl_module)
         self.test_progress_bar = self.init_test_tqdm()
-        self.test_progress_bar.total = convert_inf(self.total_test_batches)
+        self.test_progress_bar.reset(convert_inf(self.total_test_batches))
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_test_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
