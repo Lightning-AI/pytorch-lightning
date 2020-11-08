@@ -36,12 +36,7 @@ else:
     HYDRA_AVAILABLE = True
 
 
-# -------------------------------------------
-# !!!!!!!!!!!!!! NOTE !!!!!!!!!!!!!!!!!!!!!!
-# TEMP CLASS WHILE WE DECOUPLE SLURM FROM DDP
-# !!!!!!!!!!!!!! NOTE !!!!!!!!!!!!!!!!!!!!!!
-# -------------------------------------------
-class DDPTorchElasticAccelerator(Accelerator):
+class DDPHPCAccelerator(Accelerator):
 
     def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
         super().__init__(trainer, cluster_environment, ddp_plugin)
