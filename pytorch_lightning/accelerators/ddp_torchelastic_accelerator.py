@@ -24,8 +24,7 @@ from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities.distributed import rank_zero_only
-from pytorch_lightning.utilities.distributed import sync_ddp_if_available
+from pytorch_lightning.utilities.distributed import rank_zero_only, sync_ddp_if_available
 
 
 try:
@@ -53,7 +52,7 @@ class DDPTorchElasticAccelerator(Accelerator):
 
     def setup(self, model):
         self.trainer.model = model
-        self.task_idx = int(os.environ['LOCAL_RANK'])
+        self.task_idx = self.cluster_environment.local_rank()
 
     def train(self):
         model = self.trainer.model
@@ -120,7 +119,7 @@ class DDPTorchElasticAccelerator(Accelerator):
         self.set_world_ranks(process_idx)
 
         # toggle prog bar
-        if self.trainer.global_rank == 0 and self.trainer.progress_bar_callback is not None:
+        if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:
             self.trainer.progress_bar_callback.disable()
 
         # set warning rank

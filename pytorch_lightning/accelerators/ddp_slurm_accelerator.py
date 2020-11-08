@@ -25,7 +25,6 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only, sync_ddp_if_available
-from pytorch_lightning.utilities.seed import seed_everything
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -52,7 +51,7 @@ class DDPSLURMAccelerator(Accelerator):
 
     def setup(self, model):
         self.trainer.model = model
-        self.task_idx = int(os.environ['SLURM_LOCALID'])
+        self.task_idx = self.cluster_environment.local_rank()
 
     def train(self):
         model = self.trainer.model
@@ -88,7 +87,7 @@ class DDPSLURMAccelerator(Accelerator):
         output = self.training_step(args)
         return output
 
-    def barrier(self, name: str = None):
+    def barrier(self, name: Optional[str] = None):
         if torch_distrib.is_initialized():
             torch_distrib.barrier()
 
@@ -115,15 +114,11 @@ class DDPSLURMAccelerator(Accelerator):
             Dict with evaluation results
 
         """
-        seed = os.environ.get("PL_GLOBAL_SEED")
-        if seed is not None:
-            seed_everything(int(seed))
-
         # determine which process we are and world size
         self.set_world_ranks(process_idx)
 
         # toggle prog bar
-        if self.trainer.global_rank != 0 and self.trainer.progress_bar_callback is not None:
+        if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:
             self.trainer.progress_bar_callback.disable()
 
         # set warning rank
