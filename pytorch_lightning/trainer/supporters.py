@@ -20,6 +20,7 @@ import torch
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from torch import Tensor
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.data import get_len
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from typing import Any, Union
 
@@ -206,6 +207,7 @@ class CycleIterator(object):
             CycleIterator: self
 
         """
+        self.counter = 0
         self._loader_iter = iter(self.loader)
         return self
 
@@ -221,15 +223,16 @@ class CycleIterator(object):
             StopIteration: if more then :attr:`length` batches have been returned
 
         """
-        if self.counter >= len(self):
+        if self.counter >= self.__len__():
             raise StopIteration
-
+        
         try:
             return next(self._loader_iter)
 
         except StopIteration:
             self._loader_iter = iter(self.loader)
             return next(self._loader_iter)
+
         finally:
             self.counter += 1
 
@@ -253,6 +256,7 @@ class CombinedLoaderIterator(object):
         """
         self.loaders = loaders
         self._loader_iters = None
+        self.counter = 0
 
         if mode not in self.SUPPORTED_MODES:
             raise ValueError(f"Invalid Mode: {mode}")
@@ -269,9 +273,10 @@ class CombinedLoaderIterator(object):
         Return:
             Any: the wrapped loaders
         """
-        all_lengths = apply_to_collection(self.loaders, Iterable, len,
+        all_lengths = apply_to_collection(self.loaders, Iterable, get_len,
                                           wrong_dtype=(Sequence, Mapping))
-        if isinstance(all_lengths, int):
+
+        if isinstance(all_lengths, (int, float)):
             length = all_lengths
 
         elif isinstance(all_lengths, Mapping):
@@ -302,21 +307,22 @@ class CombinedLoaderIterator(object):
         return self._loader_iters
 
     def __iter__(self) -> Any:
+        self._loader_iters = self.create_loader_iters(self.loaders)
         return self
 
     def __next__(self) -> Any:
-        return self.request_next_batch(self.loader_iters)
-
+        return self.request_next_batch(self._loader_iters)
+        
     @staticmethod
     def request_next_batch(loader_iters: Union[Iterator, Sequence, Mapping]) -> Any:
         return apply_to_collection(loader_iters, Iterator, next)
 
     @staticmethod
     def _calc_num_batches(loaders) -> int:
-        all_lengths = apply_to_collection(loaders, Iterable, len,
+        all_lengths = apply_to_collection(loaders, Iterable, get_len,
                                           wrong_dtype=(Sequence, Mapping))
 
-        if isinstance(all_lengths, int):
+        if isinstance(all_lengths, (int, float)):
             return all_lengths
 
         elif isinstance(all_lengths, Mapping):
