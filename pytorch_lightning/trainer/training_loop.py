@@ -47,6 +47,7 @@ class TrainLoop:
         self._curr_step_result = None
         self._cur_grad_norm_dict = None
         self._multiple_trainloader_mode = multiple_trainloader_mode
+        self.trainer._multiple_trainloader_mode = multiple_trainloader_mode
 
     def on_trainer_init(
         self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps, automatic_optimization
@@ -526,8 +527,9 @@ class TrainLoop:
         model = self.trainer.get_model()
 
         # modify dataloader if needed (ddp, etc...)
-        train_dataloader = self.trainer.accelerator_backend.process_dataloader(
-            CombinedLoaderIterator(self.trainer.train_dataloader, mode=self._multiple_trainloader_mode))
+        # train_dataloader = self.trainer.accelerator_backend.process_dataloader(
+        #     CombinedLoaderIterator(self.trainer.train_dataloader, mode=self._multiple_trainloader_mode))
+        train_dataloader = self.trainer.accelerator_backend.process_dataloader(self.trainer.train_dataloader)
 
         # track epoch output
         epoch_output = [[] for _ in range(self.num_optimizers)]
