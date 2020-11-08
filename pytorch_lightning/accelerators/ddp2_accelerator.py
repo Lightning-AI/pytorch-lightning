@@ -38,6 +38,15 @@ else:
 class DDP2Accelerator(Accelerator):
 
     def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
+        """
+        Runs training using DDP2 strategy on a cluster
+
+        Example::
+
+            # default
+            trainer = Trainer(accelerator=DDP2Accelerator())
+
+        """
         super().__init__(trainer, cluster_environment, ddp_plugin)
         self.task_idx = None
         self.dist = LightningDistributed()

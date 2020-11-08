@@ -39,6 +39,15 @@ else:
 class DDPHPCAccelerator(Accelerator):
 
     def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
+        """
+        Runs training using DDP on an HPC cluster
+
+        Example::
+
+            # default
+            trainer = Trainer(accelerator=DDPHPCAccelerator())
+
+        """
         super().__init__(trainer, cluster_environment, ddp_plugin)
         self.task_idx = None
         self._has_spawned_children = False
