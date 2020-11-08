@@ -829,11 +829,15 @@ def test_batch_size_smaller_than_num_gpus(tmpdir):
     assert 1 == result
 
 
-def test_fit_multiple_train_loaders(tmpdir):
+@pytest.mark.parametrize(['multiple_trainloader_mode', 'num_training_batches'], [
+    pytest.param("min_size", 5),
+    pytest.param("max_size_cycle", 10),
+])
+def test_fit_multiple_train_loaders(tmpdir, multiple_trainloader_mode, num_training_batches):
     class MutipleLoaderModel(EvalModelTemplate):
         def train_dataloader(self):
-            return {'a': super().train_dataloader(),
-                    'b': super().train_dataloader()}
+            return {'a': self.dataloader(train=True, num_samples=100),
+                    'b': self.dataloader(train=True, num_samples=50)}
 
         def training_step(self, batch, batch_idx, optimizer_idx=None):
             assert isinstance(batch, dict)
@@ -847,9 +851,12 @@ def test_fit_multiple_train_loaders(tmpdir):
     model = MutipleLoaderModel(**hparams)
 
     trainer = Trainer(
-        fast_dev_run=True, default_root_dir=tmpdir
+        max_epochs=1, default_root_dir=tmpdir, multiple_trainloader_mode=multiple_trainloader_mode
     )
+
     assert 1 == trainer.fit(model)
+    # verify the num_training_batches according to the multiple_trainloader_mode
+    assert num_training_batches == trainer.num_training_batches
 
 
 @pytest.mark.parametrize('check_interval', [1.0])
