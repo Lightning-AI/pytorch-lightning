@@ -82,7 +82,7 @@ If ``on_epoch`` is True, the logger automatically logs the end of epoch metric v
     If using metrics in data parallel mode (dp), the metric update/logging should be done
     in the ``<mode>_step_end`` method (where ``<mode>`` is either ``training``, ``validation``
     or ``test``). This is due to metric states else being destroyed after each forward pass,
-    leading to wrong accumulation. In practise do the following:
+    leading to wrong accumulation. In practice do the following:
 
     .. code-block:: python
 
