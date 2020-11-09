@@ -75,10 +75,6 @@ class CheckpointConnector:
             self.hpc_load(checkpoint_path, self.trainer.on_gpu)
             rank_zero_info(f'restored hpc model from: {checkpoint_path}')
 
-        # clear cache after restore
-        if self.trainer.on_gpu:
-            torch.cuda.empty_cache()
-
         # 2. Attempt to restore states from `resume_from_checkpoint` file
         if (not did_restore_hpc_weights) and (self.trainer.resume_from_checkpoint is not None):
             self.restore(self.trainer.resume_from_checkpoint, on_gpu=self.trainer.on_gpu)
