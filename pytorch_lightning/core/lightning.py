@@ -1154,14 +1154,11 @@ class LightningModule(
         self._verify_is_manual_optimization('manual_optimizer_step')
 
         if not self.trainer.train_loop.should_accumulate() or force_optimizer_step:
-            native_amp = self.trainer.amp_backend == AMPType.NATIVE
-            if native_amp:
-                self.trainer.scaler.unscale_(optimizer)
-            optimizer.step()
+            def mock_optimizer_closure():
+                return
+            self.trainer.train_loop.optimizer_step(optimizer, None, self.trainer.batch_idx, mock_optimizer_closure)
             if zero_grad:
                 optimizer.zero_grad()
-            if native_amp:
-                self.trainer.scaler.update()
 
     def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
         """
