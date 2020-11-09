@@ -47,6 +47,15 @@ else:
 class DDPAccelerator(Accelerator):
 
     def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
+        """
+        Runs training using DDP strategy on a single machine (manually, not via cluster start)
+
+        Example::
+
+            # default
+            trainer = Trainer(accelerator=DDPAccelerator())
+
+        """
         super().__init__(trainer, cluster_environment, ddp_plugin)
         self.task_idx = None
         self._has_spawned_children = False
@@ -304,4 +313,7 @@ class DDPAccelerator(Accelerator):
                     tensor: Union[torch.Tensor],
                     group: Optional[Any] = None,
                     reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
+        """
+
+        """
         return sync_ddp_if_available(tensor, group, reduce_op)
