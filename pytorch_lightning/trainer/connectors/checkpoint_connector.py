@@ -195,19 +195,15 @@ class CheckpointConnector:
         """If there is a set of hpc weights, use as signal to restore model."""
 
         folderpath = str(self.trainer.weights_save_path)
-        fs = get_filesystem(folderpath)
-        if not fs.exists(folderpath):
+        max_suffix = self.max_ckpt_in_folder(folderpath, "hpc_ckpt_")
+        if max_suffix is None:
             return False
         else:
-            max_suffix = self.max_ckpt_in_folder(folderpath, "hpc_ckpt_")
-            if max_suffix is None:
-                return False
-            else:
-                # load states from hpc checkpoint
-                checkpoint_path = f'{folderpath}/hpc_ckpt_{max_suffix}.ckpt'
-                self.hpc_load(checkpoint_path, self.trainer.on_gpu)
-                rank_zero_info(f'restored hpc model from: {checkpoint_path}')
-                return True
+            # load states from hpc checkpoint
+            checkpoint_path = f'{folderpath}/hpc_ckpt_{max_suffix}.ckpt'
+            self.hpc_load(checkpoint_path, self.trainer.on_gpu)
+            rank_zero_info(f'restored hpc model from: {checkpoint_path}')
+            return True
 
     # ----------------------------------
     # PRIVATE OPS
@@ -369,12 +365,18 @@ class CheckpointConnector:
             None if no-corresponding-file else maximum suffix number
         """
 
+        # check directory existence
         fs = get_filesystem(dir_path)
+        if not fs.exists(dir_path):
+            return None
+
+        # check corresponding file existence
         files = [os.path.basename(f["name"]) for f in fs.listdir(dir_path)]
         files = [x for x in files if name_key in x]
         if len(files) == 0:
             return None
 
+        # extract suffix number
         ckpt_vs = []
         for name in files:
             name = name.split(name_key)[-1]
