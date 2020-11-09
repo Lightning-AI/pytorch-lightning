@@ -66,7 +66,14 @@ class CheckpointConnector:
             torch.cuda.empty_cache()
 
         # 1. Attempt to restore states from HPC checkpoint
-        did_restore_hpc_weights = self.restore_hpc_weights_if_needed(model)
+        dir_path_hpc = str(self.trainer.weights_save_path)
+        max_suffix = self.max_ckpt_in_folder(dir_path_hpc, "hpc_ckpt_")
+        did_restore_hpc_weights = max_suffix is not None
+        if did_restore_hpc_weights:
+            # load states from hpc checkpoint
+            checkpoint_path = f'{dir_path_hpc}/hpc_ckpt_{max_suffix}.ckpt'
+            self.hpc_load(checkpoint_path, self.trainer.on_gpu)
+            rank_zero_info(f'restored hpc model from: {checkpoint_path}')
 
         # clear cache after restore
         if self.trainer.on_gpu:
@@ -190,20 +197,6 @@ class CheckpointConnector:
         lr_schedulers = checkpoint['lr_schedulers']
         for scheduler, lrs_state in zip(self.trainer.lr_schedulers, lr_schedulers):
             scheduler['scheduler'].load_state_dict(lrs_state)
-
-    def restore_hpc_weights_if_needed(self, model: LightningModule) -> bool:
-        """If there is a set of hpc weights, use as signal to restore model."""
-
-        folderpath = str(self.trainer.weights_save_path)
-        max_suffix = self.max_ckpt_in_folder(folderpath, "hpc_ckpt_")
-        if max_suffix is None:
-            return False
-        else:
-            # load states from hpc checkpoint
-            checkpoint_path = f'{folderpath}/hpc_ckpt_{max_suffix}.ckpt'
-            self.hpc_load(checkpoint_path, self.trainer.on_gpu)
-            rank_zero_info(f'restored hpc model from: {checkpoint_path}')
-            return True
 
     # ----------------------------------
     # PRIVATE OPS
