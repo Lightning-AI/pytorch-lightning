@@ -38,8 +38,7 @@ class NativeAMPPlugin:
             model = self.trainer.get_model()
             model.backward(closure_loss, optimizer, opt_idx)
         else:
-            if model._running_manual_backward:
-                closure_loss.backward(*args, **kwargs)
+            closure_loss.backward(*args, **kwargs)
 
         # once backward has been applied, release graph
         closure_loss = closure_loss.detach()
