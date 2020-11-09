@@ -461,7 +461,7 @@ def test_automatic_optimization_false_atest_automatic_optimization_falsend_retur
             automatic_optimization=False,
             precision=16,
             amp_backend='native',
-            accelerator="ddp",
+            accelerator="ddp_spawn",
             gpus=2,
         )
         trainer.fit(model)
