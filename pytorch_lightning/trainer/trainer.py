@@ -249,7 +249,7 @@ class Trainer(
 
             resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.
                 This can be a URL.
-                If there isn't the checkpoint file at specified path, start training from scratch.
+                If there no checkpoint file at the specified path, start training from scratch.
 
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
 
