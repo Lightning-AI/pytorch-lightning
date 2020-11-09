@@ -111,7 +111,8 @@ class LightningModule(
         self._datamodule = None
         self._results: Optional[Result] = None
         self._current_fx_name = ''
-        self._running_manual_optim = False
+        self._running_manual_backward = False
+        self._running_manual_optimizer_step = False
         self._current_hook_fx_name = None
         self._current_dataloader_idx = None
 
@@ -1102,9 +1103,9 @@ class LightningModule(
         self._verify_is_manual_optimization('manual_backward')
 
         # backward
-        self._running_manual_optim = True
+        self._running_manual_backward = True
         self.trainer.train_loop.backward(loss, optimizer, -1, *args, **kwargs)
-        self._running_manual_optim = False
+        self._running_manual_backward = False
 
     def manual_optimizer_step(self, optimizer: Optimizer, force_optimizer_step:bool = False, zero_grad: bool = True) -> None:
         """
@@ -1154,8 +1155,12 @@ class LightningModule(
         self._verify_is_manual_optimization('manual_optimizer_step')
 
         if not self.trainer.train_loop.should_accumulate() or force_optimizer_step:
+            self._running_manual_optimizer_step = True
+
+            # mock closure function as the user is responsible to call `manual_backward`
             def mock_optimizer_closure():
                 return
+
             self.trainer.train_loop.optimizer_step(optimizer, None, self.trainer.batch_idx, mock_optimizer_closure)
 
     def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
@@ -1177,7 +1182,7 @@ class LightningModule(
                 loss.backward()
 
         """
-        if self.trainer.train_loop.automatic_optimization or self._running_manual_optim:
+        if self.trainer.train_loop.automatic_optimization or self._running_manual_backward:
             loss.backward(*args, **kwargs)
 
     def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):

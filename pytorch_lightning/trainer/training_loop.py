@@ -354,10 +354,10 @@ class TrainLoop:
             untouched_loss = closure_loss.detach().clone()
 
         else:
-            if not self.should_accumulate():
-                # scale when native amp
-                if self.trainer.amp_backend == AMPType.NATIVE:
-                    self.trainer.scaler.update()
+            # scale when native amp
+            if model_ref._running_manual_optimizer_step and self.trainer.amp_backend == AMPType.NATIVE:
+                self.trainer.scaler.update()
+                model_ref._running_manual_optimizer_step = False
 
         # result
         result = AttributeDict(
@@ -945,9 +945,9 @@ class TrainLoop:
         if self.automatic_optimization:
             # hook
             self.on_before_zero_grad(optimizer)
-            optimizers = [optimizer]
+            optimizers = enumerate([optimizer])
         else:
             optimizers = self.get_optimizers_iterable()
 
-        for idx, optimizer in enumerate(optimizers):
+        for idx, optimizer in optimizers:
             self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
