@@ -1106,12 +1106,23 @@ class LightningModule(
         self.trainer.train_loop.backward(loss, optimizer, -1, *args, **kwargs)
         self._running_manual_optim = False
 
-    def manual_optimizer_step(self, optimizer: Optimizer, zero_grad:bool = True) -> None:
+    def manual_optimizer_step(self, optimizer: Optimizer, force_optimizer_step:bool = False) -> None:
         """
         Call this directly from your training_step when doing optimizations manually.
         By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
 
         .. tip:: In manual mode we still automatically accumulate grad over batches if Trainer(accumulate_grad_batches=x) is set.
+
+        Args:
+            optimizer: Optimizer used for performing `.step()` call
+
+            force_optimizer_step: bool = Whether to force an optimizer step. Could be useful when having 2 optimizers
+                and we wanted to do accumulated gradients for an optimizer but not for the other one.
+                One could put its own logic to force_step.
+
+        Return:
+            None
+
         Example::
 
             def training_step(...):
@@ -1119,12 +1130,12 @@ class LightningModule(
                 loss = ...
                 # automatically applies scaling, etc...
                 self.manual_backward(loss, opt_a)
-                self.manual_optimizer_step(opt_a)
+                self.manual_optimizer_step(opt_a, force_optimizer_step=True)
         """
         # make sure we're using manual opt
         self._verify_is_manual_optimization('manual_optimizer_step')
 
-        if not self.trainer.train_loop.should_accumulate():
+        if not self.trainer.train_loop.should_accumulate() or force_optimizer_step:
             native_amp = self.trainer.amp_backend == AMPType.NATIVE
             if native_amp:
                 self.trainer.scaler.unscale_(optimizer)
