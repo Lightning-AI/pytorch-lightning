@@ -945,4 +945,10 @@ class TrainLoop:
         automatic_optimization = self.trainer.train_loop.automatic_optimization
         amp_native = self.trainer.amp_backend == AMPType.NATIVE
         if not automatic_optimization and amp_native:
-            self.trainer.scaler.update()
+            # we don't know if the user called opt.step()
+            # therefore, let's try to update the scaler
+            # TODO: Add a listener on all opt.step and call update only if sum changed.
+            try:
+                self.trainer.scaler.update()
+            except AssertionError:
+                pass

@@ -388,7 +388,6 @@ class ExtendedModel(BoringModel):
             assert torch.sum(self.layer.weight.grad) != 0
             opt.step()
 
-            self.trainer.scaler.update()
             after_before = self.layer.weight.clone()
             mask = torch.logical_and(torch.isnan(after_before), torch.isinf(after_before))
             assert not torch.equal(weight_before, after_before)
