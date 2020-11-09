@@ -172,10 +172,11 @@ Under the hood, Lightning does the following (pseudocode):
     model.train()
     torch.set_grad_enabled(True)
 
-    outs = []
+    losses = []
     for batch in train_dataloader:
         # forward
-        out = training_step(val_batch)
+        loss = training_step(batch)
+        losses.append(loss.detach())
 
         # backward
         loss.backward()
@@ -183,6 +184,7 @@ Under the hood, Lightning does the following (pseudocode):
         # apply and clear grads
         optimizer.step()
         optimizer.zero_grad()
+
 
 Training epoch-level metrics
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
