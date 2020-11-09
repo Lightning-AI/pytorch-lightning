@@ -11,15 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import collections
-import inspect
 import os
-import re
 import tempfile
+import collections
+import copy
+import inspect
+import re
 from abc import ABC
 from argparse import Namespace
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union, Mapping
 
 import torch
 from pytorch_lightning import _logger as log
@@ -27,16 +27,17 @@ from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.utilities import rank_zero_warn, AMPType
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities.parsing import (
     AttributeDict,
     collect_init_args,
     get_init_args,
 )
+from pytorch_lightning.callbacks import Callback
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
@@ -64,6 +65,7 @@ class LightningModule(
         "datamodule",
         "example_input_array",
         "hparams",
+        "hparams_initial",
         "on_gpu",
         "current_epoch",
         "global_step",
@@ -109,6 +111,8 @@ class LightningModule(
         self._datamodule = None
         self._results: Optional[Result] = None
         self._current_fx_name = ''
+        self._current_hook_fx_name = None
+        self._current_dataloader_idx = None
 
     def optimizers(self):
         opts = self.trainer.optimizers
@@ -180,8 +184,8 @@ class LightningModule(
         value: Any,
         prog_bar: bool = False,
         logger: bool = True,
-        on_step: Union[None, bool] = None,
-        on_epoch: Union[None, bool] = None,
+        on_step: Optional[bool] = None,
+        on_epoch: Optional[bool] = None,
         reduce_fx: Callable = torch.mean,
         tbptt_reduce_fx: Callable = torch.mean,
         tbptt_pad_token: int = 0,
@@ -217,12 +221,12 @@ class LightningModule(
             logger: if True logs to the logger
             on_step: if True logs at this step. None auto-logs at the training_step but not validation/test_step
             on_epoch: if True logs epoch accumulated metrics. None auto-logs at the val/test step but not training_step
-            reduce_fx: Torch.mean by default
+            reduce_fx: reduction function over step values for end of epoch. Torch.mean by default
             tbptt_reduce_fx: function to reduce on truncated back prop
             tbptt_pad_token: token to use for padding
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
-            sync_dist_op: the op to sync across
+            sync_dist_op: the op to sync across GPUs/TPUs
             sync_dist_group: the ddp group
         """
         if self._results is not None:
@@ -231,7 +235,7 @@ class LightningModule(
                 m = f'on_step=True cannot be used on {self._current_fx_name} method'
                 raise MisconfigurationException(m)
 
-            if 'epoch_end' in self._current_fx_name and on_epoch == False:
+            if 'epoch_end' in self._current_fx_name and on_epoch is False:
                 m = f'on_epoch cannot be False when called from the {self._current_fx_name} method'
                 raise MisconfigurationException(m)
 
@@ -241,6 +245,20 @@ class LightningModule(
             # set the default depending on the fx_name
             on_step = self.__auto_choose_log_on_step(on_step)
             on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
+
+            if self._current_hook_fx_name is not None:
+                self.trainer.logger_connector.check_logging_in_callbacks(
+                    self._current_hook_fx_name,
+                    on_step=on_step,
+                    on_epoch=on_epoch
+                )
+
+            # make sure user doesn't introduce logic for multi-dataloaders
+            if "/dataloader_idx_" in name:
+                raise MisconfigurationException(
+                    f"Logged key: {name} should not contain information about dataloader_idx.")
+
+            accelerator = self.trainer.accelerator_backend
 
             self._results.log(
                 name,
@@ -255,7 +273,9 @@ class LightningModule(
                 enable_graph,
                 sync_dist,
                 sync_dist_op,
-                sync_dist_group
+                sync_dist_group,
+                accelerator.sync_tensor,
+                self._current_dataloader_idx,
             )
 
     def log_dict(
@@ -263,8 +283,8 @@ class LightningModule(
         dictionary: dict,
         prog_bar: bool = False,
         logger: bool = True,
-        on_step: Union[None, bool] = None,
-        on_epoch: Union[None, bool] = None,
+        on_step: Optional[bool] = None,
+        on_epoch: Optional[bool] = None,
         reduce_fx: Callable = torch.mean,
         tbptt_reduce_fx: Callable = torch.mean,
         tbptt_pad_token: int = 0,
@@ -287,12 +307,12 @@ class LightningModule(
             logger: if True logs to the logger
             on_step: if True logs at this step. None auto-logs for training_step but not validation/test_step
             on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
-            reduce_fx: Torch.mean by default
+            reduce_fx: reduction function over step values for end of epoch. Torch.mean by default
             tbptt_reduce_fx: function to reduce on truncated back prop
             tbptt_pad_token: token to use for padding
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
-            sync_dist_op: the op to sync across
+            sync_dist_op: the op to sync across GPUs/TPUs
             sync_dist_group: the ddp group:
         """
         for k, v in dictionary.items():
@@ -970,7 +990,8 @@ class LightningModule(
                     'interval': 'epoch', # The unit of the scheduler's step size
                     'frequency': 1, # The frequency of the scheduler
                     'reduce_on_plateau': False, # For ReduceLROnPlateau scheduler
-                    'monitor': 'val_loss' # Metric to monitor
+                    'monitor': 'val_loss', # Metric for ReduceLROnPlateau to monitor
+                    'strict': True # Whether to crash the training if `monitor` is not found
                 }
 
             If user only provides LR schedulers, then their configuration will set to default as shown above.
@@ -1078,10 +1099,7 @@ class LightningModule(
         # backward
         self.trainer.train_loop.backward(loss, optimizer, -1, *args, **kwargs)
 
-        # clip grads after backward
-        self.trainer.accelerator_backend.clip_gradients(optimizer)
-
-    def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int) -> None:
+    def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
         """
         Override backward with your own implementation if you need to.
 
@@ -1100,7 +1118,7 @@ class LightningModule(
                 loss.backward()
 
         """
-        loss.backward()
+        loss.backward(*args, **kwargs)
 
     def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):
         """
@@ -1128,10 +1146,10 @@ class LightningModule(
         batch_idx: int,
         optimizer: Optimizer,
         optimizer_idx: int,
-        second_order_closure: Optional[Callable] = None,
-        on_tpu: bool = False,
-        using_native_amp: bool = False,
-        using_lbfgs: bool = False,
+        optimizer_closure: Optional[Callable],
+        on_tpu: bool,
+        using_native_amp: bool,
+        using_lbfgs: bool,
     ) -> None:
         r"""
         Override this method to adjust the default way the
@@ -1139,12 +1157,18 @@ class LightningModule(
         By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example
         once per optimizer.
 
+        Warning:
+            If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter
+            to ``optimizer.step()`` function as shown in the examples. This ensures that
+            ``train_step_and_backward_closure`` is called within
+            :meth:`~pytorch_lightning.trainer.training_loop.TrainLoop.run_training_batch`.
+
         Args:
             epoch: Current epoch
             batch_idx: Index of current batch
             optimizer: A PyTorch optimizer
             optimizer_idx: If you used multiple optimizers this indexes into that list.
-            second_order_closure: closure for second order methods
+            optimizer_closure: closure for all optimizers
             on_tpu: true if TPU backward is required
             using_native_amp: True if using native amp
             using_lbfgs: True if the matching optimizer is lbfgs
@@ -1153,23 +1177,23 @@ class LightningModule(
             .. code-block:: python
 
                 # DEFAULT
-                def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
-                                   second_order_closure, on_tpu, using_native_amp, using_lbfgs):
-                    optimizer.step()
+                def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
+                                   optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
+                    optimizer.step(closure=optimizer_closure)
 
                 # Alternating schedule for optimizer steps (i.e.: GANs)
-                def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
-                                   second_order_closure, on_tpu, using_native_amp, using_lbfgs):
+                def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
+                                   optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
                     # update generator opt every 2 steps
                     if optimizer_idx == 0:
                         if batch_idx % 2 == 0 :
-                            optimizer.step()
+                            optimizer.step(closure=optimizer_closure)
                             optimizer.zero_grad()
 
                     # update discriminator opt every 4 steps
                     if optimizer_idx == 1:
                         if batch_idx % 4 == 0 :
-                            optimizer.step()
+                            optimizer.step(closure=optimizer_closure)
                             optimizer.zero_grad()
 
                     # ...
@@ -1182,8 +1206,8 @@ class LightningModule(
             .. code-block:: python
 
                 # learning rate warm-up
-                def optimizer_step(self, current_epoch, batch_idx, optimizer,
-                                    optimizer_idx, second_order_closure, on_tpu, using_native_amp, using_lbfgs):
+                def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
+                                   optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
                     # warm up lr
                     if self.trainer.global_step < 500:
                         lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
@@ -1191,7 +1215,7 @@ class LightningModule(
                             pg['lr'] = lr_scale * self.learning_rate
 
                     # update params
-                    optimizer.step()
+                    optimizer.step(closure=optimizer_closure)
                     optimizer.zero_grad()
 
         Note:
@@ -1200,13 +1224,19 @@ class LightningModule(
 
         """
         if on_tpu:
-            xm.optimizer_step(optimizer)
-        elif using_native_amp:
+            xm.optimizer_step(optimizer, optimizer_args={'closure': optimizer_closure})
+        elif self.trainer.amp_backend == AMPType.NATIVE:
+            # native amp does not yet support closures.
+            # TODO: pass the closure to the step ASAP
+            optimizer_closure()
             self.trainer.scaler.step(optimizer)
-        elif using_lbfgs:
-            optimizer.step(second_order_closure)
-        else:
+        elif self.trainer.amp_backend == AMPType.APEX:
+            # apex amp does not yet support closures.
+            # TODO: pass the closure to the step ASAP
+            optimizer_closure()
             optimizer.step()
+        else:
+            optimizer.step(closure=optimizer_closure)
 
     def optimizer_zero_grad(
         self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int
@@ -1271,11 +1301,11 @@ class LightningModule(
             batch_split = []
             for i, x in enumerate(batch):
                 if isinstance(x, torch.Tensor):
-                    split_x = x[:, t : t + split_size]
+                    split_x = x[:, t: t + split_size]
                 elif isinstance(x, collections.Sequence):
                     split_x = [None] * len(x)
                     for batch_idx in range(len(x)):
-                        split_x[batch_idx] = x[batch_idx][t : t + split_size]
+                        split_x[batch_idx] = x[batch_idx][t: t + split_size]
 
                 batch_split.append(split_x)
 
@@ -1388,7 +1418,7 @@ class LightningModule(
         frame_args = collect_init_args(frame.f_back, [])
         self_arguments = frame_args[-1]
 
-        # set module_arguments in child
+        # set hyper_parameters in child
         self_arguments = self_arguments
         parents_arguments = {}
 
@@ -1448,9 +1478,11 @@ class LightningModule(
         init_args = get_init_args(frame)
         assert init_args, "failed to inspect the self init"
         if not args:
+            # take all arguments
             hp = init_args
             self._hparams_name = "kwargs" if hp else None
         else:
+            # take only listed arguments in `save_hparams`
             isx_non_str = [i for i, arg in enumerate(args) if not isinstance(arg, str)]
             if len(isx_non_str) == 1:
                 hp = args[isx_non_str[0]]
@@ -1463,6 +1495,8 @@ class LightningModule(
         # `hparams` are expected here
         if hp:
             self._set_hparams(hp)
+        # make deep copy so  there is not other runtime changes reflected
+        self._hparams_initial = copy.deepcopy(self._hparams)
 
     def _set_hparams(self, hp: Union[dict, Namespace, str]) -> None:
         if isinstance(hp, Namespace):
@@ -1527,17 +1561,23 @@ class LightningModule(
         torch.onnx.export(self, input_data, file_path, **kwargs)
 
     def to_torchscript(
-        self, file_path: Optional[str] = None, **kwargs
+        self, file_path: Optional[str] = None, method: Optional[str] = 'script',
+            example_inputs: Optional[Union[torch.Tensor, Tuple[torch.Tensor]]] = None, **kwargs
     ) -> Union[ScriptModule, Dict[str, ScriptModule]]:
         """
         By default compiles the whole model to a :class:`~torch.jit.ScriptModule`.
-        If you would like to customize the modules that are scripted or you want to use tracing
-        you should override this method. In case you want to return multiple modules, we
-        recommend using a dictionary.
+        If you want to use tracing, please provided the argument `method='trace'` and make sure that either the
+        example_inputs argument is provided, or the model has self.example_input_array set.
+        If you would like to customize the modules that are scripted you should override this method.
+        In case you want to return multiple modules, we recommend using a dictionary.
 
         Args:
             file_path: Path where to save the torchscript. Default: None (no file saved).
-            **kwargs: Additional arguments that will be passed to the :func:`torch.jit.save` function.
+            method: Whether to use TorchScript's script or trace method. Default: 'script'
+            example_inputs: Tensor to be used to do tracing when method is set to 'trace'.
+              Default: None (Use self.example_input_array)
+            **kwargs: Additional arguments that will be passed to the :func:`torch.jit.script` or
+              :func:`torch.jit.trace` function.
 
         Note:
             - Requires the implementation of the
@@ -1559,6 +1599,9 @@ class LightningModule(
             >>> model = SimpleModel()
             >>> torch.jit.save(model.to_torchscript(), "model.pt")  # doctest: +SKIP
             >>> os.path.isfile("model.pt")  # doctest: +SKIP
+            >>> torch.jit.save(model.to_torchscript(file_path="model_trace.pt", method='trace', # doctest: +SKIP
+            ...                                     example_inputs=torch.randn(1, 64)))  # doctest: +SKIP
+            >>> os.path.isfile("model_trace.pt")  # doctest: +SKIP
             True
 
         Return:
@@ -1568,25 +1611,46 @@ class LightningModule(
 
         mode = self.training
         with torch.no_grad():
-            scripted_module = torch.jit.script(self.eval(), **kwargs)
+            if method == 'script':
+                torchscript_module = torch.jit.script(self.eval(), **kwargs)
+            elif method == 'trace':
+                # if no example inputs are provided, try to see if model has example_input_array set
+                if example_inputs is None:
+                    example_inputs = self.example_input_array
+                # automatically send example inputs to the right device and use trace
+                example_inputs = self.transfer_batch_to_device(example_inputs, device=self.device)
+                torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
+            else:
+                raise ValueError(f"The 'method' parameter only supports 'script' or 'trace', but value given was:"
+                                 f"{method}")
         self.train(mode)
 
         if file_path is not None:
-            torch.jit.save(scripted_module, file_path)
+            torch.jit.save(torchscript_module, file_path)
 
-        return scripted_module
+        return torchscript_module
 
     @property
-    def hparams(self) -> Union[AttributeDict, str]:
+    def hparams(self) -> Union[AttributeDict, dict, Namespace]:
         if not hasattr(self, "_hparams"):
             self._hparams = AttributeDict()
         return self._hparams
+
+    @property
+    def hparams_initial(self) -> AttributeDict:
+        if not hasattr(self, "_hparams_initial"):
+            return AttributeDict()
+        # prevent any change
+        return copy.deepcopy(self._hparams_initial)
 
     @hparams.setter
     def hparams(self, hp: Union[dict, Namespace, Any]):
         hparams_assignment_name = self.__get_hparams_assignment_variable()
         self._hparams_name = hparams_assignment_name
         self._set_hparams(hp)
+        # this resolves case when user does not uses `save_hyperparameters` and do hard assignement in init
+        if not hasattr(self, "_hparams_initial"):
+            self._hparams_initial = copy.deepcopy(self._hparams)
 
     def __get_hparams_assignment_variable(self):
         """"""

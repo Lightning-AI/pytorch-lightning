@@ -13,6 +13,7 @@
 # limitations under the License.
 import functools
 import importlib
+import queue as q
 from multiprocessing import Process, Queue
 
 import torch
@@ -24,10 +25,10 @@ else:
     xm = None
 
 
-def inner_f(queue, func, **kwargs):  # pragma: no cover
+def inner_f(queue, func, *args, **kwargs):  # pragma: no cover
     try:
-        queue.put(func(**kwargs))
-    except Exception as _e:
+        queue.put(func(*args, **kwargs))
+    except Exception:
         import traceback
 
         traceback.print_exc()
@@ -38,10 +39,13 @@ def pl_multi_process(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         queue = Queue()
-        proc = Process(target=inner_f, args=(queue, func,), kwargs=kwargs)
+        proc = Process(target=inner_f, args=(queue, func, *args), kwargs=kwargs)
         proc.start()
-        proc.join()
-        return queue.get()
+        proc.join(10)
+        try:
+            return queue.get_nowait()
+        except q.Empty:
+            return False
 
     return wrapper
 
@@ -55,8 +59,10 @@ class XLADeviceUtils:
     def _fetch_xla_device_type(device: torch.device) -> str:
         """
         Returns XLA device type
+
         Args:
             device: (:class:`~torch.device`): Accepts a torch.device type with a XLA device format i.e xla:0
+
         Return:
             Returns a str of the device hardware type. i.e TPU
         """
@@ -67,6 +73,7 @@ class XLADeviceUtils:
     def _is_device_tpu() -> bool:
         """
         Check if device is TPU
+
         Return:
             A boolean value indicating if the xla device is a TPU device or not
         """
@@ -79,6 +86,7 @@ class XLADeviceUtils:
     def tpu_device_exists() -> bool:
         """
         Public method to check if TPU is available
+
         Return:
             A boolean value indicating if a TPU device exists on the system
         """

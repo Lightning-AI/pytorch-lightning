@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import List, Tuple
+
 from torch.optim.optimizer import Optimizer
+
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities import AMPType
 
@@ -24,7 +27,7 @@ except ImportError:
 
 class ApexPlugin:
 
-    def __init__(self, trainer):
+    def __init__(self, trainer=None):
         self.trainer = trainer
 
     def connect(self, model, optimizers):
@@ -65,10 +68,10 @@ class ApexPlugin:
     def configure_apex(
         self,
         amp: object,
-        model: "LightningModule",
+        model: LightningModule,
         optimizers: List[Optimizer],
         amp_level: str,
-    ) -> Tuple["LightningModule", List[Optimizer]]:
+    ) -> Tuple[LightningModule, List[Optimizer]]:
         r"""
         Override to init AMP your own way.
         Must return a model and list of optimizers.

@@ -14,10 +14,11 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning import Trainer
-from pytorch_lightning import callbacks
+from pytorch_lightning import callbacks, seed_everything
 from tests.base.deterministic_model import DeterministicModel
-from tests.base import SimpleModule, BoringModel
+from tests.base import SimpleModule, BoringModel, RandomDataset
 import os
 import torch
 import pytest
@@ -46,7 +47,7 @@ def test__validation_step__log(tmpdir):
             self.training_step_called = True
 
         def backward(self, loss, optimizer, optimizer_idx):
-            loss.backward()
+            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
 
     model = TestModel()
     model.validation_step_end = None
@@ -64,11 +65,9 @@ def test__validation_step__log(tmpdir):
 
     # make sure all the metrics are available for callbacks
     expected_logged_metrics = {
-        'a',
         'a2',
         'a_step',
         'a_epoch',
-        'b',
         'b_step/epoch_0',
         'b_step/epoch_1',
         'b_epoch',
@@ -119,7 +118,7 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
             self.validation_epoch_end_called = True
 
         def backward(self, loss, optimizer, optimizer_idx):
-            loss.backward()
+            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
 
     model = TestModel()
 
@@ -138,16 +137,13 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
     expected_logged_metrics = {
         'epoch',
         'a',
-        'b',
         'b_step',
         'b_epoch',
         'c',
-        'd',
         'd_step/epoch_0',
         'd_step/epoch_1',
         'd_epoch',
         'e',
-        'f',
         'f_step/epoch_0',
         'f_step/epoch_1',
         'f_epoch',
@@ -195,6 +191,7 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     expected_logged_metrics = {
         'c',
         'd/e/f',
+        'epoch',
     }
     assert logged_metrics == expected_logged_metrics
 
@@ -203,10 +200,11 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     assert pbar_metrics == expected_pbar_metrics
 
     callback_metrics = set(trainer.callback_metrics.keys())
+    callback_metrics.remove('debug_epoch')
     expected_callback_metrics = set()
     expected_callback_metrics = expected_callback_metrics.union(logged_metrics)
     expected_callback_metrics = expected_callback_metrics.union(pbar_metrics)
-    callback_metrics.remove('debug_epoch')
+    expected_callback_metrics.remove('epoch')
     assert callback_metrics == expected_callback_metrics
 
     # assert the loggers received the expected number
@@ -243,17 +241,181 @@ def test_eval_float_logging(tmpdir):
     logged_metrics = set(trainer.logged_metrics.keys())
     expected_logged_metrics = {
         'a',
+        'epoch',
     }
     assert logged_metrics == expected_logged_metrics
+
+
+def test_eval_logging_auto_reduce(tmpdir):
+    """
+    Tests that only training_step can be used
+    """
+    seed_everything(1234)
+
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    class TestModel(BoringModel):
+        def on_pretrain_routine_end(self) -> None:
+            self.seen_vals = []
+            self.manual_epoch_end_mean = None
+
+        def on_validation_epoch_start(self) -> None:
+            self.seen_vals = []
+
+        def validation_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.seen_vals.append(loss)
+            self.log('val_loss', loss, on_epoch=True, on_step=True, prog_bar=True)
+            return {"x": loss}
+
+        def validation_epoch_end(self, outputs) -> None:
+            for passed_in, manually_tracked in zip(outputs, self.seen_vals):
+                assert passed_in['x'] == manually_tracked
+            self.manual_epoch_end_mean = torch.stack([x['x'] for x in outputs]).mean()
+
+    model = TestModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=3,
+        limit_val_batches=3,
+        max_epochs=1,
+        log_every_n_steps=1,
+        weights_summary=None,
+        checkpoint_callback=callbacks.ModelCheckpoint(dirpath='val_loss')
+    )
+    trainer.fit(model)
+
+    # make sure all the metrics are available for callbacks
+    manual_mean = model.manual_epoch_end_mean
+    callback_metrics = set(trainer.callback_metrics.keys())
+    assert callback_metrics == {'debug_epoch', 'val_loss', 'val_loss_epoch'}
+
+    # make sure values are correct
+    assert trainer.logged_metrics['val_loss_epoch'] == manual_mean
+    assert trainer.callback_metrics['val_loss'] == trainer.logged_metrics['val_loss_step/epoch_0']
+
+    # make sure correct values were logged
+    logged_val = trainer.dev_debugger.logged_metrics
+
+    # sanity check
+    assert logged_val[0]['global_step'] == 0
+    assert logged_val[1]['global_step'] == 0
+
+    # 3 val batches
+    assert logged_val[2]['val_loss_step/epoch_0'] == model.seen_vals[0]
+    assert logged_val[3]['val_loss_step/epoch_0'] == model.seen_vals[1]
+    assert logged_val[4]['val_loss_step/epoch_0'] == model.seen_vals[2]
+
+    # epoch mean
+    assert logged_val[5]['val_loss_epoch'] == model.manual_epoch_end_mean
+
+    # only those logged
+    assert len(logged_val) == 6
+
+
+@pytest.mark.parametrize(['batches', 'log_interval', 'max_epochs'], [(1, 1, 1), (64, 32, 2)])
+def test_eval_epoch_only_logging(tmpdir, batches, log_interval, max_epochs):
+    """
+    Tests that only test_epoch_end can be used to log, and we return them in the results.
+    """
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    class TestModel(BoringModel):
+        def test_epoch_end(self, outputs):
+            self.log('c', torch.tensor(2), on_epoch=True, prog_bar=True, logger=True)
+            self.log('d/e/f', 2)
+
+    model = TestModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=batches,
+        limit_val_batches=batches,
+        max_epochs=max_epochs,
+        log_every_n_steps=log_interval,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+    results = trainer.test(model)
+
+    expected_result_metrics = {
+        'c': torch.tensor(2),
+        'd/e/f': 2,
+    }
+    for result in results:
+        assert result == expected_result_metrics
 
 
 def test_monitor_val_epoch_end(tmpdir):
     epoch_min_loss_override = 0
     model = SimpleModule()
-    checkpoint_callback = callbacks.ModelCheckpoint(save_top_k=1, monitor="avg_val_loss")
+    checkpoint_callback = callbacks.ModelCheckpoint(dirpath=tmpdir, save_top_k=1, monitor="avg_val_loss")
     trainer = Trainer(
         max_epochs=epoch_min_loss_override + 2,
         logger=False,
         checkpoint_callback=checkpoint_callback,
     )
     trainer.fit(model)
+
+
+def test_multi_dataloaders_add_suffix_properly(tmpdir):
+    class TestModel(BoringModel):
+
+        def test_step(self, batch, batch_idx, dataloader_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log("test_loss", loss, on_step=True, on_epoch=True)
+            return {"y": loss}
+
+        def test_dataloader(self):
+            return [torch.utils.data.DataLoader(RandomDataset(32, 64)),
+                    torch.utils.data.DataLoader(RandomDataset(32, 64))]
+
+    model = TestModel()
+    model.test_epoch_end = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=0,
+        limit_val_batches=0,
+        limit_test_batches=2,
+        max_epochs=1,
+        log_every_n_steps=1,
+        weights_summary=None,
+    )
+    results = trainer.test(model)
+    assert len(results[0]) == len(results[1])
+    assert "test_loss_epoch/dataloader_idx_0" in results[0]
+    assert "test_loss_epoch/dataloader_idx_1" in results[1]
+
+
+def test_single_dataloader_no_suffix_added(tmpdir):
+    class TestModel(BoringModel):
+
+        def test_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log("test_loss", loss, on_step=True, on_epoch=True)
+            return {"y": loss}
+
+        def test_dataloader(self):
+            return torch.utils.data.DataLoader(RandomDataset(32, 64))
+
+    model = TestModel()
+    model.test_epoch_end = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=0,
+        limit_val_batches=0,
+        limit_test_batches=5,
+        max_epochs=1,
+        log_every_n_steps=1,
+        weights_summary=None,
+    )
+    results = trainer.test(model)
+    assert len(results) == 1
+    # error : It is wrong there. `y` should equal test_loss_epoch
+    assert results[0]['test_loss'] == results[0]['y']

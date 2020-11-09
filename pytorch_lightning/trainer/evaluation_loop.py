@@ -29,6 +29,7 @@ class EvaluationLoop(object):
         self.predictions = None
         self.max_batches = None
         self.warning_cache = WarningCache()
+        self.num_dataloaders = None
 
     def on_trainer_init(self):
         self.trainer.num_val_batches = []
@@ -108,6 +109,9 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_end', *args, **kwargs)
 
+        # reset stage to train
+        self.trainer.logger_connector.set_stage("train")
+
     def reload_evaluation_dataloaders(self):
         model = self.trainer.get_model()
         if self.testing:
@@ -133,6 +137,7 @@ class EvaluationLoop(object):
             max_batches = [max_batches] * len(dataloaders)
 
         self.max_batches = max_batches
+        self.num_dataloaders = self._get_num_dataloaders(dataloaders)
 
     def on_evaluation_epoch_start(self, *args, **kwargs):
         if self.testing:
@@ -218,6 +223,9 @@ class EvaluationLoop(object):
     def __run_eval_epoch_end(self, num_dataloaders, using_eval_result):
         model = self.trainer.get_model()
 
+        # reset results
+        model._results = Result()
+
         # with a single dataloader don't pass an array
         outputs = self.outputs
         eval_results = outputs
@@ -247,9 +255,10 @@ class EvaluationLoop(object):
         # depre warning
         if eval_results is not None and user_reduced:
             step = 'testing_epoch_end' if self.testing else 'validation_epoch_end'
-            m = f'The {step} should not return anything as of 9.1.' \
-                f'to log, use self.log(...) or self.write(...) directly in the LightningModule'
-            self.warning_cache.warn(m)
+            self.warning_cache.warn(
+                f'The {step} should not return anything as of 9.1.'
+                ' To log, use self.log(...) or self.write(...) directly in the LightningModule'
+            )
 
         if using_eval_result and not user_reduced:
             eval_results = self.__auto_reduce_result_objs(outputs)
@@ -289,16 +298,20 @@ class EvaluationLoop(object):
 
         return eval_results
 
-    def on_evaluation_batch_start(self, *args, **kwargs):
+    def on_evaluation_batch_start(self, batch, batch_idx, dataloader_idx):
         # reset the result of the PL module
         model = self.trainer.get_model()
         model._results = Result()
         model._current_fx_name = 'evaluation_step'
 
+        # set dataloader_idx and track batch_size
+        self.trainer.logger_connector.on_evaluation_batch_start(
+            self.testing, batch, dataloader_idx, self.num_dataloaders)
+
         if self.testing:
-            self.trainer.call_hook('on_test_batch_start', *args, **kwargs)
+            self.trainer.call_hook('on_test_batch_start', batch, batch_idx, dataloader_idx)
         else:
-            self.trainer.call_hook('on_validation_batch_start', *args, **kwargs)
+            self.trainer.call_hook('on_validation_batch_start', batch, batch_idx, dataloader_idx)
 
     def on_evaluation_batch_end(self, *args, **kwargs):
         if self.testing:
@@ -344,6 +357,9 @@ class EvaluationLoop(object):
     def __log_result_step_metrics(self, output, batch_idx):
         step_log_metrics = output.get_batch_log_metrics(include_forked_originals=False)
         step_pbar_metrics = output.get_batch_pbar_metrics(include_forked_originals=False)
+
+        cached_batch_log_metrics = \
+            self.trainer.logger_connector.cached_results.get_latest_batch_log_metrics()
 
         if len(step_log_metrics) > 0:
             # make the metrics appear as a different line in the same graph

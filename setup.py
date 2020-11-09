@@ -31,8 +31,8 @@ builtins.__LIGHTNING_SETUP__ = True
 import pytorch_lightning  # noqa: E402
 
 
-def load_requirements(path_dir=PATH_ROOT, file_name='base.txt', comment_char='#'):
-    with open(os.path.join(path_dir, 'requirements', file_name), 'r') as file:
+def load_requirements(path_dir=PATH_ROOT, file_name='requirements.txt', comment_char='#'):
+    with open(os.path.join(path_dir, file_name), 'r') as file:
         lines = [ln.strip() for ln in file.readlines()]
     reqs = []
     for ln in lines:
@@ -64,10 +64,10 @@ def load_long_description():
 # From local copy of repo, use like `pip install ".[dev, docs]"`
 extras = {
     # 'docs': load_requirements(file_name='docs.txt'),
-    'examples': load_requirements(file_name='examples.txt'),
-    'loggers': load_requirements(file_name='loggers.txt'),
-    'extra': load_requirements(file_name='extra.txt'),
-    'test': load_requirements(file_name='test.txt')
+    'examples': load_requirements(path_dir=os.path.join(PATH_ROOT, 'requirements'), file_name='examples.txt'),
+    'loggers': load_requirements(path_dir=os.path.join(PATH_ROOT, 'requirements'), file_name='loggers.txt'),
+    'extra': load_requirements(path_dir=os.path.join(PATH_ROOT, 'requirements'), file_name='extra.txt'),
+    'test': load_requirements(path_dir=os.path.join(PATH_ROOT, 'requirements'), file_name='test.txt')
 }
 extras['dev'] = extras['extra'] + extras['loggers'] + extras['test']
 extras['all'] = extras['dev'] + extras['examples']  # + extras['docs']

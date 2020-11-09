@@ -115,13 +115,13 @@ def test_mlflow_log_dir(client, mlflow, tmpdir):
     )
     trainer.fit(model)
     assert trainer.checkpoint_callback.dirpath == (tmpdir / "exp-id" / "run-id" / 'checkpoints')
-    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0.ckpt'}
+    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=0.ckpt'}
 
 
 def test_mlflow_logger_dirs_creation(tmpdir):
     """ Test that the logger creates the folders and files in the right place. """
     if not importlib.util.find_spec('mlflow'):
-        pytest.xfail(f"test for explicit file creation requires mlflow dependency to be installed.")
+        pytest.xfail("test for explicit file creation requires mlflow dependency to be installed.")
 
     assert not os.listdir(tmpdir)
     logger = MLFlowLogger('test', save_dir=tmpdir)
@@ -143,7 +143,7 @@ def test_mlflow_logger_dirs_creation(tmpdir):
     assert 'epoch' in os.listdir(tmpdir / exp_id / run_id / 'metrics')
     assert set(os.listdir(tmpdir / exp_id / run_id / 'params')) == model.hparams.keys()
     assert trainer.checkpoint_callback.dirpath == (tmpdir / exp_id / run_id / 'checkpoints')
-    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0.ckpt'}
+    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=9.ckpt'}
 
 
 @mock.patch('pytorch_lightning.loggers.mlflow.mlflow')

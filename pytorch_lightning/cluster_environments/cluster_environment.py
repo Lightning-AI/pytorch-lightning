@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+
 class ClusterEnvironment:
 
     def __init__(self):
@@ -24,3 +26,6 @@ class ClusterEnvironment:
 
     def world_size(self):
         return self._world_size
+
+    def local_rank(self):
+        pass

@@ -37,6 +37,22 @@ def test_torchscript_input_output(modelclass):
     assert torch.allclose(script_output, model_output)
 
 
+@pytest.mark.parametrize("modelclass", [
+    EvalModelTemplate,
+    ParityModuleRNN,
+    BasicGAN,
+])
+def test_torchscript_input_output_trace(modelclass):
+    """ Test that traced LightningModule forward works. """
+    model = modelclass()
+    script = model.to_torchscript(method='trace')
+    assert isinstance(script, torch.jit.ScriptModule)
+    model.eval()
+    model_output = model(model.example_input_array)
+    script_output = script(model.example_input_array)
+    assert torch.allclose(script_output, model_output)
+
+
 @pytest.mark.parametrize("device", [
     torch.device("cpu"),
     torch.device("cuda", 0)

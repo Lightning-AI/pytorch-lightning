@@ -22,12 +22,12 @@ PyTorch Lightning supports profiling standard actions in the training loop out o
 Enable simple profiling
 -----------------------
 
-If you only wish to profile the standard actions, you can set `profiler=True` when constructing
-your `Trainer` object.
+If you only wish to profile the standard actions, you can set `profiler="simple"`
+when constructing your `Trainer` object.
 
 .. code-block:: python
 
-    trainer = Trainer(..., profiler=True)
+    trainer = Trainer(..., profiler="simple")
 
 The profiler's results will be printed at the completion of a training `fit()`.
 
@@ -58,6 +58,10 @@ This option uses Python's cProfiler_ to provide a report of time spent on *each*
 .. _cProfiler: https://docs.python.org/3/library/profile.html#module-cProfile
 
 .. code-block:: python
+
+    trainer = Trainer(..., profiler="advanced")
+
+    or
 
     profiler = AdvancedProfiler()
     trainer = Trainer(..., profiler=profiler)

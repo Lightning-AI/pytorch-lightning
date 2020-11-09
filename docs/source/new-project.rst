@@ -120,7 +120,7 @@ Step 1: Define LightningModule
             optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
             return optimizer
 
-**SYTEM VS MODEL**
+**SYSTEM VS MODEL**
 
 A :ref:`lightning_module` defines a *system* not a model.
 
@@ -143,7 +143,7 @@ Under the hood a LightningModule is still just a :class:`torch.nn.Module` that g
 - The Train loop
 - The Validation loop
 - The Test loop
-- The Model + system architecture
+- The Model or system of Models
 - The Optimizer
 
 You can customize any part of training (such as the backward pass) by overriding any
@@ -608,7 +608,13 @@ Here's an example adding a not-so-fancy learning rate decay rule:
                     new_lr_group.append(new_lr)
                     param_group['lr'] = new_lr
                  self.old_lrs[opt_idx] = new_lr_group
-                 
+
+And pass the callback to the Trainer
+
+.. code-block:: python
+
+    decay_callback = DecayLearningRate()
+    trainer = Trainer(callbacks=[decay_callback])
 
 Things you can do with a callback:
 
@@ -719,7 +725,7 @@ Lightning has many tools for debugging. Here is an example of just a few of them
 .. code-block:: python
    
    # train only 20% of an epoch
-   trainer = pl. Trainer(limit_train_batches=0.2)
+   trainer = pl.Trainer(limit_train_batches=0.2)
 
 .. code-block:: python
 

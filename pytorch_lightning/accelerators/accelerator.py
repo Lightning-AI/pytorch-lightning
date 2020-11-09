@@ -14,7 +14,7 @@
 import os
 import math
 from enum import Enum
-from typing import Any
+from typing import Any, Optional, Union
 
 import torch
 
@@ -30,17 +30,24 @@ try:
 except ImportError:
     amp = None
 
+if torch.distributed.is_available():
+    from torch.distributed import ReduceOp
+else:
+    class ReduceOp:
+        SUM = None
+
 EPSILON = 1e-6
 EPSILON_FP16 = 1e-5
 
 
 class Accelerator(object):
 
-    def __init__(self, trainer=None, cluster_environment=None):
+    def __init__(self, trainer=None, cluster_environment=None, ddp_plugin=None):
         self.trainer = trainer
         self.nickname = None
         self.cluster_environment = cluster_environment
         self.dist = AttributeDict(rank=0, device=None)
+        self.ddp_plugin = ddp_plugin
 
         if trainer is not None:
             self.train_loop = self.trainer.train
@@ -51,9 +58,10 @@ class Accelerator(object):
         pass
 
     def teardown(self):
-        pass
+        # Ensure if necessary all processes are finished
+        self.barrier()
 
-    def barrier(self, name: str = None):
+    def barrier(self, name: Optional[str] = None):
         pass
 
     def broadcast(self, obj, src=0):
@@ -91,11 +99,8 @@ class Accelerator(object):
             )
         else:
             # do backward pass
-            if self.trainer.train_loop.automatic_optimization:
-                model = self.trainer.get_model()
-                model.backward(closure_loss, optimizer, opt_idx)
-            else:
-                closure_loss.backward(*args, **kwargs)
+            model = self.trainer.get_model()
+            model.backward(closure_loss, optimizer, opt_idx, *args, **kwargs)
 
             # once backward has been applied, release graph
             closure_loss = closure_loss.detach()
@@ -114,11 +119,12 @@ class Accelerator(object):
 
         # model hook
         model_ref.optimizer_step(
-            self.trainer.current_epoch,
-            batch_idx,
-            optimizer,
-            opt_idx,
-            lambda_closure,
+            epoch=self.trainer.current_epoch,
+            batch_idx=batch_idx,
+            optimizer=optimizer,
+            optimizer_idx=opt_idx,
+            optimizer_closure=lambda_closure,
+            on_tpu=False,  # TPUAccelerator class sets this as True
             using_native_amp=native_amp,
             using_lbfgs=is_lbfgs
         )
@@ -132,11 +138,6 @@ class Accelerator(object):
         model_ref.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
     def clip_gradients(self, optimizer, clip_val=None):
-
-        if self.trainer.amp_backend == AMPType.NATIVE:
-            self.trainer.scaler.unscale_(optimizer)
-
-        # apply clip gradients
         # TODO: separate TPU case from here
         self._clip_gradients(optimizer, clip_val)
 
@@ -214,12 +215,31 @@ class Accelerator(object):
                 torch_backend, rank=global_rank, world_size=world_size
             )
 
+    def sync_tensor(self,
+                    tensor: Union[torch.Tensor],
+                    group: Optional[Any] = None,
+                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
+        """
+        Function to reduce a tensor from several distributed processes to one aggregated tensor.
+
+        Args:
+            tensor: the tensor to sync and reduce
+            group: the process group to gather results from. Defaults to all processes (world)
+            reduce_op: the reduction operation. Defaults to sum.
+                Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
+
+        Return:
+            reduced value
+        """
+        raise NotImplementedError()
+
     def __getstate__(self):
         return {
             'trainer': self.trainer,
             'nickname': self.nickname,
             'cluster_environment': self.cluster_environment,
-            'dist': self.dist
+            'dist': self.dist,
+            'ddp_plugin': self.ddp_plugin
         }
 
     def __setstate__(self, d):
@@ -227,6 +247,7 @@ class Accelerator(object):
         self.nickname = d['nickname']
         self.cluster_environment = d['cluster_environment']
         self.dist = d['dist']
+        self.ddp_plugin = d['ddp_plugin']
 
 
 # TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...

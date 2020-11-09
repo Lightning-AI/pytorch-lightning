@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from copy import deepcopy
 import pytest
 import torch
@@ -57,6 +58,8 @@ def test_model_reset_correctly(tmpdir):
     for key in before_state_dict.keys():
         assert torch.all(torch.eq(before_state_dict[key], after_state_dict[key])), \
             'Model was not reset correctly after learning rate finder'
+
+    assert not os.path.exists(tmpdir / 'lr_find_temp_model.ckpt')
 
 
 def test_trainer_reset_correctly(tmpdir):
@@ -209,11 +212,14 @@ def test_accumulation_and_early_stopping(tmpdir):
     lrfinder = trainer.tuner.lr_find(model, early_stop_threshold=None)
     after_lr = lrfinder.suggestion()
 
+    expected_num_lrs = 100
+    expected_batch_idx = 200 - 1
+
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
-    assert len(lrfinder.results['lr']) == 99, \
+    assert len(lrfinder.results['lr']) == expected_num_lrs, \
         'Early stopping for learning rate finder did not work'
-    assert lrfinder._total_batch_idx == 99 * 2, \
+    assert lrfinder._total_batch_idx == expected_batch_idx, \
         'Accumulation parameter did not work'
 
 
