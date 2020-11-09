@@ -39,6 +39,7 @@ PyTorch Lightning Documentation
    :name: docs
    :caption: Optional extensions
 
+   accelerators
    callbacks
    datamodules
    logging

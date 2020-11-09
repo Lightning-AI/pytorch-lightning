@@ -26,6 +26,15 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 class DataParallelAccelerator(Accelerator):
 
     def __init__(self, trainer, cluster_environment=None):
+        """
+        Runs training using DP via manual start (not HPC cluster)
+
+        Example::
+
+            # default
+            trainer = Trainer(accelerator=DataParallelAccelerator())
+
+        """
         super().__init__(trainer, cluster_environment)
         self.model_autocast_original_forward = None
         self.dist = LightningDistributed()

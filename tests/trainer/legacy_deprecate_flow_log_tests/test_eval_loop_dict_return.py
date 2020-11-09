@@ -14,6 +14,7 @@
 """
 Tests to ensure that the training loop works with a dict
 """
+import os
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
@@ -125,6 +126,9 @@ def test_validation_step_dict_return(tmpdir):
     Test that val step can return a dict with all the expected keys and they end up
     in the correct place
     """
+
+    os.environ['PL_DEV_DEBUG'] = '0'
+
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
     model.validation_step = model.validation_step_dict_return
@@ -166,6 +170,8 @@ def test_val_step_step_end_no_return(tmpdir):
     """
     Test that val step + val step end work (with no return in val step end)
     """
+    os.environ['PL_DEV_DEBUG'] = '0'
+
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
     model.validation_step = model.validation_step_dict_return
@@ -197,6 +203,9 @@ def test_val_step_step_end(tmpdir):
     """
     Test that val step + val step end work
     """
+
+    os.environ['PL_DEV_DEBUG'] = '0'
+
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
     model.validation_step = model.validation_step_dict_return
@@ -241,6 +250,9 @@ def test_no_val_step_end(tmpdir):
     """
     Test that val step + val epoch end
     """
+
+    os.environ['PL_DEV_DEBUG'] = '0'
+
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
     model.validation_step = model.validation_step_dict_return
@@ -284,6 +296,9 @@ def test_full_val_loop(tmpdir):
     """
     Test that val step + val step end + val epoch end
     """
+
+    os.environ['PL_DEV_DEBUG'] = '0'
+
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
     model.validation_step = model.validation_step_dict_return
