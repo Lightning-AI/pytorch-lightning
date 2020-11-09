@@ -291,7 +291,7 @@ class ModelCheckpoint(Callback):
         if dirpath and self._fs.protocol == 'file':
             dirpath = os.path.realpath(dirpath)
 
-        self.dirpath = dirpath or None
+        self.dirpath: Union[str, None] = dirpath or None
         self.filename = filename or None
 
     def __init_monitor_mode(self, monitor, mode):

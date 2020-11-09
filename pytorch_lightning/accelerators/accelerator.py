@@ -221,11 +221,13 @@ class Accelerator(object):
                     reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
         """
         Function to reduce a tensor from several distributed processes to one aggregated tensor.
+
         Args:
             tensor: the tensor to sync and reduce
             group: the process group to gather results from. Defaults to all processes (world)
             reduce_op: the reduction operation. Defaults to sum.
                 Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
+
         Return:
             reduced value
         """
