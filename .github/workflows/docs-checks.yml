@@ -48,6 +48,7 @@ jobs:
           # python -m pip install --upgrade --user pip
           pip install --requirement requirements.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
           pip install --requirement requirements/extra.txt
+          pip install --requirement requirements/loggers.txt
           pip install --requirement requirements/docs.txt
           python --version
           pip --version
