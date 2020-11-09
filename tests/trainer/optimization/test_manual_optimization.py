@@ -587,7 +587,6 @@ def test_multiple_optimizers_manual_optimizer_step(tmpdir):
 
             assert self.layer.weight.grad is not None
             self.manual_optimizer_step(opt_b)
-            assert torch.all(self.layer.weight.grad == 0)
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
