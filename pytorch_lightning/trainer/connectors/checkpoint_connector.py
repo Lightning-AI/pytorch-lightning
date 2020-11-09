@@ -191,27 +191,23 @@ class CheckpointConnector:
         for scheduler, lrs_state in zip(self.trainer.lr_schedulers, lr_schedulers):
             scheduler['scheduler'].load_state_dict(lrs_state)
 
-    def restore_hpc_weights_if_needed(self, model: LightningModule):
+    def restore_hpc_weights_if_needed(self, model: LightningModule) -> bool:
         """If there is a set of hpc weights, use as signal to restore model."""
-        did_restore = False
 
-        # look for hpc weights
         folderpath = str(self.trainer.weights_save_path)
         fs = get_filesystem(folderpath)
-        if fs.exists(folderpath):
-            files = [os.path.basename(f['name']) for f in fs.listdir(folderpath)]
-            hpc_weight_paths = [x for x in files if 'hpc_ckpt' in x]
-
-            # if hpc weights exist restore model
-            if len(hpc_weight_paths) > 0:
-                max_suffix = self.max_ckpt_in_folder(folderpath)
-                ckpt_number = max_suffix if max_suffix is not None else 0
-                checkpoint_path = f'{folderpath}/hpc_ckpt_{ckpt_number}.ckpt'
+        if not fs.exists(folderpath):
+            return False
+        else:
+            max_suffix = self.max_ckpt_in_folder(folderpath, "hpc_ckpt_")
+            if max_suffix is None:
+                return False
+            else:
+                # load states from hpc checkpoint
+                checkpoint_path = f'{folderpath}/hpc_ckpt_{max_suffix}.ckpt'
                 self.hpc_load(checkpoint_path, self.trainer.on_gpu)
-                did_restore = True
                 rank_zero_info(f'restored hpc model from: {checkpoint_path}')
-
-        return did_restore
+                return True
 
     # ----------------------------------
     # PRIVATE OPS
