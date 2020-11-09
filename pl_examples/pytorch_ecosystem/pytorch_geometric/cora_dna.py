@@ -98,6 +98,7 @@ class CoraDataset(LightningDataModule):
 
     @property
     def hyper_parameters(self):
+        # used to inform the model the dataset specifications
         return {"num_features": self.num_features, "num_classes": self.num_classes}
 
     def prepare_data(self):
@@ -108,9 +109,12 @@ class CoraDataset(LightningDataModule):
         self.data = self.dataset[0]
 
     def create_neighbor_sampler(self, batch_size=2, stage=None):
+        # https://github.com/rusty1s/pytorch_geometric/tree/master/torch_geometric/data/sampler.py#L18
         return NeighborSampler(
             self.data.edge_index,
+            # the nodes that should be considered for sampling.
             node_idx=getattr(self.data, f"{stage}_mask"),
+            # -1 indicates all neighbors will be selected
             sizes=[self._num_layers, -1],
             num_workers=self._num_workers,
             drop_last=self._drop_last,
@@ -127,6 +131,11 @@ class CoraDataset(LightningDataModule):
         return self.create_neighbor_sampler(stage="test")
 
     def gather_data_and_convert_to_namedtuple(self, batch, batch_nb):
+        """
+        This function will select features using node_idx
+        and create a NamedTuple Object.
+        """
+
         usual_keys = ["x", "edge_index", "edge_attr", "batch"]
         Batch: TensorBatch = namedtuple("Batch", usual_keys)
         return (
@@ -176,6 +185,7 @@ class DNAConvNet(LightningModule):
         assert num_features is not None
         assert num_classes is not None
 
+        # utils from Lightning to save __init__ arguments
         self.save_hyperparameters()
         hparams = self.hparams
 
@@ -186,8 +196,16 @@ class DNAConvNet(LightningModule):
         # Define DNA graph convolution model
         self.hidden_channels = hparams["hidden_channels"]
         self.lin1 = nn.Linear(hparams["num_features"], hparams["hidden_channels"])
+
+        # Create ModuleList to hold all convolutions
         self.convs = nn.ModuleList()
+
+        # Iterate through the number of layers
         for _ in range(hparams["num_layers"]):
+
+            # Create a DNA Convolution - This graph convolution relies on MultiHead Attention mechanism
+            # to route information similar to Transformers.
+            # https://github.com/rusty1s/pytorch_geometric/blob/master/torch_geometric/nn/conv/dna_conv.py#L172
             self.convs.append(
                 DNAConv(
                     hparams["hidden_channels"],
@@ -197,19 +215,32 @@ class DNAConvNet(LightningModule):
                     cached=False,
                 )
             )
+        # classification MLP
         self.lin2 = nn.Linear(hparams["hidden_channels"], hparams["num_classes"], bias=False)
 
     def forward(self, batch: TensorBatch):
+        # batch needs to be typed for making this model jittable.
         x = batch.x
         x = F.relu(self.lin1(x))
         x = F.dropout(x, p=0.5, training=self.training)
         x_all = x.view(-1, 1, self.hidden_channels)
+
+        # iterate over all convolutions
         for idx, conv in enumerate(self.convs):
+            # perform convolution using previously concatenated embedding
+            # through edge_index
             x = F.relu(conv(x_all, batch.edge_index[idx]))
             x = x.view(-1, 1, self.hidden_channels)
+
+            # concatenate with previously computed embedding
             x_all = torch.cat([x_all, x], dim=1)
+
+        # extra latest layer embedding
         x = x_all[:, -1]
+
         x = F.dropout(x, p=0.5, training=self.training)
+
+        # return logits per nodes
         return F.log_softmax(self.lin2(x), -1)
 
     def step(self, batch, batch_nb):
@@ -288,6 +319,7 @@ def instantiate_model(args, datamodule):
         heads=args.heads,
         groups=args.groups,
         dropout=args.dropout,
+        # provide dataset specific arguments
         **datamodule.hyper_parameters,
     )
     if args.jit:
