@@ -203,7 +203,8 @@ def test_dpp_reduce_mean_pbar(tmpdir):
         def training_step(self, batch, batch_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)
-            return {"loss": torch.ones(1).to(self.device)}
+            loss /= loss.clone().detach()
+            return loss
 
     model = ExtentedModel()
     model.training_step_end = None
