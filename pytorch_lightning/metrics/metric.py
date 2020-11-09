@@ -263,7 +263,7 @@ class Metric(nn.Module, ABC):
 
     def _apply(self, fn):
         """ Overwrite _apply function such that we can also move metric states
-            to the correct divice when `.to`, `.cuda` ect methods are called
+            to the correct device when `.to`, `.cuda`, etc methods are called
         """
         self = super()._apply(fn)
         # Also apply fn to metric states
