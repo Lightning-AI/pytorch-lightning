@@ -68,15 +68,13 @@ class CheckpointConnector:
         # 1. Attempt to restore states from HPC checkpoint
         dir_path_hpc = str(self.trainer.weights_save_path)
         max_suffix = self.max_ckpt_in_folder(dir_path_hpc, "hpc_ckpt_")
-        did_restore_hpc_weights = max_suffix is not None
-        if did_restore_hpc_weights:
-            # load states from hpc checkpoint
+        if max_suffix is not None:
             checkpoint_path = f'{dir_path_hpc}/hpc_ckpt_{max_suffix}.ckpt'
             self.hpc_load(checkpoint_path, self.trainer.on_gpu)
             rank_zero_info(f'restored hpc model from: {checkpoint_path}')
 
         # 2. Attempt to restore states from `resume_from_checkpoint` file
-        if (not did_restore_hpc_weights) and (self.trainer.resume_from_checkpoint is not None):
+        elif self.trainer.resume_from_checkpoint is not None:
             self.restore(self.trainer.resume_from_checkpoint, on_gpu=self.trainer.on_gpu)
 
         # wait for all to catch up
