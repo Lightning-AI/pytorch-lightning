@@ -696,9 +696,6 @@ class TrainLoop:
                             self.trainer.hiddens
                         )
 
-                        # update optimizer with AMP native
-                        self.update_optimizer()
-
                     if self._curr_step_result is None:
                         # user decided to skip optimization
                         continue
@@ -940,15 +937,3 @@ class TrainLoop:
 
         # reset for next set of accumulated grads
         self.accumulated_loss.reset()
-
-    def update_optimizer(self):
-        automatic_optimization = self.trainer.train_loop.automatic_optimization
-        amp_native = self.trainer.amp_backend == AMPType.NATIVE
-        if not automatic_optimization and amp_native:
-            # we don't know if the user called opt.step()
-            # therefore, let's try to update the scaler
-            # TODO: Add a listener on all opt.step and call update only if sum changed.
-            try:
-                self.trainer.scaler.update()
-            except AssertionError:
-                pass

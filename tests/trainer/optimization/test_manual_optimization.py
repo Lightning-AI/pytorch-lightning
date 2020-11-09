@@ -378,20 +378,14 @@ class ExtendedModel(BoringModel):
         opt = self.optimizers()
         output = self.layer(batch)
 
-        loss = 0.1 * self.loss(batch, output)
+        loss = self.loss(batch, output)
+        loss /= loss.clone().detach()
+        loss *= 0.1
+
         if self.should_update:
-            weight_before = self.layer.weight.clone()
-            self.manual_backward(loss.clone(), opt)
-            loss.detach()
-            self.trainer.scaler.unscale_(opt)
 
-            assert torch.sum(self.layer.weight.grad) != 0
-            opt.step()
-
-            after_before = self.layer.weight.clone()
-            mask = torch.logical_and(torch.isnan(after_before), torch.isinf(after_before))
-            assert not torch.equal(weight_before, after_before)
-            opt.zero_grad()
+            self.manual_backward(loss, opt)
+            self.manual_optimizer_step(opt)
 
         return loss.detach() if self.detach else loss
 
@@ -439,7 +433,7 @@ def test_automatic_optimization_false_and_return_tensor(tmpdir):
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_automatic_optimization_false_atest_automatic_optimization_falsend_return_detached_tensor(tmpdir):
+def test_automatic_optimization_false_and_return_detached_tensor(tmpdir):
     """
     This test verify that in `automatic_optimization`
     we don't add gradient if the user return loss + raise an error
@@ -450,8 +444,7 @@ def test_automatic_optimization_false_atest_automatic_optimization_falsend_retur
     model.training_step_end = None
     model.training_epoch_end = None
 
-    match = "In manual optimization, `training_step` should not return a Tensor"
-    with pytest.raises(MisconfigurationException, match=match):
+    try:
         trainer = Trainer(
             max_epochs=1,
             default_root_dir=tmpdir,
@@ -465,3 +458,158 @@ def test_automatic_optimization_false_atest_automatic_optimization_falsend_retur
             gpus=2,
         )
         trainer.fit(model)
+    except Exception as e:
+        assert "In manual optimization, `training_step` should not return a Tensor" in str(e)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_automatic_optimization_false_and_accumulated_gradient(tmpdir):
+    """
+    This test verify that in `automatic_optimization`
+    we don't add gradient if the user return loss + raise an error
+    """
+
+    class ExtendedModel(BoringModel):
+
+        count = 1
+        called = collections.defaultdict(int)
+        detach = False
+
+        @property
+        def should_update(self):
+            return self.count % 2 == 0
+
+        @property
+        def should_have_updated(self):
+            return self.count % 4 == 0
+
+        @property
+        def has_gradient(self):
+            return self.layer.weight.grad is not None
+
+        def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
+            self.called["on_train_batch_start"] += 1
+            self.weight_before = self.layer.weight.clone()
+
+        def training_step(self, batch, batch_idx):
+            self.called["training_step"] += 1
+            opt = self.optimizers()
+            output = self.layer(batch)
+
+            loss = self.loss(batch, output)
+            loss /= loss.clone().detach()
+            loss *= 0.1
+
+            if self.should_update:
+
+                self.manual_backward(loss, opt)
+                self.manual_optimizer_step(opt)
+
+            return loss.detach() if self.detach else loss
+
+        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+            self.called["on_train_batch_end"] += 1
+            after_before = self.layer.weight.clone()
+            if self.should_update and self.should_have_updated:
+                assert not torch.equal(self.weight_before, after_before)
+                assert torch.all(self.layer.weight.grad == 0)
+            else:
+                assert torch.equal(self.weight_before, after_before)
+                if self.count > 1:
+                    if self.count % 4 == 1:
+                        assert torch.sum(self.layer.weight.grad) == 0
+                    else:
+                        assert torch.sum(self.layer.weight.grad) != 0
+            self.count += 1
+
+        def on_train_end(self):
+            assert self.called["training_step"] == 20
+            assert self.called["on_train_batch_start"] == 20
+            assert self.called["on_train_batch_end"] == 20
+
+    model = ExtendedModel()
+    model.training_step_end = None
+    model.training_epoch_end = None
+
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        limit_train_batches=20,
+        limit_test_batches=0,
+        limit_val_batches=0,
+        automatic_optimization=False,
+        precision=16,
+        amp_backend='native',
+        accumulate_grad_batches=4,
+        gpus=1,
+    )
+    trainer.fit(model)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_multiple_optimizers_manual_optimizer_step(tmpdir):
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    """
+    Tests that only training_step can be used
+    """
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx, optimizer_idx):
+            # manual
+            (opt_a, opt_b) = self.optimizers()
+            x = batch[0]
+
+            loss_1 = self(x)
+            loss_1 = self.loss(loss_1, loss_1)
+
+            # make sure there are no grads
+            if batch_idx > 0:
+                assert torch.all(self.layer.weight.grad == 0)
+
+            self.manual_backward(loss_1, opt_a)
+            self.manual_optimizer_step(opt_a)
+            assert torch.all(self.layer.weight.grad == 0)
+
+            # fake discriminator
+            loss_2 = self(x)
+            loss_2 = self.loss(loss_2, loss_2)
+
+            # ensure we forward the correct params to the optimizer
+            # without retain_graph we can't do multiple backward passes
+            self.manual_backward(loss_2, opt_b, retain_graph=True)
+            self.manual_backward(loss_2, opt_a, retain_graph=True)
+
+            assert self.layer.weight.grad is not None
+            self.manual_optimizer_step(opt_b)
+            assert torch.all(self.layer.weight.grad == 0)
+
+        def training_epoch_end(self, outputs) -> None:
+            # outputs should be an array with an entry per optimizer
+            assert len(outputs) == 2
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            return optimizer, optimizer_2
+
+    model = TestModel()
+    model.val_dataloader = None
+
+    limit_train_batches = 2
+    trainer = Trainer(
+        automatic_optimization=False,
+        default_root_dir=tmpdir,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=2,
+        max_epochs=1,
+        log_every_n_steps=1,
+        weights_summary=None,
+        precision=16,
+        amp_backend='native',
+        gpus=1
+    )
+
+    trainer.fit(model)
+
+    num_manual_backward_calls = 3
+    assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * num_manual_backward_calls

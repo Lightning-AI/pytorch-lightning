@@ -1086,6 +1086,9 @@ class LightningModule(
 
         .. tip:: In manual mode we still automatically clip grads if Trainer(gradient_clip_val=x) is set
 
+        .. tip:: In manual mode we still automatically accumulate grad over batches if Trainer(accumulate_grad_batches=x) is set
+            and you use `model.manual_optimizer_step(optimizer)`
+
         Example::
 
             def training_step(...):
@@ -1093,6 +1096,7 @@ class LightningModule(
                 loss = ...
                 # automatically applies scaling, etc...
                 self.manual_backward(loss, opt_a)
+                self.manual_optimizer_step(opt_a)
         """
         # make sure we're using manual opt
         self._verify_is_manual_optimization('manual_backward')
@@ -1101,6 +1105,33 @@ class LightningModule(
         self._running_manual_optim = True
         self.trainer.train_loop.backward(loss, optimizer, -1, *args, **kwargs)
         self._running_manual_optim = False
+
+    def manual_optimizer_step(self, optimizer: Optimizer, zero_grad:bool = True) -> None:
+        """
+        Call this directly from your training_step when doing optimizations manually.
+        By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
+
+        .. tip:: In manual mode we still automatically accumulate grad over batches if Trainer(accumulate_grad_batches=x) is set.
+        Example::
+
+            def training_step(...):
+                (opt_a, opt_b) = self.optimizers()
+                loss = ...
+                # automatically applies scaling, etc...
+                self.manual_backward(loss, opt_a)
+                self.manual_optimizer_step(opt_a)
+        """
+        # make sure we're using manual opt
+        self._verify_is_manual_optimization('manual_optimizer_step')
+
+        if not self.trainer.train_loop.should_accumulate():
+            native_amp = self.trainer.amp_backend == AMPType.NATIVE
+            if native_amp:
+                self.trainer.scaler.unscale_(optimizer)
+            optimizer.step()
+            optimizer.zero_grad()
+            if native_amp:
+                self.trainer.scaler.update()
 
     def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
         """
