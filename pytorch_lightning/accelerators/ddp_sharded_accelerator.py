@@ -18,6 +18,7 @@ import torch
 from pytorch_lightning.accelerators import DDPAccelerator
 from pytorch_lightning.overrides.fairscale import LightningOSS, LightningShardedDataParallel
 from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class DDPShardedAccelerator(DDPAccelerator):
@@ -31,11 +32,11 @@ class DDPShardedAccelerator(DDPAccelerator):
             return
 
         optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
-        self.trainer.optimizers = self.re_init_with_fairscale_zero(optimizers)
+        self.trainer.optimizers = self.re_init_with_fairscale_zero(optimizers, lr_schedulers)
         self.trainer.lr_schedulers = lr_schedulers
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
-    def re_init_with_fairscale_zero(self, optimizers):
+    def re_init_with_fairscale_zero(self, optimizers, lr_schedulers):
         """
         Re-initialise optimizers to use OSS wrapper. We need to re-initialise due to
         the parameters being sharded across distributed processes, each optimizing a partition.
@@ -54,6 +55,10 @@ class DDPShardedAccelerator(DDPAccelerator):
                     **optimizer.defaults
                 )
                 fairscale_zero_optimizers.append(zero_optimizer)
+                for scheduler in lr_schedulers:
+                    scheduler = scheduler['scheduler']
+                    if scheduler.optimizer == optimizer:
+                        scheduler.optimizer = zero_optimizer
                 del optimizer
         return fairscale_zero_optimizers
 
@@ -104,3 +109,42 @@ class DDPShardedAccelerator(DDPAccelerator):
         self.trainer.model = cast(LightningShardedDataParallel, self.trainer.model)
         self.trainer.model.clear_backward_handles()
         return closure_loss
+
+    def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure):
+        model_ref = self.trainer.get_model()
+        is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
+        native_amp = self.trainer.amp_backend == AMPType.NATIVE
+
+        # native amp + lbfgs is a no go right now
+        if native_amp and is_lbfgs:
+            raise MisconfigurationException(
+                'native PyTorch amp and lbfgs are not compatible.'
+                ' To request, please file a Github issue in PyTorch and tag @mcarilli')
+
+        # model hook
+        model_ref.optimizer_step(
+            epoch=self.trainer.current_epoch,
+            batch_idx=batch_idx,
+            optimizer=optimizer,
+            optimizer_idx=opt_idx,
+            optimizer_closure=lambda_closure,
+            on_tpu=False,  # TPUAccelerator class sets this as True
+            using_native_amp=native_amp,
+            using_lbfgs=is_lbfgs
+        )
+
+        if self.trainer.amp_backend == AMPType.NATIVE:
+            self._broadcast_weights_if_optimizer_step_skipped(optimizer)
+            # scale when native amp
+            self.trainer.scaler.update()
+
+    def _broadcast_weights_if_optimizer_step_skipped(self, optimizer):
+        scaler = self.trainer.scaler
+
+        optimizer_state = scaler._per_optimizer_states[id(optimizer)]
+        infs_detected = sum(v.item() for v in optimizer_state["found_inf_per_device"].values())
+        if infs_detected:
+            # Sync all the updated shards in between the ranks
+            for (device,
+                 device_params,) in optimizer.per_device_params.items():  # all the params on this device (inc all ranks)
+                optimizer._broadcast_params(optimizer._broadcast_buffers[device], device_params)
