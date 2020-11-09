@@ -570,7 +570,7 @@ def test_multiple_optimizers_manual_optimizer_step(tmpdir):
             loss_1 = self.loss(loss_1, loss_1)
 
             # make sure there are no grads
-            if not self.trainer.should_accumulate():
+            if self.layer.weight.grad is not None:
                 assert torch.all(self.layer.weight.grad == 0)
 
             self.manual_backward(loss_1, opt_a)
@@ -587,6 +587,7 @@ def test_multiple_optimizers_manual_optimizer_step(tmpdir):
 
             assert self.layer.weight.grad is not None
             self.manual_optimizer_step(opt_b)
+            assert torch.all(self.layer.weight.grad == 0)
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer

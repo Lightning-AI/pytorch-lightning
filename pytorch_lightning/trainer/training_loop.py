@@ -698,6 +698,7 @@ class TrainLoop:
 
                     if self._curr_step_result is None:
                         # user decided to skip optimization
+                        self.zero_grad_handler(batch_idx, optimizer, opt_idx)
                         continue
 
                     batch_outputs = self._process_closure_result(
