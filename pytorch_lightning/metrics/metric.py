@@ -260,11 +260,14 @@ class Metric(nn.Module, ABC):
         self = super()._apply(fn)
         # Also apply fn to metric states
         for key in self._defaults.keys():
-            current_val = getattr(self, key, None)
-            if current_val is not None and isinstance(current_val, torch.Tensor):
+            current_val = getattr(self, key)
+            if isinstance(current_val, torch.Tensor):
                 setattr(self, key, fn(current_val))
-            else:
+            elif isinstance(current_val, Sequence):
                 setattr(self, key, [fn(cur_v) for cur_v in current_val])
+            else:
+                raise TypeError('Expected metric state to be either a torch.Tensor'
+                                f'or a list of torch.Tensor, but encountered {current_val}')
         return self
 
     def persistent(self, mode: bool = True):

@@ -88,47 +88,6 @@ def test_metric_lightning_log(tmpdir):
     assert torch.allclose(torch.tensor(logged["sum_epoch"]), model.sum)
 
 
-class TestModel(BoringModel):
-    def __init__(self):
-        super().__init__()
-        self.metric = SumMetric()
-        self.p = torch.nn.Linear(1,1)  # fake params
-
-    def training_step(self, batch, batch_idx):
-        val = self.metric(batch[0].sum())
-        self.log("sum", self.metric, on_step=False, on_epoch=True)
-        return self.p(val.view(1,1))
-
-    def configure_optimizers(self):
-        return None
-
-
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_metric_lightning_ddp(tmpdir):
-    tutils.set_random_master_port()
-
-    # Dummy dataset, where sum is known
-    data = torch.arange(10)[:,None].float()
-    dataset = torch.utils.data.TensorDataset(data)
-    dataloader = torch.utils.data.DataLoader(dataset)
-
-    model = TestModel()
-    trainer = Trainer(
-        gpus=2,
-        max_epochs=1,
-        log_every_n_steps=1,
-        accelerator='ddp_spawn',
-        progress_bar_refresh_rate=0,
-        replace_sampler_ddp=False
-    )
-    trainer.fit(model, dataloader)
-
-    logged = trainer.logged_metrics
-
-    assert torch.tensor(logged["sum"]) == data.sum(), \
-        "Metrics did not accumulate correctly in ddp mode"
-
-
 def test_scriptable(tmpdir):
     class TestModel(BoringModel):
         def __init__(self):
