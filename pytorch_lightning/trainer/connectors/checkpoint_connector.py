@@ -30,6 +30,7 @@ from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 
 try:
     from apex import amp
@@ -97,6 +98,7 @@ class CheckpointConnector:
         # Try to read the checkpoint file at `checkpoint_path`. If not exist, do not restore checkpoint.
         fs = get_filesystem(checkpoint_path)
         if not fs.exists(checkpoint_path):
+            rank_zero_warn("No checkpoint file exists at `resume_from_checkpoint`. Start from scratch")
             return False
 
         # if on_gpu:
@@ -132,6 +134,7 @@ class CheckpointConnector:
         # load training state (affects trainer only)
         self.restore_training_state(checkpoint)
 
+        rank_zero_info(f"Restore states from the checkpoint file at {checkpoint_path}")
         return True
 
     def restore_training_state(self, checkpoint):
