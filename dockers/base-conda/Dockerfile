@@ -35,7 +35,8 @@ SHELL ["/bin/bash", "-c"]
 
 ENV PATH="$PATH:/root/.local/bin"
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
         git \
@@ -104,6 +105,7 @@ RUN \
     # Install remaining requirements
     pip install -r requirements-extra.txt --upgrade-strategy only-if-needed && \
     pip install -r requirements-test.txt --upgrade-strategy only-if-needed && \
+    pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda${CUDA_VERSION%%.*}0 && \
     rm requirements*
 
 RUN \

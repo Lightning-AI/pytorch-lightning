@@ -30,7 +30,7 @@ jobs:
     # We do this, since failures on test.pypi aren't that bad
     - name: Publish to Test PyPI
       if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
-      uses: pypa/gh-action-pypi-publish@v1
+      uses: pypa/gh-action-pypi-publish@v1.4.1
       with:
         user: __token__
         password: ${{ secrets.test_pypi_password }}
@@ -39,7 +39,7 @@ jobs:
 
     - name: Publish distribution 📦 to PyPI
       if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
-      uses: pypa/gh-action-pypi-publish@v1
+      uses: pypa/gh-action-pypi-publish@v1.4.1
       with:
         user: __token__
         password: ${{ secrets.pypi_password }}

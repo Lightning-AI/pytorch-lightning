@@ -49,7 +49,6 @@ def test_training_step_scalar(tmpdir):
 
     out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
-    assert len(out.batch_log_metrics) == 0 and isinstance(out.batch_log_metrics, dict)
     assert len(out.grad_norm_dic) == 0 and isinstance(out.grad_norm_dic, dict)
 
     train_step_out = out.training_step_output_for_epoch_end
@@ -87,7 +86,6 @@ def training_step_scalar_with_step_end(tmpdir):
 
     out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
-    assert len(out.batch_log_metrics) == 0 and isinstance(out.batch_log_metrics, dict)
     assert len(out.grad_norm_dic) == 0 and isinstance(out.grad_norm_dic, dict)
 
     train_step_out = out.training_step_output_for_epoch_end
@@ -107,6 +105,8 @@ def test_full_training_loop_scalar(tmpdir):
     Checks train_step + training_step_end + training_epoch_end
     (all with scalar return from train_step)
     """
+    os.environ['PL_DEV_DEBUG'] = '0'
+
     model = DeterministicModel()
     model.training_step = model.training_step_scalar_return
     model.training_step_end = model.training_step_end_scalar
@@ -135,7 +135,6 @@ def test_full_training_loop_scalar(tmpdir):
 
     out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
-    assert len(out.batch_log_metrics) == 0 and isinstance(out.batch_log_metrics, dict)
     assert len(out.grad_norm_dic) == 0 and isinstance(out.grad_norm_dic, dict)
 
     train_step_out = out.training_step_output_for_epoch_end
@@ -155,6 +154,8 @@ def test_train_step_epoch_end_scalar(tmpdir):
     Checks train_step + training_epoch_end (NO training_step_end)
     (with scalar return)
     """
+    os.environ['PL_DEV_DEBUG'] = '0'
+
     model = DeterministicModel()
     model.training_step = model.training_step_scalar_return
     model.training_step_end = None
@@ -179,7 +180,6 @@ def test_train_step_epoch_end_scalar(tmpdir):
 
     out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
-    assert len(out.batch_log_metrics) == 0 and isinstance(out.batch_log_metrics, dict)
     assert len(out.grad_norm_dic) == 0 and isinstance(out.grad_norm_dic, dict)
 
     train_step_out = out.training_step_output_for_epoch_end
