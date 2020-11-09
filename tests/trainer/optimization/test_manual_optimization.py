@@ -395,7 +395,10 @@ class ExtendedModel(BoringModel):
         if self.should_update:
             assert not torch.equal(self.weight_before, after_before)
         else:
-            assert torch.equal(self.weight_before, after_before)
+            try:
+                assert torch.equal(self.weight_before, after_before)
+            except Exception:
+                assert torch.abs(torch.sum(self.weight_before) - torch.sum(after_before)).item() < 10e-6
         assert torch.sum(self.layer.weight.grad) == 0
         self.count += 1
 
@@ -515,10 +518,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
             after_before = self.layer.weight.clone()
             if self.should_update and self.should_have_updated:
                 # torch equal can break somethings due to approximations
-                try:
-                    assert not torch.equal(self.weight_before, after_before)
-                except Exception:
-                    assert torch.abs(torch.sum(self.weight_before) - torch.sum(after_before)).item() < 10e-6
+                assert not torch.equal(self.weight_before, after_before)
                 assert torch.all(self.layer.weight.grad == 0)
             else:
                 assert torch.equal(self.weight_before, after_before)
