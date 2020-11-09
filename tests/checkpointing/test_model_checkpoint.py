@@ -293,9 +293,12 @@ def test_none_monitor_top_k(tmpdir):
 
 
 def test_none_monitor_save_last(tmpdir):
-    """ Make sure monitor=None can work with save last. """
+    """ Test that a warning appears for save_last=True with monitor=None. """
+    with pytest.warns(
+        UserWarning, match=r'ModelCheckpoint\(save_last=True, monitor=None\) is a redundant.*'
+    ):
+        ModelCheckpoint(dirpath=tmpdir, save_last=True)
     # These should not fail
-    ModelCheckpoint(dirpath=tmpdir, save_last=True)
     ModelCheckpoint(dirpath=tmpdir, save_last=None)
     ModelCheckpoint(dirpath=tmpdir, save_last=False)
 
