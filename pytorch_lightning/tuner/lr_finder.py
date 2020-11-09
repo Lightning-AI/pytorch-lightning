@@ -32,7 +32,6 @@ from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_set
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 
-
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
 if importlib.util.find_spec('ipywidgets') is not None:
