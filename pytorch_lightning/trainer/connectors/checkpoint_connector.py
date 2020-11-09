@@ -63,13 +63,14 @@ class CheckpointConnector:
         if self.trainer.on_gpu:
             torch.cuda.empty_cache()
 
-        # if script called from hpc resubmit, load weights
+        # 1. Attempt to restore states from HPC checkpoint
         did_restore_hpc_weights = self.restore_hpc_weights_if_needed(model)
 
         # clear cache after restore
         if self.trainer.on_gpu:
             torch.cuda.empty_cache()
 
+        # 2. Attempt to restore states from `resume_from_checkpoint` file
         if not did_restore_hpc_weights:
             if self.trainer.resume_from_checkpoint is not None:
                 self.restore(self.trainer.resume_from_checkpoint, on_gpu=self.trainer.on_gpu)
@@ -83,24 +84,14 @@ class CheckpointConnector:
 
     def restore(self, checkpoint_path: str, on_gpu: bool):
         """
-        Load model/training states from the checkpoint file through file-read and state-restore.
-        Also restores all training state like:
-        - epoch
-        - callbacks
-        - schedulers
-        - optimizer
-        In detail, check return value description of `dump_checkpoint`
+        Load model/training states from a 'PyTorch-Lightning checkpoint' file through file-read and state-restore.
+        All restored states are listed in return value description of `dump_checkpoint`.
         """
 
-        # if on_gpu:
-        #     checkpoint = torch.load(checkpoint_path)
-        # else:
-        # load on CPU first
-        # read a checkpoint dictionary object from the checkpoint file at `checkpoint_path`
+        # read a checkpoint dictionary object from the 'PyTorch-Lightning checkpoint' file at `checkpoint_path`
         checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
 
-        # restore states from the checkpoint dictionary object
-        # load model state
+        # acquire the model
         model = self.trainer.get_model()
 
         # restore model and datamodule state
@@ -117,14 +108,14 @@ class CheckpointConnector:
         Restore model states from a 'PyTorch-Lightning checkpoint' dictionary object
         """
 
-        # give the datamodule a chance to load something
+        # restore datamodule states
         if self.trainer.datamodule is not None:
             self.trainer.datamodule.on_load_checkpoint(checkpoint)
 
-        # give model a chance to restore something
+        # hook for arbitrary processing before model restore
         model.on_load_checkpoint(checkpoint)
 
-        # restore the state_dict on the model
+        # restore model state_dict
         model.load_state_dict(checkpoint['state_dict'])
 
     def restore_training_state(self, checkpoint):
@@ -341,27 +332,31 @@ class CheckpointConnector:
         return checkpoint
 
     def hpc_load(self, folderpath, on_gpu):
-        filepath = '{}/hpc_ckpt_{}.ckpt'.format(folderpath, self.max_ckpt_in_folder(folderpath))
+        """
+        Load model/training states from a 'PyTorch-Lightning checkpoint' file for hpc.
+        All restored states are listed in return value description of `dump_checkpoint`.
+        """
+        checkpoint_path = '{}/hpc_ckpt_{}.ckpt'.format(folderpath, self.max_ckpt_in_folder(folderpath))
 
-        # load on CPU first
-        checkpoint = pl_load(filepath, map_location=lambda storage, loc: storage)
+        # read a checkpoint dictionary object from the 'PyTorch-Lightning checkpoint' file at `checkpoint_path`
+        checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
 
-        # load model state
+        # acquire the model
         model = self.trainer.get_model()
 
-        # restore states from 'PyTorch-Lightning checkpoint' dictionary object
+        # restore model and datamodule state
         self.restore_model_state(model, checkpoint)
 
         if self.trainer.root_gpu is not None:
             model.cuda(self.trainer.root_gpu)
 
-        # load training state (affects trainer only)
+        # restore training state
         self.restore_training_state(checkpoint)
 
-        # call model hook
+        # call hpc specific hook
         model.on_hpc_load(checkpoint)
 
-        log.info(f'restored hpc model from: {filepath}')
+        log.info(f'restored hpc model from: {checkpoint_path}')
 
     def max_ckpt_in_folder(self, path, name_key='ckpt_'):
         fs = get_filesystem(path)
