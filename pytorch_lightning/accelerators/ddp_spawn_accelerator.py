@@ -43,6 +43,15 @@ else:
 class DDPSpawnAccelerator(Accelerator):
 
     def __init__(self, trainer, nprocs, cluster_environment=None, ddp_plugin=None):
+        """
+        Runs training using DDP using mp.spawn via manual launch (not cluster launch)
+
+        Example::
+
+            # default
+            trainer = Trainer(accelerator=DDPSpawnAccelerator())
+
+        """
         super().__init__(trainer, cluster_environment, ddp_plugin)
         self.mp_queue = None
         self.nprocs = nprocs
