@@ -80,9 +80,8 @@ class CheckpointConnector:
             torch.cuda.empty_cache()
 
         # 2. Attempt to restore states from `resume_from_checkpoint` file
-        if not did_restore_hpc_weights:
-            if self.trainer.resume_from_checkpoint is not None:
-                self.restore(self.trainer.resume_from_checkpoint, on_gpu=self.trainer.on_gpu)
+        if (not did_restore_hpc_weights) and (self.trainer.resume_from_checkpoint is not None):
+            self.restore(self.trainer.resume_from_checkpoint, on_gpu=self.trainer.on_gpu)
 
         # wait for all to catch up
         self.trainer.accelerator_backend.barrier('TrainerIOMixin.restore_weights')
