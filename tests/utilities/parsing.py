@@ -78,7 +78,7 @@ def test_lightning_getattr(tmpdir):
         value = lightning_getattr(m, 'learning_rate')
         assert value == i, 'attribute not correctly extracted'
 
-    model5 = models[-1]
+    model5 = models[4]
     assert lightning_getattr(model5, 'batch_size') == 8, \
         'batch_size not correctly extracted'
 
@@ -91,7 +91,7 @@ def test_lightning_setattr(tmpdir):
         assert lightning_getattr(m, 'learning_rate') == 10, \
             'attribute not correctly set'
 
-    model5 = models[-1]
+    model5 = models[4]
     lightning_setattr(model5, 'batch_size', 128)
     assert lightning_getattr(model5, 'batch_size') == 128, \
         'batch_size not correctly set'
