@@ -21,11 +21,12 @@ from torch.nn import functional as F
 
 def _gaussian(kernel_size: int, sigma: int, dtype: torch.dtype, device: torch.device):
     dist = torch.arange(start=(1 - kernel_size) / 2, end=(1 + kernel_size) / 2, step=1, dtype=dtype, device=device)
-    gauss = torch.exp(-0.5 * pow(dist / sigma, 2))
+    gauss = torch.exp(-pow(dist / sigma, 2) / 2)
     return (gauss / gauss.sum()).unsqueeze(dim=0)  # (1, kernel_size)
 
 
-def _gaussian_kernel(channel: int, kernel_size: Sequence[int], sigma: Sequence[float], dtype: torch.dtype, device: torch.device):
+def _gaussian_kernel(channel: int, kernel_size: Sequence[int], sigma: Sequence[float],
+                     dtype: torch.dtype, device: torch.device):
     gaussian_kernel_x = _gaussian(kernel_size[0], sigma[0], dtype, device)
     gaussian_kernel_y = _gaussian(kernel_size[1], sigma[1], dtype, device)
     kernel = torch.matmul(gaussian_kernel_x.t(), gaussian_kernel_y)  # (kernel_size, 1) * (1, kernel_size)
