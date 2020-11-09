@@ -323,9 +323,9 @@ class TrainLoop:
             model_ref._current_fx_name = 'training_step'
             training_step_output = self.trainer.accelerator_backend.training_step(args)
             self.trainer.logger_connector.cache_logged_metrics()
-            
+
             self._check_training_step_output(training_step_output)
-            
+
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
 
             training_step_output_for_epoch_end, training_step_output = self._process_training_step_output(
@@ -696,6 +696,9 @@ class TrainLoop:
                             self.trainer.hiddens
                         )
 
+                        # update optimizer with AMP native
+                        self.update_optimizer()
+
                     if self._curr_step_result is None:
                         # user decided to skip optimization
                         continue
@@ -937,3 +940,9 @@ class TrainLoop:
 
         # reset for next set of accumulated grads
         self.accumulated_loss.reset()
+
+    def update_optimizer(self):
+        automatic_optimization = self.trainer.train_loop.automatic_optimization
+        amp_native = self.trainer.amp_backend == AMPType.NATIVE
+        if not automatic_optimization and amp_native:
+            self.trainer.scaler.update()
