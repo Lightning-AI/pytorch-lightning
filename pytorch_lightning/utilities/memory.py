@@ -35,7 +35,8 @@ def recursive_detach(in_dict: dict) -> dict:
         if isinstance(v, dict):
             out_dict.update({k: recursive_detach(v)})
         elif callable(getattr(v, 'detach', None)):
-            out_dict.update({k: v.detach()})
+            # detach and move to cpu
+            out_dict.update({k: v..detach().cpu()})
         else:
             out_dict.update({k: v})
     return out_dict
