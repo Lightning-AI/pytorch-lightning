@@ -40,6 +40,15 @@ else:
 class DDPCPUSpawnAccelerator(Accelerator):
 
     def __init__(self, trainer, nprocs, cluster_environment=None, ddp_plugin=None):
+        """
+        Runs training using DDP (on a single machine or manually on multiple machines), using mp.spawn
+
+        Example::
+
+            # default
+            trainer = Trainer(accelerator=DDPCPUSpawnAccelerator())
+
+        """
         super().__init__(trainer, cluster_environment, ddp_plugin)
         self.mp_queue = None
         self.nprocs = nprocs

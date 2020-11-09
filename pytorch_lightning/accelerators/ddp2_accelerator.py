@@ -11,22 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
-
 import os
 
 import torch
 import torch.distributed as torch_distrib
 
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.distributed import rank_zero_only, sync_ddp_if_available
 from torch.nn.parallel import DistributedDataParallel
-from typing import List, Optional
+from typing import List, Optional, Union, Any
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -40,25 +38,23 @@ else:
 class DDP2Accelerator(Accelerator):
 
     def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
+        """
+        Runs training using DDP2 strategy on a cluster
+
+        Example::
+
+            # default
+            trainer = Trainer(accelerator=DDP2Accelerator())
+
+        """
         super().__init__(trainer, cluster_environment, ddp_plugin)
         self.task_idx = None
         self.dist = LightningDistributed()
         self.nickname = 'ddp2'
 
     def setup(self, model):
-        self._resolve_task_idx()
         self.trainer.model = model
-
-    def _resolve_task_idx(self):
-        if self.trainer.is_slurm_managing_tasks:
-            self.task_idx = int(os.environ['SLURM_LOCALID'])
-        else:
-            # torchelastic or general non_slurm ddp2
-            try:
-                self.task_idx = int(os.environ['LOCAL_RANK'])
-            except Exception as exp:
-                m = 'ddp2 only works in SLURM or via torchelastic with the WORLD_SIZE, LOCAL_RANK, GROUP_RANK flags'
-                raise MisconfigurationException(m) from exp
+        self.task_idx = self.cluster_environment.local_rank()
 
     def train(self):
         model = self.trainer.model
@@ -214,3 +210,9 @@ class DDP2Accelerator(Accelerator):
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
 
         return model
+
+    def sync_tensor(self,
+                    tensor: Union[torch.Tensor],
+                    group: Optional[Any] = None,
+                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
+        return sync_ddp_if_available(tensor, group, reduce_op)
