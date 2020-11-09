@@ -33,6 +33,15 @@ class HorovodAccelerator(Accelerator):
     amp_backend: AMPType
 
     def __init__(self, trainer, cluster_environment=None):
+        """
+        Runs training using horovod
+
+        Example::
+
+            # default
+            trainer = Trainer(accelerator=HorovodAccelerator())
+
+        """
         super().__init__(trainer, cluster_environment)
         self.nickname = 'horovod'
 
