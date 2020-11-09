@@ -1,4 +1,4 @@
-# Examples of [Pytorch Geometric](https://github.com/rusty1s/pytorch_geometric) with Lighting
+#  [Pytorch Geometric](https://github.com/rusty1s/pytorch_geometric) examples with Lighting
 
 ### Introduction
 
@@ -18,11 +18,17 @@ source .venv/bin/activate
 poetry install
 ```
 
+Run example
+
+```
+python cora_dna.py
+```
+
 ## Current example lists
 
 | `DATASET` | `MODEL` | `TASK` | DATASET DESCRIPTION | MODEL DESCRIPTION                                                                                                                                                                   |                                                                                                                                                                     |
 | ------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------- | --- |
-| Cora          | DNAConv          | Node Classification | The citation network datasets "Cora", "CiteSeer" and "PubMed" from the "Revisiting Semi-Supervised Learning with Graph Embeddings" <https://arxiv.org/abs/1603.08861> | The dynamic neighborhood aggregation operator from the "Just Jump: Towards Dynamic Neighborhood Aggregation in Graph Neural Networks"
+| Cora          | DNA          | Node Classification | The citation network datasets "Cora", "CiteSeer" and "PubMed" from the "Revisiting Semi-Supervised Learning with Graph Embeddings" <https://arxiv.org/abs/1603.08861> | The dynamic neighborhood aggregation operator from the "Just Jump: Towards Dynamic Neighborhood Aggregation in Graph Neural Networks"
 
 
 ## DATASET SIZES

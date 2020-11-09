@@ -4,6 +4,7 @@ def nice_print(msg, last=False):
     if last:
         print()
 
+
 lightning_logo = """
                     ####
                 ###########

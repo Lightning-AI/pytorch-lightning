@@ -33,12 +33,14 @@ try:
     from torch_geometric.data import NeighborSampler
     from lightning import lightning_logo, nice_print
     HAS_PYTORCH_GEOMETRIC = True
-except:
+except Exception:
     HAS_PYTORCH_GEOMETRIC = False
+
 
 # use to make model jittable
 OptTensor = Optional[Tensor]
 ListTensor = List[Tensor]
+
 
 class TensorBatch(NamedTuple):
     x: Tensor
@@ -49,6 +51,7 @@ class TensorBatch(NamedTuple):
 ###################################
 #       LightningDataModule       #
 ###################################
+
 
 class CoraDataset(LightningDataModule):
 
@@ -144,6 +147,7 @@ class CoraDataset(LightningDataModule):
 #       LightningModule       #
 ###############################
 
+
 class DNAConvNet(LightningModule):
 
     r"""The dynamic neighborhood aggregation operator from the `"Just Jump:
@@ -224,7 +228,7 @@ class DNAConvNet(LightningModule):
         logits, targets = self.step(batch, batch_nb)
         test_loss = F.nll_loss(logits, targets)
         self.log("test_loss", test_loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("val_acc", self.test_acc(logits, targets), on_step=False, on_epoch=True, prog_bar=True)
+        self.log("test_acc", self.test_acc(logits, targets), on_step=False, on_epoch=True, prog_bar=True)
 
     # Use for jittable demonstration.
 
@@ -260,6 +264,7 @@ class DNAConvNet(LightningModule):
 #     Instantiate Functions     #
 #################################
 
+
 def instantiate_datamodule(args):
     datamodule = CoraDataset(
         num_workers=args.num_workers,
@@ -269,6 +274,7 @@ def instantiate_datamodule(args):
         num_layers=args.num_layers,
     )
     return datamodule
+
 
 def instantiate_model(args, datamodule):
     model = DNAConvNet(
@@ -286,6 +292,7 @@ def instantiate_model(args, datamodule):
     model.gather_data_and_convert_to_namedtuple = datamodule.gather_data_and_convert_to_namedtuple
     return model
 
+
 def get_single_batch(datamodule):
     for batch in datamodule.test_dataloader():
         return datamodule.gather_data_and_convert_to_namedtuple(batch, 0)
@@ -293,6 +300,7 @@ def get_single_batch(datamodule):
 #######################
 #     Trainer Run     #
 #######################
+
 
 def run(args):
 
@@ -312,6 +320,7 @@ def run(args):
 
     nice_print("Congratulations !")
     nice_print("You trained your first TorchScripted Pytorch Geometric Lightning model !", last=True)
+
 
 if __name__ == "__main__":
     if not HAS_PYTORCH_GEOMETRIC:
