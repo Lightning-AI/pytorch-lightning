@@ -1,4 +1,9 @@
+"""Graph Convolution Example using Pytorch Geometric
 
+This example illustrates how one could train a graph convolution model with DNA Conv
+on Cora Dataset using pytorch-lightning. This example will also demonstrate how this
+model can be easily torch-scripted, thanks to Pytorch Geometric.
+"""
 # python imports
 import os
 import os.path as osp
@@ -325,6 +330,7 @@ def run(args):
 if __name__ == "__main__":
     if not HAS_PYTORCH_GEOMETRIC:
         print("Skip training. Pytorch Geometric isn't installed. Please, check README.md !")
+
     else:
         parser = ArgumentParser(description="Pytorch Geometric Example")
         parser = Trainer.add_argparse_args(parser)
