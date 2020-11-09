@@ -1,78 +1,68 @@
-# Copyright The PyTorch Lightning team.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-from contextlib import contextmanager
-from typing import Any, Optional, Union
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities import AMPType
+from typing import Any, Union
+import math
 
 import torch
 from torch.optim import Optimizer
 
-from pytorch_lightning.cluster_environments import ClusterEnvironment
-from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
-from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
+from pytorch_lightning.core import LightningModule
+from pytorch_lightning.accelerators.precision import MixedPrecisionPlugin, PrecisionPlugin
+
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.parsing import AttributeDict
-
-if torch.distributed.is_available():
-    from torch.distributed import ReduceOp
-else:
-    class ReduceOp:
-        SUM = None
 
 
-class Accelerator(object):
+class NewAccelerator(object):
+    root_device: Union[str, torch.device]
 
-    def __init__(self,
-                 trainer: Optional = None,
-                 cluster_environment: Optional[ClusterEnvironment] = None,
-                 ddp_plugin: Optional[DDPPlugin] = None):
-        self.trainer = trainer
-        self.nickname = None
-        self.cluster_environment = cluster_environment
-        self.dist = AttributeDict(rank=0, device=None)
-        self.ddp_plugin = ddp_plugin
+    def __init__(
+        self,
+        model_ref: LightningModule,
+        root_device: Union[str, torch.device],
+        precision_plugin: PrecisionPlugin,
+        gradient_clip_val,
+    ):
+        self.model_ref = model_ref
+        self.precision_plugin = precision_plugin
+        self.gradient_clip_val = gradient_clip_val
 
-        if trainer is not None:
-            self.train_loop = self.trainer.train
-            self.validation_loop = self.trainer.run_evaluation
-            self.test_loop = self.trainer.run_evaluation
+        self.optimizers = None
+        self.lr_schedulers = None
+        self.optimizer_frequencies = None
+        self.root_device = root_device
 
     def setup(self, model):
-        pass
+        self.setup_optimizers(model)
+        self.connect_precision_plugin()
 
     def teardown(self):
-        # Ensure if necessary all processes are finished
-        self.barrier()
-
-    def barrier(self, name: Optional[str] = None):
         pass
 
-    def broadcast(self, obj, src=0):
-        return obj
-
-    def train_or_test(self):
-        if self.trainer.testing:
-            results = self.trainer.run_test()
-        else:
-            results = self.trainer.train()
-        return results
-
     def batch_to_device(self, batch: Any, device: torch.device):
-        model = self.trainer.get_model()
+        model = self.model_ref
         if model is not None:
             return model.transfer_batch_to_device(batch, device)
         return move_data_to_device(batch, device)
+
+    def training_step(self, args):
+        batch = self.to_device(args[0])
+
+        args[0] = batch
+
+        return self.model_ref.training_step(*args)
+
+    def validation_step(self, args):
+        batch = self.to_device(args[0])
+
+        args[0] = batch
+
+        return self.model_ref.validation_step(*args)
+
+    def test_step(self, args):
+        batch = self.to_device(args[0])
+
+        args[0] = batch
+        return self.model_ref.test_step(*args)
 
     def training_step_end(self, output):
         return output
@@ -87,28 +77,36 @@ class Accelerator(object):
         return dataloader
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
-        automatic_optimization = self.trainer.train_loop.automatic_optimization
+        return self.precision_plugin.backward(closure_loss, optimizer, opt_idx, *args, **kwargs)
 
-        if not automatic_optimization and self.ddp_plugin is not None:
-            # Manually prepare for reduce as user calling backwards manually
-            self.ddp_plugin.on_before_manual_backward(self.trainer.model, closure_loss)
+    def optimizer_step(self, optimizer, current_epoch, batch_idx, opt_idx, lambda_closure):
+        model_ref = self.model_ref
+        is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
+        native_amp = self.trainer.amp_backend == AMPType.NATIVE
 
-        if self.trainer.precision == 16:
-            closure_loss = self.trainer.precision_connector.backend.backward(
-                closure_loss, optimizer, opt_idx, *args, **kwargs
-            )
-        else:
-            # do backward pass
-            model = self.trainer.get_model()
-            model.backward(closure_loss, optimizer, opt_idx, *args, **kwargs)
+        self.precision_plugin.pre_optimizer_step(optimizer)
 
-            # once backward has been applied, release graph
-            closure_loss = closure_loss.detach()
-        return closure_loss
+        # model hook
+        model_ref.optimizer_step(
+            epoch=current_epoch,
+            batch_idx=batch_idx,
+            optimizer=optimizer,
+            optimizer_idx=opt_idx,
+            optimizer_closure=lambda_closure,
+            on_tpu=False,  # TPUAccelerator class sets this as True
+            using_native_amp=native_amp,
+            using_lbfgs=is_lbfgs,
+        )
+
+        self.precision_plugin.post_optimizer_step()
+
+    def optimizer_zero_grad(self, current_epoch, batch_idx, optimizer, opt_idx):
+        model_ref = self.model_ref
+        model_ref.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
 
     def clip_gradients(self, optimizer, clip_val=None):
         # use the trainer's clip val if none passed
-        grad_clip_val = self.trainer.gradient_clip_val
+        grad_clip_val = self.gradient_clip_val
         if clip_val is not None:
             grad_clip_val = clip_val
         grad_clip_val = float(grad_clip_val)
@@ -117,12 +115,37 @@ class Accelerator(object):
             return
         self._clip_gradients(optimizer, grad_clip_val)
 
-    def _clip_gradients(self, optimizer: Optimizer, grad_clip_val: Union[float, int], norm_type: float = 2.0):
-        if self.trainer.amp_backend:
-            self.trainer.precision_connector.backend.clip_gradients(grad_clip_val, optimizer, norm_type)
+        model = self.model_ref
+
+        # TODO: Change this. Probably to isinstance(self.precision_plugin, MixedPrecisionPlugin) and self.precision_plugin.backend == AMPType.APEX
+        if self.trainer.amp_backend == AMPType.APEX:
+            parameters = self.precision_plugin.master_params(optimizer)
         else:
-            model = self.trainer.get_model()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=grad_clip_val, norm_type=norm_type)
+            parameters = model.parameters()
+
+        max_norm = grad_clip_val
+        norm_type = float(2.0)
+
+        if isinstance(parameters, torch.Tensor):
+            parameters = [parameters]
+        parameters = list(filter(lambda p: p.grad is not None, parameters))
+
+        device = parameters[0].device
+
+        if norm_type == math.inf:
+            total_norm = max(p.grad.data.abs().max() for p in parameters)
+        else:
+            out = torch.empty(len(parameters), device=device)
+            for i, p in enumerate(parameters):
+                torch.norm(p.grad.data.to(device), norm_type, out=out[i])
+            total_norm = torch.norm(out, norm_type)
+
+        eps = self.precision_plugin.EPSILON
+
+        clip_coef = torch.tensor(max_norm, device=device) / (total_norm + eps)
+        clip_coef = torch.min(clip_coef, torch.ones_like(clip_coef))
+        for p in parameters:
+            p.grad.data.mul_(clip_coef.to(p.grad.data.device))
 
     def on_train_epoch_end(self, outputs):
         pass
@@ -130,126 +153,52 @@ class Accelerator(object):
     def on_train_end(self):
         pass
 
+    # TODO: Check if we can change logic for early stopping to accelerator/trainer completely or have a separate connector (should be self contained)
     def early_stopping_should_stop(self, pl_module):
         return self.trainer.should_stop
 
     def setup_optimizers(self, model):
-        if self.trainer.testing:
+        # TODO: Check if we can change logic for early stopping to trainer completely (should be self contained)
+        if self.trainer.testing is True:
             return
 
         optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
-        self.trainer.optimizers = optimizers
-        self.trainer.lr_schedulers = lr_schedulers
-        self.trainer.optimizer_frequencies = optimizer_frequencies
+        self.optimizers = optimizers
+        self.lr_schedulers = lr_schedulers
+        self.optimizer_frequencies = optimizer_frequencies
 
-    def init_ddp_connection(
-            self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
-    ) -> None:
-        self.ddp_plugin.init_ddp_connection(
-            self.trainer,
-            self.cluster_environment,
-            global_rank,
-            world_size,
-            is_slurm_managing_tasks,
+    def connect_precision_plugin(self):
+        model, optimizers, schedulers = self.precision_plugin.connect(
+            self.model_ref, self.optimizers, self.lr_schedulers
         )
 
-    def sync_tensor(self,
-                    tensor: Union[torch.Tensor],
-                    group: Optional[Any] = None,
-                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
-        """
-        Function to reduce a tensor from several distributed processes to one aggregated tensor.
+        self.model_ref = model
+        self.optimizers = optimizers
+        self.schedulers = schedulers
 
-        Args:
-            tensor: the tensor to sync and reduce
-            group: the process group to gather results from. Defaults to all processes (world)
-            reduce_op: the reduction operation. Defaults to sum.
-                Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
+    def to_device(self, batch):
+        return self.batch_to_device(batch, self.root_device)
 
-        Return:
-            reduced value
-        """
-        raise NotImplementedError()
 
-    def all_gather(self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False):
-        """
-        Function to gather a tensor from several distributed processes
+class NewCPUAccelerator(NewAccelerator):
+    def setup(self, model):
+        if isinstance(self.precision_plugin, MixedPrecisionPlugin):
+            MisconfigurationException("amp + cpu is not supported.  Please use a GPU option")
 
-        Args:
-            tensor: tensor of shape (batch, ...)
-            group: the process group to gather results from. Defaults to all processes (world)
-            sync_grads: flag that allows users to synchronize gradients for all_gather op
+        if "cpu" not in str(self.root_device):
+            raise MisconfigurationException(f"Device should be CPU, got {self.root_device} instead")
 
-        Return:
-            A tensor of shape (world_size, batch, ...)
-        """
-        raise NotImplementedError()
+        return super().setup(model)
 
-    def optimizer_state(self, optimizer: Optimizer) -> dict:
-        """
-        Returns state of an optimizer. Allows for syncing/collating optimizer state from processes in custom
-        plugins.
-        Return:
-            Optimizer state dict
-        """
-        if self.ddp_plugin:
-            return self.ddp_plugin.optimizer_state(optimizer)
-        return optimizer.state_dict()
 
-    def get_reference_model(self, model) -> LightningModule:
-        """
-        Override to modify returning base :class:`LightningModule`
-        when accessing variable and functions if the accelerator has wrapped the model.
+class NewGPUAccelerator(NewAccelerator):
+    def setup(self, model):
+        if "cuda" not in str(self.root_device):
+            raise MisconfigurationException(f"Device should be GPU, got {self.root_device} instead")
+        torch.cuda.set_device(self.root_device)
+        self.model_ref.to(self.root_device)
 
-        Example::
-            ref_model = accelerator.get_reference_model(model)
-            ref_model.training_step(...)
+        return super().setup(model)
 
-        Args:
-            model: Accelerator model.
 
-        Returns: Reference :class:`LightningModule`.
-
-        """
-        return model
-
-    def __getstate__(self):
-        return {
-            'trainer': self.trainer,
-            'nickname': self.nickname,
-            'cluster_environment': self.cluster_environment,
-            'dist': self.dist,
-            'ddp_plugin': self.ddp_plugin
-        }
-
-    def __setstate__(self, d):
-        self.trainer = d['trainer']
-        self.nickname = d['nickname']
-        self.cluster_environment = d['cluster_environment']
-        self.dist = d['dist']
-        self.ddp_plugin = d['ddp_plugin']
-
-    def on_save(self, checkpoint):
-        return checkpoint
-
-    @property
-    def rpc_enabled(self):
-        return self.ddp_plugin is not None and isinstance(self.ddp_plugin, RPCPlugin)
-
-    @property
-    def distributed_sampler_kwargs(self):
-        raise NotImplementedError
-
-    @property
-    def require_distributed_sampler(self):
-        raise NotImplementedError
-
-    @contextmanager
-    def block_ddp_plugin_sync_behaviour(self):
-        """
-        Blocks ddp sync gradients behaviour on backwards pass.
-        This is useful for skipping sync when accumulating gradients, reducing communication overhead
-        Returns: context manager with sync behaviour off
-        """
-        cm = self.ddp_plugin.block_backward_sync(self.trainer.model) if self.ddp_plugin else None
-        yield cm
+# TODO: Add NewTPUAccelerator
