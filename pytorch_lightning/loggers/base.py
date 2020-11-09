@@ -313,9 +313,9 @@ class LightningLoggerBase(ABC):
     def version(self) -> Union[int, str]:
         """Return the experiment version."""
 
-    def _add_prefix(self, metrics: Dict[str, float], prefix: str, join_char: str):
-        if prefix:
-            metrics = {f'{prefix}{join_char}{k}': v for k, v in metrics.items()}
+    def _add_prefix(self, metrics: Dict[str, float]):
+        if self._prefix:
+            metrics = {f'{self._prefix}{self.LOGGER_JOIN_CHAR}{k}': v for k, v in metrics.items()}
 
         return metrics
 

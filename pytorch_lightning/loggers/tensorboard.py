@@ -182,7 +182,7 @@ class TensorBoardLogger(LightningLoggerBase):
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
-        metrics = self._add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
+        metrics = self._add_prefix(metrics)
 
         for k, v in metrics.items():
             if isinstance(v, torch.Tensor):

@@ -140,7 +140,7 @@ class TestTubeLogger(LightningLoggerBase):
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         # TODO: HACK figure out where this is being set to true
-        metrics = self._add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
+        metrics = self._add_prefix(metrics)
         self.experiment.debug = self.debug
         self.experiment.log(metrics, global_step=step)
 

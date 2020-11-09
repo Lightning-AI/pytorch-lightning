@@ -253,7 +253,7 @@ class NeptuneLogger(LightningLoggerBase):
         """
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
-        metrics = self._add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
+        metrics = self._add_prefix(metrics)
         for key, val in metrics.items():
             self.log_metric(key, val, step=step)
 

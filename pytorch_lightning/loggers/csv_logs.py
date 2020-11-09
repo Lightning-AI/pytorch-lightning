@@ -187,7 +187,7 @@ class CSVLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-        metrics = self._add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
+        metrics = self._add_prefix(metrics)
         self.experiment.log_metrics(metrics, step)
 
     @rank_zero_only

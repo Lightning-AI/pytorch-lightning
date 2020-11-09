@@ -347,7 +347,7 @@ def _test_loggers_with_prefix(tmpdir, logger_class):
 
         def log_metrics(self, metrics, step):
             super().log_metrics(metrics, step)
-            metrics = self._add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
+            metrics = self._add_prefix(metrics)
             self.history.append((step, metrics))
 
     logger_args = _get_logger_args(logger_class, tmpdir)
