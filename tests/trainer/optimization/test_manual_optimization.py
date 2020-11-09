@@ -517,7 +517,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
                 # torch equal can break somethings due to approximations
                 try:
                     assert not torch.equal(self.weight_before, after_before)
-                except:
+                except Exception:
                     assert torch.abs(torch.sum(self.weight_before) - torch.sum(after_before)).item() < 10e-6
                 assert torch.all(self.layer.weight.grad == 0)
             else:

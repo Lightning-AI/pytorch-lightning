@@ -1157,8 +1157,6 @@ class LightningModule(
             def mock_optimizer_closure():
                 return
             self.trainer.train_loop.optimizer_step(optimizer, None, self.trainer.batch_idx, mock_optimizer_closure)
-            if zero_grad:
-                optimizer.zero_grad()
 
     def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
         """

@@ -110,6 +110,7 @@ class Accelerator(object):
         model_ref = self.trainer.get_model()
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
         native_amp = self.trainer.amp_backend == AMPType.NATIVE
+        automatic_optimization = self.trainer.train_loop.automatic_optimization
 
         # native amp + lbfgs is a no go right now
         if native_amp and is_lbfgs:
@@ -130,7 +131,7 @@ class Accelerator(object):
         )
 
         # scale when native amp
-        if native_amp:
+        if automatic_optimization and native_amp:
             self.trainer.scaler.update()
 
     def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):

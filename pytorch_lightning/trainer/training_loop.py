@@ -353,6 +353,12 @@ class TrainLoop:
             # the loss will get scaled for amp. avoid any modifications to it
             untouched_loss = closure_loss.detach().clone()
 
+        else:
+            if not self.should_accumulate():
+                # scale when native amp
+                if self.trainer.amp_backend == AMPType.NATIVE:
+                    self.trainer.scaler.update()
+
         # result
         result = AttributeDict(
             closure_loss=closure_loss,
@@ -709,11 +715,8 @@ class TrainLoop:
                     grad_norm_dic = self._cur_grad_norm_dict
                     self._cur_grad_norm_dict = None
 
-                    # hook
-                    self.on_before_zero_grad(optimizer)
-
-                    # clear gradients
-                    self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
+                    # hook + clear gradients
+                    self.zero_grad_handler(batch_idx, optimizer, opt_idx)
 
                     # update running loss + reset accumulated loss
                     self.update_running_loss()
@@ -937,3 +940,14 @@ class TrainLoop:
 
         # reset for next set of accumulated grads
         self.accumulated_loss.reset()
+
+    def zero_grad_handler(self, batch_idx, optimizer, opt_idx):
+        if self.automatic_optimization:
+            # hook
+            self.on_before_zero_grad(optimizer)
+            optimizers = [optimizer]
+        else:
+            optimizers = self.get_optimizers_iterable()
+
+        for idx, optimizer in enumerate(optimizers):
+            self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
