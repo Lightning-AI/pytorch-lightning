@@ -17,3 +17,4 @@ Community Examples
 - `Transformers Question Answering (SQuAD) <https://github.com/tshrjn/Finetune-QA/>`_.
 - `Atlas: End-to-End 3D Scene Reconstruction from Posed Images <https://github.com/magicleap/atlas>`_.
 - `Self-Supervised Representation Learning (MoCo and BYOL) <https://github.com/untitled-ai/self_supervised>`_.
+- `pytorch-forecasting: Time series forecasting package <https://github.com/jdb78/pytorch-forecasting>`_.
