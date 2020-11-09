@@ -407,9 +407,10 @@ class ExtendedModel(BoringModel):
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_automatic_optimization_false_and_return_tensor(tmpdir):
+def test_manual_optimization_and_return_tensor(tmpdir):
     """
-    This test verify that in `automatic_optimization` we don't add gradient if the user return loss.
+    This test verify that in `manual_optimization`
+    we don't add gradient when the user return loss in `training_step`
     """
 
     model = ExtendedModel()
@@ -433,10 +434,11 @@ def test_automatic_optimization_false_and_return_tensor(tmpdir):
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_automatic_optimization_false_and_return_detached_tensor(tmpdir):
+def test_manual_optimization_and_return_detached_tensor(tmpdir):
     """
-    This test verify that in `automatic_optimization`
-    we don't add gradient if the user return loss + raise an error
+    This test verify that in `manual_optimization`
+    we don't add gradient when the user return loss in `training_step`
+    When the tensor is detached, return MisConfiguration Error.
     """
 
     model = ExtendedModel()
@@ -444,6 +446,7 @@ def test_automatic_optimization_false_and_return_detached_tensor(tmpdir):
     model.training_step_end = None
     model.training_epoch_end = None
 
+    # pytest.raises didn't seem to work with ddp_spawn
     try:
         trainer = Trainer(
             max_epochs=1,
@@ -463,10 +466,10 @@ def test_automatic_optimization_false_and_return_detached_tensor(tmpdir):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-def test_automatic_optimization_false_and_accumulated_gradient(tmpdir):
+def test_manual_optimization_and_accumulated_gradient(tmpdir):
     """
-    This test verify that in `automatic_optimization`
-    we don't add gradient if the user return loss + raise an error
+    This test verify that in `automatic_optimization=False`,
+    manual_optimizer_step is being called only when we shouldn't accumulate.
     """
 
     class ExtendedModel(BoringModel):
@@ -551,7 +554,7 @@ def test_multiple_optimizers_manual_optimizer_step(tmpdir):
     os.environ['PL_DEV_DEBUG'] = '1'
 
     """
-    Tests that only training_step can be used
+    Tests that `manual_optimizer_step` works with several optimizers
     """
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):

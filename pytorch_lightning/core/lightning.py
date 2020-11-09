@@ -1106,7 +1106,7 @@ class LightningModule(
         self.trainer.train_loop.backward(loss, optimizer, -1, *args, **kwargs)
         self._running_manual_optim = False
 
-    def manual_optimizer_step(self, optimizer: Optimizer, force_optimizer_step:bool = False) -> None:
+    def manual_optimizer_step(self, optimizer: Optimizer, force_optimizer_step:bool = False, zero_grad: bool = True) -> None:
         """
         Call this directly from your training_step when doing optimizations manually.
         By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
@@ -1114,11 +1114,14 @@ class LightningModule(
         .. tip:: In manual mode we still automatically accumulate grad over batches if Trainer(accumulate_grad_batches=x) is set.
 
         Args:
-            optimizer: Optimizer used for performing `.step()` call
+            optimizer: Optimizer used to perform `.step()` call
 
-            force_optimizer_step: bool = Whether to force an optimizer step. Could be useful when having 2 optimizers
+            force_optimizer_step: Whether to force an optimizer step. Could be useful when having 2 optimizers
                 and we wanted to do accumulated gradients for an optimizer but not for the other one.
                 One could put its own logic to force_step.
+
+            zero_grad: Whether to zero_grad the gradients associated with this optimizer.
+                By default, it is set to True. Make sure to call `zero_grad` if set to False.
 
         Return:
             None
@@ -1130,7 +1133,22 @@ class LightningModule(
                 loss = ...
                 # automatically applies scaling, etc...
                 self.manual_backward(loss, opt_a)
+                # This will force an opt.step() even if accumulate_grad_batches is set.
                 self.manual_optimizer_step(opt_a, force_optimizer_step=True)
+
+        Example::
+
+            def training_step(...):
+                (opt_a, opt_b) = self.optimizers()
+                loss = ...
+                # automatically applies scaling, etc...
+                self.manual_backward(loss, opt_a)
+
+                self.manual_optimizer_step(opt_a, zero_grad=False)
+                ... do something with the gradients
+
+                # Make sure to call `zero_grad`
+                opt_a.zero_grad()
         """
         # make sure we're using manual opt
         self._verify_is_manual_optimization('manual_optimizer_step')
@@ -1140,7 +1158,8 @@ class LightningModule(
             if native_amp:
                 self.trainer.scaler.unscale_(optimizer)
             optimizer.step()
-            optimizer.zero_grad()
+            if zero_grad:
+                optimizer.zero_grad()
             if native_amp:
                 self.trainer.scaler.update()
 
