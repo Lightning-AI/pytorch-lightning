@@ -399,6 +399,11 @@ class Result(Dict):
             if isinstance(v, torch.Tensor):
                 self.__setitem__(k, v.detach())
 
+    def cpu(self):
+        for k, v in self.items():
+            if isinstance(v, torch.Tensor):
+                self.__setitem__(k, v.cpu())
+
     def __repr__(self):
         self_copy = self.copy()
 

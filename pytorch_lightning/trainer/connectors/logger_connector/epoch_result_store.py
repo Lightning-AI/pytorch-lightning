@@ -392,6 +392,9 @@ class EpochResultStore:
             # attach capture batch_size
             Result.attach_batch_size(self._batch_size, hook_result)
 
+            hook_result.detach()
+            hook_result.cpu()
+
             self._internals[fx_name].append(
                 hook_result,
                 dataloader_idx=dataloader_idx,
