@@ -31,7 +31,7 @@ ENV CONDA_ENV=lightning
 # show system inforation
 RUN lsb_release -a && cat /etc/*-release
 
-RUN apt-get update && \
+RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
