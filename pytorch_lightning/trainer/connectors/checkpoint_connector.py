@@ -14,10 +14,12 @@
 
 import io
 import os
+from pathlib import Path
 import re
 import signal
 from abc import ABC
 from subprocess import call
+from typing import Union
 
 import torch
 import torch.distributed as torch_distrib
@@ -218,7 +220,8 @@ class CheckpointConnector:
         # save logger to make sure we get all the metrics
         logger.save()
 
-        ckpt_number = self.max_ckpt_in_folder(folderpath) + 1
+        max_suffix = self.max_ckpt_in_folder(folderpath)
+        ckpt_number = (max_suffix if max_suffix is not None else 0) + 1
 
         fs.makedirs(folderpath, exist_ok=True)
         filepath = os.path.join(folderpath, f'hpc_ckpt_{ckpt_number}.ckpt')
@@ -336,7 +339,9 @@ class CheckpointConnector:
         Load model/training states from a 'PyTorch-Lightning checkpoint' file for hpc.
         All restored states are listed in return value description of `dump_checkpoint`.
         """
-        checkpoint_path = '{}/hpc_ckpt_{}.ckpt'.format(folderpath, self.max_ckpt_in_folder(folderpath))
+        max_suffix = self.max_ckpt_in_folder(folderpath)
+        ckpt_number = max_suffix if max_suffix is not None else 0
+        checkpoint_path = f'{folderpath}/hpc_ckpt_{ckpt_number}.ckpt'
 
         # read a checkpoint dictionary object from the 'PyTorch-Lightning checkpoint' file at `checkpoint_path`
         checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
@@ -358,12 +363,21 @@ class CheckpointConnector:
 
         log.info(f'restored hpc model from: {checkpoint_path}')
 
-    def max_ckpt_in_folder(self, path, name_key='ckpt_'):
-        fs = get_filesystem(path)
-        files = [os.path.basename(f["name"]) for f in fs.listdir(path)]
+    def max_ckpt_in_folder(self, dir_path: Union[str, Path], name_key: str = 'ckpt_') -> Union[None, int]:
+        """List up files in `dir_path` with name_key, then yield maximum suffix number.
+
+        Args:
+            dir_path: path of directory which may contain files which name include `name_key` 
+
+        Returns:
+            None if no-corresponding-file else maximum suffix number
+        """
+
+        fs = get_filesystem(dir_path)
+        files = [os.path.basename(f["name"]) for f in fs.listdir(dir_path)]
         files = [x for x in files if name_key in x]
         if len(files) == 0:
-            return 0
+            return None
 
         ckpt_vs = []
         for name in files:
