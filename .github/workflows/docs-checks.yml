@@ -8,7 +8,7 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     branches: [master, "release/*"]
 
 jobs:
-  check-docs:
+  sphinx-check:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
