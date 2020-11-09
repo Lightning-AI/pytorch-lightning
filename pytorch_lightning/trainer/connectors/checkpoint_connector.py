@@ -345,7 +345,7 @@ class CheckpointConnector:
         """List up files in `dir_path` with name_key, then yield maximum suffix number.
 
         Args:
-            dir_path: path of directory which may contain files which name include `name_key` 
+            dir_path: path of directory which may contain files which name include `name_key`
 
         Returns:
             None if no-corresponding-file else maximum suffix number
