@@ -16,13 +16,13 @@ Input = namedtuple('Input', ["preds", "target", "multichannel"])
 
 
 _inputs = []
-for size, channel, coef, multichannel in [
-    (16, 1, 0.9, False),
-    (32, 3, 0.8, True),
-    (48, 1, 0.7, False),
-    (64, 3, 0.6, True),
+for size, channel, coef, multichannel, dtype in [
+    (12, 3, 0.9, True, torch.float),
+    (16, 1, 0.8, False, torch.float32),
+    (28, 1, 0.7, False, torch.double),
+    (32, 3, 0.6, True, torch.float64),
 ]:
-    preds = torch.rand(NUM_BATCHES, BATCH_SIZE, channel, size, size)
+    preds = torch.rand(NUM_BATCHES, BATCH_SIZE, channel, size, size, dtype=dtype)
     _inputs.append(
         Input(
             preds=preds,
@@ -51,12 +51,12 @@ def _sk_metric(preds, target, data_range, multichannel):
     [(i.preds, i.target, i.multichannel) for i in _inputs],
 )
 class TestSSIM(MetricTester):
-    atol = 9e-5  # TODO: ideally tests should pass with lower tolerance
+    atol = 6e-5  # TODO: ideally tests should pass with lower tolerance
 
     # TODO: for some reason this test hangs with ddp=True
     @pytest.mark.parametrize("ddp", [True, False])
     # @pytest.mark.parametrize("ddp", [False])
-    @pytest.mark.parametrize("dist_sync_on_step", [True, False])
+    @pytest.mark.parametrize("dist_sync_on_step", [False])
     def test_ssim(self, preds, target, multichannel, ddp, dist_sync_on_step):
         self.run_class_metric_test(
             ddp,
