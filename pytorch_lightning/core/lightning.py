@@ -112,7 +112,6 @@ class LightningModule(
         self._results: Optional[Result] = None
         self._current_fx_name = ''
         self._running_manual_backward = False
-        self._running_manual_optimizer_step = False
         self._current_hook_fx_name = None
         self._current_dataloader_idx = None
 
@@ -1155,13 +1154,16 @@ class LightningModule(
         self._verify_is_manual_optimization('manual_optimizer_step')
 
         if not self.trainer.train_loop.should_accumulate() or force_optimizer_step:
-            self._running_manual_optimizer_step = True
 
             # mock closure function as the user is responsible to call `manual_backward`
             def mock_optimizer_closure():
                 return
 
             self.trainer.train_loop.optimizer_step(optimizer, None, self.trainer.batch_idx, mock_optimizer_closure)
+
+            # update will be called after every optimizer_step call
+            if self.trainer.amp_backend == AMPType.NATIVE:
+                self.trainer.scaler.update()
 
     def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
         """

@@ -353,12 +353,6 @@ class TrainLoop:
             # the loss will get scaled for amp. avoid any modifications to it
             untouched_loss = closure_loss.detach().clone()
 
-        else:
-            # scale when native amp
-            if model_ref._running_manual_optimizer_step and self.trainer.amp_backend == AMPType.NATIVE:
-                self.trainer.scaler.update()
-                model_ref._running_manual_optimizer_step = False
-
         # result
         result = AttributeDict(
             closure_loss=closure_loss,

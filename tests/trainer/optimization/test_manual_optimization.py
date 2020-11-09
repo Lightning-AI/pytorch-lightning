@@ -570,7 +570,7 @@ def test_multiple_optimizers_manual_optimizer_step(tmpdir):
             loss_1 = self.loss(loss_1, loss_1)
 
             # make sure there are no grads
-            if batch_idx > 0:
+            if not self.trainer.should_accumulate():
                 assert torch.all(self.layer.weight.grad == 0)
 
             self.manual_backward(loss_1, opt_a)
