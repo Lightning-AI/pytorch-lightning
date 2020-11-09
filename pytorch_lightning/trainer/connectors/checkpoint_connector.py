@@ -27,7 +27,7 @@ import torch.distributed as torch_distrib
 import pytorch_lightning
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import AMPType, rank_zero_warn
+from pytorch_lightning.utilities import AMPType, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
@@ -204,8 +204,13 @@ class CheckpointConnector:
 
             # if hpc weights exist restore model
             if len(hpc_weight_paths) > 0:
-                self.hpc_load(folderpath, self.trainer.on_gpu)
+                max_suffix = self.max_ckpt_in_folder(folderpath)
+                ckpt_number = max_suffix if max_suffix is not None else 0
+                checkpoint_path = f'{folderpath}/hpc_ckpt_{ckpt_number}.ckpt'
+                self.hpc_load(checkpoint_path, self.trainer.on_gpu)
                 did_restore = True
+                rank_zero_info(f'restored hpc model from: {checkpoint_path}')
+
         return did_restore
 
     # ----------------------------------
@@ -334,14 +339,11 @@ class CheckpointConnector:
 
         return checkpoint
 
-    def hpc_load(self, folderpath, on_gpu):
+    def hpc_load(self, checkpoint_path: str, on_gpu: bool):
         """
         Load model/training states from a 'PyTorch-Lightning checkpoint' file for hpc.
         All restored states are listed in return value description of `dump_checkpoint`.
         """
-        max_suffix = self.max_ckpt_in_folder(folderpath)
-        ckpt_number = max_suffix if max_suffix is not None else 0
-        checkpoint_path = f'{folderpath}/hpc_ckpt_{ckpt_number}.ckpt'
 
         # read a checkpoint dictionary object from the 'PyTorch-Lightning checkpoint' file at `checkpoint_path`
         checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
@@ -360,8 +362,6 @@ class CheckpointConnector:
 
         # call hpc specific hook
         model.on_hpc_load(checkpoint)
-
-        log.info(f'restored hpc model from: {checkpoint_path}')
 
     def max_ckpt_in_folder(self, dir_path: Union[str, Path], name_key: str = 'ckpt_') -> Union[None, int]:
         """List up files in `dir_path` with name_key, then yield maximum suffix number.

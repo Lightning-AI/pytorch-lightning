@@ -86,9 +86,13 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
             trainer.optimizers, trainer.lr_schedulers, trainer.optimizer_frequencies = \
                 trainer.init_optimizers(pretrained_model)
 
-        # test HPC loading / saving
+        # test HPC saving
         trainer.checkpoint_connector.hpc_save(save_dir, logger)
-        trainer.checkpoint_connector.hpc_load(save_dir, on_gpu=on_gpu)
+        # test HPC loading
+        max_suffix = trainer.checkpoint_connector.max_ckpt_in_folder(save_dir)
+        ckpt_number = max_suffix if max_suffix is not None else 0
+        checkpoint_path = f'{save_dir}/hpc_ckpt_{ckpt_number}.ckpt'
+        trainer.checkpoint_connector.hpc_load(checkpoint_path, on_gpu=on_gpu)
 
 
 def run_prediction(dataloader, trained_model, dp=False, min_acc=0.50):

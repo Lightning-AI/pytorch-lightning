@@ -79,9 +79,13 @@ def run_test_from_config(trainer_options):
     for dataloader in test_loaders:
         run_prediction(dataloader, pretrained_model)
 
-    # test HPC loading / saving
+    # test HPC saving
     trainer.checkpoint_connector.hpc_save(ckpt_path, trainer.logger)
-    trainer.checkpoint_connector.hpc_load(ckpt_path, on_gpu=args.on_gpu)
+    # test HPC loading
+    max_suffix = trainer.checkpoint_connector.max_ckpt_in_folder(ckpt_path)
+    ckpt_number = max_suffix if max_suffix is not None else 0
+    checkpoint_path = f'{ckpt_path}/hpc_ckpt_{ckpt_number}.ckpt'
+    trainer.checkpoint_connector.hpc_load(checkpoint_path, on_gpu=args.on_gpu)
 
     if args.on_gpu:
         trainer = Trainer(gpus=1, distributed_backend='horovod', max_epochs=1)
