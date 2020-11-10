@@ -434,6 +434,8 @@ class TrainLoop:
         # track metrics without grads for epoch reduction
         training_step_output_for_epoch_end = copy(result)
         training_step_output_for_epoch_end.detach()
+        if self.trainer.move_metrics_to_cpu:
+            training_step_output_for_epoch_end.cpu()
 
         # what flows back into the system
         training_step_output = result
