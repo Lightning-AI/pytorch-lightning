@@ -24,6 +24,9 @@ from tests.base import EvalModelTemplate
 import torch
 import functools
 import itertools
+from time import time
+from inspect import isfunction, ismethod, isclass
+
 
 def import_from(module, name):
     module = __import__(module, fromlist=[name])
@@ -34,7 +37,7 @@ def call_training_script(cli_args, tmpdir, env, timeout=20):
     file = Path(__file__).absolute()
     cli_args = cli_args.split(' ') if cli_args else []
     cli_args += ['--tmpdir', str(tmpdir)]
-    command = [sys.executable, str(file)] + cli_args
+    command = [sys.executable, '-m', 'coverage', 'run', str(file)] + cli_args
 
     # need to set the PYTHONPATH in case pytorch_lightning was not installed into the environment
     env['PYTHONPATH'] = f'{pytorch_lightning.__file__}:' + env.get('PYTHONPATH', '')
@@ -50,8 +53,8 @@ def call_training_script(cli_args, tmpdir, env, timeout=20):
     except TimeoutExpired:
         p.kill()
         std, err = p.communicate()
-
     return std, err
+
 
 def create_cmd_lines(cmd_line, **kwargs):
     keys = kwargs.keys()
@@ -67,6 +70,54 @@ def create_cmd_lines(cmd_line, **kwargs):
     cmd_lines = list(set(cmd_lines))
     return cmd_lines
 
+
+def undecorated(o):
+    """Remove all decorators from a function, method or class"""
+    # class decorator
+    if type(o) is type:
+        return o
+
+    try:
+        # python2
+        closure = o.func_closure
+    except AttributeError:
+        pass
+
+    try:
+        # python3
+        closure = o.__closure__
+    except AttributeError:
+        return
+
+    if closure:
+        for cell in closure:
+            # avoid infinite recursion
+            if cell.cell_contents is o:
+                continue
+
+            # check if the contents looks like a decorator; in that case
+            # we need to go one level down into the dream, otherwise it
+            # might just be a different closed-over variable, which we
+            # can ignore.
+
+            # Note: this favors supporting decorators defined without
+            # @wraps to the detriment of function/method/class closures
+            if looks_like_a_decorator(cell.cell_contents):
+                undecd = undecorated(cell.cell_contents)
+                if undecd:
+                    return undecd
+        else:
+            return o
+    else:
+        return o
+
+
+def looks_like_a_decorator(a):
+    return (
+        isfunction(a) or ismethod(a) or isclass(a)
+    )
+
+
 class DDPLauncher:
     """ Class used to run ddp tests
     """
@@ -75,16 +126,25 @@ class DDPLauncher:
         env = os.environ.copy()
         env["PL_CURRENT_TEST_MODULE"] = str(func_to_run.__module__)
         env["PL_CURRENT_TEST_NAME"] = str(func_to_run.__name__)
-        call_training_script(cli_args, tmpdir, env, timeout=20)
+        return call_training_script(cli_args, tmpdir, env, timeout=timeout)
 
-    def run(cmd_line, **kwargs):
+    def run(cmd_line, fx_name, **kwargs):
         cmd_lines = create_cmd_lines(cmd_line, **kwargs)
+
         def inner(func):
             @functools.wraps(func)
             def func_wrapper(*args, **kwargs):
+                tmpdir = kwargs.get("tmpdir")
                 for cmd_line in cmd_lines:
                     print(f"Launching {func.__name__} with {cmd_line}")
-                    DDPLauncher.run_from_cmd_line(cmd_line, func, os.getcwd())
+                    t0 = time()
+                    std, err = DDPLauncher.run_from_cmd_line(cmd_line, func, tmpdir, timeout=20)
+                    result_path = os.path.join(tmpdir, 'ddp.result')
+                    result = torch.load(result_path)
+                    # verify the file wrote the expected outputs
+                    assert result['status'] == 'complete'
+                    t1 = time()
+                    print(t1 - t0)
             return func_wrapper
         return inner
 
@@ -99,6 +159,7 @@ if __name__ == "__main__":
     os.environ["PL_IN_LAUNCHER"] = '1'
     env = os.environ.copy()
     func = import_from(env["PL_CURRENT_TEST_MODULE"], env["PL_CURRENT_TEST_NAME"])
+    func = undecorated(func)
     result = func(args)
     result = {'status': 'complete', 'result':result}
     if len(result) > 0:

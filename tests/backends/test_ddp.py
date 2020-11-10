@@ -83,7 +83,6 @@ def internal_test_cli(args):
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_cli(tmpdir):
-    # DDPLauncher will launch internal_test_cli with this cmd line.
     DDPLauncher.run_from_cmd_line("--max_epochs 1 --gpus 2 --accelerator ddp", internal_test_cli, tmpdir)
     # load the results of the script
     result_path = os.path.join(tmpdir, 'ddp.result')
@@ -91,10 +90,13 @@ def test_cli(tmpdir):
     # verify the file wrote the expected outputs
     assert result['status'] == 'complete'
     assert str(result['result']) == '1'
-
 # END: test_cli ddp test
 
+
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@DDPLauncher.run("--max_epochs [max_epochs] --gpus 2 --accelerator [accelerator]", max_epochs=["1"], accelerator=["ddp", "ddp_spawn"])
-def test_cli_2(*args, **kwargs):
-    return
+@DDPLauncher.run("--max_epochs [max_epochs] --gpus 2 --accelerator [accelerator]", internal_test_cli, max_epochs=["1"], accelerator=["ddp", "ddp_spawn"])
+def test_cli_2(tmpdir, *arg, **kwargs):
+    """
+    This test verify we can call function using test_cli name
+    """
+    return 1
