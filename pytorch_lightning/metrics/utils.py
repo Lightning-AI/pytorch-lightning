@@ -60,6 +60,32 @@ def to_onehot(
     return tensor_onehot.scatter_(1, index, 1.0)
 
 
+def select_topk(tensor: torch.Tensor, topk: int = 1, dim: int = 1) -> torch.Tensor:
+    """
+    Convert a probability tensor to binary by selecting top-k highest entries.
+
+    Args:
+        tensor: dense tensor of shape ``[..., C, ...]``, where ``C`` is in the
+            position defined by the ``dim`` argument
+        topk: number of highest entries to turn into 1s
+        dim: dimension on which to compare entries
+
+    Output:
+        A binary tensor of the same shape as the input tensor of type torch.int32
+
+    Example:
+        >>> x = torch.tensor([[1.1, 2.0, 3.0], [2.0, 1.0, 0.5]])
+        >>> select_topk(x, topk=2)
+        tensor([[0, 1, 1],
+                [1, 1, 0]], dtype=torch.int32)
+    """
+    zeros = torch.zeros_like(tensor, device=tensor.device)
+    topk_tensor = zeros.scatter(1, tensor.topk(k=topk, dim=dim).indices, 1.0)
+
+    return topk_tensor.to(torch.int)
+
+
+
 def _check_same_shape(pred: torch.Tensor, target: torch.Tensor):
     """ Check that predictions and target have the same shape, else raise error """
     if pred.shape != target.shape:

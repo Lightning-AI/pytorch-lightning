@@ -11,13 +11,45 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Any
+from typing import Optional, Any, Tuple
 
 import torch
 
 from pytorch_lightning.metrics import Metric
 from pytorch_lightning.metrics.utils import to_onehot
-from pytorch_lightning.metrics.classification.utils import _input_format_classification, _stat_scores
+from pytorch_lightning.metrics.classification.utils import _input_format_classification
+
+
+def _stat_scores(
+    preds: torch.Tensor, target: torch.Tensor, average: str = "micro"
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Calculate the number of tp,fp,tn,fn.
+
+    Parameters
+    ----------
+    labels
+        A `[n_samples, n_labels]` tensor of true labels (0 or 1)
+    preds
+        A `[n_samples, n_labels]` tensor of predictions (0 or 1)
+
+    Returns
+    -------
+    tp, fp, tn, fn
+    """
+    if average in ["binary", "micro"]:
+        dim = list(range(len(preds.shape)))
+    elif average in ["macro", "weighted", "none", "samples"]:
+        dim = 1 if average == "samples" else 0
+
+    true_pred, false_pred = target == preds, target != preds
+
+    tp = (true_pred * (preds == 1)).sum(dim=dim)
+    fp = (false_pred * (preds == 1)).sum(dim=dim)
+
+    tn = (true_pred * (preds == 0)).sum(dim=dim)
+    fn = (false_pred * (preds == 0)).sum(dim=dim)
+
+    return tp, fp, tn, fn
 
 
 def _reduce_scores(scores: torch.Tensor, weights: torch.Tensor, average: str):
@@ -65,7 +97,7 @@ class StatScores(Metric):
 
         if self.num_classes == 1 and self.average != "binary":
             raise ValueError(
-                "You can only set number of classes to 1 if average='binary'."\
+                "You can only set number of classes to 1 if average='binary'."
                 "If your data is binary, but you want to treat it as 2 classes, set num_classes to 2."
             )
 
@@ -118,7 +150,3 @@ class StatScores(Metric):
 
     def compute(self):
         return self.tp, self.fn, self.tn, self.fn
-
-
-
-
