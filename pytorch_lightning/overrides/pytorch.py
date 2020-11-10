@@ -41,7 +41,7 @@ class ShardedGradScaler(GradScaler):
         num_infs = torch.tensor(num_infs, dtype=torch.int, device=self._scale.device)
         if dist.is_initialized():
             dist.all_reduce(num_infs)
-        if num_infs.item() > 0:
+        if not num_infs.item() > 0:
             retval = optimizer.step(*args, **kwargs)
 
         optimizer_state["stage"] = OptState.STEPPED
