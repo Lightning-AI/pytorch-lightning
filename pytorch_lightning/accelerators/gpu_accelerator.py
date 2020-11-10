@@ -23,6 +23,15 @@ class GPUAccelerator(Accelerator):
     amp_backend: AMPType
 
     def __init__(self, trainer, cluster_environment=None):
+        """
+        Runs training using a single GPU
+
+        Example::
+
+            # default
+            trainer = Trainer(accelerator=GPUAccelerator())
+
+        """
         super().__init__(trainer, cluster_environment)
         self.dist = LightningDistributed()
         self.nickname = None
