@@ -454,23 +454,21 @@ def test_manual_optimization_and_return_detached_tensor(tmpdir):
     model.training_step_end = None
     model.training_epoch_end = None
 
-    # TODO: pytest.raises didn't seem to work with ddp_spawn
-    try:
-        trainer = Trainer(
-            max_epochs=1,
-            default_root_dir=tmpdir,
-            limit_train_batches=10,
-            limit_test_batches=0,
-            limit_val_batches=0,
-            automatic_optimization=False,
-            precision=16,
-            amp_backend='native',
-            accelerator="ddp_spawn",
-            gpus=2,
-        )
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        limit_train_batches=10,
+        limit_test_batches=0,
+        limit_val_batches=0,
+        automatic_optimization=False,
+        precision=16,
+        amp_backend='native',
+        accelerator="ddp_spawn",
+        gpus=2,
+    )
+    expected_message = "In manual optimization, `training_step` should not return a Tensor"
+    with pytest.raises(Exception, match=expected_message):
         trainer.fit(model)
-    except Exception as e:
-        assert "In manual optimization, `training_step` should not return a Tensor" in str(e)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
