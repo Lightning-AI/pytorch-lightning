@@ -106,6 +106,7 @@ def _ssim_compute(
     lower = sigma_pred_sq + sigma_target_sq + c2
 
     ssim_idx = ((2 * mu_pred_target + c1) * upper) / ((mu_pred_sq + mu_target_sq + c1) * lower)
+    ssim_idx = ssim_idx[..., pad_h:-pad_h, pad_w:-pad_w]
 
     return reduce(ssim_idx, reduction)
 
