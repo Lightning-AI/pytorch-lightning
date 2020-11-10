@@ -1432,6 +1432,7 @@ def test_trainer_setup_call(tmpdir):
 
     class TrainerSubclass(Trainer):
         def setup(self, model, stage):
+            assert model is not None
             self.stage = stage
 
     model = CurrentModel()
