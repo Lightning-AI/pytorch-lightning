@@ -16,6 +16,7 @@ import torch
 import os
 from tests.backends import ddp_model
 from tests.utilities.dist import call_training_script
+from test.backends.launcher import DDPLauncher
 
 
 @pytest.mark.parametrize('cli_args', [
@@ -83,3 +84,17 @@ def test_cli(tmpdir):
     # verify the file wrote the expected outputs
     assert result['status'] == 'complete'
     assert result['result'] == 1
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_cli(tmpdir):
+
+    def internal_test_cli(args):
+        """
+        This test verify we can call function using test_cli name
+        """
+
+        return 1
+
+
+    result = DDPLauncher("--max_epochs 1 --gpus 2 --accelerator ddp", internal_test_cli)
