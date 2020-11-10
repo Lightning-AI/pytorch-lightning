@@ -31,8 +31,6 @@ class NativeAMPPlugin:
 
         automatic_optimization = self.trainer.train_loop.automatic_optimization
 
-        model = self.trainer.get_model()
-
         # do backward pass
         if automatic_optimization:
             model = self.trainer.get_model()
