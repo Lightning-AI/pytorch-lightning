@@ -1,24 +1,42 @@
 # https://github.com/marketplace/stale
+# https://github.com/probot/stale
 
-# Number of days of inactivity before an issue becomes stale
-daysUntilStale: 30
-# Number of days of inactivity before a stale issue is closed
-daysUntilClose: 7
-# Only issues or pull requests with all of these labels are check if stale. Defaults to `[]` (disabled)
-onlyLabels:
-  - "bug / fix"
-# Issues with these labels will never be considered stale
-exemptLabels:
-  - Important
-  - Priority
+issues:
+    # Number of days of inactivity before an issue becomes stale
+    daysUntilStale: 30
+    # Number of days of inactivity before a stale issue is closed
+    daysUntilClose: 7
+    # Issues with these labels will never be considered stale
+    exemptLabels:
+      - Important
+      - Priority
+    # Comment to post when marking an issue as stale. Set to `false` to disable
+    markComment: >
+      This issue has been automatically marked as stale because it hasn't had any recent activity.
+      This issue will be closed in 7 days if no further activity occurs.
+      Thank you for your contributions, Pytorch Lightning Team!
+    # Comment to post when closing a stale issue. Set to `false` to disable
+    closeComment: false
+
+pulls:
+    # Number of days of inactivity before an pulls becomes stale
+    daysUntilStale: 14
+    # Number of days of inactivity before a stale pull is closed
+    daysUntilClose: 5
+    # Label to use when marking an issue as stale
+    staleLabel: "won't fix"
+    # Comment to post when marking an issue as stale. Set to `false` to disable
+    markComment: >
+      This pull request has been automatically marked as stale because it has not had recent activity.
+      It will be closed in 7 days if no further activity occurs. If you need further help see our docs:
+      https://pytorch-lightning.readthedocs.io/en/latest/CONTRIBUTING.html#pull-request
+      or ask the assistance of a core contributor here or on Slack.
+      Thank you for your contributions.
+    # Comment to post when closing a stale issue. Set to `false` to disable
+    closeComment: >
+      This pull request is going to be closed. Please feel free to reopen it create a new from the actual master.
+
 # Label to use when marking an issue as stale
-staleLabel: wontfix
-# Comment to post when marking an issue as stale. Set to `false` to disable
-markComment: >
-  This issue has been automatically marked as stale because it has not had
-  recent activity. It will be closed if no further activity occurs. Thank you
-  for your contributions.
-# Comment to post when closing a stale issue. Set to `false` to disable
-closeComment: false
+staleLabel: "won't fix"
 # Limit the number of actions per hour, from 1-30. Default is 30
 limitPerRun: 10

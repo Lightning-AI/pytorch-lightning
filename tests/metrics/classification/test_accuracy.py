@@ -93,16 +93,16 @@ def test_accuracy_invalid_shape():
         (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, _sk_accuracy_multiclass_prob),
         (_multiclass_inputs.preds, _multiclass_inputs.target, _sk_accuracy_multiclass),
         (
-                _multidim_multiclass_prob_inputs.preds,
-                _multidim_multiclass_prob_inputs.target,
-                _sk_accuracy_multidim_multiclass_prob,
+            _multidim_multiclass_prob_inputs.preds,
+            _multidim_multiclass_prob_inputs.target,
+            _sk_accuracy_multidim_multiclass_prob,
         ),
         (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target, _sk_accuracy_multidim_multiclass),
     ],
 )
 class TestAccuracy(MetricTester):
     def test_accuracy(self, ddp, dist_sync_on_step, preds, target, sk_metric):
-        self.run_metric_test(
+        self.run_class_metric_test(
             ddp=ddp,
             preds=preds,
             target=target,

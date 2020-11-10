@@ -12,9 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional
 
 from pytorch_lightning.metrics.metric import Metric
+from pytorch_lightning.metrics.functional.mean_squared_error import (
+    _mean_squared_error_update,
+    _mean_squared_error_compute
+)
 
 
 class MeanSquaredError(Metric):
@@ -46,11 +50,13 @@ class MeanSquaredError(Metric):
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
+        dist_sync_fn: Callable = None,
     ):
         super().__init__(
             compute_on_step=compute_on_step,
             dist_sync_on_step=dist_sync_on_step,
             process_group=process_group,
+            dist_sync_fn=dist_sync_fn,
         )
 
         self.add_state("sum_squared_error", default=torch.tensor(0.0), dist_reduce_fx="sum")
@@ -64,14 +70,13 @@ class MeanSquaredError(Metric):
             preds: Predictions from model
             target: Ground truth values
         """
-        self._check_same_shape(preds, target)
-        squared_error = torch.pow(preds - target, 2)
+        sum_squared_error, n_obs = _mean_squared_error_update(preds, target)
 
-        self.sum_squared_error += torch.sum(squared_error)
-        self.total += target.numel()
+        self.sum_squared_error += sum_squared_error
+        self.total += n_obs
 
     def compute(self):
         """
         Computes mean squared error over state.
         """
-        return self.sum_squared_error / self.total
+        return _mean_squared_error_compute(self.sum_squared_error, self.total)

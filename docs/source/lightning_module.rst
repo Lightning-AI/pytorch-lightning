@@ -172,10 +172,11 @@ Under the hood, Lightning does the following (pseudocode):
     model.train()
     torch.set_grad_enabled(True)
 
-    outs = []
+    losses = []
     for batch in train_dataloader:
         # forward
-        out = training_step(val_batch)
+        loss = training_step(batch)
+        losses.append(loss.detach())
 
         # backward
         loss.backward()
@@ -183,6 +184,7 @@ Under the hood, Lightning does the following (pseudocode):
         # apply and clear grads
         optimizer.step()
         optimizer.zero_grad()
+
 
 Training epoch-level metrics
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -256,7 +258,7 @@ The matching pseudocode is:
 
 Training with DataParallel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-When training using a `distributed_backend` that splits data from each batch across GPUs, sometimes you might
+When training using a `accelerator` that splits data from each batch across GPUs, sometimes you might
 need to aggregate them on the master GPU for processing (dp, or ddp2).
 
 In this case, implement the `training_step_end` method
@@ -360,7 +362,7 @@ If you need to do something with all the outputs of each `validation_step`, over
 
 Validating with DataParallel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-When training using a `distributed_backend` that splits data from each batch across GPUs, sometimes you might
+When training using a `accelerator` that splits data from each batch across GPUs, sometimes you might
 need to aggregate them on the master GPU for processing (dp, or ddp2).
 
 In this case, implement the `validation_step_end` method

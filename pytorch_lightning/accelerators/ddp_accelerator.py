@@ -18,21 +18,21 @@ import subprocess
 import sys
 from os.path import abspath
 from time import sleep
-from typing import Optional
+from typing import Any, Optional, List, Union
+
 import numpy as np
 
-
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities.distributed import find_free_network_port
-from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities.distributed import rank_zero_only
-from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities.seed import seed_everything
+from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities.distributed import find_free_network_port
+from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
+from pytorch_lightning.utilities.seed import seed_everything
 from torch.nn.parallel import DistributedDataParallel
-from typing import List
 
 
 try:
@@ -46,8 +46,17 @@ else:
 
 class DDPAccelerator(Accelerator):
 
-    def __init__(self, trainer, cluster_environment=None):
-        super().__init__(trainer, cluster_environment)
+    def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
+        """
+        Runs training using DDP strategy on a single machine (manually, not via cluster start)
+
+        Example::
+
+            # default
+            trainer = Trainer(accelerator=DDPAccelerator())
+
+        """
+        super().__init__(trainer, cluster_environment, ddp_plugin)
         self.task_idx = None
         self._has_spawned_children = False
         self.interactive_ddp_procs = []
@@ -63,7 +72,7 @@ class DDPAccelerator(Accelerator):
             self._call_children_scripts()
 
         # set the task idx
-        self.task_idx = int(os.environ['PL_DDP_PID'])
+        self.task_idx = int(os.environ['LOCAL_RANK'])
 
     def _call_children_scripts(self):
         assert self.trainer.global_rank == 0
@@ -107,19 +116,14 @@ class DDPAccelerator(Accelerator):
         if self.trainer.logger is not None:
             os.environ['PL_EXP_VERSION'] = str(self.trainer.logger.version)
 
-        gpu_ids = os.environ.get('CUDA_VISIBLE_DEVICES', '')
-        if len(gpu_ids) == 1:
-            gpu_ids = f'{gpu_ids},'
-
-        num_gpus = max(1, len(gpu_ids.split(',')))
-
+        num_gpus = len(self.trainer.data_parallel_device_ids)
         os.environ['WORLD_SIZE'] = f'{num_gpus * self.trainer.num_nodes}'
 
         self.interactive_ddp_procs = []
         for local_rank in range(1, self.trainer.num_processes):
             env_copy = os.environ.copy()
             env_copy['LOCAL_RANK'] = f'{local_rank}'
-            env_copy['PL_DDP_PID'] = str(self.trainer.data_parallel_device_ids[local_rank])
+
             # remove env var if global seed not set
             if os.environ.get('PL_GLOBAL_SEED') is None and 'PL_GLOBAL_SEED' in env_copy:
                 del env_copy['PL_GLOBAL_SEED']
@@ -137,8 +141,6 @@ class DDPAccelerator(Accelerator):
             # with dataloaders delay between 1-10 seconds
             delay = np.random.uniform(1, 5, 1)[0]
             sleep(delay)
-
-        os.environ['PL_DDP_PID'] = str(0)
 
     def train(self):
         model = self.trainer.model
@@ -181,7 +183,7 @@ class DDPAccelerator(Accelerator):
         self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
     def model_to_device(self, model, process_idx):
-        self.trainer.root_gpu = process_idx
+        self.trainer.root_gpu = self.trainer.data_parallel_device_ids[self.trainer.local_rank]
         torch.cuda.set_device(self.trainer.root_gpu)
         model.cuda(self.trainer.root_gpu)
 
@@ -212,6 +214,7 @@ class DDPAccelerator(Accelerator):
             model:
 
         Returns:
+            Dict with evaluation results
 
         """
         seed = os.environ.get("PL_GLOBAL_SEED")
@@ -284,14 +287,12 @@ class DDPAccelerator(Accelerator):
         return results
 
     def configure_ddp(
-        self, model: "LightningModule", device_ids: List[int]
+        self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
-        model = LightningDistributedDataParallel(
-            model, device_ids=device_ids, find_unused_parameters=True
-        )
+        model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model
 
-    def configure_sync_batchnorm(self, model: "LightningModule") -> "LightningModule":
+    def configure_sync_batchnorm(self, model: LightningModule) -> LightningModule:
         """
         Add global batchnorm for a model spread across multiple GPUs and nodes.
 
@@ -307,3 +308,12 @@ class DDPAccelerator(Accelerator):
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
 
         return model
+
+    def sync_tensor(self,
+                    tensor: Union[torch.Tensor],
+                    group: Optional[Any] = None,
+                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
+        """
+
+        """
+        return sync_ddp_if_available(tensor, group, reduce_op)

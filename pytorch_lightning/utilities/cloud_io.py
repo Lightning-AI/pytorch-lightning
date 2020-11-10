@@ -14,17 +14,17 @@
 
 import io
 from distutils.version import LooseVersion
-from typing import Union
+from typing import Union, IO
 from pathlib import Path
 from urllib.parse import urlparse
 import torch
 import fsspec
 
 
-pathlike = Union[Path, str]
-
-
-def load(path_or_url: str, map_location=None):
+def load(path_or_url: Union[str, IO, Path], map_location=None):
+    if not isinstance(path_or_url, (str, Path)):
+        # any sort of BytesIO or similiar
+        return torch.load(path_or_url, map_location=map_location)
     if path_or_url.startswith("http"):
         return torch.hub.load_state_dict_from_url(path_or_url, map_location=map_location)
     fs = get_filesystem(path_or_url)
@@ -32,7 +32,7 @@ def load(path_or_url: str, map_location=None):
         return torch.load(f, map_location=map_location)
 
 
-def get_filesystem(path: pathlike):
+def get_filesystem(path: Union[str, Path]):
     path = str(path)
     if "://" in path:
         # use the fileystem from the protocol specified

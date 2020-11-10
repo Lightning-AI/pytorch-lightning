@@ -134,170 +134,212 @@ The following are best practices when using/designing callbacks.
 Available Callback hooks
 ------------------------
 
-on_epoch_start
-^^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_epoch_start
-    :noindex:
-
-on_epoch_end
-^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_epoch_end
-    :noindex:
-
-on_fit_start
-^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_fit_start
-    :noindex:
-
-on_fit_end
-^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_fit_end
-    :noindex:
-
-on_save_checkpoint
-^^^^^^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.CheckpointHooks.on_save_checkpoint
-    :noindex:
-
-on_load_checkpoint
-^^^^^^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.CheckpointHooks.on_load_checkpoint
-    :noindex:
-
-on_pretrain_routine_start
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_pretrain_routine_start
-    :noindex:
-
-on_pretrain_routine_end
-^^^^^^^^^^^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_pretrain_routine_end
-    :noindex:
-
-on_test_batch_start
-^^^^^^^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_batch_start
-    :noindex:
-
-on_test_batch_end
-^^^^^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_batch_end
-    :noindex:
-
-on_test_epoch_start
-^^^^^^^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_epoch_start
-    :noindex:
-
-on_test_epoch_end
-^^^^^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_epoch_end
-    :noindex:
-
-on_test_model_train
-^^^^^^^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_model_train
-    :noindex:
-
-on_test_model_eval
-^^^^^^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_model_eval
-    :noindex:
-
-on_train_batch_start
-^^^^^^^^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_train_batch_start
-    :noindex:
-
-on_train_batch_end
-^^^^^^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_train_batch_end
-    :noindex:
-
-on_train_start
-^^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_train_start
-    :noindex:
-
-on_train_end
-^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_train_end
-    :noindex:
-
-on_train_epoch_start
-^^^^^^^^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_train_epoch_start
-    :noindex:
-
-on_train_epoch_end
-^^^^^^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_train_epoch_end
-    :noindex:
-
-on_validation_batch_start
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_batch_start
-    :noindex:
-
-on_validation_batch_end
-^^^^^^^^^^^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_batch_end
-    :noindex:
-
-on_validation_epoch_start
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_epoch_start
-    :noindex:
-
-on_validation_epoch_end
-^^^^^^^^^^^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_epoch_end
-    :noindex:
-
-on_validation_model_eval
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_model_eval
-    :noindex:
-
-on_validation_model_train
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_model_train
-    :noindex:
-
 setup
 ^^^^^
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.setup
+.. automethod:: pytorch_lightning.callbacks.Callback.setup
     :noindex:
 
 teardown
 ^^^^^^^^
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.teardown
+.. automethod:: pytorch_lightning.callbacks.Callback.teardown
+    :noindex:
+
+on_init_start
+^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_init_start
+    :noindex:
+
+on_init_end
+^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_init_end
+    :noindex:
+
+on_fit_start
+^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_save_checkpoint
+    :noindex:
+
+on_fit_end
+^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_fit_end
+    :noindex:
+
+on_sanity_check_start
+^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_sanity_check_start
+    :noindex:
+
+on_sanity_check_end
+^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_sanity_check_end
+    :noindex:
+
+on_train_batch_start
+^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_train_batch_start
+    :noindex:
+
+on_train_batch_end
+^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_train_batch_end
+    :noindex:
+
+on_train_epoch_start
+^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_train_epoch_start
+    :noindex:
+
+on_train_epoch_end
+^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_train_epoch_end
+    :noindex:
+
+on_validation_epoch_start
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_validation_epoch_start
+    :noindex:
+
+on_validation_epoch_end
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_validation_epoch_end
+    :noindex:
+
+on_test_epoch_start
+^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_test_epoch_start
+    :noindex:
+
+on_test_epoch_end
+^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_test_epoch_end
+    :noindex:
+
+on_epoch_start
+^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_epoch_start
+    :noindex:
+
+on_epoch_end
+^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_epoch_end
+    :noindex:
+
+on_batch_start
+^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_batch_start
+    :noindex:
+
+on_validation_batch_start
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_validation_batch_start
+    :noindex:
+
+on_validation_batch_end
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_validation_batch_end
+    :noindex:
+
+on_test_batch_start
+^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_test_batch_start
+    :noindex:
+
+on_test_batch_end
+^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_test_batch_end
+    :noindex:
+
+on_batch_end
+^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_batch_end
+    :noindex:
+
+on_train_start
+^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_train_start
+    :noindex:
+
+on_train_end
+^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_train_end
+    :noindex:
+
+on_pretrain_routine_start
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_pretrain_routine_start
+    :noindex:
+
+on_pretrain_routine_end
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_pretrain_routine_end
+    :noindex:
+
+on_validation_start
+^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_validation_start
+    :noindex:
+
+on_validation_end
+^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_validation_end
+    :noindex:
+
+on_test_start
+^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_test_start
+    :noindex:
+
+on_test_end
+^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_test_end
+    :noindex:
+
+on_keyboard_interrupt
+^^^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_keyboard_interrupt
+    :noindex:
+
+on_save_checkpoint
+^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_save_checkpoint
+    :noindex:
+
+on_load_checkpoint
+^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_load_checkpoint
     :noindex:

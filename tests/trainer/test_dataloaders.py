@@ -686,17 +686,17 @@ def test_dataloader_reinit_for_subclass(tmpdir):
     class CustomDummyObj:
         sampler = None
 
-    result = trainer.auto_add_sampler(CustomDummyObj(), train=True)
+    result = trainer.auto_add_sampler(CustomDummyObj(), shuffle=True)
     assert isinstance(result, CustomDummyObj), "Wrongly reinstantiated data loader"
 
     dataset = list(range(1000))
-    result = trainer.auto_add_sampler(CustomDataLoader(dataset), train=True)
+    result = trainer.auto_add_sampler(CustomDataLoader(dataset), shuffle=True)
     assert isinstance(result, torch.utils.data.DataLoader)
     assert isinstance(result, CustomDataLoader)
     assert hasattr(result, 'dummy_kwarg')
 
     # Shuffled DataLoader should also work
-    result = trainer.auto_add_sampler(CustomDataLoader(list(range(1000)), shuffle=True), train=True)
+    result = trainer.auto_add_sampler(CustomDataLoader(list(range(1000)), shuffle=True), shuffle=True)
     assert isinstance(result, torch.utils.data.DataLoader)
     assert isinstance(result, CustomDataLoader)
     assert hasattr(result, 'dummy_kwarg')
@@ -707,7 +707,7 @@ def test_dataloader_reinit_for_subclass(tmpdir):
     # Should raise an error if existing sampler is being replaced
     with pytest.raises(MisconfigurationException, match='DistributedSampler'):
         trainer.auto_add_sampler(
-            CustomDataLoader(list(range(1000)), sampler=CustomSampler(list(range(1000)))), train=True)
+            CustomDataLoader(list(range(1000)), sampler=CustomSampler(list(range(1000)))), shuffle=True)
 
 
 class DistribSamplerCallback(Callback):
@@ -744,6 +744,39 @@ def test_dataloader_distributed_sampler(tmpdir):
     )
     trainer.fit(model)
     trainer.test(ckpt_path=None)
+
+
+class ModelWithDataLoaderDistributedSampler(EvalModelTemplate):
+
+    def train_dataloader(self):
+        dataloader = super().train_dataloader()
+        dist_sampler = DistributedSampler(dataloader.dataset, shuffle=True)
+        return DataLoader(
+            dataloader.dataset,
+            batch_size=self.batch_size,
+            drop_last=False,
+            sampler=dist_sampler,
+            shuffle=False
+        )
+
+
+@pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs')
+def test_dataloader_distributed_sampler_already_attached(tmpdir):
+    """ Test DistributedSampler and it's arguments for DDP backend when DistSampler already included on dataloader """
+
+    model = ModelWithDataLoaderDistributedSampler()
+    trainer = Trainer(
+        gpus=[0, 1],
+        num_nodes=1,
+        distributed_backend='ddp_spawn',
+        default_root_dir=tmpdir,
+        max_steps=100,
+        callbacks=[DistribSamplerCallback()],
+        replace_sampler_ddp=True,
+    )
+    result = trainer.fit(model)
+    assert result == 1, "DDP Training failed"
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 3, reason='Test requires multiple GPUs')

@@ -3,9 +3,9 @@ name: CI complete testing
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches: [master]
+    branches: [master, "release/*"]  # include release branches like release/1.0.x
   pull_request:
-    branches: [master]
+    branches: [master, "release/*"]
 
 jobs:
   pytest:
@@ -89,7 +89,7 @@ jobs:
       run: |
         # python -m pip install --upgrade --user pip
         pip install --requirement requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet --upgrade
-        pip install --requirement ./requirements/devel.txt --quiet --upgrade
+        pip install --requirement ./requirements/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet --upgrade
         python --version
         pip --version
         pip list
@@ -119,10 +119,10 @@ jobs:
     - name: Tests
       run: |
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-        coverage run --source pytorch_lightning -m pytest pytorch_lightning tests pl_examples -v --durations=0 --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+        coverage run --source pytorch_lightning -m pytest pytorch_lightning tests pl_examples -v --color=yes --durations=0 --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
 
     - name: Upload pytest test results
-      uses: actions/upload-artifact@master
+      uses: actions/upload-artifact@v2
       with:
         name: pytest-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}
         path: junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
@@ -138,6 +138,8 @@ jobs:
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
       if: always()
+      # see: https://github.com/actions/toolkit/issues/399
+      continue-on-error: true
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: coverage.xml

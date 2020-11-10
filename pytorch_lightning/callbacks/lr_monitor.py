@@ -21,7 +21,7 @@ Monitor and logs learning rate for lr schedulers during training.
 
 """
 
-from typing import Optional
+from typing import Dict, List, Optional
 
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
@@ -36,6 +36,8 @@ class LearningRateMonitor(Callback):
         logging_interval: set to `epoch` or `step` to log `lr` of all optimizers
             at the same interval, set to `None` to log at individual interval
             according to the `interval` key of each scheduler. Defaults to ``None``.
+        log_momentum: option to also log the momentum values of the optimizer, if the optimizer
+            has the `momentum` attribute. Defaults to ``False``.
 
     Example::
 
@@ -59,17 +61,18 @@ class LearningRateMonitor(Callback):
             return [optimizer], [lr_scheduler]
 
     """
-    def __init__(self, logging_interval: Optional[str] = None):
+    def __init__(self, logging_interval: Optional[str] = None, log_momentum: bool = False):
         if logging_interval not in (None, 'step', 'epoch'):
             raise MisconfigurationException(
                 'logging_interval should be `step` or `epoch` or `None`.'
             )
 
         self.logging_interval = logging_interval
+        self.log_momentum = log_momentum
         self.lrs = None
         self.lr_sch_names = []
 
-    def on_train_start(self, trainer, pl_module):
+    def on_train_start(self, trainer, *args, **kwargs):
         """
         Called before training, determines unique names for all lr
         schedulers in the case of multiple of the same type or in
@@ -92,24 +95,28 @@ class LearningRateMonitor(Callback):
 
         # Initialize for storing values
         self.lrs = {name: [] for name in names}
+        self.last_momentum_values = {name + "-momentum": None for name in names}
 
-    def on_batch_start(self, trainer, pl_module):
+    def on_train_batch_start(self, trainer, *args, **kwargs):
+        if not self._should_log(trainer):
+            return
+
         if self.logging_interval != 'epoch':
             interval = 'step' if self.logging_interval is None else 'any'
-            latest_stat = self._extract_lr(trainer, interval)
+            latest_stat = self._extract_stats(trainer, interval)
 
             if trainer.logger is not None and latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
-    def on_epoch_start(self, trainer, pl_module):
+    def on_train_epoch_start(self, trainer, *args, **kwargs):
         if self.logging_interval != 'step':
             interval = 'epoch' if self.logging_interval is None else 'any'
-            latest_stat = self._extract_lr(trainer, interval)
+            latest_stat = self._extract_stats(trainer, interval)
 
             if trainer.logger is not None and latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.current_epoch)
 
-    def _extract_lr(self, trainer, interval):
+    def _extract_stats(self, trainer, interval: str) -> Dict[str, float]:
         latest_stat = {}
 
         for name, scheduler in zip(self.lr_sch_names, trainer.lr_schedulers):
@@ -117,16 +124,34 @@ class LearningRateMonitor(Callback):
                 param_groups = scheduler['scheduler'].optimizer.param_groups
                 if len(param_groups) != 1:
                     for i, pg in enumerate(param_groups):
-                        lr, key = pg['lr'], f'{name}/pg{i + 1}'
-                        self.lrs[key].append(lr)
-                        latest_stat[key] = lr
+                        lr = self._extract_lr(param_group=pg, name=f'{name}/pg{i + 1}')
+                        latest_stat.update(lr)
+                        momentum = self._extract_momentum(param_group=pg, name=f'{name}-momentum/pg{i + 1}')
+                        latest_stat.update(momentum)
+
                 else:
-                    self.lrs[name].append(param_groups[0]['lr'])
-                    latest_stat[name] = param_groups[0]['lr']
+                    pg = param_groups[0]
+                    lr = self._extract_lr(param_group=pg, name=name)
+                    latest_stat.update(lr)
+                    momentum = self._extract_momentum(param_group=pg, name=f'{name}-momentum')
+                    latest_stat.update(momentum)
 
         return latest_stat
 
-    def _find_names(self, lr_schedulers):
+    def _extract_lr(self, param_group, name: str) -> Dict[str, float]:
+        lr = param_group.get('lr')
+        self.lrs[name].append(lr)
+        return {name: lr}
+
+    def _extract_momentum(self, param_group, name: str) -> Dict[str, float]:
+        if not self.log_momentum:
+            return {}
+
+        momentum = param_group.get('momentum')
+        self.last_momentum_values[name] = momentum
+        return {name: momentum}
+
+    def _find_names(self, lr_schedulers) -> List[str]:
         # Create uniqe names in the case we have multiple of the same learning
         # rate schduler + multiple parameter groups
         names = []
@@ -157,3 +182,13 @@ class LearningRateMonitor(Callback):
             self.lr_sch_names.append(name)
 
         return names
+
+    @staticmethod
+    def _should_log(trainer) -> bool:
+        should_log = (
+            (trainer.global_step + 1) % trainer.log_every_n_steps == 0
+            or trainer.should_stop
+        )
+
+        should_log = should_log and not trainer.fast_dev_run
+        return should_log
