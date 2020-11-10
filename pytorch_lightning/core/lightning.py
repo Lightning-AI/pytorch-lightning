@@ -1120,9 +1120,6 @@ class LightningModule(
                 and one should use accumulated gradients but not the other one.
                 One could put its own logic to force an optimizer step.
 
-        Return:
-            None
-
         Example::
 
             def training_step(...):
