@@ -105,7 +105,8 @@ class Accelerator(object):
             # once backward has been applied, release graph
             closure_loss = closure_loss.detach()
         if self.ddp_plugin:
-            self.ddp_plugin.sync_backward()
+            model = self.trainer.get_model()
+            self.ddp_plugin.sync_backward(model)
         return closure_loss
 
     def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure):

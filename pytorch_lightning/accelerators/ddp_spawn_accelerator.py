@@ -272,4 +272,4 @@ class DDPSpawnAccelerator(Accelerator):
         return sync_ddp_if_available(tensor, group, reduce_op)
 
     def sync_optim_state(self):
-        self.ddp_plugin.sync_optim_state()
+        self.ddp_plugin.sync_optim_state(self.trainer.get_model())
