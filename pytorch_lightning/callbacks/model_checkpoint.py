@@ -246,9 +246,9 @@ class ModelCheckpoint(Callback):
                     ' configuration. No quantity for top_k to track.'
                 )
             if self.save_last:
-                raise MisconfigurationException(
-                    'ModelCheckpoint(save_last=True, monitor=None) is not a valid configuration.'
-                    ' You can save the last checkpoint with ModelCheckpoint(save_top_k=None, monitor=None)'
+                rank_zero_warn(
+                    'ModelCheckpoint(save_last=True, monitor=None) is a redundant configuration.'
+                    ' You can save the last checkpoint with ModelCheckpoint(save_top_k=None, monitor=None).'
                 )
 
     def __init_ckpt_dir(self, filepath, dirpath, filename, save_top_k):
@@ -291,7 +291,7 @@ class ModelCheckpoint(Callback):
         if dirpath and self._fs.protocol == 'file':
             dirpath = os.path.realpath(dirpath)
 
-        self.dirpath = dirpath or None
+        self.dirpath: Union[str, None] = dirpath or None
         self.filename = filename or None
 
     def __init_monitor_mode(self, monitor, mode):

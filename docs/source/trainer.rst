@@ -1666,6 +1666,17 @@ The metrics sent to the logger (visualizer).
     logged_metrics = trainer.logged_metrics
     assert logged_metrics['a_val'] == 2
 
+log_dir
+*******
+The directory for the current experiment. Use this to save images to, etc...
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        img = ...
+        save_img(img, self.trainer.log_dir)
+
+
 
 is_global_zero
 **************
