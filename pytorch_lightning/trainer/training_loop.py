@@ -251,12 +251,12 @@ class TrainLoop:
         self.trainer.call_hook("on_train_epoch_start")
 
     def on_train_batch_end(self, epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx):
+        # hook
+        self.trainer.call_hook('on_batch_end')
+        self.trainer.call_hook('on_train_batch_end', epoch_end_outputs, batch, batch_idx, dataloader_idx)
+
         # figure out what to track for epoch end
         self.track_epoch_end_reduce_metrics(epoch_output, epoch_end_outputs)
-
-        # hook
-        self.trainer.call_hook("on_batch_end")
-        self.trainer.call_hook("on_train_batch_end", epoch_end_outputs, batch, batch_idx, dataloader_idx)
 
     def reset_train_val_dataloaders(self, model):
         if not self.trainer.reload_dataloaders_every_epoch:
@@ -303,6 +303,12 @@ class TrainLoop:
         # when in dev debugging track the losses
         self.trainer.dev_debugger.track_train_loss_history(batch_idx, untouched_loss.detach())
 
+    def _check_training_step_output(self, training_step_output):
+        if isinstance(training_step_output, torch.Tensor) and not self.automatic_optimization:
+            if training_step_output.grad_fn is None:
+                # TODO: Find why - RuntimeError: Expected to mark a variable ready only once ...
+                raise MisconfigurationException("In manual optimization, `training_step` should not return a Tensor")
+
     def training_step(self, split_batch, batch_idx, opt_idx, hiddens):
         # give the PL module a result for logging
         model = self.trainer.get_model()
@@ -312,6 +318,8 @@ class TrainLoop:
         with self.trainer.profiler.profile("model_forward"):
             args = self.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
             training_step_output = self.trainer.accelerator_backend.training_step(args)
+            self._check_training_step_output(training_step_output)
+
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
 
             training_step_output_for_epoch_end, training_step_output = self._process_training_step_output(
@@ -724,6 +732,8 @@ class TrainLoop:
 
                     if self._curr_step_result is None:
                         # user decided to skip optimization
+                        # make sure to zero grad.
+                        self.zero_grad_handler(batch_idx, optimizer, opt_idx)
                         continue
 
                     batch_outputs = self._process_closure_result(
@@ -736,20 +746,11 @@ class TrainLoop:
                     grad_norm_dic = self._cur_grad_norm_dict
                     self._cur_grad_norm_dict = None
 
-                    # hook
-                    self.on_before_zero_grad(optimizer)
+                    # hook + clear gradients
+                    self.zero_grad_handler(batch_idx, optimizer, opt_idx)
 
-                    # clear gradients
-                    self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
-
-                    accumulated_loss = self.accumulated_loss.mean()
-
-                    if accumulated_loss is not None:
-                        # calculate running loss for display
-                        self.running_loss.append(self.accumulated_loss.mean() * self.trainer.accumulate_grad_batches)
-
-                    # reset for next set of accumulated grads
-                    self.accumulated_loss.reset()
+                    # update running loss + reset accumulated loss
+                    self.update_running_loss()
 
         # collapse all metrics into one dict
         batch_log_metrics = {k: v for d in batch_log_metrics for k, v in d.items()}
@@ -950,3 +951,44 @@ class TrainLoop:
                 epoch_end_outputs.append(optimizer_idx_outputs)
 
         return epoch_end_outputs
+
+    def prepare_optimizers(self):
+        # in manual optimization we loop over all optimizers at once
+        optimizers = self.get_optimizers_iterable()
+        if not self.automatic_optimization:
+            optimizers = [optimizers[0]]
+        return optimizers
+
+    def run_train_split_start(self, split_idx, split_batch, opt_idx, optimizer):
+        # set split_idx to trainer for tracking
+        self.trainer.split_idx = split_idx
+
+        # make sure only the gradients of the current optimizer's parameters are calculated
+        # in the training step to prevent dangling gradients in multiple-optimizer setup.
+        if self.automatic_optimization and len(self.trainer.optimizers) > 1:
+            model = self.trainer.get_model()
+            model.toggle_optimizer(optimizer, opt_idx)
+
+        # use to track metrics internally
+        self.trainer.logger_connector.on_train_split_start(split_idx, opt_idx, split_batch)
+
+    def update_running_loss(self):
+        accumulated_loss = self.accumulated_loss.mean()
+
+        if accumulated_loss is not None:
+            # calculate running loss for display
+            self.running_loss.append(self.accumulated_loss.mean() * self.trainer.accumulate_grad_batches)
+
+        # reset for next set of accumulated grads
+        self.accumulated_loss.reset()
+
+    def zero_grad_handler(self, batch_idx, optimizer, opt_idx):
+        if self.automatic_optimization:
+            # hook
+            self.on_before_zero_grad(optimizer)
+            optimizers = enumerate([optimizer])
+        else:
+            optimizers = self.get_optimizers_iterable()
+
+        for idx, optimizer in optimizers:
+            self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)

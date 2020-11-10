@@ -111,6 +111,7 @@ class LightningModule(
         self._datamodule = None
         self._results: Optional[Result] = None
         self._current_fx_name = ''
+        self._running_manual_backward = False
 
     def optimizers(self):
         opts = self.trainer.optimizers
@@ -1068,6 +1069,9 @@ class LightningModule(
 
         .. tip:: In manual mode we still automatically clip grads if Trainer(gradient_clip_val=x) is set
 
+        .. tip:: In manual mode we still automatically accumulate grad over batches if Trainer(accumulate_grad_batches=x) is set
+            and you use `model.manual_optimizer_step(optimizer)`
+
         Example::
 
             def training_step(...):
@@ -1075,12 +1079,55 @@ class LightningModule(
                 loss = ...
                 # automatically applies scaling, etc...
                 self.manual_backward(loss, opt_a)
+                self.manual_optimizer_step(opt_a)
         """
         # make sure we're using manual opt
         self._verify_is_manual_optimization('manual_backward')
 
         # backward
+        self._running_manual_backward = True
         self.trainer.train_loop.backward(loss, optimizer, -1, *args, **kwargs)
+        self._running_manual_backward = False
+
+    def manual_optimizer_step(self, optimizer: Optimizer, force_optimizer_step:bool = False) -> None:
+        """
+        Call this directly from your training_step when doing optimizations manually.
+        By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
+
+        .. tip:: In manual mode we still automatically accumulate grad over batches if Trainer(accumulate_grad_batches=x) is set.
+
+        Args:
+            optimizer: Optimizer used to perform `.step()` call
+
+            force_optimizer_step: Whether to force an optimizer step. Could be useful when having 2 optimizers
+                and one should use accumulated gradients but not the other one.
+                One could put its own logic to force an optimizer step.
+
+        Example::
+
+            def training_step(...):
+                (opt_a, opt_b) = self.optimizers()
+                loss = ...
+                # automatically applies scaling, etc...
+                self.manual_backward(loss, opt_a)
+                # This will force an opt.step() even if accumulate_grad_batches is set.
+                self.manual_optimizer_step(opt_a, force_optimizer_step=True)
+
+        """
+        # make sure we're using manual opt
+        self._verify_is_manual_optimization('manual_optimizer_step')
+
+        if not self.trainer.train_loop.should_accumulate() or force_optimizer_step:
+
+            # mock closure function as the user is responsible to call `manual_backward`
+            def mock_optimizer_closure():
+                return
+
+            self.trainer.train_loop.optimizer_step(optimizer, None, self.trainer.batch_idx, mock_optimizer_closure)
+
+            # update will be called after every optimizer_step call
+            if self.trainer.amp_backend == AMPType.NATIVE:
+                self.trainer.scaler.update()
 
     def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
         """
@@ -1101,7 +1148,8 @@ class LightningModule(
                 loss.backward()
 
         """
-        loss.backward(*args, **kwargs)
+        if self.trainer.train_loop.automatic_optimization or self._running_manual_backward:
+            loss.backward(*args, **kwargs)
 
     def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):
         """
