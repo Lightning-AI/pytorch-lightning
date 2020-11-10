@@ -8,7 +8,7 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     branches: [master, "release/*"]
 
 jobs:
-  check-docs:
+  sphinx-check:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
@@ -48,6 +48,7 @@ jobs:
           # python -m pip install --upgrade --user pip
           pip install --requirement requirements.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
           pip install --requirement requirements/extra.txt
+          pip install --requirement requirements/loggers.txt
           pip install --requirement requirements/docs.txt
           python --version
           pip --version
