@@ -41,6 +41,8 @@ def recursive_detach(in_dict: dict, to_cpu=False) -> dict:
             if to_cpu:
                 v = v.cpu()
             out_dict.update({k: v})
+        else:
+            out_dict.update({k: v})
     return out_dict
 
 
