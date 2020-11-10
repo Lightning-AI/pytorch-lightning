@@ -93,7 +93,7 @@ class LoggerConnector:
         if self._current_stage is not None:
             self._cached_results[self._current_stage].cache_result()
 
-    def on_trainer_init(self, logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu):
+    def on_trainer_init(self, logger, flush_logs_every_n_steps: int, log_every_n_steps: int, move_metrics_to_cpu: bool):
         # logging
         self.configure_logger(logger)
         # todo: IDE is complaining, these shall be initialized in the Trainer init at leas as placeholders
