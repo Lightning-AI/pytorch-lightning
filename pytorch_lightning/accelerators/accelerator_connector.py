@@ -348,8 +348,7 @@ class AcceleratorConnector:
             self._set_horovod_backend()
 
         # throw error to force user ddp or ddp2 choice
-        if self.trainer.num_nodes > 1 and not (
-                self.trainer.use_ddp2 or self.trainer.use_ddp):
+        if self.trainer.num_nodes > 1 and not (self.trainer.use_ddp2 or self.trainer.use_ddp):
             raise MisconfigurationException(
                 'DataParallel does not support num_nodes > 1. Switching to DistributedDataParallel for you. '
                 'To silence this warning set distributed_backend=ddp or distributed_backend=ddp2'
