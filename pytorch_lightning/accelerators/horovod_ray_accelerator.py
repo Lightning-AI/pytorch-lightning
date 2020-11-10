@@ -13,13 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import ExitStack
-from typing import Any, Optional, Union
 
-import torch
-
-from pytorch_lightning.accelerators.accelerator import ReduceOp
 from pytorch_lightning.accelerators.horovod_accelerator import HorovodAccelerator
-from pytorch_lightning.utilities import AMPType
 
 try:
     import horovod.torch as hvd
@@ -31,25 +26,22 @@ else:
 
 
 class HorovodRayAccelerator(HorovodAccelerator):
-    amp_backend: AMPType
-
     def __init__(self, trainer, cluster_environment=None):
         super().__init__(trainer, cluster_environment)
         self.nickname = 'horovod_ray'
 
+        settings = RayExecutor.create_settings(timeout_s=30)
+        self.executor = RayExecutor(settings,
+                                    num_hosts=self.trainer.num_nodes,
+                                    num_slots=self.trainer.num_processes,
+                                    use_gpu=self.trainer.on_gpu)
+
     def setup(self, model):
         self.trainer.model = model
+        self.executor.start()
 
     def train(self):
-        settings = RayExecutor.create_settings(timeout_s=30)
-        executor = RayExecutor(settings,
-                               num_hosts=self.trainer.num_nodes,
-                               num_slots=self.trainer.num_processes,
-                               use_gpu=self.trainer.on_gpu)
-        try:
-            executor.run(self.train_remote)
-        except:
-            executor.shutdown()
+        self.executor.run(self.train_remote)
 
     def train_remote(self):
         hvd.init()
@@ -59,3 +51,6 @@ class HorovodRayAccelerator(HorovodAccelerator):
 
         self.setup_worker(self.trainer.model)
         self.train_worker()
+
+    def teardown(self):
+        self.executor.shutdown()

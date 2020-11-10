@@ -66,12 +66,12 @@ def test_horovod_cpu(tmpdir, ray_start_2_cpus):
         max_epochs=1,
         limit_train_batches=10,
         limit_val_batches=10,
+        num_processes=2,
         distributed_backend='horovod_ray',
         progress_bar_refresh_rate=0
     )
 
     model = EvalModelTemplate()
-
     tpipes.run_model_test(trainer_options, model)
 
 
@@ -85,11 +85,10 @@ def test_horovod_multi_gpu(tmpdir, ray_start_2_gpus):
         max_epochs=1,
         limit_train_batches=10,
         limit_val_batches=10,
-        gpus=[0, 1],
+        gpus=2,
         distributed_backend='horovod_ray',
         progress_bar_refresh_rate=0
     )
 
     model = EvalModelTemplate()
-
     tpipes.run_model_test(trainer_options, model)
