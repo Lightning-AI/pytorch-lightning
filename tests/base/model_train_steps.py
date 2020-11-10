@@ -215,3 +215,32 @@ class TrainingStepVariations(ABC):
         result = TrainResult(minimize=loss_val)
         result.log('metric_val', val)
         return result
+
+    def training_step__multiple_dataloaders(self, batch, batch_idx, optimizer_idx=None):
+        """Lightning calls this inside the training loop"""
+        
+        assert isinstance(batch, dict)
+        assert len(batch) == 2
+        assert 'a' in batch and 'b' in batch
+
+        # forward pass
+        x, y = batch['a']
+        x = x.view(x.size(0), -1)
+        y_hat = self(x)
+
+        # calculate loss
+        loss_val = self.loss(y, y_hat)
+        log_val = loss_val
+
+        # alternate between tensors and scalars for "log" and "progress_bar"
+        if batch_idx % 2 == 0:
+            log_val = log_val.item()
+
+        output = OrderedDict(
+            {
+                'loss': loss_val,
+                'progress_bar': {'some_val': log_val * log_val},
+                'log': {'train_some_val': log_val * log_val},
+            }
+        )
+        return output
