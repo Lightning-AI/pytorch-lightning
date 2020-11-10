@@ -351,8 +351,10 @@ class Trainer(
         if automatic_optimization is None:
             automatic_optimization = True
         else:
-            rank_zero_warn("Disable automatic optimization with the trainer flag is deprecated and will be removed in v1.3.0!"
-                           "Please use the property on the LightningModule for disabling automatic optimization")
+            rank_zero_warn(
+                "Disable automatic optimization with the trainer flag is deprecated and will be removed in v1.3.0!"
+                "Please use the property on the LightningModule for disabling automatic optimization"
+            )
         self.train_loop.on_trainer_init(
             max_epochs,
             min_epochs,
