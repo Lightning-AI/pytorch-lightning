@@ -850,7 +850,7 @@ class Trainer(
             called = self.datamodule.has_setup_test if self.testing else self.datamodule.has_setup_fit
             if not called:
                 self.datamodule.setup(stage_name)
-        self.setup(stage_name)
+        self.setup(model, stage_name)
         model.setup(stage_name)
 
     def _reset_result_and_set_hook_fx_name(self, hook_name):
