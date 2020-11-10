@@ -527,8 +527,6 @@ class TrainLoop:
         model = self.trainer.get_model()
 
         # modify dataloader if needed (ddp, etc...)
-        # train_dataloader = self.trainer.accelerator_backend.process_dataloader(
-        #     CombinedLoaderIterator(self.trainer.train_dataloader, mode=self._multiple_trainloader_mode))
         train_dataloader = self.trainer.accelerator_backend.process_dataloader(self.trainer.train_dataloader)
 
         # track epoch output
