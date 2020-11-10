@@ -363,7 +363,7 @@ class ManualOptimizationExtendedModel(BoringModel):
 
     count = 0
     called = collections.defaultdict(int)
-    detach = False
+    make_return = False
 
     @property
     def should_update(self):
@@ -387,7 +387,8 @@ class ManualOptimizationExtendedModel(BoringModel):
             self.manual_backward(loss, opt)
             self.manual_optimizer_step(opt)
 
-        return loss.detach() if self.detach else loss
+        if self.make_return:
+            return loss.detach()
 
     def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
         self.called["on_train_batch_end"] += 1
@@ -450,7 +451,7 @@ def test_manual_optimization_and_return_detached_tensor(tmpdir):
     """
 
     model = ManualOptimizationExtendedModel()
-    model.detach = True
+    model.make_return = True
     model.training_step_end = None
     model.training_epoch_end = None
 
