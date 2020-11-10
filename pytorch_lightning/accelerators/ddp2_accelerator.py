@@ -61,7 +61,7 @@ class DDP2Accelerator(Accelerator):
         return self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=model)
 
     def training_step(self, args):
-        args = self.ddp_plugin.input_to_device(args)
+        args = self.ddp_plugin.input_to_device(args, self.trainer.get_model())
         if self.trainer.amp_backend == AMPType.NATIVE:
             with torch.cuda.amp.autocast():
                 output = self.trainer.model(*args)
@@ -70,12 +70,12 @@ class DDP2Accelerator(Accelerator):
         return output
 
     def validation_step(self, args):
-        args = self.ddp_plugin.input_to_device(args)
+        args = self.ddp_plugin.input_to_device(args, self.trainer.get_model())
         output = self.training_step(args)
         return output
 
     def test_step(self, args):
-        args = self.ddp_plugin.input_to_device(args)
+        args = self.ddp_plugin.input_to_device(args, self.trainer.get_model())
         output = self.training_step(args)
         return output
 
