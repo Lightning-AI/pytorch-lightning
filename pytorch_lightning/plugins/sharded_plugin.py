@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, cast
+from typing import List, cast, Any
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning.overrides.fairscale import LightningOSS, LightningShardedDataParallel
@@ -43,6 +43,12 @@ class DDPShardedPlugin(DDPPlugin):
         # Ensure all backward handles have been called before calling optimizer step
         model = cast(LightningShardedDataParallel, model)
         model.clear_backward_handles()
+
+    def input_to_device(self, args: Any, model: LightningModule):
+        batch = args[0]
+        batch = model.transfer_batch_to_device(batch, model.trainer.root_gpu)
+        args[0] = batch
+        return args
 
     def _setup_optimizers_and_scaler(self, model):
         trainer = model.trainer

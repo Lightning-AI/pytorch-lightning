@@ -27,7 +27,7 @@ class DDPPlugin(object):
         self._ddp_kwargs: Dict[str, Any] = kwargs
 
     def configure_ddp(
-        self, model: LightningModule, device_ids: List[int]
+            self, model: LightningModule, device_ids: List[int]
     ) -> LightningDistributedDataParallel:
         """
         Pass through all customizations from constructor to `LightningDistributedDataParallel`.
@@ -68,3 +68,6 @@ class DDPPlugin(object):
 
     def sync_backward(self, model: LightningModule):
         pass
+
+    def input_to_device(self, args: Any, model: LightningModule):
+        return args  # No move required, handled by DistributedDataParallel

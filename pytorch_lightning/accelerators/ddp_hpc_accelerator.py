@@ -77,6 +77,7 @@ class DDPHPCAccelerator(Accelerator):
         return device_ids
 
     def training_step(self, args):
+        args = self.ddp_plugin.input_to_device(args)
         if self.trainer.amp_backend == AMPType.NATIVE:
             with torch.cuda.amp.autocast():
                 output = self.trainer.model(*args)
@@ -85,10 +86,12 @@ class DDPHPCAccelerator(Accelerator):
         return output
 
     def validation_step(self, args):
+        args = self.ddp_plugin.input_to_device(args)
         output = self.training_step(args)
         return output
 
     def test_step(self, args):
+        args = self.ddp_plugin.input_to_device(args)
         output = self.training_step(args)
         return output
 
