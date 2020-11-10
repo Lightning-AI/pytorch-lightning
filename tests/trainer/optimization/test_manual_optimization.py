@@ -359,7 +359,7 @@ def test_multiple_optimizers_manual_apex(tmpdir):
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * num_manual_backward_calls
 
 
-class ExtendedModel(BoringModel):
+class ManualOptimizationExtendedModel(BoringModel):
 
     count = 0
     called = collections.defaultdict(int)
@@ -396,14 +396,15 @@ class ExtendedModel(BoringModel):
             try:
                 assert not torch.equal(self.weight_before, after_before), self.count
             except Exception:
-                print("TODO: Figure out why 1 every 3 runs, weights don't get updated on count = 4")
+                # TODO: Figure out why 1 every 3 runs, weights don't get updated on count = 4"
                 pass
         else:
             try:
                 assert torch.equal(self.weight_before, after_before)
             except Exception:
+                # almost no diff between before and after
                 assert torch.abs(torch.sum(self.weight_before) - torch.sum(after_before)).item() < 10e-6
-        assert torch.sum(self.layer.weight.grad) == 0
+        assert torch.all(self.layer.weight.grad == 0)
         self.count += 1
 
     def on_train_end(self):
@@ -420,7 +421,7 @@ def test_manual_optimization_and_return_tensor(tmpdir):
     we don't add gradient when the user return loss in `training_step`
     """
 
-    model = ExtendedModel()
+    model = ManualOptimizationExtendedModel()
     model.training_step_end = None
     model.training_epoch_end = None
 
@@ -448,7 +449,7 @@ def test_manual_optimization_and_return_detached_tensor(tmpdir):
     When the tensor is detached, return MisConfiguration Error.
     """
 
-    model = ExtendedModel()
+    model = ManualOptimizationExtendedModel()
     model.detach = True
     model.training_step_end = None
     model.training_epoch_end = None
@@ -524,14 +525,14 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
                 try:
                     assert not torch.equal(self.weight_before, after_before), self.count
                 except Exception:
-                    print("TODO: Figure out why 1 every 3 runs, weights don't get updated on count = 4")
+                    # TODO: Figure out why 1 every 3 runs, weights don't get updated on count = 4"
                     pass
                 assert torch.all(self.layer.weight.grad == 0)
             else:
                 assert torch.equal(self.weight_before, after_before)
                 if self.count > 1:
                     if self.count % 4 == 1:
-                        assert torch.sum(self.layer.weight.grad) == 0
+                        assert torch.all(self.layer.weight.grad == 0)
                     else:
                         assert torch.sum(self.layer.weight.grad) != 0
             self.count += 1
