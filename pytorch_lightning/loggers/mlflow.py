@@ -17,6 +17,7 @@ MLflow
 ------
 """
 import re
+import warnings
 from argparse import Namespace
 from time import time
 from typing import Any, Dict, Optional, Union
@@ -152,8 +153,12 @@ class MLFlowLogger(LightningLoggerBase):
             if isinstance(v, str):
                 log.warning(f'Discarding metric with string value {k}={v}.')
                 continue
-            # MLFlow does not support some special characters in metric name.
-            k = re.sub("[^a-zA-Z0-9_/. -]+", "", k)
+
+            new_k = re.sub("[^a-zA-Z0-9_/. -]+", "", k)
+            if k != new_k:
+                warnings.warn(("MLFlow only allows '_', '/', '.' and ' ' special characters in metric name.\n",
+                               f"Replacing {k} with {new_k}."))
+            k = new_k
 
             self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
 
