@@ -7,7 +7,7 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     branches: [master, "release/*"]
 
 jobs:
-  isort:
+  imports-check-isort:
     name: Check valid import formatting with isort
     runs-on: ubuntu-20.04
     steps:
