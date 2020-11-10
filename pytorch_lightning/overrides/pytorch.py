@@ -38,10 +38,10 @@ class ShardedGradScaler(GradScaler):
         num_infs = sum(v.item() for v in optimizer_state["found_inf_per_device"].values())
 
         # Ensure we collect number of inf grads across all processes
+        num_infs = torch.tensor(num_infs, dtype=torch.int, device=self._scale.device)
         if dist.is_initialized():
-            num_infs = dist.all_reduce(torch.tensor(num_infs))
-
-        if num_infs > 0:
+            dist.all_reduce(num_infs)
+        if num_infs.item() > 0:
             retval = optimizer.step(*args, **kwargs)
 
         optimizer_state["stage"] = OptState.STEPPED
