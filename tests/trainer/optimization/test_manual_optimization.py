@@ -454,7 +454,7 @@ def test_manual_optimization_and_return_detached_tensor(tmpdir):
     model.training_step_end = None
     model.training_epoch_end = None
 
-    # pytest.raises didn't seem to work with ddp_spawn
+    # TODO: pytest.raises didn't seem to work with ddp_spawn
     try:
         trainer = Trainer(
             max_epochs=1,
