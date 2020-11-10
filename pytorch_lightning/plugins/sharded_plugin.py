@@ -20,7 +20,7 @@ from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.utilities import AMPType
 
 
-class ShardedDDPPlugin(DDPPlugin):
+class DDPShardedPlugin(DDPPlugin):
 
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
