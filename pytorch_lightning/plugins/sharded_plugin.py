@@ -39,7 +39,7 @@ class DDPShardedPlugin(DDPPlugin):
         for optimizer in model.trainer.optimizers:
             optimizer.consolidate_state_dict()
 
-    def sync_backward(self, model: LightningModule):
+    def sync_backward(self, model: LightningShardedDataParallel):
         # Ensure all backward handles have been called before calling optimizer step
         model = cast(LightningShardedDataParallel, model)
         model.clear_backward_handles()
