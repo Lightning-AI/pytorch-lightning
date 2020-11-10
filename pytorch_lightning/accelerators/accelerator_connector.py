@@ -245,12 +245,7 @@ class AcceleratorConnector:
                 cluster_env,
                 self.trainer.plugin_connector.ddp_plugin
             )
-        elif use_torchelastic_ddp_sharded:
-            accelerator_backend = accelerators.DDPShardedTorchElasticAccelerator(
-                self.trainer,
-                cluster_env,
-                self.trainer.plugin_connector.ddp_plugin
-            )
+
         elif use_ddp_spawn:
             accelerator_backend = accelerators.DDPSpawnAccelerator(
                 self.trainer,
