@@ -128,7 +128,7 @@ class DDPLauncher:
         env["PL_CURRENT_TEST_NAME"] = str(func_to_run.__name__)
         return call_training_script(cli_args, tmpdir, env, timeout=timeout)
 
-    def run(cmd_line, fx_name, **kwargs):
+    def run(cmd_line, **kwargs):
         cmd_lines = create_cmd_lines(cmd_line, **kwargs)
 
         def inner(func):
@@ -143,6 +143,7 @@ class DDPLauncher:
                     result = torch.load(result_path)
                     # verify the file wrote the expected outputs
                     assert result['status'] == 'complete'
+                    assert result['result'] == '1', result['result']
                     t1 = time()
                     print(t1 - t0)
             return func_wrapper
@@ -160,7 +161,7 @@ if __name__ == "__main__":
     env = os.environ.copy()
     func = import_from(env["PL_CURRENT_TEST_MODULE"], env["PL_CURRENT_TEST_NAME"])
     func = undecorated(func)
-    result = func(args)
+    result = func(args.tmpdir, args=args)
     result = {'status': 'complete', 'result':result}
     if len(result) > 0:
         file_path = os.path.join(args.tmpdir, 'ddp.result')

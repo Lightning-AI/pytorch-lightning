@@ -17,6 +17,7 @@ import os
 from tests.backends import ddp_model
 from tests.utilities.dist import call_training_script
 from tests.backends.launcher import DDPLauncher
+from time import sleep
 
 
 @pytest.mark.parametrize('cli_args', [
@@ -73,7 +74,7 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir, cli_args):
 
 # START: test_cli ddp test
 @pytest.mark.skipif(os.getenv("PL_IN_LAUNCHER", '0') == '1', reason="test runs only in DDPLauncher")
-def internal_test_cli(args):
+def internal_test_cli(tmpdir, args=None):
     """
     This test verify we can call function using test_cli name
     """
@@ -94,9 +95,9 @@ def test_cli(tmpdir):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@DDPLauncher.run("--max_epochs [max_epochs] --gpus 2 --accelerator [accelerator]", internal_test_cli, max_epochs=["1"], accelerator=["ddp", "ddp_spawn"])
-def test_cli_2(tmpdir, *arg, **kwargs):
+@DDPLauncher.run("--max_epochs [max_epochs] --gpus 2 --accelerator [accelerator]", max_epochs=["1"], accelerator=["ddp", "ddp_spawn"])
+def test_cli_2(tmpdir, args=None):
     """
     This test verify we can call function using test_cli name
     """
-    return 1
+    return '1'
