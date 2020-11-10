@@ -3,7 +3,7 @@ name: Publish Docker Releases
 # https://github.com/docker/build-push-action
 on:
   push:
-    branches: [master]
+    branches: [master, "release/*"]  # include release branches like release/1.0.x
   release:
     types: [created]
 
@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         python_version: [3.6, 3.7, 3.8]
-        pytorch_version: [1.3, 1.4, 1.5, 1.6]
+        pytorch_version: [1.3, 1.4, 1.5, 1.6, 1.7]
         exclude:
           # excludes PT 1.3 as it is missing on pypi
           - python_version: 3.8
