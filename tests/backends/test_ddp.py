@@ -83,12 +83,13 @@ def internal_test_cli(args):
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_cli(tmpdir):
+    # DDPLauncher will launch internal_test_cli with this cmd line.
     DDPLauncher.run_from_cmd_line("--max_epochs 1 --gpus 2 --accelerator ddp", internal_test_cli, tmpdir)
     # load the results of the script
     result_path = os.path.join(tmpdir, 'ddp.result')
     result = torch.load(result_path)
     # verify the file wrote the expected outputs
     assert result['status'] == 'complete'
-    assert result['result'] == '1'
+    assert str(result['result']) == '1'
 
 # END: test_cli ddp test
