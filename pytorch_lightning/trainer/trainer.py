@@ -60,6 +60,7 @@ from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.plugins.plugin_connector import PluginConnector
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu_accelerator import CPUAccelerator
+from pytorch_lightning.utilities.memory import recursive_detach
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -603,12 +604,11 @@ class Trainer(
                 # log step metrics
                 step_metrics = self.evaluation_loop.log_evaluation_step_metrics(batch, batch_idx)
 
-                if step_metrics is not None:
-                    dl_step_metrics.append(step_metrics)
+                # track epoch level outputs
+                self.track_output_for_epoch_end(dl_step_metrics, step_metrics)
 
                 # track epoch level outputs
-                if output is not None:
-                    dl_outputs.append(output)
+                self.track_output_for_epoch_end(dl_outputs, output)
 
             self.evaluation_loop.outputs.append(dl_outputs)
             self.evaluation_loop.step_metrics.append(dl_step_metrics)
@@ -633,6 +633,17 @@ class Trainer(
         self.evaluation_loop.on_evaluation_end()
 
         return eval_loop_results, deprecated_eval_results
+
+    def track_output_for_epoch_end(self, outputs, output):
+        if output is not None:
+            if isinstance(output, Result):
+                output.detach()
+                output.cpu()
+            elif isinstance(output, dict):
+                output = recursive_detach(output, to_cpu=True)
+            elif isinstance(output, torch.Tensor) and output.is_cuda:
+                output = output.cpu()
+            outputs.append(output)
 
     def run_test(self):
         # only load test dataloader for testing

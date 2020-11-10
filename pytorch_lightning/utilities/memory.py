@@ -17,7 +17,7 @@ import gc
 import torch
 
 
-def recursive_detach(in_dict: dict) -> dict:
+def recursive_detach(in_dict: dict, to_cpu=False) -> dict:
     """Detach all tensors in `in_dict`.
 
     May operate recursively if some of the values in `in_dict` are dictionaries
@@ -26,6 +26,7 @@ def recursive_detach(in_dict: dict) -> dict:
 
     Args:
         in_dict:
+        to_cpu: Wheter to move tensor to cpu
 
     Return:
         out_dict:
@@ -36,8 +37,9 @@ def recursive_detach(in_dict: dict) -> dict:
             out_dict.update({k: recursive_detach(v)})
         elif callable(getattr(v, 'detach', None)):
             # detach
-            out_dict.update({k: v.detach()})
-        else:
+            v = v.detach()
+            if to_cpu:
+                v = v.cpu()
             out_dict.update({k: v})
     return out_dict
 
