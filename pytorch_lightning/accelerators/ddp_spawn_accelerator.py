@@ -270,3 +270,6 @@ class DDPSpawnAccelerator(Accelerator):
                     group: Optional[Any] = None,
                     reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
         return sync_ddp_if_available(tensor, group, reduce_op)
+
+    def sync_optim_state(self):
+        self.ddp_plugin.sync_optim_state()

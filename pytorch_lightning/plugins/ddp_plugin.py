@@ -62,3 +62,9 @@ class DDPPlugin(object):
             **self._ddp_kwargs,
         )
         return model
+
+    def sync_optim_state(self, model: LightningModule):
+        pass
+
+    def sync_backward(self, model: LightningModule):
+        pass

@@ -196,7 +196,6 @@ class AcceleratorConnector:
 
         # torchelastic or general non_slurm ddp
         use_torchelastic_ddp = self.trainer.use_ddp and self._is_using_torchelastic()
-        use_torchelastic_ddp_sharded = self.trainer.use_ddp_sharded and self._is_using_torchelastic()
 
         use_ddp_spawn = self.trainer.use_ddp and self.trainer.distributed_backend == "ddp_spawn"
         use_ddp_cpu_spawn = self.trainer.use_ddp and self.trainer.distributed_backend == "ddp_cpu"
@@ -309,7 +308,6 @@ class AcceleratorConnector:
         self.trainer.use_ddp = False
         self.trainer.use_ddp2 = False
         self.trainer.use_horovod = False
-        self.trainer.use_ddp_sharded = False
         self.trainer.use_single_gpu = False
 
         if self.trainer.distributed_backend is None:
@@ -367,7 +365,7 @@ class AcceleratorConnector:
 
         # throw error to force user ddp or ddp2 choice
         if self.trainer.num_nodes > 1 and not (
-                self.trainer.use_ddp2 or self.trainer.use_ddp or self.trainer.use_ddp_sharded):
+                self.trainer.use_ddp2 or self.trainer.use_ddp):
             raise MisconfigurationException(
                 'DataParallel does not support num_nodes > 1. Switching to DistributedDataParallel for you. '
                 'To silence this warning set distributed_backend=ddp or distributed_backend=ddp2'

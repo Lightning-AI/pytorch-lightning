@@ -41,7 +41,6 @@ class TrainerProperties(ABC):
     use_dp: bool
     use_ddp: bool
     use_ddp2: bool
-    use_ddp_sharded: bool
     model: LightningModule
     data_parallel_device_ids: Optional[List[int]]
     _progress_bar_callback: ProgressBarBase

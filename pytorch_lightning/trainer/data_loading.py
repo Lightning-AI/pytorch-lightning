@@ -57,7 +57,6 @@ class TrainerDataLoadingMixin(ABC):
     use_ddp: bool
     use_ddp2: bool
     use_horovod: bool
-    use_ddp_sharded: bool
     shown_warnings: ...
     val_check_interval: float
     use_tpu: bool
