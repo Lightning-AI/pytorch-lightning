@@ -258,6 +258,8 @@ class LightningModule(
                 raise MisconfigurationException(
                     f"Logged key: {name} should not contain information about dataloader_idx.")
 
+            accelerator = self.trainer.accelerator_backend
+
             self._results.log(
                 name,
                 value,
@@ -272,6 +274,7 @@ class LightningModule(
                 sync_dist,
                 sync_dist_op,
                 sync_dist_group,
+                accelerator.sync_tensor,
                 self._current_dataloader_idx,
             )
 
@@ -1396,7 +1399,6 @@ class LightningModule(
 
     @classmethod
     def _auto_collect_arguments(cls, frame=None) -> Tuple[Dict, Dict]:
-        """"""
         """
         Collect all module arguments in the current constructor and all child constructors.
         The child constructors are all the ``__init__`` methods that reach the current class through

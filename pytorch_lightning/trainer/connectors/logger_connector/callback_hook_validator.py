@@ -192,7 +192,7 @@ class CallbackHookNameValidator:
     @staticmethod
     def _on_validation_end_log():
         """Called when the validation loop ends."""
-        return {"on_step": [False], "on_epoch": [False, True]}
+        return None
 
     @staticmethod
     def _on_test_start_log():
