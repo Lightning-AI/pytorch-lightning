@@ -1427,7 +1427,7 @@ def test_trainer_setup_call(tmpdir):
     """Test setup call with fit and test call."""
 
     class CurrentModel(EvalModelTemplate):
-        def setup(self, model, stage):
+        def setup(self, stage):
             self.stage = stage
 
     class TrainerSubclass(Trainer):
