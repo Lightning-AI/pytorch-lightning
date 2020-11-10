@@ -107,9 +107,10 @@ jobs:
         # python -m pip install --upgrade --user pip
         # remove torch to install explicitly
         python -c "fname = 'requirements.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('torch')] ; open(fname, 'w').writelines(lines)"
-        pip install torch torchvision --find-links https://download.pytorch.org/whl/${{ matrix.requires }}/cpu/torch_${{ matrix.requires }}.html --quiet --upgrade
-        pip install --requirement requirements.txt --quiet --upgrade-strategy only-if-needed
-        pip install --requirement ./requirements/devel.txt --quiet --upgrade-strategy only-if-needed
+        python -c "fname = 'requirements/examples.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('torchvision')] ; open(fname, 'w').writelines(lines)"
+        pip install torch torchvision --find-links https://download.pytorch.org/whl/${{ matrix.requires }}/cpu/torch_${{ matrix.requires }}.html --upgrade
+        pip install --requirement requirements.txt --upgrade-strategy only-if-needed
+        pip install --requirement ./requirements/devel.txt --upgrade-strategy only-if-needed
         python --version
         pip --version
         pip list
