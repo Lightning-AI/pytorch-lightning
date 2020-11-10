@@ -516,8 +516,6 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
                 self.manual_backward(loss, opt)
                 self.manual_optimizer_step(opt)
 
-            return loss.detach() if self.detach else loss
-
         def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
             self.called["on_train_batch_end"] += 1
             after_before = self.layer.weight.clone()
