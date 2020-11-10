@@ -15,11 +15,11 @@
 Runs either `.fit()` or `.test()` on a single node across multiple gpus.
 """
 from argparse import ArgumentParser
+
 from pytorch_lightning import Trainer, seed_everything
 from tests.base import EvalModelTemplate
 import os
 import torch
-from tests.backends.ddp import *    # noqa F403
 
 
 def main():
@@ -32,24 +32,19 @@ def main():
     parser.set_defaults(distributed_backend="ddp")
     args = parser.parse_args()
 
+    model = EvalModelTemplate()
+    trainer = Trainer.from_argparse_args(args)
+
     result = {}
-    if args.trainer_method in ["fit", "test", "fit_test"]:
-        model = EvalModelTemplate()
-        trainer = Trainer.from_argparse_args(args)
-        if args.trainer_method == 'fit':
-            trainer.fit(model)
-            result = {'status': 'complete', 'method': args.trainer_method, 'result': None}
-        elif args.trainer_method == 'test':
-            result = trainer.test(model)
-            result = {'status': 'complete', 'method': args.trainer_method, 'result': result}
-        elif args.trainer_method == 'fit_test':
-            trainer.fit(model)
-            result = trainer.test(model)
-            result = {'status': 'complete', 'method': args.trainer_method, 'result': result}
-    else:
-        # run user defined function
-        func = globals()[args.trainer_method]
-        result = func(args)
+    if args.trainer_method == 'fit':
+        trainer.fit(model)
+        result = {'status': 'complete', 'method': args.trainer_method, 'result': None}
+    if args.trainer_method == 'test':
+        result = trainer.test(model)
+        result = {'status': 'complete', 'method': args.trainer_method, 'result': result}
+    if args.trainer_method == 'fit_test':
+        trainer.fit(model)
+        result = trainer.test(model)
         result = {'status': 'complete', 'method': args.trainer_method, 'result': result}
 
     if len(result) > 0:

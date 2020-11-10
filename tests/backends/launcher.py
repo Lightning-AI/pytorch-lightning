@@ -16,20 +16,26 @@ import os
 import coverage
 import subprocess
 from subprocess import TimeoutExpired
-import sys
 from pathlib import Path
 import pytorch_lightning
+from argparse import ArgumentParser
+from pytorch_lightning import Trainer, seed_everything
+from tests.base import EvalModelTemplate
+import torch
 
 
-def call_training_script(module_file, cli_args, method, tmpdir, timeout=60):
-    file = Path(module_file.__file__).absolute()
+def import_from(module, name):
+    module = __import__(module, fromlist=[name])
+    return getattr(module, name)
+
+
+def call_training_script(cli_args, tmpdir, env, timeout=20):
+    file = Path(__file__).absolute()
     cli_args = cli_args.split(' ') if cli_args else []
     cli_args += ['--tmpdir', str(tmpdir)]
-    cli_args += ['--trainer_method', method]
     command = [sys.executable, str(file)] + cli_args
 
     # need to set the PYTHONPATH in case pytorch_lightning was not installed into the environment
-    env = os.environ.copy()
     env['PYTHONPATH'] = f'{pytorch_lightning.__file__}:' + env.get('PYTHONPATH', '')
 
     # for running in ddp mode, we need to lauch it's own process or pytest will get stuck
@@ -46,32 +52,30 @@ def call_training_script(module_file, cli_args, method, tmpdir, timeout=60):
 
     return std, err
 
+
 class DDPLauncher:
     """ Class used to run ddp tests
     """
-    atol = 1e-8
+    @staticmethod
+    def run_from_cmd_line(cli_args:str = None, func_to_run: callable = None, tmpdir: str = None, timeout=20):
+        env = os.environ.copy()
+        env["PL_CURRENT_TEST_MODULE"] = str(func_to_run.__module__)
+        env["PL_CURRENT_TEST_NAME"] = str(func_to_run.__name__)
+        call_training_script(cli_args, tmpdir, env, timeout=20)
 
-    def run_from_cmd_line(cli_args:str = None, func_to_run: callable = None):
-        if ddp:
-            if sys.platform == "win32":
-                pytest.skip("DDP not supported on windows")
 
-        os.environ["PL_TEST_CODE"] = func_to_run.__code__
-
-        call_training_script(__file__, cli_args)
-
-if __name__ = "__main__":
+if __name__ == "__main__":
     seed_everything(1234)
     parser = ArgumentParser(add_help=False)
     parser = Trainer.add_argparse_args(parser)
     parser.add_argument('--tmpdir')
     parser.set_defaults(gpus=2)
     args = parser.parse_args()
-    code = os.get("PL_TEST_CODE", None)
-    func = exec(code)
+    os.environ["PL_IN_LAUNCHER"] = '1'
+    env = os.environ.copy()
+    func = import_from(env["PL_CURRENT_TEST_MODULE"], env["PL_CURRENT_TEST_NAME"])
     result = func(args)
-    result = {'status': 'complete', 'result': result}
-
+    result = {'status': 'complete', 'result':result}
     if len(result) > 0:
         file_path = os.path.join(args.tmpdir, 'ddp.result')
         torch.save(result, file_path)
