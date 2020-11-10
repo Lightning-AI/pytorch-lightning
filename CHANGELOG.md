@@ -35,7 +35,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-
+- Tuner algorithms will be skipped if `fast_dev_run=True` ([#3903](https://github.com/PyTorchLightning/pytorch-lightning/pull/3903))
 
 ### Deprecated
 
@@ -47,7 +47,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed `lightning_getattr` not getting the correct attributes from datamodule ([#4347]([https://github.com/PyTorchLightning/pytorch-lightning/pull/4347]))
+- Fixed feature-lack in hpc load ([#4526](https://github.com/PyTorchLightning/pytorch-lightning/pull/4526))
+
+
+- Fixed `lightning_getattr`, `lightning_hasattr` not finding the correct attributes from datamodule ([#4347]([https://github.com/PyTorchLightning/pytorch-lightning/pull/4347]))
+
 
 ## [1.0.5] - 2020-11-03
 
