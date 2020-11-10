@@ -142,6 +142,10 @@ class Accelerator(object):
     def sync_optim_state(self):
         pass
 
+    def init_scaler(self):
+        if self.trainer.amp_backend == AMPType.NATIVE and self.trainer.precision == 16 and not self.trainer.use_tpu:
+            return torch.cuda.amp.GradScaler()
+
     def clip_gradients(self, optimizer, clip_val=None):
         # TODO: separate TPU case from here
         self._clip_gradients(optimizer, clip_val)
@@ -205,7 +209,7 @@ class Accelerator(object):
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
     def init_ddp_connection(
-        self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
+            self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
     ) -> None:
         os.environ["MASTER_ADDR"] = str(self.cluster_environment.master_address())
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())

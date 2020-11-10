@@ -323,3 +323,7 @@ class DDPAccelerator(Accelerator):
 
     def sync_optim_state(self):
         self.ddp_plugin.sync_optim_state(self.trainer.get_model())
+
+    def init_scaler(self):
+        # TODO I don't think this makes sense, we shouldn't have init scaler in an accelerator...
+        self.ddp_plugin.init_scaler(self.trainer)

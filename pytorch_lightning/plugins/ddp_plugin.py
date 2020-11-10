@@ -1,7 +1,10 @@
 from typing import List, Dict, Any
 
+import torch
+
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
+from pytorch_lightning.utilities import AMPType
 
 
 class DDPPlugin(object):
@@ -71,3 +74,7 @@ class DDPPlugin(object):
 
     def input_to_device(self, args: Any, model: LightningModule):
         return args  # No move required, handled by DistributedDataParallel
+
+    def init_scaler(self, trainer):
+        if trainer.amp_backend == AMPType.NATIVE and trainer.precision == 16:
+            return torch.cuda.amp.GradScaler()

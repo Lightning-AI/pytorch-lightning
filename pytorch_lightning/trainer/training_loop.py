@@ -48,7 +48,7 @@ class TrainLoop:
         self._cur_grad_norm_dict = None
 
     def on_trainer_init(
-        self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps, automatic_optimization
+            self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps, automatic_optimization
     ):
         self.trainer.global_step = 0
         self.trainer.current_epoch = 0
@@ -135,8 +135,8 @@ class TrainLoop:
         self.trainer.model_connector.copy_trainer_model_properties(ref_model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
-        if self.trainer.amp_backend == AMPType.NATIVE and self.trainer.precision == 16 and not self.trainer.use_tpu:
-            self.trainer.scaler = torch.cuda.amp.GradScaler()
+        # TODO I don't think this makes sense, we shouldn't have init scaler in an accelerator...
+        self.trainer.scaler = self.trainer.accelerator_backend.init_scaler()
 
         # log hyper-parameters
         if self.trainer.logger is not None:
@@ -652,7 +652,8 @@ class TrainLoop:
 
                     # perform dpp sync only when performing optimizer_step
                     with self.block_ddp_sync_behaviour():
-                        self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens)
+                        self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer,
+                                                        self.trainer.hiddens)
 
                     batch_outputs = self._process_closure_result(
                         batch_outputs=batch_outputs,
@@ -725,7 +726,7 @@ class TrainLoop:
             yield
 
     def _process_closure_result(
-        self, batch_outputs: list, opt_idx: int
+            self, batch_outputs: list, opt_idx: int
     ) -> list:
         opt_closure_result = self._curr_step_result
 
