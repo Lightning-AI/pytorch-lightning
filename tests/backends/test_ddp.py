@@ -93,3 +93,8 @@ def test_cli(tmpdir):
     assert str(result['result']) == '1'
 
 # END: test_cli ddp test
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@DDPLauncher.run("--max_epochs [max_epochs] --gpus 2 --accelerator [accelerator]", max_epochs=["1"], accelerator=["ddp", "ddp_spawn"])
+def test_cli_2(*args, **kwargs):
+    return

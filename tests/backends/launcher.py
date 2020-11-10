@@ -22,7 +22,8 @@ from argparse import ArgumentParser
 from pytorch_lightning import Trainer, seed_everything
 from tests.base import EvalModelTemplate
 import torch
-
+import functools
+import itertools
 
 def import_from(module, name):
     module = __import__(module, fromlist=[name])
@@ -52,6 +53,19 @@ def call_training_script(cli_args, tmpdir, env, timeout=20):
 
     return std, err
 
+def create_cmd_lines(cmd_line, **kwargs):
+    keys = kwargs.keys()
+    keys = sorted(keys)
+    values_comb = itertools.product(*(kwargs[k] for k in keys))
+    cmd_lines = []
+    for combi in values_comb:
+        temp_cmd_line = cmd_line[::]
+        for key_idx, v in enumerate(combi):
+            k = keys[key_idx]
+            temp_cmd_line = temp_cmd_line.replace(f"[{k}]", str(v))
+        cmd_lines.append(temp_cmd_line)
+    cmd_lines = list(set(cmd_lines))
+    return cmd_lines
 
 class DDPLauncher:
     """ Class used to run ddp tests
@@ -62,6 +76,17 @@ class DDPLauncher:
         env["PL_CURRENT_TEST_MODULE"] = str(func_to_run.__module__)
         env["PL_CURRENT_TEST_NAME"] = str(func_to_run.__name__)
         call_training_script(cli_args, tmpdir, env, timeout=20)
+
+    def run(cmd_line, **kwargs):
+        cmd_lines = create_cmd_lines(cmd_line, **kwargs)
+        def inner(func):
+            @functools.wraps(func)
+            def func_wrapper(*args, **kwargs):
+                for cmd_line in cmd_lines:
+                    print(f"Launching {func.__name__} with {cmd_line}")
+                    DDPLauncher.run_from_cmd_line(cmd_line, func, os.getcwd())
+            return func_wrapper
+        return inner
 
 
 if __name__ == "__main__":
