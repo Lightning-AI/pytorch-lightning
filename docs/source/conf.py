@@ -12,14 +12,14 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-import os
-import sys
-import glob
-import shutil
-import inspect
-
 # import m2r
 import builtins
+import glob
+import inspect
+import os
+import shutil
+import sys
+
 import pt_lightning_sphinx_theme
 
 PATH_HERE = os.path.abspath(os.path.dirname(__file__))
