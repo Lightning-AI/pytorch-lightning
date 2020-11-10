@@ -19,6 +19,7 @@ import fsspec
 import torch
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from torch import Tensor
+from torch.utils.data import Dataset
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.data import get_len
 from collections.abc import Iterable, Iterator, Mapping, Sequence
@@ -240,7 +241,42 @@ class CycleIterator(object):
         return self.length
 
 
-class CombinedLoaderIterator(object):
+class CombinedDataset(object):
+    """
+    Combines different datasets, which store multiple datasets.
+    """
+    def __init__(self, datasets):
+        self.datasets = datasets
+
+        self.max_len = self._calc_num_data(self.datasets, "max")
+        self.min_len = self._calc_num_data(self.datasets, "min")
+
+    @staticmethod
+    def _calc_num_data(datasets, mode="min"):
+        if mode not in ["min", "max"]:
+            raise ValueError(f"Invalid Mode: {mode}")
+
+        all_lengths = apply_to_collection(datasets, (Dataset, Iterable, type(None)), get_len,
+                                          wrong_dtype=(Sequence, Mapping))
+
+        compute_func = eval(mode)
+
+        if isinstance(all_lengths, (int, float)):
+            length = all_lengths
+
+        elif isinstance(all_lengths, Mapping):
+            length = compute_func(all_lengths.values())
+
+        elif isinstance(all_lengths, Sequence):
+            length = compute_func(all_lengths)
+
+        return length
+
+    def __len__(self):
+        return self.min_len
+
+
+class CombinedLoader(object):
     """
     Combines different dataloaders and allows sampling in parallel
     """
@@ -255,6 +291,12 @@ class CombinedLoaderIterator(object):
                 'max_size_cycle' which stops if the longest loader is exhausted and cycles through the smaller ones.
         """
         self.loaders = loaders
+        # could be multiple datasets, but use self.dataset to follow 
+        datasets = apply_to_collection(self.loaders, Iterable, self.extract_dataset,
+                                      wrong_dtype=(Sequence, Mapping))
+
+        self.dataset = CombinedDataset(datasets)
+
         self._loader_iters = None
         self.counter = 0
 
@@ -265,6 +307,10 @@ class CombinedLoaderIterator(object):
 
         if self.mode == 'max_size_cycle':
             self._wrap_loaders_max_size_cycle()
+
+    @staticmethod
+    def extract_dataset(loader):
+        return getattr(loader, "dataset", None)
 
     def _wrap_loaders_max_size_cycle(self) -> Any:
         """
@@ -295,29 +341,13 @@ class CombinedLoaderIterator(object):
 
         # dataloaders are iterable but not sequence
         elif isinstance(self.loaders, Iterable):
-            # only one dataloader, just remain the same
+            # only one dataloader, just keep it the same.
             pass
-            # self.loaders = CycleIterator(self.loaders, length=length)
         else:
             raise ValueError(f'Invalid Datatype for loaders: {type(self.loaders).__name__}')
 
-    @property
-    def loader_iters(self) -> Any:
-        if self._loader_iters is None:
-            self._loader_iters = self.create_loader_iters(self.loaders)
-
-        return self._loader_iters
-
     def __iter__(self) -> Any:
-        self._loader_iters = self.create_loader_iters(self.loaders)
-        return self
-
-    def __next__(self) -> Any:
-        return self.request_next_batch(self._loader_iters)
-        
-    @staticmethod
-    def request_next_batch(loader_iters: Union[Iterator, Sequence, Mapping]) -> Any:
-        return apply_to_collection(loader_iters, Iterator, next)
+        return CombinedLoaderIterator(self.loaders)
 
     @staticmethod
     def _calc_num_batches(loaders) -> int:
@@ -335,12 +365,45 @@ class CombinedLoaderIterator(object):
 
         raise TypeError(f'Got Type {type(all_lengths).__name__}, but expected one of Sequence, int or Mapping')
 
+    def __len__(self):
+        return self._calc_num_batches(self.loaders)
+
+
+class CombinedLoaderIterator(object):
+    """
+    Custom Iterator returning data from multple loaders, and allows sampling in parallel
+    """
+    def __init__(self, loaders: Any):
+        """
+
+        Args:
+            loaders: the loaders to sample from. Can be all kind of collection
+        """
+        self.loaders = loaders
+        self._loader_iters = None
+
+    @property
+    def loader_iters(self) -> Any:
+        if self._loader_iters is None:
+            self._loader_iters = self.create_loader_iters(self.loaders)
+
+        return self._loader_iters
+
+    def __iter__(self) -> Any:
+        return self
+
+    def __next__(self) -> Any:
+        if self._loader_iters is None:
+            self._loader_iters = self.create_loader_iters(self.loaders)
+        return self.request_next_batch(self._loader_iters)
+        
+    @staticmethod
+    def request_next_batch(loader_iters: Union[Iterator, Sequence, Mapping]) -> Any:
+        return apply_to_collection(loader_iters, Iterator, next)
+
     @staticmethod
     def create_loader_iters(loaders: Union[Any, Iterator,
                                            Sequence, Mapping]) -> Union[Any, Iterator, Sequence, Mapping]:
 
         # dataloaders are Iterable but not Sequences. Need this to specifically exclude sequences
         return apply_to_collection(loaders, Iterable, iter, wrong_dtype=(Sequence, Mapping))
-
-    def __len__(self):
-        return self._calc_num_batches(self.loaders)
