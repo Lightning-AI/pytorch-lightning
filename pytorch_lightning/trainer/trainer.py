@@ -614,10 +614,10 @@ class Trainer(
                 step_metrics = self.evaluation_loop.log_evaluation_step_metrics(batch, batch_idx)
 
                 # track epoch level outputs
-                self.track_output_for_epoch_end(dl_step_metrics, step_metrics)
+                dl_step_metrics = self.track_output_for_epoch_end(dl_step_metrics, step_metrics)
 
                 # track epoch level outputs
-                self.track_output_for_epoch_end(dl_outputs, output)
+                dl_outputs = self.track_output_for_epoch_end(dl_outputs, output)
 
             self.evaluation_loop.outputs.append(dl_outputs)
             self.evaluation_loop.step_metrics.append(dl_step_metrics)
@@ -654,6 +654,7 @@ class Trainer(
             elif isinstance(output, torch.Tensor) and output.is_cuda and self.move_metrics_to_cpu:
                 output = output.cpu()
             outputs.append(output)
+        return outputs
 
     def run_test(self):
         # only load test dataloader for testing
