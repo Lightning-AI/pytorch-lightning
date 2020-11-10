@@ -207,7 +207,6 @@ class AcceleratorConnector:
         # TODO: decouple from TE
         if os.environ.get('PL_IN_DDP_SUBPROCESS', False):
             use_torchelastic_ddp = False
-            use_torchelastic_ddp_sharded = False
 
         cluster_env = self._select_environment()
 
@@ -270,13 +269,6 @@ class AcceleratorConnector:
 
         elif self.trainer.distributed_backend == "ddp":
             accelerator_backend = accelerators.DDPAccelerator(
-                self.trainer,
-                cluster_env,
-                ddp_plugin=self.trainer.plugin_connector.ddp_plugin
-            )
-
-        elif self.trainer.use_ddp_sharded:
-            accelerator_backend = accelerators.DDPShardedAccelerator(
                 self.trainer,
                 cluster_env,
                 ddp_plugin=self.trainer.plugin_connector.ddp_plugin
@@ -357,9 +349,6 @@ class AcceleratorConnector:
             self.trainer.use_ddp = True
             self.trainer.data_parallel_device_ids = None
             self.trainer.on_gpu = False
-        elif self.trainer.distributed_backend == 'ddp_sharded':
-            self.trainer.use_ddp_sharded = True
-            self.trainer.num_processes = self.trainer.num_gpus
         elif self.trainer.distributed_backend == "horovod":
             self._set_horovod_backend()
 
