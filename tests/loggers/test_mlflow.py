@@ -137,7 +137,8 @@ def test_mlflow_logger_dirs_creation(tmpdir):
         assert set(os.listdir(tmpdir / exp_id)) == {run_id, 'meta.yaml'}
 
     model = EvalModelTemplate()
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_val_batches=3)
+    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_val_batches=3,
+                      log_gpu_memory=True)
     trainer.fit(model)
     assert set(os.listdir(tmpdir / exp_id)) == {run_id, 'meta.yaml'}
     assert 'epoch' in os.listdir(tmpdir / exp_id / run_id / 'metrics')
