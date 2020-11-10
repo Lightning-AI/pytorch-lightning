@@ -136,10 +136,6 @@ class Result(Dict):
         if sync_dist and isinstance(value, (torch.Tensor, numbers.Number)):
             value = sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
-        # no need to keep on gpu
-        if isinstance(value, torch.Tensor) and value.is_cuda:
-            value = value.cpu()
-
         if 'meta' not in self:
             self.__setitem__('meta', {})
 

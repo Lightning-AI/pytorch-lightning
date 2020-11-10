@@ -136,6 +136,7 @@ class Trainer(
         amp_level: str = 'O2',
         distributed_backend: Optional[str] = None,
         automatic_optimization: bool = True,
+        move_metrics_to_cpu: bool = False,
     ):
         r"""
         Customize every aspect of training via flags
@@ -273,6 +274,9 @@ class Trainer(
                     stored in a different place than the logs written in `default_root_dir`.
                     Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
                     Defaults to `default_root_dir`.
+
+            move_metrics_to_cpu: Whether to force internal logged metrics to be moved to cpu.
+                This can save some gpu memory, but can make training slower. Use with attention.
         """
         super().__init__()
 
@@ -364,7 +368,12 @@ class Trainer(
         self.profile_connector.on_trainer_init(profiler)
 
         # init logger flags
-        self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps)
+        self.logger_connector.on_trainer_init(
+            logger,
+            flush_logs_every_n_steps,
+            log_every_n_steps,
+            move_metrics_to_cpu
+        )
 
         # init debugging flags
         self.debugging_connector.on_init_start(
@@ -636,12 +645,14 @@ class Trainer(
 
     def track_output_for_epoch_end(self, outputs, output):
         if output is not None:
+            move_metrics_to_cpu = self.trainer.move_metrics_to_cpu
             if isinstance(output, Result):
                 output.detach()
-                output.cpu()
+                if move_metrics_to_cpu:
+                    output.cpu()
             elif isinstance(output, dict):
-                output = recursive_detach(output, to_cpu=True)
-            elif isinstance(output, torch.Tensor) and output.is_cuda:
+                output = recursive_detach(output, to_cpu=move_metrics_to_cpu)
+            elif isinstance(output, torch.Tensor) and output.is_cuda and move_metrics_to_cpu:
                 output = output.cpu()
             outputs.append(output)
 

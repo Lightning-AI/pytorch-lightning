@@ -393,7 +393,8 @@ class EpochResultStore:
             Result.attach_batch_size(self._batch_size, hook_result)
 
             hook_result.detach()
-            hook_result.cpu()
+            if self.trainer.move_metrics_to_cpu:
+                hook_result.cpu()
 
             self._internals[fx_name].append(
                 hook_result,
