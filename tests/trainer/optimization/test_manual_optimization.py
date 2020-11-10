@@ -11,15 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-import torch
-import pytest
 import collections
-from unittest import mock
-from tests.base.boring_model import BoringModel, RandomDataset
-from pytorch_lightning import Trainer
+import os
+
+import pytest
+import torch
+
+from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.utilities import APEX_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.base.boring_model import BoringModel
 
 
 def test_multiple_optimizers_manual(tmpdir):
@@ -477,6 +477,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
     This test verify that in `automatic_optimization=False`,
     manual_optimizer_step is being called only when we shouldn't accumulate.
     """
+    seed_everything(234)
 
     class ExtendedModel(BoringModel):
 
@@ -520,11 +521,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
             self.called["on_train_batch_end"] += 1
             after_before = self.layer.weight.clone()
             if self.should_update and self.should_have_updated:
-                try:
-                    assert not torch.equal(self.weight_before, after_before), self.count
-                except Exception:
-                    # TODO: Figure out why 1 every 3 runs, weights don't get updated on count = 4"
-                    pass
+                assert not torch.equal(self.weight_before, after_before), self.count
                 assert torch.all(self.layer.weight.grad == 0)
             else:
                 assert torch.equal(self.weight_before, after_before)
