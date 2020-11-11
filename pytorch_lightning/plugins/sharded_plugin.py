@@ -59,7 +59,8 @@ class DDPShardedPlugin(DDPPlugin):
         trainer.optimizers = self._re_init_with_fairscale_zero(optimizers, lr_schedulers)
         trainer.lr_schedulers = lr_schedulers
         trainer.optimizer_frequencies = optimizer_frequencies
-        trainer.precision_connector.backend.scaler_cls = ShardedGradScaler
+        if trainer.amp_backend == AMPType.NATIVE:
+            trainer.precision_connector.backend.scaler_cls = ShardedGradScaler
 
     def _re_init_with_fairscale_zero(self, optimizers, lr_schedulers):
         """
