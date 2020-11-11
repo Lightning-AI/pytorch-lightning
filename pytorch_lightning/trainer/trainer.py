@@ -60,6 +60,7 @@ from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.plugins.plugin_connector import PluginConnector
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu_accelerator import CPUAccelerator
+from pytorch_lightning.utilities.memory import recursive_detach
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -135,6 +136,7 @@ class Trainer(
         amp_level: str = 'O2',
         distributed_backend: Optional[str] = None,
         automatic_optimization: bool = True,
+        move_metrics_to_cpu: bool = False,
     ):
         r"""
         Customize every aspect of training via flags
@@ -273,6 +275,9 @@ class Trainer(
                     stored in a different place than the logs written in `default_root_dir`.
                     Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
                     Defaults to `default_root_dir`.
+
+            move_metrics_to_cpu: Whether to force internal logged metrics to be moved to cpu.
+                This can save some gpu memory, but can make training slower. Use with attention.
         """
         super().__init__()
 
@@ -372,7 +377,12 @@ class Trainer(
         self.profile_connector.on_trainer_init(profiler)
 
         # init logger flags
-        self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps)
+        self.logger_connector.on_trainer_init(
+            logger,
+            flush_logs_every_n_steps,
+            log_every_n_steps,
+            move_metrics_to_cpu
+        )
 
         # init debugging flags
         self.debugging_connector.on_init_start(
@@ -612,12 +622,11 @@ class Trainer(
                 # log step metrics
                 step_metrics = self.evaluation_loop.log_evaluation_step_metrics(batch, batch_idx)
 
-                if step_metrics is not None:
-                    dl_step_metrics.append(step_metrics)
+                # track epoch level outputs
+                dl_step_metrics = self.track_output_for_epoch_end(dl_step_metrics, step_metrics)
 
                 # track epoch level outputs
-                if output is not None:
-                    dl_outputs.append(output)
+                dl_outputs = self.track_output_for_epoch_end(dl_outputs, output)
 
             self.evaluation_loop.outputs.append(dl_outputs)
             self.evaluation_loop.step_metrics.append(dl_step_metrics)
@@ -642,6 +651,19 @@ class Trainer(
         self.evaluation_loop.on_evaluation_end()
 
         return eval_loop_results, deprecated_eval_results
+
+    def track_output_for_epoch_end(self, outputs, output):
+        if output is not None:
+            if isinstance(output, Result):
+                output.detach()
+                if self.move_metrics_to_cpu:
+                    output.cpu()
+            elif isinstance(output, dict):
+                output = recursive_detach(output, to_cpu=self.move_metrics_to_cpu)
+            elif isinstance(output, torch.Tensor) and output.is_cuda and self.move_metrics_to_cpu:
+                output = output.cpu()
+            outputs.append(output)
+        return outputs
 
     def run_test(self):
         # only load test dataloader for testing
