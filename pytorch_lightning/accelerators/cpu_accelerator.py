@@ -21,6 +21,15 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 class CPUAccelerator(Accelerator):
 
     def __init__(self, trainer, cluster_environment=None):
+        """
+        Runs training on CPU
+
+        Example::
+
+            # default
+            trainer = Trainer(accelerator=CPUAccelerator())
+
+        """
         super().__init__(trainer, cluster_environment)
         self.nickname = None
 

@@ -26,6 +26,15 @@ else:
 class DDPCPUHPCAccelerator(DDPHPCAccelerator):
 
     def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
+        """
+        Runs training using DDP (with CPUs) strategy on a cluster
+
+        Example::
+
+            # default
+            trainer = Trainer(accelerator=DDPCPUHPCAccelerator())
+
+        """
         super().__init__(trainer, cluster_environment, ddp_plugin)
         self.nickname = 'ddp_cpu'
 
