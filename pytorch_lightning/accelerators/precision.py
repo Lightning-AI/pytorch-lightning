@@ -1,3 +1,4 @@
+from pytorch_lightning.accelerators.base_plugin import Plugin
 from pytorch_lightning.accelerators.scheduler_properties import reinit_scheduler_properties
 from pytorch_lightning.core.lightning import LightningModule
 from typing import List, Tuple
@@ -13,7 +14,7 @@ except ImportError:
     amp = None
 
 
-class PrecisionPlugin(object):
+class PrecisionPlugin(Plugin):
     EPSILON = 1e-6
     precision = 32
 
