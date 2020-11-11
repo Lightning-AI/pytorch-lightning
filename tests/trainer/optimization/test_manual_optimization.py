@@ -16,6 +16,7 @@ import os
 
 import pytest
 import torch
+import torch.nn.functional as F
 
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.utilities import APEX_AVAILABLE
@@ -632,22 +633,32 @@ def test_manual_optimizer_step_with_lambda_closure(tmpdir):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             # manual
-            opt = self.optimizers()
-            x = batch[0]
-
-            loss_1 = self(x)
-            loss_1 = self.loss(loss_1, loss_1)
 
             # make sure there are no grads
             if self.layer.weight.grad is not None:
                 assert torch.all(self.layer.weight.grad == 0)
 
+            opt = self.optimizers()
+
+            def compute_loss():
+                x = batch[0]
+                x = F.dropout(x, 0.1)
+                predictions = self(x)
+                predictions = F.dropout(predictions, 0.1)
+                loss = self.loss(None, predictions)
+                return loss
+
             def lambda_closure():
                 # emulate bayesian optimization.
                 num_backward = 2
+                losses = []
                 for backward_idx in range(num_backward):
+                    loss = compute_loss()
+                    losses.append(loss)
                     retain_graph = (num_backward - 1) != backward_idx
-                    self.manual_backward(loss_1, opt, retain_graph=retain_graph)
+                    self.manual_backward(loss, opt, retain_graph=retain_graph)
+                # emulate MC dropout training
+                assert losses[0] != losses[1]
 
             weight_before = self.layer.weight.clone()
 
