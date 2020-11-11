@@ -129,7 +129,11 @@ class Result(Dict):
     ):
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
-            value = value.detach()
+            if sync_dist:
+                # make sure we don't make an in-place operation
+                value = value.clone().detach()
+            else:
+                value = value.detach()
 
         # sync across workers when using distributed training
         sync_fn = sync_fn or sync_ddp_if_available

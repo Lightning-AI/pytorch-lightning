@@ -194,20 +194,24 @@ def test_train_step_epoch_end_scalar(tmpdir):
     assert opt_closure_result['loss'].item() == 171
 
 
+class DPPReduceMeanPbarModel(BoringModel):
+
+    logged = []
+
+    def training_step(self, batch, batch_idx):
+        output = self.layer(batch)
+        loss = self.loss(batch, output)
+        loss /= loss.clone().detach()
+        self.log('self_log', loss, prog_bar=True, sync_dist=True)
+        return {"loss": loss, "progress_bar":{"loss_2": loss}}
+
+
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_dpp_reduce_mean_pbar(tmpdir):
-    class ExtentedModel(BoringModel):
 
-        logged = []
+    os.environ['PL_DEV_DEBUG'] = '1'
 
-        def training_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            loss /= loss.clone().detach()
-            self.log('self_log', loss, prog_bar=True, sync_dist=True)
-            return loss
-
-    model = ExtentedModel()
+    model = DPPReduceMeanPbarModel()
     model.training_step_end = None
     model.training_epoch_end = None
 
@@ -219,7 +223,13 @@ def test_dpp_reduce_mean_pbar(tmpdir):
         limit_val_batches=2,
         distributed_backend="ddp",
         gpus=2,
-        precision=32,
-        )
+        precision=32)
 
     trainer.fit(model)
+
+    is_in = False
+    for pbar_metrics in trainer.dev_debugger.pbar_added_metrics:
+        if 'loss_2' in pbar_metrics:
+            is_in = True
+            assert pbar_metrics["loss_2"].item() == 1
+    assert is_in is True
