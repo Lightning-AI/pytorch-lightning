@@ -631,6 +631,9 @@ def test_manual_optimizer_step_with_lambda_closure(tmpdir):
     Tests that `manual_optimizer_step` works with lambda_closure
     """
     class TestModel(BoringModel):
+
+        _losses = []
+
         def training_step(self, batch, batch_idx):
             # manual
 
@@ -658,6 +661,9 @@ def test_manual_optimizer_step_with_lambda_closure(tmpdir):
                     retain_graph = (num_backward - 1) != backward_idx
                     self.manual_backward(loss, opt, retain_graph=retain_graph)
                 # emulate MC dropout training
+                loss = torch.stack(losses).mean()
+                self._losses.append(loss)
+                self.log("train_loss", loss, on_step=True, prog_bar=True, on_epoch=True)
                 assert losses[0] != losses[1]
 
             weight_before = self.layer.weight.clone()
@@ -691,6 +697,8 @@ def test_manual_optimizer_step_with_lambda_closure(tmpdir):
 
     trainer.fit(model)
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * 2
+    assert trainer.logger_connector.progress_bar_metrics["train_loss_step"] == model._losses[-1]
+    assert trainer.logger_connector.progress_bar_metrics["train_loss_epoch"] == torch.stack(model._losses).mean()
 
 
 def test_manual_optimizer_step_with_lambda_closure_and_accumulated_grad(tmpdir):

@@ -1138,16 +1138,31 @@ class LightningModule(
 
         Example::
 
-            def training_step(...):
-                (opt_a, opt_b) = self.optimizers()
-                loss = ...
+            def training_step(self, batch, batch_idx):
+                # using Boring Model
+                opt = self.optimizers() # only 1 optimizer
 
-                # 
+                def compute_loss():
+                    x = batch[0]
+                    x = F.dropout(x, 0.1)
+                    predictions = self(x)
+                    predictions = F.dropout(predictions, 0.1)
+                    loss = self.loss(None, predictions)
+                    return loss
+
                 def lambda_closure():
-                    return self.manual_backward(loss, opt_a)
+                    # emulate bayesian optimization.
+                    num_backward = 2
+                    losses = []
+                    for backward_idx in range(num_backward):
+                        loss = compute_loss()
+                        losses.append(loss)
+                        retain_graph = (num_backward - 1) != backward_idx
+                        self.manual_backward(loss, opt, retain_graph=retain_graph)
+                    loss = torch.stack(losses).mean()
+                    self.log("train_loss", loss, on_step=True, prog_bar=True, on_epoch=True)
 
-                self.manual_optimizer_step(opt_a, force_optimizer_step=True, lambda_closure=lambda_closure)
-
+                self.manual_optimizer_step(opt, lambda_closure=lambda_closure)
         """
         # make sure we're using manual opt
         self._verify_is_manual_optimization('manual_optimizer_step')
