@@ -375,6 +375,25 @@ class DDPPlugin(ParallelPlugin):
         
         return output
 
+class DDPSpawnPlugin(ParallelPlugin):
+    def __init__(self, parallel_device_ids, logger=None, cluster_environment=None):
+        super().__init__(parallel_device_ids=parallel_device_ids, logger=logger, cluster_environment=cluster_environment)
+
+        self.dist = LightningDistributed()
+        # TODO: how to get in nprocs? probably pass it
+        self.nprocs = nprocs
+        self.mp_queue = None
+
+    def setup(self, model):
+        os.environ['MASTER_PORT'] = os.environ.get('MASTER_PORT', str(find_free_network_port()))
+
+        # pass in a state q
+        smp = mp.get_context('spawn')
+        self.mp_queue = smp.SimpleQueue()
+
+    def pre_training(self, process_idx = None, mp_queue=None, ):
+        # TODO: use a mixture of os.fork and multiprocesing queue for ddp here
+        os.fork()
 
     
 
