@@ -816,7 +816,7 @@ def test_manual_optimizer_step_with_optimizer_closure_and_extra_arguments(step_m
 
 @patch("torch.optim.Adam.step")
 @patch("torch.optim.SGD.step")
-def test_manual_optimizer_step_with_optimizer_closure_with_different_frequency(mock_sgd_step, mock_adam_step, tmpdir):
+def test_manual_optimizer_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, mock_adam_step, tmpdir):
     os.environ['PL_DEV_DEBUG'] = '1'
 
     """
@@ -841,10 +841,12 @@ def test_manual_optimizer_step_with_optimizer_closure_with_different_frequency(m
 
             def gen_closure():
                 loss_gen = compute_loss()
+                self.log("loss_gen", loss_gen, on_step=True, on_epoch=True)
                 self.manual_backward(loss_gen, opt_gen)
 
             def dis_closure():
                 loss_dis = compute_loss()
+                self.log("loss_dis", loss_dis, on_step=True, on_epoch=True)
                 self.manual_backward(loss_dis, opt_dis)
 
             # this will accumulate gradients for 2 batches and then call opt_gen.step()
