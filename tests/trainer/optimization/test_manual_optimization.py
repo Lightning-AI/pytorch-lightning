@@ -17,6 +17,7 @@ import os
 import pytest
 import torch
 import torch.nn.functional as F
+from unittest.mock import patch, call, ANY
 
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.utilities import APEX_AVAILABLE
@@ -624,11 +625,11 @@ def test_multiple_optimizers_manual_optimizer_step(tmpdir):
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * num_manual_backward_calls
 
 
-def test_manual_optimizer_step_with_lambda_closure(tmpdir):
+def test_manual_optimizer_step_with_optimizer_closure(tmpdir):
     os.environ['PL_DEV_DEBUG'] = '1'
 
     """
-    Tests that `manual_optimizer_step` works with lambda_closure
+    Tests that `manual_optimizer_step` works with optimizer_closure
     """
     class TestModel(BoringModel):
 
@@ -651,7 +652,7 @@ def test_manual_optimizer_step_with_lambda_closure(tmpdir):
                 loss = self.loss(None, predictions)
                 return loss
 
-            def lambda_closure():
+            def optimizer_closure():
                 # emulate bayesian optimization.
                 num_backward = 2
                 losses = []
@@ -668,7 +669,7 @@ def test_manual_optimizer_step_with_lambda_closure(tmpdir):
 
             weight_before = self.layer.weight.clone()
 
-            self.manual_optimizer_step(opt, lambda_closure=lambda_closure)
+            self.manual_optimizer_step(opt, optimizer_closure=optimizer_closure)
 
             weight_after = self.layer.weight.clone()
             assert not torch.equal(weight_before, weight_after)
@@ -701,11 +702,11 @@ def test_manual_optimizer_step_with_lambda_closure(tmpdir):
     assert trainer.logger_connector.progress_bar_metrics["train_loss_epoch"] == torch.stack(model._losses).mean()
 
 
-def test_manual_optimizer_step_with_lambda_closure_and_accumulated_grad(tmpdir):
+def test_manual_optimizer_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
     os.environ['PL_DEV_DEBUG'] = '1'
 
     """
-    Tests that `manual_optimizer_step` works with lambda_closure and accumulated_grad
+    Tests that `manual_optimizer_step` works with optimizer_closure and accumulated_grad
     """
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -716,7 +717,7 @@ def test_manual_optimizer_step_with_lambda_closure_and_accumulated_grad(tmpdir):
             loss_1 = self(x)
             loss_1 = self.loss(loss_1, loss_1)
 
-            def lambda_closure():
+            def optimizer_closure():
                 # emulate bayesian optimization.
                 num_backward = 1
                 for backward_idx in range(num_backward + 1):
@@ -725,7 +726,7 @@ def test_manual_optimizer_step_with_lambda_closure_and_accumulated_grad(tmpdir):
 
             weight_before = self.layer.weight.clone()
 
-            self.manual_optimizer_step(opt, lambda_closure=lambda_closure)
+            self.manual_optimizer_step(opt, optimizer_closure=optimizer_closure)
 
             weight_after = self.layer.weight.clone()
             if not self.trainer.train_loop.should_accumulate():
@@ -758,3 +759,139 @@ def test_manual_optimizer_step_with_lambda_closure_and_accumulated_grad(tmpdir):
 
     trainer.fit(model)
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * 2
+
+
+@patch("torch.optim.SGD.step")
+def test_manual_optimizer_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    """
+    Tests that `manual_optimizer_step` works with optimizer_closure and extra arguments
+    """
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            # manual
+            opt = self.optimizers()
+            x = batch[0]
+
+            loss_1 = self(x)
+            loss_1 = self.loss(loss_1, loss_1)
+
+            def optimizer_closure():
+                # emulate bayesian optimization.
+                num_backward = 1
+                for backward_idx in range(num_backward + 1):
+                    retain_graph = num_backward != backward_idx # noqa E225
+                    self.manual_backward(loss_1, opt, retain_graph=retain_graph)
+
+            self.manual_optimizer_step(opt, 1, optimizer_closure=optimizer_closure, something="new")
+
+        def training_epoch_end(self, outputs) -> None:
+            # outputs should be an array with an entry per optimizer
+            assert len(outputs) == 2
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            return optimizer
+
+    model = TestModel()
+    model.val_dataloader = None
+    model.training_epoch_end = None
+
+    limit_train_batches = 4
+    trainer = Trainer(
+        automatic_optimization=False,
+        default_root_dir=tmpdir,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=2,
+        max_epochs=1,
+        log_every_n_steps=1,
+        accumulate_grad_batches=2,
+    )
+
+    trainer.fit(model)
+    expected_calls = [call(1, closure=ANY, something="new") for s in range(2)]
+    step_mock.assert_has_calls(expected_calls)
+
+
+@patch("torch.optim.Adam.step")
+@patch("torch.optim.SGD.step")
+def test_manual_optimizer_step_with_optimizer_closure_with_different_frequency(mock_sgd_step, mock_adam_step, tmpdir):
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    """
+    Tests that `manual_optimizer_step` works with optimizer_closure and different accumulated_gradient frequency
+    """
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx, optimizer_idx):
+
+            # emulate gans training
+            opt_gen, opt_dis = self.optimizers()
+
+            # Note: Be careful, don't log on the same key in self.log in both closure
+            # as they will be aggregated together on epoch_end
+
+            def compute_loss():
+                x = batch[0]
+                x = F.dropout(x, 0.1)
+                predictions = self(x)
+                predictions = F.dropout(predictions, 0.1)
+                loss = self.loss(None, predictions)
+                return loss
+
+            def gen_closure():
+                loss_gen = compute_loss()
+                self.manual_backward(loss_gen, opt_gen)
+
+            def dis_closure():
+                loss_dis = compute_loss()
+                self.manual_backward(loss_dis, opt_dis)
+
+            # this will accumulate gradients for 2 batches and then call opt_gen.step()
+            self.manual_optimizer_step(
+                opt_gen,
+                optimizer_closure=gen_closure,
+                make_optimizer_step=batch_idx % 2 == 0,
+                optim='sgd')
+
+            # update discriminator every 4 baches
+            # therefore, no gradient accumulation for discriminator
+            if batch_idx % 4 == 0 :
+                # Note: Set make_optimizer_step to True or it will use by default
+                # Trainer(accumulate_grad_batches=x)
+                self.manual_optimizer_step(
+                    opt_dis,
+                    optimizer_closure=dis_closure,
+                    make_optimizer_step=True,
+                    optim='adam')
+
+        def training_epoch_end(self, outputs) -> None:
+            # outputs should be an array with an entry per optimizer
+            assert len(outputs) == 2
+
+        def configure_optimizers(self):
+            optimizer_gen = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            optimizer_dis = torch.optim.Adam(self.layer.parameters(), lr=0.001)
+            return [optimizer_gen, optimizer_dis]
+
+    model = TestModel()
+    model.val_dataloader = None
+    model.training_epoch_end = None
+
+    limit_train_batches = 8
+    trainer = Trainer(
+        automatic_optimization=False,
+        default_root_dir=tmpdir,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=2,
+        max_epochs=1,
+        log_every_n_steps=1,
+        accumulate_grad_batches=2,
+    )
+
+    trainer.fit(model)
+    expected_calls = [call(closure=ANY, optim='sgd') for s in range(4)]
+    mock_sgd_step.assert_has_calls(expected_calls)
+
+    expected_calls = [call(closure=ANY, optim='adam') for s in range(2)]
+    mock_adam_step.assert_has_calls(expected_calls)

@@ -1109,8 +1109,10 @@ class LightningModule(
 
     def manual_optimizer_step(self,
                               optimizer: Optimizer,
-                              force_optimizer_step: bool = False,
-                              lambda_closure: Optional[Callable] = None) -> None:
+                              *args,
+                              make_optimizer_step: Optional[bool] = None,
+                              optimizer_closure: Optional[Callable] = None,
+                              ** kwargs) -> None:
         """
         Call this directly from your training_step when doing optimizations manually.
         By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
@@ -1120,11 +1122,15 @@ class LightningModule(
         Args:
             optimizer: Optimizer used to perform `.step()` call
 
-            force_optimizer_step: Whether to force an optimizer step. Could be useful when having 2 optimizers
-                and one should use accumulated gradients but not the other one.
-                One could put its own logic to force an optimizer step.
+            make_optimizer_step: Whether to force an optimizer step. When not provided, we will use `accumulate_grad_batches`
+                for accumulation frequency. However, one coud provide True and False based on its own scheduling.
+                c.f example 2 and 3
 
-            lambda_closure: One could provide its own lambda_closure. Set to None by default.
+            optimizer_closure: One could provide its own optimizer_closure. Set to None by default.
+
+            args: Any parameters provided to optimizer.step()
+
+            kwargs: Any parameters provided to optimizer.step()
 
         Example::
 
@@ -1132,9 +1138,12 @@ class LightningModule(
                 (opt_a, opt_b) = self.optimizers()
                 loss = ...
                 # automatically applies scaling, etc...
+
                 self.manual_backward(loss, opt_a)
-                # This will force an opt.step() even if accumulate_grad_batches is set.
-                self.manual_optimizer_step(opt_a, force_optimizer_step=True)
+
+                # This will use accumulate gradients for `accumulate_grad_batches` batches
+                # and then run opt_a.step()
+                self.manual_optimizer_step(opt_a)
 
         Example::
 
@@ -1150,44 +1159,93 @@ class LightningModule(
                     loss = self.loss(None, predictions)
                     return loss
 
-                def lambda_closure():
-                    # emulate bayesian optimization.
-                    num_backward = 2
+                def optimizer_closure():
+                    # emulate MC dropout training
+                    num_backward = 1
                     losses = []
-                    for backward_idx in range(num_backward):
+                    for backward_idx in range(num_backward + 1):
                         loss = compute_loss()
                         losses.append(loss)
-                        retain_graph = (num_backward - 1) != backward_idx
+                        retain_graph = num_backward!= backward_idx
                         self.manual_backward(loss, opt, retain_graph=retain_graph)
-                    loss = torch.stack(losses).mean()
-                    self.log("train_loss", loss, on_step=True, prog_bar=True, on_epoch=True)
+                    loss_mean = torch.stack(losses).mean()
+                    loss_std = torch.stack(losses).std()
+                    self.log("train_loss_mean", loss_mean, on_step=True, prog_bar=True, on_epoch=True)
+                    self.log("train_loss_std", loss_std, on_step=True, prog_bar=True, on_epoch=True)
 
-                self.manual_optimizer_step(opt, lambda_closure=lambda_closure)
+                self.manual_optimizer_step(opt, optimizer_closure=optimizer_closure)
+
+        Examples:
+            .. code-block:: python
+
+            # Scenario for a gan.
+
+            def training_step(self, batch, batch_idx):
+                # use self.optimizers() as some accelerator might modify them
+                opt_gen, opt_dis = self.optimizers() # only 2 optimizer for GANs
+
+                # Note: Be careful, don't log on the same key in self.log in both closure
+                # as they will be aggregated together on epoch_end
+
+                def gen_closure():
+                    ... forward
+                    ... logging using self.log
+                    self.manual_backward(loss_gen, opt_gen)
+
+                def dis_closure():
+                    ... forward
+                    ... logging using self.log
+                    self.manual_backward(loss_dis, opt_dis)
+
+                # if make_optimizer_step is not provided, optimizer_step will called based on
+                # Trainer(accumulate_grad_batches=x)
+
+                # this will accumulate gradients for 2 batches and then call opt_gen.step()
+                self.manual_optimizer_step(opt_gen,
+                                           optimizer_closure=gen_closure,
+                                           make_optimizer_step=batch_idx % 2 == 0)
+
+                # update discriminator every 4 baches
+                # therefore, no gradient accumulation for discriminator
+                if batch_idx % 4 == 0 :
+                    # Note: Set make_optimizer_step to True or it will use by default
+                    # Trainer(accumulate_grad_batches=x)
+                    self.manual_optimizer_step(opt_dis,
+                                               optimizer_closure=dis_closure,
+                                               make_optimizer_step=True)
         """
         # make sure we're using manual opt
         self._verify_is_manual_optimization('manual_optimizer_step')
 
-        if not self.trainer.train_loop.should_accumulate() or force_optimizer_step:
+        should_make_optimizer_step = not self.trainer.train_loop.should_accumulate()
+        make_optimizer_step = make_optimizer_step if make_optimizer_step is not None else should_make_optimizer_step
+
+        if make_optimizer_step:
 
             # mock closure function as the user is responsible to call `manual_backward`
-            def mock_lambda_closure():
+            def mock_optimizer_closure():
                 return
 
-            lambda_closure = lambda_closure if isinstance(lambda_closure, types.FunctionType) else mock_lambda_closure
+            optimizer_closure = optimizer_closure if isinstance(optimizer_closure, types.FunctionType) else mock_optimizer_closure
 
             self.trainer.train_loop.optimizer_step(optimizer,
                                                    None,
                                                    self.trainer.batch_idx,
-                                                   lambda_closure)
+                                                   optimizer_closure,
+                                                   *args,
+                                                   **kwargs)
 
             # update will be called after every optimizer_step call
             if self.trainer.amp_backend == AMPType.NATIVE:
                 self.trainer.scaler.update()
 
+            # perform zero grad
+            optimizer.zero_grad()
+
         else:
-            # make sure to call lambda_closure when accumulating
-            if isinstance(lambda_closure, types.FunctionType):
-                lambda_closure()
+            # make sure to call optimizer_closure when accumulating
+            if isinstance(optimizer_closure, types.FunctionType):
+                optimizer_closure()
 
     def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
         """
@@ -1233,16 +1291,20 @@ class LightningModule(
 
     def optimizer_step(
         self,
-        epoch: int,
-        batch_idx: int,
-        optimizer: Optimizer,
-        optimizer_idx: int,
-        optimizer_closure: Optional[Callable],
-        on_tpu: bool,
-        using_native_amp: bool,
-        using_lbfgs: bool,
+        *args,
+        epoch: int = None,
+        batch_idx: int = None,
+        optimizer: Optimizer = None,
+        optimizer_idx: int = None,
+        optimizer_closure: Optional[Callable] = None,
+        on_tpu: bool = None,
+        using_native_amp: bool = None,
+        using_lbfgs: bool = None,
+        **kwargs,
     ) -> None:
         r"""
+        .. tip:: Consider using `manual_optimizer_step` instead of overriding this method as done previously.
+
         Override this method to adjust the default way the
         :class:`~pytorch_lightning.trainer.trainer.Trainer` calls each optimizer.
         By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example
@@ -1315,19 +1377,20 @@ class LightningModule(
 
         """
         if on_tpu:
-            xm.optimizer_step(optimizer, optimizer_args={'closure': optimizer_closure})
+            xm.optimizer_step(optimizer, optimizer_args={'closure': optimizer_closure, **kwargs})
         elif self.trainer.amp_backend == AMPType.NATIVE:
             # native amp does not yet support closures.
             # TODO: pass the closure to the step ASAP
             optimizer_closure()
-            self.trainer.scaler.step(optimizer)
+            self.trainer.scaler.unscale_(optimizer)
+            optimizer.step(optimizer, *args, **kwargs)
         elif self.trainer.amp_backend == AMPType.APEX:
             # apex amp does not yet support closures.
             # TODO: pass the closure to the step ASAP
             optimizer_closure()
-            optimizer.step()
+            optimizer.step(*args, **kwargs)
         else:
-            optimizer.step(closure=optimizer_closure)
+            optimizer.step(closure=optimizer_closure, *args, **kwargs)
 
     def optimizer_zero_grad(
         self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int

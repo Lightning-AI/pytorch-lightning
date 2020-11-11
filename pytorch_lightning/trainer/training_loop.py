@@ -471,11 +471,11 @@ class TrainLoop:
 
         return training_step_output_for_epoch_end
 
-    def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):
+    def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure, *args, **kwargs):
         with self.trainer.profiler.profile("optimizer_step"):
             # optimizer step lightningModule hook
             self.trainer.accelerator_backend.optimizer_step(
-                optimizer, batch_idx, opt_idx, train_step_and_backward_closure
+                optimizer, batch_idx, opt_idx, train_step_and_backward_closure, *args, **kwargs
             )
 
     def on_before_zero_grad(self, optimizer):
@@ -945,7 +945,8 @@ class TrainLoop:
             self.on_before_zero_grad(optimizer)
             optimizers = enumerate([optimizer])
         else:
-            optimizers = self.get_optimizers_iterable()
+            # should be called handled in `manual_optimizer_step`
+            optimizers = []
 
         for idx, optimizer in optimizers:
             self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
