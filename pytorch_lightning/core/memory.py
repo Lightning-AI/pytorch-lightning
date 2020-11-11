@@ -116,11 +116,6 @@ class LayerSummary(object):
         """ Returns the number of parameters in this module. """
         return sum(np.prod(p.shape) for p in self._module.parameters())
 
-    @property
-    def num_trainable_parameters(self) -> int:
-        """ Returns the number of trainable parameters in this module. """
-        return sum(np.prod(p.shape) for p in self._module.parameters() if p.requires_grad)
-
 
 class ModelSummary(object):
     """
@@ -182,10 +177,9 @@ class ModelSummary(object):
     MODES = [MODE_FULL, MODE_TOP]
 
     def __init__(self, model, mode: str = MODE_DEFAULT):
-        assert mode in ModelSummary.MODES, f"ModelSummary mode must be one of {ModelSummary.MODES} but is {mode}"
         self._model = model
         self._mode = mode
-        self._layer_summary = self.summarize(self.named_modules)
+        self._layer_summary = self.summarize()
 
     @property
     def named_modules(self) -> List[Tuple[str, nn.Module]]:
@@ -219,15 +213,8 @@ class ModelSummary(object):
     def param_nums(self) -> List[int]:
         return [layer.num_parameters for layer in self._layer_summary.values()]
 
-    @property
-    def trainable_param_nums(self) -> List[int]:
-        return [layer.num_trainable_parameters for layer in self._layer_summary.values()]
-
-    def summarize(self, named_modules: List[Tuple[str, nn.Module]] = None) -> Dict[str, LayerSummary]:
-        if named_modules is None:
-            named_modules = self.named_modules
-
-        summary = OrderedDict((name, LayerSummary(module)) for name, module in named_modules)
+    def summarize(self) -> Dict[str, LayerSummary]:
+        summary = OrderedDict((name, LayerSummary(module)) for name, module in self.named_modules)
         if self._model.example_input_array is not None:
             self._forward_example_input()
         for layer in summary.values():
@@ -273,21 +260,10 @@ class ModelSummary(object):
             arrays.append(["In sizes", self.in_sizes])
             arrays.append(["Out sizes", self.out_sizes])
 
-        if self._mode == ModelSummary.MODE_FULL:
-            # get only the top-level modules to calculate total params
-            named_modules = list(self._model.named_children())
-            layer_summary = self.summarize(named_modules)
-            param_nums = [layer.num_parameters for layer in layer_summary.values()]
-            trainable_param_nums = [layer.num_trainable_parameters for layer in layer_summary.values()]
+        trainable_parameters = sum(np.prod(p.shape) for p in self._model.parameters() if p.requires_grad)
+        total_parameters = sum(np.prod(p.shape) for p in self._model.parameters())
 
-            total_params = sum(param_nums)
-            total_trainable_params = sum(trainable_param_nums)
-
-        else:  # if self._mode == ModelSummary.MODE_TOP:
-            total_params = sum(self.param_nums)
-            total_trainable_params = sum(self.trainable_param_nums)
-
-        return _format_summary_table(total_params, total_trainable_params, *arrays)
+        return _format_summary_table(total_parameters, trainable_parameters, *arrays)
 
     def __repr__(self):
         return str(self)
@@ -302,6 +278,46 @@ def parse_batch_shape(batch: Any) -> Union[str, List]:
         return shape
 
     return UNKNOWN_SIZE
+
+
+def _format_summary_table(total_parameters: int, trainable_parameters: int, *cols) -> str:
+    """
+    Takes in a number of arrays, each specifying a column in
+    the summary table, and combines them all into one big
+    string defining the summary table that are nicely formatted.
+    """
+    n_rows = len(cols[0][1])
+    n_cols = 1 + len(cols)
+
+    # Get formatting width of each column
+    col_widths = []
+    for c in cols:
+        col_width = max(len(str(a)) for a in c[1]) if n_rows else 0
+        col_width = max(col_width, len(c[0]))  # minimum length is header length
+        col_widths.append(col_width)
+
+    # Formatting
+    s = "{:<{}}"
+    total_width = sum(col_widths) + 3 * n_cols
+    header = [s.format(c[0], l) for c, l in zip(cols, col_widths)]
+
+    # Summary = header + divider + Rest of table
+    summary = " | ".join(header) + "\n" + "-" * total_width
+    for i in range(n_rows):
+        line = []
+        for c, l in zip(cols, col_widths):
+            line.append(s.format(str(c[1][i]), l))
+        summary += "\n" + " | ".join(line)
+    summary += "\n" + "-" * total_width
+
+    summary += "\n" + s.format(get_human_readable_count(trainable_parameters), 10)
+    summary += "Trainable params"
+    summary += "\n" + s.format(get_human_readable_count(total_parameters - trainable_parameters), 10)
+    summary += "Non-trainable params"
+    summary += "\n" + s.format(get_human_readable_count(total_parameters), 10)
+    summary += "Total params"
+
+    return summary
 
 
 def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
@@ -392,43 +408,3 @@ def get_human_readable_count(number: int) -> str:
     number = number * (10 ** shift)
     index = num_groups - 1
     return f"{int(number):,d} {labels[index]}"
-
-
-def _format_summary_table(total_params: int, total_trainable_params: int, *cols) -> str:
-    """
-    Takes in a number of arrays, each specifying a column in
-    the summary table, and combines them all into one big
-    string defining the summary table that are nicely formatted.
-    """
-    n_rows = len(cols[0][1])
-    n_cols = 1 + len(cols)
-
-    # Get formatting width of each column
-    col_widths = []
-    for c in cols:
-        col_width = max(len(str(a)) for a in c[1]) if n_rows else 0
-        col_width = max(col_width, len(c[0]))  # minimum length is header length
-        col_widths.append(col_width)
-
-    # Formatting
-    s = "{:<{}}"
-    total_width = sum(col_widths) + 3 * n_cols
-    header = [s.format(c[0], l) for c, l in zip(cols, col_widths)]
-
-    # Summary = header + divider + Rest of table
-    summary = " | ".join(header) + "\n" + "-" * total_width
-    for i in range(n_rows):
-        line = []
-        for c, l in zip(cols, col_widths):
-            line.append(s.format(str(c[1][i]), l))
-        summary += "\n" + " | ".join(line)
-    summary += "\n" + "-" * total_width
-
-    summary += "\n" + s.format(get_human_readable_count(total_trainable_params), 10)
-    summary += "Trainable params"
-    summary += "\n" + s.format(get_human_readable_count(total_params - total_trainable_params), 10)
-    summary += "Non-trainable params"
-    summary += "\n" + s.format(get_human_readable_count(total_params), 10)
-    summary += "Total params"
-
-    return summary
