@@ -1106,7 +1106,10 @@ class LightningModule(
         self.trainer.train_loop.backward(loss, optimizer, -1, *args, **kwargs)
         self._running_manual_backward = False
 
-    def manual_optimizer_step(self, optimizer: Optimizer, force_optimizer_step:bool = False) -> None:
+    def manual_optimizer_step(self,
+                              optimizer: Optimizer,
+                              force_optimizer_step: bool = False,
+                              lambda_closure: Optional[Callable] = None) -> None:
         """
         Call this directly from your training_step when doing optimizations manually.
         By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
@@ -1119,6 +1122,8 @@ class LightningModule(
             force_optimizer_step: Whether to force an optimizer step. Could be useful when having 2 optimizers
                 and one should use accumulated gradients but not the other one.
                 One could put its own logic to force an optimizer step.
+
+            lambda_closure: One could provide its own lambda_closure. Set to None by default.
 
         Example::
 
@@ -1137,10 +1142,15 @@ class LightningModule(
         if not self.trainer.train_loop.should_accumulate() or force_optimizer_step:
 
             # mock closure function as the user is responsible to call `manual_backward`
-            def mock_optimizer_closure():
+            def mock_lambda_closure():
                 return
 
-            self.trainer.train_loop.optimizer_step(optimizer, None, self.trainer.batch_idx, mock_optimizer_closure)
+            lambda_closure = lambda_closure if isinstance(lambda_closure, callable) else mock_lambda_closure
+
+            self.trainer.train_loop.optimizer_step(optimizer,
+                                                   None,
+                                                   self.trainer.batch_idx,
+                                                   lambda_closure)
 
             # update will be called after every optimizer_step call
             if self.trainer.amp_backend == AMPType.NATIVE:
