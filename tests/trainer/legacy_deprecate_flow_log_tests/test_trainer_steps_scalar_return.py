@@ -204,6 +204,7 @@ def test_dpp_reduce_mean_pbar(tmpdir):
             output = self.layer(batch)
             loss = self.loss(batch, output)
             loss /= loss.clone().detach()
+            self.log('self_log', loss, prog_bar=True, sync_dist=True)
             return loss
 
     model = ExtentedModel()
