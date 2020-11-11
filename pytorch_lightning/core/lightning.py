@@ -1189,13 +1189,13 @@ class LightningModule(
 
                 def gen_closure():
                     ... forward and compute loss for generator
-                    loss_gen = compute_loss()
+                    loss_gen = ...
                     self.log("loss_gen", loss_gen, on_step=True, on_epoch=True)
                     self.manual_backward(loss_gen, opt_gen)
 
                 def dis_closure():
                     ... forward and compute loss for discriminator
-                    loss_dis = compute_loss()
+                    loss_dis = ...
                     self.log("loss_dis", loss_dis, on_step=True, on_epoch=True)
                     self.manual_backward(loss_dis, opt_dis)
 
@@ -1383,8 +1383,7 @@ class LightningModule(
             # native amp does not yet support closures.
             # TODO: pass the closure to the step ASAP
             optimizer_closure()
-            self.trainer.scaler.unscale_(optimizer)
-            optimizer.step(optimizer, *args, **kwargs)
+            self.trainer.scaler.step(optimizer)
         elif self.trainer.amp_backend == AMPType.APEX:
             # apex amp does not yet support closures.
             # TODO: pass the closure to the step ASAP
