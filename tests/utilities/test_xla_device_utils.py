@@ -34,22 +34,3 @@ def test_tpu_device_presence():
     """Check tpu_device_exists returns True when TPU is available"""
     assert xla_utils.XLADeviceUtils.tpu_device_exists() is True
 
-
-@pytest.mark.skipif(not XLA_AVAILABLE, reason="test requires torch_xla to be installed")
-@pl_multi_process_test
-def test_xla_device_is_a_tpu():
-    """Check that the XLA device is a TPU"""
-    device = xm.xla_device()
-    device_type = xm.xla_device_hw(device)
-    return device_type == "TPU"
-
-
-def test_result_returns_within_10_seconds():
-    """Check that pl_multi_process returns within 10 seconds"""
-
-    start = time.time()
-    result = xla_utils.pl_multi_process(time.sleep)(25)
-    end = time.time()
-    elapsed_time = int(end - start)
-    assert elapsed_time <= 10
-    assert result is False
