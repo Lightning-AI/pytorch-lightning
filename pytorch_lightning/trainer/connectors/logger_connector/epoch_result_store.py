@@ -11,12 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from collections import defaultdict
-from copy import deepcopy
+import os
+from collections import defaultdict, ChainMap
 from enum import Enum
-from typing import Union, Tuple, Any, Mapping
-
+from typing import Union, Tuple, Any, Dict, Optional, List
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.core.step_result import Result
 
 
@@ -92,73 +91,70 @@ class HookResultStore:
         self._internals_reduced = {}
         self._internal_type = None
         self.has_reduced = False
-
-    def get_reduced_metrics(self):
-        return self._internals_reduced
-
-    def add_dataloader_idx(self):
-        return len(self._internals) > 1
+        self._latest_ref = {}
 
     @property
-    def num_dataloaders(self):
-        return len(self._internals)
+    def has_several_dataloaders(self) -> bool:
+        return self.num_dataloaders > 1
 
-    def get_latest_from_dict(self, dl_idx):
-        num_opt_idx = len(self._internals[dl_idx]) - 1
-        assert num_opt_idx >= 0
-        num_opt_idx = str(num_opt_idx)
-        num_batch_idx = len(self._internals[dl_idx][num_opt_idx]) - 1
-        batch_indexes = [*self._internals[dl_idx][num_opt_idx].keys()]
-        # sort them by increasing order
-        batch_indexes.sort(key=float)
-        assert num_batch_idx >= 0
-        return self._internals[dl_idx][num_opt_idx][batch_indexes[-1]][-1]
+    @property
+    def num_dataloaders(self) -> int:
+        _inter = self._internals_reduced if self.has_reduced else self._internals
+        return len(_inter)
 
     def check_dataloader_idx(self, result: Result) -> bool:
-        add_dataloader_idx = False
-        try:
-            if len(result.keys()) > 1:
-                random_key = [*result.keys()][-1]
-                add_dataloader_idx = result["meta"][random_key]["dataloader_idx"] is not None
-                return add_dataloader_idx
-            return add_dataloader_idx
-        except Exception:
-            return add_dataloader_idx
+        random_key = [*result.keys()][-1]
+        add_dataloader_idx = result["meta"][random_key]["dataloader_idx"] is not None
+        return add_dataloader_idx
 
-    def get_lastest_from_func_name(self, func_name, *args, latest=True, **kwargs):
+    def get_lastest_from_func_name(self, latest_result, func_name: str, *args, **kwargs) -> Dict:
         results = {}
-        if latest:
-            for dl_idx in range(self.num_dataloaders):
-                dl_idx = str(dl_idx)
-                if self._internal_type == ResultStoreType.OUTSIDE_BATCH_TRAIN_LOOP:
-                    latest_result = self._internals[dl_idx][-1]
-                else:
-                    latest_result = self.get_latest_from_dict(dl_idx)
-                add_dataloader_idx = self.check_dataloader_idx(latest_result)
-                func = getattr(latest_result, func_name)
-                results.update(func(*args, add_dataloader_idx=add_dataloader_idx, **kwargs))
-            return results
-        raise NotImplementedError
+        add_dataloader_idx = self.check_dataloader_idx(latest_result)
+        func = getattr(latest_result, func_name)
+        results.update(func(*args, add_dataloader_idx=add_dataloader_idx, **kwargs))
+        return results
 
-    def get_batch_pbar_metrics(self, latest=True, *args, **kwargs):
-        return self.get_lastest_from_func_name("get_batch_pbar_metrics", *args, latest=latest, **kwargs)
+    def run_lastest_batch_metrics_with_func_name(self, func_name, *args, **kwargs) -> List[Dict]:
+        """
+        This function used cache_ref and cache_result to optimize loading metrics
 
-    def get_batch_log_metrics(self, latest=True, *args, **kwargs):
-        return self.get_lastest_from_func_name("get_batch_log_metrics", *args, latest=latest, **kwargs)
+        Context: As we update the logger_connector metrics on every `self.log` call,
+        and it can be pretty time consuming, especially when logging outside batch loop.
+
+        HookResultStore keeps track of its latest added result object,
+        and cache its pbar and log metrics if already called on,
+        """
+        results = []
+        for dl_idx in range(self.num_dataloaders):
+            dl_idx = str(dl_idx)
+            latest_result = self._latest_ref[dl_idx]
+            result = self.get_lastest_from_func_name(latest_result, func_name, *args, **kwargs)
+            results.append(result)
+        return results
+
+    def get_batch_pbar_metrics(self, *args, **kwargs):
+        return self.run_lastest_batch_metrics_with_func_name("get_batch_pbar_metrics",
+                                                             *args,
+                                                             **kwargs)
+
+    def get_batch_log_metrics(self, *args, **kwargs):
+        return self.run_lastest_batch_metrics_with_func_name("get_batch_log_metrics",
+                                                             *args,
+                                                             **kwargs)
 
     def run_epoch_func(self, results, opt_metric, func_name, *args, **kwargs) -> None:
         if isinstance(opt_metric, Result):
             func = getattr(opt_metric, func_name)
             metrics_to_log = func(
                 *args,
-                add_dataloader_idx=self.add_dataloader_idx,
+                add_dataloader_idx=self.has_several_dataloaders,
                 **kwargs)
-            results.update(metrics_to_log)
+            results.append(metrics_to_log)
         else:
             raise Exception("The provided opt_metric should be a Result Object. Something is wrong")
 
-    def get_epoch_from_func_name(self, func_name, *args, **kwargs) -> Mapping:
-        results = {}
+    def get_epoch_from_func_name(self, func_name, *args, **kwargs) -> List[Dict]:
+        results = []
         for dl_idx in range(self.num_dataloaders):
             dl_idx = str(dl_idx)
             opt_metrics = self._internals_reduced[dl_idx]
@@ -169,13 +165,13 @@ class HookResultStore:
                 self.run_epoch_func(results, opt_metrics, func_name, *args, **kwargs)
         return results
 
-    def get_epoch_pbar_metrics(self, *args, **kwargs) -> Mapping:
+    def get_epoch_pbar_metrics(self, *args, **kwargs) -> List[Dict]:
         return self.get_epoch_from_func_name("get_epoch_pbar_metrics")
 
-    def get_epoch_log_metrics(self, *args, **kwargs) -> Mapping:
+    def get_epoch_log_metrics(self, *args, **kwargs) -> List[Dict]:
         return self.get_epoch_from_func_name("get_epoch_log_metrics")
 
-    def get_forked_metrics(self, *args, **kwargs) -> Mapping:
+    def get_forked_metrics(self, *args, **kwargs) -> List[Dict]:
         return self.get_epoch_from_func_name("get_forked_metrics")
 
     @staticmethod
@@ -211,12 +207,16 @@ class HookResultStore:
 
             self._append_to_structure(self._internals[primary_key], opt_idx, batch_idx, result)
 
+            self._latest_ref[primary_key] = result
+
         # [dataloader_idx] is a list
         else:
             self._internal_type = ResultStoreType.OUTSIDE_BATCH_TRAIN_LOOP
             if primary_key not in self._internals:
                 self._internals[primary_key] = []
             self._internals[primary_key].append(result)
+
+            self._latest_ref[primary_key] = result
 
     def auto_reduce_results_on_epoch_end(self) -> None:
         """
@@ -271,7 +271,7 @@ class HookResultStore:
                         self._internals_reduced[dl_idx][str(opt_idx)] = opt_outputs
 
                         # free memory
-                        del self._internals[dl_idx]
+                        del self._internals[dl_idx][opt_idx]
                 else:
                     # no need to reduce as called only once
                     if len(epoch_metrics) == 1:
@@ -301,13 +301,9 @@ class HookResultStore:
 class EpochResultStore:
     """
     This class is defined for internal usage.
-
     It holds all metrics logged using the self.log function using `HookResultStore` object.
-
     The internal datastructure is as follow:
-
     self._internals = {"fx_name_0": HookResultStore(), ..., "fx_name_n": HookResultStore()}
-
     Pseudo Code Example:
     ```
     model._current_fx_name = 'something'
@@ -315,7 +311,6 @@ class EpochResultStore:
     model.log('a', ...)
     epoch_result_store.cache_result()
     ```
-
     """
     def __init__(self, trainer, stage):
         self.trainer = trainer
@@ -365,7 +360,7 @@ class EpochResultStore:
         model_ref = self.trainer.get_model()
         # extract hook information
         fx_name = model_ref._current_hook_fx_name
-        if fx_name == '':
+        if fx_name is None:
             fx_name = model_ref._current_fx_name
         dataloader_idx = model_ref._current_dataloader_idx
         return fx_name, dataloader_idx
@@ -397,8 +392,12 @@ class EpochResultStore:
             # attach capture batch_size
             Result.attach_batch_size(self._batch_size, hook_result)
 
+            hook_result.detach()
+            if self.trainer.move_metrics_to_cpu:
+                hook_result.cpu()
+
             self._internals[fx_name].append(
-                deepcopy(hook_result),
+                hook_result,
                 dataloader_idx=dataloader_idx,
                 extra_info=extra_info)
 
@@ -456,18 +455,22 @@ class EpochResultStore:
         logger_connector.callback_metrics.update(callback_metrics)
         logger_connector.callback_metrics.pop("epoch", None)
 
-    def run_batch_from_func_name(self, func_name) -> Mapping:
-        results = {}
+    def run_batch_from_func_name(self, func_name) -> Dict:
+        results = []
         for fx_name, hook_result in self._internals.items():
             func = getattr(hook_result, func_name)
-            results.update(func(latest=True, include_forked_originals=False))
-        return results
+            results.append(func(include_forked_originals=False))
+        return dict(ChainMap(*sum(results, [])))
 
-    def get_latest_batch_log_metrics(self) -> Mapping:
-        return self.run_batch_from_func_name("get_batch_log_metrics")
+    def get_latest_batch_log_metrics(self) -> Dict:
+        batch_log_metrics = self.run_batch_from_func_name("get_batch_log_metrics")
+        batch_log_metrics.update(self.legacy_batch_log_metrics)
+        return batch_log_metrics
 
-    def get_latest_batch_pbar_metrics(self) -> Mapping:
-        return self.run_batch_from_func_name("get_batch_pbar_metrics")
+    def get_latest_batch_pbar_metrics(self) -> Dict:
+        batch_pbar_metrics = self.run_batch_from_func_name("get_batch_pbar_metrics")
+        batch_pbar_metrics.update(self.legacy_batch_pbar_metrics)
+        return batch_pbar_metrics
 
     @property
     def has_reduced(self) -> bool:
@@ -495,26 +498,23 @@ class EpochResultStore:
         self._has_batch_loop_finished = has_batch_loop_finished
         self.update_logger_connector()
 
-    def run_epoch_by_func_name(self, func_name) -> Mapping:
+    def run_epoch_by_func_name(self, func_name) -> Dict:
         if not self.has_reduced:
             self.auto_reduce_results_on_epoch_end()
-        results = {}
+        results = []
         for fx_name, hook_result in self._internals.items():
             func = getattr(hook_result, func_name)
-            results.update(func())
-        return results
+            results.append(func())
+        return dict(ChainMap(*sum(results, [])))
 
-    def get_epoch_pbar_metrics(self) -> Mapping:
+    def get_epoch_pbar_metrics(self) -> Dict:
         return self.run_epoch_by_func_name("get_epoch_pbar_metrics")
 
-    def get_epoch_log_metrics(self) -> Mapping:
+    def get_epoch_log_metrics(self) -> Dict:
         return self.run_epoch_by_func_name("get_epoch_log_metrics")
 
-    def get_forked_metrics(self) -> Mapping:
+    def get_forked_metrics(self) -> Dict:
         return self.run_epoch_by_func_name("get_forked_metrics")
-
-    def get_reduced_metrics(self) -> Mapping:
-        return self.run_epoch_by_func_name("get_reduced_metrics")
 
     def reset(self):
         self._internals = {}
@@ -523,6 +523,96 @@ class EpochResultStore:
         self._opt_idx: Union[int, None] = None
         self._batch_size: Union[int, None] = None
         self._has_batch_loop_finished = False
+        self.legacy_batch_log_metrics = {}
+        self.legacy_batch_pbar_metrics = {}
+
+    def __call__(
+            self,
+            fx_name: Optional[Union[str, int]] = None,
+            dl_idx: Optional[Union[str, int]] = None,
+            opt_idx: Optional[Union[str, int]] = None,
+            batch_idx: Optional[Union[str, int]] = None,
+            split_idx: Optional[Union[str, int]] = None,
+            reduced: bool = False,
+    ):
+        """
+        This function is an helper to access stored data
+
+        It access data from the HookResultStore. Please,
+        check its data structure for better understanding
+
+        Data can be accessed with the following chains:
+
+        IF REDUCED:
+            * IF accessing a fx_name defined in batch training loop:
+                fx_name -> dl_idx -> opt_idx -> batch_idx -> split_idx
+            * ELSE fx_name -> dl_idx -> batch_idx
+        ELSE:
+            * IF accessing a fx_name defined in batch training loop:
+                fx_name -> dl_idx -> opt_idx
+            * ELSE fx_name -> dl_idx
+
+        Note:
+            As soon as a param is None, it breaks the chain and returns associated stored data.
+
+        Example::
+
+            result: Result = self(fx_name="training_step", dl_idx="0", opt_idx="0", reduced=True)
+            result['train_loss_epoch'] # aggregated train_loss over one epoch.
+
+        Args:
+
+            fx_name: Hook name from ModelHooks or Callback. Example: `training_step`
+
+            dl_idx: Dataloader idx in short. It starts from 0 to num_dataloaders - 1
+
+            opt_idx: Optimizer idx in short. It starts from 0 to num_optimizers - 1
+
+            batch_idx: Index of batch idx seen during batch training or evaluation.
+                Works only with reduced=False
+
+            split_idx: Index of split idx in training loop when ttbt is used.
+
+            reduced: Data are being aggregated on on_epoch_end.
+                Indicates if we want to access aggregated Result or not.
+        """
+
+        hook_result = self[str(fx_name)]
+
+        dl_idx = str(dl_idx) if dl_idx is not None else None
+        opt_idx = str(opt_idx) if opt_idx is not None else None
+        batch_idx = str(batch_idx) if batch_idx is not None else None
+        split_idx = int(split_idx) if split_idx is not None else None
+
+        internal_type = hook_result._internal_type
+
+        if reduced:
+            result = hook_result._internals_reduced
+        else:
+            result = hook_result._internals
+
+        if internal_type == ResultStoreType.INSIDE_BATCH_TRAIN_LOOP:
+            if not reduced:
+                if dl_idx is not None:
+                    result = result[dl_idx]
+                    if opt_idx is not None:
+                        result = result[opt_idx]
+                        if batch_idx is not None:
+                            result = result[batch_idx]
+                            if split_idx is not None:
+                                result = result[split_idx]
+            else:
+                if dl_idx is not None:
+                    result = result[dl_idx]
+                    if opt_idx is not None:
+                        result = result[opt_idx]
+        else:
+            if dl_idx is not None:
+                result = result[dl_idx]
+                if batch_idx and not reduced:
+                    result = result[batch_idx]
+
+        return result
 
     def __repr__(self):
         return f"{self.__class__.__name__}(stage={self._stage}, internals={self._internals})"

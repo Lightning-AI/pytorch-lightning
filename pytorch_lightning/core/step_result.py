@@ -124,15 +124,17 @@ class Result(Dict):
         sync_dist: bool = False,
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
+        sync_fn: Callable = None,
         dataloader_idx: Optional[int] = None,
     ):
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
             value = value.detach()
 
-        # sync across ddp
+        # sync across workers when using distributed training
+        sync_fn = sync_fn or sync_ddp_if_available
         if sync_dist and isinstance(value, (torch.Tensor, numbers.Number)):
-            value = sync_ddp_if_available(value, group=sync_dist_group, reduce_op=sync_dist_op)
+            value = sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
         if 'meta' not in self:
             self.__setitem__('meta', {})
@@ -392,6 +394,12 @@ class Result(Dict):
         for k, v in self.items():
             if isinstance(v, torch.Tensor):
                 self.__setitem__(k, v.detach())
+
+    def cpu(self):
+        """Move all self attributes to CPU."""
+        for k, v in self.items():
+            if isinstance(v, torch.Tensor):
+                self.__setitem__(k, v.cpu())
 
     def __repr__(self):
         self_copy = self.copy()

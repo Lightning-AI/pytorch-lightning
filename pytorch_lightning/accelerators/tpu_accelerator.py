@@ -39,6 +39,15 @@ if TPU_AVAILABLE:
 class TPUAccelerator(Accelerator):
 
     def __init__(self, trainer, cluster_environment=None):
+        """
+        Runs training using TPUs (colab, single machine or pod)
+
+        Example::
+
+            # default
+            trainer = Trainer(accelerator=TPUAccelerator())
+
+        """
         super().__init__(trainer, cluster_environment)
         self.start_method = None
         self.mp_queue = None
@@ -270,8 +279,6 @@ class TPUAccelerator(Accelerator):
     def save_spawn_weights(self, model):
         """
         Dump a temporary checkpoint after ddp ends to get weights out of the process
-        :param model:
-        :return:
         """
         if self.trainer.is_global_zero:
             path = os.path.join(self.trainer.default_root_dir, '__temp_weight_distributed_end.ckpt')
@@ -282,8 +289,6 @@ class TPUAccelerator(Accelerator):
         """
         Load the temp weights saved in the process
         To recover the trained model from the ddp process we load the saved weights
-        :param model:
-        :return:
         """
 
         loaded_model = original_model
