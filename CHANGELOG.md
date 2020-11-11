@@ -38,6 +38,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added `persistent(mode)` method to metrics, to enable and disable metric states being added to `state_dict` ([#4482](https://github.com/PyTorchLightning/pytorch-lightning/pull/4482))
 
+- Added Horovod on Ray accelerator for remote distributed training ([#4615](https://github.com/PyTorchLightning/pytorch-lightning/pull/4615))
+
 
 ### Changed
 
