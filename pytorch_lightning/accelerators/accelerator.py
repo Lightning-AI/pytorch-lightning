@@ -232,7 +232,7 @@ class Accelerator(object):
         Return:
             reduced value
         """
-        return tensor
+        raise NotImplementedError()
 
     def __getstate__(self):
         return {
