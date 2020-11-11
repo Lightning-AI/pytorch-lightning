@@ -28,7 +28,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning import Trainer, callbacks
 
-from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
+from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset, RandomDataset
 from tests.base.deterministic_model import DeterministicModel
 
 
@@ -682,3 +682,50 @@ def test_log_works_in_train_callback(tmpdir):
             assert func_name in trainer.logger_connector.progress_bar_metrics
         else:
             assert func_name not in trainer.logger_connector.progress_bar_metrics
+
+
+def test_train_logging_training_step(tmpdir):
+    """
+    This tests makes sure training_step logged value are properly captured.
+    """
+
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    class ExtendedBoringModel(BoringModel):
+
+        _losses = []
+
+        def training_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self._losses.append(loss)
+            self.log("loss", loss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
+            self.log("my_metric_train", 1001, prog_bar=True, logger=True, on_step=True, on_epoch=True)
+
+        def validation_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log("val_loss", loss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
+            self.log("my_metric_val", 1001, prog_bar=True, logger=True, on_step=True, on_epoch=True)
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+            return [optimizer], [lr_scheduler]
+
+    model = ExtendedBoringModel()
+    model.training_step_end = None
+    model.training_epoch_end = None
+
+    # Initialize a trainer
+    trainer = Trainer(
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=0,
+    )
+    # Train the model ⚡
+    trainer.fit(model)
+    trainer.dev_debugger.logged_metrics[0]["loss_epoch"] == torch.stack(model._losses).mean()
+    assert trainer.dev_debugger.logged_metrics[0]["my_metric_train_epoch"] == 1001.0
+    assert trainer.dev_debugger.pbar_added_metrics[0]["loss_step"] == model._losses[0]
+    assert trainer.dev_debugger.pbar_added_metrics[0]["my_metric_train_step"] == 1001.0
