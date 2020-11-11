@@ -15,7 +15,7 @@
 Tests to ensure that the training loop works with a dict (1.0)
 """
 from pytorch_lightning.core.lightning import LightningModule
-from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
+from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset, RandomDataset
 import os
 import torch
 import pytest
@@ -489,3 +489,70 @@ def test_nested_datasouce_batch(tmpdir):
         weights_summary=None,
     )
     trainer.fit(model, train_data, val_data)
+
+
+def test_train_logging_training_step(tmpdir):
+    """
+    This tests makes sure training_step logged value are properly captured.
+    """
+
+    class ExtendedBoringModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.layer = torch.nn.Linear(32, 2)
+
+        def forward(self, x):
+            return self.layer(x)
+
+        def loss(self, batch, prediction):
+            # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
+            return torch.nn.functional.mse_loss(prediction, torch.ones_like(prediction))
+
+        def training_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log("loss", loss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
+            self.log("my_metric_train", 1001, prog_bar=True, logger=True, on_step=True, on_epoch=True)
+
+        def validation_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log("val_loss", loss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
+            self.log("my_metric_val", 1001, prog_bar=True, logger=True, on_step=True, on_epoch=True)
+
+
+        def test_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log("test_loss", loss, prog_bar=True, logger=True, on_step=False, on_epoch=True)
+
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+            return [optimizer], [lr_scheduler]
+
+        def train_dataloader(self):
+            return torch.utils.data.DataLoader(RandomDataset(32, 64))
+
+        def val_dataloader(self):
+            return torch.utils.data.DataLoader(RandomDataset(32, 64))
+
+        def test_dataloader(self):
+            return torch.utils.data.DataLoader(RandomDataset(32, 64))
+
+    model = ExtendedBoringModel()
+    model.training_step_end = None
+    model.training_epoch_end = None
+
+    # Initialize a trainer
+    trainer = Trainer(
+        max_epochs=1,
+        min_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=0,
+    )
+
+    # Train the model ⚡
+    trainer.fit(model)
