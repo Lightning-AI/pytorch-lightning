@@ -1,10 +1,12 @@
 name: Nightly events
 
 # https://jasonet.co/posts/scheduled-actions/
-on:
-  schedule:
-    # At the end of every day
-    - cron: "0 0 * * *"
+#on:
+#  schedule:
+#    # At the end of every day
+#    - cron: "0 0 * * *"
+# TODO
+on: push
 
 # based on https://github.com/pypa/gh-action-pypi-publish
 jobs:
@@ -104,6 +106,8 @@ jobs:
         id: extend
 
       - name: Publish CUDA to Docker Hub
+        # ToDo: extend also building for Nightly from pip
+        if: matrix.pytorch_version < 1.8
         # publish master/release
         uses: docker/build-push-action@v2
         with:
