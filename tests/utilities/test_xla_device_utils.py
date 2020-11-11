@@ -33,4 +33,3 @@ def test_tpu_device_absence():
 def test_tpu_device_presence():
     """Check tpu_device_exists returns True when TPU is available"""
     assert xla_utils.XLADeviceUtils.tpu_device_exists() is True
-
