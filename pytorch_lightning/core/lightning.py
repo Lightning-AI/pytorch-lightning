@@ -1205,7 +1205,7 @@ class LightningModule(
                     optimizer_closure=gen_closure,
                     make_optimizer_step=batch_idx % 2 == 0)
 
-                # update discriminator every 4 baches
+                # update discriminator every 4 batches
                 # therefore, no gradient accumulation for discriminator
                 if batch_idx % 4 == 0 :
                     # Note: Set make_optimizer_step to True or it will use by default
