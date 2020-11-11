@@ -109,10 +109,11 @@ class Accelerator(object):
     def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure):
         model_ref = self.trainer.get_model()
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-        native_amp = self.trainer.amp_backend == AMPType.NATIVE
+        using_native_amp = self.trainer.amp_backend == AMPType.NATIVE
+        automatic_optimization = self.trainer.train_loop.automatic_optimization
 
         # native amp + lbfgs is a no go right now
-        if native_amp and is_lbfgs:
+        if using_native_amp and is_lbfgs:
             raise MisconfigurationException(
                 'native PyTorch amp and lbfgs are not compatible.'
                 ' To request, please file a Github issue in PyTorch and tag @mcarilli')
@@ -125,12 +126,12 @@ class Accelerator(object):
             optimizer_idx=opt_idx,
             optimizer_closure=lambda_closure,
             on_tpu=False,  # TPUAccelerator class sets this as True
-            using_native_amp=native_amp,
+            using_native_amp=using_native_amp,
             using_lbfgs=is_lbfgs
         )
 
         # scale when native amp
-        if native_amp:
+        if automatic_optimization and using_native_amp:
             self.trainer.scaler.update()
 
     def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
@@ -221,11 +222,13 @@ class Accelerator(object):
                     reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
         """
         Function to reduce a tensor from several distributed processes to one aggregated tensor.
+
         Args:
             tensor: the tensor to sync and reduce
             group: the process group to gather results from. Defaults to all processes (world)
             reduce_op: the reduction operation. Defaults to sum.
                 Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
+
         Return:
             reduced value
         """
