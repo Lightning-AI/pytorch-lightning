@@ -19,7 +19,7 @@ _binary_prob_inputs = Input(
 
 
 _binary_inputs = Input(
-    preds=torch.randint(high=2, size=(NUM_BATCHES, BATCH_SIZE,)).to(torch.float),
+    preds=torch.randint(high=2, size=(NUM_BATCHES, BATCH_SIZE,)),
     target=torch.randint(high=2, size=(NUM_BATCHES, BATCH_SIZE,))
 )
 
@@ -29,10 +29,19 @@ _multilabel_prob_inputs = Input(
     target=torch.randint(high=2, size=(NUM_BATCHES, BATCH_SIZE, NUM_CLASSES))
 )
 
+_multilabel_multidim_prob_inputs = Input(
+    preds=torch.rand(NUM_BATCHES, BATCH_SIZE, NUM_CLASSES, EXTRA_DIM),
+    target=torch.randint(high=2, size=(NUM_BATCHES, BATCH_SIZE, NUM_CLASSES, EXTRA_DIM))
+)
 
 _multilabel_inputs = Input(
     preds=torch.randint(high=2, size=(NUM_BATCHES, BATCH_SIZE, NUM_CLASSES)),
     target=torch.randint(high=2, size=(NUM_BATCHES, BATCH_SIZE, NUM_CLASSES))
+)
+
+_multilabel_multidim_inputs = Input(
+    preds=torch.randint(high=2, size=(NUM_BATCHES, BATCH_SIZE, NUM_CLASSES, EXTRA_DIM)),
+    target=torch.randint(high=2, size=(NUM_BATCHES, BATCH_SIZE, NUM_CLASSES, EXTRA_DIM))
 )
 
 # Generate edge multilabel edge case, where nothing matches (scores are undefined)

@@ -252,7 +252,9 @@ def _input_format_classification(
     else:
         preds, target = preds.squeeze(), target.squeeze()
 
-    _check_classification_inputs(preds, target, threshold, num_classes, logits)
+    _check_classification_inputs(
+        preds, target, threshold=threshold, num_classes=num_classes, is_multiclass=is_multiclass, logits=logits
+    )
 
     if logits:
         threshold = np.log(threshold / (1 - threshold))
@@ -319,9 +321,9 @@ def _input_format_classification(
             target = target.reshape(target.shape[0], -1)
         else:
             target = to_onehot(target, num_classes)
-            target = target.reshape(target.shape[0], target.shape[0], -1)
+            target = target.reshape(target.shape[0], target.shape[1], -1)
             preds = to_onehot(preds, num_classes)
-            preds = preds.reshape(preds.shape[0], preds.shape[0], -1)
+            preds = preds.reshape(preds.shape[0], preds.shape[1], -1)
 
     # Multi-dim multi-class (N, C, ...) and (N, ..., C)
     else:
@@ -337,7 +339,7 @@ def _input_format_classification(
             preds = preds.reshape(preds.shape[0], -1)
         else:
             target = to_onehot(target, num_classes)
-            target = target.reshape(target.shape[0], target.shape[0], -1)
+            target = target.reshape(target.shape[0], target.shape[1], -1)
             preds = select_topk(preds, top_k).reshape(preds.shape[0], preds.shape[1], -1)
 
     return preds, target, mode
