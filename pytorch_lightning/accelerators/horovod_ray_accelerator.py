@@ -25,6 +25,12 @@ else:
     HOROVOD_AVAILABLE = True
 
 
+def get_executable_cls():
+    # Only used for testing purposes, currently.
+    # We need to override this in tests to ensure test path is set correctly.
+    return None
+
+
 class HorovodRayAccelerator(HorovodAccelerator):
     def __init__(self, trainer, cluster_environment=None):
         super().__init__(trainer, cluster_environment)
@@ -38,10 +44,17 @@ class HorovodRayAccelerator(HorovodAccelerator):
 
     def setup(self, model):
         self.trainer.model = model
-        self.executor.start()
+        self.executor.start(executable_cls=get_executable_cls())
 
     def train(self):
-        self.executor.run(self.train_remote)
+        results = self.executor.run(self.train_remote)
+        results, state_dict, best_path = results[0]
+
+        self.trainer.model.load_state_dict(state_dict)
+        if self.trainer.checkpoint_callback:
+            self.trainer.checkpoint_callback.best_model_path = best_path
+
+        return results
 
     def train_remote(self):
         hvd.init()
@@ -50,7 +63,17 @@ class HorovodRayAccelerator(HorovodAccelerator):
             self.trainer.root_gpu = hvd.local_rank()
 
         self.setup_worker(self.trainer.model)
-        self.train_worker()
+        results = self.train_worker()
+        if hvd.rank() != 0:
+            # Only want results from the first worker
+            return None
+
+        best_model_path = None
+        if self.trainer.checkpoint_callback is not None:
+            best_model_path = self.trainer.checkpoint_callback.best_model_path
+
+        model = self.trainer.model
+        return results, model.state_dict(), best_model_path
 
     def teardown(self):
         self.executor.shutdown()
