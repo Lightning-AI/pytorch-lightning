@@ -1136,6 +1136,18 @@ class LightningModule(
                 # This will force an opt.step() even if accumulate_grad_batches is set.
                 self.manual_optimizer_step(opt_a, force_optimizer_step=True)
 
+        Example::
+
+            def training_step(...):
+                (opt_a, opt_b) = self.optimizers()
+                loss = ...
+
+                # 
+                def lambda_closure():
+                    return self.manual_backward(loss, opt_a)
+
+                self.manual_optimizer_step(opt_a, force_optimizer_step=True, lambda_closure=lambda_closure)
+
         """
         # make sure we're using manual opt
         self._verify_is_manual_optimization('manual_optimizer_step')
@@ -1156,6 +1168,11 @@ class LightningModule(
             # update will be called after every optimizer_step call
             if self.trainer.amp_backend == AMPType.NATIVE:
                 self.trainer.scaler.update()
+
+        else:
+            # make sure to call lambda_closure when accumulating
+            if isinstance(lambda_closure, types.FunctionType):
+                lambda_closure()
 
     def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
         """

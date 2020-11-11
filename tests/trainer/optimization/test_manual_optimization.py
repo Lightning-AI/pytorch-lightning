@@ -621,3 +621,121 @@ def test_multiple_optimizers_manual_optimizer_step(tmpdir):
 
     num_manual_backward_calls = 3
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * num_manual_backward_calls
+
+
+def test_manual_optimizer_step_with_lambda_closure(tmpdir):
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    """
+    Tests that `manual_optimizer_step` works with lambda_closure
+    """
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            # manual
+            opt = self.optimizers()
+            x = batch[0]
+
+            loss_1 = self(x)
+            loss_1 = self.loss(loss_1, loss_1)
+
+            # make sure there are no grads
+            if self.layer.weight.grad is not None:
+                assert torch.all(self.layer.weight.grad == 0)
+
+            def lambda_closure():
+                # emulate bayesian optimization.
+                num_backward = 2
+                for backward_idx in range(num_backward):
+                    retain_graph = (num_backward - 1) != backward_idx
+                    self.manual_backward(loss_1, opt, retain_graph=retain_graph)
+
+            weight_before = self.layer.weight.clone()
+
+            self.manual_optimizer_step(opt, lambda_closure=lambda_closure)
+
+            weight_after = self.layer.weight.clone()
+            assert not torch.equal(weight_before, weight_after)
+
+        def training_epoch_end(self, outputs) -> None:
+            # outputs should be an array with an entry per optimizer
+            assert len(outputs) == 2
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            return optimizer
+
+    model = TestModel()
+    model.val_dataloader = None
+    model.training_epoch_end = None
+
+    limit_train_batches = 2
+    trainer = Trainer(
+        automatic_optimization=False,
+        default_root_dir=tmpdir,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=2,
+        max_epochs=1,
+        log_every_n_steps=1,
+    )
+
+    trainer.fit(model)
+    assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * 2
+
+
+def test_manual_optimizer_step_with_lambda_closure_and_accumulated_grad(tmpdir):
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    """
+    Tests that `manual_optimizer_step` works with lambda_closure and accumulated_grad
+    """
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            # manual
+            opt = self.optimizers()
+            x = batch[0]
+
+            loss_1 = self(x)
+            loss_1 = self.loss(loss_1, loss_1)
+
+            def lambda_closure():
+                # emulate bayesian optimization.
+                num_backward = 1
+                for backward_idx in range(num_backward + 1):
+                    retain_graph = num_backward != backward_idx # noqa E225
+                    self.manual_backward(loss_1, opt, retain_graph=retain_graph)
+
+            weight_before = self.layer.weight.clone()
+
+            self.manual_optimizer_step(opt, lambda_closure=lambda_closure)
+
+            weight_after = self.layer.weight.clone()
+            if not self.trainer.train_loop.should_accumulate():
+                assert not torch.equal(weight_before, weight_after)
+            else:
+                assert self.layer.weight.grad is not None
+
+        def training_epoch_end(self, outputs) -> None:
+            # outputs should be an array with an entry per optimizer
+            assert len(outputs) == 2
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            return optimizer
+
+    model = TestModel()
+    model.val_dataloader = None
+    model.training_epoch_end = None
+
+    limit_train_batches = 4
+    trainer = Trainer(
+        automatic_optimization=False,
+        default_root_dir=tmpdir,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=2,
+        max_epochs=1,
+        log_every_n_steps=1,
+        accumulate_grad_batches=2,
+    )
+
+    trainer.fit(model)
+    assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * 2
