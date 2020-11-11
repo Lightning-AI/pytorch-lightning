@@ -17,6 +17,7 @@ import collections
 import copy
 import inspect
 import re
+import types
 from abc import ABC
 from argparse import Namespace
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union, Mapping
@@ -1145,7 +1146,7 @@ class LightningModule(
             def mock_lambda_closure():
                 return
 
-            lambda_closure = lambda_closure if isinstance(lambda_closure, callable) else mock_lambda_closure
+            lambda_closure = lambda_closure if isinstance(lambda_closure, types.FunctionType) else mock_lambda_closure
 
             self.trainer.train_loop.optimizer_step(optimizer,
                                                    None,
