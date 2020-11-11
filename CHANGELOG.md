@@ -5,61 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [unreleased] - YYYY-MM-DD
+## [1.0.6] - 2020-11-11
 
 ### Added
 
-- Added "monitor" key to saved `ModelCheckpoints` ([#4383](https://github.com/PyTorchLightning/pytorch-lightning/pull/4383))
-
-
-- Added `ConfusionMatrix` class interface ([#4348](https://github.com/PyTorchLightning/pytorch-lightning/pull/4348))
-
-
-- Added multiclass AUROC metric ([#4236](https://github.com/PyTorchLightning/pytorch-lightning/pull/4236))
-
-
-- Added global step indexing to the checkpoint name for a better sub-epoch checkpointing experience ([#3807](https://github.com/PyTorchLightning/pytorch-lightning/pull/3807))
-
-
-- Added optimizer hooks in callbacks ([#4379](https://github.com/PyTorchLightning/pytorch-lightning/pull/4379))
-
-
-- Added option to log momentum ([#4384](https://github.com/PyTorchLightning/pytorch-lightning/pull/4384))
-
-
-- Added `fsspec` to tuner ([#4458](https://github.com/PyTorchLightning/pytorch-lightning/pull/4458))
-
-
 - Added metrics aggregation in Horovod and fixed early stopping ([#3775](https://github.com/PyTorchLightning/pytorch-lightning/pull/3775)) 
-
-
 - Added `manual_optimizer_step` which work with `AMP Native` and `accumulated_grad_batches` ([#4485](https://github.com/PyTorchLightning/pytorch-lightning/pull/4485))
-
-
 - Added `persistent(mode)` method to metrics, to enable and disable metric states being added to `state_dict` ([#4482](https://github.com/PyTorchLightning/pytorch-lightning/pull/4482))
-
+- Added congratulations at the end of our notebooks ([#4555](https://github.com/PyTorchLightning/pytorch-lightning/pull/4555))
 
 ### Changed
 
-
-
-### Deprecated
-
-
-
-### Removed
-
-
+- Changed `fsspec` to tuner ([#4458](https://github.com/PyTorchLightning/pytorch-lightning/pull/4458))
+- Unify sLURM/TorchElastic under backend plugin ([#4578](https://github.com/PyTorchLightning/pytorch-lightning/pull/4578),
+        [#4580](https://github.com/PyTorchLightning/pytorch-lightning/pull/4580),
+        [#4581](https://github.com/PyTorchLightning/pytorch-lightning/pull/4581),
+        [#4582](https://github.com/PyTorchLightning/pytorch-lightning/pull/4582),
+        [#4583](https://github.com/PyTorchLightning/pytorch-lightning/pull/4583))
 
 ### Fixed
 
-- Fixed feature-lack in hpc load ([#4526](https://github.com/PyTorchLightning/pytorch-lightning/pull/4526))
-
-
-- Fixed metrics states being overridden in ddp mode ([#4482](https://github.com/PyTorchLightning/pytorch-lightning/pull/4482))
-
-
+- Fixed feature-lack in `hpc_load` ([#4526](https://github.com/PyTorchLightning/pytorch-lightning/pull/4526))
+- Fixed metrics states being overridden in DDP mode ([#4482](https://github.com/PyTorchLightning/pytorch-lightning/pull/4482))
 - Fixed `lightning_getattr`, `lightning_hasattr` not finding the correct attributes in datamodule ([#4347](https://github.com/PyTorchLightning/pytorch-lightning/pull/4347))
+- Fixed automatic optimization AMP by `manual_optimization_step` ([#4485](https://github.com/PyTorchLightning/pytorch-lightning/pull/4485))
+- Replace `MisconfigurationException` with warning in `ModelCheckpoint` Callback ([#4560](https://github.com/PyTorchLightning/pytorch-lightning/pull/4560))
+- Fixed logged keys in mlflow logger ([#4412](https://github.com/PyTorchLightning/pytorch-lightning/pull/4412))
+- Fixed `is_picklable` by catching `AttributeError` ([#4508](https://github.com/PyTorchLightning/pytorch-lightning/pull/4508))
 
 
 ## [1.0.5] - 2020-11-03
