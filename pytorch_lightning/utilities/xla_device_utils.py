@@ -22,12 +22,11 @@ XLA_AVAILABLE = importlib.util.find_spec("torch_xla") is not None
 
 if XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
 
 
-def inner_f(_, queue, func, *args):  # pragma: no cover
+def inner_f(queue, func, *args, **kwargs):  # pragma: no cover
     try:
-        queue.put(func(*args))
+        queue.put(func(*args, **kwargs))
     except Exception:
         import traceback
 
@@ -39,13 +38,13 @@ def pl_multi_process(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         queue = Queue()
-        xmp.spawn(inner_f,
-          args=(queue, func, *args),
-          nprocs=1,
-          join=True,
-          daemon=False,
-          start_method='fork')
-        return queue.get()
+        proc = Process(target=inner_f, args=(queue, func, *args), kwargs=kwargs)
+        proc.start()
+        proc.join(10)
+        try:
+            return queue.get_nowait()
+        except q.Empty:
+            return False
 
     return wrapper
 
