@@ -37,7 +37,7 @@ class TrainerProperties(ABC):
     logger_connector: LoggerConnector
     _state: TrainerState
     global_rank: int
-    fast_dev_run: bool
+    fast_dev_run: Union[int, bool]
     use_dp: bool
     use_ddp: bool
     use_ddp2: bool
