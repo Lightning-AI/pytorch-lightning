@@ -129,10 +129,12 @@ class Result(Dict):
     ):
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
+            # TODO: Find a way to make the reduction only once, so we don't need to clone the
             is_dist = torch.distributed.is_available() and torch.distributed.is_initialized()
             if sync_dist and is_dist:
                 # make sure we don't make an in-place operation
-                value = value.clone().detach()
+                # .detach().clone() and not .clone().detach() which will copy the entire graph.
+                value = value.detach().clone()
             else:
                 value = value.detach()
 
