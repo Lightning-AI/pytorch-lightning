@@ -79,3 +79,8 @@ class PrecisionConnector:
             self.trainer.optimizers = optimizers
 
         return model
+
+    @property
+    def scaler(self):
+        if self.trainer.amp_backend == AMPType.NATIVE and self.trainer.precision == 16 and not self.trainer.use_tpu:
+            return self.backend.scaler

@@ -135,8 +135,7 @@ class TrainLoop:
         self.trainer.model_connector.copy_trainer_model_properties(ref_model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
-        # TODO I don't think this makes sense, we shouldn't have init scaler in an accelerator...
-        self.trainer.scaler = self.trainer.accelerator_backend.init_scaler()
+        self.trainer.scaler = self.trainer.precision_connector.scaler
 
         # log hyper-parameters
         if self.trainer.logger is not None:

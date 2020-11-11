@@ -26,7 +26,6 @@ from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only, sync_ddp_if_available
 
-
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
     from hydra.core.hydra_config import HydraConfig
@@ -187,7 +186,7 @@ class DDPHPCAccelerator(Accelerator):
         return results
 
     def configure_ddp(
-        self, model: LightningModule, device_ids: List[int]
+            self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
         model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model
@@ -217,7 +216,3 @@ class DDPHPCAccelerator(Accelerator):
 
     def sync_optim_state(self):
         self.ddp_plugin.sync_optim_state(self.trainer.get_model())
-
-    def init_scaler(self):
-        # TODO I don't think this makes sense, we shouldn't have init scaler in an accelerator...
-        self.ddp_plugin.init_scaler(self.trainer)
