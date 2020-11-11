@@ -712,6 +712,5 @@ def test_logging_sync_dist_true_cpu(tmpdir):
     )
     trainer.fit(model)
 
-    # make sure types are correct
     assert trainer.logged_metrics['foo'] == fake_result
     assert trainer.logged_metrics['bar'] == fake_result
