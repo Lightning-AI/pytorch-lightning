@@ -23,7 +23,7 @@ import os
 import torch
 from torch.utils.data import Dataset
 from pytorch_lightning import Trainer, LightningModule
-
+from pytorch_lightning.callbacks import ModelCheckpoint
 
 class RandomDataset(Dataset):
     def __init__(self, size, length):
@@ -86,10 +86,12 @@ class BoringModel(LightningModule):
     def validation_step(self, batch, batch_idx):
         output = self.layer(batch)
         loss = self.loss(batch, output)
-        return {"x": loss}
+        self.log("vloss", loss)
+        return {"vloss": loss}
 
     def validation_epoch_end(self, outputs) -> None:
-        torch.stack([x['x'] for x in outputs]).mean()
+        print("validation_epoch ----")
+        torch.stack([x['vloss'] for x in outputs]).mean()
 
     def test_step(self, batch, batch_idx):
         output = self.layer(batch)
@@ -124,16 +126,25 @@ def run_test():
     test_data = torch.utils.data.DataLoader(RandomDataset(32, 64))
 
     # model
+    checkpoint_callback = ModelCheckpoint(
+        dirpath ="./checkpoints",
+        save_top_k=2,
+        verbose=True,
+        monitor='vloss',
+        mode='min',
+        prefix=''
+    )
     model = TestModel()
     trainer = Trainer(
         default_root_dir=os.getcwd(),
         limit_train_batches=1,
         limit_val_batches=1,
-        max_epochs=1,
+        max_epochs=4,
+        checkpoint_callback=checkpoint_callback,
         weights_summary=None,
     )
     trainer.fit(model, train_data, val_data)
-    trainer.test(test_dataloaders=test_data)
+    trainer.test(model, test_dataloaders=test_data)
 
 
 if __name__ == '__main__':
