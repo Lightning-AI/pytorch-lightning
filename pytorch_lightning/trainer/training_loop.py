@@ -734,6 +734,7 @@ class TrainLoop:
                         # user decided to skip optimization
                         # make sure to zero grad.
                         self.zero_grad_handler(batch_idx, optimizer, opt_idx)
+                        self.finalize_batch_metrics(batch_log_metrics)
                         continue
 
                     batch_outputs = self._process_closure_result(
@@ -768,6 +769,18 @@ class TrainLoop:
             training_step_output_for_epoch_end=batch_outputs,
         )
         return result
+
+    def finalize_batch_metrics(self, batch_log_metrics):
+        result = self.trainer.get_model()._results
+
+        _batch_log_metrics = result.get_batch_log_metrics()
+        _batch_pbar_metrics = result.get_batch_pbar_metrics()
+        _callback_metrics = result.get_callback_metrics()
+
+        batch_log_metrics.append(_batch_log_metrics)
+        # self.trainer.logger_connector.add_progress_bar_metrics(_batch_pbar_metrics)
+        self.trainer.logger_connector.callback_metrics.update(_callback_metrics)
+        self.trainer.logger_connector.logged_metrics.update(_batch_log_metrics)
 
     @contextmanager
     def block_ddp_sync_behaviour(self):
