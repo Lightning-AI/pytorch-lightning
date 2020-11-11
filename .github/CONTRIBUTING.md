@@ -112,7 +112,7 @@ In case you adding new dependencies, make sure that they are compatible with the
 
 ### Coding Style
 
-1. Use f-strings for output formation (except logging when we stay with lazy `logging.info("Hello %s!`, name);
+1. Use f-strings for output formation (except logging when we stay with lazy `logging.info("Hello %s!", name)`.
 2. Black code formatter is used using `pre-commit` hook.
 
 ### Documentation
