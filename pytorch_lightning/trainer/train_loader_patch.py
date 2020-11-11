@@ -1,11 +1,11 @@
 '''
-    This patch solves two problems discussed in 
+    This patch solves two problems discussed in
     https://github.com/PyTorchLightning/pytorch-lightning/pull/1959
 
-    The function  train_dataloader can either return a single instance of 
+    The function  train_dataloader can either return a single instance of
     torch.utils.data.DataLoader or a dictionary of dataloaders.
 
-    This patch fixes the length and iteration issus 
+    This patch fixes the length and iteration issus
     and make the rest of the code oblivious of the underlying data structure.
 
     I will keep the name of the class but a better name is probable advisable
@@ -22,7 +22,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-  
+
 
 # def get_len(d):
 #     if isinstance(d, dict):
@@ -35,7 +35,7 @@ class MultiIterator(object):
     SUPPORTED_MODES = ('min_size', 'max_size_cycle')
 
     def __init__(self, loaders: Any, mode: str = 'min_size') -> None:
-        self.loaders = loaders 
+        self.loaders = loaders
         self.num_batches = self._calc_num_batches(loaders, mode)
 
     def _calc_num_batches(self, loaders, mode: str) -> Union[int, float]:
@@ -57,7 +57,7 @@ class MultiIterator(object):
             return compare_func(all_lengths)
 
         raise TypeError(f'Got Type {type(all_lengths).__name__}, but expected one of Sequence, Mapping, int or float')
- 
+
     def __len__(self) -> Union[int, float]:
         # Return type might be int or inf. Inf will cause type error when calling len()
         return self.num_batches
@@ -70,7 +70,7 @@ class MultiIterator(object):
                 for loader_name, loader in self.loaders.items():
                     # If reaching the end of the iterator, recreate one
                     # because shuffle=True in dataloader, the iterator will have a different order
-                    if batch_idx % len(loader) == 0: 
+                    if batch_idx % len(loader) == 0:
                         gens[loader_name] = iter(loader)
                     rv[loader_name] = next(gens[loader_name])
                 yield rv
@@ -87,4 +87,3 @@ class MultiIterator(object):
                 yield rv
 
         return iter(self.loaders)
-        

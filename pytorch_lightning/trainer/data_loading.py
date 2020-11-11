@@ -189,7 +189,7 @@ class TrainerDataLoadingMixin(ABC):
         # check the workers recursively
         apply_to_collection(self.train_dataloader, DataLoader, self._worker_check, 'train dataloader')
 
-        # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches 
+        # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
         self.train_dataloader = CombinedLoader(self.train_dataloader, self._multiple_trainloader_mode)
 
         self.num_training_batches = 0
@@ -348,10 +348,9 @@ class TrainerDataLoadingMixin(ABC):
         Returns:
             The dataloader
         """
-        # dataloader = MultiIterator(dataloader_fx())
         dataloader = dataloader_fx()
         dataloader = self._flatten_dl_only(dataloader)
-        
+
         if self.accelerator_backend is not None:
             self.accelerator_backend.barrier('get_dataloaders')
         return dataloader

@@ -226,7 +226,7 @@ class CycleIterator(object):
         """
         if self.counter >= self.__len__():
             raise StopIteration
-        
+
         try:
             return next(self._loader_iter)
 
@@ -291,9 +291,9 @@ class CombinedLoader(object):
                 'max_size_cycle' which stops if the longest loader is exhausted and cycles through the smaller ones.
         """
         self.loaders = loaders
-        # could be multiple datasets, but use self.dataset to follow 
+        # could be multiple datasets, but use self.dataset to follow the name convention in DataLoader
         datasets = apply_to_collection(self.loaders, Iterable, self.extract_dataset,
-                                      wrong_dtype=(Sequence, Mapping))
+                                       wrong_dtype=(Sequence, Mapping))
 
         self.dataset = CombinedDataset(datasets)
 
@@ -396,7 +396,7 @@ class CombinedLoaderIterator(object):
         if self._loader_iters is None:
             self._loader_iters = self.create_loader_iters(self.loaders)
         return self.request_next_batch(self._loader_iters)
-        
+
     @staticmethod
     def request_next_batch(loader_iters: Union[Iterator, Sequence, Mapping]) -> Any:
         return apply_to_collection(loader_iters, Iterator, next)
