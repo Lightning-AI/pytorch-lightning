@@ -210,8 +210,9 @@ class Trainer(
             log_every_n_steps: How often to log within steps (defaults to every 50 steps).
 
             automatic_optimization: If False you are responsible for calling .backward, .step, zero_grad.
-                Meant to be used with multiple optimizers by advanced users. Passing bool
-                value is deprecated in v1.1 and will be removed in v1.3.
+                If False you are responsible for calling .backward, .step, zero_grad in LightningModule.
+                This argument has been moved to LightningModule. It is deprecated here in v1.1 and
+                will be removed in v1.3.
 
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
