@@ -18,7 +18,9 @@ from tests.base.develop_utils import load_model_from_checkpoint, get_default_log
     reset_seed
 
 
-def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50):
+def run_model_test_without_loggers(trainer_options,
+                                   model,
+                                   min_acc: float = 0.50):
     reset_seed()
 
     # fit model
@@ -44,10 +46,15 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
     if trainer.use_ddp:
         # on hpc this would work fine... but need to hack it for the purpose of the test
         trainer.model = pretrained_model
-        trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
+        trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers(
+        )
 
 
-def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, with_hpc: bool = True):
+def run_model_test(trainer_options,
+                   model,
+                   on_gpu: bool = True,
+                   version=None,
+                   with_hpc: bool = True):
 
     reset_seed()
     save_dir = trainer_options['default_root_dir']
@@ -60,16 +67,19 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
         trainer_options.update(checkpoint_callback=True)
 
     trainer = Trainer(**trainer_options)
-    initial_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
+    initial_values = torch.tensor(
+        [torch.sum(torch.abs(x)) for x in model.parameters()])
     result = trainer.fit(model)
-    post_train_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
+    post_train_values = torch.tensor(
+        [torch.sum(torch.abs(x)) for x in model.parameters()])
 
     assert result == 1, 'trainer failed'
     # Check that the model is actually changed post-training
     assert torch.norm(initial_values - post_train_values) > 0.1
 
     # test model loading
-    pretrained_model = load_model_from_checkpoint(logger, trainer.checkpoint_callback.best_model_path)
+    pretrained_model = load_model_from_checkpoint(
+        logger, trainer.checkpoint_callback.best_model_path, type(model))
 
     # test new model accuracy
     test_loaders = model.test_dataloader()
@@ -77,7 +87,7 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
         test_loaders = [test_loaders]
 
     for dataloader in test_loaders:
-        run_prediction(dataloader, pretrained_model)
+        run_prediction_boring_model(dataloader, pretrained_model)
 
     if with_hpc:
         if trainer.use_ddp or trainer.use_ddp2:
@@ -95,11 +105,10 @@ def run_prediction(dataloader, trained_model, dp=False, min_acc=0.50):
     # run prediction on 1 batch
     batch = next(iter(dataloader))
     x, y = batch
-    x = x.view(x.size(0), -1)
 
     if dp:
         with torch.no_grad():
-            output = trained_model(batch, 0)
+            output = trained_model(batch)
         acc = output['val_acc']
         acc = torch.mean(acc).item()
 
@@ -117,3 +126,24 @@ def run_prediction(dataloader, trained_model, dp=False, min_acc=0.50):
         acc = acc.item()
 
     assert acc >= min_acc, f"This model is expected to get > {min_acc} in test set (it got {acc})"
+
+
+def run_prediction_boring_model(dataloader,
+                                trained_model,
+                                dp=False,
+                                min_acc=5):
+    # run prediction on 1 batch
+    batch = next(iter(dataloader))
+
+    if dp:
+        with torch.no_grad():
+            output = trained_model(batch)
+        error = trained_model.loss(batch, output)
+
+    else:
+        with torch.no_grad():
+            output = trained_model(batch)
+        output = output.cpu()
+        error = trained_model.loss(batch, output)
+
+    assert error <= min_acc, f"This model is expected to get , {min_acc} in test set (it got {error})"

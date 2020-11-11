@@ -25,7 +25,7 @@ from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.core import memory
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
+from tests.base import BoringModel, EvalModelTemplate
 from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator
 
 
@@ -46,7 +46,7 @@ def test_multi_gpu_none_backend(tmpdir):
         gpus=2
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     tpipes.run_model_test(trainer_options, model)
 
 
@@ -63,7 +63,7 @@ def test_single_gpu_model(tmpdir, gpus):
         gpus=gpus
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     tpipes.run_model_test(trainer_options, model)
 
 
