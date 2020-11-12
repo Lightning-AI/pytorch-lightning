@@ -434,7 +434,7 @@ def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_v
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@pytest.mark.parametrize('fast_dev_run', [True, 3, -1])
+@pytest.mark.parametrize('fast_dev_run', [True, 3, -1, 'temp'])
 def test_dataloaders_with_fast_dev_run(tmpdir, fast_dev_run):
     """
     Verify num_batches for train, val & test dataloaders passed with fast_dev_run
@@ -453,10 +453,12 @@ def test_dataloaders_with_fast_dev_run(tmpdir, fast_dev_run):
         fast_dev_run=fast_dev_run,
     )
 
-    if fast_dev_run == -1:
+    if fast_dev_run == 'temp':
+        with pytest.raises(MisconfigurationException, match='either a bool or an int'):
+            trainer = Trainer(**trainer_options)
+    elif fast_dev_run == -1:
         with pytest.raises(MisconfigurationException, match='should be >= 0'):
             trainer = Trainer(**trainer_options)
-            return
     else:
         trainer = Trainer(**trainer_options)
 
