@@ -16,6 +16,7 @@ from enum import Enum
 from typing import Any, Optional, Union
 
 import torch
+from torch.optim import Optimizer
 
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import move_data_to_device
@@ -140,12 +141,12 @@ class Accelerator(object):
             return
         self._clip_gradients(optimizer, grad_clip_val)
 
-    def _clip_gradients(self, optimizer, grad_clip_val):
+    def _clip_gradients(self, optimizer: Optimizer, grad_clip_val: Union[float, int], norm_type: float = 2.0):
         if self.trainer.amp_backend:
-            self.trainer.precision_connector.backend.clip_gradients(grad_clip_val, optimizer)
+            self.trainer.precision_connector.backend.clip_gradients(grad_clip_val, optimizer, norm_type)
         else:
             model = self.trainer.get_model()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=grad_clip_val, norm_type=2.0)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=grad_clip_val, norm_type=norm_type)
 
     def on_train_epoch_end(self, outputs):
         pass
@@ -166,7 +167,7 @@ class Accelerator(object):
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
     def init_ddp_connection(
-        self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
+            self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
     ) -> None:
         os.environ["MASTER_ADDR"] = str(self.cluster_environment.master_address())
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
