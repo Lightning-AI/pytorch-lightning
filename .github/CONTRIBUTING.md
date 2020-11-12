@@ -112,8 +112,8 @@ In case you adding new dependencies, make sure that they are compatible with the
 
 ### Coding Style
 
-1. Use f-strings for output formation (except logging when we stay with lazy `logging.info("Hello %s!`, name);
-2. Black code formatter is used using `pre-commit` hook.
+1. Use f-strings for output formation (except logging when we stay with lazy `logging.info("Hello %s!", name)`.
+2. Black code formatter is used using a `pre-commit` hook.
 
 ### Documentation
 
@@ -182,10 +182,10 @@ python -m pip install ".[dev, examples]"
 python -m pip install pre-commit
 ```
 
-You can run the full test-case in your terminal via this bash script:
+You can run the full test-case in your terminal via this make script:
 
 ```bash
-bash .run_local_tests.sh
+make test
 ```
 
 Note: if your computer does not have multi-GPU nor TPU these tests are skipped.

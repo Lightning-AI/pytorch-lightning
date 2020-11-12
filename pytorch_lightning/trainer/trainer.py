@@ -241,6 +241,8 @@ class Trainer(
 
             num_nodes: number of GPU nodes for distributed training.
 
+            num_processes: number of processes for distributed training with distributed_backend="ddp_cpu"
+
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders. Default: 2
 
@@ -585,14 +587,12 @@ class Trainer(
         self.evaluation_loop.setup(model, max_batches, dataloaders)
 
         # hook
-        # TODO: should this be insider the dataloader loop?
         self.evaluation_loop.on_evaluation_epoch_start()
 
         # run validation/testing
         for dataloader_idx, dataloader in enumerate(dataloaders):
             # bookkeeping
             dl_outputs = []
-            dl_step_metrics = []
             dataloader = self.accelerator_backend.process_dataloader(dataloader)
             dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
 
@@ -611,45 +611,36 @@ class Trainer(
                 output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
                 output = self.evaluation_loop.evaluation_step_end(output)
 
-                # hook
+                # hook + store predictions
                 self.evaluation_loop.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
 
-                # clean up
-                self.evaluation_loop.evaluation_batch_end_cleanup(output, batch_idx, dataloader_idx)
-
-                # TODO: deprecate 1.0
-                self.evaluation_loop.log_evaluation_step_metrics_legacy(output, batch_idx)
-
-                # log step metrics
-                step_metrics = self.evaluation_loop.log_evaluation_step_metrics(batch, batch_idx)
-
-                # track epoch level outputs
-                dl_step_metrics = self.track_output_for_epoch_end(dl_step_metrics, step_metrics)
+                # log batch metrics
+                self.evaluation_loop.log_evaluation_step_metrics(output, batch_idx)
 
                 # track epoch level outputs
                 dl_outputs = self.track_output_for_epoch_end(dl_outputs, output)
 
+            # store batch level output per dataloader
             self.evaluation_loop.outputs.append(dl_outputs)
-            self.evaluation_loop.step_metrics.append(dl_step_metrics)
 
         # lightning module method
-        deprecated_eval_results, epoch_logs = self.evaluation_loop.evaluation_epoch_end(
-            num_dataloaders=len(dataloaders)
-        )
-
-        # bookkeeping
-        eval_loop_results = self.evaluation_loop.log_epoch_metrics(deprecated_eval_results, epoch_logs, test_mode)
-        self.evaluation_loop.predictions.to_disk()
+        deprecated_eval_results = self.evaluation_loop.evaluation_epoch_end()
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
 
+        # hook
+        self.evaluation_loop.on_evaluation_end()
+
+        # log epoch metrics
+        eval_loop_results = self.evaluation_loop.log_epoch_metrics_on_evaluation_end()
+
+        # save predictions to disk
+        self.evaluation_loop.predictions.to_disk()
+
         # enable train mode again
         self.evaluation_loop.on_evaluation_model_train()
         torch.set_grad_enabled(True)
-
-        # hook
-        self.evaluation_loop.on_evaluation_end()
 
         return eval_loop_results, deprecated_eval_results
 
@@ -884,10 +875,8 @@ class Trainer(
             self.logger_connector.cache_logged_metrics()
 
     def call_hook(self, hook_name, *args, **kwargs):
-        # temporary. Don't modify evaluation behaviour
-        if self.logger_connector._current_stage == "train":
-            # set hook_name to model + reset Result obj
-            self._reset_result_and_set_hook_fx_name(hook_name)
+        # set hook_name to model + reset Result obj
+        self._reset_result_and_set_hook_fx_name(hook_name)
 
         # always profile hooks
         with self.profiler.profile(hook_name):
@@ -910,8 +899,6 @@ class Trainer(
                 accelerator_hook = getattr(self.accelerator_backend, hook_name)
                 output = accelerator_hook(*args, **kwargs)
 
-        # temporary. Don't modify evaluation behaviour
-        if self.logger_connector._current_stage == "train":
-            # capture logging
-            self._cache_logged_metrics()
+        # capture logging
+        self._cache_logged_metrics()
         return output
