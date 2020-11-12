@@ -66,8 +66,7 @@ jobs:
         registry: $REGISTRY
         image_name: $IMAGE_NAME
         image_tag: $IMAGETAG
-        push_git_tag: true
-        context: node-alpine-slim
+        push_git_tag: false
         dockerfile: ./dockers/multi-gpu-tests/Dockerfile
         build_extra_args: --build-arg "PYTHON_VERSION=${{ matrix.python-version }}"
 
