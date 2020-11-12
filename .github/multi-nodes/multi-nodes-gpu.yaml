@@ -22,7 +22,7 @@ spec:
               imagePullPolicy: Always
               command: ["git", "clone", "https://github.com/tchaton/pytorch-lightning.git", "&&",
                         "cd", "pytorch-lightning", "&&",
-                        "pip install -e ."
+                        "pip install -e .", "&&",
                         "python", "-m", "torchelastic.distributed.launch"]
               args:
                 - "--nproc_per_node={NODES}"
