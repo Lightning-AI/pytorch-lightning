@@ -23,7 +23,7 @@ on: push
 env:
   AWS_CLUSTER: lightning-torchelastic
   NODE_TYPE: p3.8xlarge
-  NODES: 1
+  NODES: 2
   REGION: us-east-2
 
 jobs:
@@ -100,12 +100,12 @@ jobs:
     - name: Create Gpu Node Pool
       run: |
         aws eks --region $REGION update-kubeconfig --name $AWS_CLUSTER
-        eksctl create nodegroup --name=${{ steps.job.outputs.ID }} --cluster=lightning-torchelastic --node-type=p3.8xlarge  --nodes=1
+        eksctl create nodegroup --name=${{ steps.job.outputs.ID }} --cluster=$AWS_CLUSTER --node-type=$NODE_TYPE  --nodes=$NODES
       shell: bash
 
     - name: Check Current Node Pool
       run: |
-        eksctl get nodegroups --cluster lightning-torchelastic
+        eksctl get nodegroups --cluster $AWS_CLUSTER
       
     # create namespace
     - name: Apply Multi Node Testing
@@ -116,4 +116,4 @@ jobs:
     - name: Delete Group Node
       if: always()
       run: |
-       eksctl delete nodegroup ${{ steps.job.outputs.ID }} --cluster=lightning-torchelastic
+       eksctl delete nodegroup ${{ steps.job.outputs.ID }} --cluster=$AWS_CLUSTER
