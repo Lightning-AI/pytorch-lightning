@@ -121,7 +121,7 @@ class DDPLauncher:
     """ Class used to run ddp tests
     """
     @staticmethod
-    def run_from_cmd_line(cli_args:str = None, func_to_run: callable = None, tmpdir: str = None, timeout=20):
+    def run_from_cmd_line(cli_args:str = None, func_to_run: Optional[Callable] = None, tmpdir: Optional[str] = None, timeout: int = 20):
         env = os.environ.copy()
         env["PL_CURRENT_TEST_MODULE"] = str(func_to_run.__module__)
         env["PL_CURRENT_TEST_NAME"] = str(func_to_run.__name__)
