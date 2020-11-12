@@ -23,7 +23,7 @@ on: push
 env:
   AWS_CLUSTER: lightning-torchelastic
   NODE_TYPE: p3.8xlarge
-  NODES: 2
+  NODES: 1
 
 jobs:
   setup-build-test-publish:
@@ -59,6 +59,12 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
         aws-region: us-east-2
 
+    - name: Get current sha commit
+      id: vars
+      shell: bash
+      run: |
+        echo "::set-output name=SHA::$(git rev-parse --short HEAD)"
+    
     #- uses: whoan/docker-build-with-cache-action@v5
     #  with:
     #    registry: ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.us-east-2.amazonaws.com
@@ -70,7 +76,7 @@ jobs:
 
     - name: Update Test Configuration File
       run: |
-        python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; req = open(fname).read().replace('{PYTHON_VERSION}', '${{ matrix.python-version }}').replace('{PYTORCH_VERSION}', '${{ matrix.pytorch-version }}').replace('{NODES}', '$NODES') ; open(fname, 'w').write(req)"
+        python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; req = open(fname).read().replace('{PYTHON_VERSION}', '${{ matrix.python-version }}').replace('{SHA}', '${{ steps.vars.outputs.SHA }}').replace('{PYTORCH_VERSION}', '${{ matrix.pytorch-version }}').replace('{NODES}', '$NODES') ; open(fname, 'w').write(req)"
         python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; print(open(fname).read())"          
 
     - name: Install EKSClient
@@ -86,7 +92,7 @@ jobs:
 
     - name: Create Gpu Node Pool
       run: |
-        eksctl create nodegroup --name=gpus --cluster=$AWS_CLUSTER --node-type=$NODE_TYPE --nodes=$NODES
+        eksctl create nodegroup --name=${{ steps.vars.outputs.SHA }} --cluster=lightning-torchelastic --node-type=p3.8xlarge  --nodes=1
       shell: bash
   
     - name: Apply Elastic Kubectl Configuration + Nvidia
@@ -101,3 +107,7 @@ jobs:
       run: |
         kubectl apply -f .github/multi-nodes/multi-nodes-gpu.yaml
       shell: bash
+
+    - name: Delete Group Node
+      run: |
+        eksctl delete nodegroup ${{ steps.vars.outputs.SHA }} --cluster=lightning-torchelastic

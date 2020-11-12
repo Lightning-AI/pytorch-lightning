@@ -27,7 +27,7 @@ spec:
                 git https://github.com/tchaton/pytorch-lightning.git /repo
                 cd /repo
                 git fetch --all
-                git checkout b07a6dac378459f265f06a256d139b6ab7efa59c
+                git checkout {SHA}
                 pip install -e .
                 python -m torchelastic.distributed.launch --nproc_per_node={NODES} -m coverage run pytest tests/backends/multi-nodes.py
               resources:
