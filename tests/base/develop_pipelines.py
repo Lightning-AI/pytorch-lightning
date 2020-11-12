@@ -39,7 +39,7 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
         test_loaders = [test_loaders]
 
     for dataloader in test_loaders:
-        run_prediction(dataloader, pretrained_model, min_acc=min_acc)
+        run_prediction(pretrained_model, dataloader, min_acc=min_acc)
 
     if trainer.use_ddp:
         # on hpc this would work fine... but need to hack it for the purpose of the test
