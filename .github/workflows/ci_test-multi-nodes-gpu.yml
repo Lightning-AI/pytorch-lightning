@@ -22,10 +22,6 @@ name: Multi Nodes GPU tests
 on: push
 
 env:
-  AWS_ACCOUNT: ${{ secrets.AWS_ACCOUNT }}
-  REGISTRY: ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.us-east-2.amazonaws.com
-  IMAGE_NAME: multi-nodes-gpu-testing
-  AWS_REGION: us-east-2
   NODE_TYPE: p3.8xlarge
   NODES: 2
 
@@ -52,7 +48,7 @@ jobs:
 
     - name: Set IMAGETAG
       #run: echo "IMAGETAG=${{ github.event.pull_request.head.sha }}${{ matrix.python-version }}" >> $GITHUB_ENV
-      run: echo "IMAGETAG=${{ github.event.base_ref }}_${{ matrix.python-version }}" >> $GITHUB_ENV
+      run: echo "IMAGETAG=${{ matrix.python-version }}" >> $GITHUB_ENV
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
@@ -63,12 +59,12 @@ jobs:
 
     - uses: whoan/docker-build-with-cache-action@v5
       with:
-        registry: $REGISTRY
-        image_name: $IMAGE_NAME
+        registry: ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.us-east-2.amazonaws.com
+        image_name: multi-nodes-gpu-testing
         image_tag: $IMAGETAG
         push_git_tag: false
         dockerfile: ./dockers/multi-gpu-tests/Dockerfile
-        build_extra_args: --build-arg "PYTHON_VERSION=${{ matrix.python-version }}"
+        build_extra_args: "--build-arg PYTHON_VERSION=${{ matrix.python-version }}"
 
     - name: Configure Docker and Push to ECR
       run: |-
