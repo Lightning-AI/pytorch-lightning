@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import io
+import math
 import os
 import re
 from typing import Optional, Union, Any
 
 import torch
 import torch.multiprocessing as mp
+from torch.optim import Optimizer
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
@@ -245,7 +247,7 @@ class TPUAccelerator(Accelerator):
 
         return closure_loss
 
-    def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure):
+    def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure, *args, **kwargs):
         model_ref = self.trainer.get_model()
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
 
@@ -258,13 +260,32 @@ class TPUAccelerator(Accelerator):
             optimizer_closure=lambda_closure,
             on_tpu=True,
             using_native_amp=False,
-            using_lbfgs=is_lbfgs
+            using_lbfgs=is_lbfgs,
+            *args,
+            **kwargs,
         )
 
-    def clip_gradients(self, optimizer, clip_val=None):
-        # apply clip gradients
-        # TODO: separate TPU case from here
-        self._clip_gradients(optimizer, clip_val)
+    def _clip_gradients(self, optimizer: Optimizer, grad_clip_val: Union[float, int], norm_type: float = 2.0):
+        # this code is a modification of torch.nn.utils.clip_grad_norm_
+        # with TPU support based on https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md
+        model = self.trainer.get_model()
+        parameters = model.parameters()
+        max_norm = grad_clip_val
+
+        if isinstance(parameters, torch.Tensor):
+            parameters = [parameters]
+        parameters = list(filter(lambda p: p.grad is not None, parameters))
+
+        device = parameters[0].device
+        out = torch.empty(len(parameters), device=device)
+        for i, p in enumerate(parameters):
+            torch.norm(p.grad.data.to(device), norm_type, out=out[i])
+        total_norm = torch.norm(out, norm_type)
+
+        clip_coef = torch.tensor(max_norm, device=device) / (total_norm + self.norm_clipping_epsilon)
+        clip_coef = torch.min(clip_coef, torch.ones_like(clip_coef))
+        for p in parameters:
+            p.grad.data.mul_(clip_coef.to(p.grad.data.device))
 
     def barrier(self, name: Optional[str] = None):
         torch_xla.core.xla_model.rendezvous(f"pl.Trainer.{name}")
@@ -343,3 +364,7 @@ class TPUAccelerator(Accelerator):
                     group: Optional[Any] = None,
                     reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
         return tensor
+
+    @property
+    def norm_clipping_epsilon(self):
+        return 1e-6
