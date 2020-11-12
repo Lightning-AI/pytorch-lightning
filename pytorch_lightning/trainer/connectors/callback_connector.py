@@ -60,7 +60,7 @@ class CallbackConnector:
             rank_zero_warn(
                 "Passing a ModelCheckpoint instance to Trainer(checkpoint_callbacks=...)"
                 " is deprecated since v1.1 and will no longer be supported in v1.3."
-                "Use `callbacks` argument instead.",
+                " Use `callbacks` argument instead.",
                 DeprecationWarning
             )
             self.trainer.callbacks.append(checkpoint_callback)
