@@ -8,14 +8,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Added lambda closure to manual_optimizer_step ([#4618](https://github.com/PyTorchLightning/pytorch-lightning/pull/4618))
 
 ### Changed
 
-
-
 ### Fixed
 
-- Prevent crash if sync_dist=True on CPU ([#4626](https://github.com/PyTorchLightning/pytorch-lightning/pull/4626)) 
+- Prevent crash if `sync_dist=True` on CPU ([#4626](https://github.com/PyTorchLightning/pytorch-lightning/pull/4626))
+- Fixed average pbar Metrics ([#4534](https://github.com/PyTorchLightning/pytorch-lightning/pull/4534))
 
 
 ## [1.0.6] - 2020-11-11
