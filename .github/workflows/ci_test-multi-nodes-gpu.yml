@@ -106,9 +106,11 @@ jobs:
     - name: Check current Node Pool
       run: |
         eksctl get nodegroups --cluster lightning-torchelastic
-  
+      
+    # create namespace
     - name: Apply Multi Node Testing
       run: |
+        kubectl create namespace jobs
         kubectl apply -f .github/multi-nodes/multi-nodes-gpu.yaml
       shell: bash
     

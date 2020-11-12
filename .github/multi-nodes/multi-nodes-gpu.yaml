@@ -29,7 +29,11 @@ spec:
                 git fetch --all
                 git checkout {SHA}
                 pip install -e .
-                python -m torchelastic.distributed.launch --nproc_per_node={NODES} -m coverage run pytest tests/backends/multi-nodes.py
+                python -m torchelastic.distributed.launch --nproc_per_node={NODES} -m coverage run --source pytorch_lightning -m tests/backends/multi-nodes.py -v --color=yes --durations=0
+                echo "\n||| END PYTEST LOGS |||\n"
+                coverage xml
+                cat coverage.xml | tr -d '\t'
+                test $test_exit_code -eq 0
               resources:
                 limits:
                   nvidia.com/gpu: {NODES}
