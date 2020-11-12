@@ -115,5 +115,6 @@ jobs:
       shell: bash
 
     - name: Delete Group Node
+      if: always()
       run: |
         eksctl delete nodegroup ${{ steps.job.outputs.ID }} --cluster=lightning-torchelastic
