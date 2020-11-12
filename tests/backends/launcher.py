@@ -57,8 +57,7 @@ def call_training_script(cli_args, tmpdir, env, timeout=20):
 
 
 def create_cmd_lines(cmd_line, **kwargs):
-    keys = kwargs.keys()
-    keys = sorted(keys)
+    keys = sorted(kwargs.keys())
     values_comb = itertools.product(*(kwargs[k] for k in keys))
     cmd_lines = []
     for combi in values_comb:
