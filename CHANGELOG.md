@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+## [1.0.7rc] - 2020-11-12
+
+### Added
+
+
+### Changed
+
+
+
+### Fixed
+
+- Prevent crash if sync_dist=True on CPU ([#4626](https://github.com/PyTorchLightning/pytorch-lightning/pull/4626)) 
+
 
 ## [1.0.6] - 2020-11-11
 

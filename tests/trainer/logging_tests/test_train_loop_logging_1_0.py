@@ -14,15 +14,16 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
-from pytorch_lightning.core.lightning import LightningModule
-from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
 import os
-import torch
+
 import pytest
+import torch
+from torch.utils.data import Dataset
 
 from pytorch_lightning import Trainer, callbacks
+from pytorch_lightning.core.lightning import LightningModule
+from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
 from tests.base.deterministic_model import DeterministicModel
-from torch.utils.data import Dataset
 
 
 def test__training_step__log(tmpdir):
@@ -324,12 +325,12 @@ def test_tbptt_log(tmpdir):
             assert y_tensor.shape[1] == truncated_bptt_steps, "tbptt split list failed"
 
             pred = self(x_tensor.view(batch_size, truncated_bptt_steps))
-            loss_val = torch.nn.functional.mse_loss(
+            loss = torch.nn.functional.mse_loss(
                 pred, y_tensor.view(batch_size, truncated_bptt_steps))
 
-            self.log('a', loss_val, on_epoch=True)
+            self.log('a', loss, on_epoch=True)
 
-            return {'loss': loss_val, 'hiddens': self.test_hidden}
+            return {'loss': loss, 'hiddens': self.test_hidden}
 
         def on_train_epoch_start(self) -> None:
             self.test_hidden = None
@@ -489,3 +490,69 @@ def test_nested_datasouce_batch(tmpdir):
         weights_summary=None,
     )
     trainer.fit(model, train_data, val_data)
+
+
+def test_logging_sync_dist_true_cpu(tmpdir):
+    """
+    Tests to ensure that the sync_dist flag works with CPU (should just return the original value)
+    """
+    fake_result = 1
+
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            acc = self.step(batch[0])
+            self.log('foo', torch.tensor(fake_result), on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='sum')
+            return acc
+
+        def validation_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log('bar', torch.tensor(fake_result), on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='sum')
+            return {"x": loss}
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=2,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    assert trainer.logged_metrics['foo'] == fake_result
+    assert trainer.logged_metrics['bar'] == fake_result
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_logging_sync_dist_true_gpu(tmpdir):
+    """
+    Tests to ensure that the sync_dist flag works with GPU (should just return the original value)
+    """
+    fake_result = 1
+
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            acc = self.step(batch[0])
+            self.log('foo', torch.tensor(fake_result), on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='sum')
+            return acc
+
+        def validation_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log('bar', torch.tensor(fake_result), on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='sum')
+            return {"x": loss}
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=2,
+        gpus=1,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    assert trainer.logged_metrics['foo'] == fake_result
+    assert trainer.logged_metrics['bar'] == fake_result
