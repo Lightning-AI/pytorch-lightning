@@ -23,17 +23,15 @@ on: push
 
 env:
   AWS_ACCOUNT: ${{ secrets.AWS_ACCOUNT }}
-  AWS_ACCES_KEY_ID: ${{ secrets.AWS_ACCES_KEY_ID }}
-  AWS_SECRET_KEY_ID: ${{ secrets.AWS_SECRET_KEY_ID }}
+  IMAGE: ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.$AWS_REGION.amazonaws.com/multi-nodes-gpu-testing
   AWS_REGION: us-east-2
   AWS_CLUSTER: multi-nodes-gpu-testing
-  IMAGE_NAME: ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.$AWS_REGION.amazonaws.com/$AWS_CLUSTER
   NODE_TYPE: p3.8xlarge
   NODES: 2
 
 jobs:
   setup-build-test-publish:
-    name: $AWS_CLUSTER
+    name: multi-nodes-gpu-testing
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -54,4 +52,11 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCES_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
-        aws-region: us-east-2
+        aws-region: ${AWS_REGION}
+
+    - name: Configure Docker
+      run: |-
+        docker build --tag "${IMAGE}:$IMAGETAG" -f ./dockers/multi-gpu-tests/Dockerfile --build-arg "PYTHON_VERSION=${{ matrix.python-version }}" .
+        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com
+        docker push ${IMAGE}
+      shell: bash    
