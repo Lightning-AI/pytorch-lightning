@@ -43,7 +43,7 @@ jobs:
     timeout-minutes: 50
 
     # runs only when merged happened.
-    if: github.event.pull_request.merged == true
+    #if: github.event.pull_request.merged == true
     steps:
 
     - name: Set IMAGETAG
