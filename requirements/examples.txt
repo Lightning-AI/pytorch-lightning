@@ -1,2 +1,2 @@
-torchvision>=0.4.1,<0.9.0
+torchvision>=0.4.1
 gym>=0.17.0
