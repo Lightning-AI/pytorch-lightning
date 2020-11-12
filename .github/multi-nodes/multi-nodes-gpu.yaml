@@ -16,16 +16,28 @@ spec:
         apiVersion: v1
         kind: Pod
         spec:
+          initContainers:
+            - name: Clone Repo
+              image: pytorchlightning/pytorch_lightning:base-cuda-py{PYTHON_VERSION}-torch{PYTORCH_VERSION}
+              command: ["git", "clone", "https://github.com/tchaton/pytorch-lightning.git"]
+            
+            - name: Cd Pytorch Lightning
+              image: pytorchlightning/pytorch_lightning:base-cuda-py{PYTHON_VERSION}-torch{PYTORCH_VERSION}
+              command: ["cd", "pytorch-lightning"]
+            
+            - name: Fetch all
+              image: pytorchlightning/pytorch_lightning:base-cuda-py{PYTHON_VERSION}-torch{PYTORCH_VERSION}
+              command: ["git", "fetch", "--all"]
+            
+            - name: Pip install
+              image: pytorchlightning/pytorch_lightning:base-cuda-py{PYTHON_VERSION}-torch{PYTORCH_VERSION}
+              command: ["pip", "install", "-e", "."]
+          
           containers:
             - name: Pytorch Lightning Multi Nodes Testing
               image: pytorchlightning/pytorch_lightning:base-cuda-py{PYTHON_VERSION}-torch{PYTORCH_VERSION}
               imagePullPolicy: Always
-              command: ["git", "clone", "https://github.com/tchaton/pytorch-lightning.git", "&&",
-                        "cd", "pytorch-lightning", "&&",
-                        "git", "fetch", "--all", "&&",
-                        "git", "checkout", "b07a6dac378459f265f06a256d139b6ab7efa59c", "&&",
-                        "pip install -e .", "&&",
-                        "python", "-m", "torchelastic.distributed.launch"]
+              command: [python", "-m", "torchelastic.distributed.launch"]
               args:
                 - "--nproc_per_node={NODES}"
                 - "-m coverage run pytest tests/backends/multi-nodes.py"
