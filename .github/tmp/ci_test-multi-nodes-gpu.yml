@@ -56,6 +56,7 @@ jobs:
       aws-secret-access-key: $AWS_SECRET_KEY_ID
       aws-region: $AWS_REGION
 
+    """
     # Configure Docker to use the AWS command-line tool as a credential helper for authentication.
     - name: Configure Docker
       run: |-
@@ -95,6 +96,8 @@ jobs:
 
 
 
+
+    
 
     - name: Install jsonnet
       run: |-
