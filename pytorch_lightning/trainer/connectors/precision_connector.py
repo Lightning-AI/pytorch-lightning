@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Optional
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.plugins.apex import ApexPlugin
@@ -37,12 +38,12 @@ class PrecisionConnector:
         self.trainer.amp_level = amp_level
         self.init_amp(amp_backend, plugins)
 
-    def init_amp(self, amp_type: str, plugins: list):
+    def init_amp(self, amp_type: str, plugins: Optional[list]):
         assert self.trainer.precision in (16, 32), 'only 32 or 16 bit precision supported'
         self.trainer.amp_backend = None
         self._setup_amp_backend(amp_type, plugins)
 
-    def _setup_amp_backend(self, amp_type: str, plugins: list):
+    def _setup_amp_backend(self, amp_type: str, plugins: Optional[list]):
         if self.trainer.precision != 16:
             # no AMP requested, so we can leave now
             return
@@ -59,7 +60,7 @@ class PrecisionConnector:
                 self.trainer.amp_backend = AMPType.NATIVE
                 log.info('Using native 16bit precision.')
 
-                if self._sharded_in_plugins(plugins):
+                if plugins and self._sharded_in_plugins(plugins):
                     log.info('Using Sharded 16bit plugin.')
                     self.backend = ShardedNativeAMPPlugin(self.trainer)
                 else:
