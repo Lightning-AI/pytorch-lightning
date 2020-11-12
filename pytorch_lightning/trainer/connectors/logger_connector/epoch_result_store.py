@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from copy import deepcopy
 from collections import defaultdict, ChainMap
 from enum import Enum
 from typing import Union, Tuple, Any, Dict, Optional, List
@@ -392,6 +393,10 @@ class EpochResultStore:
             # attach capture batch_size
             Result.attach_batch_size(self._batch_size, hook_result)
 
+            hook_result.detach()
+            if self.trainer.move_metrics_to_cpu:
+                hook_result.cpu()
+
             self._internals[fx_name].append(
                 hook_result,
                 dataloader_idx=dataloader_idx,
@@ -415,13 +420,14 @@ class EpochResultStore:
         logger_connector = self.trainer.logger_connector
 
         callback_metrics = {}
+        is_train = self._stage in LoggerStages.TRAIN.value
 
         if not self._has_batch_loop_finished:
             # get pbar
             batch_pbar_metrics = self.get_latest_batch_pbar_metrics()
             logger_connector.add_progress_bar_metrics(batch_pbar_metrics)
 
-            if self._stage in LoggerStages.TRAIN.value:
+            if is_train:
                 # Only log and add to callback epoch step during evaluation, test.
                 batch_log_metrics = self.get_latest_batch_log_metrics()
                 logger_connector.logged_metrics.update(batch_log_metrics)
@@ -439,6 +445,9 @@ class EpochResultStore:
             epoch_log_metrics = self.get_epoch_log_metrics()
             logger_connector.logged_metrics.update(epoch_log_metrics)
             logger_connector.logged_metrics.update(epoch_dict)
+            if not self.trainer.running_sanity_check and not is_train:
+                if len(epoch_log_metrics) > 0:
+                    self.trainer.dev_debugger.track_logged_metrics_history(deepcopy(epoch_log_metrics))
 
             # get forked_metrics
             forked_metrics = self.get_forked_metrics()
@@ -446,6 +455,9 @@ class EpochResultStore:
             callback_metrics.update(epoch_pbar_metrics)
             callback_metrics.update(epoch_log_metrics)
             callback_metrics.update(forked_metrics)
+
+        if not is_train:
+            logger_connector.evaluation_callback_metrics.update(callback_metrics)
 
         # update callback_metrics
         logger_connector.callback_metrics.update(callback_metrics)
