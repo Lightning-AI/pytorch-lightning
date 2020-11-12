@@ -157,7 +157,7 @@ class Accelerator(object):
         model = self.trainer.get_model()
         parameters = model.parameters()
         max_norm = grad_clip_val
-        norm_type = float(2.0)
+        norm_type = 2.0
 
         if isinstance(parameters, torch.Tensor):
             parameters = [parameters]
