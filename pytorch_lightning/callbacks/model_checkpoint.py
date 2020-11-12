@@ -208,19 +208,15 @@ class ModelCheckpoint(Callback):
             or self.period < 1  # no models are saved
             or (epoch + 1) % self.period  # skip epoch
             or trainer.running_sanity_check  # don't save anything during sanity check
-<<<<<<< HEAD
-            or self.epoch_last_check == epoch  # already saved
-=======
+            or self.last_global_step_saved == global_step  # already saved at the last step
+        ):
             return
+
         self._add_backward_monitor_support(trainer)
         self._validate_monitor_key(trainer)
 
         # track epoch when ckpt was last checked
-<<<<<<< HEAD
-        self.epoch_last_check = trainer.current_epoch
-=======
         self.last_global_step_saved = global_step
->>>>>>> upstream/master
 
         # what can be monitored
         monitor_candidates = self._monitor_candidates(trainer)

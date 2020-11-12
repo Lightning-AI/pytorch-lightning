@@ -1,0 +1,29 @@
+apiVersion: elastic.pytorch.org/v1alpha1
+kind: ElasticJob
+metadata:
+  name: Pytorch Lightning Multi Nodes Testing
+  namespace: elastic-job
+spec:
+  # Use "etcd-service:2379" if you already apply etcd.yaml
+  rdzvEndpoint: "etcd-service:2379"
+  minReplicas: 2
+  maxReplicas: 2
+  replicaSpecs:
+    Worker:
+      replicas: 2
+      restartPolicy: ExitCode
+      template:
+        apiVersion: v1
+        kind: Pod
+        spec:
+          containers:
+            - name: Pytorch Lightning Multi Nodes Testing
+              image: {{IMAGE}}
+              imagePullPolicy: Always
+              command: [ "python", "-m", "torchelastic.distributed.launch"]
+              args:
+                - "--nproc_per_node={{NUM_NODES}}"
+                - "-m coverage run pytest /workspace/tests/backends/multi-nodes.py"
+              resources:
+                limits:
+                  nvidia.com/gpu: 4

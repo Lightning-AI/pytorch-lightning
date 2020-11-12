@@ -1,7 +1,7 @@
 name: CI complete testing
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
-on: # Trigger the workflow on push or pull request, but only for the master branch
+on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
     branches: [master, "release/*"]  # include release branches like release/1.0.x
   pull_request:
@@ -9,6 +9,7 @@ on: # Trigger the workflow on push or pull request, but only for the master bran
 
 jobs:
   pytest:
+
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -25,7 +26,7 @@ jobs:
             os: macOS-10.15
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 35 # TODO: the macOS is taking too long, probably caching did not work...
+    timeout-minutes: 35  # TODO: the macOS is taking too long, probably caching did not work...
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
