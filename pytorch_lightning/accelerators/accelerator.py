@@ -18,17 +18,12 @@ from typing import Any, Optional, Union
 
 import torch
 
-from pytorch_lightning.utilities import AMPType, rank_zero_warn
+from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
 import torch.distributed as torch_distrib
 from pytorch_lightning import _logger as log
-
-try:
-    from apex import amp
-except ImportError:
-    amp = None
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
@@ -37,7 +32,6 @@ else:
         SUM = None
 
 EPSILON = 1e-6
-EPSILON_FP16 = 1e-5
 
 
 class Accelerator(object):
@@ -149,17 +143,19 @@ class Accelerator(object):
             grad_clip_val = clip_val
         grad_clip_val = float(grad_clip_val)
 
-        # this code is a modification of torch.nn.utils.clip_grad_norm_
-        # with TPU support based on https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md
         if grad_clip_val <= 0:
             return
 
-        model = self.trainer.get_model()
-        if self.trainer.amp_backend == AMPType.APEX:
-            parameters = amp.master_params(optimizer)
+        if self.trainer.amp_backend:
+            self.trainer.precision_connector.backend.clip_gradients(grad_clip_val, optimizer)
         else:
-            parameters = model.parameters()
+            self._clip_gradients_with_tpu_support(grad_clip_val)
 
+    def _clip_gradients_with_tpu_support(self, grad_clip_val):
+        # this code is a modification of torch.nn.utils.clip_grad_norm_
+        # with TPU support based on https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md
+        model = self.trainer.get_model()
+        parameters = model.parameters()
         max_norm = grad_clip_val
         norm_type = float(2.0)
 
@@ -176,8 +172,7 @@ class Accelerator(object):
                 torch.norm(p.grad.data.to(device), norm_type, out=out[i])
             total_norm = torch.norm(out, norm_type)
 
-        eps = EPSILON_FP16 if self.trainer.precision == 16 else EPSILON
-        clip_coef = torch.tensor(max_norm, device=device) / (total_norm + eps)
+        clip_coef = torch.tensor(max_norm, device=device) / (total_norm + EPSILON)
         clip_coef = torch.min(clip_coef, torch.ones_like(clip_coef))
         for p in parameters:
             p.grad.data.mul_(clip_coef.to(p.grad.data.device))
