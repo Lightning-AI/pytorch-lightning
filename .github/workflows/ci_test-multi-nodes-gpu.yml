@@ -24,6 +24,7 @@ env:
   AWS_CLUSTER: lightning-torchelastic
   NODE_TYPE: p3.8xlarge
   NODES: 1
+  REGION: us-east-2
 
 jobs:
   setup-build-test-publish:
@@ -59,6 +60,11 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
         aws-region: us-east-2
 
+    - name: Install Aws Client
+      shell: bash
+      run: |
+        sudo apt-get install awscli -y
+
     - name: Get current sha commit
       id: vars
       shell: bash
@@ -93,21 +99,13 @@ jobs:
 
     - name: Create Gpu Node Pool
       run: |
+        aws eks --region $REGION update-kubeconfig --name $AWS_CLUSTER
         eksctl create nodegroup --name=${{ steps.job.outputs.ID }} --cluster=lightning-torchelastic --node-type=p3.8xlarge  --nodes=1
       shell: bash
 
     - name: Check current Node Pool
       run: |
         eksctl get nodegroups --cluster lightning-torchelastic
-  
-    - name: Apply Elastic Kubectl Configuration + Nvidia
-      run: |
-        git clone https://github.com/pytorch/elastic.git
-        cd elastic/kubernetes
-        kubectl apply -k config/default
-        kubectl create -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/master/nvidia-device-plugin.yml
-        kubectl apply -f https://raw.githubusercontent.com/pytorch/elastic/master/kubernetes/config/samples/etcd.yaml
-      shell: bash
   
     - name: Apply Multi Node Testing
       run: |
