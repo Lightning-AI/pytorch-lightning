@@ -1,0 +1,159 @@
+name: Multi Nodes GPU tests
+
+# Workflow Steps:
+#  1. Set IMAGETAG
+#  3. Edit multi-node-test.yaml template to refer to IMAGETAG
+#  4. Connect to AWS
+#  5. Install EKSClient
+ # 6. Clone Elastic repo
+#  7. Create node group
+#  8. Apply elastic kukeclt cmd
+#  9. Launch multi-node-test.yaml
+#      - Create a tests/backends/test_multi_nodes.py file
+#  10. Use kukeclt to get logs
+#  11. Print logs
+#  12. Upload coverage.
+
+on:
+  pull_request:
+    branches: [master, "release/1.0.x"]  # include release branches like release/1.0.x
+    types: [closed]
+
+env:
+  ACCOUNT: ${{ secrets.ACCOUNT }}
+  AWS_ACCES_KEY_ID: ${{ secrets.AWS_ACCES_KEY_ID }}
+  AWS_SECRET_KEY_ID: ${{ secrets.AWS_SECRET_KEY_ID }}
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  AWS_CLUSTER: ${{ secrets.AWS_CLUSTER }}
+  IMAGE_NAME: ${{ secrets.ACCOUNT }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/{{ secrets.AWS_CLUSTER }}
+  NODE_TYPE: p3.8xlarge
+  NODES: 2
+
+jobs:
+  setup-build-publish-deploy:
+    name: multi-node-testing-job
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.6, 3.7]
+    # Timeout: https://stackoverflow.com/a/59076067/4521646
+    timeout-minutes: 50
+
+    # runs only when merged happened.
+    if: github.event.pull_request.merged == true
+    steps:
+
+    - name: Set IMAGETAG
+    run: echo "IMAGETAG=${{ github.event.pull_request.head.sha }}_${{ matrix.python-version }}" >> $GITHUB_ENV
+
+    - name: Configure AWS Credentials
+    uses: aws-actions/configure-aws-credentials@v1
+    with:
+      aws-access-key-id: $AWS_ACCES_KEY_ID
+      aws-secret-access-key: $AWS_SECRET_KEY_ID
+      aws-region: $AWS_REGION
+
+    # Configure Docker to use the AWS command-line tool as a credential helper for authentication.
+    - name: Configure Docker
+      run: |-
+        docker build --tag "$IMAGE:$IMAGETAG" -f ./dockers/multi-gpu-tests/Dockerfile --build-arg "PYTHON_VERSION=${{ matrix.python-version }}" .
+        aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${account}.dkr.ecr.${REGION}.amazonaws.com
+        docker push ${FULL_IMAGE_NAME}
+      shell: bash
+
+    - name: Install EKSClient
+      run: |
+        curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+        sudo mv /tmp/eksctl /usr/local/bin
+      shell: bash
+
+    - name: Clone TorchElastic
+    run: |
+      git clone https://github.com/pytorch/elastic.git
+    shell: bash
+
+    - name: Create Gpu Node Pool
+    run: |
+      eksctl create nodegroup --name=gpus --cluster=$AWS_CLUSTER --node-type=$NODE_TYPE --nodes=$NODES
+    shell: bash
+
+    - name: Apply Elastic Kubectl Configuration + Nvidia
+    run: |
+      cd elastic/kubernetes
+      kubectl apply -k config/default
+      kubectl create -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/master/nvidia-device-plugin.yml
+      kubectl apply -f https://raw.githubusercontent.com/pytorch/elastic/master/kubernetes/config/samples/etcd.yaml
+    shell: bash
+
+    - name: Apply Multi Node Testing
+    run: |
+      kubectl apply -f .github/multi-nodes/multi-nodes-gpu.yaml
+    shell: bash
+
+
+
+
+    - name: Install jsonnet
+      run: |-
+        go get github.com/google/go-jsonnet/cmd/jsonnet
+      shell: bash
+    # Get the GKE credentials so we can deploy to the cluster
+    # Use either zone or region depending on cluster setup.
+    - run: |-
+        gcloud container clusters get-credentials "$GKE_CLUSTER" --zone "$GKE_ZONE"
+      shell: bash
+
+    - name: Deploy the job on the kubernetes cluster
+      run: |-
+        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet --ext-str image=$IMAGE --ext-str image-tag=$IMAGETAG | kubectl create -f -) && \
+        job_name=${job_name#job.batch/} && \
+        job_name=${job_name% created} && \
+        echo "Waiting on kubernetes job: $job_name in cluster: $GKE_CLUSTER" && \
+        i=0 && \
+        # 60 checks spaced 30s apart = 900s total.
+        status_code=2 && \
+        # Check on the job periodically. Set the status code depending on what
+        # happened to the job in Kubernetes. If we try MAX_CHECKS times and
+        # still the job hasn't finished, give up and return the starting
+        # non-zero status code.
+        printf "Waiting for job to finish: " && \
+        while [ $i -lt $MAX_CHECKS ]; do ((i++)); if kubectl get jobs $job_name -o jsonpath='Failed:{.status.failed}' | grep "Failed:1"; then status_code=1 && break; elif kubectl get jobs $job_name -o jsonpath='Succeeded:{.status.succeeded}' | grep "Succeeded:1" ; then status_code=0 && break; else printf "." ; fi; sleep $CHECK_SPEEP; done && \
+        echo "Done waiting. Job status code: $status_code" && \
+        pod_name=$(kubectl get po -l controller-uid=`kubectl get job $job_name -o "jsonpath={.metadata.labels.controller-uid}"` | awk 'match($0,!/NAME/) {print $1}') && \
+        echo "GKE pod name: $pod_name" && \
+        kubectl logs -f $pod_name --container=train > /tmp/full_output.txt
+        if grep -q '<?xml version="1.0" ?>' /tmp/full_output.txt ; then csplit /tmp/full_output.txt '/<?xml version="1.0" ?>/'; else mv /tmp/full_output.txt xx00; fi && \
+        # First portion is the test logs. Print these to Github Action stdout.
+        cat xx00 && \
+        echo "Done with log retrieval attempt." && \
+        gcloud container images delete "$IMAGE:$IMAGETAG" --force-delete-tags && \
+        exit $status_code
+      shell: bash
+
+    - name: Statistics
+      if: success()
+      run: |
+        mv ./xx01 coverage
+        # TODO: add human readable report
+        cat coverage
+        #  sudo pip install pycobertura
+        #  pycobertura show coverage.xml
+
+    - name: Upload coverage results
+      uses: actions/upload-artifact@v2
+      with:
+        name: coverage-TPU
+        path: coverage
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      # see: https://github.com/actions/toolkit/issues/399
+      continue-on-error: true
+      if: always()
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: coverage
+        flags: tpu,pytest
+        name: TPU-coverage
+        fail_ci_if_error: true
