@@ -134,6 +134,9 @@ class Result(Dict):
         # sync across workers when using distributed training
         sync_fn = sync_fn or sync_ddp_if_available
         if sync_dist and isinstance(value, (torch.Tensor, numbers.Number)):
+            is_dist_initialized = torch.distributed.is_available() and torch.distributed.is_initialized()
+            # TODO: Find a way to make the reduction only once, so we don't need to clone.
+            value = value.clone() if is_dist_initialized else value
             value = sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
         if 'meta' not in self:
