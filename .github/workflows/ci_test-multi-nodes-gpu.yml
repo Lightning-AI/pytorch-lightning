@@ -103,9 +103,10 @@ jobs:
         eksctl create nodegroup --name=${{ steps.job.outputs.ID }} --cluster=$AWS_CLUSTER --node-type=$NODE_TYPE  --nodes=$NODES
       shell: bash
 
-    - name: Check Current Node Pool
+    - name: Check Current Node Pool | Current Elatic Pods
       run: |
         eksctl get nodegroups --cluster $AWS_CLUSTER
+        kubectl get pods -n elastic-job
       
     # create namespace
     - name: Apply Multi Node Testing
