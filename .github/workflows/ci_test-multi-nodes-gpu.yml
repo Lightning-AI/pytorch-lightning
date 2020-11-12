@@ -23,7 +23,7 @@ on: push
 
 env:
   AWS_ACCOUNT: ${{ secrets.AWS_ACCOUNT }}
-  IMAGE: ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.us-east-2.amazonaws.com/multi-nodes-gpu-testing
+  REGISTRY: ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.us-east-2.amazonaws.com
   AWS_REGION: us-east-2
   AWS_CLUSTER: multi-nodes-gpu-testing
   NODE_TYPE: p3.8xlarge
@@ -44,16 +44,15 @@ jobs:
     #if: github.event.pull_request.merged == true
     steps:
 
-    - name: Set IMAGETAG
-      #run: echo "IMAGETAG=${{ github.event.pull_request.head.sha }}${{ matrix.python-version }}" >> $GITHUB_ENV
-      run: echo "IMAGETAG=${{ github.event.base_ref }}_${{ matrix.python-version }}" >> $GITHUB_ENV
-
     - name: Checkout Pytorch Lightning
       uses: actions/checkout@v2
       with:
         repository: tchaton/pytorch-lightning
         ref: ${{ github.event.base_ref }}
 
+    - name: Set IMAGETAG
+      #run: echo "IMAGETAG=${{ github.event.pull_request.head.sha }}${{ matrix.python-version }}" >> $GITHUB_ENV
+      run: echo "IMAGETAG=${{ github.event.base_ref }}_${{ matrix.python-version }}" >> $GITHUB_ENV
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
@@ -62,6 +61,16 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
         aws-region: us-east-2
 
+    - uses: whoan/docker-build-with-cache-action@v5
+      with:
+        registry: $REGISTRY
+        image_name: $IMAGE_NAME
+        image_tag: $IMAGETAG
+        push_git_tag: true
+        context: node-alpine-slim
+        dockerfile: ./dockers/multi-gpu-tests/Dockerfile
+        build_extra_args: --build-arg "PYTHON_VERSION=${{ matrix.python-version }}"
+
     - name: Configure Docker and Push to ECR
       run: |-
         echo "$IMAGE:$IMAGETAG"
@@ -69,3 +78,14 @@ jobs:
         aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com
         docker push $IMAGE
       shell: bash    
+
+    - name: Install EKSClient
+      run: |
+        curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+        sudo mv /tmp/eksctl /usr/local/bin
+      shell: bash
+
+    - name: Clone TorchElastic
+      run: |
+        git clone https://github.com/pytorch/elastic.git
+      shell: bash

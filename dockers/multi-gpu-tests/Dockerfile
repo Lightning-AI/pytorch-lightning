@@ -21,7 +21,8 @@ MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
 
 COPY ./ ./pytorch-lightning/
 
-RUN pip install -e .
+RUN pip install ./pytorch-lightning --upgrade-strategy only-if-needed ; \
+    rm -rf pytorch-lightning ;
 
 RUN python --version && \
     pip --version && \
