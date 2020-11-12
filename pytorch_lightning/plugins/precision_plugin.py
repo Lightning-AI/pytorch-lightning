@@ -18,5 +18,5 @@ class PrecisionPlugin(abc.ABC):
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         raise NotImplementedError
 
-    def clip_gradients(self, grad_clip_val, model, optimizer):
+    def clip_gradients(self, grad_clip_val, optimizer):
         raise NotImplementedError

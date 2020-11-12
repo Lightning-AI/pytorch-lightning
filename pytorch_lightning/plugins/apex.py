@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import math
 from typing import List, Tuple
 
 import torch
@@ -25,6 +26,8 @@ try:
     from apex import amp
 except ImportError:
     amp = None
+
+FP16_EPSILON = 1e-5
 
 
 class ApexPlugin(PrecisionPlugin):
@@ -101,8 +104,33 @@ class ApexPlugin(PrecisionPlugin):
         model, optimizers = amp.initialize(model, optimizers, opt_level=amp_level)
         return model, optimizers
 
-    def clip_gradients(self, grad_clip_val, model, optimizer):
-        parameters = amp.master_params(optimizer)
+    def clip_gradients(self, grad_clip_val, optimizer):
+        """
+        This code is a modification of torch.nn.utils.clip_grad_norm_ using a higher epsilon for fp16 weights.
+        This is important when setting amp_level to O2, and the master weights are in fp16.
+        Args:
+            grad_clip_val: Maximum norm of gradients.
+            optimizer: Optimizer with gradients that will be clipped.
+        """
+        model = self.trainer.get_model()
+        parameters = model.parameters()
         max_norm = grad_clip_val
         norm_type = float(2.0)
-        torch.nn.utils.clip_grad_norm_(parameters, max_norm=max_norm, norm_type=norm_type)
+
+        if isinstance(parameters, torch.Tensor):
+            parameters = [parameters]
+        parameters = [p for p in parameters if p.grad is not None]
+        max_norm = float(max_norm)
+        norm_type = float(norm_type)
+        if len(parameters) == 0:
+            return torch.tensor(0.)
+        device = parameters[0].grad.device
+        if norm_type == math.inf:
+            total_norm = max(p.grad.detach().abs().max().to(device) for p in parameters)
+        else:
+            total_norm = torch.norm(
+                torch.stack([torch.norm(p.grad.detach(), norm_type).to(device) for p in parameters]), norm_type)
+        clip_coef = max_norm / (total_norm + FP16_EPSILON)
+        if clip_coef < 1:
+            for p in parameters:
+                p.grad.detach().mul_(clip_coef.to(p.grad.device))

@@ -54,7 +54,8 @@ class NativeAMPPlugin(PrecisionPlugin):
             output = fx(*args)
         return output
 
-    def clip_gradients(self, grad_clip_val, model, optimizer):
+    def clip_gradients(self, grad_clip_val, optimizer):
+        model = self.trainer.get_model()
         max_norm = grad_clip_val
         norm_type = float(2.0)
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=max_norm, norm_type=norm_type)
