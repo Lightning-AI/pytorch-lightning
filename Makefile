@@ -1,4 +1,4 @@
-.PHONY: test docs
+.PHONY: test
 
 test:
 	# install APEX, see https://github.com/NVIDIA/apex#linux
