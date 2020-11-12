@@ -1,211 +1,262 @@
 .. testsetup:: *
 
-    from pytorch_lightning.core.lightning import LightningModule
     from pytorch_lightning.trainer.trainer import Trainer
-    from pytorch_lightning import loggers as pl_loggers
+    from pytorch_lightning.core.lightning import LightningModule
 
-.. role:: hidden
-    :class: hidden-section
-    
 .. _loggers:
 
+*******
 Loggers
-===========
-Lightning supports the most popular logging frameworks (TensorBoard, Comet, etc...).
-To use a logger, simply pass it into the :class:`~pytorch_lightning.trainer.trainer.Trainer`.
-Lightning uses TensorBoard by default.
+*******
 
-.. testcode::
-
-    from pytorch_lightning import loggers as pl_loggers
-
-    tb_logger = pl_loggers.TensorBoardLogger('logs/')
-    trainer = Trainer(logger=tb_logger)
-
-Choose from any of the others such as MLflow, Comet, Neptune, WandB, ...
-
-.. testcode::
-
-    comet_logger = pl_loggers.CometLogger(save_dir='logs/')
-    trainer = Trainer(logger=comet_logger)
-
-To use multiple loggers, simply pass in a ``list`` or ``tuple`` of loggers ...
-
-.. testcode::
-
-    tb_logger = pl_loggers.TensorBoardLogger('logs/')
-    comet_logger = pl_loggers.CometLogger(save_dir='logs/')
-    trainer = Trainer(logger=[tb_logger, comet_logger])
+Lightning supports the most popular logging frameworks (TensorBoard, Comet, etc...). TensorBoard is used by default, 
+but you can pass to the :class:`~pytorch_lightning.trainer.trainer.Trainer` any combintation of the following loggers.
 
 .. note::
 
     All loggers log by default to `os.getcwd()`. To change the path without creating a logger set
     `Trainer(default_root_dir='/your/path/to/save/checkpoints')`
 
-----------
+Read more about :ref:`logging` options.
 
-Logging from a LightningModule
-------------------------------
-Interact with loggers in two ways, automatically and/or manually.
-
-Automatic logging
-^^^^^^^^^^^^^^^^^
-Use the :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method to log from anywhere in a LightningModule.
+To log arbitrary artifacts like images or audio samples use the `trainer.log_dir` property to resolve
+the path.
 
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        self.log('my_metric', x)
+        img = ...
+        log_image(img, self.trainer.log_dir)
 
-The :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method has a few options:
+Comet.ml
+========
 
-- on_step (logs the metric at that step in training)
-- on_epoch (automatically accumulates and logs at the end of the epoch)
-- prog_bar (logs to the progress bar)
-- logger (logs to the logger like Tensorboard)
-
-Depending on where log is called from, Lightning auto-determines the correct mode for you. But of course
-you can override the default behavior by manually setting the flags
-
-.. note:: Setting on_epoch=True will accumulate your logged values over the full training epoch.
-
-.. code-block:: python
-
-    def training_step(self, batch, batch_idx):
-        self.log('my_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-
-Once your training starts, you can view the logs by using your favorite logger or booting up the Tensorboard logs:
+`Comet.ml <https://www.comet.ml/site/>`_ is a third-party logger.
+To use :class:`~pytorch_lightning.loggers.CometLogger` as your logger do the following.
+First, install the package:
 
 .. code-block:: bash
 
-    tensorboard --logdir ./lightning_logs
+    pip install comet-ml
 
-
-Manual logging
-^^^^^^^^^^^^^^
-For certain things like histograms, text, images, etc... you may need to use the logger object directly.
-
-.. code-block:: python
-
-    def training_step(...):
-        ...
-        # the logger you used (in this case tensorboard)
-        tensorboard = self.logger.experiment
-        tensorboard.add_histogram(...)
-        tensorboard.add_figure(...)
-
-----------
-
-Logging from a Callback
------------------------
-To log from a callback, the :func:`~~pytorch_lightning.core.lightning.LightningModule.log`
-method of the LightningModule.
-
-.. code-block:: python
-
-    class MyCallback(Callback):
-
-        def on_train_epoch_end(self, trainer, pl_module):
-            pl_module.log('something', x)
-
-or access the logger object directly
-
-.. code-block:: python
-
-    class MyCallback(Callback):
-
-        def on_train_epoch_end(self, trainer, pl_module):
-            tensorboard = pl_module.logger.experiment
-            tensorboard.add_histogram(...)
-            tensorboard.add_figure(...)
-
-----------
-
-Make a Custom Logger
---------------------
-
-You can implement your own logger by writing a class that inherits from
-:class:`LightningLoggerBase`. Use the :func:`~pytorch_lightning.loggers.base.rank_zero_only`
-decorator to make sure that only the first process in DDP training logs data.
+Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
 .. testcode::
 
-    from pytorch_lightning.utilities import rank_zero_only
-    from pytorch_lightning.loggers import LightningLoggerBase
+    import os
+    from pytorch_lightning.loggers import CometLogger
+    comet_logger = CometLogger(
+        api_key=os.environ.get('COMET_API_KEY'),
+        workspace=os.environ.get('COMET_WORKSPACE'),  # Optional
+        save_dir='.',  # Optional
+        project_name='default_project',  # Optional
+        rest_api_key=os.environ.get('COMET_REST_API_KEY'),  # Optional
+        experiment_name='default'  # Optional
+    )
+    trainer = Trainer(logger=comet_logger)
 
-    class MyLogger(LightningLoggerBase):
+The :class:`~pytorch_lightning.loggers.CometLogger` is available anywhere except ``__init__`` in your
+:class:`~pytorch_lightning.core.lightning.LightningModule`.
 
-        @rank_zero_only
-        def log_hyperparams(self, params):
-            # params is an argparse.Namespace
-            # your code to record hyperparameters goes here
-            pass
+.. testcode::
 
-        @rank_zero_only
-        def log_metrics(self, metrics, step):
-            # metrics is a dictionary of metric names and values
-            # your code to record metrics goes here
-            pass
+    class MyModule(LightningModule):
+        def any_lightning_module_function_or_hook(self):
+            some_img = fake_image()
+            self.logger.experiment.add_image('generated_images', some_img, 0)
 
-        def save(self):
-            # Optional. Any code necessary to save logger data goes here
-            # If you implement this, remember to call `super().save()`
-            # at the start of the method (important for aggregation of metrics)
-            super().save()
+.. seealso::
+    :class:`~pytorch_lightning.loggers.CometLogger` docs.
 
-        @rank_zero_only
-        def finalize(self, status):
-            # Optional. Any code that needs to be run after training
-            # finishes goes here
-            pass
+----------------
 
-If you write a logger that may be useful to others, please send
-a pull request to add it to Lightning!
+MLflow
+======
 
-----------
+`MLflow <https://mlflow.org/>`_ is a third-party logger.
+To use :class:`~pytorch_lightning.loggers.MLFlowLogger` as your logger do the following.
+First, install the package:
 
-Supported Loggers
------------------
-The following are loggers we support
+.. code-block:: bash
 
-Comet
-^^^^^
+    pip install mlflow
 
-.. autoclass:: pytorch_lightning.loggers.comet.CometLogger
-    :noindex:
+Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
-CSVLogger
-^^^^^^^^^
+.. code-block:: python
 
-.. autoclass:: pytorch_lightning.loggers.csv_logs.CSVLogger
-    :noindex:
+    from pytorch_lightning.loggers import MLFlowLogger
+    mlf_logger = MLFlowLogger(
+        experiment_name="default",
+        tracking_uri="file:./ml-runs"
+    )
+    trainer = Trainer(logger=mlf_logger)
 
-MLFlow
-^^^^^^
+.. seealso::
+    :class:`~pytorch_lightning.loggers.MLFlowLogger` docs.
 
-.. autoclass:: pytorch_lightning.loggers.mlflow.MLFlowLogger
-    :noindex:
+----------------
 
-Neptune
-^^^^^^^
+Neptune.ai
+==========
 
-.. autoclass:: pytorch_lightning.loggers.neptune.NeptuneLogger
-    :noindex:
+`Neptune.ai <https://neptune.ai/>`_ is a third-party logger.
+To use :class:`~pytorch_lightning.loggers.NeptuneLogger` as your logger do the following.
+First, install the package:
+
+.. code-block:: bash
+
+    pip install neptune-client
+
+Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
+
+.. testcode::
+
+    from pytorch_lightning.loggers import NeptuneLogger
+
+    neptune_logger = NeptuneLogger(
+        api_key='ANONYMOUS',  # replace with your own
+        project_name='shared/pytorch-lightning-integration',
+        experiment_name='default',  # Optional,
+        params={'max_epochs': 10},  # Optional,
+        tags=['pytorch-lightning', 'mlp'],  # Optional,
+    )
+    trainer = Trainer(logger=neptune_logger)
+
+The :class:`~pytorch_lightning.loggers.NeptuneLogger` is available anywhere except ``__init__`` in your
+:class:`~pytorch_lightning.core.lightning.LightningModule`.
+
+.. testcode::
+
+    class MyModule(LightningModule):
+        def any_lightning_module_function_or_hook(self):
+            some_img = fake_image()
+            self.logger.experiment.add_image('generated_images', some_img, 0)
+
+.. seealso::
+    :class:`~pytorch_lightning.loggers.NeptuneLogger` docs.
+
+----------------
 
 Tensorboard
-^^^^^^^^^^^^
+===========
 
-.. autoclass:: pytorch_lightning.loggers.tensorboard.TensorBoardLogger
-    :noindex:
+To use `TensorBoard <https://pytorch.org/docs/stable/tensorboard.html>`_ as your logger do the following.
 
-Test-tube
-^^^^^^^^^
+.. testcode::
 
-.. autoclass:: pytorch_lightning.loggers.test_tube.TestTubeLogger
-    :noindex:
+    from pytorch_lightning.loggers import TensorBoardLogger
+    logger = TensorBoardLogger('tb_logs', name='my_model')
+    trainer = Trainer(logger=logger)
+
+The :class:`~pytorch_lightning.loggers.TensorBoardLogger` is available anywhere except ``__init__`` in your
+:class:`~pytorch_lightning.core.lightning.LightningModule`.
+
+.. testcode::
+
+    class MyModule(LightningModule):
+        def any_lightning_module_function_or_hook(self):
+            some_img = fake_image()
+            self.logger.experiment.add_image('generated_images', some_img, 0)
+
+.. seealso::
+    :class:`~pytorch_lightning.loggers.TensorBoardLogger` docs.
+
+----------------
+
+Test Tube
+=========
+
+`Test Tube <https://github.com/williamFalcon/test-tube>`_ is a
+`TensorBoard <https://pytorch.org/docs/stable/tensorboard.html>`_  logger but with nicer file structure.
+To use :class:`~pytorch_lightning.loggers.TestTubeLogger` as your logger do the following.
+First, install the package:
+
+.. code-block:: bash
+
+    pip install test_tube
+
+Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
+
+.. code-block:: python
+
+    from pytorch_lightning.loggers import TestTubeLogger
+    logger = TestTubeLogger('tb_logs', name='my_model')
+    trainer = Trainer(logger=logger)
+
+The :class:`~pytorch_lightning.loggers.TestTubeLogger` is available anywhere except ``__init__`` in your
+:class:`~pytorch_lightning.core.lightning.LightningModule`.
+
+.. testcode::
+
+    class MyModule(LightningModule):
+        def any_lightning_module_function_or_hook(self):
+            some_img = fake_image()
+            self.logger.experiment.add_image('generated_images', some_img, 0)
+
+.. seealso::
+    :class:`~pytorch_lightning.loggers.TestTubeLogger` docs.
+
+----------------
 
 Weights and Biases
-^^^^^^^^^^^^^^^^^^
+==================
 
-.. autoclass:: pytorch_lightning.loggers.wandb.WandbLogger
-    :noindex:
+`Weights and Biases <https://www.wandb.com/>`_ is a third-party logger.
+To use :class:`~pytorch_lightning.loggers.WandbLogger` as your logger do the following.
+First, install the package:
+
+.. code-block:: bash
+
+    pip install wandb
+
+Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
+
+.. code-block:: python
+
+    from pytorch_lightning.loggers import WandbLogger
+    wandb_logger = WandbLogger(offline=True)
+    trainer = Trainer(logger=wandb_logger)
+
+The :class:`~pytorch_lightning.loggers.WandbLogger` is available anywhere except ``__init__`` in your
+:class:`~pytorch_lightning.core.lightning.LightningModule`.
+
+.. testcode::
+
+    class MyModule(LightningModule):
+        def any_lightning_module_function_or_hook(self):
+            some_img = fake_image()
+            self.logger.experiment.log({
+                 "generated_images": [wandb.Image(some_img, caption="...")]
+            })
+
+.. seealso::
+    :class:`~pytorch_lightning.loggers.WandbLogger` docs.
+
+----------------
+
+Multiple Loggers
+================
+
+Lightning supports the use of multiple loggers, just pass a list to the
+:class:`~pytorch_lightning.trainer.trainer.Trainer`.
+
+.. code-block:: python
+
+    from pytorch_lightning.loggers import TensorBoardLogger, TestTubeLogger
+    logger1 = TensorBoardLogger('tb_logs', name='my_model')
+    logger2 = TestTubeLogger('tb_logs', name='my_model')
+    trainer = Trainer(logger=[logger1, logger2])
+   
+The loggers are available as a list anywhere except ``__init__`` in your
+:class:`~pytorch_lightning.core.lightning.LightningModule`.
+
+.. testcode::
+
+    class MyModule(LightningModule):
+        def any_lightning_module_function_or_hook(self):
+            some_img = fake_image()
+            # Option 1
+            self.logger.experiment[0].add_image('generated_images', some_img, 0)
+            # Option 2
+            self.logger[0].experiment.add_image('generated_images', some_img, 0)

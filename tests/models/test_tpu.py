@@ -1,26 +1,40 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import os
+from multiprocessing import Process, Queue
 
 import pytest
 from torch.utils.data import DataLoader
 
 import tests.base.develop_pipelines as tpipes
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.accelerators import TPUBackend
+from pytorch_lightning.accelerators.accelerator import BackendType
+from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 from tests.base import EvalModelTemplate
 from tests.base.datasets import TrialMNIST
 from tests.base.develop_utils import pl_multi_process_test
 
-try:
+TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
+
+if TPU_AVAILABLE:
     import torch_xla
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp
     SERIAL_EXEC = xmp.MpSerialExecutor()
-except ImportError:
-    TPU_AVAILABLE = False
-else:
-    TPU_AVAILABLE = True
 
 
 _LARGER_DATASET = TrialMNIST(download=True, num_samples=2000, digits=(0, 1, 2, 5, 8))
@@ -216,7 +230,6 @@ def test_tpu_misconfiguration():
         Trainer(tpu_cores=[1, 8])
 
 
-# @patch('pytorch_lightning.trainer.trainer.XLA_AVAILABLE', False)
 @pytest.mark.skipif(TPU_AVAILABLE, reason="test requires missing TPU")
 def test_exception_when_no_tpu_found(tmpdir):
     """Test if exception is thrown when xla devices are not available"""
@@ -278,7 +291,7 @@ def test_broadcast_on_tpu():
     """ Checks if an object from the master process is broadcasted to other processes correctly"""
     def test_broadcast(rank):
         trainer = Trainer(tpu_cores=8)
-        backend = TPUBackend(trainer)
+        backend = TPUAccelerator(trainer)
         obj = ("ver_0.5", "logger_name", rank)
         result = backend.broadcast(obj)
         assert result == ("ver_0.5", "logger_name", 0)

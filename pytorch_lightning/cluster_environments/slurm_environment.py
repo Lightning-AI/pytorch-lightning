@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import re
 from pytorch_lightning import _logger as log
@@ -52,6 +66,9 @@ class SLURMEnvironment(ClusterEnvironment):
 
     def world_size(self):
         return self._world_size
+
+    def local_rank(self):
+        return int(os.environ['SLURM_LOCALID'])
 
     def _resolve_root_node_address(self, root_node):
         if '[' in root_node:

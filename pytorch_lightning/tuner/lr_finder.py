@@ -29,6 +29,8 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
+from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
@@ -41,6 +43,10 @@ else:
 def _run_lr_finder_internally(trainer, model: LightningModule):
     """ Call lr finder internally during Trainer.fit() """
     lr_finder = lr_find(trainer, model)
+
+    if lr_finder is None:
+        return
+
     lr = lr_finder.suggestion()
 
     # TODO: log lr.results to self.logger
@@ -78,14 +84,14 @@ def lr_find(
         datamodule: Optional[LightningDataModule] = None,
 ):
     r"""
-    lr_find enables the user to do a range test of good initial learning rates,
+    `lr_find` enables the user to do a range test of good initial learning rates,
     to reduce the amount of guesswork in picking a good starting learning rate.
 
     Args:
         model: Model to do range testing for
 
         train_dataloader: A PyTorch
-            DataLoader with training samples. If the model has
+            `DataLoader` with training samples. If the model has
             a predefined train_dataloader method, this will be skipped.
 
         min_lr: minimum learning rate to investigate
@@ -116,7 +122,7 @@ def lr_find(
         trainer = pl.Trainer()
 
         # Run lr finder
-        lr_finder = trainer.lr_find(model, ...)
+        lr_finder = trainer.tuner.lr_find(model, ...)
 
         # Inspect results
         fig = lr_finder.plot(); fig.show()
@@ -130,7 +136,11 @@ def lr_find(
         trainer.fit(model)
 
     """
-    save_path = os.path.join(trainer.default_root_dir, 'lr_find_temp.ckpt')
+    if trainer.fast_dev_run:
+        rank_zero_warn('Skipping learning rate finder since `fast_dev_run=True`', UserWarning)
+        return
+
+    save_path = os.path.join(trainer.default_root_dir, 'lr_find_temp_model.ckpt')
 
     __lr_finder_dump_params(trainer, model)
 
@@ -154,10 +164,6 @@ def lr_find(
     # Disable standard progress bar for fit
     if trainer.progress_bar_callback:
         trainer.progress_bar_callback.disable()
-
-    # Disable standard checkpoint & early stopping
-    trainer.checkpoint_callback = False
-    trainer.early_stop_callback = None
 
     # Required for saving the model
     trainer.optimizers, trainer.schedulers = [], [],
@@ -185,8 +191,11 @@ def lr_find(
     lr_finder._total_batch_idx = trainer.total_batch_idx  # for debug purpose
 
     # Reset model state
-    trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer.on_gpu)
-    os.remove(save_path)
+    if trainer.is_global_zero:
+        trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer.on_gpu)
+        fs = get_filesystem(str(save_path))
+        if fs.exists(save_path):
+            fs.rm(save_path)
 
     # Finish by resetting variables so trainer is ready to fit model
     __lr_finder_restore_params(trainer, model)
@@ -204,7 +213,6 @@ def __lr_finder_dump_params(trainer, model):
         'logger': trainer.logger,
         'max_steps': trainer.max_steps,
         'checkpoint_callback': trainer.checkpoint_callback,
-        'early_stop_callback': trainer.early_stop_callback,
         'configure_optimizers': model.configure_optimizers,
     }
 
@@ -214,8 +222,6 @@ def __lr_finder_restore_params(trainer, model):
     trainer.logger = trainer.__dumped_params['logger']
     trainer.callbacks = trainer.__dumped_params['callbacks']
     trainer.max_steps = trainer.__dumped_params['max_steps']
-    trainer.checkpoint_callback = trainer.__dumped_params['checkpoint_callback']
-    trainer.early_stop_callback = trainer.__dumped_params['early_stop_callback']
     model.configure_optimizers = trainer.__dumped_params['configure_optimizers']
     del trainer.__dumped_params
 
@@ -393,7 +399,7 @@ class _LRCallback(Callback):
 
         self.lrs.append(trainer.lr_schedulers[0]['scheduler'].lr[0])
 
-    def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         """ Called when the training batch ends, logs the calculated loss """
         if (trainer.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return

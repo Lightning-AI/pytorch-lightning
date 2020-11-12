@@ -16,6 +16,8 @@
 MLflow
 ------
 """
+import re
+import warnings
 from argparse import Namespace
 from time import time
 from typing import Any, Dict, Optional, Union
@@ -43,25 +45,28 @@ class MLFlowLogger(LightningLoggerBase):
 
         pip install mlflow
 
-    Example:
-        >>> from pytorch_lightning import Trainer
-        >>> from pytorch_lightning.loggers import MLFlowLogger
-        >>> mlf_logger = MLFlowLogger(
-        ...     experiment_name="default",
-        ...     tracking_uri="file:./ml-runs"
-        ... )
-        >>> trainer = Trainer(logger=mlf_logger)
+    .. code-block:: python
 
-    Use the logger anywhere in you :class:`~pytorch_lightning.core.lightning.LightningModule` as follows:
+        from pytorch_lightning import Trainer
+        from pytorch_lightning.loggers import MLFlowLogger
+        mlf_logger = MLFlowLogger(
+            experiment_name="default",
+            tracking_uri="file:./ml-runs"
+        )
+        trainer = Trainer(logger=mlf_logger)
 
-    >>> from pytorch_lightning import LightningModule
-    >>> class LitModel(LightningModule):
-    ...     def training_step(self, batch, batch_idx):
-    ...         # example
-    ...         self.logger.experiment.whatever_ml_flow_supports(...)
-    ...
-    ...     def any_lightning_module_function_or_hook(self):
-    ...         self.logger.experiment.whatever_ml_flow_supports(...)
+    Use the logger anywhere in your :class:`~pytorch_lightning.core.lightning.LightningModule` as follows:
+
+    .. code-block:: python
+
+        from pytorch_lightning import LightningModule
+        class LitModel(LightningModule):
+            def training_step(self, batch, batch_idx):
+                # example
+                self.logger.experiment.whatever_ml_flow_supports(...)
+
+            def any_lightning_module_function_or_hook(self):
+                self.logger.experiment.whatever_ml_flow_supports(...)
 
     Args:
         experiment_name: The name of the experiment
@@ -148,6 +153,13 @@ class MLFlowLogger(LightningLoggerBase):
             if isinstance(v, str):
                 log.warning(f'Discarding metric with string value {k}={v}.')
                 continue
+
+            new_k = re.sub("[^a-zA-Z0-9_/. -]+", "", k)
+            if k != new_k:
+                warnings.warn(("MLFlow only allows '_', '/', '.' and ' ' special characters in metric name.\n",
+                               f"Replacing {k} with {new_k}."))
+            k = new_k
+
             self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
 
     @rank_zero_only

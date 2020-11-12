@@ -47,6 +47,8 @@ recursive-include docs/source/_images/general/ pl_overview* tf_* tutorial_* PTL1
 
 # Include the Requirements
 recursive-include requirements *.txt
+recursive-exclude requirements *.sh
+include requirements.txt
 
 # Exclude build configs
 exclude *.yml
@@ -55,6 +57,9 @@ exclude *.yaml
 # Exclude pyright config
 exclude .pyrightconfig.json
 
+# Exclude Makefile
+exclude Makefile
+
 prune .git
 prune .github
 prune .circleci
@@ -62,5 +67,5 @@ prune notebook*
 prune temp*
 prune test*
 prune benchmark*
-prune docker
+prune dockers
 
