@@ -46,9 +46,15 @@ jobs:
         repository: tchaton/pytorch-lightning
         ref: ${{ github.event.base_ref }}
 
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
     - name: Set IMAGETAG
       #run: echo "IMAGETAG=${{ github.event.pull_request.head.sha }}${{ matrix.python-version }}" >> $GITHUB_ENV
-      run: echo "IMAGETAG=${{ github.event.base_ref }}${{ matrix.python-version }}" >> $GITHUB_ENV
+      run: |
+        echo "IMAGETAG=${{ github.event.base_ref }}${{ matrix.python-version }}" >> $GITHUB_ENV
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
@@ -57,14 +63,19 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
         aws-region: us-east-2
 
-    - uses: whoan/docker-build-with-cache-action@v5
-      with:
-        registry: ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.us-east-2.amazonaws.com
-        image_name: multi-nodes-gpu-testing
-        image_tag: $(date +%s)
-        push_git_tag: true
-        dockerfile: ./dockers/multi-gpu-tests/Dockerfile
-        build_extra_args: "--build-arg PYTHON_VERSION=${{ matrix.python-version }}"
+    #- uses: whoan/docker-build-with-cache-action@v5
+    #  with:
+    #    registry: ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.us-east-2.amazonaws.com
+    #    image_name: multi-nodes-gpu-testing
+    #    image_tag: ${{ github.event.base_ref }}${{ matrix.python-version }}
+    #    push_git_tag: true
+    #    dockerfile: ./dockers/multi-gpu-tests/Dockerfile
+    #    build_extra_args: "--build-arg PYTHON_VERSION=${{ matrix.python-version }}"
+
+    - name: Configure AWS Credentials
+      run: |
+        python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; req = open(fname).read().replace('{{IMAGE}}}', '${{ matrix.python-version }}').replace('{NODES}', '$NODES') ; open(fname, 'w').write(req)"
+        python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; print(open(fname).read())"          
 
     - name: Install EKSClient
       run: |

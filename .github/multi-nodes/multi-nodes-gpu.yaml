@@ -18,11 +18,14 @@ spec:
         spec:
           containers:
             - name: Pytorch Lightning Multi Nodes Testing
-              image: {{IMAGE}}
+              image: pytorchlightning/pytorch_lightning:base-cuda-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
               imagePullPolicy: Always
-              command: [ "python", "-m", "torchelastic.distributed.launch"]
+              command: ["git", "clone", "https://github.com/tchaton/pytorch-lightning.git", "&&",
+                        "cd", "pytorch-lightning", "&&",
+                        "pip install -e ."
+                        "python", "-m", "torchelastic.distributed.launch"]
               args:
-                - "--nproc_per_node={{NUM_NODES}}"
+                - "--nproc_per_node={NODES}"
                 - "-m coverage run pytest /workspace/tests/backends/multi-nodes.py"
               resources:
                 limits:
