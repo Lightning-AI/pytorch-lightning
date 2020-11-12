@@ -1,4 +1,4 @@
-name: Multi Nodes GPU tests
+name: Multi Nodes GPU Tests
 
 # Workflow Steps:
 #  1. Checkout Pytorch Lightning
