@@ -85,11 +85,6 @@ jobs:
         sudo mv /tmp/eksctl /usr/local/bin
       shell: bash
 
-    - name: Clone TorchElastic
-      run: |
-        git clone https://github.com/pytorch/elastic.git
-      shell: bash
-
     - name: Create Gpu Node Pool
       run: |
         eksctl create nodegroup --name=${{ steps.vars.outputs.SHA }}_${{ matrix.python-version }} --cluster=lightning-torchelastic --node-type=p3.8xlarge  --nodes=1
@@ -101,6 +96,7 @@ jobs:
   
     - name: Apply Elastic Kubectl Configuration + Nvidia
       run: |
+        git clone https://github.com/pytorch/elastic.git
         cd elastic/kubernetes
         kubectl apply -k config/default
         kubectl create -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/master/nvidia-device-plugin.yml
