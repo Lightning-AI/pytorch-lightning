@@ -64,6 +64,12 @@ jobs:
       shell: bash
       run: |
         echo "::set-output name=SHA::$(git rev-parse --short HEAD)"
+
+    - name: Create Job Name
+      id: job
+      shell: bash
+      run: |
+        echo "::set-output name=ID::${{ steps.vars.outputs.SHA }}_${{ matrix.python-version }}_${{ matrix.pytorch-version }}"
     
     #- uses: whoan/docker-build-with-cache-action@v5
     #  with:
@@ -87,7 +93,7 @@ jobs:
 
     - name: Create Gpu Node Pool
       run: |
-        eksctl create nodegroup --name=${{ steps.vars.outputs.SHA }}_${{ matrix.python-version }} --cluster=lightning-torchelastic --node-type=p3.8xlarge  --nodes=1
+        eksctl create nodegroup --name=${{ steps.job.outputs.ID }} --cluster=lightning-torchelastic --node-type=p3.8xlarge  --nodes=1
       shell: bash
 
     - name: Check current Node Pool
@@ -110,4 +116,4 @@ jobs:
 
     - name: Delete Group Node
       run: |
-        eksctl delete nodegroup ${{ steps.vars.outputs.SHA }}_${{ matrix.python-version }} --cluster=lightning-torchelastic
+        eksctl delete nodegroup ${{ steps.job.outputs.ID }} --cluster=lightning-torchelastic
