@@ -24,8 +24,8 @@ on: push
 env:
   AWS_ACCOUNT: ${{ secrets.AWS_ACCOUNT }}
   REGISTRY: ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.us-east-2.amazonaws.com
+  IMAGE_NAME: multi-nodes-gpu-testing
   AWS_REGION: us-east-2
-  AWS_CLUSTER: multi-nodes-gpu-testing
   NODE_TYPE: p3.8xlarge
   NODES: 2
 
