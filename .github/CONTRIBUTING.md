@@ -292,9 +292,11 @@ Here is the process to create a new test
 * 3. Use `BoringModel and derivates to test out your code`.
 
 ```python
-# in: tests/..../...py
+# TEST SHOULD BE IN YOUR FILE: tests/..../...py
 
-# pytest tests/..../...py::test_explain_what_is_being_tested --verbose --color=yes --capture=no
+# RUN OUR TEST WITH: pytest tests/..../...py::test_explain_what_is_being_tested --verbose --color=yes --capture=no
+
+# TEST CODE TEMPLATE
 
 # pytest decorator
 # @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
@@ -308,8 +310,11 @@ def test_explain_what_is_being_tested(tmpdir):
     class ExtendedModel(BoringModel):
         ...
 
-
     model = ExtendedModel()
+
+    # BoringModel is a functional model. You might want to set methods to None to test your behaviour
+    # Example: model.training_step_end = None
+
     trainer = Trainer(
         default_root_dir=tmpdir, # will save everything within a tmpdir generated for this test
         ...
@@ -317,6 +322,7 @@ def test_explain_what_is_being_tested(tmpdir):
     trainer.fit(model)
     result = trainer.test()
 
+    # assert the behaviour is correct.
     assert ...
     assert ...
 ```
