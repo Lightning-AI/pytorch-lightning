@@ -138,7 +138,7 @@ class Accelerator(object):
 
         if grad_clip_val <= 0:
             return
-        self._clip_gradients(optimizer, clip_val)
+        self._clip_gradients(optimizer, grad_clip_val)
 
     def _clip_gradients(self, optimizer, grad_clip_val):
         if self.trainer.amp_backend:
