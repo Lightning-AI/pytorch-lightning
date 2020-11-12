@@ -92,8 +92,12 @@ jobs:
 
     - name: Create Gpu Node Pool
       run: |
-        eksctl create nodegroup --name=${{ steps.vars.outputs.SHA }} --cluster=lightning-torchelastic --node-type=p3.8xlarge  --nodes=1
+        eksctl create nodegroup --name=${{ steps.vars.outputs.SHA }}_${{ matrix.python-version }} --cluster=lightning-torchelastic --node-type=p3.8xlarge  --nodes=1
       shell: bash
+
+    - name: Check current Node Pool
+      run: |
+        eksctl get nodegroups --cluster lightning-torchelastic}
   
     - name: Apply Elastic Kubectl Configuration + Nvidia
       run: |
@@ -110,4 +114,4 @@ jobs:
 
     - name: Delete Group Node
       run: |
-        eksctl delete nodegroup ${{ steps.vars.outputs.SHA }} --cluster=lightning-torchelastic
+        eksctl delete nodegroup ${{ steps.vars.outputs.SHA }}_${{ matrix.python-version }} --cluster=lightning-torchelastic
