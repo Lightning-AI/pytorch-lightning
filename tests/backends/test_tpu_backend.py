@@ -28,7 +28,7 @@ def test_resume_training_on_cpu():
 
     # Train a model on TPU
     model = BoringModel()
-    trainer = Trainer(checkpoint_callback=True, max_epochs=10, tpu_cores=8,)
+    trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=8,)
     trainer.fit(model)
 
     model_path = trainer.checkpoint_callback.best_model_path
@@ -52,7 +52,7 @@ def test_if_test_works_after_train():
 
     # Train a model on TPU
     model = BoringModel()
-    trainer = Trainer(checkpoint_callback=True, max_epochs=10, tpu_cores=8,)
+    trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=8,)
     trainer.fit(model)
 
-    assert trainer.test() is not None
+    assert trainer.test() == 1
