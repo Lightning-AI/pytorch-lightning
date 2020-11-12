@@ -5,7 +5,7 @@ class Plugin(object):
 
     def connect(self, model: torch.nn.Module, optimizers, lr_schedulers):
         return model, optimizers, lr_schedulers
-        
+
     def pre_optimizer_step(self, optimizer, optiizer_idx):
         pass
 
@@ -15,7 +15,7 @@ class Plugin(object):
     def pre_training(self):
         pass
 
-    def post_training(self):
+    def post_training(self, results, best_model_path):
         pass
 
     @contextlib.contextmanager
