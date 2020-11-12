@@ -98,7 +98,7 @@ jobs:
 
     - name: Check current Node Pool
       run: |
-        eksctl get nodegroups --cluster lightning-torchelastic}
+        eksctl get nodegroups --cluster lightning-torchelastic
   
     - name: Apply Elastic Kubectl Configuration + Nvidia
       run: |
