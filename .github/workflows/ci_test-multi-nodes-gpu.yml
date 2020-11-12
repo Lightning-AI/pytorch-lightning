@@ -61,8 +61,8 @@ jobs:
       with:
         registry: ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.us-east-2.amazonaws.com
         image_name: multi-nodes-gpu-testing
-        image_tag: $IMAGETAG
-        push_git_tag: false
+        image_tag: ${{ matrix.python-version }}
+        push_git_tag: true
         dockerfile: ./dockers/multi-gpu-tests/Dockerfile
         build_extra_args: "--build-arg PYTHON_VERSION=${{ matrix.python-version }}"
 
