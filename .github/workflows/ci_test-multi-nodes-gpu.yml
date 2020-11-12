@@ -25,9 +25,9 @@ env:
   AWS_ACCOUNT: ${{ secrets.AWS_ACCOUNT }}
   AWS_ACCES_KEY_ID: ${{ secrets.AWS_ACCES_KEY_ID }}
   AWS_SECRET_KEY_ID: ${{ secrets.AWS_SECRET_KEY_ID }}
-  AWS_REGION: ${{ secrets.AWS_REGION }}
+  AWS_REGION: us-east-2
   AWS_CLUSTER: ${{ secrets.AWS_CLUSTER }}
-  IMAGE_NAME: ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/{{ secrets.AWS_CLUSTER }}
+  IMAGE_NAME: ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.us-east-2.amazonaws.com/{{ secrets.AWS_CLUSTER }}
   NODE_TYPE: p3.8xlarge
   NODES: 2
 
@@ -54,4 +54,4 @@ jobs:
       with:
         aws-access-key-id: $AWS_ACCES_KEY_ID
         aws-secret-access-key: $AWS_SECRET_KEY_ID
-        aws-region: $AWS_REGION
+        aws-region: us-east-2
