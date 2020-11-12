@@ -38,7 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.6, 3.7]
+        python-version: [3.7]
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 50
 
