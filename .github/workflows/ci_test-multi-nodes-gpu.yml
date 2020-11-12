@@ -50,8 +50,8 @@ jobs:
       run: echo "IMAGETAG=${{ github.event.pull_request.head.sha }}_${{ matrix.python-version }}" >> $GITHUB_ENV
 
     - name: Configure AWS Credentials
-    uses: aws-actions/configure-aws-credentials@v1
-    with:
-      aws-access-key-id: $AWS_ACCES_KEY_ID
-      aws-secret-access-key: $AWS_SECRET_KEY_ID
-      aws-region: $AWS_REGION
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: $AWS_ACCES_KEY_ID
+        aws-secret-access-key: $AWS_SECRET_KEY_ID
+        aws-region: $AWS_REGION
