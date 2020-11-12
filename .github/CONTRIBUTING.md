@@ -182,10 +182,10 @@ python -m pip install ".[dev, examples]"
 python -m pip install pre-commit
 ```
 
-You can run the full test-case in your terminal via this bash script:
+You can run the full test-case in your terminal via this make script:
 
 ```bash
-bash .run_local_tests.sh
+make test
 ```
 
 Note: if your computer does not have multi-GPU nor TPU these tests are skipped.
