@@ -247,7 +247,7 @@ class TPUAccelerator(Accelerator):
 
         return closure_loss
 
-    def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure):
+    def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure, *args, **kwargs):
         model_ref = self.trainer.get_model()
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
 
@@ -260,7 +260,9 @@ class TPUAccelerator(Accelerator):
             optimizer_closure=lambda_closure,
             on_tpu=True,
             using_native_amp=False,
-            using_lbfgs=is_lbfgs
+            using_lbfgs=is_lbfgs,
+            *args,
+            **kwargs,
         )
 
     def _clip_gradients(self, optimizer: Optimizer, grad_clip_val: Union[float, int], norm_type: float = 2.0):
