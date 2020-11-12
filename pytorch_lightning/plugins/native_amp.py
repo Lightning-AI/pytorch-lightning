@@ -22,7 +22,6 @@ class NativeAMPPlugin:
         Integrates native amp into Lightning's internals.
         """
         self.trainer = trainer
-        self.scaler_cls = torch.cuda.amp.GradScaler
 
     def connect(self, model, optimizers):
         return model, optimizers
@@ -55,4 +54,4 @@ class NativeAMPPlugin:
 
     @property
     def scaler(self):
-        return self.scaler_cls()
+        return torch.cuda.amp.GradScaler()

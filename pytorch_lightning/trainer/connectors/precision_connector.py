@@ -15,6 +15,8 @@
 from pytorch_lightning import _logger as log
 from pytorch_lightning.plugins.apex import ApexPlugin
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
+from pytorch_lightning.plugins.sharded_native_amp_plugin import ShardedNativeAMPPlugin
+from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
 from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVALAIBLE, AMPType, rank_zero_warn
 
 
@@ -24,7 +26,7 @@ class PrecisionConnector:
         self.trainer = trainer
         self.backend = None
 
-    def on_trainer_init(self, precision, amp_level, amp_backend):
+    def on_trainer_init(self, precision, amp_level, amp_backend, plugins):
         # AMP init
         # These are the only lines needed after v0.8.0
         # we wrap the user's forward with autocast and give it back at the end of fit
@@ -33,14 +35,14 @@ class PrecisionConnector:
         self.trainer.scaler = None
 
         self.trainer.amp_level = amp_level
-        self.init_amp(amp_backend)
+        self.init_amp(amp_backend, plugins)
 
-    def init_amp(self, amp_type: str):
+    def init_amp(self, amp_type: str, plugins: list):
         assert self.trainer.precision in (16, 32), 'only 32 or 16 bit precision supported'
         self.trainer.amp_backend = None
-        self._setup_amp_backend(amp_type)
+        self._setup_amp_backend(amp_type, plugins)
 
-    def _setup_amp_backend(self, amp_type: str):
+    def _setup_amp_backend(self, amp_type: str, plugins: list):
         if self.trainer.precision != 16:
             # no AMP requested, so we can leave now
             return
@@ -54,9 +56,14 @@ class PrecisionConnector:
                                ' We will attempt to use NVIDIA Apex for this session.')
                 amp_type = 'apex'
             else:
-                log.info('Using native 16bit precision.')
                 self.trainer.amp_backend = AMPType.NATIVE
-                self.backend = NativeAMPPlugin(self.trainer)
+                log.info('Using native 16bit precision.')
+
+                if self._sharded_in_plugins(plugins):
+                    log.info('Using Sharded 16bit plugin.')
+                    self.backend = ShardedNativeAMPPlugin(self.trainer)
+                else:
+                    self.backend = NativeAMPPlugin(self.trainer)
 
         if amp_type == 'apex':
             if not APEX_AVAILABLE:
@@ -84,3 +91,9 @@ class PrecisionConnector:
     def scaler(self):
         if self.trainer.amp_backend == AMPType.NATIVE and self.trainer.precision == 16 and not self.trainer.use_tpu:
             return self.backend.scaler
+
+    def _sharded_in_plugins(self, plugins):
+        for plugin in plugins:
+            if isinstance(plugin, DDPShardedPlugin):
+                return True
+        return False

@@ -13,11 +13,9 @@
 # limitations under the License.
 from typing import List, cast, Any
 
-from fairscale.optim.grad_scaler import ShardedGradScaler
 from pytorch_lightning import LightningModule
 from pytorch_lightning.overrides.fairscale import LightningOSS, LightningShardedDataParallel
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
-from pytorch_lightning.utilities import AMPType
 
 
 class DDPShardedPlugin(DDPPlugin):
@@ -25,7 +23,7 @@ class DDPShardedPlugin(DDPPlugin):
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
     ):
-        self._setup_optimizers_and_scaler(model)
+        self._setup_optimizers(model)
         if model.trainer.testing:  # Revert to standard DDP if using testing
             super().configure_ddp(
                 model=model,
@@ -50,7 +48,7 @@ class DDPShardedPlugin(DDPPlugin):
         args[0] = batch
         return args
 
-    def _setup_optimizers_and_scaler(self, model):
+    def _setup_optimizers(self, model):
         trainer = model.trainer
         if trainer.testing is True:
             return
@@ -59,8 +57,6 @@ class DDPShardedPlugin(DDPPlugin):
         trainer.optimizers = self._re_init_with_fairscale_zero(optimizers, lr_schedulers)
         trainer.lr_schedulers = lr_schedulers
         trainer.optimizer_frequencies = optimizer_frequencies
-        if trainer.amp_backend == AMPType.NATIVE:
-            trainer.precision_connector.backend.scaler_cls = ShardedGradScaler
 
     def _re_init_with_fairscale_zero(self, optimizers, lr_schedulers):
         """
