@@ -626,11 +626,11 @@ def test_multiple_optimizers_manual_optimizer_step(tmpdir):
 
 
 def test_manual_optimizer_step_with_optimizer_closure(tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
-
     """
     Tests that `manual_optimizer_step` works with optimizer_closure
     """
+    os.environ['PL_DEV_DEBUG'] = '1'
+
     class TestModel(BoringModel):
 
         _losses = []
@@ -703,11 +703,11 @@ def test_manual_optimizer_step_with_optimizer_closure(tmpdir):
 
 
 def test_manual_optimizer_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
-
     """
     Tests that `manual_optimizer_step` works with optimizer_closure and accumulated_grad
     """
+    os.environ['PL_DEV_DEBUG'] = '1'
+
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             # manual
@@ -763,11 +763,11 @@ def test_manual_optimizer_step_with_optimizer_closure_and_accumulated_grad(tmpdi
 
 @patch("torch.optim.SGD.step")
 def test_manual_optimizer_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
-
     """
     Tests that `manual_optimizer_step` works with optimizer_closure and extra arguments
     """
+    os.environ['PL_DEV_DEBUG'] = '1'
+
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             # manual
@@ -817,11 +817,11 @@ def test_manual_optimizer_step_with_optimizer_closure_and_extra_arguments(step_m
 @patch("torch.optim.Adam.step")
 @patch("torch.optim.SGD.step")
 def test_manual_optimizer_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, mock_adam_step, tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
-
     """
     Tests that `manual_optimizer_step` works with optimizer_closure and different accumulated_gradient frequency
     """
+    os.environ['PL_DEV_DEBUG'] = '1'
+
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
 
