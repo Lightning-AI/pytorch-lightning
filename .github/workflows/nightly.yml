@@ -70,13 +70,13 @@ jobs:
           tags: pytorchlightning/pytorch_lightning:base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
         timeout-minutes: 55
 
-  docker-cuda:
+  docker-cuda-conda:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
         python_version: [3.6, 3.7, 3.8]
-        pytorch_version: [1.3, 1.4, 1.5, 1.6, 1.7]
+        pytorch_version: [1.3, 1.4, 1.5, 1.6, 1.7, 1.8]
         exclude:
           # excludes PT 1.3 as it is missing on pypi
           - python_version: 3.8
@@ -104,6 +104,8 @@ jobs:
         id: extend
 
       - name: Publish CUDA to Docker Hub
+        # ToDo: extend also building for Nightly from pip
+        if: matrix.pytorch_version < 1.8
         # publish master/release
         uses: docker/build-push-action@v2
         with:

@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import math
 from enum import Enum
 from typing import Any, Optional, Union
 
 import torch
+from torch.optim import Optimizer
 
-from pytorch_lightning.utilities import AMPType, rank_zero_warn
+from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
@@ -30,8 +30,6 @@ if torch.distributed.is_available():
 else:
     class ReduceOp:
         SUM = None
-
-EPSILON = 1e-6
 
 
 class Accelerator(object):
@@ -105,10 +103,11 @@ class Accelerator(object):
     def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure):
         model_ref = self.trainer.get_model()
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-        native_amp = self.trainer.amp_backend == AMPType.NATIVE
+        using_native_amp = self.trainer.amp_backend == AMPType.NATIVE
+        automatic_optimization = self.trainer.train_loop.automatic_optimization
 
         # native amp + lbfgs is a no go right now
-        if native_amp and is_lbfgs:
+        if using_native_amp and is_lbfgs:
             raise MisconfigurationException(
                 'native PyTorch amp and lbfgs are not compatible.'
                 ' To request, please file a Github issue in PyTorch and tag @mcarilli')
@@ -121,12 +120,12 @@ class Accelerator(object):
             optimizer_idx=opt_idx,
             optimizer_closure=lambda_closure,
             on_tpu=False,  # TPUAccelerator class sets this as True
-            using_native_amp=native_amp,
+            using_native_amp=using_native_amp,
             using_lbfgs=is_lbfgs
         )
 
         # scale when native amp
-        if native_amp:
+        if automatic_optimization and using_native_amp:
             self.trainer.scaler.update()
 
     def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
@@ -137,10 +136,6 @@ class Accelerator(object):
         pass
 
     def clip_gradients(self, optimizer, clip_val=None):
-        # TODO: separate TPU case from here
-        self._clip_gradients(optimizer, clip_val)
-
-    def _clip_gradients(self, optimizer, clip_val=None):
         # use the trainer's clip val if none passed
         grad_clip_val = self.trainer.gradient_clip_val
         if clip_val is not None:
@@ -149,37 +144,14 @@ class Accelerator(object):
 
         if grad_clip_val <= 0:
             return
+        self._clip_gradients(optimizer, grad_clip_val)
 
+    def _clip_gradients(self, optimizer: Optimizer, grad_clip_val: Union[float, int], norm_type: float = 2.0):
         if self.trainer.amp_backend:
-            self.trainer.precision_connector.backend.clip_gradients(grad_clip_val, optimizer)
+            self.trainer.precision_connector.backend.clip_gradients(grad_clip_val, optimizer, norm_type)
         else:
-            self._clip_gradients_with_tpu_support(grad_clip_val)
-
-    def _clip_gradients_with_tpu_support(self, grad_clip_val):
-        # this code is a modification of torch.nn.utils.clip_grad_norm_
-        # with TPU support based on https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md
-        model = self.trainer.get_model()
-        parameters = model.parameters()
-        max_norm = grad_clip_val
-        norm_type = float(2.0)
-
-        if isinstance(parameters, torch.Tensor):
-            parameters = [parameters]
-        parameters = list(filter(lambda p: p.grad is not None, parameters))
-
-        if norm_type == math.inf:
-            total_norm = max(p.grad.data.abs().max() for p in parameters)
-        else:
-            device = parameters[0].device
-            out = torch.empty(len(parameters), device=device)
-            for i, p in enumerate(parameters):
-                torch.norm(p.grad.data.to(device), norm_type, out=out[i])
-            total_norm = torch.norm(out, norm_type)
-
-        clip_coef = torch.tensor(max_norm, device=device) / (total_norm + EPSILON)
-        clip_coef = torch.min(clip_coef, torch.ones_like(clip_coef))
-        for p in parameters:
-            p.grad.data.mul_(clip_coef.to(p.grad.data.device))
+            model = self.trainer.get_model()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=grad_clip_val, norm_type=norm_type)
 
     def on_train_epoch_end(self, outputs):
         pass

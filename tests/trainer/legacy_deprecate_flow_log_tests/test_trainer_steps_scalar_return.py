@@ -14,11 +14,13 @@
 """
 Tests to ensure that the training loop works with a scalar
 """
-import torch
 import os
+import torch
+import pytest
 
 from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
+from tests.base import BoringModel
 
 
 def test_training_step_scalar(tmpdir):
@@ -190,3 +192,49 @@ def test_train_step_epoch_end_scalar(tmpdir):
     opt_closure_result = trainer.train_loop.training_step_and_backward(
         batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
     assert opt_closure_result['loss'].item() == 171
+
+
+class DPPReduceMeanPbarModel(BoringModel):
+
+    logged = []
+
+    def training_step(self, batch, batch_idx):
+        output = self.layer(batch)
+        loss = self.loss(batch, output)
+        loss /= loss.clone().detach()
+        self.log('self_log', loss, prog_bar=True, sync_dist=True)
+        return {"loss": loss, "progress_bar":{"loss_2": loss}}
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_dpp_reduce_mean_pbar(tmpdir):
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    model = DPPReduceMeanPbarModel()
+    model.training_step_end = None
+    model.training_epoch_end = None
+
+    distributed_backend = "ddp_spawn"
+
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=os.getcwd(),
+        limit_train_batches=10,
+        limit_test_batches=2,
+        limit_val_batches=2,
+        distributed_backend=distributed_backend,
+        gpus=2,
+        precision=32)
+
+    trainer.fit(model)
+
+    # TODO: Move this test to DDP. pbar_added_metrics is empty with ddp_spawn for some reasons
+
+    pbar_added_metrics = trainer.dev_debugger.pbar_added_metrics
+    is_in = False
+    for pbar_metrics in pbar_added_metrics:
+        if 'loss_2' in pbar_metrics:
+            is_in = True
+            assert pbar_metrics["loss_2"].item() == 1
+    if distributed_backend == "ddp":
+        assert is_in is True

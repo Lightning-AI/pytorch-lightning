@@ -60,6 +60,7 @@ from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.plugins.plugin_connector import PluginConnector
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu_accelerator import CPUAccelerator
+from pytorch_lightning.utilities.memory import recursive_detach
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -135,6 +136,7 @@ class Trainer(
         amp_level: str = 'O2',
         distributed_backend: Optional[str] = None,
         automatic_optimization: bool = True,
+        move_metrics_to_cpu: bool = False,
     ):
         r"""
         Customize every aspect of training via flags
@@ -237,6 +239,8 @@ class Trainer(
 
             num_nodes: number of GPU nodes for distributed training.
 
+            num_processes: number of processes for distributed training with distributed_backend="ddp_cpu"
+
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders. Default: 2
 
@@ -272,6 +276,9 @@ class Trainer(
                     stored in a different place than the logs written in `default_root_dir`.
                     Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
                     Defaults to `default_root_dir`.
+
+            move_metrics_to_cpu: Whether to force internal logged metrics to be moved to cpu.
+                This can save some gpu memory, but can make training slower. Use with attention.
         """
         super().__init__()
 
@@ -363,7 +370,12 @@ class Trainer(
         self.profile_connector.on_trainer_init(profiler)
 
         # init logger flags
-        self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps)
+        self.logger_connector.on_trainer_init(
+            logger,
+            flush_logs_every_n_steps,
+            log_every_n_steps,
+            move_metrics_to_cpu
+        )
 
         # init debugging flags
         self.debugging_connector.on_init_start(
@@ -565,14 +577,12 @@ class Trainer(
         self.evaluation_loop.setup(model, max_batches, dataloaders)
 
         # hook
-        # TODO: should this be insider the dataloader loop?
         self.evaluation_loop.on_evaluation_epoch_start()
 
         # run validation/testing
         for dataloader_idx, dataloader in enumerate(dataloaders):
             # bookkeeping
             dl_outputs = []
-            dl_step_metrics = []
             dataloader = self.accelerator_backend.process_dataloader(dataloader)
             dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
 
@@ -591,48 +601,51 @@ class Trainer(
                 output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
                 output = self.evaluation_loop.evaluation_step_end(output)
 
-                # hook
+                # hook + store predictions
                 self.evaluation_loop.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
 
-                # clean up
-                self.evaluation_loop.evaluation_batch_end_cleanup(output, batch_idx, dataloader_idx)
-
-                # TODO: deprecate 1.0
-                self.evaluation_loop.log_evaluation_step_metrics_legacy(output, batch_idx)
-
-                # log step metrics
-                step_metrics = self.evaluation_loop.log_evaluation_step_metrics(batch, batch_idx)
-
-                if step_metrics is not None:
-                    dl_step_metrics.append(step_metrics)
+                # log batch metrics
+                self.evaluation_loop.log_evaluation_step_metrics(output, batch_idx)
 
                 # track epoch level outputs
-                if output is not None:
-                    dl_outputs.append(output)
+                dl_outputs = self.track_output_for_epoch_end(dl_outputs, output)
 
+            # store batch level output per dataloader
             self.evaluation_loop.outputs.append(dl_outputs)
-            self.evaluation_loop.step_metrics.append(dl_step_metrics)
 
         # lightning module method
-        deprecated_eval_results, epoch_logs = self.evaluation_loop.evaluation_epoch_end(
-            num_dataloaders=len(dataloaders)
-        )
-
-        # bookkeeping
-        eval_loop_results = self.evaluation_loop.log_epoch_metrics(deprecated_eval_results, epoch_logs, test_mode)
-        self.evaluation_loop.predictions.to_disk()
+        deprecated_eval_results = self.evaluation_loop.evaluation_epoch_end()
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
+
+        # hook
+        self.evaluation_loop.on_evaluation_end()
+
+        # log epoch metrics
+        eval_loop_results = self.evaluation_loop.log_epoch_metrics_on_evaluation_end()
+
+        # save predictions to disk
+        self.evaluation_loop.predictions.to_disk()
 
         # enable train mode again
         self.evaluation_loop.on_evaluation_model_train()
         torch.set_grad_enabled(True)
 
-        # hook
-        self.evaluation_loop.on_evaluation_end()
-
         return eval_loop_results, deprecated_eval_results
+
+    def track_output_for_epoch_end(self, outputs, output):
+        if output is not None:
+            if isinstance(output, Result):
+                output.detach()
+                if self.move_metrics_to_cpu:
+                    output.cpu()
+            elif isinstance(output, dict):
+                output = recursive_detach(output, to_cpu=self.move_metrics_to_cpu)
+            elif isinstance(output, torch.Tensor) and output.is_cuda and self.move_metrics_to_cpu:
+                output = output.cpu()
+            outputs.append(output)
+        return outputs
 
     def run_test(self):
         # only load test dataloader for testing
@@ -852,10 +865,8 @@ class Trainer(
             self.logger_connector.cache_logged_metrics()
 
     def call_hook(self, hook_name, *args, **kwargs):
-        # temporary. Don't modify evaluation behaviour
-        if self.logger_connector._current_stage == "train":
-            # set hook_name to model + reset Result obj
-            self._reset_result_and_set_hook_fx_name(hook_name)
+        # set hook_name to model + reset Result obj
+        self._reset_result_and_set_hook_fx_name(hook_name)
 
         # always profile hooks
         with self.profiler.profile(hook_name):
@@ -878,8 +889,6 @@ class Trainer(
                 accelerator_hook = getattr(self.accelerator_backend, hook_name)
                 output = accelerator_hook(*args, **kwargs)
 
-        # temporary. Don't modify evaluation behaviour
-        if self.logger_connector._current_stage == "train":
-            # capture logging
-            self._cache_logged_metrics()
+        # capture logging
+        self._cache_logged_metrics()
         return output
