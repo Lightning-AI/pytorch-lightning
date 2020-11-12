@@ -276,6 +276,51 @@ We welcome any useful contribution! For your convenience here's a recommended wo
    git push -f
    ```
 
+4. **How to add new tests**
+
+We are using [pytest](https://docs.pytest.org/en/stable/) in Pytorch Lightning.
+
+Here are tutorials:
+* (recommended) [Visual Testing with pytest](https://www.youtube.com/playlist?list=PLCTHcU1KoD99Rim2tzg-IhYY2iu9FFvNo) from JetBrains on YouTube
+* [Effective Python Testing With Pytest](https://realpython.com/pytest-python-testing/) article on realpython.com
+
+Here is the process to create a new test
+
+* 0. Optional: Follow tutorials !
+* 1. Find a file in tests/ which match what you want to test. If none, create one.
+* 2. Use this template to get started !
+* 3. Use `BoringModel and derivates to test out your code`.
+
+```python
+# in: tests/..../...py
+
+# pytest tests/..../...py::test_explain_what_is_being_tested --verbose --color=yes --capture=no
+
+# pytest decorator
+# @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_explain_what_is_being_tested(tmpdir):
+    """
+    Test description about text reason to be
+    """
+
+    # os.environ["PL_DEV_DEBUG"] = '1' optional. When activated, you can use internal trainer.dev_debugger
+
+    class ExtendedModel(BoringModel):
+        ...
+
+
+    model = ExtendedModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir, # will save everything within a tmpdir generated for this test
+        ...
+    )
+    trainer.fit(model)
+    result = trainer.test()
+
+    assert ...
+    assert ...
+```
+
 ### Bonus Workflow Tip
 
 If you don't want to remember all the commands above every time you want to push some code/setup a Lightning Dev environment on a new VM, you can set up bash aliases for some common commands. You can add these to one of your `~/.bashrc`, `~/.zshrc`, or `~/.bash_aliases` files.
