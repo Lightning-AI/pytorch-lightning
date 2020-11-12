@@ -33,6 +33,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [3.7]
+        pytorch-version: [1.5]
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 50
 
@@ -74,7 +75,7 @@ jobs:
 
     - name: Configure AWS Credentials
       run: |
-        python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; req = open(fname).read().replace('{{IMAGE}}}', '${{ matrix.python-version }}').replace('{NODES}', '$NODES') ; open(fname, 'w').write(req)"
+        python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; req = open(fname).read().replace('{{PYTHON_VERSION}}}', '${{ matrix.python-version }}').replace('{{PYTORCH_VERSION}}}', '${{ matrix.pytorch-version }}').replace('{NODES}', '$NODES') ; open(fname, 'w').write(req)"
         python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; print(open(fname).read())"          
 
     - name: Install EKSClient
