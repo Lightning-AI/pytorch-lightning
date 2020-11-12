@@ -970,7 +970,8 @@ class LightningModule(
             - Single optimizer.
             - List or Tuple - List of optimizers.
             - Two lists - The first list has multiple optimizers, the second a list of LR schedulers (or lr_dict).
-            - Dictionary, with an 'optimizer' key, and (optionally) a 'lr_scheduler' key which value is a single LR scheduler or lr_dict.
+            - Dictionary, with an 'optimizer' key, and (optionally) a 'lr_scheduler'
+              key which value is a single LR scheduler or lr_dict.
             - Tuple of dictionaries as described, with an optional 'frequency' key.
             - None - Fit will run without any optimizer.
 
@@ -1087,8 +1088,8 @@ class LightningModule(
 
         .. tip:: In manual mode we still automatically clip grads if Trainer(gradient_clip_val=x) is set
 
-        .. tip:: In manual mode we still automatically accumulate grad over batches if Trainer(accumulate_grad_batches=x) is set
-            and you use `model.manual_optimizer_step(optimizer)`
+        .. tip:: In manual mode we still automatically accumulate grad over batches if
+           Trainer(accumulate_grad_batches=x) is set and you use `model.manual_optimizer_step(optimizer)`
 
         Example::
 
@@ -1117,13 +1118,15 @@ class LightningModule(
         Call this directly from your training_step when doing optimizations manually.
         By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
 
-        .. tip:: In manual mode we still automatically accumulate grad over batches if Trainer(accumulate_grad_batches=x) is set.
+        .. tip:: In manual mode we still automatically accumulate grad over batches if
+           Trainer(accumulate_grad_batches=x) is set.
 
         Args:
             optimizer: Optimizer used to perform `.step()` call
 
-            make_optimizer_step: Whether to force an optimizer step. When not provided, we will use `accumulate_grad_batches`
-                for accumulation frequency. However, one coud provide True and False based on its own scheduling.
+            make_optimizer_step: Whether to force an optimizer step. When nothing is provided,
+                we will use `accumulate_grad_batches` for accumulation frequency by default.
+                However, one coud provide True and False based on its own scheduling.
                 c.f example 2 and 3
 
             optimizer_closure: One could provide its own optimizer_closure. Set to None by default.
@@ -1224,10 +1227,11 @@ class LightningModule(
         if make_optimizer_step:
 
             # mock closure function as the user is responsible to call `manual_backward`
-            def mock_optimizer_closure():
+            def do_nothing_optimizer_closure():
                 return
 
-            optimizer_closure = optimizer_closure if isinstance(optimizer_closure, types.FunctionType) else mock_optimizer_closure
+            is_callable = isinstance(optimizer_closure, types.FunctionType)
+            optimizer_closure = optimizer_closure if is_callable else do_nothing_optimizer_closure
 
             self.trainer.train_loop.optimizer_step(optimizer,
                                                    None,
