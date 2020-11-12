@@ -12,32 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import math
 from enum import Enum
 from typing import Any, Optional, Union
 
 import torch
+from torch.optim import Optimizer
 
-from pytorch_lightning.utilities import AMPType, rank_zero_warn
+from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
 import torch.distributed as torch_distrib
 from pytorch_lightning import _logger as log
 
-try:
-    from apex import amp
-except ImportError:
-    amp = None
-
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
 else:
     class ReduceOp:
         SUM = None
-
-EPSILON = 1e-6
-EPSILON_FP16 = 1e-5
 
 
 class Accelerator(object):
@@ -139,48 +131,22 @@ class Accelerator(object):
         model_ref.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
     def clip_gradients(self, optimizer, clip_val=None):
-        # TODO: separate TPU case from here
-        self._clip_gradients(optimizer, clip_val)
-
-    def _clip_gradients(self, optimizer, clip_val=None):
         # use the trainer's clip val if none passed
         grad_clip_val = self.trainer.gradient_clip_val
         if clip_val is not None:
             grad_clip_val = clip_val
         grad_clip_val = float(grad_clip_val)
 
-        # this code is a modification of torch.nn.utils.clip_grad_norm_
-        # with TPU support based on https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md
         if grad_clip_val <= 0:
             return
+        self._clip_gradients(optimizer, grad_clip_val)
 
-        model = self.trainer.get_model()
-        if self.trainer.amp_backend == AMPType.APEX:
-            parameters = amp.master_params(optimizer)
+    def _clip_gradients(self, optimizer: Optimizer, grad_clip_val: Union[float, int], norm_type: float = 2.0):
+        if self.trainer.amp_backend:
+            self.trainer.precision_connector.backend.clip_gradients(grad_clip_val, optimizer, norm_type)
         else:
-            parameters = model.parameters()
-
-        max_norm = grad_clip_val
-        norm_type = float(2.0)
-
-        if isinstance(parameters, torch.Tensor):
-            parameters = [parameters]
-        parameters = list(filter(lambda p: p.grad is not None, parameters))
-
-        if norm_type == math.inf:
-            total_norm = max(p.grad.data.abs().max() for p in parameters)
-        else:
-            device = parameters[0].device
-            out = torch.empty(len(parameters), device=device)
-            for i, p in enumerate(parameters):
-                torch.norm(p.grad.data.to(device), norm_type, out=out[i])
-            total_norm = torch.norm(out, norm_type)
-
-        eps = EPSILON_FP16 if self.trainer.precision == 16 else EPSILON
-        clip_coef = torch.tensor(max_norm, device=device) / (total_norm + eps)
-        clip_coef = torch.min(clip_coef, torch.ones_like(clip_coef))
-        for p in parameters:
-            p.grad.data.mul_(clip_coef.to(p.grad.data.device))
+            model = self.trainer.get_model()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=grad_clip_val, norm_type=norm_type)
 
     def on_train_epoch_end(self, outputs):
         pass
@@ -201,7 +167,7 @@ class Accelerator(object):
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
     def init_ddp_connection(
-        self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
+            self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
     ) -> None:
         os.environ["MASTER_ADDR"] = str(self.cluster_environment.master_address())
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
