@@ -85,12 +85,12 @@ jobs:
         git clone https://github.com/pytorch/elastic.git
       shell: bash
 
-      - name: Create Gpu Node Pool
+    - name: Create Gpu Node Pool
       run: |
         eksctl create nodegroup --name=gpus --cluster=$AWS_CLUSTER --node-type=$NODE_TYPE --nodes=$NODES
       shell: bash
   
-      - name: Apply Elastic Kubectl Configuration + Nvidia
+    - name: Apply Elastic Kubectl Configuration + Nvidia
       run: |
         cd elastic/kubernetes
         kubectl apply -k config/default
@@ -98,7 +98,7 @@ jobs:
         kubectl apply -f https://raw.githubusercontent.com/pytorch/elastic/master/kubernetes/config/samples/etcd.yaml
       shell: bash
   
-      - name: Apply Multi Node Testing
+    - name: Apply Multi Node Testing
       run: |
         kubectl apply -f .github/multi-nodes/multi-nodes-gpu.yaml
       shell: bash
