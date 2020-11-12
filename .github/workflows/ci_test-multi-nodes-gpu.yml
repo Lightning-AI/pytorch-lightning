@@ -69,7 +69,7 @@ jobs:
       id: job
       shell: bash
       run: |
-        echo "::set-output name=ID::$(${{ steps.vars.outputs.SHA }}_${{ matrix.python-version }}_${{ matrix.pytorch-version }} | tr . - )"
+        echo "::set-output name=ID::$(echo '${{ steps.vars.outputs.SHA }}_${{ matrix.python-version }}_${{ matrix.pytorch-version }}' | tr . - )"
     
     #- uses: whoan/docker-build-with-cache-action@v5
     #  with:
