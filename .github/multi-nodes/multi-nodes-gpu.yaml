@@ -18,7 +18,7 @@ spec:
         spec:
           containers:
             - name: Pytorch Lightning Multi Nodes Testing
-              image: pytorchlightning/pytorch_lightning:base-cuda-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
+              image: pytorchlightning/pytorch_lightning:base-cuda-py{PYTHON_VERSION}-torch{PYTORCH_VERSION}
               imagePullPolicy: Always
               command: ["git", "clone", "https://github.com/tchaton/pytorch-lightning.git", "&&",
                         "cd", "pytorch-lightning", "&&",

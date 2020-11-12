@@ -75,7 +75,7 @@ jobs:
 
     - name: Configure AWS Credentials
       run: |
-        python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; req = open(fname).read().replace('{{PYTHON_VERSION}}}', '${{ matrix.python-version }}').replace('{{PYTORCH_VERSION}}}', '${{ matrix.pytorch-version }}').replace('{NODES}', '$NODES') ; open(fname, 'w').write(req)"
+        python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; req = open(fname).read().replace('{PYTHON_VERSION}', '${{ matrix.python-version }}').replace('{PYTORCH_VERSION}', '${{ matrix.pytorch-version }}').replace('{NODES}', '$NODES') ; open(fname, 'w').write(req)"
         python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; print(open(fname).read())"          
 
     - name: Install EKSClient
