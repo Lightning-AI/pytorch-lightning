@@ -22,6 +22,7 @@ spec:
               imagePullPolicy: Always
               command: ["git", "clone", "https://github.com/tchaton/pytorch-lightning.git", "&&",
                         "cd", "pytorch-lightning", "&&",
+                        "git", "fetch", "--all", "&&",
                         "git", "checkout", "b07a6dac378459f265f06a256d139b6ab7efa59c", "&&",
                         "pip install -e .", "&&",
                         "python", "-m", "torchelastic.distributed.launch"]
