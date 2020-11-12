@@ -48,7 +48,7 @@ jobs:
 
     - name: Set IMAGETAG
       #run: echo "IMAGETAG=${{ github.event.pull_request.head.sha }}${{ matrix.python-version }}" >> $GITHUB_ENV
-      run: echo "IMAGETAG=${{ matrix.python-version }}" >> $GITHUB_ENV
+      run: echo "IMAGETAG=${{ github.event.base_ref }}${{ matrix.python-version }}" >> $GITHUB_ENV
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
@@ -65,14 +65,6 @@ jobs:
         push_git_tag: false
         dockerfile: ./dockers/multi-gpu-tests/Dockerfile
         build_extra_args: "--build-arg PYTHON_VERSION=${{ matrix.python-version }}"
-
-    - name: Configure Docker and Push to ECR
-      run: |-
-        echo "$IMAGE:$IMAGETAG"
-        docker build -t "$IMAGE:$IMAGETAG" -f ./dockers/multi-gpu-tests/Dockerfile --build-arg "PYTHON_VERSION=${{ matrix.python-version }}" .
-        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com
-        docker push $IMAGE
-      shell: bash    
 
     - name: Install EKSClient
       run: |
