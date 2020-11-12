@@ -1229,12 +1229,14 @@ class LightningModule(
 
             optimizer_closure = optimizer_closure if isinstance(optimizer_closure, types.FunctionType) else mock_optimizer_closure
 
-            self.trainer.train_loop.optimizer_step(optimizer,
-                                                   None,
-                                                   self.trainer.batch_idx,
-                                                   optimizer_closure,
-                                                   *args,
-                                                   **kwargs)
+            self.trainer.train_loop.optimizer_step(
+                optimizer,
+                None,
+                self.trainer.batch_idx,
+                optimizer_closure,
+                *args,
+                **kwargs,
+            )
 
             # update will be called after every optimizer_step call
             if self.trainer.amp_backend == AMPType.NATIVE:
