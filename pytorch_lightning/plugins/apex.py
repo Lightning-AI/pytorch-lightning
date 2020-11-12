@@ -27,8 +27,6 @@ try:
 except ImportError:
     amp = None
 
-FP16_EPSILON = 1e-5
-
 
 class ApexPlugin(PrecisionPlugin):
 
@@ -130,7 +128,11 @@ class ApexPlugin(PrecisionPlugin):
         else:
             total_norm = torch.norm(
                 torch.stack([torch.norm(p.grad.detach(), norm_type).to(device) for p in parameters]), norm_type)
-        clip_coef = max_norm / (total_norm + FP16_EPSILON)
+        clip_coef = max_norm / (total_norm + self.norm_clipping_epsilon)
         if clip_coef < 1:
             for p in parameters:
                 p.grad.detach().mul_(clip_coef.to(p.grad.device))
+
+    @property
+    def norm_clipping_epsilon(self):
+        return 1e-5

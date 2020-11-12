@@ -36,8 +36,6 @@ if TPU_AVAILABLE:
     import torch_xla.distributed.parallel_loader as xla_pl
     import torch_xla.distributed.xla_multiprocessing as xmp
 
-EPSILON = 1e-6
-
 
 class TPUAccelerator(Accelerator):
 
@@ -285,7 +283,7 @@ class TPUAccelerator(Accelerator):
                 torch.norm(p.grad.data.to(device), norm_type, out=out[i])
             total_norm = torch.norm(out, norm_type)
 
-        clip_coef = torch.tensor(max_norm, device=device) / (total_norm + EPSILON)
+        clip_coef = torch.tensor(max_norm, device=device) / (total_norm + self.norm_clipping_epsilon)
         clip_coef = torch.min(clip_coef, torch.ones_like(clip_coef))
         for p in parameters:
             p.grad.data.mul_(clip_coef.to(p.grad.data.device))
@@ -367,3 +365,7 @@ class TPUAccelerator(Accelerator):
                     group: Optional[Any] = None,
                     reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
         return tensor
+
+    @property
+    def norm_clipping_epsilon(self):
+        return 1e-6
