@@ -131,6 +131,12 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
     It is highly recommended to re-initialize the metric per mode as
     shown in the examples above.
 
+.. note::
+
+    Metric states will as default add their internal state to the models ``state_dict``.
+    To change this after initializing the metric the method ``.persistent(mode)`` can
+    be used to enable (``mode=True``) or disable (``mode=False``) this behaviour.
+
 *********************
 Implementing a Metric
 *********************
