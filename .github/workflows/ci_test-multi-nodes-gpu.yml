@@ -26,14 +26,14 @@ env:
   AWS_ACCES_KEY_ID: ${{ secrets.AWS_ACCES_KEY_ID }}
   AWS_SECRET_KEY_ID: ${{ secrets.AWS_SECRET_KEY_ID }}
   AWS_REGION: us-east-2
-  AWS_CLUSTER: ${{ secrets.AWS_CLUSTER }}
-  IMAGE_NAME: ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.us-east-2.amazonaws.com/{{ secrets.AWS_CLUSTER }}
+  AWS_CLUSTER: multi-nodes-gpu-testing
+  IMAGE_NAME: ${{ secrets.AWS_ACCOUNT }}.dkr.ecr.$AWS_REGION.amazonaws.com/$AWS_CLUSTER
   NODE_TYPE: p3.8xlarge
   NODES: 2
 
 jobs:
-  setup-build-publish-deploy:
-    name: multi-node-testing-job
+  setup-build-test-publish:
+    name: $AWS_CLUSTER
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
