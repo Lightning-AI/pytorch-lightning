@@ -21,7 +21,7 @@ name: Multi Nodes GPU tests
 on: push
 
 env:
-  AWS_CLUSTER: torchelastic
+  AWS_CLUSTER: lightning-torchelastic
   NODE_TYPE: p3.8xlarge
   NODES: 2
 
