@@ -21,6 +21,8 @@ MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
 
 COPY ./ ./pytorch-lightning/
 
+RUN pip install -e .
+
 RUN python --version && \
     pip --version && \
     pip list && \

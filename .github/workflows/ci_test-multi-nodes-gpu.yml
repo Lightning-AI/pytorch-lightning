@@ -2,8 +2,8 @@ name: Multi Nodes GPU tests
 
 # Workflow Steps:
 #  1. Set IMAGETAG
-#  3. Edit multi-node-test.yaml template to refer to IMAGETAG
-#  4. Connect to AWS
+#  2. Configure AWS Credentials
+#  3. Configure Docker and Push to ECR
 #  5. Install EKSClient
  # 6. Clone Elastic repo
 #  7. Create node group
@@ -45,7 +45,15 @@ jobs:
     steps:
 
     - name: Set IMAGETAG
-      run: echo "IMAGETAG=${{ github.event.pull_request.head.sha }}${{ matrix.python-version }}" >> $GITHUB_ENV
+      #run: echo "IMAGETAG=${{ github.event.pull_request.head.sha }}${{ matrix.python-version }}" >> $GITHUB_ENV
+      run: echo "IMAGETAG=${{ github.event.base_ref }}_${{ matrix.python-version }}" >> $GITHUB_ENV
+
+    - name: Checkout Pytorch Lightning
+      uses: actions/checkout@v2
+      with:
+        repository: tchaton/pytorch-lightning
+        ref: ${{ github.event.base_ref }}
+
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
@@ -54,7 +62,7 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
         aws-region: us-east-2
 
-    - name: Configure Docker
+    - name: Configure Docker and Push to ECR
       run: |-
         echo "$IMAGE:$IMAGETAG"
         docker build -t "$IMAGE:$IMAGETAG" -f ./dockers/multi-gpu-tests/Dockerfile --build-arg "PYTHON_VERSION=${{ matrix.python-version }}" .
