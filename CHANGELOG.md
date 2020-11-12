@@ -33,6 +33,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added metrics aggregation in Horovod and fixed early stopping ([#3775](https://github.com/PyTorchLightning/pytorch-lightning/pull/3775))
 
 
+- Added logging using `self.log` in train and evaluation for most callbacks and model hooks (
+    [#4552](https://github.com/PyTorchLightning/pytorch-lightning/pull/4552),
+    [#4495](https://github.com/PyTorchLightning/pytorch-lightning/pull/4495),
+    [#4439](https://github.com/PyTorchLightning/pytorch-lightning/pull/4439)
+)
+
+- Added `manual_optimizer_step` which work with `AMP Native` and `accumulated_grad_batches` ([#4485](https://github.com/PyTorchLightning/pytorch-lightning/pull/4485))
+
+- Added `persistent(mode)` method to metrics, to enable and disable metric states being added to `state_dict` ([#4482](https://github.com/PyTorchLightning/pytorch-lightning/pull/4482))
+
+
 ### Changed
 
 - Tuner algorithms will be skipped if `fast_dev_run=True` ([#3903](https://github.com/PyTorchLightning/pytorch-lightning/pull/3903))
@@ -48,6 +59,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed feature-lack in hpc load ([#4526](https://github.com/PyTorchLightning/pytorch-lightning/pull/4526))
+
+
+- Fixed metrics states being overridden in ddp mode ([#4482](https://github.com/PyTorchLightning/pytorch-lightning/pull/4482))
+
+
+- Fixed `lightning_getattr`, `lightning_hasattr` not finding the correct attributes in datamodule ([#4347](https://github.com/PyTorchLightning/pytorch-lightning/pull/4347))
+
 
 ## [1.0.5] - 2020-11-03
 
