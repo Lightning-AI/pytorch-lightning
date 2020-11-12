@@ -45,7 +45,7 @@ jobs:
     steps:
 
     - name: Set IMAGETAG
-      run: echo "IMAGETAG=${{ github.event.pull_request.head.sha }}_${{ matrix.python-version }}" >> $GITHUB_ENV
+      run: echo "IMAGETAG=${{ github.event.pull_request.head.sha }}${{ matrix.python-version }}" >> $GITHUB_ENV
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
