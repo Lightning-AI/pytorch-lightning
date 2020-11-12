@@ -536,3 +536,4 @@ class DDPSpawnPlugin(ParallelPlugin):
         # Do we really need to set this or can we just make the trainer property forward our current property here?
         self.trainer.model = model
 
+# STILL MISSING: DDP2 (?), HOROVOD DDP AND HPC DDP
