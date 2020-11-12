@@ -57,6 +57,9 @@ exclude *.yaml
 # Exclude pyright config
 exclude .pyrightconfig.json
 
+# Exclude Makefile
+exclude Makefile
+
 prune .git
 prune .github
 prune .circleci
