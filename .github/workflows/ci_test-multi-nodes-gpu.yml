@@ -60,12 +60,12 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
         aws-region: us-east-2
 
-    - name: Install Aws Client
+    - name: Install AWS Client
       shell: bash
       run: |
         sudo apt-get install awscli -y
 
-    - name: Get current sha commit
+    - name: Get Current Sha Commit
       id: vars
       shell: bash
       run: |
@@ -103,14 +103,13 @@ jobs:
         eksctl create nodegroup --name=${{ steps.job.outputs.ID }} --cluster=lightning-torchelastic --node-type=p3.8xlarge  --nodes=1
       shell: bash
 
-    - name: Check current Node Pool
+    - name: Check Current Node Pool
       run: |
         eksctl get nodegroups --cluster lightning-torchelastic
       
     # create namespace
     - name: Apply Multi Node Testing
       run: |
-        kubectl create namespace jobs
         kubectl apply -f .github/multi-nodes/multi-nodes-gpu.yaml
       shell: bash
     
