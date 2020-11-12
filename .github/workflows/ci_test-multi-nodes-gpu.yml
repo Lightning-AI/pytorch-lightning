@@ -113,7 +113,7 @@ jobs:
         kubectl apply -f .github/multi-nodes/multi-nodes-gpu.yaml
       shell: bash
     
-    - name: Delete Group Node
-      if: always()
-      run: |
-       eksctl delete nodegroup ${{ steps.job.outputs.ID }} --cluster=$AWS_CLUSTER
+    # - name: Delete Group Node
+    #  if: always()
+    #  run: |
+    #   eksctl delete nodegroup ${{ steps.job.outputs.ID }} --cluster=$AWS_CLUSTER
