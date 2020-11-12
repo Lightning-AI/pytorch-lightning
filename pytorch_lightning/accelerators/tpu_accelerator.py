@@ -14,13 +14,13 @@
 import io
 import os
 import re
-from typing import Optional
+from typing import Optional, Union, Any
 
 import torch
 import torch.multiprocessing as mp
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save
@@ -339,3 +339,9 @@ class TPUAccelerator(Accelerator):
         buffer = io.BytesIO(data.cpu().byte().numpy())
         obj = torch.load(buffer)
         return obj
+
+    def sync_tensor(self,
+                    tensor: Union[torch.Tensor],
+                    group: Optional[Any] = None,
+                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
+        return tensor
