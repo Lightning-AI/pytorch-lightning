@@ -1,16 +1,16 @@
 name: Multi Nodes GPU tests
 
 # Workflow Steps:
-#  1. Set IMAGETAG
-#  2. Configure AWS Credentials
-#  3. Configure Docker and Push to ECR
-#  5. Install EKSClient
- # 6. Clone Elastic repo
-#  7. Create node group
-#  8. Apply elastic kukeclt cmd
-#  9. Launch multi-node-test.yaml
+#  1. Checkout Pytorch Lightning
+#  2. Set up Python
+#  3. Configure AWS Credentials
+#  4. Update Test Configuration File
+ # 5. Clone Elastic repo
+#  6. Create node group
+#  7. Apply elastic kukeclt cmd
+#  8. Launch multi-node-test.yaml
 #      - Create a tests/backends/test_multi_nodes.py file
-#  10. Use kukeclt to get logs
+#  9. Use kukeclt to get logs
 #  11. Print logs
 #  12. Upload coverage.
 
@@ -22,6 +22,7 @@ name: Multi Nodes GPU tests
 on: push
 
 env:
+  AWS_CLUSTER: torchelastic
   NODE_TYPE: p3.8xlarge
   NODES: 2
 
@@ -52,11 +53,6 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Set IMAGETAG
-      #run: echo "IMAGETAG=${{ github.event.pull_request.head.sha }}${{ matrix.python-version }}" >> $GITHUB_ENV
-      run: |
-        echo "IMAGETAG=${{ github.event.base_ref }}${{ matrix.python-version }}" >> $GITHUB_ENV
-
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
@@ -73,7 +69,7 @@ jobs:
     #    dockerfile: ./dockers/multi-gpu-tests/Dockerfile
     #    build_extra_args: "--build-arg PYTHON_VERSION=${{ matrix.python-version }}"
 
-    - name: Update multi-nodes-gpu.yaml with Matrix
+    - name: Update Test Configuration File
       run: |
         python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; req = open(fname).read().replace('{PYTHON_VERSION}', '${{ matrix.python-version }}').replace('{PYTORCH_VERSION}', '${{ matrix.pytorch-version }}').replace('{NODES}', '$NODES') ; open(fname, 'w').write(req)"
         python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; print(open(fname).read())"          
@@ -87,4 +83,22 @@ jobs:
     - name: Clone TorchElastic
       run: |
         git clone https://github.com/pytorch/elastic.git
+      shell: bash
+
+      - name: Create Gpu Node Pool
+      run: |
+        eksctl create nodegroup --name=gpus --cluster=$AWS_CLUSTER --node-type=$NODE_TYPE --nodes=$NODES
+      shell: bash
+  
+      - name: Apply Elastic Kubectl Configuration + Nvidia
+      run: |
+        cd elastic/kubernetes
+        kubectl apply -k config/default
+        kubectl create -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/master/nvidia-device-plugin.yml
+        kubectl apply -f https://raw.githubusercontent.com/pytorch/elastic/master/kubernetes/config/samples/etcd.yaml
+      shell: bash
+  
+      - name: Apply Multi Node Testing
+      run: |
+        kubectl apply -f .github/multi-nodes/multi-nodes-gpu.yaml
       shell: bash
