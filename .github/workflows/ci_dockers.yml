@@ -66,8 +66,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - python_version: 3.7
-            pytorch_version: 1.8
+          # todo: see notes in Dockerfile
+          #- python_version: 3.7
+          #  pytorch_version: 1.8
           - python_version: 3.8
             pytorch_version: 1.7
           - python_version: 3.7

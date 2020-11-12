@@ -1,12 +1,10 @@
 name: Nightly events
 
 # https://jasonet.co/posts/scheduled-actions/
-#on:
-#  schedule:
-#    # At the end of every day
-#    - cron: "0 0 * * *"
-# TODO
-on: push
+on:
+  schedule:
+    # At the end of every day
+    - cron: "0 0 * * *"
 
 # based on https://github.com/pypa/gh-action-pypi-publish
 jobs:
@@ -72,7 +70,7 @@ jobs:
           tags: pytorchlightning/pytorch_lightning:base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
         timeout-minutes: 55
 
-  docker-cuda:
+  docker-cuda-conda:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false

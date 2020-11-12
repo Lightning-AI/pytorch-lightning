@@ -95,9 +95,12 @@ RUN \
     # Install all requirements
     # todo: find a way how to install nightly PT version
     #  --pre --extra-index-url https://download.pytorch.org/whl/nightly/cu${cuda_ver[0]}${cuda_ver[1]}/torch_nightly.html
-    pip install -r requirements/devel.txt --use-feature=2020-resolver && \
-    pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda${cuda_ver[0]}0 && \
+    pip install -r requirements/devel.txt --upgrade-strategy only-if-needed --use-feature=2020-resolver && \
     rm -rf requirements*
+
+RUN \
+    # install DALI, needed for examples
+    pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda${CUDA_VERSION%%.*}0
 
 RUN \
     # install NVIDIA AMP
