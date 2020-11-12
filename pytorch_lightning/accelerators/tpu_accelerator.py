@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import io
+import math
 import os
 import re
 from typing import Optional, Union, Any
@@ -34,6 +35,8 @@ if TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.parallel_loader as xla_pl
     import torch_xla.distributed.xla_multiprocessing as xmp
+
+EPSILON = 1e-6
 
 
 class TPUAccelerator(Accelerator):
@@ -261,10 +264,31 @@ class TPUAccelerator(Accelerator):
             using_lbfgs=is_lbfgs
         )
 
-    def clip_gradients(self, optimizer, clip_val=None):
-        # apply clip gradients
-        # TODO: separate TPU case from here
-        self._clip_gradients(optimizer, clip_val)
+    def _clip_gradients(self, optimizer, grad_clip_val):
+        # this code is a modification of torch.nn.utils.clip_grad_norm_
+        # with TPU support based on https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md
+        model = self.trainer.get_model()
+        parameters = model.parameters()
+        max_norm = grad_clip_val
+        norm_type = 2.0
+
+        if isinstance(parameters, torch.Tensor):
+            parameters = [parameters]
+        parameters = list(filter(lambda p: p.grad is not None, parameters))
+
+        if norm_type == math.inf:
+            total_norm = max(p.grad.data.abs().max() for p in parameters)
+        else:
+            device = parameters[0].device
+            out = torch.empty(len(parameters), device=device)
+            for i, p in enumerate(parameters):
+                torch.norm(p.grad.data.to(device), norm_type, out=out[i])
+            total_norm = torch.norm(out, norm_type)
+
+        clip_coef = torch.tensor(max_norm, device=device) / (total_norm + EPSILON)
+        clip_coef = torch.min(clip_coef, torch.ones_like(clip_coef))
+        for p in parameters:
+            p.grad.data.mul_(clip_coef.to(p.grad.data.device))
 
     def barrier(self, name: Optional[str] = None):
         torch_xla.core.xla_model.rendezvous(f"pl.Trainer.{name}")
