@@ -14,8 +14,12 @@
 
 import torch
 
+from pytorch_lightning.plugins.precision_plugin import PrecisionPlugin
 
-class NativeAMPPlugin:
+EPSILON_FP16 = 1e-5
+
+
+class NativeAMPPlugin(PrecisionPlugin):
 
     def __init__(self, trainer=None):
         """
@@ -55,3 +59,8 @@ class NativeAMPPlugin:
     @property
     def scaler(self):
         return torch.cuda.amp.GradScaler()
+
+    def clip_gradients(self, grad_clip_val, model, optimizer):
+        max_norm = grad_clip_val
+        norm_type = float(2.0)
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=max_norm, norm_type=norm_type)

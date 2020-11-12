@@ -13,9 +13,11 @@
 # limitations under the License.
 from typing import List, Tuple
 
+import torch
 from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.plugins.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities import AMPType
 
@@ -25,7 +27,7 @@ except ImportError:
     amp = None
 
 
-class ApexPlugin:
+class ApexPlugin(PrecisionPlugin):
 
     def __init__(self, trainer=None):
         self.trainer = trainer
@@ -98,3 +100,9 @@ class ApexPlugin:
         """
         model, optimizers = amp.initialize(model, optimizers, opt_level=amp_level)
         return model, optimizers
+
+    def clip_gradients(self, grad_clip_val, model, optimizer):
+        parameters = amp.master_params(optimizer)
+        max_norm = grad_clip_val
+        norm_type = float(2.0)
+        torch.nn.utils.clip_grad_norm_(parameters, max_norm=max_norm, norm_type=norm_type)
