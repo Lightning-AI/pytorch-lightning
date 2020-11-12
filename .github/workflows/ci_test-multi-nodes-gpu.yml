@@ -73,7 +73,7 @@ jobs:
     #    dockerfile: ./dockers/multi-gpu-tests/Dockerfile
     #    build_extra_args: "--build-arg PYTHON_VERSION=${{ matrix.python-version }}"
 
-    - name: Configure AWS Credentials
+    - name: Update multi-nodes-gpu.yaml with Matrix
       run: |
         python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; req = open(fname).read().replace('{PYTHON_VERSION}', '${{ matrix.python-version }}').replace('{PYTORCH_VERSION}', '${{ matrix.pytorch-version }}').replace('{NODES}', '$NODES') ; open(fname, 'w').write(req)"
         python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; print(open(fname).read())"          
