@@ -250,7 +250,7 @@ class LightningLoggerBase(ABC):
          'string': 'abc'}
         """
         # convert relevant np scalars to python types first (instead of str)
-        params = {k: v.item() if type(v) in [np.bool_, np.number] else v for k, v in params.items()}
+        params = {k: v.item() if isinstance(v, (np.bool_, np.number)) else v for k, v in params.items()}
         return {k: v if type(v) in [bool, int, float, str, torch.Tensor] else str(v) for k, v in params.items()}
 
     @abstractmethod
