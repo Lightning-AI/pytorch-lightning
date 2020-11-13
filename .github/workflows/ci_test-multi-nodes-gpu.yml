@@ -137,8 +137,6 @@ jobs:
       shell: bash
       run: |
         kubectl get pods -n elastic-job
-        kubectl logs id-${{ steps.job.outputs.ID }}-worker-0 -n elastic-job
-        kubectl logs id-${{ steps.job.outputs.ID }}-worker-1 -n elastic-job
 
     - name: Wait
       if: always()
