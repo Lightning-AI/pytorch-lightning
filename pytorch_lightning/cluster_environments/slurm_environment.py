@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import os
 import re
 from pytorch_lightning import _logger as log
@@ -65,6 +66,9 @@ class SLURMEnvironment(ClusterEnvironment):
 
     def world_size(self):
         return self._world_size
+
+    def local_rank(self):
+        return int(os.environ['SLURM_LOCALID'])
 
     def _resolve_root_node_address(self, root_node):
         if '[' in root_node:

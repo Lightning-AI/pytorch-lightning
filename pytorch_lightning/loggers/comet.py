@@ -13,8 +13,8 @@
 # limitations under the License.
 
 """
-Comet
------
+Comet Logger
+------------
 """
 
 import os
@@ -53,7 +53,9 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 class CometLogger(LightningLoggerBase):
     r"""
-    Log using `Comet.ml <https://www.comet.ml>`_. Install it with pip:
+    Log using `Comet.ml <https://www.comet.ml>`_.
+
+    Install it with pip:
 
     .. code-block:: bash
 
@@ -187,7 +189,6 @@ class CometLogger(LightningLoggerBase):
 
         if self._future_experiment_key is not None:
             os.environ["COMET_EXPERIMENT_KEY"] = self._future_experiment_key
-            self._future_experiment_key = None
 
         try:
             if self.mode == "online":
@@ -212,7 +213,9 @@ class CometLogger(LightningLoggerBase):
                     **self._kwargs,
                 )
         finally:
-            os.environ.pop("COMET_EXPERIMENT_KEY", None)
+            if self._future_experiment_key is not None:
+                os.environ.pop("COMET_EXPERIMENT_KEY")
+                self._future_experiment_key = None
 
         if self._experiment_name:
             self._experiment.set_name(self._experiment_name)
@@ -277,6 +280,9 @@ class CometLogger(LightningLoggerBase):
 
         if self._experiment_key is not None:
             return self._experiment_key
+
+        if "COMET_EXPERIMENT_KEY" in os.environ:
+            return os.environ["COMET_EXPERIMENT_KEY"]
 
         if self._future_experiment_key is not None:
             return self._future_experiment_key

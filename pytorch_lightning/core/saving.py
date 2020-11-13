@@ -17,7 +17,7 @@ import csv
 import inspect
 import os
 from argparse import Namespace
-from typing import Union, Dict, Any, Optional, Callable, MutableMapping
+from typing import Union, Dict, Any, Optional, Callable, MutableMapping, IO
 from warnings import warn
 
 import fsspec
@@ -52,7 +52,7 @@ class ModelIO(object):
     @classmethod
     def load_from_checkpoint(
         cls,
-        checkpoint_path: str,
+        checkpoint_path: Union[str, IO],
         map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
         hparams_file: Optional[str] = None,
         strict: bool = True,
@@ -60,12 +60,12 @@ class ModelIO(object):
     ):
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
-        it stores the arguments passed to `__init__`  in the checkpoint under `module_arguments`
+        it stores the arguments passed to `__init__`  in the checkpoint under `hyper_parameters`
 
-        Any arguments specified through \*args and \*\*kwargs will override args stored in `hparams`.
+        Any arguments specified through \*args and \*\*kwargs will override args stored in `hyper_parameters`.
 
         Args:
-            checkpoint_path: Path to checkpoint. This can also be a URL.
+            checkpoint_path: Path to checkpoint. This can also be a URL, or file-like object
             map_location:
                 If your checkpoint saved a GPU model and you now load on CPUs
                 or a different number of GPUs, use this to map to the new setup.
@@ -89,8 +89,8 @@ class ModelIO(object):
                 `hparams` as :class:`~dict`.
             strict: Whether to strictly enforce that the keys in :attr:`checkpoint_path` match the keys
                 returned by this module's state dict. Default: `True`.
-            hparam_overrides: A dictionary with keys to override in the hparams
-            kwargs: Any keyword args needed to init the model.
+            kwargs: Any extra keyword args needed to init the model. Can also be used to override saved
+                hyperparameter values.
 
         Return:
             :class:`LightningModule` with loaded weights and hyperparameters (if available).

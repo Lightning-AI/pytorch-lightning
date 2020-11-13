@@ -55,6 +55,8 @@ def test_trainer_callback_system(tmpdir):
             self.on_validation_end_called = False
             self.on_test_start_called = False
             self.on_test_end_called = False
+            self.on_after_backward_called = False
+            self.on_before_zero_grad_called = False
 
         def setup(self, trainer, pl_module, stage: str):
             assert isinstance(trainer, Trainer)
@@ -160,6 +162,14 @@ def test_trainer_callback_system(tmpdir):
             _check_args(trainer, pl_module)
             self.on_test_end_called = True
 
+        def on_after_backward(self, trainer, pl_module):
+            _check_args(trainer, pl_module)
+            self.on_after_backward_called = True
+
+        def on_before_zero_grad(self, trainer, pl_module, optimizer):
+            _check_args(trainer, pl_module)
+            self.on_before_zero_grad_called = True
+
     test_callback = TestCallback()
 
     trainer_options = dict(
@@ -197,6 +207,8 @@ def test_trainer_callback_system(tmpdir):
     assert not test_callback.on_validation_end_called
     assert not test_callback.on_test_start_called
     assert not test_callback.on_test_end_called
+    assert not test_callback.on_after_backward_called
+    assert not test_callback.on_before_zero_grad_called
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -228,6 +240,8 @@ def test_trainer_callback_system(tmpdir):
     assert not test_callback.on_validation_end_called
     assert not test_callback.on_test_start_called
     assert not test_callback.on_test_end_called
+    assert not test_callback.on_after_backward_called
+    assert not test_callback.on_before_zero_grad_called
 
     trainer.fit(model)
 
@@ -257,6 +271,8 @@ def test_trainer_callback_system(tmpdir):
     assert not test_callback.on_test_batch_end_called
     assert not test_callback.on_test_start_called
     assert not test_callback.on_test_end_called
+    assert test_callback.on_after_backward_called
+    assert test_callback.on_before_zero_grad_called
 
     # reset setup teardown callback
     test_callback.teardown_called = False
@@ -277,3 +293,5 @@ def test_trainer_callback_system(tmpdir):
     assert not test_callback.on_validation_end_called
     assert not test_callback.on_validation_batch_end_called
     assert not test_callback.on_validation_batch_start_called
+    assert not test_callback.on_after_backward_called
+    assert not test_callback.on_before_zero_grad_called

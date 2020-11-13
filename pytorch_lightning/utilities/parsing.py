@@ -61,7 +61,7 @@ def is_picklable(obj: object) -> bool:
     try:
         pickle.dumps(obj)
         return True
-    except pickle.PicklingError:
+    except (pickle.PicklingError, AttributeError):
         return False
 
 
@@ -177,8 +177,9 @@ class AttributeDict(Dict):
 def lightning_hasattr(model, attribute):
     """ Special hasattr for lightning. Checks for attribute in model namespace,
         the old hparams namespace/dict, and the datamodule. """
-    trainer = model.trainer
+    trainer = getattr(model, 'trainer', None)
 
+    attr = False
     # Check if attribute in model
     if hasattr(model, attribute):
         attr = True
@@ -189,10 +190,8 @@ def lightning_hasattr(model, attribute):
         else:
             attr = hasattr(model.hparams, attribute)
     # Check if the attribute in datamodule (datamodule gets registered in Trainer)
-    elif trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
-        attr = getattr(trainer.datamodule, attribute)
-    else:
-        attr = False
+    if not attr and trainer is not None:
+        attr = hasattr(trainer.datamodule, attribute)
 
     return attr
 
@@ -200,18 +199,16 @@ def lightning_hasattr(model, attribute):
 def lightning_getattr(model, attribute):
     """ Special getattr for lightning. Checks for attribute in model namespace,
         the old hparams namespace/dict, and the datamodule. """
-    trainer = model.trainer
+    trainer = getattr(model, 'trainer', None)
 
     # Check if attribute in model
     if hasattr(model, attribute):
         attr = getattr(model, attribute)
     # Check if attribute in model.hparams, either namespace or dict
-    elif hasattr(model, 'hparams'):
-        if isinstance(model.hparams, dict):
-            attr = model.hparams[attribute]
-        else:
-            attr = getattr(model.hparams, attribute)
-
+    elif hasattr(model, 'hparams') and isinstance(model.hparams, dict) and attribute in model.hparams:
+        attr = model.hparams[attribute]
+    elif hasattr(model, 'hparams') and hasattr(model.hparams, attribute):
+        attr = getattr(model.hparams, attribute)
     # Check if the attribute in datamodule (datamodule gets registered in Trainer)
     elif trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
         attr = getattr(trainer.datamodule, attribute)
@@ -230,7 +227,7 @@ def lightning_setattr(model, attribute, value):
         raise ValueError(f'{attribute} is neither stored in the model namespace'
                          ' nor the `hparams` namespace/dict, nor the datamodule.')
 
-    trainer = model.trainer
+    trainer = getattr(model, 'trainer', None)
 
     # Check if attribute in model
     if hasattr(model, attribute):

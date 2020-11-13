@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 import os
-from typing import List
+from typing import Any, List, Optional, Union
 
 import torch
 import torch.distributed as torch_distrib
@@ -20,13 +20,12 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities.distributed import rank_zero_only
-from pytorch_lightning.utilities.seed import seed_everything
+from pytorch_lightning.utilities.distributed import rank_zero_only, sync_ddp_if_available
+
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -37,15 +36,19 @@ else:
     HYDRA_AVAILABLE = True
 
 
-# -------------------------------------------
-# !!!!!!!!!!!!!! NOTE !!!!!!!!!!!!!!!!!!!!!!
-# TEMP CLASS WHILE WE DECOUPLE SLURM FROM DDP
-# !!!!!!!!!!!!!! NOTE !!!!!!!!!!!!!!!!!!!!!!
-# -------------------------------------------
-class DDPSLURMAccelerator(Accelerator):
+class DDPHPCAccelerator(Accelerator):
 
-    def __init__(self, trainer, cluster_environment=None):
-        super().__init__(trainer, cluster_environment)
+    def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
+        """
+        Runs training using DDP on an HPC cluster
+
+        Example::
+
+            # default
+            trainer = Trainer(accelerator=DDPHPCAccelerator())
+
+        """
+        super().__init__(trainer, cluster_environment, ddp_plugin)
         self.task_idx = None
         self._has_spawned_children = False
         self.dist = LightningDistributed()
@@ -53,7 +56,7 @@ class DDPSLURMAccelerator(Accelerator):
 
     def setup(self, model):
         self.trainer.model = model
-        self.task_idx = int(os.environ['SLURM_LOCALID'])
+        self.task_idx = self.cluster_environment.local_rank()
 
     def train(self):
         model = self.trainer.model
@@ -89,7 +92,7 @@ class DDPSLURMAccelerator(Accelerator):
         output = self.training_step(args)
         return output
 
-    def barrier(self, name: str = None):
+    def barrier(self, name: Optional[str] = None):
         if torch_distrib.is_initialized():
             torch_distrib.barrier()
 
@@ -116,15 +119,11 @@ class DDPSLURMAccelerator(Accelerator):
             Dict with evaluation results
 
         """
-        seed = os.environ.get("PL_GLOBAL_SEED")
-        if seed is not None:
-            seed_everything(int(seed))
-
         # determine which process we are and world size
         self.set_world_ranks(process_idx)
 
         # toggle prog bar
-        if self.trainer.global_rank == 0 and self.trainer.progress_bar_callback is not None:
+        if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:
             self.trainer.progress_bar_callback.disable()
 
         # set warning rank
@@ -146,7 +145,7 @@ class DDPSLURMAccelerator(Accelerator):
         # on world_size=0 let everyone know training is starting
         if self.trainer.is_global_zero and not torch.distributed.is_initialized():
             log.info('-' * 100)
-            log.info(f'distributed_backend={self.trainer.distributed_backend} (on SLURM)')
+            log.info(f'distributed_backend={self.trainer.distributed_backend}')
             log.info(f'All DDP processes registered. Starting ddp with {self.trainer.world_size} processes')
             log.info('-' * 100)
 
@@ -187,9 +186,7 @@ class DDPSLURMAccelerator(Accelerator):
     def configure_ddp(
         self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
-        model = LightningDistributedDataParallel(
-            model, device_ids=device_ids, find_unused_parameters=True
-        )
+        model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model
 
     def configure_sync_batchnorm(self, model: LightningModule) -> LightningModule:
@@ -208,3 +205,9 @@ class DDPSLURMAccelerator(Accelerator):
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
 
         return model
+
+    def sync_tensor(self,
+                    tensor: Union[torch.Tensor],
+                    group: Optional[Any] = None,
+                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
+        return sync_ddp_if_available(tensor, group, reduce_op)
