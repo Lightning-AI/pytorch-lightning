@@ -77,7 +77,7 @@ class LightningOptimizer(Optimizer):
         self._optimizer.__dict__.update(state)
 
     def __repr__(self):
-        format_string = self._optimizer.__class__.__name__ + ' ('
+        format_string = "Lightning" + self._optimizer.__class__.__name__ + ' ('
         for i, group in enumerate(self.param_groups):
             format_string += '\n'
             format_string += 'Parameter Group {0}\n'.format(i)
