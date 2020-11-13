@@ -24,6 +24,7 @@ env:
   AWS_CLUSTER: lightning-torchelastic-1
   NODE_TYPE: p3.2xlarge
   NODES: 2
+  NUM_GPUS: 1
   REGION: us-east-2
   MAX_CHECKS: 360
   CHECK_SPEEP: 5
@@ -90,7 +91,7 @@ jobs:
 
     - name: Update Test Configuration File
       run: |
-        python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; req = open(fname).read().replace('{PYTHON_VERSION}', '${{ matrix.python-version }}').replace('{SHA}', '${{ steps.vars.outputs.SHA }}').replace('{PYTORCH_VERSION}', '${{ matrix.pytorch-version }}').replace('{NODES}', '$NODES') ; open(fname, 'w').write(req)"
+        python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; req = open(fname).read().replace('{PYTHON_VERSION}', '${{ matrix.python-version }}').replace('{SHA}', '${{ steps.vars.outputs.SHA }}').replace('{PYTORCH_VERSION}', '${{ matrix.pytorch-version }}').replace('{NODES}', '$NODES').replace('{NUM_GPUS}', '$NUM_GPUS') ; open(fname, 'w').write(req)"
         python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; print(open(fname).read())"          
 
     - name: Install EKSClient
