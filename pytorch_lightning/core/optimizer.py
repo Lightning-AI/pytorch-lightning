@@ -49,8 +49,10 @@ TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 if TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
 
-def mock_closure():
+
+def do_nothing_closure():
     return
+
 
 class LightningOptimizer(Optimizer):
 
@@ -94,7 +96,7 @@ class LightningOptimizer(Optimizer):
         else:
             return self.__class__.__name__
 
-    def step(self, *args, closure=mock_closure, **kwargs):
+    def step(self, *args, closure=do_nothing_closure, **kwargs):
         if self._trainer.on_tpu:
             xm.optimizer_step(self._optimizer, optimizer_args={'closure': closure, **kwargs})
         elif self._trainer.amp_backend == AMPType.NATIVE:

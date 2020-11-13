@@ -282,6 +282,9 @@ class Trainer(
 
             move_metrics_to_cpu: Whether to force internal logged metrics to be moved to cpu.
                 This can save some gpu memory, but can make training slower. Use with attention.
+
+            experimental_lightning_optimizer: Whether to use LightingOptimizer wrapper around your optimizers.
+                LightingOptimizer wraps `step` to make sure everything works with AMP, etc.. on GPU, TPUs, etc..
         """
         super().__init__()
 
