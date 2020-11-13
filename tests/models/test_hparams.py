@@ -30,14 +30,14 @@ from pytorch_lightning.utilities import AttributeDict, is_picklable
 from tests.base import EvalModelTemplate, TrialMNIST, BoringModel
 
 
-class SaveHparamsModel(EvalModelTemplate):
+class SaveHparamsModel(BoringModel):
     """ Tests that a model can take an object """
     def __init__(self, hparams):
         super().__init__()
         self.save_hyperparameters(hparams)
 
 
-class AssignHparamsModel(EvalModelTemplate):
+class AssignHparamsModel(BoringModel):
     """ Tests that a model can take an object with explicit setter """
     def __init__(self, hparams):
         super().__init__()
@@ -45,11 +45,11 @@ class AssignHparamsModel(EvalModelTemplate):
 
 
 def decorate(func):
-  @functools.wraps(func)
-  def wrapper(*args, **kwargs):
-    return func(*args, **kwargs)
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
 
-  return wrapper
+    return wrapper
 
 
 class SaveHparamsDecoratedModel(SaveHparamsModel):
