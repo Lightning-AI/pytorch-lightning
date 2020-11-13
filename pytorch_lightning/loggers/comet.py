@@ -13,8 +13,8 @@
 # limitations under the License.
 
 """
-Comet
------
+Comet Logger
+------------
 """
 
 import os
@@ -53,7 +53,9 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 class CometLogger(LightningLoggerBase):
     r"""
-    Log using `Comet.ml <https://www.comet.ml>`_. Install it with pip:
+    Log using `Comet.ml <https://www.comet.ml>`_.
+
+    Install it with pip:
 
     .. code-block:: bash
 
