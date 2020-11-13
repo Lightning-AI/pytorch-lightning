@@ -75,7 +75,7 @@ class LightningOptimizer(Optimizer):
         self._optimizer.__dict__.update(state)
 
     def step(self, closure, *args, **kwargs):
-        if self._trainer.use_tpu:
+        if self._trainer.on_tpu:
             xm.optimizer_step(self._optimizer, optimizer_args={'closure': closure, **kwargs})
         elif self._trainer.amp_backend == AMPType.NATIVE:
             # native amp does not yet support closures.
