@@ -293,44 +293,27 @@ Supported Loggers
 
 The following are loggers we support
 
-Comet
-=====
+.. note::
+    The following loggers will normally plot an additional chart (**global_step VS epoch**).
 
-.. autoclass:: pytorch_lightning.loggers.comet.CometLogger
-    :noindex:
+.. note::
+    postfix ``_step`` and ``_epoch`` will be appended to the name you logged
+    if ``on_step`` and ``on_epoch`` are set to ``True`` in ``self.log()``.
 
-CSVLogger
-=========
+.. note::
+    Depending on the loggers you use, there might be some additional charts.
 
-.. autoclass:: pytorch_lightning.loggers.csv_logs.CSVLogger
-    :noindex:
+.. currentmodule:: pytorch_lightning.loggers
 
-MLFlow
-======
+.. autosummary::
+    :toctree: generated
+    :nosignatures:
+    :template: classtemplate.rst
 
-.. autoclass:: pytorch_lightning.loggers.mlflow.MLFlowLogger
-    :noindex:
-
-Neptune
-=======
-
-.. autoclass:: pytorch_lightning.loggers.neptune.NeptuneLogger
-    :noindex:
-
-Tensorboard
-============
-
-.. autoclass:: pytorch_lightning.loggers.tensorboard.TensorBoardLogger
-    :noindex:
-
-Test-tube
-=========
-
-.. autoclass:: pytorch_lightning.loggers.test_tube.TestTubeLogger
-    :noindex:
-
-Weights and Biases
-==================
-
-.. autoclass:: pytorch_lightning.loggers.wandb.WandbLogger
-    :noindex:
+    CometLogger
+    CSVLogger
+    MLFlowLogger
+    NeptuneLogger
+    TensorBoardLogger
+    TestTubeLogger
+    WandbLogger
