@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""nn.Module with additional great features."""
+
+import os
+import tempfile
 import collections
 import copy
 import inspect

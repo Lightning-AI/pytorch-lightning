@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""[Train, Eval]Result for easier logging, checkpointing, early stopping, epoch-wise reduction."""
+
 import numbers
 from copy import copy
 from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any, List, Tuple, Iterable

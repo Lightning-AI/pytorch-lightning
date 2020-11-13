@@ -13,7 +13,7 @@
 # limitations under the License.
 
 r"""
-Subclass this class and override any of the relevant hooks
+Abstract base class used to build new callbacks.
 
 """
 

@@ -58,6 +58,13 @@ PyTorch Lightning Documentation
    From PyTorch to PyTorch Lightning [Video] <https://www.youtube.com/watch?v=QHww1JH7IDU>
 
 .. toctree::
+   :maxdepth: 2
+   :name: api
+   :caption: API References
+
+   api_references
+
+.. toctree::
    :maxdepth: 1
    :name: Bolts
    :caption: Bolts
