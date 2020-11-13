@@ -30,6 +30,13 @@ from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictSt
 from tests.base.deterministic_model import DeterministicModel
 
 from pytorch_lightning.trainer import Trainer
+from time import sleep
+
+
+def test_sleep(tmpdir):
+    for i in range(300):
+        sleep(1)
+        print(i)
 
 
 def test_multi_node_gpu(tmpdir):

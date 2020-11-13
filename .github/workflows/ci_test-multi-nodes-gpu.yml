@@ -5,7 +5,7 @@ name: Multi Nodes GPU Tests
 #  2. Set up Python
 #  3. Configure AWS Credentials
 #  4. Update Test Configuration File
- # 5. Clone Elastic repo
+#  5. Clone Elastic repo
 #  6. Create node group
 #  7. Apply elastic kukeclt cmd
 #  8. Launch multi-node-test.yaml
@@ -25,6 +25,8 @@ env:
   NODE_TYPE: p3.8xlarge
   NODES: 2
   REGION: us-east-2
+  MAX_CHECKS: 360
+  CHECK_SPEEP: 5
 
 jobs:
   setup-build-test-publish:
@@ -108,13 +110,17 @@ jobs:
         eksctl get nodegroups --cluster $AWS_CLUSTER
         kubectl get pods -n elastic-job
       
-    # create namespace
     - name: Apply Multi Node Testing
       run: |
         kubectl apply -f .github/multi-nodes/multi-nodes-gpu.yaml
       shell: bash
-    
-    # - name: Delete Group Node
-    #  if: always()
-    #  run: |
-    #   eksctl delete nodegroup ${{ steps.job.outputs.ID }} --cluster=$AWS_CLUSTER
+
+    - name: Listen to Jobs Logging
+      shell: bash
+      run: |
+        kubectl logs -f ${{ steps.vars.outputs.SHA }}-1
+
+    - name: Delete Group Node
+      if: always()
+      run: |
+       eksctl delete nodegroup ${{ steps.job.outputs.ID }} --cluster=$AWS_CLUSTER
