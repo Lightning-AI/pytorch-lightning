@@ -127,16 +127,24 @@ jobs:
         kubectl apply -f .github/multi-nodes/multi-nodes-gpu.yaml
       shell: bash
 
+    - name: Wait
+      if: always()
+      shell: bash
+      run: |
+        sleep 60
+
     - name: Listen to Jobs Logging
       shell: bash
       run: |
-        kubectl logs -f ${{ steps.vars.outputs.SHA }}-1
+        kubectl get pods -n elastic-job
+        kubectl logs id-${{ steps.job.outputs.ID }}-worker-0 -n elastic-job
+        kubectl logs id-${{ steps.job.outputs.ID }}-worker-1 -n elastic-job
 
     - name: Wait
       if: always()
       shell: bash
       run: |
-        sleep 600
+        sleep 400
 
     - name: Delete Group Node
       if: always()
