@@ -181,7 +181,7 @@ def test_reducelronplateau_scheduling(tmpdir):
 
 def test_optimizer_return_options():
     trainer = Trainer()
-    trainer.experimental_lightning_optimizer = False
+    trainer.use_lightning_optimizer = False
     model = EvalModelTemplate()
 
     # single optimizer

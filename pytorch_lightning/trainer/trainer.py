@@ -139,7 +139,7 @@ class Trainer(
         distributed_backend: Optional[str] = None,
         automatic_optimization: bool = True,
         move_metrics_to_cpu: bool = False,
-        experimental_lightning_optimizer: bool = True,
+        use_lightning_optimizer: bool = True,
     ):
         r"""
         Customize every aspect of training via flags
@@ -283,7 +283,7 @@ class Trainer(
             move_metrics_to_cpu: Whether to force internal logged metrics to be moved to cpu.
                 This can save some gpu memory, but can make training slower. Use with attention.
 
-            experimental_lightning_optimizer: Whether to use LightingOptimizer wrapper around your optimizers.
+            use_lightning_optimizer: Whether to use LightingOptimizer wrapper around your optimizers.
                 LightingOptimizer wraps `step` to make sure everything works with AMP, etc.. on GPU, TPUs, etc..
         """
         super().__init__()
@@ -356,7 +356,7 @@ class Trainer(
             benchmark,
             replace_sampler_ddp,
             deterministic,
-            experimental_lightning_optimizer
+            use_lightning_optimizer
         )
 
         # init train loop related flags

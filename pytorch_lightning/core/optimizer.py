@@ -62,6 +62,14 @@ class LightningOptimizer(Optimizer):
         self._optimizer_idx = optimizer_idx
         self._expose_optimizer_attr()
 
+    @property
+    def optimizer(self):
+        return self._optimizer
+
+    @optimizer.setter
+    def optimizer(self, optimizer):
+        return self._optimizer
+
     def _expose_optimizer_attr(self):
         for attr_name in dir(self._optimizer):
             if ('__' in attr_name) or "step" == attr_name:
@@ -108,6 +116,6 @@ class LightningOptimizer(Optimizer):
             # apex amp does not yet support closures.
             # TODO: pass the closure to the step ASAP
             closure()
-            self._optimizer.step(*args, **kwargs)
+            self._optimizer.step()
         else:
             self._optimizer.step(closure=closure, *args, **kwargs)
