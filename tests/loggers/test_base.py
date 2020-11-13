@@ -236,8 +236,8 @@ def test_np_sanitization():
         "np.longlong": np.longlong(5),
         "np.single": np.single(6.7),
         "np.double": np.double(8.9),
-        "np.csingle": np.csingle(7+2j),
-        "np.cdouble": np.cdouble(9+4j),
+        "np.csingle": np.csingle(7 + 2j),
+        "np.cdouble": np.cdouble(9 + 4j),
     }
     sanitized_params = {
         "np.bool_": True,
