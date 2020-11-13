@@ -1,0 +1,39 @@
+apiVersion: elastic.pytorch.org/v1alpha1
+kind: ElasticJob
+metadata:
+  name: id-{SHA}-{PYTHON_VERSION}-{PYTORCH_VERSION}
+  namespace: elastic-job
+spec:
+  # Use "etcd-service:2379" if you already apply etcd.yaml
+  rdzvEndpoint: "etcd-service:2379"
+  minReplicas: 2
+  maxReplicas: 2
+  replicaSpecs:
+    Worker:
+      replicas: 2
+      restartPolicy: ExitCode
+      template:
+        apiVersion: v1
+        kind: Pod
+        spec:
+          containers:
+            - name: id-{SHA}-{PYTHON_VERSION}-{PYTORCH_VERSION}
+              image: pytorchlightning/pytorch_lightning:base-cuda-py{PYTHON_VERSION}-torch{PYTORCH_VERSION}
+              imagePullPolicy: Always
+              command: 
+              - bash 
+              - -ce
+              - | 
+                git clone https://github.com/tchaton/pytorch-lightning.git /repo
+                cd /repo
+                git fetch --all
+                git checkout {SHA}
+                pip install -e .
+                python -m torchelastic.distributed.launch --nproc_per_node={NUM_GPUS} -m coverage run --source pytorch_lightning -m tests/backends/multi-nodes.py -v --color=yes --durations=0
+                echo "\n||| END PYTEST LOGS |||\n"
+                coverage xml
+                cat coverage.xml | tr -d '\t'
+                test $test_exit_code -eq 0
+              resources:
+                limits:
+                  nvidia.com/gpu: {NUM_GPUS}
