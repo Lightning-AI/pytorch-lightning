@@ -19,6 +19,45 @@ from pytorch_lightning.metrics.classification.utils import _input_format_classif
 
 
 class Accuracy(Metric):
+    """
+    Computes accuracy. Works with binary, multiclass, and multilabel data.
+    Accepts logits from a model output or integer class values in prediction.
+    Works with multi-dimensional preds and target.
+
+    Forward accepts
+
+    - ``preds`` (float or long tensor): ``(N, ...)`` or ``(N, C, ...)`` where C is the number of classes
+    - ``target`` (long tensor): ``(N, ...)``
+
+    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument.
+    This is the case for binary and multi-label logits.
+
+    If preds has an extra dimension as in the case of multi-class scores we perform an argmax on ``dim=1``.
+
+    Args:
+        threshold:
+            Threshold value for binary or multi-label logits. default: 0.5
+        compute_on_step:
+            Forward only calls ``update()`` and return None if this is set to False. default: True
+        dist_sync_on_step:
+            Synchronize metric state across processes at each ``forward()``
+            before returning the value at the step. default: False
+        process_group:
+            Specify the process group on which synchronization is called. default: None (which selects the entire world)
+        dist_sync_fn:
+            Callback that performs the allgather operation on the metric state. When `None`, DDP
+            will be used to perform the allgather. default: None
+
+    Example:
+
+        >>> from pytorch_lightning.metrics import Accuracy
+        >>> target = torch.tensor([0, 1, 2, 3])
+        >>> preds = torch.tensor([0, 2, 1, 3])
+        >>> accuracy = Accuracy()
+        >>> accuracy(preds, target)
+        tensor(0.5000)
+
+    """
     def __init__(
         self,
         threshold: float = 0.5,
@@ -26,11 +65,13 @@ class Accuracy(Metric):
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
+        dist_sync_fn: Callable = None,
     ):
         super().__init__(
             compute_on_step=compute_on_step,
             dist_sync_on_step=dist_sync_on_step,
             process_group=process_group,
+            dist_sync_fn=dist_sync_fn,
         )
 
         self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")

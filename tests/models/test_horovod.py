@@ -17,18 +17,25 @@ import platform
 import shlex
 import subprocess
 import sys
-from unittest.mock import patch
 
+import numpy as np
 import pytest
 import torch
+
+from sklearn.metrics import accuracy_score
 
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.accelerators.horovod_accelerator import HorovodAccelerator
+from pytorch_lightning.core.step_result import Result, TrainResult, EvalResult
+from pytorch_lightning.metrics.classification.accuracy import Accuracy
+from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVALAIBLE
 from tests.base import EvalModelTemplate
 from tests.base.models import BasicGAN
 
 try:
+    import horovod
     from horovod.common.util import nccl_built
 except ImportError:
     HOROVOD_AVAILABLE = False
@@ -126,8 +133,9 @@ def test_horovod_multi_gpu(tmpdir):
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 @pytest.mark.skipif(not _nccl_available(), reason="test requires Horovod with NCCL support")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_horovod_amp(tmpdir):
-    """Test Horovod with multi-GPU support."""
+@pytest.mark.skipif(not APEX_AVAILABLE, reason="test requires apex")
+def test_horovod_apex(tmpdir):
+    """Test Horovod with multi-GPU support using apex amp."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
         weights_save_path=str(tmpdir),
@@ -139,6 +147,31 @@ def test_horovod_amp(tmpdir):
         gpus=2,
         deterministic=True,
         distributed_backend='horovod',
+        amp_backend='apex',
+        precision=16,
+    )
+    _run_horovod(trainer_options, on_gpu=True)
+
+
+@pytest.mark.skip(reason="Skip till Horovod fixes integration with Native torch.cuda.amp")
+@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
+@pytest.mark.skipif(not _nccl_available(), reason="test requires Horovod with NCCL support")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not NATIVE_AMP_AVALAIBLE, reason="test requires torch.cuda.amp")
+def test_horovod_amp(tmpdir):
+    """Test Horovod with multi-GPU support using native amp."""
+    trainer_options = dict(
+        default_root_dir=str(tmpdir),
+        weights_save_path=str(tmpdir),
+        gradient_clip_val=1.0,
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
+        gpus=2,
+        deterministic=True,
+        distributed_backend='horovod',
+        amp_backend='native',
         precision=16,
     )
     _run_horovod(trainer_options, on_gpu=True)
@@ -207,6 +240,111 @@ def test_horovod_multi_optimizer(tmpdir):
     assert get_model_params(model.generator) != get_model_params(model.discriminator)
     assert get_model_params(model.generator) == get_optimizer_params(trainer.optimizers[0])
     assert get_model_params(model.discriminator) == get_optimizer_params(trainer.optimizers[1])
+
+
+@pytest.mark.skipif(not HOROVOD_AVAILABLE, reason="Horovod is unavailable")
+@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
+def test_result_reduce_horovod(tmpdir):
+    """Make sure result logging works with Horovod.
+
+    This test mirrors tests/core/test_results.py::_ddp_test_fn
+    """
+    tutils.reset_seed()
+    tutils.set_random_master_port()
+
+    def hvd_test_fn():
+        path_here = os.path.abspath(os.path.dirname(__file__))
+        path_root = os.path.abspath(os.path.join(path_here, '..', '..'))
+        sys.path.insert(0, os.path.abspath(path_root))
+
+        from tests.base.boring_model import BoringModel
+
+        import horovod.torch as hvd
+
+        class TestModel(BoringModel):
+            def training_step(self, batch, batch_idx):
+                self.training_step_called = True
+
+                tensor = torch.tensor([1.0])
+                self.log("test_tensor", tensor, sync_dist=True, sync_dist_op='sum',
+                         on_step=True, on_epoch=True)
+
+                res = self._results
+
+                # Check that `tensor` is summed across all ranks automatically
+                assert res["test_tensor"].item() == hvd.size(), \
+                    "Result-Log does not work properly with Horovod and Tensors"
+
+            def training_epoch_end(self, outputs) -> None:
+                assert len(outputs) == 0
+
+        model = TestModel()
+        model.val_dataloader = None
+
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            limit_train_batches=2,
+            limit_val_batches=2,
+            max_epochs=1,
+            log_every_n_steps=1,
+            weights_summary=None,
+        )
+
+        trainer.fit(model)
+
+    horovod.run(hvd_test_fn, np=2)
+
+
+@pytest.mark.skipif(not HOROVOD_AVAILABLE, reason="Horovod is unavailable")
+@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
+def test_accuracy_metric_horovod():
+    num_batches = 10
+    batch_size = 16
+    threshold = 0.5
+
+    def sk_metric(preds, target):
+        sk_preds = (preds.view(-1).numpy() >= threshold).astype(np.uint8)
+        sk_target = target.view(-1).numpy()
+        return accuracy_score(y_true=sk_target, y_pred=sk_preds)
+
+    preds = torch.rand(num_batches, batch_size)
+    target = torch.randint(high=2, size=(num_batches, batch_size))
+
+    def _compute_batch():
+        import horovod.torch as hvd
+
+        trainer = Trainer(
+            fast_dev_run=True,
+            distributed_backend='horovod',
+        )
+
+        accelerator_backend = trainer.accelerator_connector.select_accelerator()
+        assert isinstance(accelerator_backend, HorovodAccelerator)
+
+        metric = Accuracy(compute_on_step=True,
+                          dist_sync_on_step=True,
+                          dist_sync_fn=accelerator_backend.gather_all_tensors,
+                          threshold=threshold)
+
+        for i in range(hvd.rank(), num_batches, hvd.size()):
+            batch_result = metric(preds[i], target[i])
+            if hvd.rank() == 0:
+                dist_preds = torch.stack([preds[i + r] for r in range(hvd.size())])
+                dist_target = torch.stack([target[i + r] for r in range(hvd.size())])
+                sk_batch_result = sk_metric(dist_preds, dist_target)
+                assert np.allclose(batch_result.numpy(), sk_batch_result)
+
+        # check on all batches on all ranks
+        result = metric.compute()
+        assert isinstance(result, torch.Tensor)
+
+        total_preds = torch.stack([preds[i] for i in range(num_batches)])
+        total_target = torch.stack([target[i] for i in range(num_batches)])
+        sk_result = sk_metric(total_preds, total_target)
+
+        assert np.allclose(result.numpy(), sk_result)
+
+    horovod.run(_compute_batch, np=2)
 
 # @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 # def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):

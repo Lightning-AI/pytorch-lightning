@@ -15,7 +15,7 @@ import inspect
 import os
 from abc import ABC
 from argparse import ArgumentParser, Namespace
-from typing import List, Optional, Union, Type, TypeVar
+from typing import List, Optional, Union, Type, TypeVar, cast
 
 from pytorch_lightning.callbacks import Callback, ProgressBarBase, ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
@@ -26,6 +26,9 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import argparse_utils
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 
 
 class TrainerProperties(ABC):
@@ -44,9 +47,29 @@ class TrainerProperties(ABC):
     limit_val_batches: int
     _default_root_dir: str
     _weights_save_path: str
+    default_root_path: str
+    accelerator_backend: Accelerator
+    logger: LightningLoggerBase
     model_connector: ModelConnector
     checkpoint_connector: CheckpointConnector
     callbacks: List[Callback]
+
+    @property
+    def log_dir(self):
+        if self.checkpoint_callback is not None:
+            dir = self.checkpoint_callback.dirpath
+            dir = os.path.split(dir)[0]
+        elif self.logger is not None:
+            if isinstance(self.logger, TensorBoardLogger):
+                dir = self.logger.log_dir
+            else:
+                dir = self.logger.save_dir
+        else:
+            dir = self._default_root_dir
+
+        if self.accelerator_backend is not None:
+            dir = self.accelerator_backend.broadcast(dir)
+        return dir
 
     @property
     def use_amp(self) -> bool:
@@ -154,6 +177,7 @@ class TrainerProperties(ABC):
     def progress_bar_dict(self) -> dict:
         """ Read-only for progress bar metrics. """
         ref_model = self.model if not self.data_parallel else self.model.module
+        ref_model = cast(LightningModule, ref_model)
         return dict(**ref_model.get_progress_bar_dict(), **self.logger_connector.progress_bar_metrics)
 
     @property
