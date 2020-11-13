@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Decorator for LightningModule methods."""
+
 from functools import wraps
 from typing import Callable
 
