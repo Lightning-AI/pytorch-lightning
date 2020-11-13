@@ -39,6 +39,7 @@ PyTorch Lightning Documentation
    :name: docs
    :caption: Optional extensions
 
+   accelerators
    callbacks
    datamodules
    logging
@@ -111,7 +112,7 @@ PyTorch Lightning Documentation
    :name: Partner Domain Frameworks
    :caption: Partner Domain Frameworks
 
-   asr_tts
+   asr_nlp_tts
 
 .. toctree::
    :maxdepth: 1

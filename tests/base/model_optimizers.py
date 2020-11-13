@@ -64,6 +64,13 @@ class ConfigureOptimizersPool(ABC):
         lr_scheduler = optim.lr_scheduler.StepLR(optimizer, 1, gamma=0.1)
         return [optimizer], [lr_scheduler]
 
+    def configure_optimizers__onecycle_scheduler(self):
+        optimizer = optim.SGD(self.parameters(), lr=self.learning_rate, momentum=0.9)
+        lr_scheduler = optim.lr_scheduler.OneCycleLR(optimizer,
+                                                     max_lr=self.learning_rate,
+                                                     total_steps=10_000)
+        return [optimizer], [lr_scheduler]
+
     def configure_optimizers__multiple_schedulers(self):
         optimizer1 = optim.Adam(self.parameters(), lr=self.learning_rate)
         optimizer2 = optim.Adam(self.parameters(), lr=self.learning_rate)

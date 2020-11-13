@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from unittest.mock import patch
+from unittest.mock import patch, DEFAULT
 
 import pytest
 
@@ -99,6 +99,37 @@ def test_comet_logger_experiment_name(comet):
         comet_experiment().set_name.assert_called_once_with(experiment_name)
 
 
+@patch('pytorch_lightning.loggers.comet.comet_ml')
+def test_comet_logger_manual_experiment_key(comet):
+    """Test that Comet Logger respects manually set COMET_EXPERIMENT_KEY."""
+
+    api_key = "key"
+    experiment_key = "96346da91469407a85641afe5766b554"
+
+    instantation_environ = {}
+
+    def save_os_environ(*args, **kwargs):
+        nonlocal instantation_environ
+        instantation_environ = os.environ.copy()
+
+        return DEFAULT
+
+    # Test api_key given
+    with patch.dict(os.environ, {"COMET_EXPERIMENT_KEY": experiment_key}):
+        with patch('pytorch_lightning.loggers.comet.CometExperiment', side_effect=save_os_environ) as comet_experiment:
+            logger = CometLogger(api_key=api_key)
+
+            assert logger.version == experiment_key
+
+            assert logger._experiment is None
+
+            _ = logger.experiment
+
+            comet_experiment.assert_called_once_with(api_key=api_key, project_name=None)
+
+    assert instantation_environ["COMET_EXPERIMENT_KEY"] == experiment_key
+
+
 @patch('pytorch_lightning.loggers.comet.CometOfflineExperiment')
 @patch('pytorch_lightning.loggers.comet.comet_ml')
 def test_comet_logger_dirs_creation(comet, comet_experiment, tmpdir, monkeypatch):
@@ -128,7 +159,7 @@ def test_comet_logger_dirs_creation(comet, comet_experiment, tmpdir, monkeypatch
     trainer.fit(model)
 
     assert trainer.checkpoint_callback.dirpath == (tmpdir / 'test' / "1" / 'checkpoints')
-    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0.ckpt'}
+    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=9.ckpt'}
 
 
 @patch('pytorch_lightning.loggers.comet.comet_ml')

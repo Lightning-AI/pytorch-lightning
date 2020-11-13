@@ -33,6 +33,7 @@ timit_data/
 .Python
 ide_layouts/
 build/
+_build/
 develop-eggs/
 dist/
 downloads/
@@ -138,3 +139,5 @@ mlruns/
 *.ckpt
 pytorch\ lightning
 test-reports/
+wandb
+.forked/

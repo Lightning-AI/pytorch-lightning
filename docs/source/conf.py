@@ -177,6 +177,8 @@ html_theme_options = {
 
 html_logo = '_images/logos/lightning_logo-name.svg'
 
+html_favicon = '_images/logos/lightning_icon.svg'
+
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
@@ -302,22 +304,23 @@ def package_list_from_file(file):
     return mocked_packages
 
 
+# define mapping from PyPI names to python imports
+PACKAGE_MAPPING = {
+    'Pillow': 'PIL',
+    'opencv-python': 'cv2',
+    'PyYAML': 'yaml',
+    'comet-ml': 'comet_ml',
+    'neptune-client': 'neptune',
+}
 MOCK_PACKAGES = []
 if SPHINX_MOCK_REQUIREMENTS:
     # mock also base packages when we are on RTD since we don't install them there
     MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements.txt'))
     MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements/extra.txt'))
     MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements/loggers.txt'))
+MOCK_PACKAGES = [PACKAGE_MAPPING.get(pkg, pkg) for pkg in MOCK_PACKAGES]
 
-MOCK_MANUAL_PACKAGES = [
-    'torchvision',
-    'PIL',
-    # packages with different package name compare to import name
-    'yaml',
-    'comet_ml',
-    'neptune',
-]
-autodoc_mock_imports = MOCK_PACKAGES + MOCK_MANUAL_PACKAGES
+autodoc_mock_imports = MOCK_PACKAGES
 
 autosummary_generate = True
 

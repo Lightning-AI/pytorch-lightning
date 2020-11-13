@@ -301,48 +301,6 @@ def _confmat_normalize(cm):
     return cm
 
 
-def confusion_matrix(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        normalize: bool = False,
-        num_classes: Optional[int] = None
-) -> torch.Tensor:
-    """
-    Computes the confusion matrix C where each entry C_{i,j} is the number of observations
-    in group i that were predicted in group j.
-
-    Args:
-        pred: estimated targets
-        target: ground truth labels
-        normalize: normalizes confusion matrix
-        num_classes: number of classes
-
-    Return:
-        Tensor, confusion matrix C [num_classes, num_classes ]
-
-    Example:
-
-        >>> x = torch.tensor([1, 2, 3])
-        >>> y = torch.tensor([0, 2, 3])
-        >>> confusion_matrix(x, y)
-        tensor([[0., 1., 0., 0.],
-                [0., 0., 0., 0.],
-                [0., 0., 1., 0.],
-                [0., 0., 0., 1.]])
-    """
-    num_classes = get_num_classes(pred, target, num_classes)
-
-    unique_labels = (target.view(-1) * num_classes + pred.view(-1)).to(torch.int)
-
-    bins = torch.bincount(unique_labels, minlength=num_classes ** 2)
-    cm = bins.reshape(num_classes, num_classes).squeeze().float()
-
-    if normalize:
-        cm = _confmat_normalize(cm)
-
-    return cm
-
-
 def precision_recall(
         pred: torch.Tensor,
         target: torch.Tensor,
@@ -806,7 +764,9 @@ def auc(
     Args:
         x: x-coordinates
         y: y-coordinates
-        reorder: reorder coordinates, so they are increasing
+        reorder: reorder coordinates, so they are increasing. The unstable algorithm of torch.argsort is
+            used internally to sort `x` which may in some cases cause inaccuracies in the result.
+            WARNING: Deprecated and will be removed in v1.1.
 
     Return:
         Tensor containing AUC score (float)
@@ -821,6 +781,11 @@ def auc(
     direction = 1.
 
     if reorder:
+        rank_zero_warn("The `reorder` parameter to `auc` has been deprecated and will be removed in v1.1"
+                       " Note that when `reorder` is True, the unstable algorithm of torch.argsort is"
+                       " used internally to sort 'x' which may in some cases cause inaccuracies"
+                       " in the result.",
+                       DeprecationWarning)
         # can't use lexsort here since it is not implemented for torch
         order = torch.argsort(x)
         x, y = x[order], y[order]
@@ -830,8 +795,9 @@ def auc(
             if (dx, 0).all():
                 direction = -1.
             else:
-                raise ValueError("Reordering is not turned on, and "
-                                 "the x array is not increasing: %s" % x)
+                # TODO: Update message on removing reorder
+                raise ValueError("Reorder is not turned on, and the 'x' array is"
+                                 f" neither increasing or decreasing: {x}")
 
     return direction * torch.trapz(y, x)
 
@@ -851,13 +817,14 @@ def auc_decorator(reorder: bool = True) -> Callable:
 
 def multiclass_auc_decorator(reorder: bool = True) -> Callable:
     def wrapper(func_to_decorate: Callable) -> Callable:
+        @wraps(func_to_decorate)
         def new_func(*args, **kwargs) -> torch.Tensor:
             results = []
             for class_result in func_to_decorate(*args, **kwargs):
                 x, y = class_result[:2]
                 results.append(auc(x, y, reorder=reorder))
 
-            return torch.cat(results)
+            return torch.stack(results)
 
         return new_func
 
@@ -892,13 +859,69 @@ def auroc(
     if any(target > 1):
         raise ValueError('AUROC metric is meant for binary classification, but'
                          ' target tensor contains value different from 0 and 1.'
-                         ' Multiclass is currently not supported.')
+                         ' Use `multiclass_auroc` for multi class classification.')
 
     @auc_decorator(reorder=True)
     def _auroc(pred, target, sample_weight, pos_label):
         return roc(pred, target, sample_weight, pos_label)
 
     return _auroc(pred=pred, target=target, sample_weight=sample_weight, pos_label=pos_label)
+
+
+def multiclass_auroc(
+        pred: torch.Tensor,
+        target: torch.Tensor,
+        sample_weight: Optional[Sequence] = None,
+        num_classes: Optional[int] = None,
+) -> torch.Tensor:
+    """
+    Compute Area Under the Receiver Operating Characteristic Curve (ROC AUC) from multiclass
+    prediction scores
+
+    Args:
+        pred: estimated probabilities, with shape [N, C]
+        target: ground-truth labels, with shape [N,]
+        sample_weight: sample weights
+        num_classes: number of classes (default: None, computes automatically from data)
+
+    Return:
+        Tensor containing ROCAUC score
+
+    Example:
+
+        >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
+        ...                      [0.05, 0.85, 0.05, 0.05],
+        ...                      [0.05, 0.05, 0.85, 0.05],
+        ...                      [0.05, 0.05, 0.05, 0.85]])
+        >>> target = torch.tensor([0, 1, 3, 2])
+        >>> multiclass_auroc(pred, target)   # doctest: +NORMALIZE_WHITESPACE
+        tensor(0.6667)
+    """
+    if not torch.allclose(pred.sum(dim=1), torch.tensor(1.0)):
+        raise ValueError(
+            "Multiclass AUROC metric expects the target scores to be"
+            " probabilities, i.e. they should sum up to 1.0 over classes")
+
+    if torch.unique(target).size(0) != pred.size(1):
+        raise ValueError(
+            f"Number of classes found in in 'target' ({torch.unique(target).size(0)})"
+            f" does not equal the number of columns in 'pred' ({pred.size(1)})."
+            " Multiclass AUROC is not defined when all of the classes do not"
+            " occur in the target labels.")
+
+    if num_classes is not None and num_classes != pred.size(1):
+        raise ValueError(
+            f"Number of classes deduced from 'pred' ({pred.size(1)}) does not equal"
+            f" the number of classes passed in 'num_classes' ({num_classes}).")
+
+    @multiclass_auc_decorator(reorder=False)
+    def _multiclass_auroc(pred, target, sample_weight, num_classes):
+        return multiclass_roc(pred, target, sample_weight, num_classes)
+
+    class_aurocs = _multiclass_auroc(pred=pred, target=target,
+                                     sample_weight=sample_weight,
+                                     num_classes=num_classes)
+    return torch.mean(class_aurocs)
 
 
 def average_precision(
