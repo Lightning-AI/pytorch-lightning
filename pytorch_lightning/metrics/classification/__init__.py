@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.metrics.classification.accuracy import Accuracy
+from pytorch_lightning.metrics.classification.accuracy import Accuracy, HammingLoss, TopKAccuracy
 from pytorch_lightning.metrics.classification.stat_scores import StatScores
 from pytorch_lightning.metrics.classification.precision_recall import Precision, Recall, FBeta
-from pytorch_lightning.metrics.classification.multilabel import SubsetAccuracy, HammingLoss
 from pytorch_lightning.metrics.classification.confusion_matrix import ConfusionMatrix
