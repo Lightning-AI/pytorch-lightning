@@ -55,10 +55,13 @@ class WandbLogger(LightningLoggerBase):
             :func:`wandb.init` can be passed as keyword arguments in this logger.
 
     Example:
-        >>> from pytorch_lightning.loggers import WandbLogger
-        >>> from pytorch_lightning import Trainer
-        >>> wandb_logger = WandbLogger()
-        >>> trainer = Trainer(logger=wandb_logger)
+
+    .. code-block:: python
+
+        from pytorch_lightning.loggers import WandbLogger
+        from pytorch_lightning import Trainer
+        wandb_logger = WandbLogger()
+        trainer = Trainer(logger=wandb_logger)
 
     See Also:
         - `Tutorial <https://app.wandb.ai/cayush/pytorchlightning/reports/
