@@ -15,7 +15,7 @@ class Dummy(Metric):
 
     def __init__(self):
         super().__init__()
-        self.add_state("x", torch.tensor(0), dist_reduce_fx=None)
+        self.add_state("x", torch.tensor(0.0), dist_reduce_fx=None)
 
     def update(self):
         pass
@@ -150,8 +150,8 @@ class DummyMetric1(Dummy):
 
 
 class DummyMetric2(Dummy):
-    def update(self, x):
-        self.x -= x
+    def update(self, y):
+        self.x -= y
 
     def compute(self):
         return self.x
@@ -174,6 +174,22 @@ def test_pickle(tmpdir):
     metric_loaded = cloudpickle.loads(metric_pickled)
 
     assert metric_loaded.compute() == 1
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Test requires GPU.")
+def test_device_and_dtype_transfer(tmpdir):
+    metric = DummyMetric1()
+    assert metric.x.is_cuda == False
+    assert metric.x.dtype == torch.float32
+       
+    metric = metric.to(device='cuda')
+    assert metric.x.is_cuda == True
+        
+    metric = metric.double()
+    assert metric.x.dtype == torch.float64
+    
+    metric = metric.half()
+    assert metric.x.dtype == torch.float16
 
 
 def test_metric_collection(tmpdir):
@@ -213,13 +229,37 @@ def test_metric_collection(tmpdir):
     assert isinstance(metric_loaded, MetricCollection)
 
 
+def test_device_and_dtype_transfer_metriccollection(tmpdir):
+    m1 = DummyMetric1()
+    m2 = DummyMetric2()
+
+    metric_collection = MetricCollection([m1, m2])
+    for _, metric in metric_collection.items():
+        assert metric.x.is_cuda == False    
+        assert metric.x.dtype == torch.float32
+       
+    metric_collection = metric_collection.to(device='cuda')
+    for _, metric in metric_collection.items():
+        assert metric.x.is_cuda == True
+        
+    metric_collection = metric_collection.double()
+    for _, metric in metric_collection.items():
+        assert metric.x.dtype == torch.float64
+    
+    metric_collection = metric_collection.half()
+    for _, metric in metric_collection.items():
+        assert metric.x.dtype == torch.float16
+
+
 def test_metric_collection_wrong_input(tmpdir):
+    """ Check that errors are raised on wrong input """
     m1 = DummyMetric1()
 
-    # Not all input are metrics
+    # Not all input are metrics (list)
     with pytest.raises(ValueError):
         metric_collection = MetricCollection([m1, 5])
 
+    # Not all input are metrics (dict)
     with pytest.raises(ValueError):
         metric_collection = MetricCollection({'metric1': m1,
                                               'metric2': 5})
@@ -231,3 +271,32 @@ def test_metric_collection_wrong_input(tmpdir):
     # Not a list or dict passed in
     with pytest.raises(ValueError, match='Unknown input to MetricCollection.'):
         metric_collection = MetricCollection(m1)
+
+
+def test_metric_collection_args_kwargs(tmpdir):
+    """ Check that args and kwargs gets passed correctly in metric collection,
+        Checks both update and forward method
+    """
+    m1 = DummyMetric1()
+    m2 = DummyMetric2()
+
+    metric_collection = MetricCollection([m1, m2])
+
+    # args gets passed to all metrics
+    metric_collection.update(5)
+    assert metric_collection['DummyMetric1'].x == 5
+    assert metric_collection['DummyMetric2'].x == -5
+    metric_collection.reset()
+    _ = metric_collection(5)
+    assert metric_collection['DummyMetric1'].x == 5
+    assert metric_collection['DummyMetric2'].x == -5
+    metric_collection.reset()
+
+    # kwargs gets only passed to metrics that it matches
+    metric_collection.update(x=10, y=20)
+    assert metric_collection['DummyMetric1'].x == 10
+    assert metric_collection['DummyMetric2'].x == -20
+    metric_collection.reset()
+    _ = metric_collection(x=10, y=20)
+    assert metric_collection['DummyMetric1'].x == 10
+    assert metric_collection['DummyMetric2'].x == -20

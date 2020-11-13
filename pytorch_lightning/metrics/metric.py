@@ -12,20 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import functools
+import inspect
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Optional, Union
-from collections.abc import Mapping, Sequence
-from collections import namedtuple
+from collections.abc import Sequence
 from copy import deepcopy
-from distutils.version import LooseVersion
+from typing import Any, Callable, Optional, Union
 
-import os
 import torch
 from torch import nn
 
+from pytorch_lightning.metrics.utils import _flatten, dim_zero_cat, dim_zero_mean, dim_zero_sum
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import gather_all_tensors
-from pytorch_lightning.metrics.utils import _flatten, dim_zero_cat, dim_zero_mean, dim_zero_sum
 
 
 class Metric(nn.Module, ABC):
@@ -60,6 +58,7 @@ class Metric(nn.Module, ABC):
             Callback that performs the allgather operation on the metric state. When `None`, DDP
             will be used to perform the allgather. default: None
     """
+
     def __init__(
         self,
         compute_on_step: bool = True,
@@ -75,6 +74,7 @@ class Metric(nn.Module, ABC):
         self.dist_sync_fn = dist_sync_fn
         self._to_sync = True
 
+        self._update_signature = inspect.signature(self.update)
         self.update = self._wrap_update(self.update)
         self.compute = self._wrap_compute(self.compute)
         self._computed = None
@@ -120,9 +120,9 @@ class Metric(nn.Module, ABC):
 
         """
         if (
-            not isinstance(default, torch.Tensor)
-            and not isinstance(default, list)                     # noqa: W503
-            or (isinstance(default, list) and len(default) != 0)  # noqa: W503
+            not isinstance(default, torch.Tensor) and
+            not isinstance(default, list) or                     # noqa: W503
+            (isinstance(default, list) and len(default) != 0)  # noqa: W503
         ):
             raise ValueError(
                 "state variable must be a tensor or any empty list (where you can append tensors)"
@@ -209,9 +209,9 @@ class Metric(nn.Module, ABC):
                 return self._computed
 
             dist_sync_fn = self.dist_sync_fn
-            if (dist_sync_fn is None
-                    and torch.distributed.is_available()
-                    and torch.distributed.is_initialized()):
+            if (dist_sync_fn is None and
+                    torch.distributed.is_available() and
+                    torch.distributed.is_initialized()):
                 # User provided a bool, so we assume DDP if available
                 dist_sync_fn = gather_all_tensors
 
@@ -362,14 +362,25 @@ class MetricCollection(nn.ModuleDict):
             raise ValueError(f'Cannot assign metric to key {name} as it is reserved'
                              ' for internal use.')
 
+    def _filter_kwargs(self, metric, **kwargs):
+        """ filter kwargs such that they match the update signature of the metric """
+        return {k: v for k, v in kwargs.items() if k in metric._update_signature.parameters.keys()}
+
     def forward(self, *args, **kwargs):
-        """ Iteratively call forward for each metric """
-        return {k: m(*args, **kwargs) for k, m in self.items()}
+        """ Iteratively call forward for each metric. Positional arguments (*args) will
+            be passed to every metric in the collection, while keyword arguments (**kwargs)
+            will be filtered based on the signature of the individual metric.
+        """
+        return {k: m(*args, **self._filter_kwargs(m, **kwargs)) for k, m in self.items()}
 
     def update(self, *args, **kwargs):
-        """ Iteratively call update for each metric """
+        """ Iteratively call update for each metric. Positional arguments (*args) will
+            be passed to every metric in the collection, while keyword arguments (**kwargs)
+            will be filtered based on the signature of the individual metric.
+        """
         for _, m in self.items():
-            m.update(*args, **kwargs)
+            m_kwargs = self._filter_kwargs(m, **kwargs)
+            m.update(*args, **m_kwargs)
 
     def compute(self):
         return {k: m.compute() for k, m in self.items()}
@@ -382,3 +393,10 @@ class MetricCollection(nn.ModuleDict):
     def clone(self):
         """ Make a copy of the metric collection """
         return deepcopy(self)
+
+    def persistent(self, mode: bool = True):
+        """ Method for post-init to change if metric states should be saved to
+            its state_dict
+        """
+        for _, m in self.items():
+            m.persistent(mode)
