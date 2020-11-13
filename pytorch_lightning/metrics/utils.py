@@ -70,9 +70,9 @@ def _check_same_shape(pred: torch.Tensor, target: torch.Tensor):
 
 
 def _input_format_classification(
-        preds: torch.Tensor, 
-        target: torch.Tensor, 
-        threshold: float
+        preds: torch.Tensor,
+        target: torch.Tensor,
+        threshold: float = 0.5
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """ Convert preds and target tensors into label tensors
 
@@ -102,12 +102,26 @@ def _input_format_classification(
 
 
 def _input_format_classification_one_hot(
-        num_classes: int, 
-        preds: torch.Tensor, 
-        target: torch.Tensor, 
-        threshold=0.5, 
-        multilabel=False
+        num_classes: int,
+        preds: torch.Tensor,
+        target: torch.Tensor,
+        threshold: float = 0.5,
+        multilabel: bool = False
 ) -> Tuple[torch.Tensor, torch.Tensor]:
+    """ Convert preds and target tensors into one hot spare label tensors
+
+    Args:
+        num_classes: number of classes
+        preds: either tensor with labels, tensor with probabilities/logits or
+            multilabel tensor
+        target: tensor with ground true labels
+        threshold: float used for thresholding multilabel input
+        multilabel: boolean flag indicating if input is multilabel
+
+    Returns:
+        preds: one hot tensor of shape [num_classes, -1] with predicted labels
+        target: one hot tensors of shape [num_classes, -1] with true labels
+    """
     if not (len(preds.shape) == len(target.shape) or len(preds.shape) == len(target.shape) + 1):
         raise ValueError(
             "preds and target must have same number of dimensions, or one additional dimension for preds"

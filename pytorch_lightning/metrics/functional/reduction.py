@@ -64,11 +64,11 @@ def class_reduce(num: torch.Tensor,
         fraction = torch.sum(num) / torch.sum(denom)
     else:
         fraction = num / denom
-    
+
     # We need to take care of instances where the denom can be 0
     # for some (or all) classes which will produce nans
     fraction[fraction != fraction] = 0
-    
+
     if class_reduction == 'micro':
         return fraction
     elif class_reduction == 'macro':

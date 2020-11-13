@@ -20,10 +20,10 @@ from pytorch_lightning.metrics.functional.reduction import class_reduce
 
 
 def _fbeta_update(
-        preds: torch.Tensor, 
-        target: torch.Tensor, 
-        num_classes: int, 
-        threshold: float = 0.5, 
+        preds: torch.Tensor,
+        target: torch.Tensor,
+        num_classes: int,
+        threshold: float = 0.5,
         multilabel: bool = False
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     preds, target = _input_format_classification_one_hot(
@@ -36,9 +36,9 @@ def _fbeta_update(
 
 
 def _fbeta_compute(
-        true_positives: torch.Tensor, 
-        predicted_positives: torch.Tensor, 
-        actual_positives: torch.Tensor, 
+        true_positives: torch.Tensor,
+        predicted_positives: torch.Tensor,
+        actual_positives: torch.Tensor,
         beta: float = 1.0,
         average: str = "micro"
 ) -> torch.Tensor:
@@ -48,7 +48,7 @@ def _fbeta_compute(
     else:
         precision = true_positives.float() / (predicted_positives)
         recall = true_positives.float() / (actual_positives)
-        
+
     num = (1 + beta ** 2) * precision * recall
     denom = beta ** 2 * precision + recall
     return class_reduce(num, denom, weights=actual_positives, class_reduction=average)
@@ -91,7 +91,7 @@ def fbeta(
             * `None` computes and returns the metric per class
 
         multilabel: If predictions are from multilabel classification.
-        
+
     Example:
 
         >>> from pytorch_lightning.metrics.functional import fbeta
@@ -119,7 +119,7 @@ def f1(
     """
     Computes F1 metric. F1 metrics correspond to a equally weighted average of the
     precision and recall scores.
-    
+
     Works with binary, multiclass, and multilabel data.
     Accepts logits from a model output or integer class values in prediction.
     Works with multi-dimensional preds and target.
@@ -153,4 +153,3 @@ def f1(
         tensor(0.3333)
     """
     return fbeta(preds, target, num_classes, 1.0, threshold, average, multilabel)
-    

@@ -130,12 +130,12 @@ class TestFBeta(MetricTester):
             check_dist_sync_on_step=False,
             check_batch=False,
         )
-    
+
     def test_fbeta_functional(
         self, preds, target, sk_metric, num_classes, multilabel, average, beta
     ):
-        self.run_functional_metric_test(preds=preds, 
-                                        target=target, 
+        self.run_functional_metric_test(preds=preds,
+                                        target=target,
                                         metric_functional=fbeta,
                                         sk_metric=partial(sk_metric, average=average, beta=beta),
                                         metric_args={
@@ -145,7 +145,7 @@ class TestFBeta(MetricTester):
                                             "multilabel": multilabel,
                                             "threshold": THRESHOLD}
                                         )
-        
+
 
 @pytest.mark.parametrize(['pred', 'target', 'beta', 'exp_score'], [
     pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], 0.5, [0.5, 0.5]),
