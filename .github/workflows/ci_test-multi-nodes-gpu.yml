@@ -21,8 +21,8 @@ name: Multi Nodes GPU Tests
 on: push
 
 env:
-  AWS_CLUSTER: lightning-torchelastic
-  NODE_TYPE: p3.8xlarge
+  AWS_CLUSTER: lightning-torchelastic-1
+  NODE_TYPE: p3.2xlarge
   NODES: 2
   REGION: us-east-2
   MAX_CHECKS: 360
@@ -110,6 +110,17 @@ jobs:
         eksctl get nodegroups --cluster $AWS_CLUSTER
         kubectl get pods -n elastic-job
       
+    - name: Apply Elastic 
+      run: |
+        git clone https://github.com/pytorch/elastic.git
+        cd elastic/kubernetes
+        
+        kubectl apply -k config/default
+        
+        kubectl create -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/master/nvidia-device-plugin.yml
+        kubectl apply -f https://raw.githubusercontent.com/pytorch/elastic/master/kubernetes/config/samples/etcd.yaml
+
+
     - name: Apply Multi Node Testing
       run: |
         kubectl apply -f .github/multi-nodes/multi-nodes-gpu.yaml
@@ -120,7 +131,7 @@ jobs:
       run: |
         kubectl logs -f ${{ steps.vars.outputs.SHA }}-1
 
-    - name: Delete Group Node
-      if: always()
-      run: |
-       eksctl delete nodegroup ${{ steps.job.outputs.ID }} --cluster=$AWS_CLUSTER
+    #- name: Delete Group Node
+    #  if: always()
+    #  run: |
+    #   eksctl delete nodegroup ${{ steps.job.outputs.ID }} --cluster=$AWS_CLUSTER
