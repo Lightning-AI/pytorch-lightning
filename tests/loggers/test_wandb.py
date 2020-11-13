@@ -26,12 +26,14 @@ from tests.base import EvalModelTemplate, BoringModel
 def test_wandb_logger(wandb):
     """Verify that basic functionality of wandb logger works.
     Wandb doesn't work well with pytest so we have to mock it out here."""
+    wandb.run = None
     logger = WandbLogger(anonymous=True, offline=True)
 
     logger.log_metrics({'acc': 1.0})
     wandb.init().log.assert_called_once_with({'acc': 1.0}, step=None)
 
     wandb.init().log.reset_mock()
+    wandb.run=None
     logger.log_metrics({'acc': 1.0}, step=3)
     wandb.init().log.assert_called_once_with({'acc': 1.0}, step=3)
 
