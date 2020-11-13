@@ -132,7 +132,13 @@ jobs:
       run: |
         kubectl logs -f ${{ steps.vars.outputs.SHA }}-1
 
-    #- name: Delete Group Node
-    #  if: always()
-    #  run: |
-    #   eksctl delete nodegroup ${{ steps.job.outputs.ID }} --cluster=$AWS_CLUSTER
+    - name: Wait
+      if: always()
+      shell: bash
+      run: |
+        sleep 100
+
+    - name: Delete Group Node
+      if: always()
+      run: |
+       eksctl delete nodegroup ${{ steps.job.outputs.ID }} --cluster=$AWS_CLUSTER
