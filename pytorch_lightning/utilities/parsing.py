@@ -15,7 +15,7 @@
 import inspect
 import pickle
 from argparse import Namespace
-from typing import Dict, Union
+from typing import Dict, Union, Tuple
 
 from pytorch_lightning.utilities import rank_zero_warn
 
@@ -79,23 +79,46 @@ def clean_namespace(hparams):
         del hparams_dict[k]
 
 
+def parse_class_init_keys(cls) -> Tuple[str, str, str]:
+    """Parse key words for standard self, *args and **kwargs
+
+    >>> class Model():
+    ...     def __init__(self, hparams, *my_args, anykw=42, **my_kwargs):
+    ...         pass
+    >>> parse_class_init_keys(Model)
+    ('self', 'my_args', 'my_kwargs')
+    """
+    init_parameters = inspect.signature(cls.__init__).parameters
+    # docs claims the params are always ordered
+    # https://docs.python.org/3/library/inspect.html#inspect.Signature.parameters
+    init_params = list(init_parameters.values())
+    # self is always first
+    n_self = init_params[0].name
+
+    def _get_first_if_any(params, str_type):
+        all_vars = [p for p in params if str(p.kind) == str_type]
+        return all_vars[0].name if all_vars else None
+
+    n_args = _get_first_if_any(init_params, 'VAR_POSITIONAL')
+    n_kwargs = _get_first_if_any(init_params, 'VAR_KEYWORD')
+
+    return n_self, n_args, n_kwargs
+
+
 def get_init_args(frame) -> dict:
     _, _, _, local_vars = inspect.getargvalues(frame)
     if '__class__' not in local_vars:
         return {}
     cls = local_vars['__class__']
-    spec = inspect.getfullargspec(cls.__init__)
     init_parameters = inspect.signature(cls.__init__).parameters
-    self_identifier = spec.args[0]  # "self" unless user renames it (always first arg)
-    varargs_identifier = spec.varargs  # by convention this is named "*args"
-    kwargs_identifier = spec.varkw  # by convention this is named "**kwargs"
-    exclude_argnames = (
-        varargs_identifier, kwargs_identifier, self_identifier, '__class__', 'frame', 'frame_args'
-    )
+    self_var, args_var, kwargs_var = parse_class_init_keys(cls)
+    filtered_vars = [n for n in (self_var, args_var, kwargs_var) if n]
+    exclude_argnames = (*filtered_vars, '__class__', 'frame', 'frame_args')
 
     # only collect variables that appear in the signature
     local_args = {k: local_vars[k] for k in init_parameters.keys()}
-    local_args.update(local_args.get(kwargs_identifier, {}))
+    if kwargs_var:
+        local_args.update(local_args.get(kwargs_var, {}))
     local_args = {k: v for k, v in local_args.items() if k not in exclude_argnames}
     return local_args
 

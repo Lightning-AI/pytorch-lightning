@@ -52,18 +52,20 @@ def decorate(func):
     return wrapper
 
 
-class SaveHparamsDecoratedModel(SaveHparamsModel):
+class SaveHparamsDecoratedModel(BoringModel):
     """ Tests that a model can take an object """
     @decorate
-    def __init__(self, hparams):
-        super().__init__(hparams)
+    def __init__(self, hparams, *my_args, **my_kwargs):
+        super().__init__()
+        self.save_hyperparameters(hparams)
 
 
-class AssignHparamsDecoratedModel(AssignHparamsModel):
+class AssignHparamsDecoratedModel(BoringModel):
     """ Tests that a model can take an object with explicit setter"""
     @decorate
-    def __init__(self, hparams):
-        super().__init__(hparams)
+    def __init__(self, hparams, *my_args, **my_kwargs):
+        super().__init__()
+        self.hparams = hparams
 
 
 # -------------------------
