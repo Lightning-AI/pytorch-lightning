@@ -71,21 +71,28 @@ class LightningOptimizer(Optimizer):
             'defaults': self._optimizer.defaults,
             'state': self._optimizer.state,
             'param_groups': self._optimizer.param_groups,
+            'optimizer_cls': self._optimizer.__class__,
+            'optimizer_idx': self._optimizer_idx,
         }
 
     def __setstate__(self, state):
-        self._optimizer.__dict__.update(state)
+        self._optimizer_idx = state["optimizer_idx"]
+        self._optimizer = state["optimizer_cls"](state['param_groups'], ** state['defaults'])
+        self._expose_optimizer_attr()
 
     def __repr__(self):
-        format_string = "Lightning" + self._optimizer.__class__.__name__ + ' ('
-        for i, group in enumerate(self.param_groups):
-            format_string += '\n'
-            format_string += 'Parameter Group {0}\n'.format(i)
-            for key in sorted(group.keys()):
-                if key != 'params':
-                    format_string += '    {0}: {1}\n'.format(key, group[key])
-        format_string += ')'
-        return format_string
+        if hasattr(self, "_optimizer"):
+            format_string = "Lightning" + self._optimizer.__class__.__name__ + ' ('
+            for i, group in enumerate(self.param_groups):
+                format_string += '\n'
+                format_string += 'Parameter Group {0}\n'.format(i)
+                for key in sorted(group.keys()):
+                    if key != 'params':
+                        format_string += '    {0}: {1}\n'.format(key, group[key])
+            format_string += ')'
+            return format_string
+        else:
+            return self.__class__.__name__
 
     def step(self, *args, closure=mock_closure, **kwargs):
         if self._trainer.on_tpu:
