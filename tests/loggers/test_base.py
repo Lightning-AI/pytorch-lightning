@@ -230,25 +230,25 @@ def test_np_sanitization():
     logger = CustomParamsLogger()
     np_params = {
         "np.bool_": np.bool_(1),
-        "np.byte": np.byte(1),
-        "np.intc": np.intc(1),
-        "np.int_": np.int_(1),
-        "np.longlong": np.longlong(1),
-        "np.single": np.single(1),
-        "np.double": np.double(1),
-        "np.csingle": np.csingle(1),
-        "np.cdouble": np.cdouble(1),
+        "np.byte": np.byte(2),
+        "np.intc": np.intc(3),
+        "np.int_": np.int_(4),
+        "np.longlong": np.longlong(5),
+        "np.single": np.single(6.7),
+        "np.double": np.double(8.9),
+        "np.csingle": np.csingle(7+2j),
+        "np.cdouble": np.cdouble(9+4j),
     }
     sanitized_params = {
         "np.bool_": True,
-        "np.byte": 1,
-        "np.intc": 1,
-        "np.int_": 1,
-        "np.longlong": 1,
-        "np.single": 1.0,
-        "np.double": 1.0,
-        "np.csingle": "(1+0j)",
-        "np.cdouble": "(1+0j)",
+        "np.byte": 2,
+        "np.intc": 3,
+        "np.int_": 4,
+        "np.longlong": 5,
+        "np.single": 6.7,
+        "np.double": 8.9,
+        "np.csingle": "(7+2j)",
+        "np.cdouble": "(9+4j)",
     }
     logger.log_hyperparams(Namespace(**np_params))
     assert logger.logged_params == sanitized_params
