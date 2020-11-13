@@ -136,7 +136,7 @@ jobs:
       if: always()
       shell: bash
       run: |
-        sleep 100
+        sleep 600
 
     - name: Delete Group Node
       if: always()
