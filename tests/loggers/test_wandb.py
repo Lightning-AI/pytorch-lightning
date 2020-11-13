@@ -33,7 +33,7 @@ def test_wandb_logger(wandb):
     wandb.init().log.assert_called_once_with({'acc': 1.0}, step=None)
 
     wandb.init().log.reset_mock()
-    wandb.run=None
+    wandb.run = None
     logger.log_metrics({'acc': 1.0}, step=3)
     wandb.init().log.assert_called_once_with({'acc': 1.0}, step=3)
 
