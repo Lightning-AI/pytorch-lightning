@@ -24,7 +24,7 @@ spec:
               - bash 
               - -ce
               - | 
-                git https://github.com/tchaton/pytorch-lightning.git /repo
+                git clone https://github.com/tchaton/pytorch-lightning.git /repo
                 cd /repo
                 git fetch --all
                 git checkout {SHA}
