@@ -56,7 +56,7 @@ class WandbLogger(LightningLoggerBase):
 
     Example:
 
-    .. code-block:: python
+    .. code::
 
         from pytorch_lightning.loggers import WandbLogger
         from pytorch_lightning import Trainer
