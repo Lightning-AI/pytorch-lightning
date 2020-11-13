@@ -14,6 +14,8 @@ Lightning automates saving and loading checkpoints. Checkpoints capture the exac
 
 Checkpointing your training allows you to resume a training process in case it was interrupted, fine-tune a model or use a pre-trained model for inference without having to retrain the model.
 
+Lightning also takes care of any accelerators including ddp, where multiple processes are used. In this scenario, we only save on the main process.
+
 *****************
 Checkpoint saving
 *****************
