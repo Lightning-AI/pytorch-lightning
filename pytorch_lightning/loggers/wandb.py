@@ -13,8 +13,8 @@
 # limitations under the License.
 
 """
-Weights and Biases
-------------------
+Weights and Biases Logger
+-------------------------
 """
 import os
 from argparse import Namespace
@@ -35,7 +35,9 @@ from pytorch_lightning.utilities import rank_zero_only
 
 class WandbLogger(LightningLoggerBase):
     r"""
-    Log using `Weights and Biases <https://www.wandb.com/>`_. Install it with pip:
+    Log using `Weights and Biases <https://www.wandb.com/>`_.
+
+    Install it with pip:
 
     .. code-block:: bash
 
@@ -54,7 +56,7 @@ class WandbLogger(LightningLoggerBase):
         \**kwargs: Additional arguments like `entity`, `group`, `tags`, etc. used by
             :func:`wandb.init` can be passed as keyword arguments in this logger.
 
-    Example:
+    Example::
 
         from pytorch_lightning.loggers import WandbLogger
         from pytorch_lightning import Trainer
