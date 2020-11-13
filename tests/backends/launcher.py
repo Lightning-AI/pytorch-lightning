@@ -11,21 +11,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import sys
-import os
-import coverage
-import subprocess
-from subprocess import TimeoutExpired
-from pathlib import Path
-import pytorch_lightning
-from argparse import ArgumentParser
-from pytorch_lightning import Trainer, seed_everything
-from tests.base import EvalModelTemplate
-import torch
 import functools
 import itertools
+import os
+import subprocess
+import sys
+from argparse import ArgumentParser
+from inspect import isclass, isfunction, ismethod
+from pathlib import Path
+from subprocess import TimeoutExpired
 from time import time
-from inspect import isfunction, ismethod, isclass
+from typing import Callable, Optional
+
+import coverage
+import torch
+
+import pytorch_lightning
+from pytorch_lightning import Trainer, seed_everything
+from tests.base import EvalModelTemplate
 
 
 def import_from(module, name):
@@ -77,13 +80,6 @@ def undecorated(o):
         return o
 
     try:
-        # python2
-        closure = o.func_closure
-    except AttributeError:
-        pass
-
-    try:
-        # python3
         closure = o.__closure__
     except AttributeError:
         return
@@ -136,32 +132,46 @@ class DDPLauncher:
                 tmpdir = kwargs.get("tmpdir")
                 for cmd_line in cmd_lines:
                     print(f"Launching {func.__name__} with {cmd_line}")
-                    t0 = time()
                     std, err = DDPLauncher.run_from_cmd_line(cmd_line, func, tmpdir, timeout=20)
+
+                    # Make sure the test run properly
                     result_path = os.path.join(tmpdir, 'ddp.result')
                     result = torch.load(result_path)
                     # verify the file wrote the expected outputs
                     assert result['status'] == 'complete'
-                    assert result['result'] == '1', result['result']
-                    t1 = time()
-                    print(t1 - t0)
             return func_wrapper
         return inner
 
 
-if __name__ == "__main__":
-    seed_everything(1234)
-    parser = ArgumentParser(add_help=False)
-    parser = Trainer.add_argparse_args(parser)
-    parser.add_argument('--tmpdir')
-    parser.set_defaults(gpus=2)
-    args = parser.parse_args()
+def main(args):
+    # Set PL_IN_LAUNCHER for first use case
     os.environ["PL_IN_LAUNCHER"] = '1'
     env = os.environ.copy()
+
+    # Load function based on module and its name
     func = import_from(env["PL_CURRENT_TEST_MODULE"], env["PL_CURRENT_TEST_NAME"])
+
+    # Undecorate the function
     func = undecorated(func)
+
+    # Run the function and gather result
     result = func(args.tmpdir, args=args)
+
+    # Save result
     result = {'status': 'complete', 'result':result}
     if len(result) > 0:
         file_path = os.path.join(args.tmpdir, 'ddp.result')
         torch.save(result, file_path)
+
+
+if __name__ == "__main__":
+    seed_everything(1234)
+
+    # Parse arguments
+    parser = ArgumentParser(add_help=False)
+    parser = Trainer.add_argparse_args(parser)
+    parser.add_argument('--tmpdir')
+    parser.set_defaults(gpus=2)
+
+    # Launch main process
+    main(parser.parse_args())

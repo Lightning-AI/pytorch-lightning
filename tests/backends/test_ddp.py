@@ -11,13 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+from time import sleep
+
 import pytest
 import torch
-import os
+
 from tests.backends import ddp_model
-from tests.utilities.dist import call_training_script
 from tests.backends.launcher import DDPLauncher
-from time import sleep
+from tests.utilities.dist import call_training_script
 
 
 @pytest.mark.parametrize('cli_args', [
@@ -96,9 +98,9 @@ def test_cli(tmpdir):
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @DDPLauncher.run("--max_epochs [max_epochs] --gpus 2 --accelerator [accelerator]",
-                max_epochs=["1"],
-                accelerator=["ddp", "ddp_spawn"])
-def test_cli_2(tmpdir, args=None):
+                 max_epochs=["1"],
+                 accelerator=["ddp", "ddp_spawn"])
+def test_cli_to_pass(tmpdir, args=None):
     """
     This test verify we can call function using test_cli name
     """

@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import coverage
 import subprocess
-from subprocess import TimeoutExpired
 import sys
 from pathlib import Path
+from subprocess import TimeoutExpired
 
 import pytorch_lightning
 
