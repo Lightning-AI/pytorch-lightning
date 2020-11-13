@@ -596,7 +596,7 @@ class LightningModule(
             # the pseudocode for these calls
             val_outs = []
             for val_batch in val_data:
-                out = validation_step(train_batch)
+                out = validation_step(val_batch)
                 val_outs.append(out)
                 validation_epoch_end(val_outs)
 
