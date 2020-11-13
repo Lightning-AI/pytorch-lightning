@@ -6,7 +6,7 @@ import torch
 
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer, seed_everything
-from tests.base.models import ParityModuleRNN, ParityModuleMNIST
+from tests.base.models import ParityModuleMNIST, ParityModuleRNN
 
 
 @pytest.mark.parametrize('cls_model,max_diff', [
