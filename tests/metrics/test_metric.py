@@ -179,15 +179,15 @@ def test_pickle(tmpdir):
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Test requires GPU.")
 def test_device_and_dtype_transfer(tmpdir):
     metric = DummyMetric1()
-    assert metric.x.is_cuda == False
+    assert metric.x.is_cuda is False
     assert metric.x.dtype == torch.float32
-       
+
     metric = metric.to(device='cuda')
-    assert metric.x.is_cuda == True
-        
+    assert metric.x.is_cuda
+
     metric = metric.double()
     assert metric.x.dtype == torch.float64
-    
+
     metric = metric.half()
     assert metric.x.dtype == torch.float16
 
@@ -235,17 +235,17 @@ def test_device_and_dtype_transfer_metriccollection(tmpdir):
 
     metric_collection = MetricCollection([m1, m2])
     for _, metric in metric_collection.items():
-        assert metric.x.is_cuda == False    
+        assert metric.x.is_cuda is False
         assert metric.x.dtype == torch.float32
-       
+
     metric_collection = metric_collection.to(device='cuda')
     for _, metric in metric_collection.items():
-        assert metric.x.is_cuda == True
-        
+        assert metric.x.is_cuda
+
     metric_collection = metric_collection.double()
     for _, metric in metric_collection.items():
         assert metric.x.dtype == torch.float64
-    
+
     metric_collection = metric_collection.half()
     for _, metric in metric_collection.items():
         assert metric.x.dtype == torch.float16

@@ -120,9 +120,9 @@ class Metric(nn.Module, ABC):
 
         """
         if (
-            not isinstance(default, torch.Tensor) and
-            not isinstance(default, list) or                     # noqa: W503
-            (isinstance(default, list) and len(default) != 0)  # noqa: W503
+            not isinstance(default, torch.Tensor)
+            and not isinstance(default, list)  # noqa: W503
+            or (isinstance(default, list) and len(default) != 0)  # noqa: W503
         ):
             raise ValueError(
                 "state variable must be a tensor or any empty list (where you can append tensors)"
@@ -209,9 +209,11 @@ class Metric(nn.Module, ABC):
                 return self._computed
 
             dist_sync_fn = self.dist_sync_fn
-            if (dist_sync_fn is None and
-                    torch.distributed.is_available() and
-                    torch.distributed.is_initialized()):
+            if (
+                dist_sync_fn is None
+                and torch.distributed.is_available()
+                and torch.distributed.is_initialized()
+            ):
                 # User provided a bool, so we assume DDP if available
                 dist_sync_fn = gather_all_tensors
 
