@@ -369,16 +369,18 @@ class MetricCollection(nn.ModuleDict):
         return {k: v for k, v in kwargs.items() if k in metric._update_signature.parameters.keys()}
 
     def forward(self, *args, **kwargs):
-        """ Iteratively call forward for each metric. Positional arguments (*args) will
-            be passed to every metric in the collection, while keyword arguments (**kwargs)
-            will be filtered based on the signature of the individual metric.
+        """
+        Iteratively call forward for each metric. Positional arguments (*args) will
+        be passed to every metric in the collection, while keyword arguments (**kwargs)
+        will be filtered based on the signature of the individual metric.
         """
         return {k: m(*args, **self._filter_kwargs(m, **kwargs)) for k, m in self.items()}
 
     def update(self, *args, **kwargs):
-        """ Iteratively call update for each metric. Positional arguments (*args) will
-            be passed to every metric in the collection, while keyword arguments (**kwargs)
-            will be filtered based on the signature of the individual metric.
+        """
+        Iteratively call update for each metric. Positional arguments (*args) will
+        be passed to every metric in the collection, while keyword arguments (**kwargs)
+        will be filtered based on the signature of the individual metric.
         """
         for _, m in self.items():
             m_kwargs = self._filter_kwargs(m, **kwargs)

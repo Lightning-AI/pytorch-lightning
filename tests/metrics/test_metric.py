@@ -229,6 +229,7 @@ def test_metric_collection(tmpdir):
     assert isinstance(metric_loaded, MetricCollection)
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Test requires GPU.")
 def test_device_and_dtype_transfer_metriccollection(tmpdir):
     m1 = DummyMetric1()
     m2 = DummyMetric2()
