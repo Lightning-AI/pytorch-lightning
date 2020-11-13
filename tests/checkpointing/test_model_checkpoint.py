@@ -105,7 +105,7 @@ def test_model_checkpoint_to_yaml(tmpdir, save_top_k):
 
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_top_k=save_top_k)
 
-    trainer = Trainer(default_root_dir=tmpdir, checkpoint_callback=checkpoint, overfit_batches=0.20, max_epochs=2)
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=[checkpoint], overfit_batches=0.20, max_epochs=2)
     trainer.fit(model)
 
     path_yaml = os.path.join(tmpdir, 'best_k_models.yaml')
