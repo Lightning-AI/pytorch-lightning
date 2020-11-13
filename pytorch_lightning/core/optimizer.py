@@ -103,7 +103,7 @@ class LightningOptimizer(Optimizer):
             # native amp does not yet support closures.
             # TODO: pass the closure to the step ASAP
             closure()
-            self.trainer.scaler.step(self._optimizer)
+            self._trainer.scaler.step(self._optimizer)
         elif self._trainer.amp_backend == AMPType.APEX:
             # apex amp does not yet support closures.
             # TODO: pass the closure to the step ASAP
