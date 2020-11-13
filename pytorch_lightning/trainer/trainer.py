@@ -308,7 +308,6 @@ class Trainer(
         self.weights_summary = weights_summary
         self.model = None
         self.shown_warnings = set()
-        self.experimental_lightning_optimizer = experimental_lightning_optimizer
 
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init
@@ -352,6 +351,7 @@ class Trainer(
             benchmark,
             replace_sampler_ddp,
             deterministic,
+            experimental_lightning_optimizer
         )
 
         # init train loop related flags

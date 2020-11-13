@@ -33,6 +33,7 @@ from pytorch_lightning.utilities import rank_zero_warn, AMPType
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities.parsing import (
     AttributeDict,
     collect_init_args,
@@ -1383,7 +1384,23 @@ class LightningModule(
             model hook don't forget to add the call to it before ``optimizer.zero_grad()`` yourself.
 
         """
-        optimizer.step(*args, closure=optimizer_closure, **kwargs)
+        if isinstance(optimizer, LightningOptimizer):
+            optimizer.step(*args, closure=optimizer_closure, **kwargs)
+        else:
+            if on_tpu:
+                xm.optimizer_step(optimizer, optimizer_args={'closure': optimizer_closure, **kwargs})
+            elif self.trainer.amp_backend == AMPType.NATIVE:
+                # native amp does not yet support closures.
+                # TODO: pass the closure to the step ASAP
+                optimizer_closure()
+                self.trainer.scaler.step(optimizer)
+            elif self.trainer.amp_backend == AMPType.APEX:
+                # apex amp does not yet support closures.
+                # TODO: pass the closure to the step ASAP
+                optimizer_closure()
+                optimizer.step(*args, **kwargs)
+            else:
+                optimizer.step(closure=optimizer_closure, *args, **kwargs)
 
     def optimizer_zero_grad(
         self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int

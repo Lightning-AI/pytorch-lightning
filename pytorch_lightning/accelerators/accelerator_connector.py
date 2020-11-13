@@ -59,6 +59,7 @@ class AcceleratorConnector:
             benchmark,
             replace_sampler_ddp,
             deterministic,
+            experimental_lightning_optimizer
     ):
         # temp until we remove all dist backend references
         distributed_backend = self._map_deprecated_dist_backend(accelerator, distributed_backend)
@@ -121,6 +122,10 @@ class AcceleratorConnector:
 
         # distributed backend choice
         self.set_distributed_mode()
+
+        # enable optimizer wrapping with LightningOptimizer
+        # TODO: Understand why it does work with Hovorod
+        self.trainer.experimental_lightning_optimizer = experimental_lightning_optimizer and not self.trainer.use_horovod
 
         # override dist backend when using tpus
         if self.trainer.on_tpu:
