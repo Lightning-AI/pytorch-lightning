@@ -270,6 +270,8 @@ def test_model_checkpoint_save_last(tmpdir):
         default_root_dir=tmpdir,
         callbacks=[model_checkpoint],
         max_epochs=epochs,
+        limit_train_batches=10,
+        limit_val_batches=10,
         logger=False,
     )
     trainer.fit(model)
@@ -324,6 +326,8 @@ def test_model_checkpoint_none_monitor(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[checkpoint_callback],
+        limit_train_batches=10,
+        limit_val_batches=10,
         max_epochs=epochs,
         logger=False,
     )
