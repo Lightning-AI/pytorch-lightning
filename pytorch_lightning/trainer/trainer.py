@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Trainer to automate the training."""
+
 import os
 import warnings
 from typing import Dict, Iterable, List, Optional, Union
