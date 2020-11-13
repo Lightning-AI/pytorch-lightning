@@ -21,7 +21,7 @@ name: Multi Nodes GPU Tests
 on: push
 
 env:
-  AWS_CLUSTER: lightning-torchelastic-1
+  AWS_CLUSTER: lightning-torchelastic
   NODE_TYPE: p3.2xlarge
   NODES: 2
   NUM_GPUS: 1
@@ -131,7 +131,7 @@ jobs:
       if: always()
       shell: bash
       run: |
-        sleep 20
+        sleep 30
 
     - name: Listen to Jobs Logging
       shell: bash
