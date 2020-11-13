@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Various hooks to be used in the Lightning code."""
+
 from typing import Any, Dict, List, Union
 
 import torch
@@ -28,6 +30,7 @@ except ImportError:
 
 
 class ModelHooks:
+    """Hooks to be used in LightningModule."""
     def setup(self, stage: str):
         """
         Called at the beginning of fit and test.
@@ -297,6 +300,7 @@ class ModelHooks:
 
 
 class DataHooks:
+    """Hooks to be used with LightningDataModule."""
     def prepare_data(self) -> None:
         """
         Use this to download and prepare data.
@@ -556,6 +560,7 @@ class DataHooks:
 
 
 class CheckpointHooks:
+    """Hooks to be used with Checkpointing."""
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         r"""
         Called by Lightning to restore your model.

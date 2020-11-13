@@ -13,8 +13,8 @@
 # limitations under the License.
 
 """
-Neptune
--------
+Neptune Logger
+--------------
 """
 from argparse import Namespace
 from typing import Any, Dict, Iterable, List, Optional, Union
@@ -36,7 +36,9 @@ from pytorch_lightning.utilities import rank_zero_only
 
 class NeptuneLogger(LightningLoggerBase):
     r"""
-    Log using `Neptune <https://neptune.ai>`_. Install it with pip:
+    Log using `Neptune <https://neptune.ai>`_.
+
+    Install it with pip:
 
     .. code-block:: bash
 
