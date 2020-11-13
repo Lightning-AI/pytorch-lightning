@@ -186,7 +186,18 @@ Example implementation:
         def compute(self):
             return self.correct.float() / self.total
 
-<<<<<<< HEAD
+Metrics support backpropagation, if all computations involved in the metric calculation
+are differentiable. However, note that the cached state is detached from the computational
+graph and cannot be backpropagated. Not doing this would mean storing the computational
+graph for each update call, which can lead to out-of-memory errors.
+In practise this means that:
+
+.. code-block:: python
+
+    metric = MyMetric()
+    val = metric(pred, target) # this value can be backpropagated
+    val = metric.compute() # this value cannot be backpropagated
+
 ****************
 MetricCollection
 ****************
@@ -239,23 +250,8 @@ inside your LightningModule
         # use log_dict instead of log
         self.log_dict(self.valid_metrics, on_step=True, on_epoch=True, prefix='val')
 
-
 .. autoclass:: pytorch_lightning.metrics.MetricCollection
     :noindex:
-=======
-Metrics support backpropagation, if all computations involved in the metric calculation
-are differentiable. However, note that the cached state is detached from the computational
-graph and cannot be backpropagated. Not doing this would mean storing the computational
-graph for each update call, which can lead to out-of-memory errors.
-In practise this means that:
-
-.. code-block:: python
-
-    metric = MyMetric()
-    val = metric(pred, target) # this value can be backpropagated
-    val = metric.compute() # this value cannot be backpropagated
-
->>>>>>> upstream/master
 
 **********
 Metric API
