@@ -137,6 +137,7 @@ class Trainer(
         distributed_backend: Optional[str] = None,
         automatic_optimization: bool = True,
         move_metrics_to_cpu: bool = False,
+        experimental_lightning_optimizer: bool = True,
     ):
         r"""
         Customize every aspect of training via flags
@@ -307,6 +308,7 @@ class Trainer(
         self.weights_summary = weights_summary
         self.model = None
         self.shown_warnings = set()
+        self.experimental_lightning_optimizer = experimental_lightning_optimizer
 
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init

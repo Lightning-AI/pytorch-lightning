@@ -19,6 +19,7 @@ import torch
 from torch import optim
 from torch.optim.optimizer import Optimizer
 
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -75,6 +76,11 @@ class TrainerOptimizersMixin(ABC):
                 ' * A list of the previously described dict format, with an optional "frequency" key (int)'
             )
         lr_schedulers = self.configure_schedulers(lr_schedulers, monitor=monitor)
+
+        if self.experimental_lightning_optimizer:
+            optimizers = [LightningOptimizer(self, optimizer=opt, optimizer_idx=opt_idx)
+                          if not isinstance(opt, LightningOptimizer) else opt
+                          for opt_idx, opt in enumerate(optimizers)]
 
         return optimizers, lr_schedulers, optimizer_frequencies
 
