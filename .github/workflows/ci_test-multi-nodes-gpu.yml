@@ -131,7 +131,7 @@ jobs:
       if: always()
       shell: bash
       run: |
-        sleep 60
+        sleep 20
 
     - name: Listen to Jobs Logging
       shell: bash
