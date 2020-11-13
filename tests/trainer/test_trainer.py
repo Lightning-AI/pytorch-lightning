@@ -36,7 +36,7 @@ from pytorch_lightning.profiler.profilers import AdvancedProfiler, PassThroughPr
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE, IS_COLAB
 from tests.base import EvalModelTemplate, BoringModel
 
 
@@ -1500,3 +1500,16 @@ def test_trainer_profiler_incorrect_arg_type(profiler):
                        match=r"Only None, bool, str and subclasses of `BaseProfiler` "
                        r"are valid values for `Trainer`'s `profiler` parameter. *"):
         Trainer(profiler=profiler)
+
+
+def test_trainer_refresh_rate_colab():
+    """
+    Default refresh rate on colab should be 20. If not on colab,
+    refresh rate should be 1.
+    """
+
+    trainer = Trainer()
+    if IS_COLAB:
+        assert trainer.progress_bar_callback.refresh_rate == 20
+    else:
+        assert trainer.progress_bar_callback.refresh_rate == 1

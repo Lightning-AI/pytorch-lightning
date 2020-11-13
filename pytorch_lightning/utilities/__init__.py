@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """General utilities"""
+import sys
 from enum import Enum
 
 import numpy
 import torch
 
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, rank_zero_info
+from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable
 
 try:
@@ -38,3 +39,6 @@ FLOAT64_EPSILON = numpy.finfo(numpy.float64).eps
 class AMPType(Enum):
     APEX = 'apex'
     NATIVE = 'native'
+
+
+IS_COLAB = 'google.colab' in sys.modules

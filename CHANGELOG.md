@@ -37,6 +37,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Tuner algorithms will be skipped if `fast_dev_run=True` ([#3903](https://github.com/PyTorchLightning/pytorch-lightning/pull/3903))
 
+- Changed default progress bar refresh rate on Google Colab to `20` (from `1`) to prevent crashing ([#4654](https://github.com/PyTorchLightning/pytorch-lightning/pull/4654))
 
 ### Deprecated
 

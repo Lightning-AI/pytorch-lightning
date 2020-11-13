@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from typing import Optional, Union
 
-from typing import Union, Optional
-
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, ProgressBarBase, ProgressBar
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBar, ProgressBarBase
+from pytorch_lightning.utilities import IS_COLAB, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -49,6 +48,10 @@ class CallbackConnector:
         # pass through the required args to figure out defaults
         self.configure_checkpoint_callbacks(checkpoint_callback)
 
+        # Set refresh rate to 20 on colab
+        # to prevent crashing because of the progress bar
+        if progress_bar_refresh_rate == 1 and IS_COLAB:
+            progress_bar_refresh_rate = 20
         # init progress bar
         self.trainer._progress_bar_callback = self.configure_progress_bar(
             progress_bar_refresh_rate, process_position
