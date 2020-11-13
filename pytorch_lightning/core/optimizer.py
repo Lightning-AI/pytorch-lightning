@@ -76,7 +76,18 @@ class LightningOptimizer(Optimizer):
     def __setstate__(self, state):
         self._optimizer.__dict__.update(state)
 
-    def step(self, closure=mock_closure, *args, **kwargs):
+    def __repr__(self):
+        format_string = self._optimizer.__class__.__name__ + ' ('
+        for i, group in enumerate(self.param_groups):
+            format_string += '\n'
+            format_string += 'Parameter Group {0}\n'.format(i)
+            for key in sorted(group.keys()):
+                if key != 'params':
+                    format_string += '    {0}: {1}\n'.format(key, group[key])
+        format_string += ')'
+        return format_string
+
+    def step(self, *args, closure=mock_closure, **kwargs):
         if self._trainer.on_tpu:
             xm.optimizer_step(self._optimizer, optimizer_args={'closure': closure, **kwargs})
         elif self._trainer.amp_backend == AMPType.NATIVE:
