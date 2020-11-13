@@ -82,7 +82,7 @@ def select_topk(tensor: torch.Tensor, topk: int = 1, dim: int = 1) -> torch.Tens
     zeros = torch.zeros_like(tensor, device=tensor.device)
     topk_tensor = zeros.scatter(1, tensor.topk(k=topk, dim=dim).indices, 1.0)
 
-    return topk_tensor.to(torch.int)
+    return topk_tensor.int()
 
 
 

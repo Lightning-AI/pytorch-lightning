@@ -265,14 +265,14 @@ def _input_format_classification(
         mode = "binary"
         if is_multiclass:
             target = to_onehot(target, 2)
-            preds = to_onehot((preds >= threshold).to(torch.int), 2)
+            preds = to_onehot((preds >= threshold).int(), 2)
         else:
-            preds = (preds >= threshold).to(torch.int).unsqueeze(-1)
+            preds = (preds >= threshold).int().unsqueeze(-1)
             target = target.unsqueeze(-1)
 
     elif len(preds.shape) == len(target.shape) and preds_float:
         mode = "multi-label"
-        preds = (preds >= threshold).to(torch.int)
+        preds = (preds >= threshold).int()
 
         if is_multiclass:
             preds = to_onehot(preds, 2).reshape(preds.shape[0], 2, -1)
@@ -329,7 +329,7 @@ def _input_format_classification(
     else:
         mode = "multi-dim multi-class"
         if preds.shape[:-1] == target.shape:
-            preds = torch.movedim(preds, 1, -1)
+            preds = torch.movedim(preds, -1, 1)
 
         num_classes = preds.shape[1]
 
