@@ -49,7 +49,7 @@ TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 if TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
 
-def mock_closure()
+def mock_closure():
     return
 
 class LightningOptimizer(Optimizer):
