@@ -15,6 +15,7 @@ import pickle
 from typing import Optional
 from unittest.mock import MagicMock
 
+from argparse import Namespace
 import numpy as np
 
 from pytorch_lightning import Trainer
@@ -212,3 +213,42 @@ def test_with_accumulate_grad_batches():
     assert logger.history == {0: {'loss': 0.5623850983416314}}
     logger.close()
     assert logger.history == {0: {'loss': 0.5623850983416314}, 1: {'loss': 0.4778883735637184}}
+
+
+def test_np_sanitization():
+    class CustomParamsLogger(CustomLogger):
+        def __init__(self):
+            super().__init__()
+            self.logged_params = None
+
+        @rank_zero_only
+        def log_hyperparams(self, params):
+            params = self._convert_params(params)
+            params = self._sanitize_params(params)
+            self.logged_params = params
+
+    logger = CustomParamsLogger()
+    np_params = {
+        "np.bool_": np.bool_(1),
+        "np.byte": np.byte(1),
+        "np.intc": np.intc(1),
+        "np.int_": np.int_(1),
+        "np.longlong": np.longlong(1),
+        "np.single": np.single(1),
+        "np.double": np.double(1),
+        "np.csingle": np.csingle(1),
+        "np.cdouble": np.cdouble(1),
+    }
+    sanitized_params = {
+        "np.bool_": True,
+        "np.byte": 1,
+        "np.intc": 1,
+        "np.int_": 1,
+        "np.longlong": 1,
+        "np.single": 1.0,
+        "np.double": 1.0,
+        "np.csingle": "(1+0j)",
+        "np.cdouble": "(1+0j)",
+    }
+    logger.log_hyperparams(Namespace(**np_params))
+    assert logger.logged_params == sanitized_params
