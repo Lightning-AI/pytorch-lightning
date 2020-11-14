@@ -18,17 +18,18 @@ import subprocess
 import sys
 from os.path import abspath
 from time import sleep
-from typing import Optional, List
+from typing import Any, Optional, List, Union
 
 import numpy as np
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import find_free_network_port
 from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
 from torch.nn.parallel import DistributedDataParallel
@@ -46,6 +47,15 @@ else:
 class DDPAccelerator(Accelerator):
 
     def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
+        """
+        Runs training using DDP strategy on a single machine (manually, not via cluster start)
+
+        Example::
+
+            # default
+            trainer = Trainer(accelerator=DDPAccelerator())
+
+        """
         super().__init__(trainer, cluster_environment, ddp_plugin)
         self.task_idx = None
         self._has_spawned_children = False
@@ -298,3 +308,12 @@ class DDPAccelerator(Accelerator):
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
 
         return model
+
+    def sync_tensor(self,
+                    tensor: Union[torch.Tensor],
+                    group: Optional[Any] = None,
+                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
+        """
+
+        """
+        return sync_ddp_if_available(tensor, group, reduce_op)

@@ -307,7 +307,7 @@ def test_trainer_model_hook_system(tmpdir):
 
     trainer.fit(model)
 
-    assert model.called == [
+    expected = [
         'on_fit_start',
         'on_pretrain_routine_start',
         'on_pretrain_routine_end',
@@ -333,18 +333,20 @@ def test_trainer_model_hook_system(tmpdir):
         'on_validation_batch_start',
         'on_validation_batch_end',
         'on_validation_epoch_end',
-        'on_validation_model_train',
         'on_save_checkpoint',
+        'on_validation_model_train',
         'on_epoch_end',
         'on_train_epoch_end',
         'on_train_end',
         'on_fit_end',
     ]
 
+    assert model.called == expected
+
     model2 = HookedModel()
     trainer.test(model2)
 
-    assert model2.called == [
+    expected = [
         'on_fit_start',
         'on_pretrain_routine_start',
         'on_pretrain_routine_end',
@@ -356,3 +358,5 @@ def test_trainer_model_hook_system(tmpdir):
         'on_test_model_train',
         'on_fit_end',
     ]
+
+    assert model2.called == expected
