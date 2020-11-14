@@ -28,7 +28,7 @@ python cora_dna.py
 
 | `DATASET` | `MODEL` | `TASK` | DATASET DESCRIPTION | MODEL DESCRIPTION                                                                                                                                                                   |                                                                                                                                                                     |
 | :---: | :---: | :---: | :---: | :---: | :---: |
-| Cora          | DNA          | Node Classification | The citation network datasets "Cora", "CiteSeer" and "PubMed" from the "Revisiting Semi-Supervised Learning with Graph Embeddings" <https://arxiv.org/abs/1603.08861> | The dynamic neighborhood aggregation operator from the "Just Jump: Towards Dynamic Neighborhood Aggregation in Graph Neural Networks"
+| Cora | DNA | Node Classification | The citation network datasets "Cora", "CiteSeer" and "PubMed" from the "Revisiting Semi-Supervised Learning with Graph Embeddings" <https://arxiv.org/abs/1603.08861> | The dynamic neighborhood aggregation operator from the "Just Jump: Towards Dynamic Neighborhood Aggregation in Graph Neural Networks"
 
 
 ## DATASET SIZES
