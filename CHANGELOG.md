@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Ci: tpu drop install horovod ([#4622](https://github.com/PyTorchLightning/pytorch-lightning/pull/4622))
 - Ci: Added isort import check for the code on pull-request ([#4242](https://github.com/PyTorchLightning/pytorch-lightning/pull/4242))
+- Increase parity ([#4651](https://github.com/PyTorchLightning/pytorch-lightning/pull/4651))
+- Isolate `PL_DEV_DEBUG` with `unittest.mock` ([#4643](https://github.com/PyTorchLightning/pytorch-lightning/pull/4643))
 
 
 ### Fixed
@@ -22,7 +24,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed average pbar Metrics ([#4534](https://github.com/PyTorchLightning/pytorch-lightning/pull/4534))
 - Fixed logger docs and api docs ([#3950](https://github.com/PyTorchLightning/pytorch-lightning/pull/3950))
 - Fixed `setup` callback hook to correctly pass the LightningModule through ([#4608](https://github.com/PyTorchLightning/pytorch-lightning/pull/4608))
-
+- Fixed docs typo ([#4659](https://github.com/PyTorchLightning/pytorch-lightning/pull/4659))
 
 
 

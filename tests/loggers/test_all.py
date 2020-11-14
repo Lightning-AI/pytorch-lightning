@@ -20,13 +20,13 @@ from unittest import mock
 import pytest
 
 import tests.base.develop_utils as tutils
-from pytorch_lightning import Trainer, Callback
+from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers import (
-    TensorBoardLogger,
+    CometLogger,
     MLFlowLogger,
     NeptuneLogger,
+    TensorBoardLogger,
     TestTubeLogger,
-    CometLogger,
     WandbLogger,
 )
 from pytorch_lightning.loggers.base import DummyExperiment
@@ -71,7 +71,6 @@ def test_loggers_fit_test_all(tmpdir, monkeypatch):
 
 
 def _test_loggers_fit_test(tmpdir, logger_class):
-    os.environ['PL_DEV_DEBUG'] = '0'
     model = EvalModelTemplate()
 
     class StoreHistoryLogger(logger_class):

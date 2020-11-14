@@ -12,16 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from pytorch_lightning import Trainer, seed_everything, callbacks
-from tests.base import EvalModelTemplate, BoringModel
 from unittest import mock
+
 import pytest
 import torch
 
+from pytorch_lightning import Trainer, callbacks, seed_everything
+from tests.base import BoringModel, EvalModelTemplate
 
+
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_mc_called_on_fastdevrun(tmpdir):
     seed_everything(1234)
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     train_val_step_model = EvalModelTemplate()
 
@@ -53,9 +55,9 @@ def test_mc_called_on_fastdevrun(tmpdir):
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 1
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_mc_called(tmpdir):
     seed_everything(1234)
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     # -----------------
     # TRAIN LOOP ONLY

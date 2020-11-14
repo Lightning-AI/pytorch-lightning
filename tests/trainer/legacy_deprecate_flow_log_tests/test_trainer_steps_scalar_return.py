@@ -15,12 +15,14 @@
 Tests to ensure that the training loop works with a scalar
 """
 import os
-import torch
+from unittest import mock
+
 import pytest
+import torch
 
 from pytorch_lightning import Trainer
-from tests.base.deterministic_model import DeterministicModel
 from tests.base import BoringModel
+from tests.base.deterministic_model import DeterministicModel
 
 
 def test_training_step_scalar(tmpdir):
@@ -206,9 +208,9 @@ class DPPReduceMeanPbarModel(BoringModel):
         return {"loss": loss, "progress_bar":{"loss_2": loss}}
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_dpp_reduce_mean_pbar(tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     model = DPPReduceMeanPbarModel()
     model.training_step_end = None

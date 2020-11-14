@@ -14,18 +14,21 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
-from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning import Trainer
-from tests.base.deterministic_model import DeterministicModel
 import os
+from unittest import mock
+
 import torch
 
+from pytorch_lightning import Trainer
+from pytorch_lightning.core.lightning import LightningModule
+from tests.base.deterministic_model import DeterministicModel
 
+
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__training_step__flow_dict(tmpdir):
     """
     Tests that only training_step can be used
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(DeterministicModel):
         def training_step(self, batch, batch_idx):
@@ -56,11 +59,11 @@ def test__training_step__flow_dict(tmpdir):
     assert not model.training_epoch_end_called
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__training_step__tr_step_end__flow_dict(tmpdir):
     """
     Tests that only training_step can be used
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(DeterministicModel):
         def training_step(self, batch, batch_idx):
@@ -98,11 +101,11 @@ def test__training_step__tr_step_end__flow_dict(tmpdir):
     assert not model.training_epoch_end_called
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__training_step__epoch_end__flow_dict(tmpdir):
     """
     Tests that only training_step can be used
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(DeterministicModel):
         def training_step(self, batch, batch_idx):
@@ -146,11 +149,11 @@ def test__training_step__epoch_end__flow_dict(tmpdir):
     assert model.training_epoch_end_called
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__training_step__step_end__epoch_end__flow_dict(tmpdir):
     """
     Tests that only training_step can be used
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(DeterministicModel):
         def training_step(self, batch, batch_idx):
