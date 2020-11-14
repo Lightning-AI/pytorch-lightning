@@ -96,11 +96,12 @@ def parse_class_init_keys(cls) -> Tuple[str, str, str]:
     n_self = init_params[0].name
 
     def _get_first_if_any(params, str_type):
-        all_vars = [p for p in params if str(p.kind) == str_type]
-        return all_vars[0].name if all_vars else None
+        for p in params:
+            if str(p.kind) == str_type:
+                return p.name
 
-    n_args = _get_first_if_any(init_params, 'VAR_POSITIONAL')
-    n_kwargs = _get_first_if_any(init_params, 'VAR_KEYWORD')
+    n_args = _get_first_if_any(init_params, inspect.Parameter.VAR_POSITIONAL)
+    n_kwargs = _get_first_if_any(init_params, inspect.Parameter.VAR_KEYWORD)
 
     return n_self, n_args, n_kwargs
 
@@ -117,8 +118,7 @@ def get_init_args(frame) -> dict:
 
     # only collect variables that appear in the signature
     local_args = {k: local_vars[k] for k in init_parameters.keys()}
-    if kwargs_var:
-        local_args.update(local_args.get(kwargs_var, {}))
+    local_args.update(local_args.get(kwargs_var, {}))
     local_args = {k: v for k, v in local_args.items() if k not in exclude_argnames}
     return local_args
 
