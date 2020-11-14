@@ -298,8 +298,7 @@ class CheckpointConnector:
             callback_states = self.trainer.on_save_checkpoint()
             checkpoint['callbacks'] = callback_states
 
-            # dump optimizers
-            # Rely on accelerator backend to obtain optimizer state from processes
+            # Rely on accelerator backend to dump optimizer state
             checkpoint['optimizer_states'] = self.trainer.accelerator_backend.optimizer_states
 
             # dump lr schedulers
