@@ -95,9 +95,9 @@ def parse_class_init_keys(cls) -> Tuple[str, str, str]:
     # self is always first
     n_self = init_params[0].name
 
-    def _get_first_if_any(params, str_type):
+    def _get_first_if_any(params, param_type):
         for p in params:
-            if str(p.kind) == str_type:
+            if p.kind == param_type:
                 return p.name
 
     n_args = _get_first_if_any(init_params, inspect.Parameter.VAR_POSITIONAL)
