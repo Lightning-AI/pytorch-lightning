@@ -37,9 +37,10 @@ try:
     import torch_geometric.transforms as T
     from torch_geometric.data import NeighborSampler
     from lightning import lightning_logo, nice_print
-    HAS_PYTORCH_GEOMETRIC = True
 except Exception:
     HAS_PYTORCH_GEOMETRIC = False
+else:
+    HAS_PYTORCH_GEOMETRIC = True
 
 
 # use to make model jittable
