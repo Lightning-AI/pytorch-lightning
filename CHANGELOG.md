@@ -32,12 +32,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     [#4495](https://github.com/PyTorchLightning/pytorch-lightning/pull/4495),
     [#4439](https://github.com/PyTorchLightning/pytorch-lightning/pull/4439))
 
+- Added warning when progress bar refresh rate is less than 20 on Google Colab to prevent crashing ([#4654](https://github.com/PyTorchLightning/pytorch-lightning/pull/4654))
+
 
 ### Changed
 
 - Tuner algorithms will be skipped if `fast_dev_run=True` ([#3903](https://github.com/PyTorchLightning/pytorch-lightning/pull/3903))
 
-- Changed default progress bar refresh rate on Google Colab to `20` (from `1`) to prevent crashing ([#4654](https://github.com/PyTorchLightning/pytorch-lightning/pull/4654))
 
 ### Deprecated
 

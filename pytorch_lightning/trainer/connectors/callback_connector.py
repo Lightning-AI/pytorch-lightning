@@ -50,8 +50,12 @@ class CallbackConnector:
 
         # Set refresh rate to 20 on colab
         # to prevent crashing because of the progress bar
-        if progress_bar_refresh_rate == 1 and IS_COLAB:
-            progress_bar_refresh_rate = 20
+        if IS_COLAB and progress_bar_refresh_rate < 20:
+            rank_zero_warn(
+                "You have set progress bar refresh rate to less than 20 on Google Colab. This "
+                " may cause crashes. Consider using Trainer(progress_bar_refresh_rate=20...)",
+                UserWarning
+            )
         # init progress bar
         self.trainer._progress_bar_callback = self.configure_progress_bar(
             progress_bar_refresh_rate, process_position
