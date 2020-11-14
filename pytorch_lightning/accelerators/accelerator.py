@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, List
 
 import torch
 from torch.optim import Optimizer
@@ -201,6 +201,21 @@ class Accelerator(object):
             reduced value
         """
         raise NotImplementedError()
+
+    @property
+    def optimizer_states(self) -> List[dict]:
+        """
+        Returns states of optimizers. Allows for syncing/collating optimizer state from processes in custom
+        plugins.
+        Return:
+            Optimizer state dicts
+        """
+        if self.ddp_plugin:
+            return self.ddp_plugin.optimizer_states(self.trainer)
+        optimizer_states = []
+        for i, optimizer in enumerate(self.trainer.optimizers):
+            optimizer_states.append(optimizer.state_dict())
+        return optimizer_states
 
     def __getstate__(self):
         return {

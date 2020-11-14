@@ -299,9 +299,14 @@ class CheckpointConnector:
             checkpoint['callbacks'] = callback_states
 
             # dump optimizers
-            optimizer_states = []
-            for i, optimizer in enumerate(self.trainer.optimizers):
-                optimizer_states.append(optimizer.state_dict())
+            if self.trainer.accelerator_backend:
+                # Rely on accelerator backend to obtain optimizer state from processes
+                optimizer_states = self.trainer.accelerator_backend.optimizer_states
+            else:
+                optimizer_states = []
+                for i, optimizer in enumerate(self.trainer.optimizers):
+                    optimizer_states.append(optimizer.state_dict())
+
             checkpoint['optimizer_states'] = optimizer_states
 
             # dump lr schedulers
