@@ -140,6 +140,10 @@ def lr_find(
         rank_zero_warn('Skipping learning rate finder since `fast_dev_run=True`', UserWarning)
         return
 
+    # Ensure accelerator has been selected to save optim state
+    if not trainer.accelerator_backend:
+        trainer.accelerator_backend = trainer.accelerator_connector.select_accelerator()
+
     save_path = os.path.join(trainer.default_root_dir, 'lr_find_temp_model.ckpt')
 
     __lr_finder_dump_params(trainer, model)
