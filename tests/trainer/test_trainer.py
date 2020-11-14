@@ -20,7 +20,7 @@ import types
 from argparse import Namespace
 from copy import deepcopy
 from pathlib import Path
-from unittest.mock import patch, call, ANY
+from unittest.mock import ANY, call, patch
 
 import cloudpickle
 import pytest
@@ -34,10 +34,10 @@ from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hpara
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.profiler.profilers import AdvancedProfiler, PassThroughProfiler, SimpleProfiler
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
+from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
-from tests.base import EvalModelTemplate, BoringModel
+from tests.base import BoringModel, EvalModelTemplate
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -1431,7 +1431,8 @@ def test_trainer_setup_call(tmpdir):
             self.stage = stage
 
     class TrainerSubclass(Trainer):
-        def setup(self, stage):
+        def setup(self, model, stage):
+            assert model is not None
             self.stage = stage
 
     model = CurrentModel()

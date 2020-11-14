@@ -13,12 +13,40 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Ci: tpu drop install horovod ([#4622](https://github.com/PyTorchLightning/pytorch-lightning/pull/4622))
+- Ci: Added isort import check for the code on pull-request ([#4242](https://github.com/PyTorchLightning/pytorch-lightning/pull/4242))
+
 
 ### Fixed
 
 - Prevent crash if `sync_dist=True` on CPU ([#4626](https://github.com/PyTorchLightning/pytorch-lightning/pull/4626))
 - Fixed average pbar Metrics ([#4534](https://github.com/PyTorchLightning/pytorch-lightning/pull/4534))
 - Fixed logger docs and api docs ([#3950](https://github.com/PyTorchLightning/pytorch-lightning/pull/3950))
+- Fixed `setup` callback hook to correctly pass the LightningModule through ([#4608](https://github.com/PyTorchLightning/pytorch-lightning/pull/4608))
+
+
+
+
+## [unreleased.BugFix] - YYYY-MM-DD
+
+### Added
+
+
+
+### Changed
+
+
+
+### Deprecated
+
+
+
+### Removed
+
+
+
+### Fixed
+
+
 
 ## [1.0.6] - 2020-11-11
 

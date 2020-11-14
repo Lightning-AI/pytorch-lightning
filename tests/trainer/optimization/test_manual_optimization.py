@@ -13,11 +13,11 @@
 # limitations under the License.
 import collections
 import os
+from unittest.mock import ANY, call, patch
 
 import pytest
 import torch
 import torch.nn.functional as F
-from unittest.mock import patch, call, ANY
 
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.utilities import APEX_AVAILABLE
@@ -698,7 +698,7 @@ def test_manual_optimizer_step_with_optimizer_closure(tmpdir):
 
     trainer.fit(model)
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * 2
-    # TODO:  Remove me on 1.1 - Releases/1.0.x currently has a bug fixed on master - Decided to wait for next feature releases
+    # todo: Remove me on 1.1 - Releases/1.0.x currently has a bug fixed on master - Decided to wait for next feature releases
     # assert trainer.logger_connector.progress_bar_metrics["train_loss_step"] == model._losses[-1]
     # assert trainer.logger_connector.progress_bar_metrics["train_loss_epoch"] == torch.stack(model._losses).mean()
 
