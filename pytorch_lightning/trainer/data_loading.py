@@ -135,7 +135,7 @@ class TrainerDataLoadingMixin(ABC):
         return dataloader
 
     def _get_distributed_sampler(self, dataloader, shuffle):
-        if self.use_tpu:
+        if self.use_tpu and TPU_AVAILABLE:
             kwargs = dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
         elif self.use_horovod:
             kwargs = dict(num_replicas=hvd.size(), rank=hvd.rank())
