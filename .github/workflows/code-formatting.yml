@@ -7,6 +7,21 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     branches: [master, "release/*"]
 
 jobs:
+  imports-check-isort:
+    name: Check valid import formatting with isort
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install isort
+        run: pip install isort==5.6.4
+      - name: Run isort
+        run: isort --settings-path=./pyproject.toml --check-only --diff .
+
   code-black:
     name: Check code formatting with Black
     runs-on: ubuntu-20.04

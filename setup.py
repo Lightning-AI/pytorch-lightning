@@ -15,8 +15,9 @@
 
 import os
 from io import open
+
 # Always prefer setuptools over distutils
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 try:
     import builtins
