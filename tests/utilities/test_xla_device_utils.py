@@ -16,20 +16,32 @@ import time
 import pytest
 
 import pytorch_lightning.utilities.xla_device_utils as xla_utils
-from pytorch_lightning.utilities import XLA_AVAILABLE
+from pytorch_lightning.utilities import XLA_AVAILABLE, TPU_AVAILABLE
 from tests.base.develop_utils import pl_multi_process_test
 
 if XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
 
 
-@pytest.mark.skipif(XLA_AVAILABLE, reason="test requires torch_xla to be absent")
+@pytest.mark.skipif(TPU_AVAILABLE, reason="test requires torch_xla to be absent")
 def test_tpu_device_absence():
     """Check tpu_device_exists returns None when torch_xla is not available"""
     assert xla_utils.XLADeviceUtils.tpu_device_exists() is None
 
 
-@pytest.mark.skipif(not XLA_AVAILABLE, reason="test requires torch_xla to be installed")
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires torch_xla to be installed")
+@pl_multi_process_test
 def test_tpu_device_presence():
     """Check tpu_device_exists returns True when TPU is available"""
     assert xla_utils.XLADeviceUtils.tpu_device_exists() is True
+
+
+def test_result_returns_within_20_seconds():
+    """Check that pl_multi_process returns within 10 seconds"""
+
+    start = time.time()
+    result = xla_utils.pl_multi_process(time.sleep)(25)
+    end = time.time()
+    elapsed_time = int(end - start)
+    assert elapsed_time <= 20
+    assert result is None
