@@ -32,6 +32,9 @@ class Tuner:
         self.trainer.auto_lr_find = auto_lr_find
         self.trainer.auto_scale_batch_size = auto_scale_batch_size
 
+        # setup accelerator for saving hooks
+        self.trainer.accelerator_backend = self.trainer.accelerator_connector.select_accelerator()
+
     def tune(self, model, train_dataloader, val_dataloaders, datamodule):
         # setup data, etc...
         self.trainer.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
