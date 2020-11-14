@@ -164,6 +164,13 @@ class LightningModule(
         """
         return self.device.type == "cuda"
 
+    @property
+    def automatic_optimization(self) -> bool:
+        """
+        If False you are responsible for calling .backward, .step, zero_grad.
+        """
+        return True
+
     def print(self, *args, **kwargs) -> None:
         r"""
         Prints only from process 0. Use this in any distributed mode to log only once.
