@@ -71,7 +71,6 @@ def test_loggers_fit_test_all(tmpdir, monkeypatch):
 
 
 def _test_loggers_fit_test(tmpdir, logger_class):
-    os.environ['PL_DEV_DEBUG'] = '0'
     model = EvalModelTemplate()
 
     class StoreHistoryLogger(logger_class):
