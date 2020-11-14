@@ -140,3 +140,4 @@ mlruns/
 pytorch\ lightning
 test-reports/
 wandb
+.forked/
