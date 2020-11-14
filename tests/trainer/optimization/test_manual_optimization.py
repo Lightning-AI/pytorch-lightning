@@ -13,6 +13,7 @@
 # limitations under the License.
 import collections
 import os
+from unittest import mock
 
 import pytest
 import torch
@@ -24,9 +25,8 @@ from pytorch_lightning.utilities import APEX_AVAILABLE
 from tests.base.boring_model import BoringModel
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_multiple_optimizers_manual(tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
-
     """
     Tests that only training_step can be used
     """
@@ -87,9 +87,8 @@ def test_multiple_optimizers_manual(tmpdir):
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * num_manual_backward_calls
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_multiple_optimizers_manual_return(tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
-
     """
     Tests that only training_step can be used
     """
@@ -152,9 +151,8 @@ def test_multiple_optimizers_manual_return(tmpdir):
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * num_manual_backward_calls
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_multiple_optimizers_manual_return_and_log(tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
-
     """
     Tests that only training_step can be used
     """
@@ -222,10 +220,9 @@ def test_multiple_optimizers_manual_return_and_log(tmpdir):
     assert expected == logged
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_multiple_optimizers_manual_native_amp(tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
-
     """
     Tests that only training_step can be used
     """
@@ -288,11 +285,10 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * num_manual_backward_calls
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.skipif(not APEX_AVAILABLE, reason="test requires apex")
 def test_multiple_optimizers_manual_apex(tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
-
     """
     Tests that only training_step can be used
     """
@@ -558,10 +554,9 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
     trainer.fit(model)
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_multiple_optimizers_manual_optimizer_step(tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
-
     """
     Tests that `manual_optimizer_step` works with several optimizers
     """
