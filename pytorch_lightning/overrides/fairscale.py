@@ -11,52 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, Any, List, Tuple, Union
+from typing import Any, List, Union
 
 from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
 from fairscale.optim import OSS
 from torch import nn
-
-from pytorch_lightning.utilities import rank_zero_warn
-
-
-class LightningOSS(OSS):
-
-    def state_dict(self) -> Dict[str, Any]:
-        """Return the last known global optimizer state, which consist of a list of the shards.
-
-        .. warning:
-            If the state has not been consolidated, this returns a shard's worth, not the global state.
-
-        .. warning:
-            Returning the global state is limited to the replica which was responsible for the consolidation.
-            The state may also not be up to date, depending on when `consolidate_state_dict` was last called.
-        """
-
-        if len(self._all_states) == 0:
-            rank_zero_warn("Optimizer state has not been consolidated. Returning the local state")
-            rank_zero_warn("Please call `consolidate_state_dict()` beforehand if you meant to save the global state")
-            state_dict = self.local_state_dict()
-            state_dict["local_state_dict"] = True
-            return state_dict
-
-        # Flatten the param_groups, save the partition which logs the rank <> shard correspondence
-        partition: List[Tuple[int, int]] = []
-        param_groups: List[Dict[Any, Any]] = []
-
-        start = 0
-        for i, s in enumerate(self._all_states):
-            param_groups.extend(s["param_groups"])
-            end = start + len(s["param_groups"])
-            partition.append((start, end))
-            start = end
-
-        return {
-            "state": [s["state"] for s in self._all_states],
-            "param_groups": param_groups,
-            "partition": partition,
-            "local_state_dict": False,
-        }
 
 
 class LightningShardedDataParallel(ShardedDataParallel):

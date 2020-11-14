@@ -132,9 +132,6 @@ class Accelerator(object):
         model_ref = self.trainer.get_model()
         model_ref.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
-    def sync_optim_state(self):
-        pass
-
     def clip_gradients(self, optimizer, clip_val=None):
         # use the trainer's clip val if none passed
         grad_clip_val = self.trainer.gradient_clip_val
@@ -204,6 +201,18 @@ class Accelerator(object):
             reduced value
         """
         raise NotImplementedError()
+
+    def sync_optim_state(self):
+        pass
+
+    @property
+    def rank_should_save_optim_state(self):
+        """
+        Property to define logic to ensure that it is safe to save optimizer state.
+        In most cases rank doesn't matter, however allows additional logic when state has been sharded.
+        Returns: True if rank is safe to save state, else False.
+        """
+        return True
 
     def __getstate__(self):
         return {

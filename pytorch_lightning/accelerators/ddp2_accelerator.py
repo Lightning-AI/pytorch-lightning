@@ -222,3 +222,6 @@ class DDP2Accelerator(Accelerator):
 
     def sync_optim_state(self):
         self.ddp_plugin.sync_optim_state(self.trainer.get_model())
+
+    def rank_should_save_optim_state(self):
+        return self.ddp_plugin.rank_should_save_optim_state(self.trainer.global_rank)

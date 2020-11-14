@@ -13,8 +13,10 @@
 # limitations under the License.
 from typing import List, cast, Any
 
+from fairscale.optim import OSS
+
 from pytorch_lightning import LightningModule
-from pytorch_lightning.overrides.fairscale import LightningOSS, LightningShardedDataParallel
+from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 
 
@@ -23,7 +25,7 @@ class DDPShardedPlugin(DDPPlugin):
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
     ):
-        self._setup_optimizers(model)
+        self._wrap_optimizers(model)
         if model.trainer.testing:  # Revert to standard DDP if using testing
             super().configure_ddp(
                 model=model,
@@ -37,6 +39,9 @@ class DDPShardedPlugin(DDPPlugin):
         for optimizer in model.trainer.optimizers:
             optimizer.consolidate_state_dict()
 
+    def rank_should_save_optim_state(self, rank):
+        return rank == 0  # Only safe to save optimizer state on rank 0
+
     def sync_backward(self, model: LightningShardedDataParallel):
         # Ensure all backward handles have been called before calling optimizer step
         model = cast(LightningShardedDataParallel, model)
@@ -48,38 +53,33 @@ class DDPShardedPlugin(DDPPlugin):
         args[0] = batch
         return args
 
-    def _setup_optimizers(self, model):
+    def _wrap_optimizers(self, model):
         trainer = model.trainer
         if trainer.testing is True:
             return
 
-        optimizers, lr_schedulers, optimizer_frequencies = trainer.init_optimizers(model)
-        trainer.optimizers = self._re_init_with_fairscale_zero(optimizers, lr_schedulers)
-        trainer.lr_schedulers = lr_schedulers
-        trainer.optimizer_frequencies = optimizer_frequencies
+        self._reinit_with_fairscale_oss(trainer)
 
-    def _re_init_with_fairscale_zero(self, optimizers, lr_schedulers):
+    def _reinit_with_fairscale_oss(self, trainer):
         """
         Re-initialise optimizers to use OSS wrapper. We need to re-initialise due to
         the parameters being sharded across distributed processes, each optimizing a partition.
         Args:
-            optimizers: Input optimizers for trainer.
-        Returns: Optimizers re-initialised using FairScale OSS (ZERO optimizer).
-
+            trainer: trainer object to reinit optimizers.
         """
-        fairscale_zero_optimizers = []
-        for optimizer in optimizers:
-            if not isinstance(optimizer, LightningOSS):
+        optimizers = trainer.optimizers
+        lr_schedulers = trainer.lr_schedulers
+        for x, optimizer in enumerate(optimizers):
+            if not isinstance(optimizer, OSS):
                 optim_class = type(optimizer)
-                zero_optimizer = LightningOSS(
+                zero_optimizer = OSS(
                     params=optimizer.param_groups,
                     optim=optim_class,
                     **optimizer.defaults
                 )
-                fairscale_zero_optimizers.append(zero_optimizer)
+                optimizers[x] = zero_optimizer
                 for scheduler in lr_schedulers:
                     scheduler = scheduler['scheduler']
                     if scheduler.optimizer == optimizer:
                         scheduler.optimizer = zero_optimizer
                 del optimizer
-        return fairscale_zero_optimizers

@@ -63,11 +63,30 @@ class DDPPlugin(object):
         )
         return model
 
-    def sync_optim_state(self, model: LightningModule):
+    def sync_backward(self, model: LightningModule):
+        """
+            Override with additional logic to run at the end of the backwards pass. This can be used to clear handles
+            and force synchronization before the optimizer step.
+        """
         pass
 
-    def sync_backward(self, model: LightningModule):
+    def sync_optim_state(self, model: LightningModule):
+        """
+            Override with additional logic to modify optimizer state before saving.
+        """
         pass
+
+    def rank_should_save_optim_state(self, rank):
+        """
+            Override to modify behaviour when saving the optimizer state. By default we save on any rank and
+            allow the checkpoint logic to handle rank specific logic.
+        Args:
+            rank: rank of the process.
+
+        Returns:
+            True if safe to save state, else False.
+        """
+        return True
 
     def input_to_device(self, args: Any, model: LightningModule):
         return args  # No move required, handled by DistributedDataParallel
