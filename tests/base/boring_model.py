@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
-from pytorch_lightning import LightningModule
+from pytorch_lightning import LightningDataModule, LightningModule
 from torch.utils.data import Dataset
 
 
@@ -120,6 +120,37 @@ class BoringModel(LightningModule):
         optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
         return [optimizer], [lr_scheduler]
+
+    def train_dataloader(self):
+        return torch.utils.data.DataLoader(RandomDataset(32, 64))
+
+    def val_dataloader(self):
+        return torch.utils.data.DataLoader(RandomDataset(32, 64))
+
+    def test_dataloader(self):
+        return torch.utils.data.DataLoader(RandomDataset(32, 64))
+
+
+class BoringDataModule(LightningDataModule):
+
+    def __init__(self):
+        """
+        Testing PL DataModule
+
+        Use as follows:
+        - subclass
+        - modify the behavior for what you want
+
+        class TestDM(BoringDataModule):
+            def train_dataloader(...):
+                # do your own thing
+
+        or:
+
+        model = TestDM()
+        model.setup = None
+        """
+        super().__init__()
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(RandomDataset(32, 64))

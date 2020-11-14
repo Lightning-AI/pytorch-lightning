@@ -58,6 +58,9 @@ def track_data_hook_calls(fn):
     - When dm.setup('fit') is called, dm.has_setup_fit gets set to True
     - When dm.setup('test') is called, dm.has_setup_test gets set to True
     - When dm.setup() is called without stage arg, both dm.has_setup_fit and dm.has_setup_test get set to True
+    - When dm.teardown('fit') is called, dm.has_teardown_fit gets set to True
+    - When dm.teardown('test') is called, dm.has_teardown_fit gets set to True
+    - When dm.teardown() is called without stage arg, both dm.has_teardown_fit and dm.has_teardown_test get set to True
 
     Args:
         fn (function): Function that will be tracked to see if it has been called.
@@ -85,6 +88,21 @@ def track_data_hook_calls(fn):
 
             if stage == "test" or stage is None:
                 obj._has_setup_test = True
+
+        # If calling teardown, we check the stage and assign stage-specific bool args
+        if fn.__name__ == "teardown":
+
+            # Get stage either by grabbing from args or checking kwargs.
+            # If not provided, set call status of 'fit' and 'test' to True.
+            # We do this so __attach_datamodule in trainer.py doesn't mistakenly call teardown('test') on trainer.test()
+            stage = args[1] if len(args) > 1 else kwargs.get("stage", None)
+
+            if stage == "fit" or stage is None:
+                obj._has_teardown_fit = True
+
+            if stage == "test" or stage is None:
+                obj._has_teardown_test = True
+
 
         if fn.__name__ == "prepare_data":
             obj._has_prepared_data = True
@@ -119,14 +137,18 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
             def test_dataloader(self):
                 test_split = Dataset(...)
                 return DataLoader(test_split)
+            def teardown(self):
+                # clean up after fit or test
+                # called on every process in DDP
 
-    A DataModule implements 5 key methods:
+    A DataModule implements 6 key methods:
 
     * **prepare_data** (things to do on 1 GPU/TPU not on every GPU/TPU in distributed mode).
     * **setup**  (things to do on every accelerator in distributed mode).
     * **train_dataloader** the training dataloader.
     * **val_dataloader** the val dataloader(s).
     * **test_dataloader** the test dataloader(s).
+    * **teardown** (things to do on every accelerator in distributed mode after fit/test)
 
 
     This allows you to share a full dataset without explaining how to download,
@@ -156,6 +178,8 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
         self._has_prepared_data = False
         self._has_setup_fit = False
         self._has_setup_test = False
+        self._has_teardown_fit = False
+        self._has_teardown_test = False
 
     @property
     def train_transforms(self):
@@ -239,6 +263,25 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
         """
         return self._has_setup_test
 
+
+    @property
+    def has_teardown_fit(self):
+        """Return bool letting you know if datamodule.teardown('fit') has been called or not.
+
+        Returns:
+            bool: True if datamodule.teardown('fit') has been called. False by default.
+        """
+        return self._has_teardown_fit
+
+    @property
+    def has_teardown_test(self):
+        """Return bool letting you know if datamodule.teardown('test') has been called or not.
+
+        Returns:
+            bool: True if datamodule.teardown('test') has been called. False by default.
+        """
+        return self._has_teardown_test
+
     @abstractmethod
     def prepare_data(self, *args, **kwargs):
         pass
@@ -257,6 +300,10 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
 
     @abstractmethod
     def test_dataloader(self, *args, **kwargs) -> Union[DataLoader, List[DataLoader]]:
+        pass
+
+    @abstractmethod
+    def teardown(self, stage: Optional[str] = None):
         pass
 
     @abstractmethod

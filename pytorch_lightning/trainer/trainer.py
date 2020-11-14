@@ -477,6 +477,9 @@ class Trainer(
 
         # hook
         self.teardown('fit')
+        if self.datamodule is not None:
+            if not self.datamodule.has_teardown_fit:
+                self.datamodule.teardown('fit')
         if self.is_function_implemented('teardown'):
             model.teardown('fit')
 
@@ -759,7 +762,13 @@ class Trainer(
         else:
             results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
 
+        # teardown
         self.teardown('test')
+        if self.datamodule is not None:
+            if not self.datamodule.has_teardown_test:
+                self.datamodule.teardown('test')
+        if self.is_function_implemented('teardown'):
+            model_ref = self.get_model()
 
         return results
 
@@ -803,11 +812,6 @@ class Trainer(
         self.testing = False
         del os.environ['PL_TESTING_MODE']
 
-        # teardown
-        if self.is_function_implemented('teardown'):
-            model_ref = self.get_model()
-            model_ref.teardown('test')
-
         return results
 
     def __test_given_model(self, model, test_dataloaders):
@@ -823,9 +827,6 @@ class Trainer(
         results = self.fit(model)
         self.testing = False
 
-        # teardown
-        if self.is_function_implemented('teardown'):
-            model.teardown('test')
 
         return results
 

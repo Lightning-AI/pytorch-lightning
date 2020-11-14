@@ -22,6 +22,7 @@ from torch.utils.data import DataLoader, random_split
 
 from pytorch_lightning import LightningDataModule, Trainer, seed_everything
 from tests.base import EvalModelTemplate
+from tests.base.boring_model import BoringDataModule
 from tests.base.datasets import TrialMNIST
 from tests.base.datamodules import TrialMNISTDataModule
 from tests.base.develop_utils import reset_seed
