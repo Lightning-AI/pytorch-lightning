@@ -13,23 +13,17 @@
 # limitations under the License
 import os
 import re
-from typing import Any, List, Optional, Union
 
 import torch
-import torch.multiprocessing as mp
 import torch.distributed as torch_distrib
-import torch.distributed as dist
-from torch.nn.parallel import DistributedDataParallel
+import torch.multiprocessing as mp
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
-from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.accelerators.distributed_accelerator import DistributedAccelerator
+from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.utilities.cloud_io import atomic_save, load as pl_load
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, find_free_network_port
-from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 from pytorch_lightning.utilities.seed import seed_everything
-from pytorch_lightning.distributed.dist import LightningDistributed
 
 try:
     from hydra.core.hydra_config import HydraConfig
@@ -40,7 +34,7 @@ else:
     HYDRA_AVAILABLE = True
 
 
-class DDPSpawnAccelerator(Accelerator):
+class DDPSpawnAccelerator(DistributedAccelerator):
 
     def __init__(self, trainer, nprocs, cluster_environment=None, ddp_plugin=None):
         """
@@ -82,7 +76,7 @@ class DDPSpawnAccelerator(Accelerator):
         self.__recover_child_process_weights(model, best_path, last_path)
         return results
 
-    def ddp_train(self, process_idx, mp_queue, model, is_master=False, proc_offset=0):
+    def ddp_train(self, process_idx, mp_queue, model, proc_offset=0):
         """
         Entry point for ddp
 
@@ -133,7 +127,7 @@ class DDPSpawnAccelerator(Accelerator):
             model = self.configure_sync_batchnorm(model)
 
         # move the model to the correct device
-        self.model_to_device(model, process_idx, is_master)
+        self.model_to_device(model, process_idx)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
@@ -166,51 +160,6 @@ class DDPSpawnAccelerator(Accelerator):
         # clean up memory
         torch.cuda.empty_cache()
 
-    def set_world_ranks(self, process_idx):
-        self.trainer.local_rank = process_idx
-        self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
-        self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
-
-    def model_to_device(self, model, process_idx, is_master):
-        gpu_idx = self.trainer.data_parallel_device_ids[self.trainer.local_rank]
-        self.trainer.root_gpu = gpu_idx
-        torch.cuda.set_device(self.trainer.root_gpu)
-        model.cuda(self.trainer.root_gpu)
-
-    def get_device_ids(self):
-        device_ids = [self.trainer.root_gpu]
-        return device_ids
-
-    def training_step(self, args):
-        if self.trainer.amp_backend == AMPType.NATIVE:
-            with torch.cuda.amp.autocast():
-                output = self.trainer.model(*args)
-        else:
-            output = self.trainer.model(*args)
-        return output
-
-    def validation_step(self, args):
-        output = self.training_step(args)
-        return output
-
-    def test_step(self, args):
-        output = self.training_step(args)
-        return output
-
-    def barrier(self, name: Optional[str] = None):
-        if torch_distrib.is_initialized():
-            torch_distrib.barrier()
-
-    def early_stopping_should_stop(self, pl_module):
-        stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device)
-        dist.all_reduce(stop, op=dist.reduce_op.SUM)
-        dist.barrier()
-        should_stop = stop == self.trainer.world_size
-        return should_stop
-
-    def broadcast(self, obj, src=0):
-        return self.dist.broadcast(obj)
-
     def __recover_child_process_weights(self, model, best_path, last_path):
         # transfer back the best path to the trainer
         if self.trainer.checkpoint_callback:
@@ -241,32 +190,3 @@ class DDPSpawnAccelerator(Accelerator):
                 last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
                 atomic_save(model.state_dict(), last_path)
             mp_queue.put(last_path)
-
-    def configure_ddp(
-        self, model: LightningModule, device_ids: List[int]
-    ) -> DistributedDataParallel:
-        model = self.ddp_plugin.configure_ddp(model, device_ids)
-        return model
-
-    def configure_sync_batchnorm(self, model: LightningModule) -> LightningModule:
-        """
-        Add global batchnorm for a model spread across multiple GPUs and nodes.
-
-        Override to synchronize batchnorm between specific process groups instead
-        of the whole world or use a different sync_bn like `apex`'s version.
-
-        Args:
-            model: pointer to current :class:`LightningModule`.
-
-        Return:
-            LightningModule with batchnorm layers synchronized between process groups
-        """
-        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
-
-        return model
-
-    def sync_tensor(self,
-                    tensor: Union[torch.Tensor],
-                    group: Optional[Any] = None,
-                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
-        return sync_ddp_if_available(tensor, group, reduce_op)
