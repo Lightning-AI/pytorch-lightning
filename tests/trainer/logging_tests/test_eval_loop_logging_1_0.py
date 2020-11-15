@@ -842,40 +842,39 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
 
     assert mock_log_metrics.mock_calls[0] == call({'hp_metric': -1}, 0)
 
-    def get_keys_at_idx(idx):
+    def get_metrics_at_idx(idx):
         mock_calls = list(mock_log_metrics.mock_calls)
         if isinstance(mock_calls[idx].kwargs, dict):
-            return sorted(mock_calls[idx].kwargs["metrics"])
+            return mock_calls[idx].kwargs["metrics"]
         else:
-            print(mock_calls[idx].kwargs)
-            raise Exception
+            return mock_calls[idx][2]["metrics"]
 
     expected = ['valid_loss_0_step/epoch_0', 'valid_loss_2/epoch_0', 'global_step']
-    assert get_keys_at_idx(1) == sorted(expected)
-    assert get_keys_at_idx(2) == sorted(expected)
+    assert sorted(get_metrics_at_idx(1)) == sorted(expected)
+    assert sorted(get_metrics_at_idx(2)) == sorted(expected)
 
     expected = model.val_losses[2]
-    assert mock_log_metrics.mock_calls[1].kwargs["metrics"]["valid_loss_0_step/epoch_0"] == expected
+    assert get_metrics_at_idx(1)["valid_loss_0_step/epoch_0"] == expected
     expected = model.val_losses[3]
-    assert mock_log_metrics.mock_calls[2].kwargs["metrics"]["valid_loss_0_step/epoch_0"] == expected
+    assert get_metrics_at_idx(2)["valid_loss_0_step/epoch_0"]== expected
 
     expected = ['valid_loss_0_epoch', 'valid_loss_1', 'epoch', 'global_step']
-    assert get_keys_at_idx(3) == sorted(expected)
+    assert sorted(get_metrics_at_idx(3)) == sorted(expected)
 
     expected = torch.stack(model.val_losses[2:4]).mean()
-    assert mock_log_metrics.mock_calls[3].kwargs["metrics"]["valid_loss_1"] == expected
+    assert get_metrics_at_idx(3)["valid_loss_1"] == expected
     expected = ['valid_loss_0_step/epoch_1', 'valid_loss_2/epoch_1', 'global_step']
 
-    assert get_keys_at_idx(4) == sorted(expected)
-    assert get_keys_at_idx(5) == sorted(expected)
+    assert sorted(get_metrics_at_idx(4)) == sorted(expected)
+    assert sorted(get_metrics_at_idx(5)) == sorted(expected)
 
     expected = model.val_losses[4]
-    assert mock_log_metrics.mock_calls[4].kwargs["metrics"]["valid_loss_0_step/epoch_1"] == expected
+    assert get_metrics_at_idx(4)["valid_loss_0_step/epoch_1"] == expected
     expected = model.val_losses[5]
-    assert mock_log_metrics.mock_calls[5].kwargs["metrics"]["valid_loss_0_step/epoch_1"] == expected
+    assert get_metrics_at_idx(5)["valid_loss_0_step/epoch_1"] == expected
 
     expected = ['valid_loss_0_epoch', 'valid_loss_1', 'epoch', 'global_step']
-    assert get_keys_at_idx(6) == sorted(expected)
+    assert sorted(get_metrics_at_idx(6)) == sorted(expected)
 
     expected = torch.stack(model.val_losses[4:]).mean()
-    assert mock_log_metrics.mock_calls[6].kwargs["metrics"]["valid_loss_1"] == expected
+    assert get_metrics_at_idx(6)["valid_loss_1"] == expected
