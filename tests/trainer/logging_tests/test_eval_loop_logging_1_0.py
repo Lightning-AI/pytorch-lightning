@@ -844,10 +844,10 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
 
     def get_keys_at_idx(idx):
         mock_calls = list(mock_log_metrics.mock_calls)
-        try:
+        if isinstance(mock_calls[idx].kwargs, dict):
             return sorted(mock_calls[idx].kwargs["metrics"])
-        except TypeError:
-            print(mock_log_metrics.mock_calls)
+        else:
+            print(mock_calls[idx].kwargs)
             raise Exception
 
     expected = ['valid_loss_0_step/epoch_0', 'valid_loss_2/epoch_0', 'global_step']
