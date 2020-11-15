@@ -1549,6 +1549,7 @@ class LightningModule(
             if running_train_loss is not None
             else float("NaN")
         )
+        # test code owners
         tqdm_dict = {"loss": "{:.3f}".format(avg_training_loss)}
 
         if self.trainer.truncated_bptt_steps is not None:
