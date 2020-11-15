@@ -31,14 +31,10 @@ class Accuracy(Metric):
     This metric generalizes to subset accuracy for multilabel data, and similarly for
     multi-dimensional multi-class data: for the sample to be counted as correct, the the
     class has to be correctly predicted across all extra dimension for each sample of the
-    ``N`` dimension. Consider using :class:`HammingLoss` is this is not what you want.
+    ``N`` dimension. Consider using :class:`~pytorch_lightning.metrics.classification.HammingLoss`
+    is this is not what you want.
 
-    Accepts logits/probabilities or integer class predictions.
-
-    Forward accepts (see :ref:`Input types` for more information)
-
-    - ``preds`` (float or int tensor): ``(N, ...)``, ``(N, C, ...)`` or ``(N, ..., C)`` where C is the number of classes
-    - ``target`` (int tensor): ``(N, ...)``
+    Accepts all input types listed in :ref:`metrics:Input types`.
 
     Args:
         threshold:
@@ -93,7 +89,7 @@ class Accuracy(Metric):
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
-        Update state with predictions and targets. See :ref:`Input types` for more information
+        Update state with predictions and targets. See :ref:`metrics:Input types` for more information
         on allowed input types.
 
         Args:
@@ -102,11 +98,10 @@ class Accuracy(Metric):
         """
         preds, target, _ = _input_format_classification(preds, target, threshold=self.threshold, logits=self.logits)
 
-        N = torch.ones_like(preds[0]).sum()
         extra_dims = list(range(1, len(preds.shape)))
         sample_correct = (preds == target).sum(dim=extra_dims)
 
-        self.correct += (sample_correct == N).sum()
+        self.correct += (sample_correct == preds[0].numel()).sum()
         self.total += preds.shape[0]
 
     def compute(self) -> float:
@@ -123,14 +118,9 @@ class HammingLoss(Metric):
     This is the same as ``1-accuracy`` for binary data, while for all other types of inputs it
     treats each possible label separately - meaning that, for example, multi-class data is
     treated as if it were multi-label. If this is not what you want, consider using
-    :class:`Accuracy`.
+    :class:`~pytorch_lightning.metrics.classification.Accuracy`.
 
-    Accepts logits/probabilities or integer class predictions.
-
-    Forward accepts (see :ref:`Input types` for more information)
-
-    - ``preds`` (float or int tensor): ``(N, ...)``, ``(N, C, ...)`` or ``(N, ..., C)`` where C is the number of classes
-    - ``target`` (int tensor): ``(N, ...)``
+    Accepts all input types listed in :ref:`metrics:Input types`.
 
     Args:
         threshold:
@@ -185,7 +175,7 @@ class HammingLoss(Metric):
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
-        Update state with predictions and targets. See :ref:`Input types` for more information
+        Update state with predictions and targets. See :ref:`metrics:Input types` for more information
         on allowed input types.
 
         Args:
@@ -210,16 +200,23 @@ class TopKAccuracy(Metric):
     a sample is considered correctly predicted if the ground truth label is among
     the ``k`` highest probability labels.
 
-    Forward accepts (see :ref:`Input types` for more information)
+    Accepts only multi-class and multi-dimensional multi-class inputs (as defined
+    in :ref:`metrics:Input types`).
 
-    - ``preds`` (float tensor): ``(N, C)``, where C is the number of classes. Whether
-        the entries are logits or probabilities is not important, as only their relative
-        ranking matters.
-    - ``target`` (int tensor): ``(N, ...)``
+    For multi-dimensional multi-class inputs a ``subset_accuracy`` flag is provided:
+    if ``True``, all class predictions across the extra dimension(s) must be correct
+    for each sample, for the sample to be counted as correct - this is the same as
+    the :class:`~pytorch_lightning.metrics.classification.Accuracy` metric if ``k=1``.
+
+    If ``subset_accuracy=False`` (default), then each sample's accuracy is the share of
+    the correct class predictions across the extra dimension(s).
 
     Args:
         k:
             Number of highest probability predictions considered to find the correct label. Default 2
+        subset_accuracy:
+            Determines how the metric is computed for multi-dimensional multi-class data, see
+            the description above.
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
@@ -240,9 +237,11 @@ class TopKAccuracy(Metric):
         >>> accuracy(preds, target)
         tensor(0.6667)
     """
+
     def __init__(
         self,
         k: int = 2,
+        subset_accuracy=False,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -259,20 +258,30 @@ class TopKAccuracy(Metric):
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
         self.k = k
+        self.subset_accuracy = subset_accuracy
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
-        Update state with predictions and targets. See :ref:`Input types` for more information
-        on allowed input types.
+        Update state with predictions and targets.
+        Accepts only multi-class and multi-dimensional multi-class inputs (as defined
+        in :ref:`metrics:Input types`).
 
         Args:
             preds: Predictions from model
             target: Ground truth values
         """
-        preds, target, _ = _input_format_classification(preds, target, logits=True, top_k=self.k)
+        preds, target, mode = _input_format_classification(preds, target, logits=True, top_k=self.k)
 
-        self.correct += (preds * target).sum()
-        self.total += preds.shape[0]
+        if "multi-dim" not in mode or not self.subset_accuracy:
+            self.correct += (preds * target).sum()
+            self.total += int(preds.numel() / preds.shape[1])
+        else:
+            extra_dims = list(range(1, len(preds.shape)))
+            sample_correct = (preds * target).sum(dim=extra_dims)
+
+            self.correct += (sample_correct == preds[0,0].numel()).sum()
+            self.total += preds.shape[0]
+
 
     def compute(self) -> float:
         """

@@ -33,6 +33,7 @@ def _check_classification_inputs(
     num_classes: Optional[int] = None,
     is_multiclass: bool = False,
     logits: bool = False,
+    top_k: int = 1,
 ) -> None:
     """Performs error checking on inputs for classification.
 
@@ -50,6 +51,9 @@ def _check_classification_inputs(
 
     When ``num_classes`` is not specified in these cases, consistency of the highest target
     value against ``C`` dimension is checked for (multi-dimensional) multi-class cases.
+
+    If ``top_k`` is larger than one, then an error is raised if the inputs are not (multi-dim)
+    multi-class with probability/logit predictions.
 
     Preds and target tensors are expected to be squeezed already - all dimensions should be
     greater than 1, except perhaps the first one (N).
@@ -162,6 +166,14 @@ def _check_classification_inputs(
             if num_classes <= target.max():
                 raise ValueError("The highest label in targets should be smaller than num_classes")
 
+    # Check that if top_k > 1, we have (multi-class) multi-dim with probabilities
+    if top_k > 1:
+        if preds.shape == target.shape:
+            raise ValueError(
+                "You have set top_k above 1, but your data is not (multi-dimensional) multi-class"
+                "with logit or probability predictions."
+            )
+
 
 def _input_format_classification(
     preds: torch.Tensor,
@@ -218,6 +230,12 @@ def _input_format_classification(
     ``is_multiclass=False`` (and there are up to two classes), then the data is returned as
     ``(N, X)`` binary tensors (multi-label).
 
+    Also, in multi-dimensional multi-class case, if the position of the ``C``
+    dimension is ambiguous (e.g. if targets are a ``(7, 3)`` tensor, while predictions are a
+    ``(7, 3, 3)`` tensor), it will be assumed that the ``C`` dimension is the second dimension.
+    If this is not the case,  you should move it from the last to second place using
+    ``torch.movedim(preds, -1, 1)``.
+
     Note that where a one-hot transformation needs to be performed and the number of classes
     is not implicitly given by a ``C`` dimension, the new ``C`` dimension will either be
     equal to ``num_classes``, if it is given, or the maximum label value in preds and
@@ -253,7 +271,13 @@ def _input_format_classification(
         preds, target = preds.squeeze(), target.squeeze()
 
     _check_classification_inputs(
-        preds, target, threshold=threshold, num_classes=num_classes, is_multiclass=is_multiclass, logits=logits
+        preds,
+        target,
+        threshold=threshold,
+        num_classes=num_classes,
+        is_multiclass=is_multiclass,
+        logits=logits,
+        top_k=top_k,
     )
 
     if logits:

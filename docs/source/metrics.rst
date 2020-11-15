@@ -203,10 +203,57 @@ Class metrics
 Classification Metrics
 ----------------------
 
+Input types
+~~~~~~~~~~~
+
+For the purposes of classification metrics, inputs (predictions and targets) are split 
+into these categories (``N`` stands for the batch size and ``C`` for number of classes):
+
+.. csv-table:: \*dtype ``binary`` means integers that are either 0 or 1, \*\*probabilities in this case means either probabilities or logits
+    :header: "Type", "preds shape", "preds dtype", "target shape", "target dtype"
+    :widths: 20, 10, 10, 10, 10
+
+    "Binary", "(N,)", "``float``", "(N,)", "``binary``\*"
+    "Multi-class", "(N,)", "``int``", "(N,)", "``int``"
+    "Multi-class with probabilities\*\*", "(N, C)", "``float``", "(N,)", "``int``"
+    "Multi-label", "(N, ...)", "``float``", "(N, ...)", "``binary``\*"
+    "Multi-dimensional multi-class", "(N, ...)", "``integer``", "(N, ...)", "``int``"
+    "Multi-dimensional multi-class with probabilities\*\*", "(N, C, ...) or (N, ..., C)", "``float``", "(N, ...)", "``int``"
+
+.. note::
+    All dimensions of size 1 (except ``N``) are "squeezed out" at the beginning, so 
+    that, for example, a tensor of shape ``(N, 1)`` is treated as ``(N, )``.
+
+.. note::
+    In the multi-dimensional multi-class with probabilities case, if the position of the ``C``
+    dimension is ambiguous (e.g. if targets are a ``(7, 3)`` tensor, while predictions are a 
+    ``(7, 3, 3)`` tensor), it will be assumed that the ``C`` dimension is the second dimension. 
+    If this is not the case,  you should move it from the last to second place using 
+    ``torch.movedim(preds, -1, 1)``.
+
+There are also some edge cases, where data appears to be binary/multi-label but is actually 
+(multi-dimensional) multi-class, or vice versa. For example, if targets are ``(N,)`` binary
+tensor, and predictions are ``(N,)`` binary (integer) tensor as well, this would fall under
+the multi-class case. 
+
+For these cases some metrics expose an argument ``is_multiclass``. You would set it to 
+``False`` when your binary (multi-dimensional) multi-class data is actually binary or 
+multi-label, and to ``True`` when you want to conver binary data to a 2-class 
+multi-class data, or multi-label data to 2-class multi-dimensional multi-class data. It is
+set to ``None`` by default, which treats inputs as they appear (according to the above
+classification).
+
+
 Accuracy
 ~~~~~~~~
 
 .. autoclass:: pytorch_lightning.metrics.classification.Accuracy
+    :noindex:
+
+Top K Accuracy
+~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.TopKAccuracy
     :noindex:
 
 Hamming Loss
@@ -227,10 +274,10 @@ Recall
 .. autoclass:: pytorch_lightning.metrics.classification.Recall
     :noindex:
 
-Fbeta
+FBeta
 ~~~~~
 
-.. autoclass:: pytorch_lightning.metrics.classification.Fbeta
+.. autoclass:: pytorch_lightning.metrics.classification.FBeta
     :noindex:
 
 ConfusionMatrix

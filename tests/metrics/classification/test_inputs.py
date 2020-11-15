@@ -162,60 +162,69 @@ def test_logit_threshold():
 
 
 @pytest.mark.parametrize(
-    "preds, target, threshold, logits, num_classes, is_multiclass",
+    "preds, target, threshold, logits, num_classes, is_multiclass, top_k",
     [
         # Target not integer
-        (randint(high=2, size=(7,)), randint(high=2, size=(7,)).float(), 0.5, False, None, None),
+        (randint(high=2, size=(7,)), randint(high=2, size=(7,)).float(), 0.5, False, None, None, 1),
         # Target negative
-        (randint(high=2, size=(7,)), -randint(high=2, size=(7,)), 0.5, False, None, None),
+        (randint(high=2, size=(7,)), -randint(high=2, size=(7,)), 0.5, False, None, None, 1),
         # Preds negative integers
-        (-randint(high=2, size=(7,)), randint(high=2, size=(7,)), 0.5, False, None, None),
+        (-randint(high=2, size=(7,)), randint(high=2, size=(7,)), 0.5, False, None, None, 1),
         # Negative probabilities
-        (-rand(size=(7,)), randint(high=2, size=(7,)), 0.5, False, None, None),
+        (-rand(size=(7,)), randint(high=2, size=(7,)), 0.5, False, None, None, 1),
         # Threshold outside of [0,1]
-        (rand(size=(7,)), randint(high=2, size=(7,)), 1.5, False, None, None),
+        (rand(size=(7,)), randint(high=2, size=(7,)), 1.5, False, None, None, 1),
         # is_multiclass=False and target > 1
-        (rand(size=(7,)), randint(low=2, high=4, size=(7,)), 0.5, False, None, False),
+        (rand(size=(7,)), randint(low=2, high=4, size=(7,)), 0.5, False, None, False, 1),
         # is_multiclass=False and preds integers with > 1
-        (randint(low=2, high=4, size=(7,)), randint(high=2, size=(7,)), 0.5, False, None, False),
+        (randint(low=2, high=4, size=(7,)), randint(high=2, size=(7,)), 0.5, False, None, False, 1),
         # Wrong batch size
-        (randint(high=2, size=(8,)), randint(high=2, size=(7,)), 0.5, False, None, None),
+        (randint(high=2, size=(8,)), randint(high=2, size=(7,)), 0.5, False, None, None, 1),
         # Completely wrong shape
-        (randint(high=2, size=(7,)), randint(high=2, size=(7, 4)), 0.5, False, None, None),
+        (randint(high=2, size=(7,)), randint(high=2, size=(7, 4)), 0.5, False, None, None, 1),
         # Same #dims, different shape
-        (randint(high=2, size=(7, 3)), randint(high=2, size=(7, 4)), 0.5, False, None, None),
+        (randint(high=2, size=(7, 3)), randint(high=2, size=(7, 4)), 0.5, False, None, None, 1),
         # Same shape and preds floats, target not binary
-        (rand(size=(7, 3)), randint(low=2, high=4, size=(7, 3)), 0.5, False, None, None),
+        (rand(size=(7, 3)), randint(low=2, high=4, size=(7, 3)), 0.5, False, None, None, 1),
         # #dims in preds = 1 + #dims in target, C shape not second or last
-        (rand(size=(7, 3, 4, 3)), randint(high=4, size=(7, 3, 3)), 0.5, False, None, None),
+        (rand(size=(7, 3, 4, 3)), randint(high=4, size=(7, 3, 3)), 0.5, False, None, None, 1),
         # #dims in preds = 1 + #dims in target, preds not float
-        (randint(high=2, size=(7, 3, 3, 4)), randint(high=4, size=(7, 3, 3)), 0.5, False, None, None),
+        (randint(high=2, size=(7, 3, 3, 4)), randint(high=4, size=(7, 3, 3)), 0.5, False, None, None, 1),
         # is_multiclass=False, with C dimension > 2
-        (rand(size=(7, 3, 5)), randint(high=2, size=(7, 5)), 0.5, False, None, False),
+        (rand(size=(7, 3, 5)), randint(high=2, size=(7, 5)), 0.5, False, None, False, 1),
         # Max target larger or equal to C dimension
-        (rand(size=(7, 3)), randint(low=4, high=6, size=(7,)), 0.5, False, None, None),
+        (rand(size=(7, 3)), randint(low=4, high=6, size=(7,)), 0.5, False, None, None, 1),
         # C dimension not equal to num_classes
-        (rand(size=(7, 3, 4)), randint(high=4, size=(7, 3)), 0.5, False, 3, None),
+        (rand(size=(7, 3, 4)), randint(high=4, size=(7, 3)), 0.5, False, 3, None, 1),
         # Max target larger than num_classes (with #dim preds = 1 + #dims target)
-        (rand(size=(7, 3, 4)), randint(low=5, high=7, size=(7, 3)), 0.5, False, 4, None),
+        (rand(size=(7, 3, 4)), randint(low=5, high=7, size=(7, 3)), 0.5, False, 4, None, 1),
         # Max target larger than num_classes (with #dim preds = #dims target)
-        (randint(high=4, size=(7, 3)), randint(low=5, high=7, size=(7, 3)), 0.5, False, 4, None),
+        (randint(high=4, size=(7, 3)), randint(low=5, high=7, size=(7, 3)), 0.5, False, 4, None, 1),
         # Max preds larger than num_classes (with #dim preds = #dims target)
-        (randint(low=5, high=7, size=(7, 3)), randint(high=4, size=(7, 3)), 0.5, False, 4, None),
+        (randint(low=5, high=7, size=(7, 3)), randint(high=4, size=(7, 3)), 0.5, False, 4, None, 1),
         # Num_classes=1, but is_multiclass not false
-        (randint(high=2, size=(7,)), randint(high=2, size=(7,)), 0.5, False, 1, None),
+        (randint(high=2, size=(7,)), randint(high=2, size=(7,)), 0.5, False, 1, None, 1),
         # is_multiclass=False, but implied class dimension (for multi-label, from shape) != num_labels
-        (randint(high=2, size=(7, 3, 3)), randint(high=2, size=(7, 3, 3)), 0.5, False, 4, False),
+        (randint(high=2, size=(7, 3, 3)), randint(high=2, size=(7, 3, 3)), 0.5, False, 4, False, 1),
         # Binary input, num_classes > 2
-        (rand(size=(7,)), randint(high=2, size=(7,)), 0.5, False, 4, None),
+        (rand(size=(7,)), randint(high=2, size=(7,)), 0.5, False, 4, None, 1),
         # Binary input, num_classes == 2 and is_multiclass not True
-        (rand(size=(7,)), randint(high=2, size=(7,)), 0.5, False, 2, None),
-        (rand(size=(7,)), randint(high=2, size=(7,)), 0.5, False, 2, False),
+        (rand(size=(7,)), randint(high=2, size=(7,)), 0.5, False, 2, None, 1),
+        (rand(size=(7,)), randint(high=2, size=(7,)), 0.5, False, 2, False, 1),
         # Binary input, num_classes == 1 and is_multiclass=True
-        (rand(size=(7,)), randint(high=2, size=(7,)), 0.5, False, 1, True),
+        (rand(size=(7,)), randint(high=2, size=(7,)), 0.5, False, 1, True, 1),
+        # Topk > 1 with non (md)mc prob data
+        (_bin.preds[0], _bin.target[0], 0.5, False, None, None, 2),
+        (_bin_prob.preds[0], _bin_prob.target[0], 0.5, False, None, None, 2),
+        (_mc.preds[0], _mc.target[0], 0.5, False, None, None, 2),
+        (_ml.preds[0], _ml.target[0], 0.5, False, None, None, 2),
+        (_mlmd.preds[0], _mlmd.target[0], 0.5, False, None, None, 2),
+        (_ml_prob.preds[0], _ml_prob.target[0], 0.5, False, None, None, 2),
+        (_mlmd_prob.preds[0], _mlmd_prob.target[0], 0.5, False, None, None, 2),
+        (_mdmc.preds[0], _mdmc.target[0], 0.5, False, None, None, 2),
     ],
 )
-def test_incorrect_inputs(preds, target, threshold, logits, num_classes, is_multiclass):
+def test_incorrect_inputs(preds, target, threshold, logits, num_classes, is_multiclass, top_k):
     with pytest.raises(ValueError):
         _input_format_classification(
             preds=preds,
@@ -224,4 +233,5 @@ def test_incorrect_inputs(preds, target, threshold, logits, num_classes, is_mult
             logits=logits,
             num_classes=num_classes,
             is_multiclass=is_multiclass,
+            top_k=top_k
         )
