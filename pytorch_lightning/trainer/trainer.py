@@ -191,7 +191,7 @@ class Trainer(
 
             distributed_backend: deprecated. Please use 'accelerator'
 
-            fast_dev_run: runs n if set to n(int) else 1 if set to ``True`` batch(es)
+            fast_dev_run: runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
                 of train, val and test to find any bugs (ie: a sort of unit test).
 
             flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).

@@ -245,7 +245,7 @@ Example::
     # ddp2 = DistributedDataParallel + dp
     trainer = Trainer(gpus=2, num_nodes=2, accelerator='ddp2')
 
-.. note:: this option does not apply to TPU. TPUs use ```ddp``` by default (over each core)
+.. note:: This option does not apply to TPU. TPUs use ```ddp``` by default (over each core)
 
 You can also modify hardware behavior by subclassing an existing accelerator to adjust for your needs.
 
@@ -623,17 +623,10 @@ fast_dev_run
 
 |
 
-.. raw:: html
+Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es) of train, val and test
+to find any bugs (ie: a sort of unit test).
 
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/fast_dev_run.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/fast_dev_run.mp4"></video>
-
-|
-
-Runs 1 batch of train, test  and val to find any bugs (ie: a sort of unit test).
-
-Under the hood the pseudocode looks like this:
+Under the hood the pseudocode looks like this when running *fast_dev_run* with a single batch:
 
 .. code-block:: python
 
@@ -657,6 +650,16 @@ Under the hood the pseudocode looks like this:
 
     # runs 1 train, val, test batch and program ends
     trainer = Trainer(fast_dev_run=True)
+
+    # runs 7 train, val, test batches and program ends
+    trainer = Trainer(fast_dev_run=7)
+
+.. note::
+
+    This argument is a bit different from ``limit_train/val/test_batches``. Setting this argument will
+    disable tuner, logger callbacks like ``LearningRateLogger`` and runs for only 1 epoch. This must be
+    used only for debugging purpose. ``limit_train/val/test_batches`` serves their own purpose and won't
+    disable anything.
 
 gpus
 ^^^^
@@ -1199,8 +1202,7 @@ Orders the progress bar. Useful when running multiple trainers on the same node.
     # default used by the Trainer
     trainer = Trainer(process_position=0)
 
-Note:
-    This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
+.. note:: This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
 profiler
 ^^^^^^^^
