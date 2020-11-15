@@ -260,11 +260,11 @@ class LoggerConnector:
             self.add_to_eval_loop_results(dl_idx, has_been_initialized)
 
     def get_evaluate_epoch_results(self, test_mode):
-
-        # log all the metrics as a s single dict
-        metrics_to_log = self.cached_results.get_epoch_log_metrics()
-        if len(metrics_to_log) > 0:
-            self.log_metrics(metrics_to_log, {})
+        if not self.trainer.running_sanity_check:
+            # log all the metrics as a s single dict
+            metrics_to_log = self.cached_results.get_epoch_log_metrics()
+            if len(metrics_to_log) > 0:
+                self.log_metrics(metrics_to_log, {})
 
         self.prepare_eval_loop_results()
 
