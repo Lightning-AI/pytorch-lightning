@@ -843,8 +843,9 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     assert mock_log_metrics.mock_calls[0] == call({'hp_metric': -1}, 0)
 
     def get_keys_at_idx(idx):
+        mock_calls = list(mock_log_metrics.mock_calls)
         try:
-            return sorted(list(mock_log_metrics.mock_calls[idx].kwargs["metrics"]))
+            return sorted(mock_calls[idx].kwargs["metrics"]))
         except TypeError:
             print(mock_log_metrics.mock_calls)
             raise Exception
