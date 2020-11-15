@@ -62,3 +62,14 @@ class DDPPlugin(object):
             **self._ddp_kwargs,
         )
         return model
+
+    def input_to_device(self, args: Any, model: LightningModule):
+        """
+        Override to handle custom input to device logic. For DDP, no move is required as this is handled internally
+        within the wrapper.
+        Args:
+            args: Inputs to the model.
+            model: Model to train.
+        Returns: args moved to correct device if needed.
+        """
+        return args
