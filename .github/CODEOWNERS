@@ -22,3 +22,6 @@
 
 # accelerators
 /pytorch_lightning/accelerators/*  @williamfalcon
+
+# owners
+/pytorch_lightning/.github/CODEOWNERS @williamfalcon
