@@ -118,8 +118,9 @@ Make a custom logger
 ********************
 
 You can implement your own logger by writing a class that inherits from
-:class:`LightningLoggerBase`. Use the :func:`~pytorch_lightning.loggers.base.rank_zero_only`
-decorator to make sure that only the first process in DDP training logs data.
+:class:`LightningLoggerBase`. Use the :func:`~pytorch_lightning.loggers.base.rank_zero_experiment`
+and :func:`~pytorch_lightning.utilities.distributed.base.rank_zero_only` decorators to make sure
+that only the first process in DDP training creates the experiment and logs the data respectively.
 
 .. testcode::
 
