@@ -845,7 +845,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     def get_keys_at_idx(idx):
         mock_calls = list(mock_log_metrics.mock_calls)
         try:
-            return sorted(mock_calls[idx].kwargs["metrics"]))
+            return sorted(mock_calls[idx].kwargs["metrics"])
         except TypeError:
             print(mock_log_metrics.mock_calls)
             raise Exception
