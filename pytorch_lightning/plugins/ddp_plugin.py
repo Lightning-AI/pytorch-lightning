@@ -1,5 +1,7 @@
 from typing import List, Dict, Any
 
+from torch.optim import Optimizer
+
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 
@@ -63,5 +65,5 @@ class DDPPlugin(object):
         )
         return model
 
-    def optimizer_state(self, optimizer) -> List[dict]:
+    def optimizer_state(self, optimizer: Optimizer) -> dict:
         return optimizer.state_dict()
