@@ -843,8 +843,8 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     assert mock_log_metrics.mock_calls[0] == call({'hp_metric': -1}, 0)
 
     excepted = ['valid_loss_0_step/epoch_0', 'valid_loss_2/epoch_0', 'global_step']
-    assert [*mock_log_metrics.mock_calls[1].kwargs["metrics"].keys()] == excepted
-    assert [*mock_log_metrics.mock_calls[2].kwargs["metrics"].keys()] == excepted
+    assert sorted([*mock_log_metrics.mock_calls[1].kwargs["metrics"].keys()]) == sorted(excepted)
+    assert sorted([*mock_log_metrics.mock_calls[2].kwargs["metrics"].keys()]) == sorted(excepted)
 
     excepted = model.val_losses[2]
     assert mock_log_metrics.mock_calls[1].kwargs["metrics"]["valid_loss_0_step/epoch_0"] == excepted
@@ -852,14 +852,14 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     assert mock_log_metrics.mock_calls[2].kwargs["metrics"]["valid_loss_0_step/epoch_0"] == excepted
 
     excepted = ['valid_loss_0_epoch', 'valid_loss_1', 'epoch', 'global_step']
-    assert [*mock_log_metrics.mock_calls[3].kwargs["metrics"].keys()] == excepted
+    assert sorted([*mock_log_metrics.mock_calls[3].kwargs["metrics"].keys()]) == sorted(excepted)
 
     excepted = torch.stack(model.val_losses[2:4]).mean()
     assert mock_log_metrics.mock_calls[3].kwargs["metrics"]["valid_loss_1"] == excepted
     excepted = ['valid_loss_0_step/epoch_1', 'valid_loss_2/epoch_1', 'global_step']
 
-    assert [*mock_log_metrics.mock_calls[4].kwargs["metrics"].keys()] == excepted
-    assert [*mock_log_metrics.mock_calls[5].kwargs["metrics"].keys()] == excepted
+    assert sorted([*mock_log_metrics.mock_calls[4].kwargs["metrics"].keys()]) == sorted(excepted)
+    assert sorted([*mock_log_metrics.mock_calls[5].kwargs["metrics"].keys()]) == sorted(excepted)
 
     excepted = model.val_losses[4]
     assert mock_log_metrics.mock_calls[4].kwargs["metrics"]["valid_loss_0_step/epoch_1"] == excepted
@@ -867,7 +867,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     assert mock_log_metrics.mock_calls[5].kwargs["metrics"]["valid_loss_0_step/epoch_1"] == excepted
 
     excepted = ['valid_loss_0_epoch', 'valid_loss_1', 'epoch', 'global_step']
-    assert [*mock_log_metrics.mock_calls[6].kwargs["metrics"].keys()] == excepted
+    assert sorted([*mock_log_metrics.mock_calls[6].kwargs["metrics"].keys()]) == sorted(excepted)
 
     excepted = torch.stack(model.val_losses[4:]).mean()
     assert mock_log_metrics.mock_calls[6].kwargs["metrics"]["valid_loss_1"] == excepted
