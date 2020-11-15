@@ -63,10 +63,10 @@ class DDPPlugin(object):
         )
         return model
 
-    def input_to_device(self, args: Any, model: LightningModule):
+    def on_before_forward(self, args: Any, model: LightningModule):
         """
-        Override to handle custom input to device logic. For DDP, no move is required as this is handled internally
-        within the wrapper.
+        Override to handle custom input to device logic. For DDP, no logic is required as this is handled internally
+        within the DDP wrapper.
         Args:
             args: Inputs to the model.
             model: Model to train.
