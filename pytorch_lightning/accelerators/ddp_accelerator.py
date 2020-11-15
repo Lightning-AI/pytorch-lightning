@@ -20,9 +20,9 @@ from typing import Optional
 
 import numpy as np
 
-from pytorch_lightning import seed_everything
 from pytorch_lightning.accelerators.distributed_accelerator import DistributedAccelerator
 from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning.utilities.distributed import find_free_network_port
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
