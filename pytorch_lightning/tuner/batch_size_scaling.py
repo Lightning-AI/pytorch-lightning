@@ -73,10 +73,6 @@ def scale_batch_size(trainer,
         rank_zero_warn('Skipping batch size scaler since `fast_dev_run=True`', UserWarning)
         return
 
-    # Ensure accelerator has been selected to save optim state
-    if not trainer.accelerator_backend:
-        trainer.accelerator_backend = trainer.accelerator_connector.select_accelerator()
-
     if not lightning_hasattr(model, batch_arg_name):
         raise MisconfigurationException(
             f'Field {batch_arg_name} not found in both `model` and `model.hparams`')
