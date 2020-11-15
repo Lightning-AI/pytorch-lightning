@@ -207,7 +207,7 @@ class Accelerator(object):
         Returns state of an optimizer. Allows for syncing/collating optimizer state from processes in custom
         plugins.
         Return:
-            Optimizer state dicts
+            Optimizer state dict
         """
         if self.ddp_plugin:
             return self.ddp_plugin.optimizer_state(optimizer)
