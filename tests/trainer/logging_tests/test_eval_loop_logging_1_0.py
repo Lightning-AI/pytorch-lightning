@@ -14,19 +14,22 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
+import collections
+import itertools
 import os
 from unittest import mock
+from unittest.mock import call, patch
 
-from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning import Trainer
-from pytorch_lightning import callbacks, seed_everything
-from tests.base.deterministic_model import DeterministicModel
-from tests.base import SimpleModule, BoringModel, RandomDataset
 import numpy as np
-import itertools
-import collections
-import torch
 import pytest
+import torch
+from torch.utils.data import DataLoader, Dataset
+
+from pytorch_lightning import Trainer, callbacks, seed_everything
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.loggers import TensorBoardLogger
+from tests.base import BoringModel, RandomDataset, SimpleModule
+from tests.base.deterministic_model import DeterministicModel
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
@@ -780,3 +783,98 @@ def test_log_works_in_test_callback(tmpdir):
             assert func_name in trainer.logger_connector.progress_bar_metrics
         else:
             assert func_name not in trainer.logger_connector.progress_bar_metrics
+
+
+@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
+def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
+    """
+    This tests make sure we properly log_metrics to loggers
+    """
+
+    class ExtendedModel(BoringModel):
+
+        val_losses = []
+
+        def training_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log('train_loss', loss)
+            return {"loss": loss}
+
+        def validation_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.val_losses.append(loss)
+            self.log('valid_loss_0', loss, on_step=True, on_epoch=True)
+            self.log('valid_loss_1', loss, on_step=False, on_epoch=True)
+            self.log('valid_loss_2', loss, on_step=True, on_epoch=False)
+            self.log('valid_loss_3', loss, on_step=False, on_epoch=False)
+            return {"val_loss": loss}
+
+        def test_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log('fake_test_acc', loss)
+            return {"y": loss}
+
+    model = ExtendedModel()
+    model.validation_epoch_end = None
+
+    # Initialize a trainer
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=TensorBoardLogger(tmpdir),
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=0,
+        max_epochs=2,
+        progress_bar_refresh_rate=1,
+    )
+
+    # Train the model ⚡
+    trainer.fit(model)
+
+    # hp_metric + sanity check epoch 0 + 2 steps + epoch + 2 steps + epoch
+    expected = 1 + 1 + 2 + 1 + 2 + 1
+
+    assert len(mock_log_metrics.mock_calls) == expected
+
+    assert mock_log_metrics.mock_calls[0] == call({'hp_metric': -1}, 0)
+
+    expected_1 = [*mock_log_metrics.mock_calls[1].kwargs["metrics"].keys()]
+    expected_4 = [*mock_log_metrics.mock_calls[4].kwargs["metrics"].keys()]
+    assert expected_1 == expected_4
+
+    expected = torch.stack(model.val_losses[:2]).mean()
+    assert mock_log_metrics.mock_calls[1].kwargs["metrics"]["valid_loss_0_epoch"] == expected
+
+    excepted = ['valid_loss_0_step/epoch_0', 'valid_loss_2/epoch_0', 'global_step']
+    assert [*mock_log_metrics.mock_calls[2].kwargs["metrics"].keys()] == excepted
+    assert [*mock_log_metrics.mock_calls[3].kwargs["metrics"].keys()] == excepted
+
+    excepted = model.val_losses[2]
+    assert mock_log_metrics.mock_calls[2].kwargs["metrics"]["valid_loss_0_step/epoch_0"] == excepted
+    excepted = model.val_losses[3]
+    assert mock_log_metrics.mock_calls[3].kwargs["metrics"]["valid_loss_0_step/epoch_0"] == excepted
+
+    excepted = ['valid_loss_0_epoch', 'valid_loss_1', 'epoch', 'global_step']
+    assert [*mock_log_metrics.mock_calls[4].kwargs["metrics"].keys()] == excepted
+
+    excepted = torch.stack(model.val_losses[2:4]).mean()
+    assert mock_log_metrics.mock_calls[4].kwargs["metrics"]["valid_loss_1"] == excepted
+    excepted = ['valid_loss_0_step/epoch_1', 'valid_loss_2/epoch_1', 'global_step']
+
+    assert [*mock_log_metrics.mock_calls[5].kwargs["metrics"].keys()] == excepted
+    assert [*mock_log_metrics.mock_calls[6].kwargs["metrics"].keys()] == excepted
+
+    excepted = model.val_losses[4]
+    assert mock_log_metrics.mock_calls[5].kwargs["metrics"]["valid_loss_0_step/epoch_1"] == excepted
+    excepted = model.val_losses[5]
+    assert mock_log_metrics.mock_calls[6].kwargs["metrics"]["valid_loss_0_step/epoch_1"] == excepted
+
+    excepted = ['valid_loss_0_epoch', 'valid_loss_1', 'epoch', 'global_step']
+    assert [*mock_log_metrics.mock_calls[7].kwargs["metrics"].keys()] == excepted
+
+    excepted = torch.stack(model.val_losses[4:]).mean()
+    assert mock_log_metrics.mock_calls[7].kwargs["metrics"]["valid_loss_1"] == excepted
