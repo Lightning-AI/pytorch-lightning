@@ -63,8 +63,5 @@ class DDPPlugin(object):
         )
         return model
 
-    def optimizer_states(self, trainer) -> List[dict]:
-        optimizer_states = []
-        for i, optimizer in enumerate(trainer.optimizers):
-            optimizer_states.append(optimizer.state_dict())
-        return optimizer_states
+    def optimizer_state(self, optimizer) -> List[dict]:
+        return optimizer.state_dict()

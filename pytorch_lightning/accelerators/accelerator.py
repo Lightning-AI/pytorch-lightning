@@ -202,20 +202,16 @@ class Accelerator(object):
         """
         raise NotImplementedError()
 
-    @property
-    def optimizer_states(self) -> List[dict]:
+    def optimizer_state(self, optimizer: Optimizer) -> dict:
         """
-        Returns states of optimizers. Allows for syncing/collating optimizer state from processes in custom
+        Returns states of an optimizer. Allows for syncing/collating optimizer state from processes in custom
         plugins.
         Return:
             Optimizer state dicts
         """
         if self.ddp_plugin:
-            return self.ddp_plugin.optimizer_states(self.trainer)
-        optimizer_states = []
-        for i, optimizer in enumerate(self.trainer.optimizers):
-            optimizer_states.append(optimizer.state_dict())
-        return optimizer_states
+            return self.ddp_plugin.optimizer_state(optimizer)
+        return optimizer.state_dict()
 
     def __getstate__(self):
         return {
