@@ -856,7 +856,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     expected = model.val_losses[2]
     assert get_metrics_at_idx(1)["valid_loss_0_step/epoch_0"] == expected
     expected = model.val_losses[3]
-    assert get_metrics_at_idx(2)["valid_loss_0_step/epoch_0"]== expected
+    assert get_metrics_at_idx(2)["valid_loss_0_step/epoch_0"] == expected
 
     expected = ['valid_loss_0_epoch', 'valid_loss_1', 'epoch', 'global_step']
     assert sorted(get_metrics_at_idx(3)) == sorted(expected)
