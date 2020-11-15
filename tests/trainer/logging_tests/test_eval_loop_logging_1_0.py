@@ -843,7 +843,11 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     assert mock_log_metrics.mock_calls[0] == call({'hp_metric': -1}, 0)
 
     def get_keys_at_idx(idx):
-        keys = mock_log_metrics.mock_calls[idx].kwargs["metrics"].keys()
+        try:
+            keys = mock_log_metrics.mock_calls[idx].kwargs["metrics"].keys()
+        except TypeError:
+            print(mock_log_metrics.mock_calls)
+            raise Exception
         return sorted([k for k in keys])
 
     excepted = ['valid_loss_0_step/epoch_0', 'valid_loss_2/epoch_0', 'global_step']
