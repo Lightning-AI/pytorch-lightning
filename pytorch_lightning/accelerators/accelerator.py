@@ -204,7 +204,7 @@ class Accelerator(object):
 
     def optimizer_state(self, optimizer: Optimizer) -> dict:
         """
-        Returns states of an optimizer. Allows for syncing/collating optimizer state from processes in custom
+        Returns state of an optimizer. Allows for syncing/collating optimizer state from processes in custom
         plugins.
         Return:
             Optimizer state dicts
