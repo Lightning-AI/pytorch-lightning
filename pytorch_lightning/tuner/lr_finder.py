@@ -412,7 +412,7 @@ class _LRCallback(Callback):
 
         # Avg loss (loss with momentum) + smoothing
         self.avg_loss = self.beta * self.avg_loss + (1 - self.beta) * current_loss
-        smoothed_loss = self.avg_loss / (1 - self.beta**(current_step+1))
+        smoothed_loss = self.avg_loss / (1 - self.beta**(current_step + 1))
 
         # Check if we diverging
         if self.early_stop_threshold is not None:
