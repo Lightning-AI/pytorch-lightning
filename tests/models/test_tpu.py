@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from multiprocessing import Process, Queue
+from unittest import mock
 
 import pytest
 from torch.utils.data import DataLoader
@@ -252,11 +252,11 @@ def test_distributed_backend_set_when_using_tpu(tmpdir, tpu_cores):
     assert Trainer(tpu_cores=tpu_cores).distributed_backend == "tpu"
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_result_obj_on_tpu(tmpdir):
     seed_everything(1234)
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     batches = 5
     epochs = 2
