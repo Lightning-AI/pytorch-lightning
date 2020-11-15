@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from copy import deepcopy
 import pickle
+from unittest import mock
 
 import cloudpickle
 import pytest
@@ -82,10 +82,9 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
         new_trainer.fit(model)
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_early_stopping_no_extraneous_invocations(tmpdir):
     """Test to ensure that callback methods aren't being invoked outside of the callback handler."""
-    os.environ['PL_DEV_DEBUG'] = '1'
-
     model = EvalModelTemplate()
     expected_count = 4
     trainer = Trainer(

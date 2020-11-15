@@ -165,6 +165,13 @@ class LightningModule(
         """
         return self.device.type == "cuda"
 
+    @property
+    def automatic_optimization(self) -> bool:
+        """
+        If False you are responsible for calling .backward, .step, zero_grad.
+        """
+        return True
+
     def print(self, *args, **kwargs) -> None:
         r"""
         Prints only from process 0. Use this in any distributed mode to log only once.
@@ -600,7 +607,7 @@ class LightningModule(
             # the pseudocode for these calls
             val_outs = []
             for val_batch in val_data:
-                out = validation_step(train_batch)
+                out = validation_step(val_batch)
                 val_outs.append(out)
                 validation_epoch_end(val_outs)
 
