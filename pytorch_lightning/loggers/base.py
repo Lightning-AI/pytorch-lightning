@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Abstract base class used to build new loggers."""
+
 import argparse
 import functools
 import operator
