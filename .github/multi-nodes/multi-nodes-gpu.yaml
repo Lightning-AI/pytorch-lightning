@@ -1,7 +1,7 @@
 apiVersion: elastic.pytorch.org/v1alpha1
 kind: ElasticJob
 metadata:
-  name: id-{SHA}-{PYTHON_VERSION}-{PYTORCH_VERSION}
+  name: s-{SHA}-{PYTHON_VERSION}-{PYTORCH_VERSION}-e
   namespace: elastic-job
 spec:
   # Use "etcd-service:2379" if you already apply etcd.yaml
@@ -17,7 +17,7 @@ spec:
         kind: Pod
         spec:
           containers:
-            - name: id-{SHA}-{PYTHON_VERSION}-{PYTORCH_VERSION}
+            - name: s-{SHA}-{PYTHON_VERSION}-{PYTORCH_VERSION}-e
               image: pytorchlightning/pytorch_lightning:base-cuda-py{PYTHON_VERSION}-torch{PYTORCH_VERSION}
               imagePullPolicy: Always
               command: 
