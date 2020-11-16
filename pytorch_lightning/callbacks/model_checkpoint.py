@@ -144,7 +144,7 @@ class ModelCheckpoint(Callback):
         save_last: Optional[bool] = None,
         save_top_k: Optional[int] = None,
         save_weights_only: bool = False,
-        mode: str = "auto",
+        mode: str = "min",
         period: int = 1,
         prefix: str = "",
         dirpath: Optional[Union[str, Path]] = None,
@@ -311,17 +311,27 @@ class ModelCheckpoint(Callback):
         mode_dict = {
             "min": (torch_inf, "min"),
             "max": (-torch_inf, "max"),
-            "auto": (-torch_inf, "max")
-            if monitor is not None and ("acc" in monitor or monitor.startswith("fmeasure"))
-            else (torch_inf, "min"),
         }
 
-        if mode not in mode_dict:
+        # TODO: Add MisconfigurationException when auto mode is removed in v1.3
+        if mode not in mode_dict and mode != 'auto':
             rank_zero_warn(
                 f"ModelCheckpoint mode {mode} is unknown, fallback to auto mode",
                 RuntimeWarning,
             )
             mode = "auto"
+
+        if mode == 'auto':
+            rank_zero_warn(
+                f"mode='auto' is deprecated in v1.1 and will be removed in v1.3",
+                DeprecationWarning
+            )
+
+            mode_dict['auto'] = (
+                (-torch_inf, "max")
+                if monitor is not None and ("acc" in monitor or monitor.startswith("fmeasure"))
+                else (torch_inf, "min")
+            )
 
         self.kth_value, self.mode = mode_dict[mode]
 
