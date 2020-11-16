@@ -11,36 +11,33 @@ except (ImportError, ModuleNotFoundError):
 else:
     DALI_AVAILABLE = True
 
-dp_16_args = """
+ARGS_DEFAULT = """
 --max_epochs 1 \
 --batch_size 32 \
 --limit_train_batches 2 \
 --limit_val_batches 2 \
+"""
+
+ARGS_DP_AMP = ARGS_DEFAULT + """
 --gpus 2 \
 --distributed_backend dp \
 --precision 16 \
 """
 
-cpu_args = """
---max_epochs 1 \
---batch_size 32 \
---limit_train_batches 2 \
---limit_val_batches 2 \
+ARGS_GPU = ARGS_DEFAULT + """
+--gpus 1 \
 """
 
-ddp_args = """
---max_epochs 1 \
---batch_size 32 \
---limit_train_batches 2 \
---limit_val_batches 2 \
+ARGS_DDP_AMP = ARGS_DEFAULT + """
 --gpus 2 \
 --precision 16 \
+--distributed_backend dp \
 """
 
 
 # ToDo: fix this failing example
 # @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-# @pytest.mark.parametrize('cli_args', [dp_16_args])
+# @pytest.mark.parametrize('cli_args', [ARGS_DP_AMP])
 # def test_examples_dp_mnist(cli_args):
 #     from pl_examples.basic_examples.mnist import cli_main
 #
@@ -50,7 +47,7 @@ ddp_args = """
 
 # ToDo: fix this failing example
 # @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-# @pytest.mark.parametrize('cli_args', [dp_16_args])
+# @pytest.mark.parametrize('cli_args', [ARGS_DP_AMP])
 # def test_examples_dp_image_classifier(cli_args):
 #     from pl_examples.basic_examples.image_classifier import cli_main
 #
@@ -60,7 +57,7 @@ ddp_args = """
 
 # ToDo: fix this failing example
 # @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-# @pytest.mark.parametrize('cli_args', [dp_16_args])
+# @pytest.mark.parametrize('cli_args', [ARGS_DP_AMP])
 # def test_examples_dp_autoencoder(cli_args):
 #     from pl_examples.basic_examples.autoencoder import cli_main
 #
@@ -69,7 +66,7 @@ ddp_args = """
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.parametrize('cli_args', [ddp_args])
+@pytest.mark.parametrize('cli_args', [ARGS_DDP_AMP])
 def test_examples_ddp_mnist(cli_args):
     from pl_examples.basic_examples.mnist import cli_main
 
@@ -78,7 +75,7 @@ def test_examples_ddp_mnist(cli_args):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.parametrize('cli_args', [ddp_args])
+@pytest.mark.parametrize('cli_args', [ARGS_DDP_AMP])
 def test_examples_ddp_image_classifier(cli_args):
     from pl_examples.basic_examples.image_classifier import cli_main
 
@@ -87,7 +84,7 @@ def test_examples_ddp_image_classifier(cli_args):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.parametrize('cli_args', [ddp_args])
+@pytest.mark.parametrize('cli_args', [ARGS_DDP_AMP])
 def test_examples_ddp_autoencoder(cli_args):
     from pl_examples.basic_examples.autoencoder import cli_main
 
@@ -95,7 +92,7 @@ def test_examples_ddp_autoencoder(cli_args):
         cli_main()
 
 
-@pytest.mark.parametrize('cli_args', [cpu_args])
+@pytest.mark.parametrize('cli_args', [ARGS_DEFAULT])
 def test_examples_cpu(cli_args):
     from pl_examples.basic_examples.mnist import cli_main as mnist_cli
     from pl_examples.basic_examples.image_classifier import cli_main as ic_cli
@@ -109,7 +106,7 @@ def test_examples_cpu(cli_args):
 @pytest.mark.skipif(not DALI_AVAILABLE, reason="Nvidia DALI required")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.skipif(platform.system() != 'Linux', reason='Only applies to Linux platform.')
-@pytest.mark.parametrize('cli_args', [cpu_args])
+@pytest.mark.parametrize('cli_args', [ARGS_GPU])
 def test_examples_mnist_dali(cli_args):
     from pl_examples.basic_examples.mnist_dali import cli_main
 
