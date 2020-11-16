@@ -89,9 +89,7 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
         # test HPC saving
         trainer.checkpoint_connector.hpc_save(save_dir, logger)
         # test HPC loading
-        max_suffix = trainer.checkpoint_connector.max_ckpt_in_folder(save_dir)
-        ckpt_number = max_suffix if max_suffix is not None else 0
-        checkpoint_path = f'{save_dir}/hpc_ckpt_{ckpt_number}.ckpt'
+        checkpoint_path = trainer.checkpoint_connector.get_max_ckpt_path_from_folder(save_dir)
         trainer.checkpoint_connector.hpc_load(checkpoint_path, on_gpu=on_gpu)
 
 
