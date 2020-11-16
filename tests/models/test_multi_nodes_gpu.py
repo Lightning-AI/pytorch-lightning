@@ -28,7 +28,6 @@ from tests.utilities.dist import call_training_script
 @pytest.mark.parametrize('cli_args', [
     pytest.param('--max_epochs 1 --num_nodes 1 --gpus 1 --distributed_backend ddp'),
 ])
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model_ddp_fit_only(tmpdir, cli_args):
     # call the script
     std, err = call_training_script(ddp_model, cli_args, 'fit', tmpdir, timeout=120)
@@ -41,7 +40,6 @@ def test_multi_gpu_model_ddp_fit_only(tmpdir, cli_args):
     assert result['status'] == 'complete'
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
     """Make sure DDP works. with early stopping"""
     tutils.set_random_master_port()
@@ -61,7 +59,6 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
     tpipes.run_model_test(trainer_options, model)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model_ddp_spawn(tmpdir):
     tutils.set_random_master_port()
 
@@ -84,7 +81,6 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
     memory.get_memory_profile('min_max')
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     """Make sure DDP works with dataloaders passed to fit()"""
     tutils.set_random_master_port()
