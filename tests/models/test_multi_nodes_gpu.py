@@ -26,7 +26,7 @@ from tests.utilities.dist import call_training_script
 
 
 @pytest.mark.parametrize('cli_args', [
-    pytest.param('--max_epochs 1 --num_nodes 1 --gpus 1 --distributed_backend ddp'),
+    pytest.param('--max_epochs 1 --num_nodes 2 --gpus 1 --distributed_backend ddp'),
 ])
 def test_multi_gpu_model_ddp_fit_only(tmpdir, cli_args):
     # call the script
@@ -52,7 +52,7 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
         limit_val_batches=10,
         gpus=1,
         distributed_backend='ddp_spawn',
-        num_nodes=1
+        num_nodes=2
     )
 
     model = EvalModelTemplate()
@@ -69,7 +69,7 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
         limit_val_batches=10,
         gpus=1,
         distributed_backend='ddp_spawn',
-        num_nodes=1,
+        num_nodes=2,
         progress_bar_refresh_rate=0,
     )
 
@@ -97,7 +97,7 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
         limit_val_batches=0.2,
         gpus=1,
         distributed_backend='ddp_spawn',
-        num_nodes=1
+        num_nodes=2
     )
     result = trainer.fit(model, **fit_options)
     assert result == 1, "DDP doesn't work with dataloaders passed to fit()."
