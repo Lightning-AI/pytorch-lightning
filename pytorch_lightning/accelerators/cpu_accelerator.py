@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Optional, Union, Any
+
 import torch
 
-from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -80,3 +82,9 @@ class CPUAccelerator(Accelerator):
         else:
             output = self.trainer.model.test_step(*args)
         return output
+
+    def sync_tensor(self,
+                    tensor: Union[torch.Tensor],
+                    group: Optional[Any] = None,
+                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
+        return tensor

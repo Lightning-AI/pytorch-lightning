@@ -14,16 +14,18 @@
 """
 Tests to ensure that the training loop works with a dict
 """
+import os
+from unittest import mock
+
 from pytorch_lightning import Trainer
 from tests.base.model_template import EvalModelTemplate
-import os
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_training_step_scalar(tmpdir):
     """
     Tests that only training_step can be used
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
     model.validation_step = None

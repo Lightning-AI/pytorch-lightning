@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""[Train, Eval]Result for easier logging, checkpointing, early stopping, epoch-wise reduction."""
+
 import numbers
 from copy import copy
 from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any, List, Tuple, Iterable
@@ -134,6 +136,9 @@ class Result(Dict):
         # sync across workers when using distributed training
         sync_fn = sync_fn or sync_ddp_if_available
         if sync_dist and isinstance(value, (torch.Tensor, numbers.Number)):
+            is_dist_initialized = torch.distributed.is_available() and torch.distributed.is_initialized()
+            # TODO: Find a way to make the reduction only once, so we don't need to clone.
+            value = value.clone() if is_dist_initialized else value
             value = sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
         if 'meta' not in self:
@@ -394,6 +399,12 @@ class Result(Dict):
         for k, v in self.items():
             if isinstance(v, torch.Tensor):
                 self.__setitem__(k, v.detach())
+
+    def cpu(self):
+        """Move all self attributes to CPU."""
+        for k, v in self.items():
+            if isinstance(v, torch.Tensor):
+                self.__setitem__(k, v.cpu())
 
     def __repr__(self):
         self_copy = self.copy()

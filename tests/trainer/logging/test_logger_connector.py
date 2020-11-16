@@ -15,6 +15,8 @@
 Tests to ensure that the training loop works with a dict (1.0)
 """
 import os
+from unittest import mock
+
 import torch
 import pytest
 from copy import deepcopy
@@ -47,13 +49,12 @@ class Helper:
         return decorator
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__logger_connector__epoch_result_store__train(tmpdir):
     """
     Tests that LoggerConnector will properly capture logged information
     and reduce them
     """
-
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(BoringModel):
 
@@ -214,13 +215,12 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
     assert generated == torch.stack(model.train_losses).mean().item()
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize('num_dataloaders', [1, 2])
 def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, num_dataloaders):
     """
     Tests that LoggerConnector will properly capture logged information in multi_dataloaders scenario
     """
-
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(BoringModel):
 
@@ -239,6 +239,14 @@ def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, n
 
             self.log("test_loss", loss, on_step=True, on_epoch=True)
             return {"test_loss": loss}
+
+        def on_test_batch_end(self, *args, **kwargs):
+            # save objects as it will be reset at the end of epoch.
+            self.batch_results = deepcopy(self.trainer.logger_connector.cached_results)
+
+        def on_test_epoch_end(self):
+            # save objects as it will be reset at the end of epoch.
+            self.reduce_results = deepcopy(self.trainer.logger_connector.cached_results)
 
         def test_dataloader(self):
             return [torch.utils.data.DataLoader(RandomDataset(32, 64)) for _ in range(num_dataloaders)]
@@ -260,7 +268,7 @@ def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, n
     )
     trainer.test(model)
 
-    test_results = trainer.logger_connector._cached_results["test"]
+    test_results = model.batch_results
 
     generated = test_results(fx_name="test_step")
     assert len(generated) == num_dataloaders
@@ -269,7 +277,7 @@ def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, n
         generated = len(test_results(fx_name="test_step", dl_idx=str(dl_idx)))
         assert generated == limit_test_batches
 
-    test_results.has_batch_loop_finished = True
+    test_results = model.reduce_results
 
     for dl_idx in range(num_dataloaders):
         expected = torch.stack(model.test_losses[str(dl_idx)]).mean()
