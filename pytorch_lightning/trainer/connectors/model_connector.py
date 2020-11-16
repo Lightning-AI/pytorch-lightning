@@ -35,6 +35,9 @@ class ModelConnector:
         else:
             ref_model = model
 
+        automatic_optimization = ref_model.automatic_optimization and self.trainer.train_loop.automatic_optimization
+        self.trainer.train_loop.automatic_optimization = automatic_optimization
+
         for m in [model, ref_model]:
             m.trainer = self.trainer
             m.logger = self.trainer.logger
