@@ -51,6 +51,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `setup` callback hook to correctly pass the LightningModule through ([#4608](https://github.com/PyTorchLightning/pytorch-lightning/pull/4608))
 - Fixed docs typo ([#4659](https://github.com/PyTorchLightning/pytorch-lightning/pull/4659), [#4670](https://github.com/PyTorchLightning/pytorch-lightning/pull/4670))
 - Fixed notebooks typo ([#4657](https://github.com/PyTorchLightning/pytorch-lightning/pull/4657))
+- Allowing decorate model init with saving `hparams` inside ([#4662](https://github.com/PyTorchLightning/pytorch-lightning/pull/4662))
 
 
 
