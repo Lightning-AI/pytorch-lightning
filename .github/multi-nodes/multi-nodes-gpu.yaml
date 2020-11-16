@@ -34,4 +34,4 @@ spec:
                 echo "\n||| END PYTEST LOGS |||\n"
               resources:
                 limits:
-                  nvidia.com/gpu: {NUM_GPUS}
+                  nvidia.com/gpu: 2
