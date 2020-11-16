@@ -114,7 +114,7 @@ class CheckpointConnector:
         if self.trainer.datamodule is not None:
             self.trainer.datamodule.on_load_checkpoint(checkpoint)
 
-        # hook for arbitrary processing before model restore
+        # hook: give user access to checkpoint if needed. 
         model.on_load_checkpoint(checkpoint)
 
         # restore model state_dict
