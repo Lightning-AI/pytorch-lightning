@@ -19,9 +19,9 @@ import pytest
 import torch
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_mc_called_on_fastdevrun(tmpdir):
     seed_everything(1234)
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     train_val_step_model = EvalModelTemplate()
 
@@ -53,9 +53,9 @@ def test_mc_called_on_fastdevrun(tmpdir):
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 1
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_mc_called(tmpdir):
     seed_everything(1234)
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     # -----------------
     # TRAIN LOOP ONLY

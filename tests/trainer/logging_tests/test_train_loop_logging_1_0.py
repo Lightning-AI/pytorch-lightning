@@ -17,6 +17,8 @@ Tests to ensure that the training loop works with a dict (1.0)
 
 import os
 import collections
+from unittest import mock
+
 import pytest
 import itertools
 import numpy as np
@@ -32,11 +34,11 @@ from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictSt
 from tests.base.deterministic_model import DeterministicModel
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__training_step__log(tmpdir):
     """
     Tests that only training_step can be used
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(DeterministicModel):
         def training_step(self, batch, batch_idx):
@@ -128,11 +130,11 @@ def test__training_step__log(tmpdir):
     assert callback_metrics == expected_callback_metrics
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__training_step__epoch_end__log(tmpdir):
     """
     Tests that only training_step can be used
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(DeterministicModel):
         def training_step(self, batch, batch_idx):
@@ -190,12 +192,12 @@ def test__training_step__epoch_end__log(tmpdir):
     assert callback_metrics == expected_callback_metrics
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize(['batches', 'log_interval', 'max_epochs'], [(1, 1, 1), (64, 32, 2)])
 def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval, max_epochs):
     """
     Tests that only training_step can be used
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -500,12 +502,11 @@ def test_nested_datasouce_batch(tmpdir):
     trainer.fit(model, train_data, val_data)
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_log_works_in_train_callback(tmpdir):
     """
     Tests that log can be called within callback
     """
-
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestCallback(callbacks.Callback):
 
