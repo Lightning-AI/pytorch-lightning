@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+"""nn.Module with additional great features."""
+
 import os
 import tempfile
 import collections
@@ -160,6 +163,13 @@ class LightningModule(
         Useful to set flags around the LightningModule for different CPU vs GPU behavior.
         """
         return self.device.type == "cuda"
+
+    @property
+    def automatic_optimization(self) -> bool:
+        """
+        If False you are responsible for calling .backward, .step, zero_grad.
+        """
+        return True
 
     def print(self, *args, **kwargs) -> None:
         r"""
@@ -596,7 +606,7 @@ class LightningModule(
             # the pseudocode for these calls
             val_outs = []
             for val_batch in val_data:
-                out = validation_step(train_batch)
+                out = validation_step(val_batch)
                 val_outs.append(out)
                 validation_epoch_end(val_outs)
 
