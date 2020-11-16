@@ -104,15 +104,17 @@ def test_accelerator_choice_ddp_spawn(tmpdir):
     "SLURM_NTASKS": "2",
     "SLURM_JOB_NAME": "SOME_NAME",
     "SLURM_NODEID": "0",
-    "SLURM_LOCALID": "0"
+    "SLURM_LOCALID": "10"
 })
 @mock.patch('torch.cuda.device_count', return_value=2)
 def test_accelerator_choice_ddp_slurm(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer.use_ddp
-            assert isinstance(trainer.accelerator_backend, accelerators.DDPSLURMAccelerator)
+            assert isinstance(trainer.accelerator_backend, accelerators.DDPHPCAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, SLURMEnvironment)
+            assert trainer.accelerator_backend.task_idx == 10
+            assert trainer.accelerator_backend.cluster_environment.local_rank() == trainer.accelerator_backend.task_idx
             raise SystemExit()
 
     model = BoringModel()
@@ -133,7 +135,7 @@ def test_accelerator_choice_ddp_slurm(tmpdir):
     "SLURM_JOB_NAME": "SOME_NAME",
     "SLURM_NODEID": "0",
     "LOCAL_RANK": "0",
-    "SLURM_LOCALID": "0"
+    "SLURM_LOCALID": "10"
 })
 @mock.patch('torch.cuda.device_count', return_value=2)
 def test_accelerator_choice_ddp2_slurm(tmpdir):
@@ -142,6 +144,9 @@ def test_accelerator_choice_ddp2_slurm(tmpdir):
             assert trainer.use_ddp2
             assert isinstance(trainer.accelerator_backend, accelerators.DDP2Accelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, SLURMEnvironment)
+            assert trainer.accelerator_backend.task_idx == 10
+            assert trainer.accelerator_backend.cluster_environment.local_rank() == trainer.accelerator_backend.task_idx
+
             raise SystemExit()
 
     model = BoringModel()
@@ -159,7 +164,7 @@ def test_accelerator_choice_ddp2_slurm(tmpdir):
 @mock.patch.dict(os.environ, {
     "CUDA_VISIBLE_DEVICES": "0,1",
     "WORLD_SIZE": "2",
-    "LOCAL_RANK": "0",
+    "LOCAL_RANK": "10",
     "NODE_RANK": "0"
 })
 @mock.patch('torch.cuda.device_count', return_value=2)
@@ -167,8 +172,10 @@ def test_accelerator_choice_ddp_te(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer.use_ddp
-            assert isinstance(trainer.accelerator_backend, accelerators.DDPTorchElasticAccelerator)
+            assert isinstance(trainer.accelerator_backend, accelerators.DDPHPCAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
+            assert trainer.accelerator_backend.task_idx == 10
+            assert trainer.accelerator_backend.cluster_environment.local_rank() == trainer.accelerator_backend.task_idx
             raise SystemExit()
 
     model = BoringModel()
@@ -186,7 +193,7 @@ def test_accelerator_choice_ddp_te(tmpdir):
 @mock.patch.dict(os.environ, {
     "CUDA_VISIBLE_DEVICES": "0,1",
     "WORLD_SIZE": "2",
-    "LOCAL_RANK": "0",
+    "LOCAL_RANK": "10",
     "NODE_RANK": "0"
 })
 @mock.patch('torch.cuda.device_count', return_value=2)
@@ -196,6 +203,8 @@ def test_accelerator_choice_ddp2_te(tmpdir):
             assert trainer.use_ddp2
             assert isinstance(trainer.accelerator_backend, accelerators.DDP2Accelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
+            assert trainer.accelerator_backend.task_idx == 10
+            assert trainer.accelerator_backend.cluster_environment.local_rank() == trainer.accelerator_backend.task_idx
             raise SystemExit()
 
     model = BoringModel()
@@ -212,7 +221,7 @@ def test_accelerator_choice_ddp2_te(tmpdir):
 
 @mock.patch.dict(os.environ, {
     "WORLD_SIZE": "1",
-    "LOCAL_RANK": "0",
+    "LOCAL_RANK": "10",
     "NODE_RANK": "0"
 })
 @mock.patch('torch.cuda.device_count', return_value=0)
@@ -220,8 +229,11 @@ def test_accelerator_choice_ddp_cpu_te(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer.use_ddp
-            assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUTorchElasticAccelerator)
+            assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUHPCAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
+            assert trainer.accelerator_backend.task_idx == 10
+            assert trainer.accelerator_backend.cluster_environment.local_rank() == trainer.accelerator_backend.task_idx
+
             raise SystemExit()
 
     model = BoringModel()
@@ -248,7 +260,7 @@ def test_accelerator_choice_ddp_cpu_slurm(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer.use_ddp
-            assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUSLURMAccelerator)
+            assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUHPCAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, SLURMEnvironment)
             raise SystemExit()
 
@@ -283,7 +295,7 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert trainer.use_ddp
-            assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUSLURMAccelerator)
+            assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUHPCAccelerator)
             assert isinstance(trainer.accelerator_backend.cluster_environment, CustomCluster)
             raise SystemExit()
 
@@ -341,7 +353,7 @@ def test_custom_accelerator(tmpdir):
 def test_dist_backend_accelerator_mapping(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUSLURMAccelerator)
+            assert isinstance(trainer.accelerator_backend, accelerators.DDPCPUHPCAccelerator)
             raise SystemExit()
 
     model = BoringModel()
