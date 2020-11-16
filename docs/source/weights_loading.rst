@@ -14,7 +14,6 @@ Lightning automates saving and loading checkpoints. Checkpoints capture the exac
 
 Checkpointing your training allows you to resume a training process in case it was interrupted, fine-tune a model or use a pre-trained model for inference without having to retrain the model.
 
-Lightning also takes care of any accelerators including ddp, where multiple processes are used. In this scenario, we only save on the main process.
 
 *****************
 Checkpoint saving
@@ -139,6 +138,19 @@ You can manually save checkpoints and restore your model from the checkpointed s
     trainer.fit(model)
     trainer.save_checkpoint("example.ckpt")
     new_model = MyModel.load_from_checkpoint(checkpoint_path="example.ckpt")
+
+Manual saving with DDP
+=============
+
+Lightning also handles accelerators such as DDP, where multiple processes are used. In this scenario, we only save on the main process.
+
+.. code-block:: python
+
+    trainer = Trainer(accelerator="ddp")
+    model = MyLightningModule(hparams)
+    trainer.fit(model)
+    # Saves only on the main process
+    trainer.save_checkpoint("example.ckpt")
 
 ******************
 Checkpoint loading
