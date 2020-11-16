@@ -54,7 +54,7 @@ class LightningOptimizer(Optimizer):
 
     """
     This class is used to wrap the user optimizers and handle properly
-    the backward and optimizer_step logic accross accelerators, AMP, etc...
+    the backward and optimizer_step logic across accelerators, AMP, accumulated_grad_batches
     """
 
     def __init__(self,
@@ -205,6 +205,7 @@ class LightningOptimizer(Optimizer):
                 # TODO: pass the closure to the step ASAP
                 closure()
                 self._trainer.scaler.step(self._optimizer)
+                self._trainer.scaler.update()
             elif self._trainer.amp_backend == AMPType.APEX:
                 # apex amp does not yet support closures.
                 # TODO: pass the closure to the step ASAP
@@ -212,10 +213,6 @@ class LightningOptimizer(Optimizer):
                 self._optimizer.step()
             else:
                 self._optimizer.step(closure=closure, *args, **kwargs)
-
-            # update will be called after every optimizer_step call
-            if self._trainer.amp_backend == AMPType.NATIVE:
-                self._trainer.scaler.update()
 
             # perform zero grad
             self._optimizer.zero_grad()
