@@ -5,7 +5,7 @@ metadata:
   namespace: elastic-job
 spec:
   # Use "etcd-service:2379" if you already apply etcd.yaml
-  rdzvEndpoint: "etcd://localhost:2379/s-{SHA}-{PYTHON_VERSION_DASH}-{PYTORCH_VERSION_DASH}-e?min_workers=1&max_workers=3"
+  rdzvEndpoint: "etcd://{TCP_ADDRESS}/s-{SHA}-{PYTHON_VERSION_DASH}-{PYTORCH_VERSION_DASH}-e?min_workers=1&max_workers=3"
   minReplicas: 2
   maxReplicas: 2
   replicaSpecs:
@@ -30,7 +30,7 @@ spec:
                 git checkout {SHA}
                 pip install -e .
                 pip install torchelastic
-                python -m torchelastic.distributed.launch --nproc_per_node={NUM_GPUS} -m coverage run --source pytorch_lightning -m tests/models/test_multi_nodes_gpu.py -v --color=yes --durations=0
+                python -m torchelastic.distributed.launch --nproc_per_node={NUM_GPUS} --rdzv_id=s-{SHA}-{PYTHON_VERSION_DASH}-{PYTORCH_VERSION_DASH}-e --rdzv_backend=etcd --rdzv_endpoint={TCP_ADDRESS} -m coverage run --source pytorch_lightning -m tests/models/test_multi_nodes_gpu.py -v --color=yes --durations=0
                 echo "\n||| END PYTEST LOGS |||\n"
                 coverage xml
                 cat coverage.xml | tr -d '\t'
