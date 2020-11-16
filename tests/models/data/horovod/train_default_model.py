@@ -77,7 +77,7 @@ def run_test_from_config(trainer_options):
         test_loaders = [test_loaders]
 
     for dataloader in test_loaders:
-        run_prediction(dataloader, pretrained_model)
+        run_prediction(pretrained_model, dataloader)
 
     # test HPC loading / saving
     trainer.checkpoint_connector.hpc_save(ckpt_path, trainer.logger)
