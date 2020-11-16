@@ -34,41 +34,8 @@ from time import sleep
 
 
 def test_sleep(tmpdir):
-    for i in range(300):
+    for i in range(10):
         sleep(1)
-        print(i)
-
-
-def test_multi_node_gpu(tmpdir):
-
-    class TestModel(BoringModel):
-        def on_train_epoch_start(self) -> None:
-            print("override any method to prove your bug")
-
-        def training_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            return {"loss": loss}
-
-        def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            self.log("val_loss", loss)
-
-    # model
-    model = TestModel()
-    model.validation_epoch_end = None
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=8,
-        limit_val_batches=8,
-        max_epochs=2,
-        weights_summary=None,
-        num_nodes=2,
-        gpus=1,
-        accelerator="ddp",
-    )
-    trainer.fit(model)
 
 
 
