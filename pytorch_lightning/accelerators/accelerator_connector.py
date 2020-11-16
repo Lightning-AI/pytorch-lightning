@@ -11,18 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning import accelerators
 import os
+
 import torch
 
-from pytorch_lightning.utilities import device_parser
-from pytorch_lightning.utilities import rank_zero_only
-from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning import _logger as log
+from pytorch_lightning import accelerators
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.cluster_environments.torchelastic_environment import TorchElasticEnvironment
-from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.utilities import device_parser, rank_zero_only
+from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
     import torch_xla
@@ -59,7 +59,6 @@ class AcceleratorConnector:
             benchmark,
             replace_sampler_ddp,
             deterministic,
-            use_lightning_optimizer
     ):
         # temp until we remove all dist backend references
         distributed_backend = self._map_deprecated_dist_backend(accelerator, distributed_backend)
@@ -124,8 +123,8 @@ class AcceleratorConnector:
         self.set_distributed_mode()
 
         # enable optimizer wrapping with LightningOptimizer
-        # TODO: Understand why it does work with Hovorod
-        self.trainer.use_lightning_optimizer = use_lightning_optimizer and not self.trainer.use_horovod
+        # TODO: Understand why it doesn't work with Hovorod
+        self.trainer.use_lightning_optimizer = not self.trainer.use_horovod
 
         # override dist backend when using tpus
         if self.trainer.on_tpu:

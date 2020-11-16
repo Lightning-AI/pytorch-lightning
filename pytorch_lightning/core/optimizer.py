@@ -52,6 +52,11 @@ def do_nothing_closure():
 
 class LightningOptimizer(Optimizer):
 
+    """
+    This class is used to wrap the user optimizers and handle properly
+    the backward and optimizer_step logic accross accelerators, AMP, etc...
+    """
+
     def __init__(self,
                  trainer,
                  optimizer: Optimizer = None,
@@ -189,7 +194,7 @@ class LightningOptimizer(Optimizer):
            Trainer(accumulate_grad_batches=x) is set.
 
         Args:
-            closure: Closure usually contains forward and backward step
+            closure: Closure should contain forward and backward step
         """
 
         if not self._should_accumulate:
