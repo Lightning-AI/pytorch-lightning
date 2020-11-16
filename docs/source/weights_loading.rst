@@ -140,7 +140,7 @@ You can manually save checkpoints and restore your model from the checkpointed s
     new_model = MyModel.load_from_checkpoint(checkpoint_path="example.ckpt")
 
 Manual saving with DDP
-=============
+======================
 
 Lightning also handles accelerators such as DDP, where multiple processes are used. In this scenario, we only save on the main process.
 
