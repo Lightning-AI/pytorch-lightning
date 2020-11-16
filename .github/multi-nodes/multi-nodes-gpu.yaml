@@ -17,7 +17,7 @@ spec:
         kind: Pod
         spec:
           containers:
-            - name: s-{SHA}-{PYTHON_VERSION}-{PYTORCH_VERSION}-e
+            - name: s-{SHA}-{PYTHON_VERSION_DASH}-{PYTORCH_VERSION_DASH}-e
               image: pytorchlightning/pytorch_lightning:base-cuda-py{PYTHON_VERSION}-torch{PYTORCH_VERSION}
               imagePullPolicy: Always
               command: 
