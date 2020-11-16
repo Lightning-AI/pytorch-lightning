@@ -30,7 +30,7 @@ spec:
                 git checkout {SHA}
                 pip install -e .
                 pip install torchelastic
-                python -m torchelastic.distributed.launch --nnodes=2 --nproc_per_node={NUM_GPUS} --rdzv_id=s-{SHA}-{PYTHON_VERSION_DASH}-{PYTORCH_VERSION_DASH}-e --rdzv_backend=etcd --rdzv_endpoint={TCP_ADDRESS} -m pytest ./tests/models/test_multi_nodes_gpu.py -v --color=yes --durations=0
+                python -m torchelastic.distributed.launch --nnodes=1 --nproc_per_node={NUM_GPUS} --rdzv_id=s-{SHA}-{PYTHON_VERSION_DASH}-{PYTORCH_VERSION_DASH}-e --rdzv_backend=etcd --rdzv_endpoint={TCP_ADDRESS} -m pytest ./tests/models/test_multi_nodes_gpu.py -v --color=yes --durations=0
                 echo "\n||| END PYTEST LOGS |||\n"
               resources:
                 limits:
