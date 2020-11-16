@@ -66,7 +66,7 @@ def test_multi_node_gpu(tmpdir):
         weights_summary=None,
         num_nodes=2,
         gpus=1,
-
+        accelerator="ddp",
     )
     trainer.fit(model)
 
