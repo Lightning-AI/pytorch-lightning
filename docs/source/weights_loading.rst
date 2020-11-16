@@ -68,7 +68,7 @@ You can customize the checkpointing behavior to monitor any quantity of your tra
     # 4. Add your callback to the callbacks list
     trainer = Trainer(callbacks=[checkpoint_callback])
 
-You can also control more advanced options, like `save_top_k`, to save the best k models and the mode of the monitored quantity (min/max/auto, where the mode is automatically inferred from the name of the monitored quantity), `save_weights_only` or `period` to set the interval of epochs between checkpoints, to avoid slowdowns.
+You can also control more advanced options, like `save_top_k`, to save the best k models and the `mode` of the monitored quantity (min/max), `save_weights_only` or `period` to set the interval of epochs between checkpoints, to avoid slowdowns.
 
 .. code-block:: python
 
@@ -84,10 +84,11 @@ You can also control more advanced options, like `save_top_k`, to save the best 
     # saves a file like: my/path/sample-mnist-epoch=02-val_loss=0.32.ckpt
     checkpoint_callback = ModelCheckpoint(
         monitor='val_loss',
-        dirpath='my/path/,
+        dirpath='my/path/',
         filename='sample-mnist-{epoch:02d}-{val_loss:.2f}',
         save_top_k=3,
-        mode='min')
+        mode='min'
+    )
 
     trainer = Trainer(callbacks=[checkpoint_callback])
     
