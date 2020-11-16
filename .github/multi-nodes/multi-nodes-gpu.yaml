@@ -1,7 +1,7 @@
 apiVersion: elastic.pytorch.org/v1alpha1
 kind: ElasticJob
 metadata:
-  name: s-{SHA}-{PYTHON_VERSION}-{PYTORCH_VERSION}-e
+  name: s-{SHA}-{PYTHON_VERSION_DASH}-{PYTORCH_VERSION_DASH}-e
   namespace: elastic-job
 spec:
   # Use "etcd-service:2379" if you already apply etcd.yaml
