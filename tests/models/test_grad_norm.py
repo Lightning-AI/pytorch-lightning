@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest import mock
 from unittest.mock import patch
 
 import numpy as np
@@ -57,10 +58,9 @@ class ModelWithManualGradTracker(EvalModelTemplate):
         self.stored_grad_norms.append(out)
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize("norm_type", [1., 1.25, 2, 3, 5, 10, 'inf'])
 def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
-    os.environ['PL_DEV_DEBUG'] = '1'
-
     # rtol=5e-3 respects the 3 decimals rounding in `.grad_norms` and above
 
     reset_seed()
