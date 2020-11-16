@@ -165,7 +165,7 @@ def test_torchscript_with_sequence_input(tmpdir):
         def forward(self, x, y=None):
             return super().forward(x)
 
-    def test_torchscript_export(model, example_inputs):
+    def _assert_torchscript_export(model, example_inputs):
         script = model.to_torchscript(example_inputs=example_inputs, method='trace')
         assert isinstance(script, torch.jit.ScriptModule)
 
@@ -179,20 +179,20 @@ def test_torchscript_with_sequence_input(tmpdir):
 
     # tuple input
     example_inputs = (torch.randn(1, 32), torch.randn(1, 32))
-    test_torchscript_export(model, example_inputs)
+    _assert_torchscript_export(model, example_inputs)
 
     # list input
     example_inputs = [torch.randn(1, 32), torch.randn(1, 32)]
-    test_torchscript_export(model, example_inputs)
+    _assert_torchscript_export(model, example_inputs)
 
     # NamedTuple input
     example_inputs = namedtuple('sample', ['x', 'y'])
     example_inputs = example_inputs(x=torch.randn(1, 32), y=torch.randn(1, 32))
-    test_torchscript_export(model, example_inputs)
+    _assert_torchscript_export(model, example_inputs)
 
     with pytest.raises(ValueError, match='neither a Tensor nor tuple of Tensors'):
         example_inputs = (torch.randn(1, 32), np.random.randn(1, 32))
-        test_torchscript_export(model, example_inputs)
+        _assert_torchscript_export(model, example_inputs)
 
 
 def test_error_with_invalid_input(tmpdir):

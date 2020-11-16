@@ -33,7 +33,7 @@ from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.utilities import rank_zero_warn, AMPType
+from pytorch_lightning.utilities import rank_zero_warn, AMPType, move_data_to_device
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -1728,7 +1728,7 @@ class LightningModule(
                 "Could not export to ONNX since input_sample is neither a Tensor nor tuple of Tensors"
             )
 
-        input_sample = self.transfer_batch_to_device(input_sample, self.device)
+        input_sample = move_data_to_device(input_sample, self.device)
 
         if "example_outputs" not in kwargs:
             self.eval()
@@ -1813,7 +1813,7 @@ class LightningModule(
                 )
 
             # automatically send example inputs to the right device and use trace
-            example_inputs = self.transfer_batch_to_device(example_inputs, device=self.device)
+            example_inputs = move_data_to_device(example_inputs, device=self.device)
             torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
         else:
             raise ValueError("The 'method' parameter only supports 'script' or 'trace',"

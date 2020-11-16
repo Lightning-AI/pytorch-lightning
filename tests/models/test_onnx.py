@@ -150,8 +150,8 @@ def test_model_saves_with_sequence_input(tmpdir):
         def forward(self, x, y=None):
             return super().forward(x)
 
-    def _assert_onnx_export(model, input_sample):
-        file_path = os.path.join(tmpdir, "model.onnx")
+    def _assert_onnx_export(model, input_sample, filename):
+        file_path = os.path.join(tmpdir, filename)
         model.to_onnx(file_path, input_sample)
         assert os.path.exists(file_path) is True
 
@@ -161,16 +161,16 @@ def test_model_saves_with_sequence_input(tmpdir):
 
     # tuple input
     input_sample = (torch.randn(1, 32), torch.randn(1, 32))
-    _assert_onnx_export(model, input_sample)
+    _assert_onnx_export(model, input_sample, 'model_tuple.onnx')
 
     # NamedTuple input
     input_sample = namedtuple('sample', ['x', 'y'])
     input_sample = input_sample(x=torch.randn(1, 32), y=torch.randn(1, 32))
-    _assert_onnx_export(model, input_sample)
+    _assert_onnx_export(model, input_sample, 'model_ntuple.onnx')
 
     with pytest.raises(ValueError, match='neither a Tensor nor tuple of Tensors'):
         input_sample = (torch.randn(1, 32), np.random.randn(1, 32))
-        _assert_onnx_export(model, input_sample)
+        _assert_onnx_export(model, input_sample, 'model_error.onnx')
 
 
 def test_error_with_invalid_input(tmpdir):
