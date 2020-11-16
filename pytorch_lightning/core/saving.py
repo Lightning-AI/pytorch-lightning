@@ -28,7 +28,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import rank_zero_warn, AttributeDict
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-
+from pytorch_lightning.utilities.parsing import parse_class_init_keys
 
 PRIMITIVE_TYPES = (bool, int, float, str)
 ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
@@ -159,8 +159,8 @@ class ModelIO(object):
         cls_spec = inspect.getfullargspec(cls.__init__)
         cls_init_args_name = inspect.signature(cls.__init__).parameters.keys()
 
-        self_name = cls_spec.args[0]
-        drop_names = (self_name, cls_spec.varargs, cls_spec.varkw)
+        self_var, args_var, kwargs_var = parse_class_init_keys(cls)
+        drop_names = [n for n in (self_var, args_var, kwargs_var) if n]
         cls_init_args_name = list(filter(lambda n: n not in drop_names, cls_init_args_name))
 
         cls_kwargs_loaded = {}
