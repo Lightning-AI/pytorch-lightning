@@ -1,3 +1,4 @@
+import importlib
 import platform
 from unittest import mock
 
@@ -36,71 +37,48 @@ ARGS_DDP_AMP = ARGS_DEFAULT + """
 
 
 # ToDo: fix this failing example
-# @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-# @pytest.mark.parametrize('cli_args', [ARGS_DP_AMP])
-# def test_examples_dp_mnist(cli_args):
-#     from pl_examples.basic_examples.mnist import cli_main
-#
-#     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
-#         cli_main()
-
-
-# ToDo: fix this failing example
-# @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-# @pytest.mark.parametrize('cli_args', [ARGS_DP_AMP])
-# def test_examples_dp_image_classifier(cli_args):
-#     from pl_examples.basic_examples.image_classifier import cli_main
-#
-#     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
-#         cli_main()
-
-
-# ToDo: fix this failing example
-# @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-# @pytest.mark.parametrize('cli_args', [ARGS_DP_AMP])
-# def test_examples_dp_autoencoder(cli_args):
-#     from pl_examples.basic_examples.autoencoder import cli_main
-#
-#     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
-#         cli_main()
-
-
+@pytest.mark.parametrize('import_cli', [
+    'pl_examples.basic_examples.mnist_classifier',
+    'pl_examples.basic_examples.image_classifier',
+    'pl_examples.basic_examples.autoencoder',
+])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.parametrize('cli_args', [ARGS_DDP_AMP])
-def test_examples_ddp_mnist(cli_args):
-    from pl_examples.basic_examples.mnist import cli_main
+@pytest.mark.parametrize('cli_args', [ARGS_DP_AMP])
+def test_examples_dp(import_cli, cli_args):
+
+    module = importlib.import_module(import_cli)
 
     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
-        cli_main()
+        module.cli_main()
 
 
+@pytest.mark.parametrize('import_cli', [
+    'pl_examples.basic_examples.mnist_classifier',
+    'pl_examples.basic_examples.image_classifier',
+    'pl_examples.basic_examples.autoencoder',
+])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.parametrize('cli_args', [ARGS_DDP_AMP])
-def test_examples_ddp_image_classifier(cli_args):
-    from pl_examples.basic_examples.image_classifier import cli_main
+def test_examples_ddp(import_cli, cli_args):
+
+    module = importlib.import_module(import_cli)
 
     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
-        cli_main()
+        module.cli_main()
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.parametrize('cli_args', [ARGS_DDP_AMP])
-def test_examples_ddp_autoencoder(cli_args):
-    from pl_examples.basic_examples.autoencoder import cli_main
-
-    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
-        cli_main()
-
-
+@pytest.mark.parametrize('import_cli', [
+    'pl_examples.basic_examples.mnist_classifier',
+    'pl_examples.basic_examples.image_classifier',
+    'pl_examples.basic_examples.autoencoder',
+])
 @pytest.mark.parametrize('cli_args', [ARGS_DEFAULT])
-def test_examples_cpu(cli_args):
-    from pl_examples.basic_examples.mnist import cli_main as mnist_cli
-    from pl_examples.basic_examples.image_classifier import cli_main as ic_cli
-    from pl_examples.basic_examples.autoencoder import cli_main as ae_cli
+def test_examples_cpu(import_cli, cli_args):
 
-    for cli_cmd in [mnist_cli, ic_cli, ae_cli]:
-        with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
-            cli_cmd()
+    module = importlib.import_module(import_cli)
+
+    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
+        module.cli_main()
 
 
 @pytest.mark.skipif(not DALI_AVAILABLE, reason="Nvidia DALI required")
@@ -108,7 +86,7 @@ def test_examples_cpu(cli_args):
 @pytest.mark.skipif(platform.system() != 'Linux', reason='Only applies to Linux platform.')
 @pytest.mark.parametrize('cli_args', [ARGS_GPU])
 def test_examples_mnist_dali(cli_args):
-    from pl_examples.basic_examples.mnist_dali import cli_main
+    from pl_examples.basic_examples.mnist_classifier_dali import cli_main
 
     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
         cli_main()
