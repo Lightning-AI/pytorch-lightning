@@ -102,6 +102,7 @@ jobs:
         sudo mv /tmp/eksctl /usr/local/bin
       shell: bash
 
+    # eksclt create cluster --name=lightning-torchelastic --node-type=m5.xlarge --region=us-east-2 --nodes=2
     - name: Create Gpu Node Pool
       run: |
         aws eks --region $REGION update-kubeconfig --name $AWS_CLUSTER
