@@ -123,12 +123,6 @@ jobs:
         kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/master/nvidia-device-plugin.yml
         kubectl apply -f https://raw.githubusercontent.com/pytorch/elastic/master/kubernetes/config/samples/etcd.yaml
 
-    - name: Wait
-      if: always()
-      shell: bash
-      run: |
-        sleep 14
-    
     - name: Find ETCD TCP Address
       id: tcp
       shell: bash
@@ -145,12 +139,6 @@ jobs:
         kubectl apply -f .github/multi-nodes/multi-nodes-gpu.yaml
       shell: bash
 
-    - name: Wait
-      if: always()
-      shell: bash
-      run: |
-        sleep 40
-
     - name: Listen to Jobs Logging
       shell: bash
       run: |
@@ -160,7 +148,7 @@ jobs:
       if: always()
       shell: bash
       run: |
-        sleep 400
+        sleep 700
 
     - name: Delete Group Node
       if: always()
