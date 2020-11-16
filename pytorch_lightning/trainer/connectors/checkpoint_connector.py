@@ -114,7 +114,7 @@ class CheckpointConnector:
         if self.trainer.datamodule is not None:
             self.trainer.datamodule.on_load_checkpoint(checkpoint)
 
-        # hook: give user access to checkpoint if needed. 
+        # hook: give user access to checkpoint if needed.
         model.on_load_checkpoint(checkpoint)
 
         # restore model state_dict
