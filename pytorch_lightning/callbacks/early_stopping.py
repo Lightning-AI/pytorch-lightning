@@ -108,7 +108,7 @@ class EarlyStopping(Callback):
 
         if self.mode == 'auto':
             rank_zero_warn(
-                f"mode='auto' is deprecated in v1.1 and will be removed in v1.3",
+                "mode='auto' is deprecated in v1.1 and will be removed in v1.3",
                 DeprecationWarning
             )
 
