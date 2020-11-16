@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
+from torch.utils.data import DataLoader
 from tests.base import BoringModel, EvalModelTemplate
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, LightningModule
 from tests.base.develop_utils import load_model_from_checkpoint, get_default_logger, reset_seed
 from functools import singledispatch
 
