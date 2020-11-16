@@ -5,7 +5,7 @@ metadata:
   namespace: elastic-job
 spec:
   # Use "etcd-service:2379" if you already apply etcd.yaml
-  rdzvEndpoint: etcd://localhost:2379/s-{SHA}-{PYTHON_VERSION_DASH}-{PYTORCH_VERSION_DASH}-e?min_workers=1&max_workers=3
+  rdzvEndpoint: etcd://localhost:2379/s-{SHA}-{PYTHON_VERSION_DASH}-{PYTORCH_VERSION_DASH}-e
   minReplicas: 2
   maxReplicas: 2
   replicaSpecs:

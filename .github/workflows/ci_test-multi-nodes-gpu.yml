@@ -127,7 +127,7 @@ jobs:
       if: always()
       shell: bash
       run: |
-        sleep 15
+        sleep 14
     
     - name: Find ETCD TCP Address
       id: tcp
