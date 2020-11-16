@@ -101,7 +101,7 @@ class EarlyStopping(Callback):
         if self.mode not in self.mode_dict and self.mode != 'auto':
             if self.verbose > 0:
                 rank_zero_warn(
-                    f'EarlyStopping mode {mode} is unknown, fallback to auto mode.',
+                    f'EarlyStopping mode={self.mode} is unknown, fallback to auto mode.',
                     RuntimeWarning,
                 )
             self.mode = 'auto'
