@@ -104,6 +104,7 @@ class LoggerConnector:
         self.trainer.log_every_n_steps = log_every_n_steps
 
         self.trainer.move_metrics_to_cpu = move_metrics_to_cpu
+        self.trainer.split_idx = None
 
     @property
     def should_flush_logs(self):
