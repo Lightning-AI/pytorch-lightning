@@ -12,23 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from collections import ChainMap
+from copy import deepcopy
 from pprint import pprint
 from typing import Iterable, Union, cast
-from copy import deepcopy
-from collections import ChainMap
+
 import torch
+
 from pytorch_lightning.core import memory
-from pytorch_lightning.loggers import TensorBoardLogger, LoggerCollection
-from pytorch_lightning.utilities import flatten_dict
-from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.core.step_result import EvalResult, Result
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
 from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import (
+    LOOKUP_TABLE,
     EpochResultStore,
     LoggerStages,
-    LOOKUP_TABLE
 )
+from pytorch_lightning.utilities import flatten_dict
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.model_utils import is_overridden
 
 
 class LoggerConnector:
@@ -258,6 +260,11 @@ class LoggerConnector:
             self.add_to_eval_loop_results(dl_idx, has_been_initialized)
 
     def get_evaluate_epoch_results(self, test_mode):
+        if not self.trainer.running_sanity_check:
+            # log all the metrics as a single dict
+            metrics_to_log = self.cached_results.get_epoch_log_metrics()
+            if len(metrics_to_log) > 0:
+                self.log_metrics(metrics_to_log, {})
 
         self.prepare_eval_loop_results()
 
