@@ -12,17 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import torch
-from pytorch_lightning.core import memory
-from pytorch_lightning.loggers import TensorBoardLogger, LoggerCollection
-from pytorch_lightning.utilities import flatten_dict
-from pytorch_lightning.utilities.model_utils import is_overridden
-from pytorch_lightning.core.step_result import EvalResult, Result
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from collections import ChainMap
+from copy import deepcopy
 from pprint import pprint
 from typing import Iterable
-from copy import deepcopy
-from collections import ChainMap
+
+import torch
+
+from pytorch_lightning.core import memory
+from pytorch_lightning.core.step_result import EvalResult, Result
+from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
+from pytorch_lightning.utilities import flatten_dict
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.model_utils import is_overridden
 
 
 class LoggerConnector:
@@ -41,6 +43,18 @@ class LoggerConnector:
         #  and assign here the desired value
         self.trainer.flush_logs_every_n_steps = flush_logs_every_n_steps
         self.trainer.log_every_n_steps = log_every_n_steps
+
+        self.trainer.split_idx = None
+
+    @property
+    def should_flush_logs(self):
+        should_flush = (self.trainer.global_step + 1) % self.trainer.flush_logs_every_n_steps == 0
+        return should_flush or self.trainer.should_stop
+
+    @property
+    def should_update_logs(self):
+        should_log_every_n_steps = (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0
+        return should_log_every_n_steps or self.trainer.should_stop
 
     def configure_logger(self, logger):
         if logger is True:
