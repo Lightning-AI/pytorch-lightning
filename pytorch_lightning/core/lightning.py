@@ -1684,8 +1684,12 @@ class LightningModule(
             self._hparams = hp
 
     @torch.no_grad()
-    def to_onnx(self, file_path: Union[str, Path],
-                input_sample: Optional[Union[Tensor, Tuple[Tensor]]] = None, **kwargs):
+    def to_onnx(
+            self,
+            file_path: Union[str, Path],
+            input_sample: Optional[Union[Tensor, Tuple[Tensor]]] = None,
+            **kwargs,
+    ):
         """Saves the model in ONNX format
 
         Args:
@@ -1734,8 +1738,11 @@ class LightningModule(
 
     @torch.no_grad()
     def to_torchscript(
-        self, file_path: Optional[Union[str, Path]] = None, method: Optional[str] = 'script',
-        example_inputs: Optional[Union[Tensor, Sequence[Tensor]]] = None, **kwargs
+        self,
+        file_path: Optional[Union[str, Path]] = None,
+        method: Optional[str] = 'script',
+        example_inputs: Optional[Union[Tensor, Sequence[Tensor]]] = None,
+        **kwargs,
     ) -> Union[ScriptModule, Dict[str, ScriptModule]]:
         """
         By default compiles the whole model to a :class:`~torch.jit.ScriptModule`.

@@ -150,27 +150,27 @@ def test_model_saves_with_sequence_input(tmpdir):
         def forward(self, x, y=None):
             return super().forward(x)
 
-    def test_onnx_export(model, input_sample):
+    def _assert_onnx_export(model, input_sample):
         file_path = os.path.join(tmpdir, "model.onnx")
         model.to_onnx(file_path, input_sample)
         assert os.path.exists(file_path) is True
 
     model = CustomModel()
-    trainer = Trainer(max_epochs=1)
+    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
     trainer.fit(model)
 
     # tuple input
     input_sample = (torch.randn(1, 32), torch.randn(1, 32))
-    test_onnx_export(model, input_sample)
+    _assert_onnx_export(model, input_sample)
 
     # NamedTuple input
     input_sample = namedtuple('sample', ['x', 'y'])
     input_sample = input_sample(x=torch.randn(1, 32), y=torch.randn(1, 32))
-    test_onnx_export(model, input_sample)
+    _assert_onnx_export(model, input_sample)
 
     with pytest.raises(ValueError, match='neither a Tensor nor tuple of Tensors'):
         input_sample = (torch.randn(1, 32), np.random.randn(1, 32))
-        test_onnx_export(model, input_sample)
+        _assert_onnx_export(model, input_sample)
 
 
 def test_error_with_invalid_input(tmpdir):
@@ -183,7 +183,7 @@ def test_error_with_invalid_input(tmpdir):
             return super().forward(x)
 
     model = CustomModel()
-    trainer = Trainer(max_epochs=1)
+    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
     trainer.fit(model)
 
     file_path = os.path.join(tmpdir, "model.onnx")
