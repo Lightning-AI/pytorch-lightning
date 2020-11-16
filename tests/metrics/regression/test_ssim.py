@@ -51,7 +51,7 @@ def _sk_metric(preds, target, data_range, multichannel):
     [(i.preds, i.target, i.multichannel) for i in _inputs],
 )
 class TestSSIM(MetricTester):
-    atol = 6e-5  # TODO: ideally tests should pass with lower tolerance
+    atol = 6e-5
 
     # TODO: for some reason this test hangs with ddp=True
     # @pytest.mark.parametrize("ddp", [True, False])
