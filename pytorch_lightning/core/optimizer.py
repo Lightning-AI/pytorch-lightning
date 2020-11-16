@@ -186,7 +186,7 @@ class LightningOptimizer(Optimizer):
         # perform manual_backward
         model_ref.manual_backward(loss, self, *args, **kwargs)
 
-    def step(self, *args, closure: Callable = do_nothing_closure, **kwargs):
+    def step(self, *args, closure: Callable = None, **kwargs):
         """
         Call this directly from your training_step when doing optimizations manually.
         By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
@@ -197,6 +197,9 @@ class LightningOptimizer(Optimizer):
         Args:
             closure: Closure should contain forward and backward step
         """
+
+        if closure is None:
+            closure = do_nothing_closure
 
         if not self._should_accumulate:
             if self._trainer.on_tpu:
