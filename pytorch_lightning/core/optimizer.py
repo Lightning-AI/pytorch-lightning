@@ -58,23 +58,24 @@ class LightningOptimizer(Optimizer):
     """
 
     def __init__(self,
-                 trainer,
                  optimizer: Optimizer = None,
-                 optimizer_idx: Optional[int] = None,
                  accumulate_grad_batches: Optional[int] = None):
 
-        if isinstance(accumulate_grad_batches, int) and accumulate_grad_batches >= 1:
+        if isinstance(accumulate_grad_batches, int) and accumulate_grad_batches < 1:
             raise MisconfigurationException(f"accumulate_grad_batches parameters "
                                             f"{accumulate_grad_batches} should be >= 1")
 
-        self._trainer = trainer
+        self._trainer = None
         self._optimizer = optimizer
-        self._optimizer_idx = optimizer_idx
-        if accumulate_grad_batches is None:
-            self._accumulate_grad_batches = trainer.accumulate_grad_batches
-        else:
-            self._accumulate_grad_batches = accumulate_grad_batches
+        self._optimizer_idx = None
+        self._accumulate_grad_batches = accumulate_grad_batches
         self._expose_optimizer_attr()
+
+    def _on_trainer_init(self, trainer, optimizer_idx, accumulate_grad_batches):
+        self._trainer = trainer
+        self._optimizer_idx = optimizer_idx
+        if self._accumulate_grad_batches is None:
+            self._accumulate_grad_batches = accumulate_grad_batches
 
     @property
     def accumulate_grad_batches(self):

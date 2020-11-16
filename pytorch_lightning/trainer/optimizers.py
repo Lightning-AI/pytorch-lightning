@@ -19,8 +19,8 @@ import torch
 from torch import optim
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -78,11 +78,18 @@ class TrainerOptimizersMixin(ABC):
         lr_schedulers = self.configure_schedulers(lr_schedulers, monitor=monitor)
 
         if self.use_lightning_optimizer:
-            optimizers = [LightningOptimizer(self, optimizer=opt, optimizer_idx=opt_idx)
-                          if not isinstance(opt, LightningOptimizer) else opt
+            optimizers = [self.convert_to_lightning_optimizers(opt, opt_idx)
                           for opt_idx, opt in enumerate(optimizers)]
 
         return optimizers, lr_schedulers, optimizer_frequencies
+
+    def convert_to_lightning_optimizers(self, opt, opt_idx):
+        if not isinstance(opt, LightningOptimizer):
+            lightning_opt = LightningOptimizer(opt)
+        else:
+            lightning_opt = opt
+        lightning_opt._on_trainer_init(self, opt_idx, self.accumulate_grad_batches)
+        return lightning_opt
 
     def configure_schedulers(self, schedulers: list, monitor: Optional[str] = None):
         # Convert each scheduler into dict structure with relevant information
