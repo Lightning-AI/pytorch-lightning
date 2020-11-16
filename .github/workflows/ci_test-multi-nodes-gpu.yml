@@ -79,6 +79,8 @@ jobs:
       shell: bash
       run: |
         echo "::set-output name=ID::$(echo '${{ steps.vars.outputs.SHA }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}' | tr . - )"
+        echo "::set-output name=PYTHON_VERSION::$(echo '${{ matrix.python-version }}' | tr . - )"
+        echo "::set-output name=PYTORCH_VERSION::$(echo '${{ matrix.pytorch-version }}' | tr . - )"
     
     #- uses: whoan/docker-build-with-cache-action@v5
     #  with:
@@ -91,7 +93,7 @@ jobs:
 
     - name: Update Test Configuration File
       run: |
-        python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; req = open(fname).read().replace('{PYTHON_VERSION}', '${{ matrix.python-version }}').replace('{SHA}', '${{ steps.vars.outputs.SHA }}').replace('{PYTORCH_VERSION}', '${{ matrix.pytorch-version }}').replace('{NODES}', '$NODES').replace('{NUM_GPUS}', '$NUM_GPUS') ; open(fname, 'w').write(req)"
+        python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; req = open(fname).read().replace('{PYTHON_VERSION}', '${{ steps.job.outputs.PYTHON_VERSION }}').replace('{SHA}', '${{ steps.vars.outputs.SHA }}').replace('{PYTORCH_VERSION}', '${{ steps.job.outputs.PYTORCH_VERSION }}').replace('{NODES}', '$NODES').replace('{NUM_GPUS}', '$NUM_GPUS') ; open(fname, 'w').write(req)"
         python -c "fname = './.github/multi-nodes/multi-nodes-gpu.yaml' ; print(open(fname).read())"          
 
     - name: Install EKSClient
