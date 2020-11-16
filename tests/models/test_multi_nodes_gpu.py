@@ -12,31 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
-
-import os
-import collections
-import pytest
-import itertools
-import numpy as np
-
 import torch
-from torch.utils.data import Dataset
-
-import pytorch_lightning as pl
-from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning import Trainer, callbacks
-
-from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
-from tests.base.deterministic_model import DeterministicModel
-
-from pytorch_lightning.trainer import Trainer
-from time import sleep
+import os
+from tests.backends import ddp_model
+from tests.utilities.dist import call_training_script
 
 
-def test_sleep(tmpdir):
-    for i in range(10):
-        sleep(1)
+@pytest.mark.parametrize('cli_args', [
+    pytest.param('--max_epochs 1 --num_nodes 1 --gpus 1 --distributed_backend ddp'),
+])
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_multi_gpu_model_ddp_fit_only(tmpdir, cli_args):
+    # call the script
+    std, err = call_training_script(ddp_model, cli_args, 'fit', tmpdir, timeout=120)
 
+    # load the results of the script
+    result_path = os.path.join(tmpdir, 'ddp.result')
+    result = torch.load(result_path)
 
-
-
+    # verify the file wrote the expected outputs
+    assert result['status'] == 'complete'
