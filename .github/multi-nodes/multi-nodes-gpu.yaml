@@ -5,7 +5,7 @@ metadata:
   namespace: elastic-job
 spec:
   # Use "etcd-service:2379" if you already apply etcd.yaml
-  rdzvEndpoint: "{TCP_ADDRESS}"
+  rdzvEndpoint: "localhost:2379"
   minReplicas: 2
   maxReplicas: 2
   replicaSpecs:
