@@ -19,6 +19,15 @@ but you can pass to the :class:`~pytorch_lightning.trainer.trainer.Trainer` any 
 
 Read more about :ref:`logging` options.
 
+To log arbitrary artifacts like images or audio samples use the `trainer.log_dir` property to resolve
+the path.
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        img = ...
+        log_image(img, self.trainer.log_dir)
+
 Comet.ml
 ========
 

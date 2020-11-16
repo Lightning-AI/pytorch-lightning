@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Abstract base class used to build new loggers."""
+
 import argparse
 import functools
 import operator
@@ -188,7 +190,7 @@ class LightningLoggerBase(ABC):
                         return val.__name__
                     return _val
                 except Exception:
-                    return val.__name__
+                    return getattr(val, "__name__", None)
             return val
 
         return {key: _sanitize_callable(val) for key, val in params.items()}
