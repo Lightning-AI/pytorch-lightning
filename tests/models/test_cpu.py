@@ -21,16 +21,15 @@ import torch
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import EarlyStopping, Callback, ModelCheckpoint
 from pytorch_lightning.core.step_result import TrainResult
-from tests.base import EvalModelTemplate
+from tests.base import EvalModelTemplate, BoringModel
 
 
 def test_cpu_slurm_save_load(tmpdir):
     """Verify model save/load/checkpoint on CPU."""
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
+    hparams = BoringModel.get_default_hparams()
+    model = BoringModel(**hparams)
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -49,7 +48,7 @@ def test_cpu_slurm_save_load(tmpdir):
     real_global_step = trainer.global_step
 
     # traning complete
-    assert result == 1, 'cpu model failed to complete'
+    assert result == 1, "cpu model failed to complete"
 
     # predict with trained model before saving
     # make a prediction
@@ -61,11 +60,8 @@ def test_cpu_slurm_save_load(tmpdir):
         for batch in dataloader:
             break
 
-    x, y = batch
-    x = x.view(x.size(0), -1)
-
     model.eval()
-    pred_before_saving = model(x)
+    pred_before_saving = model(batch)
 
     # test HPC saving
     # simulate snapshot on slurm
@@ -75,25 +71,26 @@ def test_cpu_slurm_save_load(tmpdir):
     # new logger file to get meta
     logger = tutils.get_default_logger(tmpdir, version=version)
 
+    model = BoringModel(**hparams)
+
+    class _StartCallback(Callback):
+        def on_init_start(self, trainer):
+            print("Starting to init trainer!")
+
+        # set the epoch start hook so we can predict before the model does the full training
+        def on_epoch_start(self, trainer, model):
+            assert trainer.global_step == real_global_step and trainer.global_step > 0
+            # predict with loaded model to make sure answers are the same
+            model.eval()
+            new_pred = model(batch)
+            assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
+
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
+        callbacks=[_StartCallback(), ModelCheckpoint(dirpath=tmpdir)],
     )
-    model = EvalModelTemplate(**hparams)
-
-    # set the epoch start hook so we can predict before the model does the full training
-    def assert_pred_same():
-        assert trainer.global_step == real_global_step and trainer.global_step > 0
-
-        # predict with loaded model to make sure answers are the same
-        trainer.model.eval()
-        new_pred = trainer.model(x)
-        assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
-
-    model.on_epoch_start = assert_pred_same
-
     # by calling fit again, we trigger training, loading weights from the cluster
     # and our hook to predict using current model before any more weight updates
     trainer.fit(model)
@@ -101,7 +98,7 @@ def test_cpu_slurm_save_load(tmpdir):
 
 def test_early_stopping_cpu_model(tmpdir):
     """Test each of the trainer options."""
-    stopping = EarlyStopping(monitor='early_stop_on', min_delta=0.1)
+    stopping = EarlyStopping(monitor="early_stop_on", min_delta=0.1)
     trainer_options = dict(
         default_root_dir=tmpdir,
         callbacks=[stopping],
@@ -121,11 +118,11 @@ def test_early_stopping_cpu_model(tmpdir):
     model.unfreeze()
 
 
-@pytest.mark.skipif(platform.system() == "Windows",
-                    reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif((platform.system() == "Darwin" and
-                     LooseVersion(torch.__version__) < LooseVersion("1.3.0")),
-                    reason="Distributed training is not supported on MacOS before Torch 1.3.0")
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(
+    (platform.system() == "Darwin" and LooseVersion(torch.__version__) < LooseVersion("1.3.0")),
+    reason="Distributed training is not supported on MacOS before Torch 1.3.0",
+)
 def test_multi_cpu_model_ddp(tmpdir):
     """Make sure DDP works."""
     tutils.set_random_master_port()
@@ -138,7 +135,7 @@ def test_multi_cpu_model_ddp(tmpdir):
         limit_val_batches=0.2,
         gpus=None,
         num_processes=2,
-        distributed_backend='ddp_cpu',
+        distributed_backend="ddp_cpu",
     )
 
     model = EvalModelTemplate()
@@ -151,14 +148,13 @@ def test_lbfgs_cpu_model(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         progress_bar_refresh_rate=0,
-        weights_summary='top',
+        weights_summary="top",
         limit_train_batches=0.2,
         limit_val_batches=0.2,
     )
 
     hparams = EvalModelTemplate.get_default_hparams()
-    hparams.update(optimizer_name='lbfgs',
-                   learning_rate=0.004)
+    hparams.update(optimizer_name="lbfgs", learning_rate=0.004)
     model = EvalModelTemplate(**hparams)
     model.configure_optimizers = model.configure_optimizers__lbfgs
     tpipes.run_model_test_without_loggers(trainer_options, model, min_acc=0.25)
@@ -207,7 +203,7 @@ def test_running_test_after_fitting(tmpdir):
     )
     result = trainer.fit(model)
 
-    assert result == 1, 'training failed to complete'
+    assert result == 1, "training failed to complete"
 
     trainer.test()
 
@@ -238,7 +234,7 @@ def test_running_test_no_val(tmpdir):
     )
     result = trainer.fit(model)
 
-    assert result == 1, 'training failed to complete'
+    assert result == 1, "training failed to complete"
 
     trainer.test()
 
@@ -260,7 +256,7 @@ def test_simple_cpu(tmpdir):
     result = trainer.fit(model)
 
     # traning complete
-    assert result == 1, 'amp + ddp model failed to complete'
+    assert result == 1, "amp + ddp model failed to complete"
 
 
 def test_cpu_model(tmpdir):
@@ -270,7 +266,7 @@ def test_cpu_model(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=1,
         limit_train_batches=0.4,
-        limit_val_batches=0.4
+        limit_val_batches=0.4,
     )
 
     model = EvalModelTemplate()
@@ -289,7 +285,7 @@ def test_all_features_cpu_model(tmpdir):
         accumulate_grad_batches=2,
         max_epochs=1,
         limit_train_batches=0.4,
-        limit_val_batches=0.4
+        limit_val_batches=0.4,
     )
 
     model = EvalModelTemplate()
@@ -328,18 +324,17 @@ def test_tbptt_cpu_model(tmpdir):
             assert y_tensor.shape[1] == truncated_bptt_steps, "tbptt split list failed"
 
             pred = self(x_tensor.view(batch_size, truncated_bptt_steps))
-            loss_val = torch.nn.functional.mse_loss(
-                pred, y_tensor.view(batch_size, truncated_bptt_steps))
+            loss_val = torch.nn.functional.mse_loss(pred, y_tensor.view(batch_size, truncated_bptt_steps))
             return {
-                'loss': loss_val,
-                'hiddens': self.test_hidden,
+                "loss": loss_val,
+                "hiddens": self.test_hidden,
             }
 
         def training_epoch_end(self, training_step_outputs):
             training_step_outputs = training_step_outputs[0]
             assert len(training_step_outputs) == (sequence_size / truncated_bptt_steps)
-            loss = torch.stack([x['loss'] for x in training_step_outputs]).mean()
-            self.log('train_loss', loss)
+            loss = torch.stack([x["loss"] for x in training_step_outputs]).mean()
+            self.log("train_loss", loss)
 
         def train_dataloader(self):
             return torch.utils.data.DataLoader(
@@ -354,7 +349,7 @@ def test_tbptt_cpu_model(tmpdir):
         batch_size=batch_size,
         in_features=truncated_bptt_steps,
         hidden_dim=truncated_bptt_steps,
-        out_features=truncated_bptt_steps
+        out_features=truncated_bptt_steps,
     )
 
     model = BpttTestModel(**hparams)
@@ -370,7 +365,7 @@ def test_tbptt_cpu_model(tmpdir):
     )
     result = trainer.fit(model)
 
-    assert result == 1, 'training failed to complete'
+    assert result == 1, "training failed to complete"
 
 
 def test_tbptt_cpu_model_result(tmpdir):
@@ -405,8 +400,7 @@ def test_tbptt_cpu_model_result(tmpdir):
             assert y_tensor.shape[1] == truncated_bptt_steps, "tbptt split list failed"
 
             pred = self(x_tensor.view(batch_size, truncated_bptt_steps))
-            loss_val = torch.nn.functional.mse_loss(
-                pred, y_tensor.view(batch_size, truncated_bptt_steps))
+            loss_val = torch.nn.functional.mse_loss(pred, y_tensor.view(batch_size, truncated_bptt_steps))
 
             result = TrainResult(loss_val, hiddens=self.test_hidden)
             return result
@@ -432,7 +426,7 @@ def test_tbptt_cpu_model_result(tmpdir):
         batch_size=batch_size,
         in_features=truncated_bptt_steps,
         hidden_dim=truncated_bptt_steps,
-        out_features=truncated_bptt_steps
+        out_features=truncated_bptt_steps,
     )
 
     model = BpttTestModel(**hparams)
@@ -448,7 +442,7 @@ def test_tbptt_cpu_model_result(tmpdir):
     )
     result = trainer.fit(model)
 
-    assert result == 1, 'training failed to complete'
+    assert result == 1, "training failed to complete"
 
 
 def test_tbptt_cpu_model_result_auto_reduce(tmpdir):
@@ -483,8 +477,7 @@ def test_tbptt_cpu_model_result_auto_reduce(tmpdir):
             assert y_tensor.shape[1] == truncated_bptt_steps, "tbptt split list failed"
 
             pred = self(x_tensor.view(batch_size, truncated_bptt_steps))
-            loss_val = torch.nn.functional.mse_loss(
-                pred, y_tensor.view(batch_size, truncated_bptt_steps))
+            loss_val = torch.nn.functional.mse_loss(pred, y_tensor.view(batch_size, truncated_bptt_steps))
 
             result = TrainResult(loss_val, hiddens=self.test_hidden)
             return result
@@ -502,7 +495,7 @@ def test_tbptt_cpu_model_result_auto_reduce(tmpdir):
         batch_size=batch_size,
         in_features=truncated_bptt_steps,
         hidden_dim=truncated_bptt_steps,
-        out_features=truncated_bptt_steps
+        out_features=truncated_bptt_steps,
     )
 
     model = BpttTestModel(**hparams)
@@ -518,4 +511,4 @@ def test_tbptt_cpu_model_result_auto_reduce(tmpdir):
     )
     result = trainer.fit(model)
 
-    assert result == 1, 'training failed to complete'
+    assert result == 1, "training failed to complete"

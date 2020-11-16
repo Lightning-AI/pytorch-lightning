@@ -24,7 +24,7 @@ class RandomDictDataset(Dataset):
     def __getitem__(self, index):
         a = self.data[index]
         b = a + 2
-        return {'a': a, 'b': b}
+        return {"a": a, "b": b}
 
     def __len__(self):
         return self.len
@@ -55,8 +55,14 @@ class RandomDataset(Dataset):
 
 
 class BoringModel(LightningModule):
-
-    def __init__(self):
+    def __init__(
+        self,
+        batch_size: int = 1,
+        in_features: int = 32,
+        learning_rate: float = 0.1,
+        optimizer_name: str = "SGD",
+        out_features: int = 2,
+    ):
         """
         Testing PL Module
 
@@ -75,7 +81,12 @@ class BoringModel(LightningModule):
 
         """
         super().__init__()
-        self.layer = torch.nn.Linear(32, 2)
+        self.layer = torch.nn.Linear(in_features, out_features)
+        self.batch_size = batch_size
+        self.in_features = in_features
+        self.learning_rate = learning_rate
+        self.optimizer_name = optimizer_name
+        self.out_features = out_features
 
     def forward(self, x):
         return self.layer(x)
@@ -106,7 +117,7 @@ class BoringModel(LightningModule):
         return {"x": loss}
 
     def validation_epoch_end(self, outputs) -> None:
-        torch.stack([x['x'] for x in outputs]).mean()
+        torch.stack([x["x"] for x in outputs]).mean()
 
     def test_step(self, batch, batch_idx):
         output = self.layer(batch)
@@ -117,15 +128,26 @@ class BoringModel(LightningModule):
         torch.stack([x["y"] for x in outputs]).mean()
 
     def configure_optimizers(self):
-        optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+        optimizer = getattr(torch.optim, self.optimizer_name)(self.layer.parameters(), lr=self.learning_rate)
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
         return [optimizer], [lr_scheduler]
 
     def train_dataloader(self):
-        return torch.utils.data.DataLoader(RandomDataset(32, 64))
+        return torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)
 
     def val_dataloader(self):
-        return torch.utils.data.DataLoader(RandomDataset(32, 64))
+        return torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)
 
     def test_dataloader(self):
-        return torch.utils.data.DataLoader(RandomDataset(32, 64))
+        return torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)
+
+    def get_default_hparams(continue_training: bool = False, hpc_exp_number: int = 0) -> dict:
+        args = dict(
+            batch_size=1,
+            in_features=32,
+            learning_rate=0.1,
+            optimizer_name="SGD",
+            out_features=2,
+        )
+
+        return args
