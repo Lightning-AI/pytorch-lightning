@@ -139,10 +139,11 @@ You can manually save checkpoints and restore your model from the checkpointed s
     trainer.save_checkpoint("example.ckpt")
     new_model = MyModel.load_from_checkpoint(checkpoint_path="example.ckpt")
 
-Manual saving with DDP
+Manual saving with accelerators
 ======================
 
-Lightning also handles accelerators such as DDP, where multiple processes are used. In this scenario, we only save on the main process.
+Lightning also handles accelerators such as DDP where multiple processes are required. For example, using DDP our training script is run across multiple devices automatically to parallelize training.
+Lightning automatically ensures that the model is saved only on the main process, whilst other processes do not interfere with saving checkpoints. This requires no code changes as seen below.
 
 .. code-block:: python
 
