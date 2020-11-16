@@ -376,7 +376,7 @@ class CheckpointConnector:
 
         max_suffix = self.max_ckpt_in_folder(folder_path)
         ckpt_number = max_suffix if max_suffix is not None else 0
-        return  f'{folder_path}/hpc_ckpt_{ckpt_number}.ckpt'
+        return f'{folder_path}/hpc_ckpt_{ckpt_number}.ckpt'
 
     def save_checkpoint(self, filepath, weights_only: bool = False):
         """Save model/training states as a checkpoint file through state-dump and file-write.
