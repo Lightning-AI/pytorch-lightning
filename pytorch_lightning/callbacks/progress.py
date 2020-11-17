@@ -282,9 +282,13 @@ class ProgressBar(ProgressBarBase):
 
     def init_validation_tqdm(self) -> tqdm:
         """ Override this to customize the tqdm bar for validation. """
+
+        # The main progress bar doesn't exist in trainer.validate(...)
+        has_main_bar = 1 if self.main_progress_bar else 0
+
         bar = tqdm(
             desc='Validating',
-            position=(2 * self.process_position + 1),
+            position=(2 * self.process_position + has_main_bar),
             disable=self.is_disabled,
             leave=False,
             dynamic_ncols=True,
@@ -348,11 +352,18 @@ class ProgressBar(ProgressBarBase):
         super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         if self.is_enabled and self.val_batch_idx % self.refresh_rate == 0:
             self.val_progress_bar.update(self.refresh_rate)
-            self.main_progress_bar.update(self.refresh_rate)
+
+            # The main progress bar doesn't exist in trainer.validate(...)
+            if self.main_progress_bar:
+                self.main_progress_bar.update(self.refresh_rate)
 
     def on_validation_end(self, trainer, pl_module):
         super().on_validation_end(trainer, pl_module)
-        self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
+
+        # The main progress bar doesn't exist in trainer.validate(...)
+        if self.main_progress_bar:
+            self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
+
         self.val_progress_bar.close()
 
     def on_train_end(self, trainer, pl_module):
