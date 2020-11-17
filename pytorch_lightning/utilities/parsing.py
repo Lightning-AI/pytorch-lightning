@@ -195,10 +195,7 @@ def lightning_getattr(model, attribute):
     # Check if attribute in model.hparams, either namespace or dict
     if hasattr(model, 'hparams'):
         if isinstance(model.hparams, dict):
-            try:
-                return model.hparams[attribute]
-            except KeyError:
-                pass
+            model.hparams.get(attribute)
         else:
             return getattr(model.hparams, attribute)
 
