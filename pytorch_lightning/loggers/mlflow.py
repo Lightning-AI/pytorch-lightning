@@ -158,8 +158,9 @@ class MLFlowLogger(LightningLoggerBase):
 
             new_k = re.sub("[^a-zA-Z0-9_/. -]+", "", k)
             if k != new_k:
-                warnings.warn(("MLFlow only allows '_', '/', '.' and ' ' special characters in metric name.\n",
-                               f"Replacing {k} with {new_k}."))
+                warn_msg = "MLFlow only allows '_', '/', '.' and ' ' special characters in metric name.\n"\
+                    f"Replacing {k} with {new_k}."
+                warnings.warn(warn_msg)
             k = new_k
 
             self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
