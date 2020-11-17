@@ -658,7 +658,7 @@ Under the hood the pseudocode looks like this when running *fast_dev_run* with a
 
     This argument is a bit different from ``limit_train/val/test_batches``. Setting this argument will
     disable tuner, logger callbacks like ``LearningRateLogger`` and runs for only 1 epoch. This must be
-    used only for debugging purpose. ``limit_train/val/test_batches`` serves their own purpose and won't
+    used only for debugging purposes. ``limit_train/val/test_batches`` only limits the number of batches and won't
     disable anything.
 
 gpus
@@ -1704,4 +1704,3 @@ The metrics sent to the progress bar.
 
     progress_bar_metrics = trainer.progress_bar_metrics
     assert progress_bar_metrics['a_val'] == 2
-
