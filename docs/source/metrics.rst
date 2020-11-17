@@ -340,6 +340,12 @@ FBeta
 
 .. autoclass:: pytorch_lightning.metrics.classification.FBeta
     :noindex:
+    
+Iou
+~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.Iou
+    :noindex:
 
 Hamming Distance
 ~~~~~~~~~~~~~~~~
