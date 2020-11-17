@@ -57,6 +57,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed notebooks typo ([#4657](https://github.com/PyTorchLightning/pytorch-lightning/pull/4657))
 - Allowing decorate model init with saving `hparams` inside ([#4662](https://github.com/PyTorchLightning/pytorch-lightning/pull/4662))
 - Fixed `split_idx` set by `LoggerConnector` in `on_trainer_init` to `Trainer`  ([#4697](https://github.com/PyTorchLightning/pytorch-lightning/pull/4697))
+- Restore `pl_examples` testing ([#4551](https://github.com/PyTorchLightning/pytorch-lightning/pull/4551))
 
 
 
