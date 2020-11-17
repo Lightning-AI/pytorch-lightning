@@ -539,8 +539,7 @@ class TrainLoop:
             batch_output = self.run_training_batch(batch, batch_idx, dataloader_idx)
 
             # update LR schedulers
-            monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
-            self._update_train_loop_lr_schedulers_step(monitor_metrics=monitor_metrics)
+            self._update_train_loop_lr_schedulers_step()
             self._update_train_loop_lr_schedulers_epoch(is_last_batch, batch_output.signal)
 
             # when returning -1 from train_step, we end epoch early
@@ -580,7 +579,7 @@ class TrainLoop:
 
             self.trainer.checkpoint_connector.has_trained = True
 
-            # max steps reached and accumulation accross batches has completed, end training
+            # max steps reached and accumulation across batches has completed, end training
             if (
                 self.trainer.max_steps is not None
                 and self.trainer.max_steps == self.trainer.global_step + 1
@@ -808,13 +807,13 @@ class TrainLoop:
             # track gradients
             self.track_and_norm_grad(optimizer=optimizer)
 
-    def _update_train_loop_lr_schedulers_step(self, monitor_metrics=None):
+    def _update_train_loop_lr_schedulers_step(self):
         num_accumulated_batches_reached = self._accumulated_batches_reached()
         num_training_batches_reached = self._num_training_batches_reached()
 
         if num_accumulated_batches_reached or num_training_batches_reached:
             # update lr
-            self.trainer.optimizer_connector.update_learning_rates(interval="step", monitor_metrics=monitor_metrics)
+            self.trainer.optimizer_connector.update_learning_rates(interval="step")
 
     def _update_train_loop_lr_schedulers_epoch(self, is_last_batch, batch_signal):
         num_training_batches_reached = self._num_training_batches_reached()

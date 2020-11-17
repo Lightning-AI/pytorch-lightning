@@ -24,7 +24,7 @@ class OptimizerConnector:
         self.trainer.optimizers = []
         self.trainer.optimizer_frequencies = []
 
-    def update_learning_rates(self, interval: str, monitor_metrics=None):
+    def update_learning_rates(self, interval: str):
         """Update learning rates.
 
         Args:
