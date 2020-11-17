@@ -16,6 +16,7 @@ import torch
 from pytorch_lightning.metrics.functional.reduction import reduce
 from pytorch_lightning.metrics.functional.confusion_matrix import _confusion_matrix_compute
 from pytorch_lightning.metrics.classification.confusion_matrix import ConfusionMatrix
+from pytorch_lightning.metrics.classification.iou import _iou_from_confmat
 
 
 class IoU(ConfusionMatrix):
@@ -44,7 +45,6 @@ class IoU(ConfusionMatrix):
             `pred` AND no instances of the class index were present in `target`. For example, if we have 3 classes,
             [0, 0] for `pred`, and [0, 2] for `target`, then class 1 would be assigned the `absent_score`. Default is
             0.0.
-        num_classes: Optionally specify the number of classes
         threshold:
             Threshold value for binary or multi-label logits. default: 0.5
         reduction: a method to reduce metric score over labels.
@@ -99,15 +99,4 @@ class IoU(ConfusionMatrix):
         """
         Computes iou
         """
-        confmat = _confusion_matrix_compute(self.confmat, self.normalize)
-        intersection = torch.diag(confmat)
-        union = confmat.sum(0) + confmat.sum(1) - intersection
-        # Remove the ignored class index from the scores.
-        scores = intersection / union
-        scores[union == 0] = self.absent_score
-        if self.ignore_index is not None and self.ignore_index >= 0 and self.ignore_index < self.num_classes:
-            scores = torch.cat([
-                scores[:self.ignore_index],
-                scores[self.ignore_index + 1:],
-            ])
-        return reduce(scores, reduction=self.reduction)
+        return _iou_from_confmat(self.confmat, self.num_classes, self.ignore_index, self.absent_score, self.reduction)
