@@ -718,6 +718,8 @@ def iou(
             `pred` AND no instances of the class index were present in `target`. For example, if we have 3 classes,
             [0, 0] for `pred`, and [0, 2] for `target`, then class 1 would be assigned the `absent_score`. Default is
             0.0.
+        threshold:
+            Threshold value for binary or multi-label logits. default: 0.5
         num_classes: Optionally specify the number of classes
         reduction: a method to reduce metric score over labels.
 
