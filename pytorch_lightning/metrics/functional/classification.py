@@ -18,6 +18,7 @@ import torch
 from distutils.version import LooseVersion
 
 from pytorch_lightning.metrics.functional.average_precision import average_precision as __ap
+from pytorch_lightning.metrics.functional.confusion_matrix import _confusion_matrix_update
 from pytorch_lightning.metrics.functional.precision_recall_curve import (
     _binary_clf_curve,
     precision_recall_curve as __prc
