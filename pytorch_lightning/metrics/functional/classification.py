@@ -692,11 +692,19 @@ def iou(
         target: torch.Tensor,
         ignore_index: Optional[int] = None,
         absent_score: float = 0.0,
+        threshold: float = 0.5,
         num_classes: Optional[int] = None,
         reduction: str = 'elementwise_mean',
 ) -> torch.Tensor:
     """
-    Intersection over union, or Jaccard index calculation.
+    Intersection over union, or Jaccard index calculation. Works with binary, multiclass, and multilabel data.
+    Accepts logits from a model output or integer class values in prediction.
+    Works with multi-dimensional preds and target.
+
+    If pred and target are the same shape and pred is a float tensor, we use the ``threshold`` argument.
+    This is the case for binary and multi-label logits.
+
+    If pred has an extra dimension as in the case of multi-class scores we perform an argmax on ``dim=1``.
 
     Args:
         pred: Tensor containing integer predictions, with shape [N, d1, d2, ...]
@@ -729,47 +737,21 @@ def iou(
         tensor(0.9660)
 
     """
-    if pred.size() != target.size():
-        raise ValueError(f"'pred' shape ({pred.size()}) must equal 'target' shape ({target.size()})")
-
-    if not torch.allclose(pred.float(), pred.int().float()):
-        raise ValueError("'pred' must contain integer targets.")
 
     num_classes = get_num_classes(pred=pred, target=target, num_classes=num_classes)
 
-    tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred, target, num_classes)
-
-    scores = torch.zeros(num_classes, device=pred.device, dtype=torch.float32)
-
-    for class_idx in range(num_classes):
-        if class_idx == ignore_index:
-            continue
-
-        tp = tps[class_idx]
-        fp = fps[class_idx]
-        fn = fns[class_idx]
-        sup = sups[class_idx]
-
-        # If this class is absent in the target (no support) AND absent in the pred (no true or false
-        # positives), then use the absent_score for this class.
-        if sup + tp + fp == 0:
-            scores[class_idx] = absent_score
-            continue
-
-        denom = tp + fp + fn
-        # Note that we do not need to worry about division-by-zero here since we know (sup + tp + fp != 0) from above,
-        # which means ((tp+fn) + tp + fp != 0), which means (2tp + fp + fn != 0). Since all vars are non-negative, we
-        # can conclude (tp + fp + fn > 0), meaning the denominator is non-zero for each class.
-        score = tp.to(torch.float) / denom
-        scores[class_idx] = score
-
+    confmat = _confusion_matrix_update(pred, target, num_classes, threshold)
+    intersection = torch.diag(confmat)
+    union = confmat.sum(0) + confmat.sum(1) - intersection
     # Remove the ignored class index from the scores.
+    scores = intersection / union
+    scores[union == 0] = absent_score
     if ignore_index is not None and ignore_index >= 0 and ignore_index < num_classes:
         scores = torch.cat([
             scores[:ignore_index],
             scores[ignore_index + 1:],
         ])
-
+        
     return reduce(scores, reduction=reduction)
 
 
