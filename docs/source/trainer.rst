@@ -54,7 +54,7 @@ Under the hood
 --------------
 Under the hood, the Lightning Trainer handles the training loop details for you, some examples include:
 
-- Automatically eenabling/disabling grads
+- Automatically enabling/disabling grads
 - Running the training, validation and test dataloaders
 - Calling the Callbacks at the appropriate times
 - Putting batches and computations on the correct devices
