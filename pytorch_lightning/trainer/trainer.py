@@ -744,7 +744,7 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
-        self.verbose_test = verbose # TODO: rename / else?
+        self.verbose_test = verbose  # TODO: rename / else?
 
         self.logger_connector.set_stage("validation")
 
