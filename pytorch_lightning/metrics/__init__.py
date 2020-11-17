@@ -16,7 +16,7 @@ from pytorch_lightning.metrics.metric import Metric  # noqa: F401
 from pytorch_lightning.metrics.classification import (  # noqa: F401
     Accuracy,
     HammingDistance,
-    Iou,
+    IoU,
     Precision,
     Recall,
     ConfusionMatrix,
