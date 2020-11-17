@@ -43,7 +43,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Isolate `PL_DEV_DEBUG` with `unittest.mock` ([#4643](https://github.com/PyTorchLightning/pytorch-lightning/pull/4643))
 - Improve test for `training_step` with no return ([#4109](https://github.com/PyTorchLightning/pytorch-lightning/pull/4109))
 - Updated `CODEOWNERS` ([#4610](https://github.com/PyTorchLightning/pytorch-lightning/pull/4610), [#4610](https://github.com/PyTorchLightning/pytorch-lightning/pull/4610))
-
+- Change default behaviour of state dict in Metrics ([#4685](https://github.com/PyTorchLightning/pytorch-lightning/pull/4685))
 
 
 ### Fixed
