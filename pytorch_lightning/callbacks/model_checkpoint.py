@@ -158,7 +158,7 @@ class ModelCheckpoint(Callback):
         self.current_score = None
         self.best_k_models = {}
         self.kth_best_model_path = ""
-        self.best_model_score = 0
+        self.best_model_score = None
         self.best_model_path = ""
         self.last_model_path = ""
         self.save_function = None
