@@ -14,13 +14,14 @@
 from argparse import ArgumentParser
 
 import torch
-import pytorch_lightning as pl
 from torch.nn import functional as F
 from torch.utils.data import DataLoader, random_split
 
+import pytorch_lightning as pl
+
 try:
-    from torchvision.datasets.mnist import MNIST
     from torchvision import transforms
+    from torchvision.datasets.mnist import MNIST
 except Exception as e:
     from tests.base.datasets import MNIST
 
@@ -105,7 +106,7 @@ def cli_main():
     # ------------
     # testing
     # ------------
-    trainer.test(test_dataloaders=test_loader)
+    result = trainer.test(test_dataloaders=test_loader)
 
 
 if __name__ == '__main__':
