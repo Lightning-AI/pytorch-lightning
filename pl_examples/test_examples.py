@@ -19,20 +19,20 @@ ARGS_DEFAULT = """
 --limit_val_batches 2 \
 """
 
+ARGS_GPU = ARGS_DEFAULT + """
+--gpus 1 \
+"""
+
 ARGS_DP_AMP = ARGS_DEFAULT + """
 --gpus 2 \
 --distributed_backend dp \
 --precision 16 \
 """
 
-ARGS_GPU = ARGS_DEFAULT + """
---gpus 1 \
-"""
-
 ARGS_DDP_AMP = ARGS_DEFAULT + """
 --gpus 2 \
+--distributed_backend ddp \
 --precision 16 \
---distributed_backend dp \
 """
 
 
