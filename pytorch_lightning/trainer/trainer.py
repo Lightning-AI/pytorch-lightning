@@ -267,6 +267,11 @@ class Trainer(
                     stored in a different place than the logs written in `default_root_dir`.
                     Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
                     Defaults to `default_root_dir`.
+
+            multiple_trainloader_mode: How to loop over the datasets when there are multiple train loaders.
+                In "max_size_cycle" mode, the trainer ends one epoch when the largest dataset is traversed,
+                and smaller datasets reload when running out of their data. In "min_size" mode, all the datasets
+                reload when reaching the minimum length of datasets.
         """
         super().__init__()
 
