@@ -49,7 +49,10 @@ class EarlyStopping(Callback):
             monitored has stopped increasing; in `auto`
             mode, the direction is automatically inferred
             from the name of the monitored quantity. Default: ``'min'``.
-            Setting ``mode='auto'`` has been deprecated in v1.1 and will be removed in v1.3.
+
+            .. warning::
+               Setting ``mode='auto'`` has been deprecated in v1.1 and will be removed in v1.3.
+
         strict: whether to crash the training if `monitor` is
             not found in the validation metrics. Default: ``True``.
 
