@@ -20,4 +20,4 @@ from pytorch_lightning.metrics.classification.precision_recall import Precision,
 from pytorch_lightning.metrics.classification.precision_recall_curve import PrecisionRecallCurve  # noqa: F401
 from pytorch_lightning.metrics.classification.roc import ROC  # noqa: F401
 from pytorch_lightning.metrics.classification.stat_scores import StatScores  # noqa: F401
-from pytorch_lightning.metrics.classification.iou import Iou  # noqa: F401
+from pytorch_lightning.metrics.classification.iou import IoU  # noqa: F401
