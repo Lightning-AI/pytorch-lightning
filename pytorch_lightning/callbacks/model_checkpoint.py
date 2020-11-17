@@ -155,7 +155,7 @@ class ModelCheckpoint(Callback):
         self.period = period
         self.last_global_step_saved = -1
         self.prefix = prefix
-        self.current_score = 0
+        self.current_score = None
         self.best_k_models = {}
         self.kth_best_model_path = ""
         self.best_model_score = 0
