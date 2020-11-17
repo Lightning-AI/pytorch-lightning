@@ -613,7 +613,7 @@ class TrainLoop:
             self.num_optimizers
         )
 
-        # when no val loop is present or fast-dev-run still need to call checkpoints
+        # when no val loop is present or fast_dev_run still need to call checkpoints
         self.check_checkpoint_callback(not (should_check_val or is_overridden('validation_step', model)))
 
         # increment the global step once

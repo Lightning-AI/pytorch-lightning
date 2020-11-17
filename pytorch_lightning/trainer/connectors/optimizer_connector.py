@@ -29,7 +29,6 @@ class OptimizerConnector:
 
         Args:
             interval: either 'epoch' or 'step'.
-            monitor_metrics: dict of possible values to monitor
         """
         if not self.trainer.lr_schedulers:
             return
@@ -44,11 +43,8 @@ class OptimizerConnector:
                 monitor_key, monitor_val = None, None
                 if lr_scheduler['reduce_on_plateau']:
                     monitor_key = lr_scheduler['monitor']
-                    monitor_val = (
-                        monitor_metrics.get(monitor_key)
-                        if monitor_metrics is not None
-                        else self.trainer.logger_connector.callback_metrics.get(monitor_key)
-                    )
+                    monitor_val = self.trainer.logger_connector.callback_metrics.get(monitor_key)
+
                     if monitor_val is None:
                         if lr_scheduler.get('strict', True):
                             avail_metrics = self.trainer.logger_connector.callback_metrics.keys()
