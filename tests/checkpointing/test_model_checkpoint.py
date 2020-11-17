@@ -853,3 +853,32 @@ def test_val_check_interval_checkpoint_files(tmpdir):
     trainer.fit(model)
     files = sorted([p.name for p in Path(tmpdir).glob("*.ckpt")])
     assert files == [f"epoch=0-step={s}.ckpt" for s in [1, 3, 5, 7, 9]]
+
+
+def test_current_score(tmpdir):
+    class TestModel(BoringModel):
+        def training_step(self, *args):
+            self.log("foo", (self.current_epoch + 1) / 10)
+            return super().training_step(*args)
+
+    model_checkpoint = ModelCheckpoint(
+        dirpath=tmpdir,
+        save_top_k=3,
+        monitor="foo",
+        mode="min",
+    )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        callbacks=[model_checkpoint],
+        logger=False,
+        weights_summary=None,
+        progress_bar_refresh_rate=0,
+    )
+    trainer.fit(TestModel())
+    assert model_checkpoint.current_score == 0.3
+    ckpts = [torch.load(str(ckpt)) for ckpt in tmpdir.listdir()]
+    ckpts = [ckpt["callbacks"][type(pl.callbacks.ModelCheckpoint())] for ckpt in ckpts]
+    assert sorted(ckpt["current_score"] for ckpt in ckpts) == [0.1, 0.2, 0.3]

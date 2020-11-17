@@ -155,6 +155,7 @@ class ModelCheckpoint(Callback):
         self.period = period
         self.last_global_step_saved = -1
         self.prefix = prefix
+        self.current_score = 0
         self.best_k_models = {}
         self.kth_best_model_path = ""
         self.best_model_score = 0
@@ -188,6 +189,7 @@ class ModelCheckpoint(Callback):
             "monitor": self.monitor,
             "best_model_score": self.best_model_score,
             "best_model_path": self.best_model_path,
+            "current_score": self.current_score,
         }
 
     def on_load_checkpoint(self, checkpointed_state: Dict[str, Any]):
@@ -563,11 +565,14 @@ class ModelCheckpoint(Callback):
             self.best_k_models.pop(self.kth_best_model_path)
             del_list.append(delpath)
 
-        # do not save non, for replace then by +/- inf
+        # do not save nan, replace with +/- inf
         if torch.isnan(current):
-            current = {"min": torch.tensor(float('inf')), "max": torch.tensor(-float('inf'))}[self.mode]
+            current = {"min": torch.tensor(float('inf')), "max": torch.tensor(float('-inf'))}[self.mode]
 
+        # save the current score
+        self.current_score = current
         self.best_k_models[filepath] = current
+
         if len(self.best_k_models) == k:
             # monitor dict has reached k elements
             _op = max if self.mode == "min" else min
