@@ -18,7 +18,7 @@ from pytorch_lightning.metrics.functional.confusion_matrix import _confusion_mat
 from pytorch_lightning.metrics.classification.confusion_matrix import ConfusionMatrix
 
 
-class Iou(ConfusionMatrix):
+class IoU(ConfusionMatrix):
     """
     Intersection over union, or Jaccard index calculation. Works with binary, multiclass, and multilabel data.
     Accepts logits from a model output or integer class values in prediction.
@@ -62,11 +62,11 @@ class Iou(ConfusionMatrix):
             Specify the process group on which synchronization is called. default: None (which selects the entire world)
 
     Example:
-        >>> from pytorch_lightning.metrics import Iou
+        >>> from pytorch_lightning.metrics import IoU
         >>> target = torch.randint(0, 2, (10, 25, 25))
         >>> pred = torch.tensor(target)
         >>> pred[2:5, 7:13, 9:15] = 1 - pred[2:5, 7:13, 9:15]
-        >>> iou = Iou(num_classes=2)
+        >>> iou = IoU(num_classes=2)
         >>> iou(pred, target)
         tensor(0.9660)
 
