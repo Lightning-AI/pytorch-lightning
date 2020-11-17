@@ -276,10 +276,10 @@ class Trainer(
             weights_summary: Prints a summary of the weights when training begins.
 
             weights_save_path: Where to save weights if specified. Will override default_root_dir
-                    for checkpoints only. Use this if for whatever reason you need the checkpoints
-                    stored in a different place than the logs written in `default_root_dir`.
-                    Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
-                    Defaults to `default_root_dir`.
+                for checkpoints only. Use this if for whatever reason you need the checkpoints
+                stored in a different place than the logs written in `default_root_dir`.
+                Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
+                Defaults to `default_root_dir`.
 
             move_metrics_to_cpu: Whether to force internal logged metrics to be moved to cpu.
                 This can save some gpu memory, but can make training slower. Use with attention.
