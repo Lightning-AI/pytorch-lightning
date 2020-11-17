@@ -19,8 +19,6 @@ from torch.utils.data import random_split, DataLoader
 import pytorch_lightning as pl
 from torch.nn import functional as F
 
-from pl_examples.basic_examples.mnist_datamodule import MNISTDataModule
-
 try:
     from torchvision.datasets.mnist import MNIST
     from torchvision import transforms
