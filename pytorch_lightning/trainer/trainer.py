@@ -917,11 +917,18 @@ class Trainer(
 
     def call_setup_hook(self, model):
         # call setup after the ddp process has connected
-        stage_name = 'test' if self.testing else 'fit'
+        stage_name = self.evaluating or 'fit'
+
         if self.datamodule is not None:
-            called = self.datamodule.has_setup_test if self.testing else self.datamodule.has_setup_fit
+            called = {
+                False: self.datamodule.has_setup_fit,
+                'validation': self.datamodule.has_setup_validation,
+                'test': self.datamodule.has_setup_test,
+            }[self.evaluating]
+
             if not called:
                 self.datamodule.setup(stage_name)
+
         self.setup(model, stage_name)
         model.setup(stage_name)
 

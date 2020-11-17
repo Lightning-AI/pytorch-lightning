@@ -155,6 +155,7 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
         # Private attrs to keep track of whether or not data hooks have been called yet
         self._has_prepared_data = False
         self._has_setup_fit = False
+        self._has_setup_validation = False
         self._has_setup_test = False
 
     @property
@@ -229,6 +230,15 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
             bool: True if datamodule.setup('fit') has been called. False by default.
         """
         return self._has_setup_fit
+
+    @property
+    def has_setup_validation(self):
+        """Return bool letting you know if datamodule.setup('validation') has been called or not.
+
+        Returns:
+            bool: True if datamodule.setup('validation') has been called. False by default.
+        """
+        return self._has_setup_validation
 
     @property
     def has_setup_test(self):
