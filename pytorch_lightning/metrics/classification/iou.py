@@ -11,7 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Any, Optional
 import torch
+from pytorch_lightning.metrics.metric import ConfusionMatrix
+from pytorch_lightning.metrics.functional.reduction import reduce
+from pytorch_lightning.metrics.functional.confusion_matrix import _confusion_matrix_compute
+
 class Iou(ConfusionMatrix):
     """
     Intersection over union, or Jaccard index calculation. Works with binary, multiclass, and multilabel data.
