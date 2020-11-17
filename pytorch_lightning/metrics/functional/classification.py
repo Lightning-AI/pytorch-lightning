@@ -752,7 +752,6 @@ def iou(
             scores[:ignore_index],
             scores[ignore_index + 1:],
         ])
-        
     return reduce(scores, reduction=reduction)
 
 
