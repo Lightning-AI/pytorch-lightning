@@ -33,28 +33,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added lambda closure to manual_optimizer_step ([#4618](https://github.com/PyTorchLightning/pytorch-lightning/pull/4618))
+- Added lambda closure to `manual_optimizer_step` ([#4618](https://github.com/PyTorchLightning/pytorch-lightning/pull/4618))
 
 ### Changed
 
-- Ci: tpu drop install horovod ([#4622](https://github.com/PyTorchLightning/pytorch-lightning/pull/4622))
-- Ci: Added isort import check for the code on pull-request ([#4242](https://github.com/PyTorchLightning/pytorch-lightning/pull/4242))
-- Increase parity ([#4651](https://github.com/PyTorchLightning/pytorch-lightning/pull/4651))
-- Isolate `PL_DEV_DEBUG` with `unittest.mock` ([#4643](https://github.com/PyTorchLightning/pytorch-lightning/pull/4643))
-- Improve test for `training_step` with no return ([#4109](https://github.com/PyTorchLightning/pytorch-lightning/pull/4109))
-- Updated `CODEOWNERS` ([#4610](https://github.com/PyTorchLightning/pytorch-lightning/pull/4610), [#4610](https://github.com/PyTorchLightning/pytorch-lightning/pull/4610))
-- Change default behaviour of state dict in Metrics ([#4685](https://github.com/PyTorchLightning/pytorch-lightning/pull/4685))
+- Change Metrics `persistent` default mode to `False` ([#4685](https://github.com/PyTorchLightning/pytorch-lightning/pull/4685))
 
 
 ### Fixed
 
 - Prevent crash if `sync_dist=True` on CPU ([#4626](https://github.com/PyTorchLightning/pytorch-lightning/pull/4626))
 - Fixed average pbar Metrics ([#4534](https://github.com/PyTorchLightning/pytorch-lightning/pull/4534))
-- Fixed logger docs and api docs ([#3950](https://github.com/PyTorchLightning/pytorch-lightning/pull/3950))
 - Fixed `setup` callback hook to correctly pass the LightningModule through ([#4608](https://github.com/PyTorchLightning/pytorch-lightning/pull/4608))
-- Fixed docs typo ([#4659](https://github.com/PyTorchLightning/pytorch-lightning/pull/4659), [#4670](https://github.com/PyTorchLightning/pytorch-lightning/pull/4670),
-                   [##4715](https://github.com/PyTorchLightning/pytorch-lightning/pull/#4715), [##4722](https://github.com/PyTorchLightning/pytorch-lightning/pull/#4722))
-- Fixed notebooks typo ([#4657](https://github.com/PyTorchLightning/pytorch-lightning/pull/4657))
 - Allowing decorate model init with saving `hparams` inside ([#4662](https://github.com/PyTorchLightning/pytorch-lightning/pull/4662))
 - Fixed `split_idx` set by `LoggerConnector` in `on_trainer_init` to `Trainer`  ([#4697](https://github.com/PyTorchLightning/pytorch-lightning/pull/4697))
 
@@ -72,7 +62,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Changed `fsspec` to tuner ([#4458](https://github.com/PyTorchLightning/pytorch-lightning/pull/4458))
-- Unify sLURM/TorchElastic under backend plugin ([#4578](https://github.com/PyTorchLightning/pytorch-lightning/pull/4578),
+- Unify SLURM/TorchElastic under backend plugin ([#4578](https://github.com/PyTorchLightning/pytorch-lightning/pull/4578),
         [#4580](https://github.com/PyTorchLightning/pytorch-lightning/pull/4580),
         [#4581](https://github.com/PyTorchLightning/pytorch-lightning/pull/4581),
         [#4582](https://github.com/PyTorchLightning/pytorch-lightning/pull/4582),
