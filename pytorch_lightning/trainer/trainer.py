@@ -848,15 +848,7 @@ class Trainer(
 
         # attach dataloaders
         if dataloaders is not None:
-            loaders_arg = {
-                'validation': 'val_dataloaders',
-                'test': 'test_dataloaders'
-            }[stage]
-
-            kwargs = {
-                loaders_arg: dataloaders
-            }
-
+            kwargs = {'test_dataloaders' if stage == 'test' else 'val_dataloaders': dataloaders}
             self.data_connector.attach_dataloaders(model, **kwargs)
 
         # run tests
@@ -881,15 +873,7 @@ class Trainer(
 
         # attach data
         if dataloaders is not None:
-            loaders_arg = {
-                'validation': 'val_dataloaders',
-                'test': 'test_dataloaders'
-            }[stage]
-
-            kwargs = {
-                loaders_arg: dataloaders
-            }
-
+            kwargs = {'test_dataloaders' if stage == 'test' else 'val_dataloaders': dataloaders}
             self.data_connector.attach_dataloaders(model, **kwargs)
 
         # run test
