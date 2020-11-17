@@ -105,7 +105,16 @@ def _check_classification_inputs(
         if preds_float and target.max() > 1:
             raise ValueError("if preds and target are of shape (N, ...) and preds are floats, target should be binary")
 
-        # For multi-label case
+        # Get the case
+        if len(preds.shape) == 1 and preds_float:
+            case = "binary"
+        elif len(preds.shape) == 1 and not preds_float:
+            case = "multi-class"
+        elif len(preds.shape) > 1 and preds_float:
+            case = "multi-label"
+        else:
+            case = "multi-dim multi-class"
+
         implied_classes = torch.prod(torch.Tensor(list(preds.shape[1:])))
 
     elif len(preds.shape) == len(target.shape) + 1:
@@ -119,6 +128,11 @@ def _check_classification_inputs(
                 )
 
         extra_dim_size = preds.shape[-1 if preds.shape[:-1] == target.shape else 1]
+
+        if len(preds.shape) == 2:
+            case = "multi-class"
+        else:
+            case = "multi-dim multi-class"
     else:
         raise ValueError(
             "preds and target should both have the (same) shape (N, ...), or target (N, ...)"
@@ -136,7 +150,8 @@ def _check_classification_inputs(
         if preds.shape != target.shape and target.max() >= extra_dim_size:
             raise ValueError("The highest label in targets should be smaller than the size of C dimension")
     else:
-        if preds_float and len(preds.shape) == 1:
+
+        if case == "binary":
             if num_classes > 2:
                 raise ValueError("Your data is binary, but num_classes is larger than 2.")
             elif num_classes == 2 and not is_multiclass:
@@ -149,25 +164,33 @@ def _check_classification_inputs(
                     "You have binary data and have set is_multiclass=True, but num_classes is 1."
                     "Either leave is_multiclass unset or set it to 2 to transform binary data to multi-class format."
                 )
-        elif not preds_float:
+        elif "multi-class" in case:
             if num_classes == 1 and is_multiclass is not False:
                 raise ValueError(
                     "You have set num_classes=1, but predictions are integers."
                     "If you want to convert (multi-dimensional) multi-class data with 2 classes"
-                    " to binary/multi-label, set is_multiclass=False."
+                    "to binary/multi-label, set is_multiclass=False."
                 )
             elif num_classes > 1:
-                if is_multiclass is False and implied_classes != num_classes:
-                    raise ValueError("Implied number of classes (from shape of inputs) does not match num_classes")
+                if is_multiclass is False:
+                    if implied_classes != num_classes:
+                        raise ValueError(
+                            "You have set is_multiclass=False, but the implied number of classes "
+                            "(from shape of inputs) does not match num_classes. If you are trying to"
+                            "transform multi-dim multi-class data with 2 classes to multi-label, num_classes"
+                            "should be either None or the product of the size of extra dimensions (...)."
+                            "See Input Types in Metrics documentation."
+                        )
                 if num_classes <= target.max():
                     raise ValueError("The highest label in targets should be smaller than num_classes")
                 if num_classes <= preds.max():
                     raise ValueError("The highest label in preds should be smaller than num_classes")
-        elif preds.shape != target.shape and is_multiclass is not False:
-            if num_classes != extra_dim_size:
-                raise ValueError("The size of C dimension of preds does not match num_classes")
-            if num_classes <= target.max():
-                raise ValueError("The highest label in targets should be smaller than num_classes")
+                if preds.shape != target.shape and num_classes != extra_dim_size:
+                    raise ValueError("The size of C dimension of preds does not match num_classes")
+
+        elif case == "multi-label":
+            if num_classes != implied_classes:
+                raise ValueError("The implied number of classes (from shape of inputs) does not match num_classes.")
 
     # Check that if top_k > 1, we have (multi-class) multi-dim with probabilities
     if top_k > 1:

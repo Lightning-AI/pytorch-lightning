@@ -79,7 +79,7 @@ def _sk_stat_scores_mdmc(preds, target, average, mdmc_average, num_classes, thre
 
 @pytest.mark.parametrize("ddp", [False, True])
 @pytest.mark.parametrize("dist_sync_on_step", [True, False])
-@pytest.mark.parametrize("average", ["micro", "macro", "weighted", "none", None, "samples"])
+@pytest.mark.parametrize("average", ["micro", "macro", "samples"]) # Test just macro
 @pytest.mark.parametrize(
     "preds, target, num_classes, logits, is_multiclass",
     [
@@ -129,7 +129,7 @@ class TestStatScores(MetricTester):
 
 @pytest.mark.parametrize("ddp", [False, True])
 @pytest.mark.parametrize("dist_sync_on_step", [True, False])
-@pytest.mark.parametrize("average", ["micro", "macro", "weighted", "none", None, "samples"])
+@pytest.mark.parametrize("average", ["micro", "macro", "samples"]) # Test just macro
 @pytest.mark.parametrize("mdmc_average", ["global", "samples"])
 @pytest.mark.parametrize(
     "preds, target, num_classes, logits, is_multiclass",
