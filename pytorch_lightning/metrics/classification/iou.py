@@ -18,6 +18,7 @@ from pytorch_lightning.metrics.functional.reduction import reduce
 from pytorch_lightning.metrics.functional.confusion_matrix import _confusion_matrix_compute
 
 class Iou(ConfusionMatrix):
+    
     """
     Intersection over union, or Jaccard index calculation. Works with binary, multiclass, and multilabel data.
     Accepts logits from a model output or integer class values in prediction.
