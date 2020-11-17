@@ -526,9 +526,6 @@ class Trainer(
                     self.train_loop.on_train_end()
                     return
 
-                # update LR schedulers
-                self.optimizer_connector.update_learning_rates(interval='epoch')
-
                 # early stopping
                 met_min_epochs = epoch >= self.min_epochs - 1
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True

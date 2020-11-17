@@ -538,6 +538,11 @@ class TrainLoop:
             # ------------------------------------
             batch_output = self.run_training_batch(batch, batch_idx, dataloader_idx)
 
+            # update LR schedulers
+            monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
+            self._update_train_loop_lr_schedulers_step(monitor_metrics=monitor_metrics)
+            self._update_train_loop_lr_schedulers_epoch(is_last_batch, batch_output.signal)
+
             # when returning -1 from train_step, we end epoch early
             if batch_output.signal == -1:
                 break
@@ -573,17 +578,15 @@ class TrainLoop:
             # -----------------------------------------
             self.save_loggers_on_train_batch_end()
 
-            # update LR schedulers
-            monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
-            self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
             self.trainer.checkpoint_connector.has_trained = True
 
-            # max steps reached, end training
-            if self.trainer.max_steps is not None and self.trainer.max_steps == self.trainer.global_step + 1:
-                accumulation_done = self._accumulated_batches_reached()
-                # Ensure accumulation across batches has completed before breaking loop
-                if accumulation_done:
-                    break
+            # max steps reached and accumulation accross batches has completed, end training
+            if (
+                self.trainer.max_steps is not None
+                and self.trainer.max_steps == self.trainer.global_step + 1
+                and self._accumulated_batches_reached()
+            ):
+                break
 
             # end epoch early
             # stop when the flag is changed or we've gone past the amount
@@ -594,7 +597,7 @@ class TrainLoop:
             self.trainer.total_batch_idx += 1
 
             # stop epoch if we limited the number of training batches
-            if (batch_idx + 1) >= self.trainer.num_training_batches:
+            if self._num_training_batches_reached():
                 break
 
             # progress global step according to grads progress
@@ -805,13 +808,26 @@ class TrainLoop:
             # track gradients
             self.track_and_norm_grad(optimizer=optimizer)
 
-    def update_train_loop_lr_schedulers(self, monitor_metrics=None):
+    def _update_train_loop_lr_schedulers_step(self, monitor_metrics=None):
         num_accumulated_batches_reached = self._accumulated_batches_reached()
         num_training_batches_reached = self._num_training_batches_reached()
 
         if num_accumulated_batches_reached or num_training_batches_reached:
             # update lr
             self.trainer.optimizer_connector.update_learning_rates(interval="step", monitor_metrics=monitor_metrics)
+
+    def _update_train_loop_lr_schedulers_epoch(self, is_last_batch, batch_signal):
+        num_training_batches_reached = self._num_training_batches_reached()
+        is_last_batch_for_inf_ds = self._is_last_batch_for_infinite_dataset(is_last_batch)
+
+        if (
+            num_training_batches_reached
+            or is_last_batch_for_inf_ds
+            or self.trainer.should_stop
+            or batch_signal == -1
+        ):
+            # update lr
+            self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
 
     def run_on_epoch_end_hook(self, epoch_output):
         self.trainer.call_hook('on_epoch_end')
@@ -831,7 +847,10 @@ class TrainLoop:
         return (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
 
     def _num_training_batches_reached(self):
-        return (self.trainer.batch_idx + 1) == self.trainer.num_training_batches
+        return (self.trainer.batch_idx + 1) >= self.trainer.num_training_batches
+
+    def _is_last_batch_for_infinite_dataset(self, is_last_batch):
+        return is_last_batch and self.trainer.val_check_batch == float("inf")
 
     def should_accumulate(self):
         # checks if backward or backward + optimizer step (via closure)
@@ -845,8 +864,10 @@ class TrainLoop:
         is_val_check_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
         can_check_val = self.trainer.enable_validation and is_val_check_epoch
         should_check_val = is_val_check_batch or self.trainer.should_stop
-        is_last_batch_for_infinite_dataset = is_last_batch and self.trainer.val_check_batch == float("inf")
-        should_check_val = can_check_val and (should_check_val or is_last_batch_for_infinite_dataset)
+        should_check_val = (
+            can_check_val
+            and (should_check_val or self._is_last_batch_for_infinite_dataset(is_last_batch))
+        )
 
         return should_check_val
 
