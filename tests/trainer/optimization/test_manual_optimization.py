@@ -698,7 +698,8 @@ def test_manual_optimizer_step_with_optimizer_closure(tmpdir):
 
     trainer.fit(model)
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * 2
-    # todo: Remove me on 1.1 - Releases/1.0.x currently has a bug fixed on master - Decided to wait for next feature releases
+    # todo: Remove me on 1.1 - Releases/1.0.x currently has a bug fixed on master -
+    # Decided to wait for next feature releases
     # assert trainer.logger_connector.progress_bar_metrics["train_loss_step"] == model._losses[-1]
     # assert trainer.logger_connector.progress_bar_metrics["train_loss_epoch"] == torch.stack(model._losses).mean()
 
@@ -722,7 +723,7 @@ def test_manual_optimizer_step_with_optimizer_closure_and_accumulated_grad(tmpdi
                 # emulate bayesian optimization.
                 num_backward = 1
                 for backward_idx in range(num_backward + 1):
-                    retain_graph = num_backward != backward_idx # noqa E225
+                    retain_graph = num_backward != backward_idx  # noqa E225
                     self.manual_backward(loss_1, opt, retain_graph=retain_graph)
 
             weight_before = self.layer.weight.clone()
@@ -782,7 +783,7 @@ def test_manual_optimizer_step_with_optimizer_closure_and_extra_arguments(step_m
                 # emulate bayesian optimization.
                 num_backward = 1
                 for backward_idx in range(num_backward + 1):
-                    retain_graph = num_backward != backward_idx # noqa E225
+                    retain_graph = num_backward != backward_idx  # noqa E225
                     self.manual_backward(loss_1, opt, retain_graph=retain_graph)
 
             self.manual_optimizer_step(opt, 1, optimizer_closure=optimizer_closure, something="new")
@@ -859,7 +860,7 @@ def test_manual_optimizer_step_with_optimizer_closure_with_different_frequencies
 
             # update discriminator every 4 baches
             # therefore, no gradient accumulation for discriminator
-            if batch_idx % 4 == 0 :
+            if batch_idx % 4 == 0:
                 # Note: Set make_optimizer_step to True or it will use by default
                 # Trainer(accumulate_grad_batches=x)
                 self.manual_optimizer_step(
