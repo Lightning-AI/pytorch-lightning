@@ -281,8 +281,8 @@ class Trainer(
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
                 Defaults to `default_root_dir`.
 
-            move_metrics_to_cpu: Whether to force internal logged metrics to be moved to cpu.
-                This can save some gpu memory, but can make training slower. Use with attention.
+            move_metrics_to_cpu: Whether to force internal logged metrics to be moved to CPU.
+                This can save some GPU memory but can make training slower. Use with attention.
         """
         super().__init__()
 
