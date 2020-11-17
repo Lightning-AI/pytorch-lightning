@@ -12,17 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
-import pickle
 
-from pytorch_lightning.utilities.parsing import lightning_getattr
-from pytorch_lightning.utilities.parsing import lightning_hasattr
-from pytorch_lightning.utilities.parsing import lightning_setattr
-from pytorch_lightning.utilities.parsing import str_to_bool_or_str
-from pytorch_lightning.utilities.parsing import str_to_bool
-from pytorch_lightning.utilities.parsing import is_picklable
-from pytorch_lightning.utilities.parsing import clean_namespace
-from pytorch_lightning.utilities.parsing import AttributeDict
-from pytorch_lightning.utilities.parsing import flatten_dict
+from pytorch_lightning.utilities.parsing import (AttributeDict, clean_namespace, flatten_dict, is_picklable,
+                                                 lightning_getattr, lightning_hasattr, lightning_setattr, str_to_bool,
+                                                 str_to_bool_or_str)
 
 
 def _get_test_cases():
