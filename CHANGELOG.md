@@ -42,7 +42,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed deprecated `Fbeta`, `f1_score` and `fbeta_score` metrics ([#5322](https://github.com/PyTorchLightning/pytorch-lightning/pull/5322))
 
-- Changed `iou [func]`([#4704](https://github.com/PyTorchLightning/pytorch-lightning/pull/4704))
+- Changed `iou [func]` to allow float input ([#4704](https://github.com/PyTorchLightning/pytorch-lightning/pull/4704))
 
 - Removed deprecated `TrainResult` ([#5323](https://github.com/PyTorchLightning/pytorch-lightning/pull/5323))
 
