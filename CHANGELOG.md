@@ -52,8 +52,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed average pbar Metrics ([#4534](https://github.com/PyTorchLightning/pytorch-lightning/pull/4534))
 - Fixed logger docs and api docs ([#3950](https://github.com/PyTorchLightning/pytorch-lightning/pull/3950))
 - Fixed `setup` callback hook to correctly pass the LightningModule through ([#4608](https://github.com/PyTorchLightning/pytorch-lightning/pull/4608))
-- Fixed docs typo ([#4659](https://github.com/PyTorchLightning/pytorch-lightning/pull/4659), [#4670](https://github.com/PyTorchLightning/pytorch-lightning/pull/4670),
-                   [##4715](https://github.com/PyTorchLightning/pytorch-lightning/pull/#4715), [##4722](https://github.com/PyTorchLightning/pytorch-lightning/pull/#4722))
+- Fixed docs typo ([#4659](https://github.com/PyTorchLightning/pytorch-lightning/pull/4659),
+                   [#4670](https://github.com/PyTorchLightning/pytorch-lightning/pull/4670),
+                   [##4715](https://github.com/PyTorchLightning/pytorch-lightning/pull/#4715),
+                   [##4722](https://github.com/PyTorchLightning/pytorch-lightning/pull/#4722))
 - Fixed notebooks typo ([#4657](https://github.com/PyTorchLightning/pytorch-lightning/pull/4657))
 - Allowing decorate model init with saving `hparams` inside ([#4662](https://github.com/PyTorchLightning/pytorch-lightning/pull/4662))
 - Fixed `split_idx` set by `LoggerConnector` in `on_trainer_init` to `Trainer`  ([#4697](https://github.com/PyTorchLightning/pytorch-lightning/pull/4697))
