@@ -659,10 +659,12 @@ class Trainer(
             outputs.append(output)
         return outputs
 
+    # TODO: rename run_test_or_validate?
     def run_test(self):
         # only load test dataloader for testing
         # self.reset_test_dataloader(ref_model)
-        eval_loop_results, _ = self.run_evaluation(test_mode=True)
+        test_mode = True if self.evaluating == 'test' else False
+        eval_loop_results, _ = self.run_evaluation(test_mode=test_mode)
 
         if len(eval_loop_results) == 0:
             return 1
@@ -710,6 +712,60 @@ class Trainer(
             self.on_sanity_check_end()
             self.running_sanity_check = False
 
+    def validate(
+        self,
+        model: Optional[LightningModule] = None,
+        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        ckpt_path: Optional[str] = 'best',
+        verbose: bool = True,
+        datamodule: Optional[LightningDataModule] = None,
+    ):
+        # TODO: docstring
+        r"""
+
+        Separates from fit to make sure you never run on your test set until you want to.
+
+        Args:
+            ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
+                If ``None``, use the weights from the last epoch to test. Default to ``best``.
+
+            datamodule: A instance of :class:`LightningDataModule`.
+
+            model: The model to test.
+
+            test_dataloaders: Either a single
+                Pytorch Dataloader or a list of them, specifying validation samples.
+
+            verbose: If True, prints the test results
+
+        Returns:
+            The final test result dictionary. If no test_epoch_end is defined returns a list of dictionaries
+        """
+        # --------------------
+        # SETUP HOOK
+        # --------------------
+        self.verbose_test = verbose # TODO: rename / else?
+
+        self.logger_connector.set_stage("validation")
+
+        # If you supply a datamodule you can't supply val_dataloaders
+        if val_dataloaders and datamodule:
+            raise MisconfigurationException(
+                'You cannot pass val_dataloaders to trainer.validate if you supply a datamodule'
+            )
+
+        # Attach datamodule to get setup/prepare_data added to model before the call to it below
+        self.data_connector.attach_datamodule(model or self.get_model(), datamodule, 'validation')
+
+        if model is not None:
+            results = self.__evaluate_given_model(model, val_dataloaders, 'validation')
+        else:
+            results = self.__evaluate_using_best_weights(ckpt_path, val_dataloaders, 'validation')
+
+        self.teardown('validation')
+
+        return results
+
     def test(
         self,
         model: Optional[LightningModule] = None,
@@ -745,7 +801,7 @@ class Trainer(
 
         self.logger_connector.set_stage("test")
 
-        # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
+        # If you supply a datamodule you can't supply test_dataloaders
         if test_dataloaders and datamodule:
             raise MisconfigurationException(
                 'You cannot pass test_dataloaders to trainer.test if you supply a datamodule'
@@ -755,15 +811,15 @@ class Trainer(
         self.data_connector.attach_datamodule(model or self.get_model(), datamodule, 'test')
 
         if model is not None:
-            results = self.__test_given_model(model, test_dataloaders)
+            results = self.__evaluate_given_model(model, test_dataloaders, 'test')
         else:
-            results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
+            results = self.__evaluate_using_best_weights(ckpt_path, test_dataloaders, 'test')
 
         self.teardown('test')
 
         return results
 
-    def __test_using_best_weights(self, ckpt_path, test_dataloaders):
+    def __evaluate_using_best_weights(self, ckpt_path, dataloaders, stage: str):
         model = self.get_model()
 
         # if user requests the best checkpoint but we don't have it, error
@@ -791,41 +847,63 @@ class Trainer(
             model.load_state_dict(ckpt['state_dict'])
 
         # attach dataloaders
-        if test_dataloaders is not None:
-            self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
+        if dataloaders is not None:
+            loaders_arg = {
+                'validation': 'val_dataloaders',
+                'test': 'test_dataloaders'
+            }[stage]
+
+            kwargs = {
+                loaders_arg: dataloaders
+            }
+
+            self.data_connector.attach_dataloaders(model, **kwargs)
 
         # run tests
+        self.evaluating = stage
         self.tested_ckpt_path = ckpt_path
         self.testing = True
         os.environ['PL_TESTING_MODE'] = '1'
         self.model = model
         results = self.fit(model)
-        self.testing = False
         del os.environ['PL_TESTING_MODE']
+        self.testing = False
+        self.evaluating = False
 
         # teardown
         if self.is_function_implemented('teardown'):
             model_ref = self.get_model()
-            model_ref.teardown('test')
+            model_ref.teardown(stage)
 
         return results
 
-    def __test_given_model(self, model, test_dataloaders):
+    def __evaluate_given_model(self, model, dataloaders, stage: str):
 
         # attach data
-        if test_dataloaders is not None:
-            self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
+        if dataloaders is not None:
+            loaders_arg = {
+                'validation': 'val_dataloaders',
+                'test': 'test_dataloaders'
+            }[stage]
+
+            kwargs = {
+                loaders_arg: dataloaders
+            }
+
+            self.data_connector.attach_dataloaders(model, **kwargs)
 
         # run test
         # sets up testing so we short circuit to eval
-        self.testing = True
+        self.evaluating = stage
+        self.testing = True  # TODO: remove, keep only evaluating
         self.model = model
         results = self.fit(model)
         self.testing = False
+        self.evaluating = False
 
         # teardown
         if self.is_function_implemented('teardown'):
-            model.teardown('test')
+            model.teardown(stage)
 
         return results
 

@@ -59,6 +59,7 @@ class Accelerator(object):
     def broadcast(self, obj, src=0):
         return obj
 
+    # TODO: rename train_or_evaluate
     def train_or_test(self):
         if self.trainer.testing:
             results = self.trainer.run_test()
