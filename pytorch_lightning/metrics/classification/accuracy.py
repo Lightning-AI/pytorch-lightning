@@ -11,15 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import math
-import functools
-from abc import ABC, abstractmethod
-from typing import Any, Callable, Optional, Union
-from collections.abc import Mapping, Sequence
-from collections import namedtuple
+from typing import Any, Callable, Optional
 
 import torch
-from torch import nn
 from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.metrics.classification.utils import _input_format_classification
 
@@ -104,7 +98,7 @@ class Accuracy(Metric):
         self.correct += (sample_correct == preds[0].numel()).sum()
         self.total += preds.shape[0]
 
-    def compute(self) -> float:
+    def compute(self) -> torch.Tensor:
         """
         Computes accuracy over state.
         """
@@ -187,7 +181,7 @@ class HammingLoss(Metric):
         self.correct += (preds == target).sum()
         self.total += preds.numel()
 
-    def compute(self) -> float:
+    def compute(self) -> torch.Tensor:
         """
         Computes hamming loss over state.
         """
@@ -283,7 +277,7 @@ class TopKAccuracy(Metric):
             self.total += preds.shape[0]
 
 
-    def compute(self) -> float:
+    def compute(self) -> torch.Tensor:
         """
         Computes top k accuracy over state.
         """

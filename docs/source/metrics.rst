@@ -217,7 +217,7 @@ into these categories (``N`` stands for the batch size and ``C`` for number of c
     "Multi-class", "(N,)", "``int``", "(N,)", "``int``"
     "Multi-class with probabilities\*\*", "(N, C)", "``float``", "(N,)", "``int``"
     "Multi-label", "(N, ...)", "``float``", "(N, ...)", "``binary``\*"
-    "Multi-dimensional multi-class", "(N, ...)", "``integer``", "(N, ...)", "``int``"
+    "Multi-dimensional multi-class", "(N, ...)", "``int``", "(N, ...)", "``int``"
     "Multi-dimensional multi-class with probabilities\*\*", "(N, C, ...) or (N, ..., C)", "``float``", "(N, ...)", "``int``"
 
 .. note::
@@ -260,6 +260,12 @@ Hamming Loss
 ~~~~~~~~~~~~
 
 .. autoclass:: pytorch_lightning.metrics.classification.HammingLoss
+    :noindex:
+
+StatScores
+~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.StatScores
     :noindex:
 
 Precision

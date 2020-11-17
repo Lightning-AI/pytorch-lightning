@@ -65,7 +65,10 @@ def _check_classification_inputs(
         num_classes: number of classes
         logits: whether predictions are logits (before sigmoid) or probabilities (after sigmoid).
             Relevant when preds are floats
-        is_multiclass: whether to treat binary or multi-label cases as multi-class with 2 classes.
+        is_multiclass: if True, treat binary and multi-label inputs as multi-class or multi-dim
+            multi-class with 2 classes, respectively. If False, treat multi-class and multi-dim
+            multi-class inputs with 1 or 2 classes as binary and multi-label, respectively.
+            Defaults to None, which treats inputs as they appear.
     """
 
     if target.is_floating_point():
