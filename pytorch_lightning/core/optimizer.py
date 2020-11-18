@@ -201,7 +201,11 @@ class LightningOptimizer(Optimizer):
         if closure is None:
             closure = do_nothing_closure
 
-        if not self._should_accumulate or not self._trainer.train_loop.automatic_optimization:
+        make_optimizer_step = kwargs.pop('make_optimizer_step', None)
+        if make_optimizer_step is None:
+            make_optimizer_step = not self._should_accumulate
+
+        if make_optimizer_step:
             if self._trainer.on_tpu:
                 xm.optimizer_step(self._optimizer, optimizer_args={'closure': closure, **kwargs})
             elif self._trainer.amp_backend == AMPType.NATIVE:
