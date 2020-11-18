@@ -880,5 +880,30 @@ def test_current_score(tmpdir):
     trainer.fit(TestModel())
     assert model_checkpoint.current_score == 0.3
     ckpts = [torch.load(str(ckpt)) for ckpt in tmpdir.listdir()]
-    ckpts = [ckpt["callbacks"][type(pl.callbacks.ModelCheckpoint())] for ckpt in ckpts]
+    ckpts = [ckpt["callbacks"][type(model_checkpoint)] for ckpt in ckpts]
     assert sorted(ckpt["current_score"] for ckpt in ckpts) == [0.1, 0.2, 0.3]
+
+
+@pytest.mark.parametrize("mode", ["min", "max"])
+def test_current_when_nan(tmpdir, mode):
+    class TestModel(BoringModel):
+        def training_step(self, *args):
+            self.log("foo", float("nan"))
+            return super().training_step(*args)
+
+    model_checkpoint = ModelCheckpoint(
+        dirpath=tmpdir,
+        save_top_k=1,
+        monitor="foo",
+        mode=mode,
+    )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        callbacks=[model_checkpoint],
+        logger=False,
+        weights_summary=None,
+        progress_bar_refresh_rate=0,
+    )
+    trainer.fit(TestModel())
+    assert model_checkpoint.current_score == float("inf" if mode == "min" else "-inf")
