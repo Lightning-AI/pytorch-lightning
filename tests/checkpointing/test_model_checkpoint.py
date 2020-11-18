@@ -856,6 +856,7 @@ def test_val_check_interval_checkpoint_files(tmpdir):
 
 
 def test_current_score(tmpdir):
+    """ Check that the current_score value is correct and was saved """
     class TestModel(BoringModel):
         def training_step(self, *args):
             self.log("foo", (self.current_epoch + 1) / 10)
@@ -885,7 +886,8 @@ def test_current_score(tmpdir):
 
 
 @pytest.mark.parametrize("mode", ["min", "max"])
-def test_current_when_nan(tmpdir, mode):
+def test_current_score_when_nan(tmpdir, mode):
+    """ Check that ModelCheckpoint handles NaN values correctly """
     class TestModel(BoringModel):
         def training_step(self, *args):
             self.log("foo", float("nan"))
@@ -906,4 +908,6 @@ def test_current_when_nan(tmpdir, mode):
         progress_bar_refresh_rate=0,
     )
     trainer.fit(TestModel())
-    assert model_checkpoint.current_score == float("inf" if mode == "min" else "-inf")
+    expected = float("inf" if mode == "min" else "-inf")
+    assert model_checkpoint.best_model_score == expected
+    assert model_checkpoint.current_score == expected
