@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import copy
+import functools
 import os
 import pickle
 from argparse import Namespace
@@ -33,16 +34,42 @@ from tests.base import EvalModelTemplate, TrialMNIST, BoringModel
 from tests.base.datamodules import TrialMNISTDataModule
 
 
-class SaveHparamsModel(EvalModelTemplate):
+class SaveHparamsModel(BoringModel):
     """ Tests that a model can take an object """
     def __init__(self, hparams):
         super().__init__()
         self.save_hyperparameters(hparams)
 
 
-class AssignHparamsModel(EvalModelTemplate):
+class AssignHparamsModel(BoringModel):
     """ Tests that a model can take an object with explicit setter """
     def __init__(self, hparams):
+        super().__init__()
+        self.hparams = hparams
+
+
+def decorate(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+class SaveHparamsDecoratedModel(BoringModel):
+    """ Tests that a model can take an object """
+    @decorate
+    @decorate
+    def __init__(self, hparams, *my_args, **my_kwargs):
+        super().__init__()
+        self.save_hyperparameters(hparams)
+
+
+class AssignHparamsDecoratedModel(BoringModel):
+    """ Tests that a model can take an object with explicit setter"""
+    @decorate
+    @decorate
+    def __init__(self, hparams, *my_args, **my_kwargs):
         super().__init__()
         self.hparams = hparams
 
@@ -82,7 +109,9 @@ def _run_standard_hparams_test(tmpdir, model, cls, try_overwrite=False):
     return raw_checkpoint_path
 
 
-@pytest.mark.parametrize("cls", [SaveHparamsModel, AssignHparamsModel])
+@pytest.mark.parametrize("cls", [
+    SaveHparamsModel, AssignHparamsModel, SaveHparamsDecoratedModel, AssignHparamsDecoratedModel
+])
 def test_namespace_hparams(tmpdir, cls):
     # init model
     model = cls(hparams=Namespace(test_arg=14))
@@ -91,7 +120,9 @@ def test_namespace_hparams(tmpdir, cls):
     _run_standard_hparams_test(tmpdir, model, cls)
 
 
-@pytest.mark.parametrize("cls", [SaveHparamsModel, AssignHparamsModel])
+@pytest.mark.parametrize("cls", [
+    SaveHparamsModel, AssignHparamsModel, SaveHparamsDecoratedModel, AssignHparamsDecoratedModel
+])
 def test_dict_hparams(tmpdir, cls):
     # init model
     model = cls(hparams={'test_arg': 14})
@@ -100,7 +131,9 @@ def test_dict_hparams(tmpdir, cls):
     _run_standard_hparams_test(tmpdir, model, cls)
 
 
-@pytest.mark.parametrize("cls", [SaveHparamsModel, AssignHparamsModel])
+@pytest.mark.parametrize("cls", [
+    SaveHparamsModel, AssignHparamsModel, SaveHparamsDecoratedModel, AssignHparamsDecoratedModel
+])
 def test_omega_conf_hparams(tmpdir, cls):
     # init model
     conf = OmegaConf.create(dict(test_arg=14, mylist=[15.4, dict(a=1, b=2)]))
