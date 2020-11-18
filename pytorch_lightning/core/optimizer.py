@@ -138,14 +138,11 @@ class LightningOptimizer(Optimizer):
             accumulate_grad_batches = self._accumulate_grad_batches
         return (self._trainer.batch_idx + 1) % accumulate_grad_batches == 0
 
-    def _num_training_batches_reached(self):
-        return (self._trainer.batch_idx + 1) == self._trainer.num_training_batches
-
     @property
     def _should_accumulate(self):
         # checks if backward or backward + optimizer step (via closure)
         accumulation_done = self._accumulated_batches_reached()
-        is_final_batch = self._num_training_batches_reached()
+        is_final_batch = self._trainer.train_loop._num_training_batches_reached()
         return not (accumulation_done or is_final_batch)
 
     def backward(self, loss: Tensor, *args, **kwargs) -> None:
