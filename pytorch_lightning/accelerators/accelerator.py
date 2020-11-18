@@ -100,7 +100,7 @@ class Accelerator(object):
             self.ddp_plugin.sync_backward(self.trainer.model)
         return closure_loss
 
-    def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure):
+    def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure, *args, **kwargs):
         model_ref = self.trainer.get_model()
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
         using_native_amp = self.trainer.amp_backend == AMPType.NATIVE
@@ -121,7 +121,9 @@ class Accelerator(object):
             optimizer_closure=lambda_closure,
             on_tpu=False,  # TPUAccelerator class sets this as True
             using_native_amp=using_native_amp,
-            using_lbfgs=is_lbfgs
+            using_lbfgs=is_lbfgs,
+            *args,
+            **kwargs,
         )
 
         # scale when native amp

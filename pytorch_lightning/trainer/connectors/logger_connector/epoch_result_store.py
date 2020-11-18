@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from collections import ChainMap, defaultdict
 from copy import deepcopy
-from collections import defaultdict, ChainMap
 from enum import Enum
-from typing import Union, Tuple, Any, Dict, Optional, List
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 # used to map boolean to right LoggerStage values
@@ -445,9 +446,6 @@ class EpochResultStore:
             epoch_log_metrics = self.get_epoch_log_metrics()
             logger_connector.logged_metrics.update(epoch_log_metrics)
             logger_connector.logged_metrics.update(epoch_dict)
-            if not self.trainer.running_sanity_check and not is_train:
-                if len(epoch_log_metrics) > 0:
-                    self.trainer.dev_debugger.track_logged_metrics_history(deepcopy(epoch_log_metrics))
 
             # get forked_metrics
             forked_metrics = self.get_forked_metrics()
