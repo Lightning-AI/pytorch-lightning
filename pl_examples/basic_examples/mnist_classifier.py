@@ -14,9 +14,10 @@
 from argparse import ArgumentParser
 
 import torch
+from torch.utils.data import random_split, DataLoader
+
 import pytorch_lightning as pl
 from torch.nn import functional as F
-from torch.utils.data import DataLoader, random_split
 
 try:
     from torchvision.datasets.mnist import MNIST
@@ -105,7 +106,7 @@ def cli_main():
     # ------------
     # testing
     # ------------
-    trainer.test(test_dataloaders=test_loader)
+    result = trainer.test(test_dataloaders=test_loader)
 
 
 if __name__ == '__main__':
