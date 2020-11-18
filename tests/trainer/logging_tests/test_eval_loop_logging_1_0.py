@@ -14,24 +14,29 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
-from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning import Trainer
-from pytorch_lightning import callbacks, seed_everything
-from tests.base.deterministic_model import DeterministicModel
-from tests.base import SimpleModule, BoringModel, RandomDataset
-import os
-import numpy as np
-import itertools
 import collections
-import torch
+import itertools
+import os
+from unittest import mock
+from unittest.mock import call, patch
+
+import numpy as np
 import pytest
+import torch
+from torch.utils.data import DataLoader, Dataset
+
+from pytorch_lightning import Trainer, callbacks, seed_everything
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.loggers import TensorBoardLogger
+from tests.base import BoringModel, RandomDataset, SimpleModule
+from tests.base.deterministic_model import DeterministicModel
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__validation_step__log(tmpdir):
     """
     Tests that validation_step can log
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(DeterministicModel):
         def training_step(self, batch, batch_idx):
@@ -87,11 +92,11 @@ def test__validation_step__log(tmpdir):
     assert expected_cb_metrics == callback_metrics
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__validation_step__step_end__epoch_end__log(tmpdir):
     """
     Tests that validation_step can log
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(DeterministicModel):
         def training_step(self, batch, batch_idx):
@@ -165,12 +170,12 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
     assert expected_cb_metrics == callback_metrics
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize(['batches', 'log_interval', 'max_epochs'], [(1, 1, 1), (64, 32, 2)])
 def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     """
     Tests that only training_step can be used
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(BoringModel):
         def validation_epoch_end(self, outputs):
@@ -214,11 +219,11 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     assert len(trainer.dev_debugger.logged_metrics) == max_epochs
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_eval_float_logging(tmpdir):
     """
     Tests that only training_step can be used
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(BoringModel):
 
@@ -249,13 +254,12 @@ def test_eval_float_logging(tmpdir):
     assert logged_metrics == expected_logged_metrics
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_eval_logging_auto_reduce(tmpdir):
     """
     Tests that only training_step can be used
     """
     seed_everything(1234)
-
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(BoringModel):
         def on_pretrain_routine_end(self) -> None:
@@ -319,7 +323,6 @@ def test_eval_epoch_only_logging(tmpdir, batches, log_interval, max_epochs):
     """
     Tests that only test_epoch_end can be used to log, and we return them in the results.
     """
-    os.environ['PL_DEV_DEBUG'] = '0'
 
     class TestModel(BoringModel):
         def test_epoch_end(self, outputs):
@@ -419,11 +422,11 @@ def test_single_dataloader_no_suffix_added(tmpdir):
     assert results[0]['test_loss'] == results[0]['y']
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_log_works_in_val_callback(tmpdir):
     """
     Tests that log can be called within callback
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestCallback(callbacks.Callback):
 
@@ -592,11 +595,11 @@ def test_log_works_in_val_callback(tmpdir):
             assert func_name not in trainer.logger_connector.progress_bar_metrics
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_log_works_in_test_callback(tmpdir):
     """
     Tests that log can be called within callback
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestCallback(callbacks.Callback):
 
@@ -780,3 +783,98 @@ def test_log_works_in_test_callback(tmpdir):
             assert func_name in trainer.logger_connector.progress_bar_metrics
         else:
             assert func_name not in trainer.logger_connector.progress_bar_metrics
+
+
+@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
+def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
+    """
+    This tests make sure we properly log_metrics to loggers
+    """
+
+    class ExtendedModel(BoringModel):
+
+        val_losses = []
+
+        def training_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log('train_loss', loss)
+            return {"loss": loss}
+
+        def validation_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.val_losses.append(loss)
+            self.log('valid_loss_0', loss, on_step=True, on_epoch=True)
+            self.log('valid_loss_1', loss, on_step=False, on_epoch=True)
+            self.log('valid_loss_2', loss, on_step=True, on_epoch=False)
+            self.log('valid_loss_3', loss, on_step=False, on_epoch=False)
+            return {"val_loss": loss}
+
+        def test_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log('fake_test_acc', loss)
+            return {"y": loss}
+
+    model = ExtendedModel()
+    model.validation_epoch_end = None
+
+    # Initialize a trainer
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=TensorBoardLogger(tmpdir),
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=0,
+        max_epochs=2,
+        progress_bar_refresh_rate=1,
+    )
+
+    # Train the model ⚡
+    trainer.fit(model)
+
+    # hp_metric + 2 steps + epoch + 2 steps + epoch
+    expected_num_calls = 1 + 2 + 1 + 2 + 1
+
+    assert len(mock_log_metrics.mock_calls) == expected_num_calls
+
+    assert mock_log_metrics.mock_calls[0] == call({'hp_metric': -1}, 0)
+
+    def get_metrics_at_idx(idx):
+        mock_calls = list(mock_log_metrics.mock_calls)
+        if isinstance(mock_calls[idx].kwargs, dict):
+            return mock_calls[idx].kwargs["metrics"]
+        else:
+            return mock_calls[idx][2]["metrics"]
+
+    expected = ['valid_loss_0_step/epoch_0', 'valid_loss_2/epoch_0', 'global_step']
+    assert sorted(get_metrics_at_idx(1)) == sorted(expected)
+    assert sorted(get_metrics_at_idx(2)) == sorted(expected)
+
+    expected = model.val_losses[2]
+    assert get_metrics_at_idx(1)["valid_loss_0_step/epoch_0"] == expected
+    expected = model.val_losses[3]
+    assert get_metrics_at_idx(2)["valid_loss_0_step/epoch_0"] == expected
+
+    expected = ['valid_loss_0_epoch', 'valid_loss_1', 'epoch', 'global_step']
+    assert sorted(get_metrics_at_idx(3)) == sorted(expected)
+
+    expected = torch.stack(model.val_losses[2:4]).mean()
+    assert get_metrics_at_idx(3)["valid_loss_1"] == expected
+    expected = ['valid_loss_0_step/epoch_1', 'valid_loss_2/epoch_1', 'global_step']
+
+    assert sorted(get_metrics_at_idx(4)) == sorted(expected)
+    assert sorted(get_metrics_at_idx(5)) == sorted(expected)
+
+    expected = model.val_losses[4]
+    assert get_metrics_at_idx(4)["valid_loss_0_step/epoch_1"] == expected
+    expected = model.val_losses[5]
+    assert get_metrics_at_idx(5)["valid_loss_0_step/epoch_1"] == expected
+
+    expected = ['valid_loss_0_epoch', 'valid_loss_1', 'epoch', 'global_step']
+    assert sorted(get_metrics_at_idx(6)) == sorted(expected)
+
+    expected = torch.stack(model.val_losses[4:]).mean()
+    assert get_metrics_at_idx(6)["valid_loss_1"] == expected
