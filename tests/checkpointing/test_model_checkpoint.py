@@ -323,7 +323,7 @@ def test_model_checkpoint_none_monitor(tmpdir):
     # these should not be set if monitor is None
     assert checkpoint_callback.monitor is None
     assert checkpoint_callback.best_model_path == checkpoint_callback.last_model_path == tmpdir / 'epoch=1-step=19.ckpt'
-    assert checkpoint_callback.best_model_score == 0
+    assert checkpoint_callback.best_model_score is None
     assert checkpoint_callback.best_k_models == {}
     assert checkpoint_callback.kth_best_model_path == ''
 
@@ -367,7 +367,7 @@ def test_model_checkpoint_topk_zero(tmpdir):
     # these should not be set if monitor is None
     assert checkpoint_callback.monitor is None
     assert checkpoint_callback.best_model_path == ''
-    assert checkpoint_callback.best_model_score == 0
+    assert checkpoint_callback.best_model_score is None
     assert checkpoint_callback.best_k_models == {}
     assert checkpoint_callback.kth_best_model_path == ''
     # check that no ckpts were created
