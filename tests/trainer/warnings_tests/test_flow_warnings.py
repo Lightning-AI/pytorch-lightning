@@ -11,8 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from tests.base.boring_model import BoringModel
 import os
+from unittest import mock
+
+from tests.base.boring_model import BoringModel
 from pytorch_lightning import Trainer
 import warnings
 
@@ -23,11 +25,11 @@ class TestModel(BoringModel):
         return acc
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_no_depre_without_epoch_end(tmpdir):
     """
     Tests that only training_step can be used
     """
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     model = TestModel()
     model.validation_epoch_end = None
