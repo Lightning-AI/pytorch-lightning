@@ -95,17 +95,8 @@ class LightningOptimizer(Optimizer):
     def defaults(self, defaults):
         self._optimizer.defaults = defaults
 
-
     @property
     def state(self):
-        return self.__getstate__()
-
-    @state.setter
-    def state(self, state):
-        self.__setstate__(state)
-
-
-    def __getstate__(self):
         return {
             'defaults': self._optimizer.defaults,
             'state': self._optimizer.state,
@@ -115,10 +106,13 @@ class LightningOptimizer(Optimizer):
             "accumulate_grad_batches": self._accumulate_grad_batches,
         }
 
+    def __getstate__(self):
+        return self.state
+
     def __setstate__(self, state):
-        self._optimizer_idx = state["optimizer_idx"]
-        self._accumulate_grad_batches = state["accumulate_grad_batches"]
-        self._optimizer = state["optimizer_cls"](state['param_groups'], **state['defaults'])
+        self._optimizer_idx = state['state']["optimizer_idx"]
+        self._accumulate_grad_batches = state['state']["accumulate_grad_batches"]
+        self._optimizer = state['state']["optimizer_cls"](state['param_groups'], **state['state']['defaults'])
 
     def __repr__(self):
         format_string = "Lightning" + self._optimizer.__class__.__name__ + ' ('
