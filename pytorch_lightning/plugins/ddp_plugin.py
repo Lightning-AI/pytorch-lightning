@@ -86,3 +86,21 @@ class DDPPlugin(object):
             torch_distrib.init_process_group(
                 torch_backend, rank=global_rank, world_size=world_size
             )
+
+    def on_before_forward(self, model: LightningModule, *args):
+        """
+        Override to handle custom input to device logic. For DDP, no logic is required as this is handled internally
+        within the DDP wrapper.
+
+        Example::
+
+            def on_before_forward(self, model, *args):
+                batch, batch_idx = args
+                return batch.to(model.device)
+
+        Args:
+            args: Inputs to the model.
+            model: Model to train.
+        Returns: args moved to correct device if needed.
+        """
+        return args
