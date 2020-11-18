@@ -73,6 +73,7 @@ class DDPPlugin(object):
             def on_before_forward(self, model, *args):
                 batch, batch_idx = args
                 return batch.to(model.device)
+
         Args:
             args: Inputs to the model.
             model: Model to train.
