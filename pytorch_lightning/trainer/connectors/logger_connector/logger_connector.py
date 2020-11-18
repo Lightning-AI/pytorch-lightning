@@ -181,7 +181,7 @@ class LoggerConnector:
         self.logged_metrics.update(logged_metrics_tmp)
         self.cached_results.legacy_batch_log_metrics.update(logged_metrics_tmp)
 
-    def log_metrics(self, metrics, grad_norm_dic, step=None, is_train_step=False):
+    def log_metrics(self, metrics, grad_norm_dic, step=None, log_train_step_metrics=False):
         """Logs the metric dict passed in.
         If `step` parameter is None and `step` key is presented is metrics,
         uses metrics["step"] as a step
@@ -207,7 +207,7 @@ class LoggerConnector:
 
         elif step is None:
             # added metrics by Lightning for convenience
-            if is_train_step:
+            if log_train_step_metrics:
                 step = self.trainer.total_batch_idx
             else:
                 scalar_metrics['epoch'] = self.trainer.current_epoch
@@ -622,5 +622,5 @@ class LoggerConnector:
             metrics = self.cached_results.get_latest_batch_log_metrics()
             grad_norm_dic = batch_output.grad_norm_dic
             if len(metrics) > 0 or len(grad_norm_dic) > 0:
-                self.log_metrics(metrics, grad_norm_dic, is_train_step=True)
+                self.log_metrics(metrics, grad_norm_dic, log_train_step_metrics=True)
                 self.callback_metrics.update(metrics)

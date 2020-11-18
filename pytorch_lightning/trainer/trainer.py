@@ -271,7 +271,7 @@ class Trainer(
                 sequence.
 
             val_check_interval: How often to check the validation set. Use float to check within a training epoch,
-                use int åto check every n steps (batches).
+                use int to check every n steps (batches).
 
             weights_summary: Prints a summary of the weights when training begins.
 
