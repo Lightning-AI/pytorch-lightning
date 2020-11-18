@@ -89,7 +89,7 @@ def cli_main():
     # ------------
     # data
     # ------------
-    dm = MNISTDataModule.from_argparse_args(DATASETS_PATH)
+    dm = MNISTDataModule.from_argparse_args(args)
 
     # ------------
     # model
