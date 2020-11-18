@@ -95,7 +95,7 @@ def test_callbacks_state_resume_from_checkpoint(tmpdir):
             ]
         )
         assert checkpoint.best_model_path == ""
-        assert checkpoint.best_model_score == 0
+        assert checkpoint.best_model_score is None
         return trainer_args
 
     # initial training
