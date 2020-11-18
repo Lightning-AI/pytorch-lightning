@@ -124,7 +124,7 @@ class AcceleratorConnector:
 
         # enable optimizer wrapping with LightningOptimizer
         # TODO: Understand why it doesn't work with Hovorod
-        self.trainer.use_lightning_optimizer = not self.trainer.use_horovod
+        self.trainer.enable_pl_optimizer = not self.trainer.use_horovod and self.trainer.enable_pl_optimizer
 
         # override dist backend when using tpus
         if self.trainer.on_tpu:
