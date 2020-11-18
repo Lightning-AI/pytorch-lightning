@@ -14,7 +14,7 @@
 import pytest
 import torch
 
-from pytorch_lightning import Trainer, Callback
+from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.base.boring_model import BoringModel
@@ -180,8 +180,7 @@ def test_reducelronplateau_scheduling(tmpdir):
 
 
 def test_optimizer_return_options():
-    trainer = Trainer()
-    trainer.use_lightning_optimizer = False
+    trainer = Trainer(enable_pl_optimizer=False)
     model = EvalModelTemplate()
 
     # single optimizer
