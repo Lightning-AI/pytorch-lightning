@@ -96,7 +96,7 @@ def cli_main():
     # ------------
     # testing
     # ------------
-    result = trainer.test(datamodule=dm)
+    result = trainer.test(model, datamodule=dm)
     pprint(result)
 
 
