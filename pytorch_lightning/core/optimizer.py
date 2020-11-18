@@ -107,9 +107,14 @@ class LightningOptimizer(Optimizer):
         return self.state
 
     def __setstate__(self, state):
-        self._optimizer_idx = state['state']["optimizer_idx"]
-        self._accumulate_grad_batches = state['state']["accumulate_grad_batches"]
-        self._optimizer = state['state']["optimizer_cls"](state['param_groups'], **state['state']['defaults'])
+        try:
+            self._optimizer_idx = state["optimizer_idx"]
+            self._accumulate_grad_batches = state["accumulate_grad_batches"]
+            self._optimizer = state["optimizer_cls"](state['param_groups'], **state['defaults'])
+        except:
+            self._optimizer_idx = state["state"]["optimizer_idx"]
+            self._accumulate_grad_batches = state["state"]["accumulate_grad_batches"]
+            self._optimizer = state["state"]["optimizer_cls"](state['param_groups'], **state["state"]['defaults'])
 
     def __repr__(self):
         format_string = "Lightning" + self._optimizer.__class__.__name__ + ' ('
