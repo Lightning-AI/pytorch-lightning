@@ -32,7 +32,7 @@ def _check_classification_inputs(
     threshold: float,
     num_classes: Optional[int] = None,
     is_multiclass: bool = False,
-    logits: bool = False,
+    logits: bool = True,
     top_k: int = 1,
 ) -> None:
     """Performs error checking on inputs for classification.
@@ -61,10 +61,13 @@ def _check_classification_inputs(
     Args:
         preds: tensor with predictions
         target: tensor with ground truth labels, always integers
-        threshold: probability (float) used for thresholding binary and multilabel input
+        threshold:
+            Threshold probability value for transforming probability/logit predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs. If ``logits=True``,
+            this value is transformed to logits by ``logit_t = ln(t / (1-t))``. Default: 0.5
+        logits:
+            If predictions are floats, whether they are probabilities or logits. Default ``True``
         num_classes: number of classes
-        logits: whether predictions are logits (before sigmoid) or probabilities (after sigmoid).
-            Relevant when preds are floats
         is_multiclass: if True, treat binary and multi-label inputs as multi-class or multi-dim
             multi-class with 2 classes, respectively. If False, treat multi-class and multi-dim
             multi-class inputs with 1 or 2 classes as binary and multi-label, respectively.
@@ -150,7 +153,6 @@ def _check_classification_inputs(
         if preds.shape != target.shape and target.max() >= extra_dim_size:
             raise ValueError("The highest label in targets should be smaller than the size of C dimension")
     else:
-
         if case == "binary":
             if num_classes > 2:
                 raise ValueError("Your data is binary, but num_classes is larger than 2.")
@@ -273,12 +275,13 @@ def _input_format_classification(
     Args:
         preds: tensor with predictions
         target: tensor with ground truth labels, always integers
-        threshold: probability (float) used for thresholding binary and multilabel input. Uses
-            larger or equal to in comparison
+        threshold:
+            Threshold probability value for transforming probability/logit predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs. If ``logits=True``,
+            this value is transformed to logits by ``logit_t = ln(t / (1-t))``. Default: 0.5
+        logits:
+            If predictions are floats, whether they are probabilities or logits. Default ``True``
         num_classes: number of classes
-        logits: whether predictions are logits (before sigmoid) or probabilities (after sigmoid).
-            Relevant only for binary and multi-label classification, for comparison with the
-            threshold.
         top_k: number of highest probability entries for each sample to convert to 1s, relevant
             only for (multi-dimensional) multi-class cases.
         is_multiclass: if True, treat binary and multi-label inputs as multi-class or multi-dim

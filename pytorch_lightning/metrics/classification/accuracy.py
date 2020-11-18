@@ -24,7 +24,7 @@ class Accuracy(Metric):
 
     This metric generalizes to subset accuracy for multilabel data, and similarly for
     multi-dimensional multi-class data: for the sample to be counted as correct, the the
-    class has to be correctly predicted across all extra dimension for each sample of the
+    class has to be correctly predicted across all extra dimension for each sample in the
     ``N`` dimension. Consider using :class:`~pytorch_lightning.metrics.classification.HammingLoss`
     is this is not what you want.
 
@@ -32,11 +32,11 @@ class Accuracy(Metric):
 
     Args:
         threshold:
-            Threshold probability value for binary or multi-label logits/probabilities. default: 0.5
+            Threshold probability value for transforming probability/logit predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs. If ``logits=True``,
+            this value is transformed to logits by ``logit_t = ln(t / (1-t))``. Default: 0.5
         logits:
-            If predictions are floats, whether the values passed in are probabilities or logits.
-            This information is used to know how to transform the ``threshold`` probability before
-            comparison.
+            If predictions are floats, whether they are probabilities or logits. Default ``True``.
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
@@ -84,10 +84,10 @@ class Accuracy(Metric):
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
         Update state with predictions and targets. See :ref:`metrics:Input types` for more information
-        on allowed input types.
+        on input types.
 
         Args:
-            preds: Predictions from model
+            preds: Predictions from model (probabilities, logits, or labels)
             target: Ground truth values
         """
         preds, target, _ = _input_format_classification(preds, target, threshold=self.threshold, logits=self.logits)
@@ -100,7 +100,7 @@ class Accuracy(Metric):
 
     def compute(self) -> torch.Tensor:
         """
-        Computes accuracy over state.
+        Computes accuracy based on inputs passed in to ``update`` previously.
         """
         return self.correct.float() / self.total
 
@@ -118,11 +118,11 @@ class HammingLoss(Metric):
 
     Args:
         threshold:
-            Threshold probability value for binary or multi-label logits/probabilities. default: 0.5
+            Threshold probability value for transforming probability/logit predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs. If ``logits=True``,
+            this value is transformed to logits by ``logit_t = ln(t / (1-t))``. Default: 0.5
         logits:
-            If predictions are floats, whether the values passed in are probabilities or logits.
-            This information is used to know how to transform the ``threshold`` probability before
-            comparison.
+            If predictions are floats, whether they are probabilities or logits. Default ``True``.
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
@@ -170,10 +170,10 @@ class HammingLoss(Metric):
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
         Update state with predictions and targets. See :ref:`metrics:Input types` for more information
-        on allowed input types.
+        on input types.
 
         Args:
-            preds: Predictions from model
+            preds: Predictions from model (probabilities, logits, or labels)
             target: Ground truth values
         """
         preds, target, _ = _input_format_classification(preds, target, threshold=self.threshold, logits=self.logits)
@@ -183,19 +183,21 @@ class HammingLoss(Metric):
 
     def compute(self) -> torch.Tensor:
         """
-        Computes hamming loss over state.
+        Computes hamming loss based on inputs passed in to ``update`` previously.
         """
         return 1 - self.correct.float() / self.total
 
 
 class TopKAccuracy(Metric):
     """
-    For multi-class data, computes the share of correctly predicted samples, where
-    a sample is considered correctly predicted if the ground truth label is among
-    the ``k`` highest probability labels.
+    Computes Top-k classification score for (multi-dimensional) multi-class data.
 
-    Accepts only multi-class and multi-dimensional multi-class inputs (as defined
-    in :ref:`metrics:Input types`).
+    Top-k accuracy is the share of correctly predicted samples, where a sample is
+    considered correctly predicted if the ground truth label (class) is among the
+    ``k``  highest probability labels for the sample.
+
+    Accepts only multi-class and multi-dimensional multi-class inputs with predictions
+    as probabilities (as defined in :ref:`metrics:Input types`).
 
     For multi-dimensional multi-class inputs a ``subset_accuracy`` flag is provided:
     if ``True``, all class predictions across the extra dimension(s) must be correct
@@ -203,14 +205,26 @@ class TopKAccuracy(Metric):
     the :class:`~pytorch_lightning.metrics.classification.Accuracy` metric if ``k=1``.
 
     If ``subset_accuracy=False`` (default), then each sample's accuracy is the share of
-    the correct class predictions across the extra dimension(s).
+    the correct class predictions across the extra dimension(s). This is equivalent to
+    computing the metric "globally", with the ``N`` dimension and all extra dimensions
+    (``...``) being unrolled into a new sample dimension.
 
     Args:
         k:
-            Number of highest probability predictions considered to find the correct label. Default 2
+            Number of highest probability predictions considered to find the correct label.
+            Default 2
         subset_accuracy:
-            Determines how the metric is computed for multi-dimensional multi-class data, see
-            the description above.
+            Determines how the metric is computed for multi-dimensional multi-class data:
+
+            - If ``False`` [default], then each sample's accuracy is the share of
+              the correct class predictions across the extra dimension(s). This is equivalent to
+              computing the metric "globally", with the ``N`` dimension and all extra dimensions
+              (``...``) being unrolled into a new sample dimension.
+
+            - If ``True``, all class predictions across the extra dimension(s) must be correct
+              for each sample, for the sample to be counted as correct - this is the same as
+              the :class:`~pytorch_lightning.metrics.classification.Accuracy` metric if ``k=1``.
+
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
@@ -226,7 +240,7 @@ class TopKAccuracy(Metric):
 
         >>> from pytorch_lightning.metrics import TopKAccuracy
         >>> target = torch.tensor([0, 1, 2])
-        >>> preds = torch.tensor([[-1, 0, -2], [0.5, -2, 5.0], [-1, 2, 1]])
+        >>> preds = torch.tensor([[-1, 0, -2], [0.5, -2, 5.0], [-1, 2, 1]]) # preds are logits
         >>> accuracy = TopKAccuracy()
         >>> accuracy(preds, target)
         tensor(0.6667)
@@ -257,11 +271,12 @@ class TopKAccuracy(Metric):
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
         Update state with predictions and targets.
+
         Accepts only multi-class and multi-dimensional multi-class inputs (as defined
         in :ref:`metrics:Input types`).
 
         Args:
-            preds: Predictions from model
+            preds: Predictions from model (probabilities, logits, or labels)
             target: Ground truth values
         """
         preds, target, mode = _input_format_classification(preds, target, logits=True, top_k=self.k)
@@ -273,12 +288,11 @@ class TopKAccuracy(Metric):
             extra_dims = list(range(1, len(preds.shape)))
             sample_correct = (preds * target).sum(dim=extra_dims)
 
-            self.correct += (sample_correct == preds[0,0].numel()).sum()
+            self.correct += (sample_correct == preds[0, 0].numel()).sum()
             self.total += preds.shape[0]
-
 
     def compute(self) -> torch.Tensor:
         """
-        Computes top k accuracy over state.
+        Computes top k accuracy  based on inputs passed in to ``update`` previously.
         """
         return self.correct.float() / self.total

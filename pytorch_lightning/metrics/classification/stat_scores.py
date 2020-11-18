@@ -128,8 +128,8 @@ class StatScores(Metric):
             Defines how the multi-dimensional multi-class inputs are handeled. Should be
             one of the following:
 
-            - ``None``: This is the default value and should be left unchanged if your data
-              is not multi-dimensional multi-class.
+            - ``None`` [default]: Should be left unchanged if your data is not multi-dimensional
+              multi-class.
 
             - ``'samples'``: In this case, the statistics are computed separately for each
               sample on the ``N`` axis. This is done by, for each sample, treating the flattened
@@ -151,11 +151,11 @@ class StatScores(Metric):
             Number of classes. Necessary for (multi-dimensional) multi-class or multi-label data.
 
         threshold:
-            Threshold probability value for binary or multi-label logits/probabilities. default: 0.5
+            Threshold probability value for transforming probability/logit predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs. If ``logits=True``,
+            this value is transformed to logits by ``logit_t = ln(t / (1-t))``. Default: 0.5
         logits:
-            If predictions are floats, whether the values passed in are probabilities or logits.
-            This information is used to know how to transform the ``threshold`` probability before
-            comparison.
+            If predictions are floats, whether they are probabilities or logits. Default ``True``.
         is_multiclass: if ``True``, treat binary and multi-label inputs as multi-class or multi-dim
             multi-class with 2 classes, respectively. If ``False``, treat multi-class and multi-dim
             multi-class inputs with 1 or 2 classes as binary and multi-label, respectively.
@@ -194,7 +194,7 @@ class StatScores(Metric):
         mdmc_average: Optional[str] = None,
         threshold: float = 0.5,
         num_classes: Optional[int] = None,
-        logits: bool = False,
+        logits: bool = True,
         is_multiclass: Optional[bool] = None,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
