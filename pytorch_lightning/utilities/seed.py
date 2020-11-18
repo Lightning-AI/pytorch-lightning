@@ -40,8 +40,9 @@ def seed_everything(seed: Optional[int] = None) -> int:
     min_seed_value = np.iinfo(np.uint32).min
 
     try:
+        seed = os.environ.get("PL_GLOBAL_SEED")
         if seed is None:
-            seed = os.environ.get("PL_GLOBAL_SEED", _select_seed_randomly(min_seed_value, max_seed_value))
+            seed = _select_seed_randomly(min_seed_value, max_seed_value)
         seed = int(seed)
     except (TypeError, ValueError):
         seed = _select_seed_randomly(min_seed_value, max_seed_value)
