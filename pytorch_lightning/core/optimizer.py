@@ -98,11 +98,11 @@ class LightningOptimizer(Optimizer):
 
     @property
     def state(self):
-        return self._optimizer.state
+        return self.__getstate__()
 
     @state.setter
     def state(self, state):
-        self._optimizer.state = state
+        self.__setstate__(state)
 
 
     def __getstate__(self):
