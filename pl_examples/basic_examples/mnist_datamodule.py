@@ -13,6 +13,7 @@
 # limitations under the License.
 from typing import Optional
 
+from pl_examples import DATASETS_PATH
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader, random_split
 
@@ -32,7 +33,7 @@ class MNISTDataModule(LightningDataModule):
 
     def __init__(
         self,
-        data_dir: str = "./",
+        data_dir: str = DATASETS_PATH,
         val_split: int = 5000,
         num_workers: int = 16,
         normalize: bool = False,

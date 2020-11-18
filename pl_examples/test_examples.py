@@ -5,12 +5,7 @@ from unittest import mock
 import pytest
 import torch
 
-try:
-    from nvidia.dali import ops, types, pipeline, plugin
-except (ImportError, ModuleNotFoundError):
-    DALI_AVAILABLE = False
-else:
-    DALI_AVAILABLE = True
+from pl_examples import DALI_AVAILABLE
 
 ARGS_DEFAULT = """
 --max_epochs 1 \
