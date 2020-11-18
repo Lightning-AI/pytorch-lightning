@@ -15,7 +15,8 @@
 import multiprocessing
 import platform
 from abc import ABC, abstractmethod
-from typing import Union, List, Tuple, Callable, Optional
+from copy import deepcopy
+from typing import Callable, Iterable, List, Optional, Tuple, Union
 
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
@@ -24,12 +25,10 @@ from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.debugging import InternalDebugger
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
-from copy import deepcopy
-from typing import Iterable
 
 TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 try:
@@ -138,7 +137,9 @@ class TrainerDataLoadingMixin(ABC):
 
         dl_args['sampler'] = sampler
         dl_args['shuffle'] = False
+        multiprocessing_context = dataloader.multiprocessing_context
         dataloader = type(dataloader)(**dl_args)
+        dataloader.multiprocessing_context = multiprocessing_context
         return dataloader
 
     def _get_distributed_sampler(self, dataloader, shuffle):
