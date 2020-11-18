@@ -139,7 +139,6 @@ class Trainer(
         distributed_backend: Optional[str] = None,
         automatic_optimization: Optional[bool] = None,
         move_metrics_to_cpu: bool = False,
-        log_epoch_metrics_on_step: bool = True,
     ):
         r"""
         Customize every aspect of training via flags
@@ -284,9 +283,6 @@ class Trainer(
 
             move_metrics_to_cpu: Whether to force internal logged metrics to be moved to cpu.
                 This can save some gpu memory, but can make training slower. Use with attention.
-
-            log_epoch_metrics_on_step: True if x-axis should track the number of steps,
-                False if x-axis should track the number of epochs when logged metrics are reduced at the end of the epoch
         """
         super().__init__()
 
@@ -391,7 +387,6 @@ class Trainer(
             flush_logs_every_n_steps,
             log_every_n_steps,
             move_metrics_to_cpu,
-            log_epoch_metrics_on_step,
         )
 
         # init debugging flags

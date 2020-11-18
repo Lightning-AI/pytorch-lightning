@@ -205,11 +205,10 @@ def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
 
 
 @mock.patch('pytorch_lightning.loggers.TensorBoardLogger.log_metrics')
-@pytest.mark.parametrize('log_epoch_metrics_on_step, expected', [
-    (False, [0, 1, 2]),
-    (True, [5, 11, 17]),
+@pytest.mark.parametrize('expected', [
+    ([5, 11, 17]),
 ])
-def test_tensorboard_with_accummulated_gradients(mock_log_metrics, log_epoch_metrics_on_step, expected, tmpdir):
+def test_tensorboard_with_accummulated_gradients(mock_log_metrics, expected, tmpdir):
     """
     Tests to ensure that tensorboard log properly when accumulated_gradients > 1
     """
@@ -256,7 +255,6 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, log_epoch_met
         accumulate_grad_batches=accumulate_grad_batches,
         logger=[logger_0],
         log_every_n_steps=3,
-        log_epoch_metrics_on_step=log_epoch_metrics_on_step
     )
     trainer.fit(model)
 
