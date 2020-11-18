@@ -840,30 +840,30 @@ max_epochs
 
 |
 
-Stop training once this number of epochs is reached
+Stop training after this number of epochs. If neither max_epochs nor max_steps is specified, defaults to max_epochs=1000.
 
 .. testcode::
 
     # default used by the Trainer
-    trainer = Trainer(max_epochs=1000)
+    trainer = Trainer(max_epochs=None)
 
 min_epochs
 ^^^^^^^^^^
 
 .. raw:: html
 
-    <video width="50%" max-width="400px" controls
+    <video width="50%" max-width="40    0px" controls
     poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/min_epochs.jpg"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/min_max_epochs.mp4"></video>
 
 |
 
-Force training for at least these many epochs
+Force training for at least these many epochs. If neither min_epochs nor min_steps is specified, defaults to min_epochs=1.
 
 .. testcode::
 
     # default used by the Trainer
-    trainer = Trainer(min_epochs=1)
+    trainer = Trainer(min_epochs=None)
 
 max_steps
 ^^^^^^^^^
