@@ -23,7 +23,11 @@ import torch
 
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer, LightningModule
-from pytorch_lightning.utilities.jsonargparse_utils import LightningArgumentParser, SaveConfigCallback, trainer_cli
+from pytorch_lightning.utilities.trainer_cli import (
+    LightningArgumentParser,
+    SaveConfigCallback,
+    TrainerCli
+)
 
 
 @mock.patch('argparse.ArgumentParser.parse_args')
@@ -34,7 +38,7 @@ def test_default_args(mock_argparse, tmpdir):
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
 
-    parser = LightningArgumentParser(add_help=False)
+    parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
     args = parser.parse_args([])
     args.logger = logger
 
@@ -54,7 +58,7 @@ def test_add_argparse_args_redefined(cli_args):
     """Redefines some default Trainer arguments via the cli and
     tests the Trainer initialization correctness.
     """
-    parser = LightningArgumentParser(add_help=False)
+    parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
     parser.add_trainer_args(Trainer, None)
 
     args = parser.parse_args(cli_args)
@@ -77,7 +81,7 @@ def test_add_argparse_args_redefined(cli_args):
     ['--foo', '--bar=1']
 ])
 def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
-    """Asserts that an error raised in case of passing not default cli arguments."""
+    """Asserts error raised in case of passing not default cli arguments."""
 
     class _UnkArgError(Exception):
         pass
@@ -85,7 +89,7 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
     def _raise():
         raise _UnkArgError
 
-    parser = LightningArgumentParser(add_help=False)
+    parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
     parser.add_trainer_args(Trainer, None)
 
     monkeypatch.setattr(parser, 'exit', lambda *args: _raise(), raising=True)
@@ -95,14 +99,14 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
 
 
 @pytest.mark.parametrize(['cli_args', 'expected'], [
-    #pytest.param('--auto_lr_find --auto_scale_batch_size power',
-    #             {'auto_lr_find': True, 'auto_scale_batch_size': 'power'}),
-    #pytest.param('--auto_lr_find any_string --auto_scale_batch_size',
-    #             {'auto_lr_find': 'any_string', 'auto_scale_batch_size': True}),
-    #pytest.param('--auto_lr_find t --auto_scale_batch_size ON',
-    #             {'auto_lr_find': True, 'auto_scale_batch_size': True}),
-    #pytest.param('--auto_lr_find 0 --auto_scale_batch_size n',
-    #             {'auto_lr_find': False, 'auto_scale_batch_size': False}),
+    pytest.param('--auto_lr_find=True --auto_scale_batch_size=power',
+                 {'auto_lr_find': True, 'auto_scale_batch_size': 'power'}),
+    pytest.param('--auto_lr_find any_string --auto_scale_batch_size ON',
+                 {'auto_lr_find': 'any_string', 'auto_scale_batch_size': True}),
+    pytest.param('--auto_lr_find=Yes --auto_scale_batch_size=On',
+                 {'auto_lr_find': True, 'auto_scale_batch_size': True}),
+    pytest.param('--auto_lr_find Off --auto_scale_batch_size No',
+                 {'auto_lr_find': False, 'auto_scale_batch_size': False}),
     pytest.param('--auto_lr_find TRUE --auto_scale_batch_size FALSE',
                  {'auto_lr_find': True, 'auto_scale_batch_size': False}),
     pytest.param('--tpu_cores=8',
@@ -118,8 +122,9 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
     pytest.param(
         "",
         {
-            # These parameters are marked as Optional[...] in Trainer.__init__, with None as default.
-            # They should not be changed by the argparse interface.
+            # These parameters are marked as Optional[...] in Trainer.__init__,
+            # with None as default. They should not be changed by the argparse
+            # interface.
             "min_steps": None,
             "max_steps": None,
             "log_gpu_memory": None,
@@ -133,7 +138,7 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
 def test_parse_args_parsing(cli_args, expected):
     """Test parsing simple types and None optionals not modified."""
     cli_args = cli_args.split(' ') if cli_args else []
-    parser = LightningArgumentParser(add_help=False)
+    parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
     parser.add_trainer_args(Trainer, None)
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         args = parser.parse_args()
@@ -156,7 +161,7 @@ def test_parse_args_parsing(cli_args, expected):
 ])
 def test_parse_args_parsing_complex_types(cli_args, expected, instantiate):
     """Test parsing complex types."""
-    parser = LightningArgumentParser(add_help=False)
+    parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
     parser.add_trainer_args(Trainer, None)
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         args = parser.parse_args()
@@ -171,11 +176,11 @@ def test_parse_args_parsing_complex_types(cli_args, expected, instantiate):
     pytest.param('--gpus 1', [0]),
     pytest.param('--gpus 0,', [0]),
 ])
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU")
 def test_parse_args_parsing_gpus(cli_args, expected_gpu):
     """Test parsing of gpus and instantiation of Trainer."""
     cli_args = cli_args.split(' ') if cli_args else []
-    parser = LightningArgumentParser(add_help=False)
+    parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
     parser.add_trainer_args(Trainer, None)
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         args = parser.parse_args()
@@ -242,4 +247,4 @@ def test_trainer_cli(cli_args, expected_model, expected_trainer, monkeypatch):
     TestModel.expected_trainer = expected_trainer
 
     with mock.patch('sys.argv', ['any.py'] + cli_args):
-        trainer_cli(TestModel, trainer_class=Trainer, save_config_callback=SaveConfigCallback)
+        TrainerCli(TestModel, trainer_class=Trainer, save_config_callback=SaveConfigCallback)
