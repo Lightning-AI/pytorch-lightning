@@ -1,6 +1,6 @@
 import sys
 import threading
-from functools import wraps, partial
+from functools import partial, wraps
 from http.server import SimpleHTTPRequestHandler
 import pytest
 import torch.multiprocessing as mp
@@ -41,8 +41,8 @@ def tmpdir_server(tmpdir):
                 return os.path.join(str(tmpdir), relpath)
 
         # ThreadingHTTPServer was added in 3.7, so we need to define it ourselves
-        from socketserver import ThreadingMixIn
         from http.server import HTTPServer
+        from socketserver import ThreadingMixIn
 
         class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
             daemon_threads = True
