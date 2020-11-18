@@ -48,14 +48,6 @@ class CallbackConnector:
         # pass through the required args to figure out defaults
         self.configure_checkpoint_callbacks(checkpoint_callback)
 
-        # Set refresh rate to 20 on colab
-        # to prevent crashing because of the progress bar
-        if IS_COLAB and progress_bar_refresh_rate < 20:
-            rank_zero_warn(
-                "You have set progress bar refresh rate to less than 20 on Google Colab. This "
-                " may cause crashes. Consider using Trainer(progress_bar_refresh_rate=20...)",
-                UserWarning
-            )
         # init progress bar
         self.trainer._progress_bar_callback = self.configure_progress_bar(
             progress_bar_refresh_rate, process_position
@@ -81,6 +73,14 @@ class CallbackConnector:
             self.trainer.callbacks.append(ModelCheckpoint(dirpath=None, filename=None))
 
     def configure_progress_bar(self, refresh_rate=1, process_position=0):
+        # smaller refresh rate on colab causes crashes, warn user about this
+        if IS_COLAB and refresh_rate < 20:
+            rank_zero_warn(
+                "You have set progress_bar_refresh_rate < 20 on Google Colab. This"
+                " may crash. Consider using progress_bar_refresh_rate>=20 in Trainer.",
+                UserWarning
+            )
+
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]
         if len(progress_bars) > 1:
             raise MisconfigurationException(
