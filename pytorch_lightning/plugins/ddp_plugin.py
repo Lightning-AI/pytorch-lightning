@@ -76,12 +76,5 @@ class DDPPlugin(object):
         """
         return args
 
-    def sync_backward(self, model: LightningModule):
-        """
-            Override with additional logic to run at the end of the backwards pass. This can be used to clear handles
-            and force synchronization before the optimizer step.
-        """
-        pass
-
     def optimizer_state(self, optimizer: Optimizer) -> dict:
         return optimizer.state_dict()

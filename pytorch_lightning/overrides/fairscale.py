@@ -24,31 +24,19 @@ class LightningShardedDataParallel(ShardedDataParallel):
             base_model: nn.Module,
             sharded_optimizer: Union[OSS, List[OSS]],
             process_group: Any = None,
-            broadcast_buffers: bool = True,
-            reduce_buffer_size: int = 2 ** 19,
+            broadcast_buffers: bool = True
     ):
         super().__init__(
             base_model=base_model,
             sharded_optimizer=sharded_optimizer,
             process_group=process_group,
-            broadcast_buffers=broadcast_buffers,
-            reduce_buffer_size=reduce_buffer_size
+            broadcast_buffers=broadcast_buffers
         )
         self.module = base_model
 
     def forward(self, *inputs, **kwargs):
         if self.broadcast_buffers:
             self.sync_buffers()
-
-        # Reset all the grad reduce and bucket state flags
-        self._grad_to_be_reduced = [True for _ in self._grad_to_be_reduced]
-        for sharded_optimizer in self.sharded_optimizers:
-            for device, per_rank_params in sharded_optimizer.per_device_params.items():
-                for r in range(self.world_size):
-                    self._bucket_state[sharded_optimizer][device][r] = (
-                        0,
-                        self._bucket_state[sharded_optimizer][device][r][1],
-                    )
 
         if self.base_model.training:
             outputs = self.base_model.training_step(*inputs, **kwargs)
@@ -57,11 +45,3 @@ class LightningShardedDataParallel(ShardedDataParallel):
         else:
             outputs = self.base_model.validation_step(*inputs, **kwargs)
         return outputs
-
-    def clear_backward_handles(self):
-        # Consume the handles, make sure that all the reduces are done before the optimizer can step
-        while len(self._reduce_work_handles) > 0:
-            wh, callback = self._reduce_work_handles.pop()
-            if wh is not None:
-                wh.wait()
-                callback()

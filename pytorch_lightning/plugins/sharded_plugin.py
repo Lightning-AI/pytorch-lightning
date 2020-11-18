@@ -11,13 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, cast, Any
+from typing import List, Any, Optional
 
 from fairscale.optim import OSS
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
+from pytorch_lightning.utilities import rank_zero_only
 
 
 class DDPShardedPlugin(DDPPlugin):
@@ -35,23 +36,27 @@ class DDPShardedPlugin(DDPPlugin):
             model = LightningShardedDataParallel(model, sharded_optimizer=model.trainer.optimizers)
         return model
 
-    def sync_optim_state(self, model: LightningModule):
-        for optimizer in model.trainer.optimizers:
-            optimizer.consolidate_state_dict()
+    def optimizer_state(self, optimizer: OSS) -> Optional[dict]:
+        optimizer.consolidate_state_dict()
+        return self._optim_state_dict(optimizer)
 
-    def rank_should_save_optim_state(self, rank):
-        return rank == 0  # Only safe to save optimizer state on rank 0
-
-    def sync_backward(self, model: LightningShardedDataParallel):
-        # Ensure all backward handles have been called before calling optimizer step
-        model = cast(LightningShardedDataParallel, model)
-        model.clear_backward_handles()
-
-    def input_to_device(self, args: Any, model: LightningModule):
+    def on_before_forward(self, args: Any, model: LightningModule):
         batch = args[0]
         batch = model.transfer_batch_to_device(batch, model.trainer.root_gpu)
         args[0] = batch
         return args
+
+    @rank_zero_only
+    def _optim_state_dict(self, optimizer):
+        """
+        Ensure we only return the state dict from the optimizer on rank 0.
+        Other ranks do not have the complete optimizer state.
+        Args:
+            optimizer: OSS Optimizer
+        Returns:
+            State dict if rank 0 else None.
+        """
+        return optimizer.state_dict()
 
     def _wrap_optimizers(self, model):
         trainer = model.trainer
