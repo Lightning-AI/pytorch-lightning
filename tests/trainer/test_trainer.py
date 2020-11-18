@@ -747,6 +747,47 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
             assert trainer.tested_ckpt_path == ckpt_path
 
 
+@pytest.mark.parametrize("ckpt_path", [None, "best", "specific"])
+@pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
+def test_validate_checkpoint_path(tmpdir, ckpt_path, save_top_k):
+    hparams = EvalModelTemplate.get_default_hparams()
+
+    model = EvalModelTemplate(**hparams)
+    trainer = Trainer(
+        max_epochs=2,
+        progress_bar_refresh_rate=0,
+        default_root_dir=tmpdir,
+        checkpoint_callback=ModelCheckpoint(monitor="early_stop_on", save_top_k=save_top_k),
+    )
+    trainer.fit(model)
+    if ckpt_path == "best":
+        # ckpt_path is 'best', meaning we load the best weights
+        if save_top_k == 0:
+            with pytest.raises(MisconfigurationException, match=".*is not configured to save the best.*"):
+                trainer.validate(ckpt_path=ckpt_path)
+        else:
+            trainer.validate(ckpt_path=ckpt_path)
+            assert trainer.tested_ckpt_path == trainer.checkpoint_callback.best_model_path
+    elif ckpt_path is None:
+        # ckpt_path is None, meaning we don't load any checkpoints and
+        # use the weights from the end of training
+        trainer.validate(ckpt_path=ckpt_path)
+        assert trainer.tested_ckpt_path is None
+    else:
+        # specific checkpoint, pick one from saved ones
+        if save_top_k == 0:
+            with pytest.raises(FileNotFoundError):
+                trainer.validate(ckpt_path="random.ckpt")
+        else:
+            ckpt_path = str(
+                list((Path(tmpdir) / f"lightning_logs/version_{trainer.logger.version}/checkpoints").iterdir())[
+                    0
+                ].absolute()
+            )
+            trainer.validate(ckpt_path=ckpt_path)
+            assert trainer.tested_ckpt_path == ckpt_path
+
+
 def test_disabled_training(tmpdir):
     """Verify that `limit_train_batches=0` disables the training loop unless `fast_dev_run=True`."""
 
@@ -1447,6 +1488,10 @@ def test_trainer_setup_call(tmpdir):
     trainer.test(ckpt_path=None)
     assert trainer.stage == "test"
     assert trainer.get_model().stage == "test"
+
+    trainer.validate(ckpt_path=None)
+    assert trainer.stage == "validation"
+    assert trainer.get_model().stage == "validation"
 
 
 @pytest.mark.parametrize(

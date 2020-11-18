@@ -335,6 +335,24 @@ def test_init_optimizers_during_testing(tmpdir):
     assert len(trainer.optimizer_frequencies) == 0
 
 
+def test_init_optimizers_during_validation(tmpdir):
+    """
+    Test that optimizers is an empty list during validation.
+    """
+    model = EvalModelTemplate()
+    model.configure_optimizers = model.configure_optimizers__multiple_schedulers
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_test_batches=10
+    )
+    trainer.validate(model, ckpt_path=None)
+
+    assert len(trainer.lr_schedulers) == 0
+    assert len(trainer.optimizers) == 0
+    assert len(trainer.optimizer_frequencies) == 0
+
+
 def test_multiple_optimizers_callbacks(tmpdir):
     """
     Tests that multiple optimizers can be used with callbacks

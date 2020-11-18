@@ -92,3 +92,23 @@ def test_test_loop_config(tmpdir):
         model = EvalModelTemplate(**hparams)
         model.test_step = None
         trainer.test(model, test_dataloaders=model.dataloader(train=False))
+
+
+def test_validation_loop_config(tmpdir):
+    """"
+    When either validation loop or validation data are missing
+    """
+    hparams = EvalModelTemplate.get_default_hparams()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+
+    # has val loop but no val data
+    with pytest.warns(UserWarning):
+        model = EvalModelTemplate(**hparams)
+        model.val_dataloader = None
+        trainer.validate(model)
+
+    # has val data but no val loop
+    with pytest.warns(UserWarning):
+        model = EvalModelTemplate(**hparams)
+        model.validation_step = None
+        trainer.validate(model, val_dataloaders=model.dataloader(train=False))
