@@ -3,6 +3,7 @@ from typing import Any, Dict, List
 
 import torch.distributed as torch_distrib
 from pytorch_lightning import _logger as log
+from torch.optim import Optimizer
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 
@@ -104,3 +105,6 @@ class DDPPlugin(object):
         Returns: args moved to correct device if needed.
         """
         return args
+
+    def optimizer_state(self, optimizer: Optimizer) -> dict:
+        return optimizer.state_dict()
