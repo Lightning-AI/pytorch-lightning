@@ -199,6 +199,96 @@ class LightningOptimizer(Optimizer):
             make_optimizer_step: Whether to force an optimizer step. When nothing is provided,
                 we will use `accumulate_grad_batches` for accumulation frequency by default.
                 However, one coud provide True and False based on its own scheduling.
+
+        .. tip:: In manual mode we still automatically accumulate grad over batches if
+           Trainer(accumulate_grad_batches=x) is set.
+
+        Args:
+            optimizer: Optimizer used to perform `.step()` call
+
+            make_optimizer_step: Whether to force an optimizer step. When nothing is provided,
+                we will use `accumulate_grad_batches` for accumulation frequency by default.
+                However, one coud provide True and False based on its own scheduling.
+                c.f example 2 and 3
+
+            optimizer_closure: One could provide its own optimizer_closure. Set to None by default.
+
+            args: Any parameters provided to optimizer.step()
+
+            kwargs: Any parameters provided to optimizer.step()
+
+        Example::
+
+            def training_step(...):
+                (opt_a, opt_b) = self.optimizers()
+                loss_a = ...
+                # automatically applies scaling, etc...
+                opt_a.backward(loss_a)
+                opt_a.step()
+
+        Example::
+
+            def training_step(self, batch, batch_idx):
+                # using Boring Model
+                opt = self.optimizers() # only 1 optimizer
+
+                def compute_loss():
+                    x = batch[0]
+                    x = F.dropout(x, 0.1)
+                    predictions = self(x)
+                    predictions = F.dropout(predictions, 0.1)
+                    loss = self.loss(None, predictions)
+                    return loss
+
+                def closure():
+                    # emulate MC dropout training
+                    num_backward = 1
+                    losses = []
+                    for backward_idx in range(num_backward + 1):
+                        loss = compute_loss()
+                        losses.append(loss)
+                        retain_graph = num_backward!= backward_idx
+                        opt.backward(loss, retain_graph=retain_graph)
+                    loss_mean = torch.stack(losses).mean()
+                    loss_std = torch.stack(losses).std()
+                    self.log("train_loss_mean", loss_mean, on_step=True, prog_bar=True, on_epoch=True)
+                    self.log("train_loss_std", loss_std, on_step=True, prog_bar=True, on_epoch=True)
+
+                opt.step(loss, closure=closure)
+
+        Example::
+
+            # Scenario for a gan.
+
+            def training_step(self, batch, batch_idx, optimizer_idx):
+
+                # emulate gans training
+                opt_gen, opt_dis = self.optimizers()
+
+                # Note: Be careful, don't log on the same key in self.log in both closure
+                # as they will be aggregated together on epoch_end
+
+                def gen_closure():
+                    ... forward and compute loss for generator
+                    loss_gen = ...
+                    self.log("loss_gen", loss_gen, on_step=True, on_epoch=True)
+                    opt_gen.backward(loss_gen)
+
+                def dis_closure():
+                    ... forward and compute loss for discriminator
+                    loss_dis = ...
+                    self.log("loss_dis", loss_dis, on_step=True, on_epoch=True)
+                    opt_dis.backward(loss_dis)
+
+                # this will accumulate gradients for 2 batches and then call opt_gen.step()
+                opt_gen.step(closure=gen_closure, make_optimizer_step=batch_idx % 2 == 0)
+
+                # update discriminator every 4 batches
+                # therefore, no gradient accumulation for discriminator
+                if batch_idx % 4 == 0 :
+                    # Note: Set make_optimizer_step to True or it will use by default
+                    # Trainer(accumulate_grad_batches=x)
+                    opt_dis.step(closure=optimizer_closure, make_optimizer_step=True)
         """
 
         if closure is None:
