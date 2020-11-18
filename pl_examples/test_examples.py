@@ -38,8 +38,8 @@ ARGS_DDP_AMP = ARGS_DEFAULT + """
 
 # ToDo: fix this failing example
 # @pytest.mark.parametrize('import_cli', [
-#     'pl_examples.basic_examples.mnist_classifier',
-#     'pl_examples.basic_examples.image_classifier',
+#     'pl_examples.basic_examples.simple_image_classifier',
+#     'pl_examples.basic_examples.backbone_image_classifier',
 #     'pl_examples.basic_examples.autoencoder',
 # ])
 # @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -54,8 +54,8 @@ ARGS_DDP_AMP = ARGS_DEFAULT + """
 
 # ToDo: fix this failing example
 # @pytest.mark.parametrize('import_cli', [
-#     'pl_examples.basic_examples.mnist_classifier',
-#     'pl_examples.basic_examples.image_classifier',
+#     'pl_examples.basic_examples.simple_image_classifier',
+#     'pl_examples.basic_examples.backbone_image_classifier',
 #     'pl_examples.basic_examples.autoencoder',
 # ])
 # @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -69,8 +69,8 @@ ARGS_DDP_AMP = ARGS_DEFAULT + """
 
 
 @pytest.mark.parametrize('import_cli', [
-    'pl_examples.basic_examples.mnist_classifier',
-    'pl_examples.basic_examples.image_classifier',
+    'pl_examples.basic_examples.simple_image_classifier',
+    'pl_examples.basic_examples.backbone_image_classifier',
     'pl_examples.basic_examples.autoencoder',
 ])
 @pytest.mark.parametrize('cli_args', [ARGS_DEFAULT])
@@ -87,7 +87,7 @@ def test_examples_cpu(import_cli, cli_args):
 @pytest.mark.skipif(platform.system() != 'Linux', reason='Only applies to Linux platform.')
 @pytest.mark.parametrize('cli_args', [ARGS_GPU])
 def test_examples_mnist_dali(cli_args):
-    from pl_examples.basic_examples.mnist_classifier_dali import cli_main
+    from pl_examples.basic_examples.dali_image_classifier import cli_main
 
     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
         cli_main()
