@@ -873,7 +873,7 @@ class TrainLoop:
     def save_loggers_on_train_batch_end(self):
         # when loggers should save to disk
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
-        if should_flush_logs or (int(self.trainer.fast_dev_run) == 1):
+        if should_flush_logs or self.trainer.fast_dev_run is True:
             if self.trainer.is_global_zero and self.trainer.logger is not None:
                 self.trainer.logger.save()
 

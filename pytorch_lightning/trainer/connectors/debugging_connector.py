@@ -46,6 +46,10 @@ class DebuggingConnector:
         self.trainer.fast_dev_run = fast_dev_run
         fast_dev_run = int(fast_dev_run)
 
+        # set fast_dev_run=True when it is 1, used while logging
+        if fast_dev_run == 1:
+            self.trainer.fast_dev_run = True
+
         if fast_dev_run:
             limit_train_batches = fast_dev_run
             limit_val_batches = fast_dev_run
