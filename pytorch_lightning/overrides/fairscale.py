@@ -35,7 +35,7 @@ class LightningShardedDataParallel(ShardedDataParallel):
         self.module = base_model
 
     def forward(self, *inputs, **kwargs):
-        if self.broadcast_buffers:
+        if self.enable_broadcast_buffers:
             self.sync_buffers()
 
         if self.base_model.training:
