@@ -49,10 +49,9 @@ def seed_everything(seed: Optional[int] = None) -> int:
     except (TypeError, ValueError):
         seed = _select_seed_randomly(min_seed_value, max_seed_value)
 
-    if (seed > max_seed_value) or (seed < min_seed_value):
+    if not (seed < min_seed_value <= seed <= max_seed_value):
         log.warning(
-            f"{seed} is not in bounds, \
-            numpy accepts from {min_seed_value} to {max_seed_value}"
+            f"{seed} is not in bounds, numpy accepts from {min_seed_value} to {max_seed_value}"
         )
         seed = _select_seed_randomly(min_seed_value, max_seed_value)
 
