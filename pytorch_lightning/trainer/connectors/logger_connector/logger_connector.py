@@ -95,27 +95,14 @@ class LoggerConnector:
         if self._current_stage is not None:
             self._cached_results[self._current_stage].cache_result()
 
-    def evaluate_log_every_n_steps(self, log_every_n_steps) -> int:
-        accumulate_grad_batches = self.trainer.accumulate_grad_batches
-        if accumulate_grad_batches > 1:
-            if accumulate_grad_batches >= log_every_n_steps:
-                log_every_n_steps = 1
-            else:
-                log_every_n_steps = accumulate_grad_batches * (log_every_n_steps // accumulate_grad_batches)
-            self.trainer.train_loop.warning_cache.warn(f"You set accumulate_grad_batches to {accumulate_grad_batches}"
-                                                       " for better visualization, "
-                                                       f"we will set log_every_n_steps to {log_every_n_steps}."
-                                                       " However, we recommend setting it to 1 for better visualization")
-        return log_every_n_steps
-
     def on_trainer_init(self, logger, flush_logs_every_n_steps: int,
                         log_every_n_steps: int, move_metrics_to_cpu: bool, log_epoch_metrics_on_step: bool):
         # logging
         self.configure_logger(logger)
         # todo: IDE is complaining, these shall be initialized in the Trainer init at leas as placeholders
-        #  and assign here the desired value
+        # and assign here the desired value
         self.trainer.flush_logs_every_n_steps = flush_logs_every_n_steps
-        self.trainer.log_every_n_steps = self.evaluate_log_every_n_steps(log_every_n_steps)
+        self.trainer.log_every_n_steps = log_every_n_steps
         self.log_epoch_metrics_on_step = log_epoch_metrics_on_step
 
         self.trainer.move_metrics_to_cpu = move_metrics_to_cpu

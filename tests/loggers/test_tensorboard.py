@@ -262,6 +262,5 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, log_epoch_met
 
     mock_count_epochs = [m[2]["step"] for m in mock_log_metrics.mock_calls if "count_epoch" in m[2]["metrics"]]
     assert mock_count_epochs == expected
-
     mock_count_steps = [m[2]["step"] for m in mock_log_metrics.mock_calls if "count_step" in m[2]["metrics"]]
     assert model._indexes == mock_count_steps
