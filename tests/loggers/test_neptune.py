@@ -35,6 +35,19 @@ def test_neptune_online(neptune):
 
 
 @patch('pytorch_lightning.loggers.neptune.neptune')
+def test_neptune_existing_experiment(neptune):
+    logger = NeptuneLogger(experiment_id='TEST-123')
+
+    neptune.Session.with_default_backend().get_project().get_experiments.assert_called_once_with(id='TEST-123')
+
+    experiment = logger.experiment
+    assert logger.experiment_name == experiment.get_system_properties()['name']
+    assert logger.params == experiment.get_parameters()
+    assert logger.properties == experiment.get_properties()
+    assert logger.tags == experiment.get_tags()
+
+
+@patch('pytorch_lightning.loggers.neptune.neptune')
 def test_neptune_offline(neptune):
     logger = NeptuneLogger(offline_mode=True)
 
