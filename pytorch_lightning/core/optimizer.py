@@ -107,11 +107,12 @@ class LightningOptimizer(Optimizer):
         return self.state
 
     def __setstate__(self, state):
+        # todo understand why state creates a state key
         try:
             self._optimizer_idx = state["optimizer_idx"]
             self._accumulate_grad_batches = state["accumulate_grad_batches"]
             self._optimizer = state["optimizer_cls"](state['param_groups'], **state['defaults'])
-        except:
+        except Exception:
             self._optimizer_idx = state["state"]["optimizer_idx"]
             self._accumulate_grad_batches = state["state"]["accumulate_grad_batches"]
             self._optimizer = state["state"]["optimizer_cls"](state['param_groups'], **state["state"]['defaults'])
@@ -200,7 +201,7 @@ class LightningOptimizer(Optimizer):
         if closure is None:
             closure = do_nothing_closure
 
-        if not self._should_accumulate:
+        if not self._should_accumulate or not self._trainer.train_loop.automatic_optimization:
             if self._trainer.on_tpu:
                 xm.optimizer_step(self._optimizer, optimizer_args={'closure': closure, **kwargs})
             elif self._trainer.amp_backend == AMPType.NATIVE:
