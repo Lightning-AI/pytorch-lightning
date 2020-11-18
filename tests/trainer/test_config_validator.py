@@ -19,9 +19,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
-# TODO: add matching messages
-
-
 def test_wrong_train_setting(tmpdir):
     """
     * Test that an error is thrown when no `train_dataloader()` is defined
@@ -31,12 +28,12 @@ def test_wrong_train_setting(tmpdir):
     hparams = EvalModelTemplate.get_default_hparams()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(MisconfigurationException, match=r'No `train_dataloader\(\)` method defined.'):
         model = EvalModelTemplate(**hparams)
         model.train_dataloader = None
         trainer.fit(model)
 
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(MisconfigurationException, match=r'No `training_step\(\)` method defined.'):
         model = EvalModelTemplate(**hparams)
         model.training_step = None
         trainer.fit(model)
@@ -47,7 +44,7 @@ def test_wrong_configure_optimizers(tmpdir):
     tutils.reset_seed()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(MisconfigurationException, match=r'No `configure_optimizers\(\)` method defined.'):
         model = EvalModelTemplate()
         model.configure_optimizers = None
         trainer.fit(model)
@@ -62,13 +59,13 @@ def test_val_loop_config(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     # no val data has val loop
-    with pytest.warns(UserWarning):
+    with pytest.warns(UserWarning, match=r'you passed in a val_dataloader but have no validation_step'):
         model = EvalModelTemplate(**hparams)
         model.validation_step = None
         trainer.fit(model)
 
     # has val loop but no val data
-    with pytest.warns(UserWarning):
+    with pytest.warns(UserWarning, match=r'you defined a validation_step but have no val_dataloader'):
         model = EvalModelTemplate(**hparams)
         model.val_dataloader = None
         trainer.fit(model)
@@ -82,13 +79,13 @@ def test_test_loop_config(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     # has test loop but no test data
-    with pytest.warns(UserWarning):
+    with pytest.warns(UserWarning, match=r'you defined a test_step but have no test_dataloader'):
         model = EvalModelTemplate(**hparams)
         model.test_dataloader = None
         trainer.test(model)
 
     # has test data but no test loop
-    with pytest.warns(UserWarning):
+    with pytest.warns(UserWarning, match=r'you passed in a test_dataloader but have no test_step'):
         model = EvalModelTemplate(**hparams)
         model.test_step = None
         trainer.test(model, test_dataloaders=model.dataloader(train=False))
@@ -102,13 +99,13 @@ def test_validation_loop_config(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     # has val loop but no val data
-    with pytest.warns(UserWarning):
+    with pytest.warns(UserWarning, match=r'you defined a validation_step but have no val_dataloader'):
         model = EvalModelTemplate(**hparams)
         model.val_dataloader = None
         trainer.validate(model)
 
     # has val data but no val loop
-    with pytest.warns(UserWarning):
+    with pytest.warns(UserWarning, match=r'you passed in a val_dataloader but have no validation_step'):
         model = EvalModelTemplate(**hparams)
         model.validation_step = None
         trainer.validate(model, val_dataloaders=model.dataloader(train=False))

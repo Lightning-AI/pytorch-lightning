@@ -208,7 +208,7 @@ def test_multiple_validate_dataloader(tmpdir, ckpt_path):
     for dataloader in trainer.val_dataloaders:
         tpipes.run_prediction(dataloader, trainer.model)
 
-    # run the test method
+    # run the validate method
     trainer.validate(ckpt_path=ckpt_path)
 
 
