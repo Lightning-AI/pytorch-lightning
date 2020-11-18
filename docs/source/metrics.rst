@@ -196,15 +196,13 @@ Metric API
 .. autoclass:: pytorch_lightning.metrics.Metric
     :noindex:
 
-*************
-Class metrics
-*************
 
+**********************
 Classification Metrics
-----------------------
+**********************
 
 Input types
-~~~~~~~~~~~
+-----------
 
 For the purposes of classification metrics, inputs (predictions and targets) are split 
 into these categories (``N`` stands for the batch size and ``C`` for number of classes):
@@ -224,73 +222,101 @@ into these categories (``N`` stands for the batch size and ``C`` for number of c
     All dimensions of size 1 (except ``N``) are "squeezed out" at the beginning, so 
     that, for example, a tensor of shape ``(N, 1)`` is treated as ``(N, )``.
 
-.. note::
-    In the multi-dimensional multi-class with probabilities case, if the position of the ``C``
-    dimension is ambiguous (e.g. if targets are a ``(7, 3)`` tensor, while predictions are a 
-    ``(7, 3, 3)`` tensor), it will be assumed that the ``C`` dimension is the second dimension. 
-    If this is not the case,  you should move it from the last to second place using 
-    ``torch.movedim(preds, -1, 1)``.
+When predictions or targets are integers, it is assumed that class labels start at , i.e. 
+the possible class labels are 0, 1, 2, 3, etc. Below are some examples of different input types
 
-There are also some edge cases, where data appears to be binary/multi-label but is actually 
-(multi-dimensional) multi-class, or vice versa. For example, if targets are ``(N,)`` binary
-tensor, and predictions are ``(N,)`` binary (integer) tensor as well, this would fall under
-the multi-class case. 
+.. code-block:: python
 
-For these cases some metrics expose an argument ``is_multiclass``. You would set it to 
-``False`` when your binary (multi-dimensional) multi-class data is actually binary or 
-multi-label, and to ``True`` when you want to conver binary data to a 2-class 
-multi-class data, or multi-label data to 2-class multi-dimensional multi-class data. It is
-set to ``None`` by default, which treats inputs as they appear (according to the above
-classification).
+    # Binary inputs
+    binary_preds  = torch.tensor([0.6, 0.1, 0.9])
+    binary_target = torch.tensor([1, 0, 2])
 
+    # Multi-class inputs
+    mc_preds  = torch.tensor([0, 2, 1])
+    mc_target = torch.tensor([0, 1, 2])
 
-Accuracy
-~~~~~~~~
+    # Multi-class inputs with probabilities
+    mc_preds_probs  = torch.tensor([[0.8, 0.2, 0], [0.1, 0.2, 0.7], [0.3, 0.6, 0.1]])
+    mc_target_probs = torch.tensor([0, 1, 2])
 
-.. autoclass:: pytorch_lightning.metrics.classification.Accuracy
-    :noindex:
+    # Multi-label inputs
+    ml_preds  = torch.tensor([[0.2, 0.8, 0.9], [0.5, 0.6, 0.1], [0.3, 0.1, 0.1]])
+    ml_target = torch.tensor([[0, 1, 1], [1, 0, 0], [0, 0, 0]])
 
-Top K Accuracy
-~~~~~~~~~~~~~~
+In some rare cases, you might have inputs which appear to be (multi-dimensional) multi-class,
+but are actually binary/multi-label. For example, if both predictions and targets are 1d
+binary tensors. Or it could be the other way around, you want to treat binary/multi-label
+inputs as 2-class (multi-dimensional) multi-class inputs.
 
-.. autoclass:: pytorch_lightning.metrics.classification.TopKAccuracy
-    :noindex:
+For these cases, the metrics where this distinction would make a difference, expose the
+``is_multiclass`` argument. Let's see how this is used with the 
+:class:`~pytorch_lightning.metrics.classification.StatScores` metric.
 
-Hamming Loss
-~~~~~~~~~~~~
+.. testcode::
+   :skipif: True
 
-.. autoclass:: pytorch_lightning.metrics.classification.HammingLoss
-    :noindex:
+   from pytorch_lightning.metrics import StatScores
 
-StatScores
-~~~~~~~~~~
+   # These inputs are supposed to be binary, but appear as multi-class
+   mc_binary_preds  = torch.tensor([0,1,0])
+   mc_binary_target = torch.tensor([1,1,0])
 
-.. autoclass:: pytorch_lightning.metrics.classification.StatScores
-    :noindex:
+First, let's check that what happens usually - without setting ``is_multiclass`` flag.
 
-Precision
-~~~~~~~~~
+.. testcode::
+   :skipif: True
 
-.. autoclass:: pytorch_lightning.metrics.classification.Precision
-    :noindex:
+    # Treating inputs as they appear (multi-class)
+    stat_scores_mc = StatScores(average='none', num_classes=2)
+    stat_scores_mc(mc_binary_preds, mc_binary_target)
 
-Recall
-~~~~~~
+.. testoutput::
+   :skipif: True
 
-.. autoclass:: pytorch_lightning.metrics.classification.Recall
-    :noindex:
+   torch.tensor([[1, 1, 1, 0, 1]],
+                [[1, 0, 1, 1, 2]], dtype=torch.int32)
 
-FBeta
-~~~~~
+As expected, the metric interpreted the inputs as 2 class multi-class inputs (note that if
+change ``num_classes`` above to anything but 2 we would get an error). Now let's see what
+happens when we set ``is_multiclass=False``:
 
-.. autoclass:: pytorch_lightning.metrics.classification.FBeta
-    :noindex:
+.. testcode::
+   :skipif: True
 
-ConfusionMatrix
-~~~~~~~~~~~~~~~
+    # Treating inputs as binary
+    stat_scores_binary = StatScores(average='none', num_classes=1, 
+                                    is_multiclass=False)
+    stat_scores_binary(mc_binary_preds, mc_binary_target)
 
-.. autoclass:: pytorch_lightning.metrics.classification.ConfusionMatrix
-    :noindex:
+.. testoutput::
+   :skipif: True
+
+   torch.tensor([[1, 0, 1, 1, 2]], dtype=torch.int32)
+
+Now the metric correctly interpreted the inputs as binary, and thus returned result
+only for one class.
+
+.. currentmodule:: pytorch_lightning.metrics.classification
+
+Class Metrics (Classification)
+------------------------------
+
+.. autosummary::
+    :toctree: generated
+    :nosignatures:
+    :template: classtemplate.rst
+
+    Accuracy
+    TopKAccuracy
+    HammingLoss
+    StatScores
+    Precision
+    Recall
+    FBeta
+    ConfusionMatrix
+
+FUnctional Metrics (Classification)
+-----------------------------------
 
 Regression Metrics
 ------------------
