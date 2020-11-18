@@ -21,6 +21,7 @@ import types
 from abc import ABC
 from argparse import Namespace
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from weakref import proxy
 
 import torch
 from torch import ScriptModule, Tensor
@@ -58,46 +59,51 @@ class LightningOptimizer(Optimizer):
     """
 
     def __init__(self,
-                 optimizer: Optimizer = None,
+                 optimizer: Optimizer,
                  accumulate_grad_batches: Optional[int] = None):
 
+        assert accumulate_grad_batches is None or isinstance(accumulate_grad_batches, int)
         if isinstance(accumulate_grad_batches, int) and accumulate_grad_batches < 1:
             raise MisconfigurationException(f"accumulate_grad_batches parameters "
                                             f"{accumulate_grad_batches} should be >= 1")
+
 
         self._trainer = None
         self._optimizer = optimizer
         self._optimizer_idx = None
         self._accumulate_grad_batches = accumulate_grad_batches
-        self._expose_optimizer_attr()
+        self._use_accumulate_grad_batches_from_trainer = accumulate_grad_batches is None
 
-    def _on_trainer_init(self, trainer, optimizer_idx, accumulate_grad_batches):
-        self._trainer = trainer
+
+    def _on_trainer_init(self, trainer, optimizer_idx):
+        self._trainer = proxy(trainer)
         self._optimizer_idx = optimizer_idx
-        if self._accumulate_grad_batches is None:
-            self._accumulate_grad_batches = accumulate_grad_batches
 
     @property
-    def accumulate_grad_batches(self):
-        return self._accumulate_grad_batches
+    def param_groups(self):
+        return self._optimizer.param_groups
 
-    @accumulate_grad_batches.setter
-    def accumulate_grad_batches(self, accumulate_grad_batches):
-        self._accumulate_grad_batches = accumulate_grad_batches
+    @param_groups.setter
+    def param_groups(self, param_groups):
+        self._optimizer.param_groups = param_groups
 
     @property
-    def optimizer(self):
-        return self._optimizer
+    def defaults(self):
+        return self._optimizer.defaults
 
-    @optimizer.setter
-    def optimizer(self, optimizer):
-        return self._optimizer
+    @defaults.setter
+    def defaults(self, defaults):
+        self._optimizer.defaults = defaults
 
-    def _expose_optimizer_attr(self):
-        for attr_name in dir(self._optimizer):
-            if ('__' in attr_name) or "step" == attr_name:
-                continue
-            setattr(self, attr_name, getattr(self._optimizer, attr_name))
+
+    @property
+    def state(self):
+        return self._optimizer.state
+
+    @state.setter
+    def state(self, state):
+        self._optimizer.state = state
+
 
     def __getstate__(self):
         return {
@@ -112,25 +118,25 @@ class LightningOptimizer(Optimizer):
     def __setstate__(self, state):
         self._optimizer_idx = state["optimizer_idx"]
         self._accumulate_grad_batches = state["accumulate_grad_batches"]
-        self._optimizer = state["optimizer_cls"](state['param_groups'], ** state['defaults'])
-        self._expose_optimizer_attr()
+        self._optimizer = state["optimizer_cls"](state['param_groups'], **state['defaults'])
 
     def __repr__(self):
-        if hasattr(self, "_optimizer"):
-            format_string = "Lightning" + self._optimizer.__class__.__name__ + ' ('
-            for i, group in enumerate(self.param_groups):
-                format_string += '\n'
-                format_string += 'Parameter Group {0}\n'.format(i)
-                for key in sorted(group.keys()):
-                    if key != 'params':
-                        format_string += '    {0}: {1}\n'.format(key, group[key])
-            format_string += ')'
-            return format_string
-        else:
-            return self.__class__.__name__
+        format_string = "Lightning" + self._optimizer.__class__.__name__ + ' ('
+        for i, group in enumerate(self.param_groups):
+            format_string += '\n'
+            format_string += 'Parameter Group {0}\n'.format(i)
+            for key in sorted(group.keys()):
+                if key != 'params':
+                    format_string += '    {0}: {1}\n'.format(key, group[key])
+        format_string += ')'
+        return format_string
 
     def _accumulated_batches_reached(self):
-        return (self._trainer.batch_idx + 1) % self._accumulate_grad_batches == 0
+        if self._use_accumulate_grad_batches_from_trainer:
+            accumulate_grad_batches = self._trainer.accumulate_grad_batches
+        else:
+            accumulate_grad_batches = self._accumulate_grad_batches
+        return (self._trainer.batch_idx + 1) % accumulate_grad_batches == 0
 
     def _num_training_batches_reached(self):
         return (self._trainer.batch_idx + 1) == self._trainer.num_training_batches

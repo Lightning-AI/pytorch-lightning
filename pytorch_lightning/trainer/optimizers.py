@@ -88,7 +88,7 @@ class TrainerOptimizersMixin(ABC):
             lightning_opt = LightningOptimizer(opt)
         else:
             lightning_opt = opt
-        lightning_opt._on_trainer_init(self, opt_idx, self.accumulate_grad_batches)
+        lightning_opt._on_trainer_init(self, opt_idx)
         return lightning_opt
 
     def configure_schedulers(self, schedulers: list, monitor: Optional[str] = None):
