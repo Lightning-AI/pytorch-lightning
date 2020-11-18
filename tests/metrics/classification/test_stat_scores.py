@@ -25,36 +25,47 @@ from tests.metrics.utils import NUM_CLASSES, THRESHOLD, EXTRA_DIM, MetricTester
 torch.manual_seed(42)
 
 
-def _sk_stat_scores(preds, target, average, num_classes, threshold, logits, is_multiclass):
+def _sk_stat_scores(preds, target, reduce, num_classes, threshold, logits, is_multiclass, ignore_index):
     preds, target, _ = _input_format_classification(
         preds, target, threshold=threshold, num_classes=num_classes, logits=logits, is_multiclass=is_multiclass
     )
     sk_preds, sk_target = preds.numpy(), target.numpy()
 
-    if preds.shape[1] == 1 and average == "samples":
+    if reduce != "macro" and ignore_index:
+        if preds.shape[1] > 1 and 0 <= ignore_index < preds.shape[1]:
+            sk_preds = np.delete(sk_preds, ignore_index, 1)
+            sk_target = np.delete(sk_target, ignore_index, 1)
+
+    if preds.shape[1] == 1 and reduce == "samples":
         sk_target = sk_target.T
         sk_preds = sk_preds.T
 
-    samplewise = average == "samples" and preds.shape[1] != 1
+    samplewise = reduce == "samples" and preds.shape[1] != 1
     sk_stats = multilabel_confusion_matrix(sk_target, sk_preds, samplewise=samplewise)
 
-    if preds.shape[1] == 1 and average != "samples":
+    if preds.shape[1] == 1 and reduce != "samples":
         sk_stats = sk_stats[[1]].reshape(-1, 4)[:, [3, 1, 0, 2]]
     else:
         sk_stats = sk_stats.reshape(-1, 4)[:, [3, 1, 0, 2]]
 
-    if average == "micro":
+    if reduce == "micro":
         sk_stats = sk_stats.sum(axis=0, keepdims=True)
 
     sk_stats = np.concatenate([sk_stats, sk_stats[:, [3]] + sk_stats[:, [0]]], 1)
 
-    if average == "micro":
+    if reduce == "micro":
         sk_stats = sk_stats[0]
+
+    if reduce == "macro" and ignore_index:
+        if preds.shape[1] > 1 and 0 <= ignore_index < preds.shape[1]:
+            sk_stats[ignore_index, :] = -1
 
     return sk_stats
 
 
-def _sk_stat_scores_mdmc(preds, target, average, mdmc_average, num_classes, threshold, logits, is_multiclass):
+def _sk_stat_scores_mdmc(
+    preds, target, reduce, mdmc_average, num_classes, threshold, logits, is_multiclass, ignore_index
+):
     preds, target, _ = _input_format_classification(
         preds, target, threshold=threshold, num_classes=num_classes, logits=logits, is_multiclass=is_multiclass
     )
@@ -63,14 +74,14 @@ def _sk_stat_scores_mdmc(preds, target, average, mdmc_average, num_classes, thre
         preds = torch.movedim(preds, 1, -1).reshape(-1, preds.shape[1])
         target = torch.movedim(target, 1, -1).reshape(-1, target.shape[1])
 
-        return _sk_stat_scores(preds, target, average, None, threshold, False, False)
+        return _sk_stat_scores(preds, target, reduce, None, threshold, False, False, ignore_index)
     else:  # mdmc_average == "samples"
         scores = []
 
         for i in range(preds.shape[0]):
             pred_i = preds[i, ...].T
             target_i = target[i, ...].T
-            scores_i = _sk_stat_scores(pred_i, target_i, average, None, threshold, False, False)
+            scores_i = _sk_stat_scores(pred_i, target_i, reduce, None, threshold, False, False, ignore_index)
 
             scores.append(np.expand_dims(scores_i, 0))
 
@@ -79,7 +90,8 @@ def _sk_stat_scores_mdmc(preds, target, average, mdmc_average, num_classes, thre
 
 @pytest.mark.parametrize("ddp", [False, True])
 @pytest.mark.parametrize("dist_sync_on_step", [True, False])
-@pytest.mark.parametrize("average", ["micro", "macro", "samples"]) # Test just macro
+@pytest.mark.parametrize("reduce", ["micro", "macro", "samples"])
+@pytest.mark.parametrize("ignore_index", [None, 1])
 @pytest.mark.parametrize(
     "preds, target, num_classes, logits, is_multiclass",
     [
@@ -100,7 +112,9 @@ def _sk_stat_scores_mdmc(preds, target, average, mdmc_average, num_classes, thre
     ],
 )
 class TestStatScores(MetricTester):
-    def test_stat_scores(self, ddp, dist_sync_on_step, preds, target, num_classes, average, logits, is_multiclass):
+    def test_stat_scores(
+        self, ddp, dist_sync_on_step, preds, target, num_classes, reduce, logits, is_multiclass, ignore_index
+    ):
         self.run_class_metric_test(
             ddp=ddp,
             preds=preds,
@@ -108,19 +122,21 @@ class TestStatScores(MetricTester):
             metric_class=StatScores,
             sk_metric=partial(
                 _sk_stat_scores,
-                average=average,
+                reduce=reduce,
                 threshold=THRESHOLD,
                 num_classes=num_classes,
                 logits=logits,
                 is_multiclass=is_multiclass,
+                ignore_index=ignore_index,
             ),
             dist_sync_on_step=dist_sync_on_step,
             metric_args={
                 "num_classes": num_classes,
-                "average": average,
+                "reduce": reduce,
                 "threshold": THRESHOLD,
                 "logits": logits,
                 "is_multiclass": is_multiclass,
+                "ignore_index": ignore_index,
             },
             check_dist_sync_on_step=True,
             check_batch=True,
@@ -129,19 +145,30 @@ class TestStatScores(MetricTester):
 
 @pytest.mark.parametrize("ddp", [False, True])
 @pytest.mark.parametrize("dist_sync_on_step", [True, False])
-@pytest.mark.parametrize("average", ["micro", "macro", "samples"]) # Test just macro
-@pytest.mark.parametrize("mdmc_average", ["global", "samplewise"])
+@pytest.mark.parametrize("reduce", ["micro", "macro", "samples"])
+@pytest.mark.parametrize("ignore_index", [None, 1])
+@pytest.mark.parametrize("mdmc_average", ["samplewise", "global"])
 @pytest.mark.parametrize(
     "preds, target, num_classes, logits, is_multiclass",
     [
         (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target, NUM_CLASSES, False, None),
-        (_multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target, NUM_CLASSES, False, None),
-        (_multidim_multiclass_prob_inputs1.preds, _multidim_multiclass_prob_inputs1.target, NUM_CLASSES, False, None),
+       (_multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target, NUM_CLASSES, False, None),
+       (_multidim_multiclass_prob_inputs1.preds, _multidim_multiclass_prob_inputs1.target, NUM_CLASSES, False, None),
     ],
 )
 class TestStatScoresMDMC(MetricTester):
     def test_stat_scores_mdmc(
-        self, ddp, dist_sync_on_step, preds, target, average, mdmc_average, num_classes, logits, is_multiclass
+        self,
+        ddp,
+        dist_sync_on_step,
+        preds,
+        target,
+        reduce,
+        mdmc_average,
+        num_classes,
+        logits,
+        is_multiclass,
+        ignore_index,
     ):
         self.run_class_metric_test(
             ddp=ddp,
@@ -150,21 +177,23 @@ class TestStatScoresMDMC(MetricTester):
             metric_class=StatScores,
             sk_metric=partial(
                 _sk_stat_scores_mdmc,
-                average=average,
+                reduce=reduce,
                 mdmc_average=mdmc_average,
                 threshold=THRESHOLD,
                 num_classes=num_classes,
                 logits=logits,
                 is_multiclass=is_multiclass,
+                ignore_index=ignore_index,
             ),
             dist_sync_on_step=dist_sync_on_step,
             metric_args={
                 "num_classes": num_classes,
-                "average": average,
+                "reduce": reduce,
                 "mdmc_average": mdmc_average,
                 "threshold": THRESHOLD,
                 "logits": logits,
                 "is_multiclass": is_multiclass,
+                "ignore_index": ignore_index,
             },
             check_dist_sync_on_step=True,
             check_batch=True,

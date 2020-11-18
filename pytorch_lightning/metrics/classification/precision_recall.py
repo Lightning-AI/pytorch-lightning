@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Any
+from typing import Optional, Any, Callable
 
 import torch
 from pytorch_lightning.metrics.classification.utils import _mask_zeros
@@ -24,6 +24,9 @@ class Precision(StatScores):
     The reduction method (how the precision scores are aggregated) is controlled by the
     ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
     multi-dimensional multi-class case. Accepts all inputs listed in :ref:`metrics:Input types`.
+
+    In case where you need to ignore a class in computing the score, a ``ignore_index``
+    parameter is availible.
 
     The of the returned tensor depends on the ``average`` parameter:
 
@@ -57,9 +60,9 @@ class Precision(StatScores):
               multi-class.
 
             - ``'samplewise'``: In this case, the statistics are computed separately for each
-              sample on the ``N`` axis, and then averaged over samples. 
-              The computation for each sample is done by treating the flattened extra axes ``...`` 
-              (see :ref:`metrics:Input types`) as the ``N`` dimension within the sample, 
+              sample on the ``N`` axis, and then averaged over samples.
+              The computation for each sample is done by treating the flattened extra axes ``...``
+              (see :ref:`metrics:Input types`) as the ``N`` dimension within the sample,
               and computing the metric for the sample based on that.
 
             - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs (see :ref:`metrics:Input types`)
@@ -81,6 +84,16 @@ class Precision(StatScores):
             binary and multi-label, respectively. If ``True``, treat binary and multi-label inputs
             as multi-class or multi-dim multi-class with 2 classes, respectively.
             Defaults to ``None``, which treats inputs as they appear.
+        ignore_index:
+            Integer specifying a target class to ignore. If given, this class index does not contribute
+            to the returned score, regardless of reduction method. Has no effect if given an int that
+            is not in the range ``[0, C-1]``, or if  ``C=1``, where ``C`` is the number of classes.
+
+            If an index is ignored, and ``average=None`` or ``'none'``, the score for the ignored class
+            will be returned as ``-1`` (to not break the indexing of other labels).
+        zero_division:
+            Score to use for classes/samples, whose score has 0 in the denominator. Has to be either
+            0 [default] or 1.
 
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
@@ -107,7 +120,47 @@ class Precision(StatScores):
 
     """
 
+    def __init__(
+        self,
+        average: str = "micro",
+        mdmc_average: Optional[str] = None,
+        threshold: float = 0.5,
+        num_classes: Optional[int] = None,
+        logits: bool = True,
+        is_multiclass: Optional[bool] = None,
+        ignore_index: Optional[int] = None,
+        zero_division: int = 0,
+        compute_on_step: bool = True,
+        dist_sync_on_step: bool = False,
+        process_group: Optional[Any] = None,
+        dist_sync_fn: Callable = None,
+    ):
+        super().__init__(
+            reduce="macro" if average in ["weighted", "none", None] else average,
+            mdmc_average=mdmc_average,
+            threshold=threshold,
+            num_classes=num_classes,
+            logits=logits,
+            is_multiclass=is_multiclass,
+            ignore_index=ignore_index,
+            compute_on_step=compute_on_step,
+            dist_sync_on_step=dist_sync_on_step,
+            process_group=process_group,
+            dist_sync_fn=dist_sync_fn,
+        )
+
+        if zero_division not in [0, 1]:
+            raise ValueError("zero_division has to be either 0 or 1")
+
+        # Check average
+
+        self.zero_division = zero_division
+        self.average = average
+
     def compute(self):
+        """
+        Computes the precision score based on inputs passed in to ``update`` previously.
+        """
         tp = self.tp.float()
         total_pos_pred = _mask_zeros((self.tp + self.fp).float())
         prec_scores = tp / total_pos_pred
