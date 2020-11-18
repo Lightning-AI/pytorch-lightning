@@ -66,14 +66,11 @@ class LightningOptimizer(Optimizer):
         if isinstance(accumulate_grad_batches, int) and accumulate_grad_batches < 1:
             raise MisconfigurationException(f"accumulate_grad_batches parameters "
                                             f"{accumulate_grad_batches} should be >= 1")
-
-
         self._trainer = None
         self._optimizer = optimizer
         self._optimizer_idx = None
         self._accumulate_grad_batches = accumulate_grad_batches
         self._use_accumulate_grad_batches_from_trainer = accumulate_grad_batches is None
-
 
     def _on_trainer_init(self, trainer, optimizer_idx):
         self._trainer = proxy(trainer)
