@@ -25,7 +25,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only, sync_ddp_if_available
-from pytorch_lightning.utilities.seed import seed_everything
+
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -36,14 +36,18 @@ else:
     HYDRA_AVAILABLE = True
 
 
-# -------------------------------------------
-# !!!!!!!!!!!!!! NOTE !!!!!!!!!!!!!!!!!!!!!!
-# TEMP CLASS WHILE WE DECOUPLE SLURM FROM DDP
-# !!!!!!!!!!!!!! NOTE !!!!!!!!!!!!!!!!!!!!!!
-# -------------------------------------------
-class DDPSLURMAccelerator(Accelerator):
+class DDPHPCAccelerator(Accelerator):
 
     def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
+        """
+        Runs training using DDP on an HPC cluster
+
+        Example::
+
+            # default
+            trainer = Trainer(accelerator=DDPHPCAccelerator())
+
+        """
         super().__init__(trainer, cluster_environment, ddp_plugin)
         self.task_idx = None
         self._has_spawned_children = False
@@ -52,7 +56,7 @@ class DDPSLURMAccelerator(Accelerator):
 
     def setup(self, model):
         self.trainer.model = model
-        self.task_idx = int(os.environ['SLURM_LOCALID'])
+        self.task_idx = self.cluster_environment.local_rank()
 
     def train(self):
         model = self.trainer.model
@@ -88,7 +92,7 @@ class DDPSLURMAccelerator(Accelerator):
         output = self.training_step(args)
         return output
 
-    def barrier(self, name: str = None):
+    def barrier(self, name: Optional[str] = None):
         if torch_distrib.is_initialized():
             torch_distrib.barrier()
 
@@ -115,15 +119,11 @@ class DDPSLURMAccelerator(Accelerator):
             Dict with evaluation results
 
         """
-        seed = os.environ.get("PL_GLOBAL_SEED")
-        if seed is not None:
-            seed_everything(int(seed))
-
         # determine which process we are and world size
         self.set_world_ranks(process_idx)
 
         # toggle prog bar
-        if self.trainer.global_rank != 0 and self.trainer.progress_bar_callback is not None:
+        if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:
             self.trainer.progress_bar_callback.disable()
 
         # set warning rank
@@ -145,7 +145,7 @@ class DDPSLURMAccelerator(Accelerator):
         # on world_size=0 let everyone know training is starting
         if self.trainer.is_global_zero and not torch.distributed.is_initialized():
             log.info('-' * 100)
-            log.info(f'distributed_backend={self.trainer.distributed_backend} (on SLURM)')
+            log.info(f'distributed_backend={self.trainer.distributed_backend}')
             log.info(f'All DDP processes registered. Starting ddp with {self.trainer.world_size} processes')
             log.info('-' * 100)
 
