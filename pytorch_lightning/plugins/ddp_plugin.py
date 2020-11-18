@@ -67,9 +67,11 @@ class DDPPlugin(object):
         """
         Override to handle custom input to device logic. For DDP, no logic is required as this is handled internally
         within the DDP wrapper.
+        
         Args:
             args: Inputs to the model.
             model: Model to train.
+        
         Returns: args moved to correct device if needed.
         """
         return args
