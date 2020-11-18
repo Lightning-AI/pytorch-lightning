@@ -208,11 +208,6 @@ Class metrics
 
 .. currentmodule:: pytorch_lightning.metrics
 
-As mentioned above, using the class based metrics comes with a number of advantages:
-* DDP support
-* Aggregation over multiple batches
-
-Class based metrics are build
 
 Classification
 --------------
