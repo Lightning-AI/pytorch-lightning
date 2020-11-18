@@ -148,7 +148,6 @@ class TrainerCli:
         self.instantiate_classes()
         self.run()
 
-
     def init_parser(
         self,
         description: str,
@@ -167,7 +166,6 @@ class TrainerCli:
             env_prefix='PL'
         )
 
-
     def add_arguments_to_parser(
         self,
         parser: LightningArgumentParser
@@ -179,7 +177,6 @@ class TrainerCli:
         """
         pass
 
-
     def add_core_arguments_to_parser(self):
         """Adds arguments from the core classes to the parser"""
         self.parser.add_trainer_args(self.trainer_class, 'trainer')
@@ -187,11 +184,9 @@ class TrainerCli:
         if self.datamodule_class is not None:
             self.parser.add_datamodule_args(self.datamodule_class, 'data')
 
-
     def parse_arguments(self):
         """Parses command line arguments and stores it in self.config"""
         self.config = self.parser.parse_args()
-
 
     def instantiate_classes(self):
         """Instantiates the classes using settings from self.config and prepares fit_kwargs"""
@@ -207,21 +202,17 @@ class TrainerCli:
             self.trainer_kwargs['callbacks'].append(self.save_config_callback(self.parser, self.config))
         self.trainer = self.trainer_class(**self.trainer_kwargs)
 
-
     def before_fit(self):
         """Implement to run some code before fit is started"""
         pass
-
 
     def after_fit(self):
         """Implement to run some code after fit has finished"""
         pass
 
-
     def fit(self):
         """Runs fit of the instantiated trainer class and prepared fit keyword arguments"""
         self.trainer.fit(**self.fit_kwargs)
-
 
     def run(self):
         """Runs self.before_fit, then self.fit and finally self.after_fit"""

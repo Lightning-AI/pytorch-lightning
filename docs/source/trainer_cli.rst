@@ -1,7 +1,8 @@
 .. testsetup:: *
 
     from typing import List
-    from pytorch_lightning import LightningModule, LightningDataModule
+    from pytorch_lightning.core.lightning import LightningModule
+    from pytorch_lightning.core.datamodule import LightningDataModule
     from pytorch_lightning.utilities.trainer_cli import TrainerCli
 
     original_fit = TrainerCli.fit
