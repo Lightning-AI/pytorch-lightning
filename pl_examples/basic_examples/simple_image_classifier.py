@@ -11,23 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 from argparse import ArgumentParser
 from pprint import pprint
 
 import torch
-from torch.utils.data import random_split, DataLoader
-
-import pytorch_lightning as pl
 from torch.nn import functional as F
 
-from pl_examples import DATASETS_PATH
+import pytorch_lightning as pl
 from pl_examples.basic_examples.mnist_datamodule import MNISTDataModule
-
-try:
-    from torchvision.datasets.mnist import MNIST
-    from torchvision import transforms
-except ImportError:
-    from tests.base.datasets import MNIST
 
 
 class LitClassifier(pl.LightningModule):
