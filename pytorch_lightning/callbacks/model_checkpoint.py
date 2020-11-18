@@ -208,6 +208,7 @@ class ModelCheckpoint(Callback):
             or self.period < 1  # no models are saved
             or (epoch + 1) % self.period  # skip epoch
             or trainer.running_sanity_check  # don't save anything during sanity check
+            or trainer.evaluating  # don't save anything during evaluation: might delete the checkpoint being evaluated
             or self.last_global_step_saved == global_step  # already saved at the last step
         ):
             return
