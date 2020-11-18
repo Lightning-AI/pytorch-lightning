@@ -120,7 +120,7 @@ class CheckpointConnector:
         # restore training state
         self.restore_training_state(checkpoint)
 
-        rank_zero_info(f"Restore states from the checkpoint file at {checkpoint_path}")
+        rank_zero_info(f"Restored states from the checkpoint file at {checkpoint_path}")
         return True
 
     def restore_model_state(self, model: LightningModule, checkpoint) -> None:
