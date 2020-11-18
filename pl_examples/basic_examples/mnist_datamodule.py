@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Optional
 
-import torch
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader, random_split
 
@@ -57,6 +57,7 @@ class MNISTDataModule(LightningDataModule):
         self.normalize = normalize
         self.seed = seed
         self.batch_size = batch_size
+        self.test_transforms = self.default_transforms
 
     @property
     def num_classes(self):
@@ -73,17 +74,17 @@ class MNISTDataModule(LightningDataModule):
         MNIST(self.data_dir, train=True, download=True, transform=transform_lib.ToTensor())
         MNIST(self.data_dir, train=False, download=True, transform=transform_lib.ToTensor())
 
+    def setup(self, stage: Optional[str] = None):
+        dataset = MNIST(self.data_dir, train=True, download=False, transform=self.default_transforms)
+        train_length = len(dataset)
+        self.dataset_train, self.dataset_val = random_split(dataset, [train_length - self.val_split, self.val_split])
+
     def train_dataloader(self):
         """
         MNIST train set removes a subset to use for validation
         """
-        dataset = MNIST(self.data_dir, train=True, download=False, transform=self.default_transforms)
-        train_length = len(dataset)
-        dataset_train, _ = random_split(
-            dataset, [train_length - self.val_split, self.val_split], generator=torch.Generator().manual_seed(self.seed)
-        )
         loader = DataLoader(
-            dataset_train,
+            self.dataset_train,
             batch_size=self.batch_size,
             shuffle=True,
             num_workers=self.num_workers,
@@ -96,13 +97,8 @@ class MNISTDataModule(LightningDataModule):
         """
         MNIST val set uses a subset of the training set for validation
         """
-        dataset = MNIST(self.data_dir, train=True, download=False, transform=self.default_transforms)
-        train_length = len(dataset)
-        _, dataset_val = random_split(
-            dataset, [train_length - self.val_split, self.val_split], generator=torch.Generator().manual_seed(self.seed)
-        )
         loader = DataLoader(
-            dataset_val,
+            self.dataset_val,
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_workers,
@@ -115,10 +111,14 @@ class MNISTDataModule(LightningDataModule):
         """
         MNIST test set uses the test split
         """
-        dataset = MNIST(self.data_dir, train=False, download=False, transform=self.default_transforms)
+        dataset = MNIST(self.data_dir, train=False, download=False, transform=self.test_transforms)
         loader = DataLoader(
-            dataset, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers, drop_last=True,
-            pin_memory=True
+            dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.num_workers,
+            drop_last=True,
+            pin_memory=True,
         )
         return loader
 
