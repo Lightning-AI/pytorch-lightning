@@ -99,9 +99,36 @@ def _reduce_scores(scores: torch.Tensor, weights: torch.Tensor, average: str) ->
 class StatScores(Metric):
     """Computes the number of true positives, false positives, true negatives, false negatives.
 
-    The reduction method is controlled by the ``average`` parameter, and the
-    ``mdmc_average`` parameter in the multi-dimensional multi-class case. Accepts
-    all inputs listed in :ref:`metrics:Input types`.
+    The reduction method (how the statistics are aggregated) is controlled by the
+    ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
+    multi-dimensional multi-class case. Accepts all inputs listed in :ref:`metrics:Input types`.
+
+    The metric returns a tensor of shape ``(..., 5)``, where the last dimension corresponds
+    to ``[tp, fp, tn, fn, sup]`` (``sup`` stands for support and equals ``tp + fn``). The
+    shape depends on the ``average`` and ``mdmc_average`` (in case of multi-dimensional
+    multi-class data) parameters:
+
+    - If the data is not multi-dimensional multi-class, then
+
+      - If ``average='micro'``, the shape will be ``(5, )``
+      - If ``average in ['macro', 'weighted', 'none', None]``, the shape will be ``(C, 5)``,
+        where ``C`` stands for the number of classes
+      - If ``average='samples'``, the shape will be ``(N, 5)``, where ``N`` stands for
+        the number of samples
+
+    - If the data is multi-dimensional multi-class and ``mdmc_average='global'``, then
+
+      - If ``average='micro'``, the shape will be ``(5, )``
+      - If ``average in ['macro', 'weighted', 'none', None]``, the shape will be ``(C, 5)``
+      - If ``average='samples'``, the shape will be ``(N*X, 5)``, where ``X`` stands for
+        the product of sizes of all "extra" dimensions of the data (i.e. all dimensions
+        except for ``C`` and ``N``)
+
+    - If the data is multi-dimensional multi-class and ``mdmc_average='samplewise'``, then
+
+      - If ``average='micro'``, the shape will be ``(N, 5)``
+      - If ``average in ['macro', 'weighted', 'none', None]``, the shape will be ``(N, C, 5)``
+      - If ``average='samples'``, the shape will be ``(N, X, 5)``
 
     This metric is a good choice for subclassing for other metrics based on tp, fp, tn, fn
     statistics (such as :class:`~pytorch_lightning.metrics.classification.Recall` and
@@ -131,17 +158,11 @@ class StatScores(Metric):
             - ``None`` [default]: Should be left unchanged if your data is not multi-dimensional
               multi-class.
 
-            - ``'samples'``: In this case, the statistics are computed separately for each
-              sample on the ``N`` axis. This is done by, for each sample, treating the flattened
-              extra axes ``...`` (see :ref:`metrics:Input types`) as the ``N`` dimension within
-              the sample, and computing the statistics for the sample based on that.
-
-              For each statistic the final product are the concatenated values of the statistics
-              for each sample. This depends on the value of the value ``average`` parameter: if
-              it equals ``micro``, then this is a ``(N, )`` 1d tensor, if it equals ``macro`` or
-              equivalent than this is a ``(N, C)`` 2d tensor, and if it equals ``samples``, than
-              this is a ``(N, X)`` 2d tensor, where ``X`` is the size of the flattened ``...``
-              dimensions.
+            - ``'samplewise'``: In this case, the statistics are computed separately for each
+              sample on the ``N`` axis, and then concatenating the outputs together. This is
+              done by, for each sample, treating the flattened extra axes ``...`` (see
+              :ref:`metrics:Input types`) as the ``N`` dimension within the sample, and computing
+              the statistics for the sample based on that.
 
             - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs (see :ref:`metrics:Input types`)
               are flattened into a new ``N_X`` sample axis, i.e. the inputs are treated as if they
@@ -155,10 +176,12 @@ class StatScores(Metric):
             (0,1) predictions, in the case of binary or multi-label inputs. If ``logits=True``,
             this value is transformed to logits by ``logit_t = ln(t / (1-t))``. Default: 0.5
         logits:
-            If predictions are floats, whether they are probabilities or logits. Default ``True``.
-        is_multiclass: if ``True``, treat binary and multi-label inputs as multi-class or multi-dim
-            multi-class with 2 classes, respectively. If ``False``, treat multi-class and multi-dim
-            multi-class inputs with 1 or 2 classes as binary and multi-label, respectively.
+            If predictions are floats, whether they are probabilities or logits. Default ``True``
+            (predictions are logits).
+        is_multiclass:
+            If ``False``, treat multi-class and multi-dim multi-class inputs with 1 or 2 classes as
+            binary and multi-label, respectively. If ``True``, treat binary and multi-label inputs
+            as multi-class or multi-dim multi-class with 2 classes, respectively.
             Defaults to ``None``, which treats inputs as they appear.
 
         compute_on_step:
@@ -218,7 +241,7 @@ class StatScores(Metric):
         if average not in ["micro", "macro", "weighted", "none", None, "samples"]:
             raise ValueError("average %s is not valid." % average)
 
-        if mdmc_average not in [None, "samples", "global"]:
+        if mdmc_average not in [None, "samplewise", "global"]:
             raise ValueError("mdmc_average %s is not valid." % mdmc_average)
 
         if average in ["macro", "weighted", "none", None] and (not num_classes or num_classes < 1):
@@ -226,7 +249,7 @@ class StatScores(Metric):
                 "When you set the average as macro, weighted or none, you have to provide the number of classes."
             )
 
-        if mdmc_average != 'samples':
+        if mdmc_average != "samplewise":
             if average in ["micro"]:
                 default, reduce_fn = torch.tensor(0), "sum"
             elif average in ["macro", "weighted", "none", None]:
@@ -240,7 +263,14 @@ class StatScores(Metric):
             self.add_state(s, default=default.detach().clone(), dist_reduce_fx=reduce_fn)
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
+        """
+        Update state with predictions and targets. See :ref:`metrics:Input types` for more information
+        on input types.
 
+        Args:
+            preds: Predictions from model (probabilities, logits, or labels)
+            target: Ground truth values
+        """
         preds, target, _ = _input_format_classification(
             preds,
             target,
@@ -254,15 +284,15 @@ class StatScores(Metric):
             if not self.mdmc_average:
                 raise ValueError(
                     "When your inputs are multi-dimensional multi-class,"
-                    "you have to set mdmc_average to either 'samples' or 'global'"
+                    "you have to set mdmc_average to either 'samplewise' or 'global'"
                 )
-            elif self.mdmc_average == "global":
+            elif self.mdmc_average == "samplewise":
                 preds = torch.movedim(preds, 1, -1).reshape(-1, preds.shape[1])
                 target = torch.movedim(target, 1, -1).reshape(-1, target.shape[1])
 
         tp, fp, tn, fn = _stat_scores(preds, target, average=self.average)
 
-        if self.average in ["micro", "macro", "weighted", "none", None] and self.mdmc_average != "samples":
+        if self.average in ["micro", "macro", "weighted", "none", None] and self.mdmc_average != "samplewise":
             self.tp += tp
             self.fp += fp
             self.tn += tn
@@ -277,7 +307,12 @@ class StatScores(Metric):
                 self.tn = torch.cat((self.tn, tn))
                 self.fn = torch.cat((self.fn, fn))
 
-    def compute(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def compute(self) -> torch.Tensor:
+        """
+        Computes the stat scores based on inputs passed in to ``update`` previously.
+
+        The last dimension always has size 5 and corresponds to ``[tp, fp, tn, fn, sup]``.
+        """
         outputs = [
             self.tp.unsqueeze(-1),
             self.fp.unsqueeze(-1),

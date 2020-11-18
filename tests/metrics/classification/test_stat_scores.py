@@ -130,7 +130,7 @@ class TestStatScores(MetricTester):
 @pytest.mark.parametrize("ddp", [False, True])
 @pytest.mark.parametrize("dist_sync_on_step", [True, False])
 @pytest.mark.parametrize("average", ["micro", "macro", "samples"]) # Test just macro
-@pytest.mark.parametrize("mdmc_average", ["global", "samples"])
+@pytest.mark.parametrize("mdmc_average", ["global", "samplewise"])
 @pytest.mark.parametrize(
     "preds, target, num_classes, logits, is_multiclass",
     [

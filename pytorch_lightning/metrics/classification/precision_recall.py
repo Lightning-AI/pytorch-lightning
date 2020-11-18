@@ -13,11 +13,100 @@
 # limitations under the License.
 from typing import Optional, Any
 
+import torch
 from pytorch_lightning.metrics.classification.utils import _mask_zeros
 from pytorch_lightning.metrics.classification.stat_scores import StatScores, _reduce_scores
 
 
 class Precision(StatScores):
+    """Computes the precision score (the ratio ``tp / (tp + fp)``).
+
+    The reduction method (how the precision scores are aggregated) is controlled by the
+    ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
+    multi-dimensional multi-class case. Accepts all inputs listed in :ref:`metrics:Input types`.
+
+    The of the returned tensor depends on the ``average`` parameter:
+
+    - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
+    - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
+    of classes
+
+    Args:
+        average:
+            Defines the reduction that is applied. Should be one of the following:
+
+            - ``'micro'`` [default]: Calculate the metric globally, by counting the statistics
+              (tp, fp, tn, fn) accross all samples and classes.
+            - ``'macro'``: Calculate the metric for each class separately, and average the
+              metrics accross classes (with equal weights for each class).
+            - ``'weighted'``: Calculate the metric for each class separately, and average the
+              metrics accross classes, weighting each class by its support (``tp + fn``).
+            - ``'none'`` or ``None``: Calculate the metric for each class separately, and return
+              the metric for every class.
+            - ``'samples'``: Calculate the metric for each sample, and average the metrics
+              across samples (with equal weights for each sample).
+
+            Note that what is considered a sample in the multi-dimensional multi-class case
+            depends on the value of ``mdmc_average``.
+
+        mdmc_average:
+            Defines how averaging is done for multi-dimensional multi-class inputs (on top of the
+            ``average`` parameter). Should be one of the following:
+
+            - ``None`` [default]: Should be left unchanged if your data is not multi-dimensional
+              multi-class.
+
+            - ``'samplewise'``: In this case, the statistics are computed separately for each
+              sample on the ``N`` axis, and then averaged over samples. 
+              The computation for each sample is done by treating the flattened extra axes ``...`` 
+              (see :ref:`metrics:Input types`) as the ``N`` dimension within the sample, 
+              and computing the metric for the sample based on that.
+
+            - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs (see :ref:`metrics:Input types`)
+              are flattened into a new ``N_X`` sample axis, i.e. the inputs are treated as if they
+              were ``(N_X, C)``. From here on the ``average`` parameter applies as usual.
+
+        num_classes:
+            Number of classes. Necessary for (multi-dimensional) multi-class or multi-label data.
+
+        threshold:
+            Threshold probability value for transforming probability/logit predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs. If ``logits=True``,
+            this value is transformed to logits by ``logit_t = ln(t / (1-t))``. Default: 0.5
+        logits:
+            If predictions are floats, whether they are probabilities or logits. Default ``True``
+            (predictions are logits).
+        is_multiclass:
+            If ``False``, treat multi-class and multi-dim multi-class inputs with 1 or 2 classes as
+            binary and multi-label, respectively. If ``True``, treat binary and multi-label inputs
+            as multi-class or multi-dim multi-class with 2 classes, respectively.
+            Defaults to ``None``, which treats inputs as they appear.
+
+        compute_on_step:
+            Forward only calls ``update()`` and return None if this is set to False. default: True
+        dist_sync_on_step:
+            Synchronize metric state across processes at each ``forward()``
+            before returning the value at the step. default: False
+        process_group:
+            Specify the process group on which synchronization is called. default: None (which selects the entire world)
+        dist_sync_fn:
+            Callback that performs the allgather operation on the metric state. When `None`, DDP
+            will be used to perform the allgather. default: None
+
+    Example:
+
+        >>> from pytorch_lightning.metrics.classification import Precision
+        >>> preds  = torch.tensor([2, 0, 2, 1])
+        >>> target = torch.tensor([1, 1, 2, 0])
+        >>> stat_scores = Precision(average='macro', num_classes=3)
+        >>> stat_scores(preds, target)
+        tensor(0.1667)
+        >>> stat_scores = Precision(average='micro')
+        >>> stat_scores(preds, target)
+        tensor(0.2500)
+
+    """
+
     def compute(self):
         tp = self.tp.float()
         total_pos_pred = _mask_zeros((self.tp + self.fp).float())

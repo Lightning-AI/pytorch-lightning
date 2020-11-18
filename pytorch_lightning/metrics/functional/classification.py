@@ -17,6 +17,7 @@ from typing import Callable, Optional, Sequence, Tuple
 import torch
 from pytorch_lightning.metrics.functional.reduction import class_reduce, reduce
 from torch.nn import functional as F
+from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matrix
 
 from pytorch_lightning.utilities import rank_zero_warn
 

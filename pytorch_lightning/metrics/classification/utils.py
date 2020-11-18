@@ -67,6 +67,7 @@ def _check_classification_inputs(
             this value is transformed to logits by ``logit_t = ln(t / (1-t))``. Default: 0.5
         logits:
             If predictions are floats, whether they are probabilities or logits. Default ``True``
+            (predictions are logits).
         num_classes: number of classes
         is_multiclass: if True, treat binary and multi-label inputs as multi-class or multi-dim
             multi-class with 2 classes, respectively. If False, treat multi-class and multi-dim
@@ -281,6 +282,7 @@ def _input_format_classification(
             this value is transformed to logits by ``logit_t = ln(t / (1-t))``. Default: 0.5
         logits:
             If predictions are floats, whether they are probabilities or logits. Default ``True``
+            (predictions are logits).
         num_classes: number of classes
         top_k: number of highest probability entries for each sample to convert to 1s, relevant
             only for (multi-dimensional) multi-class cases.

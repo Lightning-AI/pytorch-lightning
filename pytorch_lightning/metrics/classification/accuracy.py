@@ -36,7 +36,8 @@ class Accuracy(Metric):
             (0,1) predictions, in the case of binary or multi-label inputs. If ``logits=True``,
             this value is transformed to logits by ``logit_t = ln(t / (1-t))``. Default: 0.5
         logits:
-            If predictions are floats, whether they are probabilities or logits. Default ``True``.
+            If predictions are floats, whether they are probabilities or logits. Default ``True``
+            (predictions are logits).
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
@@ -122,7 +123,8 @@ class HammingLoss(Metric):
             (0,1) predictions, in the case of binary or multi-label inputs. If ``logits=True``,
             this value is transformed to logits by ``logit_t = ln(t / (1-t))``. Default: 0.5
         logits:
-            If predictions are floats, whether they are probabilities or logits. Default ``True``.
+            If predictions are floats, whether they are probabilities or logits. Default ``True``
+            (predictions are logits).
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
