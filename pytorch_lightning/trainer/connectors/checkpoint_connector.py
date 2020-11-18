@@ -298,19 +298,13 @@ class CheckpointConnector:
             callback_states = self.trainer.on_save_checkpoint()
             checkpoint['callbacks'] = callback_states
 
-            # dump optimizers
-            rank_should_save_optim_state = True
-            if self.trainer.accelerator_backend:
-                # Check to ensure states are synced to rank 0
-                self.trainer.accelerator_backend.sync_optim_state()
-                # Check to ensure state has been synced on this rank
-                rank_should_save_optim_state = self.trainer.accelerator_backend.rank_should_save_optim_state
+            optimizer_states = []
+            for i, optimizer in enumerate(self.trainer.optimizers):
+                # Rely on accelerator to dump optimizer state
+                optimizer_state = self.trainer.accelerator_backend.optimizer_state(optimizer)
+                optimizer_states.append(optimizer_state)
 
-            if rank_should_save_optim_state:
-                optimizer_states = []
-                for i, optimizer in enumerate(self.trainer.optimizers):
-                    optimizer_states.append(optimizer.state_dict())
-                checkpoint['optimizer_states'] = optimizer_states
+            checkpoint['optimizer_states'] = optimizer_states
 
             # dump lr schedulers
             lr_schedulers = []

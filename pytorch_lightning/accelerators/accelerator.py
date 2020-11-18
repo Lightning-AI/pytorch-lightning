@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, List
 
 import torch
 from torch.optim import Optimizer
@@ -204,17 +204,16 @@ class Accelerator(object):
         """
         raise NotImplementedError()
 
-    def sync_optim_state(self):
-        pass
-
-    @property
-    def rank_should_save_optim_state(self):
+    def optimizer_state(self, optimizer: Optimizer) -> dict:
         """
-        Property to define logic to ensure that it is safe to save optimizer state.
-        In most cases rank doesn't matter, however allows additional logic when state has been sharded.
-        Returns: True if rank is safe to save state, else False.
+        Returns state of an optimizer. Allows for syncing/collating optimizer state from processes in custom
+        plugins.
+        Return:
+            Optimizer state dict
         """
-        return True
+        if self.ddp_plugin:
+            return self.ddp_plugin.optimizer_state(optimizer)
+        return optimizer.state_dict()
 
     def __getstate__(self):
         return {

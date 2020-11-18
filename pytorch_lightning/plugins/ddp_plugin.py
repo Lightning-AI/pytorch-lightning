@@ -1,5 +1,7 @@
 from typing import List, Dict, Any
 
+from torch.optim import Optimizer
+
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 
@@ -70,23 +72,5 @@ class DDPPlugin(object):
         """
         pass
 
-    def sync_optim_state(self, model: LightningModule):
-        """
-            Override with additional logic to modify optimizer state before saving.
-        """
-        pass
-
-    def rank_should_save_optim_state(self, rank):
-        """
-            Override to modify behaviour when saving the optimizer state. By default we save on any rank and
-            allow the checkpoint logic to handle rank specific logic.
-        Args:
-            rank: rank of the process.
-
-        Returns:
-            True if safe to save state, else False.
-        """
-        return True
-
-    def input_to_device(self, args: Any, model: LightningModule):
-        return args  # No move required, handled by DistributedDataParallel
+    def optimizer_state(self, optimizer: Optimizer) -> dict:
+        return optimizer.state_dict()
