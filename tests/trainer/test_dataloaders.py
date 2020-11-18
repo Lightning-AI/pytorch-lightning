@@ -1117,7 +1117,9 @@ def test_dataloaders_load_only_once_passed_loaders(tmpdir):
 
 
 def test_replace_sampler_with_multiprocessing_context(tmpdir):
-
+    """
+    This test verifies that replace_sampler conserves multiprocessing context
+    """
     train = RandomDataset(32, 64)
     train = DataLoader(train, batch_size=32, num_workers=2, multiprocessing_context='spawn', shuffle=True)
 
@@ -1135,4 +1137,4 @@ def test_replace_sampler_with_multiprocessing_context(tmpdir):
     new_data_loader = trainer.replace_sampler(train, SequentialSampler(train.dataset))
     # Train the model ⚡
     # print(new_data_loader)
-    assert (new_data_loader.multiprocessing_context == train.multiprocessing_context), (new_data_loader.multiprocessing_context, train.multiprocessing_context)
+    assert (new_data_loader.multiprocessing_context == train.multiprocessing_context)
