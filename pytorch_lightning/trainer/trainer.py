@@ -860,7 +860,7 @@ class Trainer(
         results = self.fit(model)
         del os.environ['PL_TESTING_MODE']
         self.testing = False
-        self.evaluating = False
+        self.evaluating = None
 
         # teardown
         if self.is_function_implemented('teardown'):
@@ -883,7 +883,7 @@ class Trainer(
         self.model = model
         results = self.fit(model)
         self.testing = False
-        self.evaluating = False
+        self.evaluating = None
 
         # teardown
         if self.is_function_implemented('teardown'):
@@ -921,7 +921,7 @@ class Trainer(
 
         if self.datamodule is not None:
             called = {
-                False: self.datamodule.has_setup_fit,
+                None: self.datamodule.has_setup_fit,
                 'validation': self.datamodule.has_setup_validation,
                 'test': self.datamodule.has_setup_test,
             }[self.evaluating]
