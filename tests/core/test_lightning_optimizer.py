@@ -90,7 +90,7 @@ def test_lightning_optimizer_from_user(tmpdir):
 @patch("torch.optim.SGD.step")
 def test_lightning_optimizer_manual_optimization(mock_sgd_step, mock_adam_step, tmpdir):
     """
-    Test that the user can use our LightningOptimizer. Not recommended.
+    Test that the user can use our LightningOptimizer. Not recommended for now.
     """
     class TestModel(BoringModel):
 
