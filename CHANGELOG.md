@@ -27,6 +27,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added option to log momentum ([#4384](https://github.com/PyTorchLightning/pytorch-lightning/pull/4384))
 
 
+- Added `current_score` to `ModelCheckpoint.on_save_checkpoint` ([#4712](https://github.com/PyTorchLightning/pytorch-lightning/pull/4721))
+
+
 - Added logging using `self.log` in train and evaluation for most callbacks and model hooks (
     [#4552](https://github.com/PyTorchLightning/pytorch-lightning/pull/4552),
     [#4495](https://github.com/PyTorchLightning/pytorch-lightning/pull/4495),
