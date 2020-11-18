@@ -15,3 +15,5 @@ def test_seed_stays_same_with_multiple_seed_everything_calls():
     seed = os.environ.get('PL_GLOBAL_SEED')
 
     assert initial_seed == seed
+
+    del os.environ['PL_GLOBAL_SEED']
