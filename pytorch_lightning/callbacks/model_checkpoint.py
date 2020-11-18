@@ -567,7 +567,7 @@ class ModelCheckpoint(Callback):
 
         # do not save nan, replace with +/- inf
         if torch.isnan(current):
-            current = {"min": torch.tensor(float('inf')), "max": torch.tensor(float('-inf'))}[self.mode]
+            current = torch.tensor(float('inf' if self.mode == "min" else '-inf'))
 
         # save the current score
         self.current_score = current
