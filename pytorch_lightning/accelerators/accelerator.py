@@ -171,18 +171,13 @@ class Accelerator(object):
     def init_ddp_connection(
             self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
     ) -> None:
-        os.environ["MASTER_ADDR"] = str(self.cluster_environment.master_address())
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        os.environ["WORLD_SIZE"] = str(self.cluster_environment.world_size())
-        torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
-
-        if not torch.distributed.is_initialized():
-            log.info(
-                f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}"
-            )
-            torch_distrib.init_process_group(
-                torch_backend, rank=global_rank, world_size=world_size
-            )
+        self.ddp_plugin.init_ddp_connection(
+            self.trainer,
+            self.cluster_environment,
+            global_rank,
+            world_size,
+            is_slurm_managing_tasks,
+        )
 
     def sync_tensor(self,
                     tensor: Union[torch.Tensor],
