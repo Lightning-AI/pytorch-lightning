@@ -11,11 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Union
 
 import torch
+from torch.optim import Optimizer
+
+from pytorch_lightning.plugins.precision_plugin import PrecisionPlugin
 
 
-class NativeAMPPlugin:
+class NativeAMPPlugin(PrecisionPlugin):
 
     def __init__(self, trainer=None):
         """
@@ -29,8 +33,10 @@ class NativeAMPPlugin:
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         closure_loss = self.trainer.scaler.scale(closure_loss)
 
+        automatic_optimization = self.trainer.train_loop.automatic_optimization
+
         # do backward pass
-        if self.trainer.train_loop.automatic_optimization:
+        if automatic_optimization:
             model = self.trainer.get_model()
             model.backward(closure_loss, optimizer, opt_idx)
         else:
@@ -40,7 +46,7 @@ class NativeAMPPlugin:
         closure_loss = closure_loss.detach()
 
         # unscale gradient to allow analyze within `on_after_backward`
-        if not self.trainer.train_loop.should_accumulate():
+        if not self.trainer.train_loop.should_accumulate() and automatic_optimization:
             self.trainer.scaler.unscale_(optimizer)
 
         return closure_loss
@@ -49,3 +55,7 @@ class NativeAMPPlugin:
         with torch.cuda.amp.autocast():
             output = fx(*args)
         return output
+
+    def clip_gradients(self, grad_clip_val: Union[int, float], optimizer: Optimizer, norm_type: float):
+        model = self.trainer.get_model()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=grad_clip_val, norm_type=norm_type)

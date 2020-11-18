@@ -14,6 +14,7 @@
 import os
 import platform
 from distutils.version import LooseVersion
+from unittest import mock
 from unittest.mock import patch
 
 import pytest
@@ -375,9 +376,9 @@ def test_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, lim
         pytest.param(1, 2, 1e50),
     ]
 )
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
     """Verify num_batches for train, val & test dataloaders passed with batch limit as number"""
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__multiple_mixed_length
@@ -432,9 +433,9 @@ def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_v
                 assert num_batches == limit_test_batches
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_with_fast_dev_run(tmpdir):
     """Verify num_batches for train, val & test dataloaders passed with fast_dev_run = True"""
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__multiple_mixed_length
@@ -902,8 +903,8 @@ def test_test_dataloader_not_implemented_error_failed(tmpdir):
         trainer.test(model)
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_only_once(tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
 
@@ -930,8 +931,8 @@ def test_dataloaders_load_only_once(tmpdir):
         assert call['name'] == expected
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_only_once_val_interval(tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
 
@@ -974,8 +975,8 @@ def test_dataloaders_load_only_once_val_interval(tmpdir):
         assert call['name'] == expected
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_only_once_no_sanity_check(tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
 
@@ -1003,8 +1004,8 @@ def test_dataloaders_load_only_once_no_sanity_check(tmpdir):
         assert call['name'] == expected
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_every_epoch(tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
 
@@ -1040,8 +1041,8 @@ def test_dataloaders_load_every_epoch(tmpdir):
         assert call['name'] == expected
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
 
@@ -1077,8 +1078,8 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
         assert call['name'] == expected
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_only_once_passed_loaders(tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
     train_loader = model.train_dataloader()

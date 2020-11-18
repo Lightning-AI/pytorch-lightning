@@ -13,7 +13,7 @@
 # limitations under the License
 import os
 import re
-from typing import List, Optional
+from typing import Any, List, Optional, Union
 
 import torch
 import torch.multiprocessing as mp
@@ -22,11 +22,12 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.cloud_io import atomic_save, load as pl_load
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, find_free_network_port
+from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning.distributed.dist import LightningDistributed
 
@@ -42,6 +43,15 @@ else:
 class DDPSpawnAccelerator(Accelerator):
 
     def __init__(self, trainer, nprocs, cluster_environment=None, ddp_plugin=None):
+        """
+        Runs training using DDP using mp.spawn via manual launch (not cluster launch)
+
+        Example::
+
+            # default
+            trainer = Trainer(accelerator=DDPSpawnAccelerator())
+
+        """
         super().__init__(trainer, cluster_environment, ddp_plugin)
         self.mp_queue = None
         self.nprocs = nprocs
@@ -254,3 +264,9 @@ class DDPSpawnAccelerator(Accelerator):
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
 
         return model
+
+    def sync_tensor(self,
+                    tensor: Union[torch.Tensor],
+                    group: Optional[Any] = None,
+                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
+        return sync_ddp_if_available(tensor, group, reduce_op)

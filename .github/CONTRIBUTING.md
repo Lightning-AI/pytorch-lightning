@@ -112,8 +112,8 @@ In case you adding new dependencies, make sure that they are compatible with the
 
 ### Coding Style
 
-1. Use f-strings for output formation (except logging when we stay with lazy `logging.info("Hello %s!`, name);
-2. Black code formatter is used using `pre-commit` hook.
+1. Use f-strings for output formation (except logging when we stay with lazy `logging.info("Hello %s!", name)`.
+2. Black code formatter is used using a `pre-commit` hook.
 
 ### Documentation
 
@@ -182,10 +182,10 @@ python -m pip install ".[dev, examples]"
 python -m pip install pre-commit
 ```
 
-You can run the full test-case in your terminal via this bash script:
+You can run the full test-case in your terminal via this make script:
 
 ```bash
-bash .run_local_tests.sh
+make test
 ```
 
 Note: if your computer does not have multi-GPU nor TPU these tests are skipped.
@@ -275,6 +275,57 @@ We welcome any useful contribution! For your convenience here's a recommended wo
    # follow git instructions to resolve conflicts
    git push -f
    ```
+
+4. **How to add new tests**
+
+We are using [pytest](https://docs.pytest.org/en/stable/) in Pytorch Lightning.
+
+Here are tutorials:
+* (recommended) [Visual Testing with pytest](https://www.youtube.com/playlist?list=PLCTHcU1KoD99Rim2tzg-IhYY2iu9FFvNo) from JetBrains on YouTube
+* [Effective Python Testing With Pytest](https://realpython.com/pytest-python-testing/) article on realpython.com
+
+Here is the process to create a new test
+
+* 0. Optional: Follow tutorials !
+* 1. Find a file in tests/ which match what you want to test. If none, create one.
+* 2. Use this template to get started !
+* 3. Use `BoringModel and derivates to test out your code`.
+
+```python
+# TEST SHOULD BE IN YOUR FILE: tests/..../...py
+
+# RUN OUR TEST WITH: pytest tests/..../...py::test_explain_what_is_being_tested --verbose --color=yes --capture=no
+
+# TEST CODE TEMPLATE
+
+# pytest decorator
+# @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_explain_what_is_being_tested(tmpdir):
+    """
+    Test description about text reason to be
+    """
+
+    # os.environ["PL_DEV_DEBUG"] = '1' optional. When activated, you can use internal trainer.dev_debugger
+
+    class ExtendedModel(BoringModel):
+        ...
+
+    model = ExtendedModel()
+
+    # BoringModel is a functional model. You might want to set methods to None to test your behaviour
+    # Example: model.training_step_end = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir, # will save everything within a tmpdir generated for this test
+        ...
+    )
+    trainer.fit(model)
+    result = trainer.test()
+
+    # assert the behaviour is correct.
+    assert ...
+    assert ...
+```
 
 ### Bonus Workflow Tip
 

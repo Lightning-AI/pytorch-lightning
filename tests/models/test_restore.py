@@ -95,7 +95,7 @@ def test_callbacks_state_resume_from_checkpoint(tmpdir):
             ]
         )
         assert checkpoint.best_model_path == ""
-        assert checkpoint.best_model_score == 0
+        assert checkpoint.best_model_score is None
         return trainer_args
 
     # initial training
@@ -300,7 +300,7 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
 
     # Since `EvalModelTemplate` has `_save_hparams = True` by default, check that ckpt has hparams
     ckpt = torch.load(last_checkpoint)
-    assert model_template.CHECKPOINT_HYPER_PARAMS_KEY in ckpt.keys(), 'module_arguments missing from checkpoints'
+    assert model_template.CHECKPOINT_HYPER_PARAMS_KEY in ckpt.keys(), 'hyper_parameters missing from checkpoints'
 
     # Ensure that model can be correctly restored from checkpoint
     pretrained_model = model_template.load_from_checkpoint(last_checkpoint)
