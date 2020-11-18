@@ -34,6 +34,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
 from torch.nn.parallel import DistributedDataParallel
 
+
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
     from hydra.core.hydra_config import HydraConfig
@@ -150,22 +151,21 @@ class DDPAccelerator(Accelerator):
         return results
 
     def training_step(self, args):
-        args = self.ddp_plugin.input_to_device(args, self.trainer.get_model())
+        return self._step(args)
+
+    def validation_step(self, args):
+        return self._step(args)
+
+    def test_step(self, args):
+        return self._step(args)
+
+    def _step(self, args):
+        args = self.ddp_plugin.on_before_forward(args, self.trainer.get_model())
         if self.trainer.amp_backend == AMPType.NATIVE:
             with torch.cuda.amp.autocast():
                 output = self.trainer.model(*args)
         else:
             output = self.trainer.model(*args)
-        return output
-
-    def validation_step(self, args):
-        args = self.ddp_plugin.input_to_device(args, self.trainer.get_model())
-        output = self.training_step(args)
-        return output
-
-    def test_step(self, args):
-        args = self.ddp_plugin.input_to_device(args, self.trainer.get_model())
-        output = self.training_step(args)
         return output
 
     def barrier(self, name: Optional[str] = None):
@@ -289,7 +289,7 @@ class DDPAccelerator(Accelerator):
         return results
 
     def configure_ddp(
-            self, model: LightningModule, device_ids: List[int]
+        self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
         model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model
@@ -319,10 +319,3 @@ class DDPAccelerator(Accelerator):
 
         """
         return sync_ddp_if_available(tensor, group, reduce_op)
-
-    def sync_optim_state(self):
-        self.ddp_plugin.sync_optim_state(self.trainer.get_model())
-
-    @property
-    def rank_should_save_optim_state(self):
-        return self.ddp_plugin.rank_should_save_optim_state(self.trainer.global_rank)

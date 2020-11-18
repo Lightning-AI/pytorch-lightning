@@ -29,7 +29,7 @@ class DDPPlugin(object):
         self._ddp_kwargs: Dict[str, Any] = kwargs
 
     def configure_ddp(
-            self, model: LightningModule, device_ids: List[int]
+        self, model: LightningModule, device_ids: List[int]
     ) -> LightningDistributedDataParallel:
         """
         Pass through all customizations from constructor to `LightningDistributedDataParallel`.
@@ -64,6 +64,17 @@ class DDPPlugin(object):
             **self._ddp_kwargs,
         )
         return model
+
+    def on_before_forward(self, args: Any, model: LightningModule):
+        """
+        Override to handle custom input to device logic. For DDP, no logic is required as this is handled internally
+        within the DDP wrapper.
+        Args:
+            args: Inputs to the model.
+            model: Model to train.
+        Returns: args moved to correct device if needed.
+        """
+        return args
 
     def sync_backward(self, model: LightningModule):
         """
