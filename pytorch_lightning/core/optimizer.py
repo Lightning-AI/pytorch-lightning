@@ -186,7 +186,7 @@ class LightningOptimizer(Optimizer):
         # perform manual_backward
         model_ref.manual_backward(loss, self, *args, **kwargs)
 
-    def step(self, *args, closure: Callable = None, **kwargs):
+    def step(self, *args, closure: Callable = None, make_optimizer_step: Optional[bool] = None, **kwargs):
         """
         Call this directly from your training_step when doing optimizations manually.
         By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
@@ -196,12 +196,14 @@ class LightningOptimizer(Optimizer):
 
         Args:
             closure: Closure should contain forward and backward step
+            make_optimizer_step: Whether to force an optimizer step. When nothing is provided,
+                we will use `accumulate_grad_batches` for accumulation frequency by default.
+                However, one coud provide True and False based on its own scheduling.
         """
 
         if closure is None:
             closure = do_nothing_closure
 
-        make_optimizer_step = kwargs.pop('make_optimizer_step', None)
         if make_optimizer_step is None:
             make_optimizer_step = not self._should_accumulate
 
