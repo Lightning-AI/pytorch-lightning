@@ -332,77 +332,7 @@ def test_iou_input_check():
 @pytest.mark.parametrize('metric', [auroc])
 def test_error_on_multiclass_input(metric):
     """ check that these metrics raise an error if they are used for multiclass problems  """
-    pred = torch.randint(0, 10, (100, ))
-    target = torch.randint(0, 10, (100, ))
+    pred = torch.randint(0, 10, (100,))
+    target = torch.randint(0, 10, (100,))
     with pytest.raises(ValueError, match="AUROC metric is meant for binary classification"):
         _ = metric(pred, target)
-
-
-# TODO: When the jaccard_score of the sklearn version we use accepts `zero_division` (see
-#       https://github.com/scikit-learn/scikit-learn/pull/17866), consider adding a test here against our
-#       `absent_score`.
-@pytest.mark.parametrize(['pred', 'target', 'ignore_index', 'absent_score', 'num_classes', 'expected'], [
-    # Note that -1 is used as the absent_score in almost all tests here to distinguish it from the range of valid
-    # scores the function can return ([0., 1.] range, inclusive).
-    # 2 classes, class 0 is correct everywhere, class 1 is absent.
-    pytest.param([0], [0], None, -1., 2, [1., -1.]),
-    pytest.param([0, 0], [0, 0], None, -1., 2, [1., -1.]),
-    # absent_score not applied if only class 0 is present and it's the only class.
-    pytest.param([0], [0], None, -1., 1, [1.]),
-    # 2 classes, class 1 is correct everywhere, class 0 is absent.
-    pytest.param([1], [1], None, -1., 2, [-1., 1.]),
-    pytest.param([1, 1], [1, 1], None, -1., 2, [-1., 1.]),
-    # When 0 index ignored, class 0 does not get a score (not even the absent_score).
-    pytest.param([1], [1], 0, -1., 2, [1.0]),
-    # 3 classes. Only 0 and 2 are present, and are perfectly predicted. 1 should get absent_score.
-    pytest.param([0, 2], [0, 2], None, -1., 3, [1., -1., 1.]),
-    pytest.param([2, 0], [2, 0], None, -1., 3, [1., -1., 1.]),
-    # 3 classes. Only 0 and 1 are present, and are perfectly predicted. 2 should get absent_score.
-    pytest.param([0, 1], [0, 1], None, -1., 3, [1., 1., -1.]),
-    pytest.param([1, 0], [1, 0], None, -1., 3, [1., 1., -1.]),
-    # 3 classes, class 0 is 0.5 IoU, class 1 is 0 IoU (in pred but not target; should not get absent_score), class
-    # 2 is absent.
-    pytest.param([0, 1], [0, 0], None, -1., 3, [0.5, 0., -1.]),
-    # 3 classes, class 0 is 0.5 IoU, class 1 is 0 IoU (in target but not pred; should not get absent_score), class
-    # 2 is absent.
-    pytest.param([0, 0], [0, 1], None, -1., 3, [0.5, 0., -1.]),
-    # Sanity checks with absent_score of 1.0.
-    pytest.param([0, 2], [0, 2], None, 1.0, 3, [1., 1., 1.]),
-    pytest.param([0, 2], [0, 2], 0, 1.0, 3, [1., 1.]),
-])
-def test_iou_absent_score(pred, target, ignore_index, absent_score, num_classes, expected):
-    iou_val = iou(
-        pred=torch.tensor(pred),
-        target=torch.tensor(target),
-        ignore_index=ignore_index,
-        absent_score=absent_score,
-        num_classes=num_classes,
-        reduction='none',
-    )
-    assert torch.allclose(iou_val, torch.tensor(expected).to(iou_val))
-
-
-# example data taken from
-# https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/metrics/tests/test_ranking.py
-@pytest.mark.parametrize(['pred', 'target', 'ignore_index', 'num_classes', 'reduction', 'expected'], [
-    # Ignoring an index outside of [0, num_classes-1] should have no effect.
-    pytest.param([0, 1, 1, 2, 2], [0, 1, 2, 2, 2], None, 3, 'none', [1, 1 / 2, 2 / 3]),
-    pytest.param([0, 1, 1, 2, 2], [0, 1, 2, 2, 2], -1, 3, 'none', [1, 1 / 2, 2 / 3]),
-    pytest.param([0, 1, 1, 2, 2], [0, 1, 2, 2, 2], 255, 3, 'none', [1, 1 / 2, 2 / 3]),
-    # Ignoring a valid index drops only that index from the result.
-    pytest.param([0, 1, 1, 2, 2], [0, 1, 2, 2, 2], 0, 3, 'none', [1 / 2, 2 / 3]),
-    pytest.param([0, 1, 1, 2, 2], [0, 1, 2, 2, 2], 1, 3, 'none', [1, 2 / 3]),
-    pytest.param([0, 1, 1, 2, 2], [0, 1, 2, 2, 2], 2, 3, 'none', [1, 1 / 2]),
-    # When reducing to mean or sum, the ignored index does not contribute to the output.
-    pytest.param([0, 1, 1, 2, 2], [0, 1, 2, 2, 2], 0, 3, 'elementwise_mean', [7 / 12]),
-    pytest.param([0, 1, 1, 2, 2], [0, 1, 2, 2, 2], 0, 3, 'sum', [7 / 6]),
-])
-def test_iou_ignore_index(pred, target, ignore_index, num_classes, reduction, expected):
-    iou_val = iou(
-        pred=torch.tensor(pred),
-        target=torch.tensor(target),
-        ignore_index=ignore_index,
-        num_classes=num_classes,
-        reduction=reduction,
-    )
-    assert torch.allclose(iou_val, torch.tensor(expected).to(iou_val))

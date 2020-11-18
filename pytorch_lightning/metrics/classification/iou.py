@@ -15,8 +15,8 @@ from typing import Any, Optional
 import torch
 from pytorch_lightning.metrics.functional.reduction import reduce
 from pytorch_lightning.metrics.functional.confusion_matrix import _confusion_matrix_compute
+from pytorch_lightning.metrics.functional.iou import _iou_from_confmat
 from pytorch_lightning.metrics.classification.confusion_matrix import ConfusionMatrix
-from pytorch_lightning.metrics.classification.iou import _iou_from_confmat
 
 
 class IoU(ConfusionMatrix):
