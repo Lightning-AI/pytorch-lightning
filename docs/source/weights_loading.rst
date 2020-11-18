@@ -87,7 +87,7 @@ You can also control more advanced options, like `save_top_k`, to save the best 
         dirpath='my/path/',
         filename='sample-mnist-{epoch:02d}-{val_loss:.2f}',
         save_top_k=3,
-        mode='min'
+        mode='min',
     )
 
     trainer = Trainer(callbacks=[checkpoint_callback])
