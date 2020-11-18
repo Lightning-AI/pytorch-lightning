@@ -284,7 +284,7 @@ class ProgressBar(ProgressBarBase):
         """ Override this to customize the tqdm bar for validation. """
 
         # The main progress bar doesn't exist in trainer.validate(...)
-        has_main_bar = 1 if self.main_progress_bar is not None else 0
+        has_main_bar = int(self.main_progress_bar is not None)
 
         bar = tqdm(
             desc='Validating',
