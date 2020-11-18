@@ -22,21 +22,22 @@ def get_worker_map():
 
 
 class LightningPipeModule(nn.Module):
-    def __init__(self, module: nn.Sequential, layer_partitions: List[int], microbatches: int = 8):
+    def __init__(self, module: nn.Sequential, balance: List[int], microbatches: int = 8, checkpoint='never'):
         super().__init__()
         self.module = module
-        self.layer_partitions = layer_partitions
+        self.balance = balance
         self.microbatches = microbatches
+        self.checkpoint = checkpoint
 
     def init_pipe(self):
         self.module = Pipe(
             module=self.module,
-            balance=self.layer_partitions,
+            balance=self.balance,
             chunks=self.microbatches,
             style=PipelineStyle.MultiProcess,
             input_device=torch.cuda.current_device(),
             worker_map=get_worker_map(),
-            checkpoint='never',
+            checkpoint=self.checkpoint,
         )
 
     def forward(self, *args, **kwargs):
