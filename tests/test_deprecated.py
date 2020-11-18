@@ -1,18 +1,17 @@
 """Test deprecated functionality which will be removed in vX.Y.Z"""
-from argparse import ArgumentParser
-import pytest
 import sys
+from argparse import ArgumentParser
 from unittest import mock
 
+import pytest
 import torch
-
-from tests.base import EvalModelTemplate
-from pytorch_lightning.metrics.functional.classification import auc
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.metrics.functional.classification import auc
 from pytorch_lightning.profiler.profilers import PassThroughProfiler, SimpleProfiler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.base import EvalModelTemplate
 
 
 def test_tbd_remove_in_v1_3_0(tmpdir):
