@@ -272,7 +272,7 @@ class Trainer(
                 sequence.
 
             val_check_interval: How often to check the validation set. Use float to check within a training epoch,
-                use int to check every n steps (batches).
+                use int åto check every n steps (batches).
 
             weights_summary: Prints a summary of the weights when training begins.
 
@@ -285,7 +285,8 @@ class Trainer(
             move_metrics_to_cpu: Whether to force internal logged metrics to be moved to cpu.
                 This can save some gpu memory, but can make training slower. Use with attention.
 
-            log_epoch_metrics_on_step: Wheter to log metric_epoch on step or current_epoch.
+            log_epoch_metrics_on_step: True if x-axis should track the number of steps,
+                False if x-axis should track the number of epochs when logged metrics are reduced at the end of the epoch
         """
         super().__init__()
 
