@@ -219,5 +219,5 @@ class DDP2Accelerator(Accelerator):
                     reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
         return sync_ddp_if_available(tensor, group, reduce_op)
 
-    def reference_model(self, model):
+    def reference_model(self, model) -> LightningModule:
         return self.ddp_plugin.reference_model_in_plugin_wrapper(model)

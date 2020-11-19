@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
+
 from enum import Enum
-from typing import Any, Optional, Union, List
+from typing import Any, Optional, Union
 
 import torch
 from torch.optim import Optimizer
@@ -23,7 +23,7 @@ from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
 import torch.distributed as torch_distrib
-from pytorch_lightning import _logger as log
+from pytorch_lightning import LightningModule
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
@@ -208,7 +208,7 @@ class Accelerator(object):
             return self.ddp_plugin.optimizer_state(optimizer)
         return optimizer.state_dict()
 
-    def reference_model(self, model):
+    def reference_model(self, model) -> LightningModule:
         """
         Override to modify returning base :class:`LightningModule`
         when accessing variable and functions if the accelerator has wrapped the model.

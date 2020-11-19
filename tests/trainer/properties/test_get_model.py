@@ -45,6 +45,7 @@ def test_get_model(tmpdir):
     trainer.fit(model)
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
 def test_get_model_ddp_cpu(tmpdir):
     """
     Tests that :meth:`trainer.get_model` extracts the model correctly when using ddp on cpu

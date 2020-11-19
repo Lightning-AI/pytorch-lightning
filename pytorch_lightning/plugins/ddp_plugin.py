@@ -109,7 +109,8 @@ class DDPPlugin(object):
     def optimizer_state(self, optimizer: Optimizer) -> dict:
         return optimizer.state_dict()
 
-    def reference_model_in_plugin_wrapper(self, model: Union[LightningDistributedDataParallel, LightningModule]):
+    def reference_model_in_plugin_wrapper(self, model: Union[
+        LightningDistributedDataParallel, LightningModule]) -> LightningModule:
         """
         Override to modify returning base :class:`LightningModule`
         when accessing variable and functions outside of the parallel wrapper.
