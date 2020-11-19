@@ -132,7 +132,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
 
 
 def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch):
-    """ Test the combinations of save_dir, weights_save_path and default_root_dir.  """
+    """ Test the combinations of save_dir, weights_save_path and default_root_dir. """
 
     _test_loggers_save_dir_and_weights_save_path(tmpdir, TensorBoardLogger)
 
@@ -344,7 +344,6 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
 
 
 def _test_loggers_with_prefix(tmpdir, logger_class):
-    os.environ['PL_DEV_DEBUG'] = '0'
     model = BoringModel()
 
     class StoreHistoryLogger(logger_class):
