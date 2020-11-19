@@ -15,6 +15,8 @@
 Tests to ensure that the training loop works with a dict (1.0)
 """
 import os
+from unittest import mock
+
 import torch
 import pytest
 from copy import deepcopy
@@ -47,13 +49,12 @@ class Helper:
         return decorator
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__logger_connector__epoch_result_store__train(tmpdir):
     """
     Tests that LoggerConnector will properly capture logged information
     and reduce them
     """
-
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(BoringModel):
 
@@ -214,13 +215,12 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
     assert generated == torch.stack(model.train_losses).mean().item()
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize('num_dataloaders', [1, 2])
 def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, num_dataloaders):
     """
     Tests that LoggerConnector will properly capture logged information in multi_dataloaders scenario
     """
-
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(BoringModel):
 

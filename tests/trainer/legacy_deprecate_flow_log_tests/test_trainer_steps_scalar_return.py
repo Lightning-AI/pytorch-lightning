@@ -15,6 +15,8 @@
 Tests to ensure that the training loop works with a scalar
 """
 import os
+from unittest import mock
+
 import torch
 import pytest
 
@@ -105,7 +107,6 @@ def test_full_training_loop_scalar(tmpdir):
     Checks train_step + training_step_end + training_epoch_end
     (all with scalar return from train_step)
     """
-    os.environ['PL_DEV_DEBUG'] = '0'
 
     model = DeterministicModel()
     model.training_step = model.training_step_scalar_return
@@ -154,7 +155,6 @@ def test_train_step_epoch_end_scalar(tmpdir):
     Checks train_step + training_epoch_end (NO training_step_end)
     (with scalar return)
     """
-    os.environ['PL_DEV_DEBUG'] = '0'
 
     model = DeterministicModel()
     model.training_step = model.training_step_scalar_return
@@ -206,9 +206,9 @@ class DPPReduceMeanPbarModel(BoringModel):
         return {"loss": loss, "progress_bar":{"loss_2": loss}}
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_dpp_reduce_mean_pbar(tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     model = DPPReduceMeanPbarModel()
     model.training_step_end = None
