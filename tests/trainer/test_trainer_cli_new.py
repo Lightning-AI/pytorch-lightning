@@ -26,7 +26,7 @@ from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.utilities.trainer_cli import (
     LightningArgumentParser,
     SaveConfigCallback,
-    TrainerCli
+    LightningCLI
 )
 
 
@@ -247,4 +247,4 @@ def test_trainer_cli(cli_args, expected_model, expected_trainer, monkeypatch):
     TestModel.expected_trainer = expected_trainer
 
     with mock.patch('sys.argv', ['any.py'] + cli_args):
-        TrainerCli(TestModel, trainer_class=Trainer, save_config_callback=SaveConfigCallback)
+        LightningCLI(TestModel, trainer_class=Trainer, save_config_callback=SaveConfigCallback)

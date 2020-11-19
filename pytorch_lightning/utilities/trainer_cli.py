@@ -15,12 +15,14 @@
 import os
 from typing import Type
 from jsonargparse import ArgumentParser, ActionConfigFile
-from pytorch_lightning import Trainer, LightningModule, LightningDataModule
+from pytorch_lightning.trainer.trainer import Trainer
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.callbacks import Callback
 
 
 class LightningArgumentParser(ArgumentParser):
-    """Extension of jsonargparse's ArgumentParser for pythorch-lightning"""
+    """Extension of jsonargparse's ArgumentParser for pytorch-lightning"""
 
     def __init__(
         self,
@@ -83,7 +85,7 @@ class LightningArgumentParser(ArgumentParser):
 
 
 class SaveConfigCallback(Callback):
-    """Saves a TrainerCli config to the log_dir when training starts"""
+    """Saves a LightningCLI config to the log_dir when training starts"""
 
     def __init__(self, parser, config):
         self.config_dump = parser.dump(config, skip_none=False)
@@ -94,7 +96,7 @@ class SaveConfigCallback(Callback):
             outstream.write(self.config_dump)
 
 
-class TrainerCli:
+class LightningCLI:
     def __init__(
         self,
         model_class: Type[LightningModule],
@@ -114,8 +116,8 @@ class TrainerCli:
         Example, first implement the trainer.py tool as::
 
             from mymodels import MyModel
-            from pytorch_lightning.utilities.jsonargparse_utils import TrainerCli
-            TrainerCli(MyModel)
+            from pytorch_lightning.utilities.jsonargparse_utils import LightningCLI
+            LightningCLI(MyModel)
 
         Then in a shell, run the tool with the desired configuration::
 
