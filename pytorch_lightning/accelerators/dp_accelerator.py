@@ -16,7 +16,7 @@ from typing import Union
 import torch
 from torch import optim
 
-from pytorch_lightning import LightningModule
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.core.step_result import Result
