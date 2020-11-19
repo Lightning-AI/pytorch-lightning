@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import sys
 
 import pytest
 import torch
@@ -29,7 +30,7 @@ class TrainerGetModel(BoringModel):
 
 def test_get_model(tmpdir):
     """
-    Tests that trainer.get_model() extracts the model correctly
+    Tests that :meth:`trainer.get_model` extracts the model correctly
     """
 
     model = TrainerGetModel()
@@ -46,7 +47,7 @@ def test_get_model(tmpdir):
 
 def test_get_model_ddp_cpu(tmpdir):
     """
-    Tests that trainer.get_model() extracts the model correctly when using ddp on cpu
+    Tests that :meth:`trainer.get_model` extracts the model correctly when using ddp on cpu
     """
 
     model = TrainerGetModel()
@@ -64,10 +65,29 @@ def test_get_model_ddp_cpu(tmpdir):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@pytest.mark.parametrize("ddp_backend", [None, 'ddp_spawn'])
-def test_get_model_ddp_gpu(tmpdir, ddp_backend):
+def test_get_model_gpu(tmpdir):
     """
-    Tests that trainer.get_model() extracts the model correctly when using GPU + ddp accelerators
+    Tests that :meth:`trainer.get_model` extracts the model correctly when using GPU
+    """
+
+    model = TrainerGetModel()
+
+    limit_train_batches = 2
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=2,
+        max_epochs=1,
+        gpus=1
+    )
+    trainer.fit(model)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
+def test_get_model_ddp_gpu(tmpdir):
+    """
+    Tests that :meth:`trainer.get_model` extracts the model correctly when using GPU + ddp accelerators
     """
 
     model = TrainerGetModel()
@@ -79,6 +99,6 @@ def test_get_model_ddp_gpu(tmpdir, ddp_backend):
         limit_val_batches=2,
         max_epochs=1,
         gpus=1,
-        accelerator=ddp_backend
+        accelerator='ddp_spawn'
     )
     trainer.fit(model)
