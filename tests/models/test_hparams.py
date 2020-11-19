@@ -40,12 +40,31 @@ class SaveHparamsModel(BoringModel):
         super().__init__()
         self.save_hyperparameters(hparams)
 
+    def training_step(self, batch, batch_idx):
+        output = self.layer(batch[0])
+        loss = self.loss(batch, output)
+        return {"loss": loss}
+
 
 class AssignHparamsModel(BoringModel):
     """ Tests that a model can take an object with explicit setter """
     def __init__(self, hparams):
         super().__init__()
         self.hparams = hparams
+
+
+class BoringDataModule(LightningDataModule):
+    def __init__(self, hparams):
+        super().__init__()
+        self.data = None
+
+        self.hparams = hparams
+
+    def setup(self, stage: Optional[str] = None):
+        self.data = torch.randn(10, 32)
+
+    def train_dataloader(self, *args, **kwargs) -> DataLoader:
+        return DataLoader(TensorDataset(self.data), batch_size=10)
 
 
 def decorate(func):
@@ -746,7 +765,7 @@ def test_extend_with_collision(tmp_path):
 def test_adding_datamodule_hparams(tmpdir):
     """Test that hparams from datamodule are added to the checkpoint."""
     model = SaveHparamsModel({'arg1': 5, 'arg2': 'abc'})
-    data = TrialMNISTDataModule()
+    data = BoringDataModule({'data_dir': 'foo'})
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(model, datamodule=data)
@@ -766,7 +785,7 @@ def test_adding_datamodule_hparams(tmpdir):
 def test_colliding_datamodule_hparams(tmpdir):
     """Test that colliding hparams from the datamodule are caught."""
     model = SaveHparamsModel({'data_dir': 'abc', 'arg2': 'abc'})
-    data = TrialMNISTDataModule()
+    data = BoringDataModule({'data_dir': 'foo'})
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
