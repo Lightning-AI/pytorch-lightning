@@ -14,38 +14,35 @@
 
 """nn.Module with additional great features."""
 
-import os
-import tempfile
 import collections
 import copy
 import inspect
+import os
 import re
+import tempfile
 import types
 from abc import ABC
 from argparse import Namespace
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union, Mapping
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 import torch
-from pytorch_lightning import _logger as log
-from pytorch_lightning.core.grads import GradInformation
-from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
-from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
-from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.utilities import rank_zero_warn, AMPType
-from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
-from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.parsing import (
-    AttributeDict,
-    collect_init_args,
-    get_init_args,
-)
-from pytorch_lightning.callbacks import Callback
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 
+from pytorch_lightning import _logger as log
+from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.core.grads import GradInformation
+from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
+from pytorch_lightning.core.memory import ModelSummary
+from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
+from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.utilities import AMPType, rank_zero_warn
+from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
+from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 
 TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 
@@ -1249,6 +1246,7 @@ class LightningModule(
                 self.trainer.batch_idx,
                 optimizer_closure,
                 *args,
+                make_optimizer_step=make_optimizer_step,
                 **kwargs,
             )
 
@@ -1393,20 +1391,25 @@ class LightningModule(
             model hook don't forget to add the call to it before ``optimizer.zero_grad()`` yourself.
 
         """
-        if on_tpu:
-            xm.optimizer_step(optimizer, optimizer_args={'closure': optimizer_closure, **kwargs})
-        elif self.trainer.amp_backend == AMPType.NATIVE:
-            # native amp does not yet support closures.
-            # TODO: pass the closure to the step ASAP
-            optimizer_closure()
-            self.trainer.scaler.step(optimizer)
-        elif self.trainer.amp_backend == AMPType.APEX:
-            # apex amp does not yet support closures.
-            # TODO: pass the closure to the step ASAP
-            optimizer_closure()
-            optimizer.step(*args, **kwargs)
+        if isinstance(optimizer, LightningOptimizer):
+            optimizer.step(*args, closure=optimizer_closure, **kwargs)
         else:
-            optimizer.step(closure=optimizer_closure, *args, **kwargs)
+            # todo: find a better way to inform LightingOptimizer to run step
+            kwargs.pop('make_optimizer_step', None)
+            if on_tpu:
+                xm.optimizer_step(optimizer, optimizer_args={'closure': optimizer_closure, **kwargs})
+            elif self.trainer.amp_backend == AMPType.NATIVE:
+                # native amp does not yet support closures.
+                # TODO: pass the closure to the step ASAP
+                optimizer_closure()
+                self.trainer.scaler.step(optimizer)
+            elif self.trainer.amp_backend == AMPType.APEX:
+                # apex amp does not yet support closures.
+                # TODO: pass the closure to the step ASAP
+                optimizer_closure()
+                optimizer.step(*args, **kwargs)
+            else:
+                optimizer.step(closure=optimizer_closure, *args, **kwargs)
 
     def optimizer_zero_grad(
         self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int

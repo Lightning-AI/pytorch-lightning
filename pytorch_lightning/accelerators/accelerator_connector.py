@@ -11,18 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning import accelerators
 import os
+
 import torch
 
-from pytorch_lightning.utilities import device_parser
-from pytorch_lightning.utilities import rank_zero_only
-from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning import _logger as log
+from pytorch_lightning import accelerators
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.cluster_environments.torchelastic_environment import TorchElasticEnvironment
-from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.utilities import device_parser, rank_zero_only
+from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
     import torch_xla
@@ -121,6 +121,10 @@ class AcceleratorConnector:
 
         # distributed backend choice
         self.set_distributed_mode()
+
+        # enable optimizer wrapping with LightningOptimizer
+        # TODO: Understand why it doesn't work with Hovorod
+        self.trainer.enable_pl_optimizer = not self.trainer.use_horovod and self.trainer.enable_pl_optimizer
 
         # override dist backend when using tpus
         if self.trainer.on_tpu:
