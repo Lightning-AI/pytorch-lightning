@@ -260,8 +260,8 @@ class ModelSummary(object):
             arrays.append(["In sizes", self.in_sizes])
             arrays.append(["Out sizes", self.out_sizes])
 
-        trainable_parameters = sum(np.prod(p.shape) for p in self._model.parameters() if p.requires_grad)
-        total_parameters = sum(np.prod(p.shape) for p in self._model.parameters())
+        trainable_parameters = sum(p.numel() for p in self._model.parameters() if p.requires_grad)
+        total_parameters = sum(p.numel() for p in self._model.parameters())
 
         return _format_summary_table(total_parameters, trainable_parameters, *arrays)
 
