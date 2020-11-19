@@ -19,7 +19,7 @@ from pytorch_lightning import Trainer
 from tests.base.boring_model import BoringModel
 
 
-class TestGetModel(BoringModel):
+class TrainerGetModel(BoringModel):
     def on_fit_start(self):
         assert self == self.trainer.get_model()
 
@@ -32,7 +32,7 @@ def test_get_model(tmpdir):
     Tests that trainer.get_model() extracts the model correctly
     """
 
-    model = TestGetModel()
+    model = TrainerGetModel()
 
     limit_train_batches = 2
     trainer = Trainer(
@@ -49,7 +49,7 @@ def test_get_model_ddp_cpu(tmpdir):
     Tests that trainer.get_model() extracts the model correctly when using ddp on cpu
     """
 
-    model = TestGetModel()
+    model = TrainerGetModel()
 
     limit_train_batches = 2
     trainer = Trainer(
@@ -70,7 +70,7 @@ def test_get_model_ddp_gpu(tmpdir, ddp_backend):
     Tests that trainer.get_model() extracts the model correctly when using GPU + ddp accelerators
     """
 
-    model = TestGetModel()
+    model = TrainerGetModel()
 
     limit_train_batches = 2
     trainer = Trainer(
