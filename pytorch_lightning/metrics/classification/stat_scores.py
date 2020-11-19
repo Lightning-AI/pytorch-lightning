@@ -71,7 +71,7 @@ def _stat_scores(
     """
     is_multidim = len(preds.shape) == 3
 
-    if reduce == "macro":
+    if reduce == "micro":
         dim = [0, 1] if not is_multidim else [1, 2]
     elif reduce == "macro":
         dim = 0 if not is_multidim else 2
