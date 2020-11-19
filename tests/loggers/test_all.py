@@ -318,15 +318,7 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
     assert result == 1
 
 
-@pytest.mark.parametrize('logger_class', [
-    CometLogger,
-    MLFlowLogger,
-    NeptuneLogger,
-    TensorBoardLogger,
-    TestTubeLogger,
-    WandbLogger,
-])
-def test_logger_with_prefix_all(tmpdir, monkeypatch, logger_class):
+def test_logger_with_prefix_all(tmpdir, monkeypatch):
     """
     Test that prefix is added at the beginning of the metric keys.
     """
