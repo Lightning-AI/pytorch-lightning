@@ -130,7 +130,7 @@ def test_callback_hooks(torch_save):
     callback.on_init_start.assert_called_with(trainer)
     callback.on_init_end.assert_called_with(trainer)
 
-    callback.setup.assert_called_with(trainer, None, 'fit')
+    callback.setup.assert_called_with(trainer, model, 'fit')
 
     callback.on_fit_start.assert_called_with(trainer, model)
     callback.on_pretrain_routine_start.assert_called_with(trainer, model)
@@ -173,7 +173,7 @@ def test_callback_hooks(torch_save):
     callback.assert_has_calls([
         call.on_init_start(trainer),
         call.on_init_end(trainer),
-        call.setup(trainer, None, "fit"),
+        call.setup(trainer, model, "fit"),
         call.on_fit_start(trainer, model),
         call.on_pretrain_routine_start(trainer, model),
         call.on_pretrain_routine_end(trainer, model),
