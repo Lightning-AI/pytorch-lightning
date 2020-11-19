@@ -174,4 +174,7 @@ class DataParallelAccelerator(Accelerator):
                     scheduler.load_state_dict(state)
 
     def reference_model(self, model: LightningDataParallel):
-        return model.module
+        if isinstance(model, LightningDataParallel):
+            return model.module
+        else:
+            return model
