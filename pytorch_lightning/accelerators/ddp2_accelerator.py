@@ -221,3 +221,4 @@ class DDP2Accelerator(Accelerator):
 
     def reference_model(self, model):
         return self.ddp_plugin.reference_model_in_plugin_wrapper(model)
+
