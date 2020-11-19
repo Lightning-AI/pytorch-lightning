@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
+import pytorch_lightning as pl
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.core.step_result import Result, EvalResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -21,7 +22,7 @@ from pytorch_lightning.utilities.warning_utils import WarningCache
 
 
 class EvaluationLoop(object):
-    def __init__(self, trainer):
+    def __init__(self, trainer: 'pl.Trainer'):
         self.trainer = trainer
         self.testing = False
         self.outputs = []
@@ -38,13 +39,14 @@ class EvaluationLoop(object):
         self.trainer.test_dataloaders = None
         self.trainer.val_dataloaders = None
         self.trainer.running_sanity_check = False
-        self.trainer.testing = False
+
+        # .validate() sets this to 'validation' and .test() sets this to 'test'
         self.trainer.evaluating = None
 
-        # when .test() is called, it sets this
+        # .validate() and .test() set this when they load a checkpoint
         self.trainer.tested_ckpt_path = None
 
-        # when true, prints test results
+        # when true, print evaluation results in .validate() and .test()
         self.trainer.verbose_test = True
 
     def get_evaluation_dataloaders(self, max_batches):

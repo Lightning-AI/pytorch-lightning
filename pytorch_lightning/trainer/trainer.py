@@ -442,10 +442,6 @@ class Trainer(
         # hook
         self.data_connector.prepare_data(model)
 
-        # bookkeeping
-        # we reuse fit in .test() but change its behavior using this flag
-        self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
-
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
@@ -854,12 +850,8 @@ class Trainer(
         # run tests
         self.evaluating = stage
         self.tested_ckpt_path = ckpt_path
-        self.testing = True
-        os.environ['PL_TESTING_MODE'] = '1'
         self.model = model
         results = self.fit(model)
-        del os.environ['PL_TESTING_MODE']
-        self.testing = False
         self.evaluating = None
 
         # teardown
@@ -879,10 +871,8 @@ class Trainer(
         # run test
         # sets up testing so we short circuit to eval
         self.evaluating = stage
-        self.testing = True  # TODO: remove, keep only evaluating
         self.model = model
         results = self.fit(model)
-        self.testing = False
         self.evaluating = None
 
         # teardown
@@ -890,6 +880,11 @@ class Trainer(
             model.teardown(stage)
 
         return results
+
+    @property
+    def testing(self):
+        warnings.warn('Trainer.testing is deprecated, use Trainer.evaluating instead.', FutureWarning, stacklevel=2)
+        return bool(self.evaluating)
 
     def tune(
         self,
