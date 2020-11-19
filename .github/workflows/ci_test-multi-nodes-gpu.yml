@@ -25,7 +25,7 @@ name: Multi Nodes GPU Tests
 on: push
 
 env:
-  AWS_CLUSTER: lightning-torchelastic
+  AWS_CLUSTER: eksctl-torch-elastic-cluster
   NODE_TYPE: p3.2xlarge
   NODES: 2
   NUM_GPUS: 1
@@ -52,7 +52,7 @@ jobs:
     - name: Checkout Pytorch Lightning
       uses: actions/checkout@v2
       with:
-        repository: tchaton/pytorch-lightning
+        repository: borda/pytorch-lightning
         ref: ${{ github.event.base_ref }}
 
     - name: Set up Python
