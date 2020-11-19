@@ -327,16 +327,33 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
     WandbLogger,
 ])
 def test_logger_with_prefix_all(tmpdir, monkeypatch, logger_class):
-    _patch_comet_atexit(monkeypatch)
-    try:
-        _test_loggers_with_prefix(tmpdir, logger_class)
-    except (ImportError, ModuleNotFoundError):
-        pytest.xfail(f"pickle test requires {logger_class.__class__} dependencies to be installed.")
+    """
+    Test that prefix is added at the beginning of the metric keys.
+    """
+    _test_loggers_with_prefix(tmpdir, TensorBoardLogger)
+
+    with mock.patch('pytorch_lightning.loggers.comet.comet_ml'), \
+         mock.patch('pytorch_lightning.loggers.comet.CometOfflineExperiment'):
+        _patch_comet_atexit(monkeypatch)
+        _test_loggers_with_prefix(tmpdir, CometLogger)
+
+    with mock.patch('pytorch_lightning.loggers.mlflow.mlflow'), \
+         mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient'):
+        _test_loggers_with_prefix(tmpdir, MLFlowLogger)
+
+    with mock.patch('pytorch_lightning.loggers.neptune.neptune'):
+        _test_loggers_with_prefix(tmpdir, NeptuneLogger)
+
+    with mock.patch('pytorch_lightning.loggers.test_tube.Experiment'):
+        _test_loggers_with_prefix(tmpdir, TestTubeLogger)
+
+    with mock.patch('pytorch_lightning.loggers.wandb.wandb'):
+        _test_loggers_with_prefix(tmpdir, WandbLogger)
 
 
 def _test_loggers_with_prefix(tmpdir, logger_class):
     os.environ['PL_DEV_DEBUG'] = '0'
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     class StoreHistoryLogger(logger_class):
         LOGGER_JOIN_CHAR = '_'
@@ -348,10 +365,11 @@ def _test_loggers_with_prefix(tmpdir, logger_class):
         def log_metrics(self, metrics, step):
             super().log_metrics(metrics, step)
             metrics = self._add_prefix(metrics)
-            self.history.append((step, metrics))
+            self.history.extend(metrics.keys())
 
+    prefix = 'tmp'
     logger_args = _get_logger_args(logger_class, tmpdir)
-    logger_args.update(prefix='tmp')
+    logger_args.update(prefix=prefix)
     logger = StoreHistoryLogger(**logger_args)
 
     trainer = Trainer(
@@ -363,20 +381,4 @@ def _test_loggers_with_prefix(tmpdir, logger_class):
     trainer.fit(model)
     trainer.test()
 
-    log_metric_names = [(s, sorted(m.keys())) for s, m in logger.history]
-    if logger_class == TensorBoardLogger:
-        expected = [
-            (0, ['tmp_hp_metric']),
-            (0, ['tmp_epoch', 'tmp_train_some_val']),
-            (0, ['tmp_early_stop_on', 'tmp_epoch', 'tmp_val_acc']),
-            (0, ['tmp_hp_metric']),
-            (1, ['tmp_epoch', 'tmp_test_acc', 'tmp_test_loss'])
-        ]
-        assert log_metric_names == expected
-    else:
-        expected = [
-            (0, ['tmp_epoch', 'tmp_train_some_val']),
-            (0, ['tmp_early_stop_on', 'tmp_epoch', 'tmp_val_acc']),
-            (1, ['tmp_epoch', 'tmp_test_acc', 'tmp_test_loss'])
-        ]
-        assert log_metric_names == expected
+    assert all(m.startswith(f'{prefix}_') for m in logger.history)
