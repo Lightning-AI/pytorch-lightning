@@ -22,8 +22,8 @@ from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
+from pytorch_lightning.core.lightning import LightningModule
 import torch.distributed as torch_distrib
-from pytorch_lightning import LightningModule
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
