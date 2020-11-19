@@ -297,9 +297,6 @@ class CombinedLoader(object):
 
         self.dataset = CombinedDataset(datasets)
 
-        self._loader_iters = None
-        self.counter = 0
-
         if mode not in self.SUPPORTED_MODES:
             raise ValueError(f"Invalid Mode: {mode}")
 
