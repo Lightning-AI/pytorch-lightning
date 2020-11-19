@@ -260,7 +260,7 @@ Classification [func]
 .. autosummary::
     :toctree: generated
     :nosignatures:
-    :template: classtemplate.rst
+    :template: functiontemplate.rst
 
     accuracy
     auc
@@ -289,7 +289,7 @@ Regression [func]
 .. autosummary::
     :toctree: generated
     :nosignatures:
-    :template: classtemplate.rst
+    :template: functiontemplate.rst
 
     explained_variance
     mean_absolute_error
@@ -304,7 +304,7 @@ NLP [func]
 .. autosummary::
     :toctree: generated
     :nosignatures:
-    :template: classtemplate.rst
+    :template: functiontemplate.rst
 
     bleu_score
 
