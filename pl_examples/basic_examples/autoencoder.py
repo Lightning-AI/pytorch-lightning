@@ -21,11 +21,12 @@ from torch.utils.data import DataLoader
 from torch.utils.data import random_split
 
 import pytorch_lightning as pl
+from pl_examples import TORCHVISION_AVAILABLE
 
-try:
+if TORCHVISION_AVAILABLE:
     from torchvision.datasets.mnist import MNIST
     from torchvision import transforms
-except ModuleNotFoundError:
+else:
     from tests.base.datasets import MNIST
 
 
