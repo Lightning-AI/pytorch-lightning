@@ -716,26 +716,25 @@ class Trainer(
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ):
-        # TODO: docstring
         r"""
 
-        Separates from fit to make sure you never run on your test set until you want to.
+        Perform one evaluation epoch over the validation set.
 
         Args:
-            ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
-                If ``None``, use the weights from the last epoch to test. Default to ``best``.
+            ckpt_path: Either ``best`` or path to the checkpoint you wish to evaluate.
+                If ``None``, use the current weights of the model. Default to ``best``.
 
             datamodule: A instance of :class:`LightningDataModule`.
 
-            model: The model to test.
+            model: The model to evaluate.
 
-            test_dataloaders: Either a single
-                Pytorch Dataloader or a list of them, specifying validation samples.
+            val_dataloaders: Either a single PyTorch DataLoader or a list of them,
+                specifying validation samples.
 
-            verbose: If True, prints the test results
+            verbose: If True, prints the evaluation results
 
         Returns:
-            The final test result dictionary. If no test_epoch_end is defined returns a list of dictionaries
+            The final validation results dictionary. If no validation_epoch_end is defined, returns a list of dictionaries
         """
         # --------------------
         # SETUP HOOK
@@ -772,23 +771,24 @@ class Trainer(
     ):
         r"""
 
-        Separates from fit to make sure you never run on your test set until you want to.
+        Perform one evaluation epoch over the test set. It's separated from
+        fit to make sure you never run on your test set until you want to.
 
         Args:
-            ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
-                If ``None``, use the weights from the last epoch to test. Default to ``best``.
+            ckpt_path: Either ``best`` or path to the checkpoint you wish to evaluate.
+                If ``None``, use the current weights of the model. Default to ``best``.
 
             datamodule: A instance of :class:`LightningDataModule`.
 
-            model: The model to test.
+            model: The model to evaluate.
 
-            test_dataloaders: Either a single
-                Pytorch Dataloader or a list of them, specifying validation samples.
+            test_dataloaders: Either a single PyTorch DataLoader or a list of them,
+                specifying test samples.
 
-            verbose: If True, prints the test results
+            verbose: If True, prints the evaluation results
 
         Returns:
-            The final test result dictionary. If no test_epoch_end is defined returns a list of dictionaries
+            The final test results dictionary. If no test_epoch_end is defined, returns a list of dictionaries
         """
         # --------------------
         # SETUP HOOK

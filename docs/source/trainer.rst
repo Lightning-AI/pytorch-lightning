@@ -54,7 +54,7 @@ Under the hood
 --------------
 Under the hood, the Lightning Trainer handles the training loop details for you, some examples include:
 
-- Automatically eenabling/disabling grads
+- Automatically enabling/disabling grads
 - Running the training, validation and test dataloaders
 - Calling the Callbacks at the appropriate times
 - Putting batches and computations on the correct devices
@@ -148,6 +148,18 @@ So you can run it like so:
 
 ------------
 
+Validation
+----------
+After training, you can perform a new evaluation epoch over the validation set
+with :meth:`pytorch_lightning.trainer.trainer.Trainer.validate`. This might be
+useful if you want to collect new metrics from a model you already trained.
+
+.. code-block:: python
+
+    trainer.validate(val_dataloaders=val_dataloaders)
+
+------------
+
 Testing
 -------
 Once you're done training, feel free to run the test set!
@@ -155,7 +167,7 @@ Once you're done training, feel free to run the test set!
 
 .. code-block:: python
 
-    trainer.test(test_dataloader=test_dataloader)
+    trainer.test(test_dataloaders=test_dataloaders)
 
 ------------
 
