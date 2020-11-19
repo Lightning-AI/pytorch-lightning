@@ -49,7 +49,7 @@ class ModelConnector:
         return self._reference_model(self.trainer.model)
 
     def _reference_model(self, model):
-        if self.trainer.accelerator.ddp_plugin:
+        if self.trainer.accelerator:
             ref_model = self.trainer.accelerator.reference_model(model)
         else:
             ref_model = model
