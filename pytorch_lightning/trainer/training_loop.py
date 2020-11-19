@@ -136,7 +136,7 @@ class TrainLoop:
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
         if self.trainer.amp_backend == AMPType.NATIVE and self.trainer.precision == 16 and not self.trainer.use_tpu:
-            self.trainer.scaler = torch.cuda.amp.GradScaler()
+            self.trainer.scaler = self.trainer.precision_connector.backend.scaler
 
         # log hyper-parameters
         if self.trainer.logger is not None:
@@ -306,6 +306,12 @@ class TrainLoop:
         # when in dev debugging track the losses
         self.trainer.dev_debugger.track_train_loss_history(batch_idx, untouched_loss.detach())
 
+    def _check_training_step_output(self, training_step_output):
+        if isinstance(training_step_output, torch.Tensor) and not self.automatic_optimization:
+            if training_step_output.grad_fn is None:
+                # TODO: Find why - RuntimeError: Expected to mark a variable ready only once ...
+                raise MisconfigurationException("In manual optimization, `training_step` should not return a Tensor")
+
     def training_step(self, split_batch, batch_idx, opt_idx, hiddens):
         # give the PL module a result for logging
         model_ref = self.trainer.get_model()
@@ -317,6 +323,8 @@ class TrainLoop:
             model_ref._current_fx_name = 'training_step'
             training_step_output = self.trainer.accelerator_backend.training_step(args)
             self.trainer.logger_connector.cache_logged_metrics()
+
+            self._check_training_step_output(training_step_output)
 
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
 
@@ -426,6 +434,8 @@ class TrainLoop:
         # track metrics without grads for epoch reduction
         training_step_output_for_epoch_end = copy(result)
         training_step_output_for_epoch_end.detach()
+        if self.trainer.move_metrics_to_cpu:
+            training_step_output_for_epoch_end.cpu()
 
         # what flows back into the system
         training_step_output = result
@@ -461,11 +471,11 @@ class TrainLoop:
 
         return training_step_output_for_epoch_end
 
-    def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):
+    def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure, *args, **kwargs):
         with self.trainer.profiler.profile("optimizer_step"):
             # optimizer step lightningModule hook
             self.trainer.accelerator_backend.optimizer_step(
-                optimizer, batch_idx, opt_idx, train_step_and_backward_closure
+                optimizer, batch_idx, opt_idx, train_step_and_backward_closure, *args, **kwargs
             )
 
     def on_before_zero_grad(self, optimizer):
@@ -690,6 +700,8 @@ class TrainLoop:
 
                     if self._curr_step_result is None:
                         # user decided to skip optimization
+                        # make sure to zero grad.
+                        self.zero_grad_handler(batch_idx, optimizer, opt_idx)
                         continue
 
                     batch_outputs = self._process_closure_result(
@@ -701,11 +713,8 @@ class TrainLoop:
                     grad_norm_dic = self._cur_grad_norm_dict
                     self._cur_grad_norm_dict = None
 
-                    # hook
-                    self.on_before_zero_grad(optimizer)
-
-                    # clear gradients
-                    self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
+                    # hook + clear gradients
+                    self.zero_grad_handler(batch_idx, optimizer, opt_idx)
 
                     # update running loss + reset accumulated loss
                     self.update_running_loss()
@@ -929,3 +938,15 @@ class TrainLoop:
 
         # reset for next set of accumulated grads
         self.accumulated_loss.reset()
+
+    def zero_grad_handler(self, batch_idx, optimizer, opt_idx):
+        if self.automatic_optimization:
+            # hook
+            self.on_before_zero_grad(optimizer)
+            optimizers = enumerate([optimizer])
+        else:
+            # should be called handled in `manual_optimizer_step`
+            optimizers = []
+
+        for idx, optimizer in optimizers:
+            self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)

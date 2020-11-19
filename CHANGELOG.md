@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [unreleased] - YYYY-MM-DD
+## [unreleased.Features] - YYYY-MM-DD
 
 ### Added
 
@@ -27,13 +27,24 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added option to log momentum ([#4384](https://github.com/PyTorchLightning/pytorch-lightning/pull/4384))
 
 
-- Added `fsspec` to tuner ([#4458](https://github.com/PyTorchLightning/pytorch-lightning/pull/4458))
+- Added `current_score` to `ModelCheckpoint.on_save_checkpoint` ([#4712](https://github.com/PyTorchLightning/pytorch-lightning/pull/4721))
 
 
-- Added metrics aggregation in Horovod and fixed early stopping ([#3775](https://github.com/PyTorchLightning/pytorch-lightning/pull/3775)) 
+- Added logging using `self.log` in train and evaluation for most callbacks and model hooks (
+    [#4552](https://github.com/PyTorchLightning/pytorch-lightning/pull/4552),
+    [#4495](https://github.com/PyTorchLightning/pytorch-lightning/pull/4495),
+    [#4439](https://github.com/PyTorchLightning/pytorch-lightning/pull/4439))
+
+
+- Added ability for DDP plugin to modify optimizer state saving ([#4675](https://github.com/PyTorchLightning/pytorch-lightning/pull/4675))
+
+
+- Added casting to python types for numpy scalars when logging hparams ([#4647](https://github.com/PyTorchLightning/pytorch-lightning/pull/4647))
 
 
 ### Changed
+
+- Tuner algorithms will be skipped if `fast_dev_run=True` ([#3903](https://github.com/PyTorchLightning/pytorch-lightning/pull/3903))
 
 
 
@@ -47,6 +58,55 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+
+
+## [1.0.7] - 2020-11-17
+
+### Added
+
+- Added lambda closure to `manual_optimizer_step` ([#4618](https://github.com/PyTorchLightning/pytorch-lightning/pull/4618))
+
+### Changed
+
+- Change Metrics `persistent` default mode to `False` ([#4685](https://github.com/PyTorchLightning/pytorch-lightning/pull/4685))
+
+
+### Fixed
+
+- Prevent crash if `sync_dist=True` on CPU ([#4626](https://github.com/PyTorchLightning/pytorch-lightning/pull/4626))
+- Fixed average pbar Metrics ([#4534](https://github.com/PyTorchLightning/pytorch-lightning/pull/4534))
+- Fixed `setup` callback hook to correctly pass the LightningModule through ([#4608](https://github.com/PyTorchLightning/pytorch-lightning/pull/4608))
+- Allowing decorate model init with saving `hparams` inside ([#4662](https://github.com/PyTorchLightning/pytorch-lightning/pull/4662))
+- Fixed `split_idx` set by `LoggerConnector` in `on_trainer_init` to `Trainer`  ([#4697](https://github.com/PyTorchLightning/pytorch-lightning/pull/4697))
+
+
+## [1.0.6] - 2020-11-11
+
+### Added
+
+- Added metrics aggregation in Horovod and fixed early stopping ([#3775](https://github.com/PyTorchLightning/pytorch-lightning/pull/3775))
+- Added `manual_optimizer_step` which work with `AMP Native` and `accumulated_grad_batches` ([#4485](https://github.com/PyTorchLightning/pytorch-lightning/pull/4485))
+- Added `persistent(mode)` method to metrics, to enable and disable metric states being added to `state_dict` ([#4482](https://github.com/PyTorchLightning/pytorch-lightning/pull/4482))
+- Added congratulations at the end of our notebooks ([#4555](https://github.com/PyTorchLightning/pytorch-lightning/pull/4555))
+
+### Changed
+
+- Changed `fsspec` to tuner ([#4458](https://github.com/PyTorchLightning/pytorch-lightning/pull/4458))
+- Unify SLURM/TorchElastic under backend plugin ([#4578](https://github.com/PyTorchLightning/pytorch-lightning/pull/4578),
+        [#4580](https://github.com/PyTorchLightning/pytorch-lightning/pull/4580),
+        [#4581](https://github.com/PyTorchLightning/pytorch-lightning/pull/4581),
+        [#4582](https://github.com/PyTorchLightning/pytorch-lightning/pull/4582),
+        [#4583](https://github.com/PyTorchLightning/pytorch-lightning/pull/4583))
+
+### Fixed
+
+- Fixed feature-lack in `hpc_load` ([#4526](https://github.com/PyTorchLightning/pytorch-lightning/pull/4526))
+- Fixed metrics states being overridden in DDP mode ([#4482](https://github.com/PyTorchLightning/pytorch-lightning/pull/4482))
+- Fixed `lightning_getattr`, `lightning_hasattr` not finding the correct attributes in datamodule ([#4347](https://github.com/PyTorchLightning/pytorch-lightning/pull/4347))
+- Fixed automatic optimization AMP by `manual_optimization_step` ([#4485](https://github.com/PyTorchLightning/pytorch-lightning/pull/4485))
+- Replace `MisconfigurationException` with warning in `ModelCheckpoint` Callback ([#4560](https://github.com/PyTorchLightning/pytorch-lightning/pull/4560))
+- Fixed logged keys in mlflow logger ([#4412](https://github.com/PyTorchLightning/pytorch-lightning/pull/4412))
+- Fixed `is_picklable` by catching `AttributeError` ([#4508](https://github.com/PyTorchLightning/pytorch-lightning/pull/4508))
 
 
 ## [1.0.5] - 2020-11-03
@@ -75,6 +135,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed that metrics do not store computational graph for all seen data ([#4313](https://github.com/PyTorchLightning/pytorch-lightning/pull/4313))
 - Fixed AMP unscale for `on_after_backward` ([#4439](https://github.com/PyTorchLightning/pytorch-lightning/pull/4439))
 - Fixed TorchScript export when module includes Metrics ([#4428](https://github.com/PyTorchLightning/pytorch-lightning/pull/4428))
+- Fixed TorchScript trace method's data to device and docstring ([#4360](https://github.com/PyTorchLightning/pytorch-lightning/pull/4360))
 - Fixed CSV logger warning ([#4419](https://github.com/PyTorchLightning/pytorch-lightning/pull/4419))
 - Fixed skip DDP parameter sync ([#4301](https://github.com/PyTorchLightning/pytorch-lightning/pull/4301))
 

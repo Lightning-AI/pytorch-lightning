@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest import mock
 
 import pytest
 import torch
@@ -161,9 +162,9 @@ def test_cpu_model_with_amp(tmpdir):
         tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_amp_without_apex(tmpdir):
     """Check that even with apex amp type without requesting precision=16 the amp backend is void."""
-    os.environ['PL_DEV_DEBUG'] = '1'
     model = EvalModelTemplate()
 
     trainer = Trainer(
@@ -183,11 +184,11 @@ def test_amp_without_apex(tmpdir):
     assert trainer.dev_debugger.count_events('AMP') == 0
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.skipif(not APEX_AVAILABLE, reason="test requires apex")
 def test_amp_with_apex(tmpdir):
     """Check calling apex scaling in training."""
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
 

@@ -13,9 +13,10 @@
 # limitations under the License.
 import os
 import os.path as osp
+from unittest import mock
+
 import pytorch_lightning as pl
-from distutils.version import LooseVersion
-from unittest.mock import MagicMock, Mock
+from unittest.mock import Mock
 
 import yaml
 import pickle
@@ -36,10 +37,9 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize('save_top_k', [-1])
 def test_model_checkpoint_correct_score(tmpdir, save_top_k):
-    os.environ['PL_DEV_DEBUG'] = '1'
-
     """Test that when a model checkpoint is saved, it saves with the correct score appended to ckpt_path"""
     tutils.reset_seed()
 
@@ -294,8 +294,8 @@ def test_none_monitor_top_k(tmpdir):
 
 def test_none_monitor_save_last(tmpdir):
     """ Test that a warning appears for save_last=True with monitor=None. """
-    with pytest.raises(
-        MisconfigurationException, match=r'ModelCheckpoint\(save_last=True, monitor=None\) is not a valid.*'
+    with pytest.warns(
+        UserWarning, match=r'ModelCheckpoint\(save_last=True, monitor=None\) is a redundant.*'
     ):
         ModelCheckpoint(dirpath=tmpdir, save_last=True)
     # These should not fail
@@ -323,7 +323,7 @@ def test_model_checkpoint_none_monitor(tmpdir):
     # these should not be set if monitor is None
     assert checkpoint_callback.monitor is None
     assert checkpoint_callback.best_model_path == checkpoint_callback.last_model_path == tmpdir / 'epoch=1-step=19.ckpt'
-    assert checkpoint_callback.best_model_score == 0
+    assert checkpoint_callback.best_model_score is None
     assert checkpoint_callback.best_k_models == {}
     assert checkpoint_callback.kth_best_model_path == ''
 
@@ -367,7 +367,7 @@ def test_model_checkpoint_topk_zero(tmpdir):
     # these should not be set if monitor is None
     assert checkpoint_callback.monitor is None
     assert checkpoint_callback.best_model_path == ''
-    assert checkpoint_callback.best_model_score == 0
+    assert checkpoint_callback.best_model_score is None
     assert checkpoint_callback.best_k_models == {}
     assert checkpoint_callback.kth_best_model_path == ''
     # check that no ckpts were created
@@ -432,10 +432,10 @@ def test_ckpt_metric_names(tmpdir):
     assert len(val) > 3
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_default_checkpoint_behavior(tmpdir):
     seed_everything(1234)
 
-    os.environ['PL_DEV_DEBUG'] = '1'
     model = EvalModelTemplate()
     model.validation_step = model.validation_step_no_monitor
     model.validation_epoch_end = model.validation_epoch_end_no_monitor
@@ -546,9 +546,9 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
         assert w0.eq(w1).all()
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize('mode', ['min', 'max'])
 def test_checkpointing_with_nan_as_first(tmpdir, mode):
-    os.environ['PL_DEV_DEBUG'] = '1'
     monitor = [float('nan')]
     monitor += [5, 7, 8] if mode == 'max' else [8, 7, 5]
 
@@ -571,12 +571,11 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
     assert trainer.dev_debugger.checkpoint_callback_history[-1]['epoch'] == len(monitor) - 1
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_checkpoint_repeated_strategy(tmpdir):
     """
     This test validates that the checkpoint can be called when provided to callacks list
     """
-
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     checkpoint_callback = ModelCheckpoint(monitor='val_loss', dirpath=tmpdir, filename="{epoch:02d}")
 
@@ -622,12 +621,11 @@ def test_checkpoint_repeated_strategy(tmpdir):
         assert str(os.listdir(tmpdir)) == "['epoch=00.ckpt']"
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_checkpoint_repeated_strategy_tmpdir(tmpdir):
     """
     This test validates that the checkpoint can be called when provided to callacks list
     """
-
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     checkpoint_callback = ModelCheckpoint(monitor='val_loss', filepath=os.path.join(tmpdir, "{epoch:02d}"))
 
@@ -678,13 +676,12 @@ def test_checkpoint_repeated_strategy_tmpdir(tmpdir):
         assert sorted(os.listdir(path_to_lightning_logs)) == sorted([f'version_{i}' for i in range(idx + 1)])
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_checkpoint_repeated_strategy_extended(tmpdir):
     """
     This test validates checkpoint can be called several times without
     increasing internally its global step if nothing run.
     """
-
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class ExtendedBoringModel(BoringModel):
 
@@ -856,3 +853,61 @@ def test_val_check_interval_checkpoint_files(tmpdir):
     trainer.fit(model)
     files = sorted([p.name for p in Path(tmpdir).glob("*.ckpt")])
     assert files == [f"epoch=0-step={s}.ckpt" for s in [1, 3, 5, 7, 9]]
+
+
+def test_current_score(tmpdir):
+    """ Check that the current_score value is correct and was saved """
+    class TestModel(BoringModel):
+        def training_step(self, *args):
+            self.log("foo", (self.current_epoch + 1) / 10)
+            return super().training_step(*args)
+
+    model_checkpoint = ModelCheckpoint(
+        dirpath=tmpdir,
+        save_top_k=3,
+        monitor="foo",
+        mode="min",
+    )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        callbacks=[model_checkpoint],
+        logger=False,
+        weights_summary=None,
+        progress_bar_refresh_rate=0,
+    )
+    trainer.fit(TestModel())
+    assert model_checkpoint.current_score == 0.3
+    ckpts = [torch.load(str(ckpt)) for ckpt in tmpdir.listdir()]
+    ckpts = [ckpt["callbacks"][type(model_checkpoint)] for ckpt in ckpts]
+    assert sorted(ckpt["current_score"] for ckpt in ckpts) == [0.1, 0.2, 0.3]
+
+
+@pytest.mark.parametrize("mode", ["min", "max"])
+def test_current_score_when_nan(tmpdir, mode):
+    """ Check that ModelCheckpoint handles NaN values correctly """
+    class TestModel(BoringModel):
+        def training_step(self, *args):
+            self.log("foo", float("nan"))
+            return super().training_step(*args)
+
+    model_checkpoint = ModelCheckpoint(
+        dirpath=tmpdir,
+        save_top_k=1,
+        monitor="foo",
+        mode=mode,
+    )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        callbacks=[model_checkpoint],
+        logger=False,
+        weights_summary=None,
+        progress_bar_refresh_rate=0,
+    )
+    trainer.fit(TestModel())
+    expected = float("inf" if mode == "min" else "-inf")
+    assert model_checkpoint.best_model_score == expected
+    assert model_checkpoint.current_score == expected
