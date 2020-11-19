@@ -19,3 +19,4 @@ Community Examples
 - `Self-Supervised Representation Learning (MoCo and BYOL) <https://github.com/untitled-ai/self_supervised>`_.
 - `pytorch-forecasting: Time series forecasting package <https://github.com/jdb78/pytorch-forecasting>`_.
 - `Transformers masked language modeling <https://github.com/yang-zhang/lightning-language-modeling>`_.
+- `Pytorch Geometric Examples with Pytorch Lightning and Hydra <https://github.com/tchaton/lightning-geometric>`_.
