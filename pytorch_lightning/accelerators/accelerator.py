@@ -208,6 +208,23 @@ class Accelerator(object):
             return self.ddp_plugin.optimizer_state(optimizer)
         return optimizer.state_dict()
 
+    def reference_model(self, model):
+        """
+        Override to modify returning base :class:`LightningModule`
+        when accessing variable and functions if the accelerator has wrapped the model.
+
+        Example::
+            ref_model = accelerator.reference_model(model)
+            ref_model.training_step(...)
+
+        Args:
+            model: Accelerator model.
+
+        Returns: Reference :class:`LightningModule`.
+
+        """
+        return model
+
     def __getstate__(self):
         return {
             'trainer': self.trainer,

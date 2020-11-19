@@ -172,3 +172,6 @@ class DataParallelAccelerator(Accelerator):
                 scheduler.__class__.__mro__[idx].__init__(scheduler, optimizer)
                 if state is not None:
                     scheduler.load_state_dict(state)
+
+    def reference_model(self, model: LightningDataParallel):
+        return model.module
