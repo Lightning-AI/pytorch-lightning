@@ -1,0 +1,84 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import pytest
+import torch
+
+from pytorch_lightning import Trainer
+from tests.base.boring_model import BoringModel
+
+
+class TestGetModel(BoringModel):
+    def on_fit_start(self):
+        assert self == self.trainer.get_model()
+
+    def on_fit_end(self):
+        assert self == self.trainer.get_model()
+
+
+def test_get_model(tmpdir):
+    """
+    Tests that trainer.get_model() extracts the model correctly
+    """
+
+    model = TestGetModel()
+
+    limit_train_batches = 2
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=2,
+        max_epochs=1,
+    )
+    trainer.fit(model)
+
+
+def test_get_model_ddp_cpu(tmpdir):
+    """
+    Tests that trainer.get_model() extracts the model correctly when using ddp on cpu
+    """
+
+    model = TestGetModel()
+
+    limit_train_batches = 2
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=2,
+        max_epochs=1,
+        accelerator='ddp_cpu',
+        num_processes=2
+    )
+    trainer.fit(model)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@pytest.mark.parametrize("ddp_backend", [None, 'ddp_spawn'])
+def test_get_model_ddp_gpu(tmpdir, ddp_backend):
+    """
+    Tests that trainer.get_model() extracts the model correctly when using GPU + ddp accelerators
+    """
+
+    model = TestGetModel()
+
+    limit_train_batches = 2
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=2,
+        max_epochs=1,
+        gpus=1,
+        accelerator=ddp_backend
+    )
+    trainer.fit(model)

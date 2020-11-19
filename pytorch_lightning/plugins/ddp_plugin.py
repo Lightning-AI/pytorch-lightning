@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 import torch.distributed as torch_distrib
 from pytorch_lightning import _logger as log
@@ -109,7 +109,7 @@ class DDPPlugin(object):
     def optimizer_state(self, optimizer: Optimizer) -> dict:
         return optimizer.state_dict()
 
-    def reference_model_in_plugin_wrapper(self, model):
+    def reference_model_in_plugin_wrapper(self, model: Union[LightningDistributedDataParallel, LightningModule]):
         """
         Override to modify returning base :class:`LightningModule`
         when accessing variable and functions outside of the parallel wrapper.
