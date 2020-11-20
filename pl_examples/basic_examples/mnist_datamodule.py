@@ -70,12 +70,13 @@ class MNISTDataModule(LightningDataModule):
 
     def prepare_data(self):
         """Saves MNIST files to `data_dir`"""
-        MNIST(self.data_dir, train=True, download=True, transform=transform_lib.ToTensor())
-        MNIST(self.data_dir, train=False, download=True, transform=transform_lib.ToTensor())
+        MNIST(self.data_dir, train=True, download=True)
+        MNIST(self.data_dir, train=False, download=True)
 
     def setup(self, stage: Optional[str] = None):
         """Split the train and valid dataset"""
-        dataset = MNIST(self.data_dir, train=True, download=False, transform=self.default_transforms)
+        extra = dict(transform=self.default_transforms) if self.default_transforms else {}
+        dataset = MNIST(self.data_dir, train=True, download=False, **extra)
         train_length = len(dataset)
         self.dataset_train, self.dataset_val = random_split(dataset, [train_length - self.val_split, self.val_split])
 
@@ -105,7 +106,8 @@ class MNISTDataModule(LightningDataModule):
 
     def test_dataloader(self):
         """MNIST test set uses the test split"""
-        dataset = MNIST(self.data_dir, train=False, download=False, transform=self.test_transforms)
+        extra = dict(transform=self.test_transforms) if self.test_transforms else {}
+        dataset = MNIST(self.data_dir, train=False, download=False, **extra)
         loader = DataLoader(
             dataset,
             batch_size=self.batch_size,
@@ -118,6 +120,8 @@ class MNISTDataModule(LightningDataModule):
 
     @property
     def default_transforms(self):
+        if not TORCHVISION_AVAILABLE:
+            return None
         if self.normalize:
             mnist_transforms = transform_lib.Compose(
                 [transform_lib.ToTensor(), transform_lib.Normalize(mean=(0.5,), std=(0.5,))]
