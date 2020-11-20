@@ -21,7 +21,7 @@ from inspect import isclass, isfunction, ismethod
 from pathlib import Path
 from subprocess import TimeoutExpired
 from time import time
-from typing import Callable, Optional
+from typing import Callable, Dict, Optional
 
 import coverage
 import torch
@@ -51,7 +51,7 @@ def call_training_script(cli_args: str, tmpdir: str, env: Dict, timeout: int = 2
     try:
         std, err = p.communicate(timeout=timeout)
         err = str(err.decode("utf-8"))
-        if 'Exception' in err:
+        if 'Exception' in err or 'Error' in err:
             raise Exception(err)
     except TimeoutExpired:
         p.kill()
@@ -116,27 +116,7 @@ def looks_like_a_decorator(a):
 class DDPLauncher:
     """
     This script is used to launch DDP related tests.
-    It provides a simple decorator to use in order to run the test. See below:
-
-    Explication:
-
-        1 - DDPLauncher.run will emulate pytest `parametrize` function and generate as many resolved cmd_lines
-            from your provided cmd_line + product of your kwargs arguments.
-
-        2 - For each cmd_line, the launcher will save the module and function name of your decorated test
-            in env variable and run the cmd_line on tests/backend/launcher.py.
-
-        3 - When running python tests/backend/launcher.py {ENV} {your_cmd_line},
-            the script will start in `__name__ == "__main__"` where argparse
-            is used to parsed your command line.
-            The parsed_args will be provided to `main` function.
-
-        4 - main function will extract module and function name of your decorated test
-            from os.environ variables, import dymically your function, undecorate it,
-            and run result = your_test_func(tmpdir, args=args).
-
-        5 - main function will save a `ddp.result` object which will be read by
-            the launcher to make sure your test run correctly.
+    It provides a simple decorator to run your test. See below for explication and example:
 
     Example:
 
@@ -152,6 +132,29 @@ class DDPLauncher:
             return '1'
 
 
+    Explication:
+
+        1 - DDPLauncher.run will recieve a command line to run where tokens are recognized by [].
+            DDPLauncher.run will emulate pytest `parametrize` function and generate as many
+            resolved cmd_lines from your provided cmd_line + product of your kwargs arguments.
+            For the previous example, it will generate 2 cmd_lines and run them:
+                1: --max_epochs 1 --gpus 2 --accelerator ddp
+                2: --max_epochs 1 --gpus 2 --accelerator ddp_spawn
+
+        2 - For each cmd_line, the launcher will save the module and function name of your decorated test
+            in env variable and run the cmd_line on himself, which is located at tests/backend/launcher.py.
+
+        3 - When running {ENV} python tests/backend/launcher.py {your_resolved_cmd_line},
+            the script will start in `__name__ == "__main__"` where argparse
+            is used to parsed your command line.
+            The parsed_args will be provided to `main` function.
+
+        4 - the `main function` will extract module and function name of your decorated test
+            from os.environ variables, import dymically your function, undecorate it,
+            and run result = your_test_func(tmpdir, args=args).
+
+        5 - the `main function` will save a `ddp.result` object which will be read by
+            the launcher to make sure your test run correctly.
     """
     @staticmethod
     def run_from_cmd_line(cli_args:str = None, func_to_run: Optional[Callable] = None, tmpdir: Optional[str] = None, timeout: int = 20):
@@ -170,7 +173,8 @@ class DDPLauncher:
                 for cmd_line in cmd_lines:
                     print(f"Launching {func.__name__} with {cmd_line}")
                     std, err = DDPLauncher.run_from_cmd_line(cmd_line, func, tmpdir, timeout=20)
-
+                    print(std)
+                    print(err)
                     # Make sure the test run properly
                     result_path = os.path.join(tmpdir, 'ddp.result')
                     result = torch.load(result_path)
