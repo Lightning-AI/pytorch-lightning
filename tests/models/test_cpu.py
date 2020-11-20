@@ -366,6 +366,7 @@ def test_tbptt_cpu_model(tmpdir):
     assert result == 1, "training failed to complete"
 
 
+# TODO: check if Result is deprecated
 def test_tbptt_cpu_model_result(tmpdir):
     """Test truncated back propagation through time works."""
     truncated_bptt_steps = 2
@@ -382,7 +383,7 @@ def test_tbptt_cpu_model_result(tmpdir):
         def __len__(self):
             return 1
 
-    class BpttTestModel(EvalModelTemplate):
+    class BpttTestModel(BoringModel):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.test_hidden = None
@@ -419,11 +420,10 @@ def test_tbptt_cpu_model_result(tmpdir):
                 sampler=None,
             )
 
-    hparams = EvalModelTemplate.get_default_hparams()
+    hparams = BoringModel.get_default_hparams()
     hparams.update(
         batch_size=batch_size,
         in_features=truncated_bptt_steps,
-        hidden_dim=truncated_bptt_steps,
         out_features=truncated_bptt_steps,
     )
 
@@ -443,6 +443,7 @@ def test_tbptt_cpu_model_result(tmpdir):
     assert result == 1, "training failed to complete"
 
 
+# TODO: check if it's different from previous test
 def test_tbptt_cpu_model_result_auto_reduce(tmpdir):
     """Test truncated back propagation through time works."""
     truncated_bptt_steps = 2
@@ -459,7 +460,7 @@ def test_tbptt_cpu_model_result_auto_reduce(tmpdir):
         def __len__(self):
             return 1
 
-    class BpttTestModel(EvalModelTemplate):
+    class BpttTestModel(BoringModel):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.test_hidden = None
@@ -488,11 +489,10 @@ def test_tbptt_cpu_model_result_auto_reduce(tmpdir):
                 sampler=None,
             )
 
-    hparams = EvalModelTemplate.get_default_hparams()
+    hparams = BoringModel.get_default_hparams()
     hparams.update(
         batch_size=batch_size,
         in_features=truncated_bptt_steps,
-        hidden_dim=truncated_bptt_steps,
         out_features=truncated_bptt_steps,
     )
 
