@@ -1,122 +1,153 @@
-# Copyright The PyTorch Lightning team.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 import os
-from distutils.version import LooseVersion
-from unittest import mock
+from enum import Enum
+from typing import List, Optional
 
-import fairscale
-import pytest
+import fairscale.nn.model_parallel as mpu
+import numpy as np
 import torch
 import torch.distributed as torch_distrib
+from fairscale.nn.pipe.pipeline import PipelineStyle
 from torch import nn
+from torch.distributed import rpc
+from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.plugins.model_parallel_plugin import ModelParallelPlugin
-from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
-from tests.base.boring_model import BoringModel, RandomDataset
+from pytorch_lightning import LightningModule, seed_everything
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+# generate a list of random seeds for each test
+RANDOM_PORTS = list(np.random.randint(1200, 19000, 1))
 
 
-class SequentialModel(LightningModule):
+def get_random_port():
+    seed_everything(np.random.randint(1, 10))
+    return str(RANDOM_PORTS.pop())
 
-    def __init__(self):
-        """
-        Testing PL Module
 
-        Use as follows:
-        - subclass
-        - modify the behavior for what you want
+def get_worker_map():
+    # TODO, is this correct with multinodes?
+    return {rank: f"worker{rank}" for rank in range(torch_distrib.get_world_size())}
 
-        class TestModel(BaseTestModel):
-            def training_step(...):
-                # do your own thing
 
-        or:
+class LightningPipeModule(nn.Module):
 
-        model = BaseTestModel()
-        model.training_epoch_end = None
-
-        """
+    def __init__(self, module: nn.Sequential, balance: List[int], microbatches: int = 8, checkpoint='never', version: int = 1):
         super().__init__()
-        self.layers = nn.Sequential(torch.nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2))
+        assert version in [1, 2]
+        self._pipe_version = version
+        self.module = module
+        self.balance = balance
+        self.microbatches = microbatches
+        self.checkpoint = checkpoint
+        self._init_pipe()
 
-    def forward(self, x):
-        return self.layer(x)
-
-    def loss(self, prediction):
-        # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
-        return torch.nn.functional.mse_loss(prediction, torch.ones_like(prediction))
-
-    def step(self, x):
-        x = self(x)
-        out = torch.nn.functional.mse_loss(x, torch.ones_like(x))
-        return out
-
-    def training_step(self, batch, batch_idx):
-        opt = self.optimizers()
-        output = self.layers(batch)
-        if self.final_stage:
-            loss = self.loss(output)
-            self.manual_backward(loss, opt)
-            self.manual_optimizer_step(opt)
-            self.log("train_loss", loss, on_step=True, on_epoch=True, sync_dist=True)
+    def _init_pipe(self):
+        device = torch.device("cuda", torch_distrib.get_rank())
+        if self._pipe_version == 1:
+            from fairscale.nn import Pipe
+            self.module = Pipe(
+                module=self.module,
+                balance=self.balance,
+                chunks=self.microbatches,
+                style=PipelineStyle.MultiProcess,
+                input_device=device,
+                worker_map=get_worker_map(),
+                checkpoint=self.checkpoint)
         else:
-            self.back_helper(output)
+            from fairscale.nn import PipeRPCWrapper
+            self.module = PipeRPCWrapper(
+                module=self.module,
+                balance=self.balance,
+                chunks=self.microbatches,
+                style=PipelineStyle.MultiProcess,
+                input_device=device,
+                worker_map=get_worker_map(),
+                checkpoint=self.checkpoint,
+            )
 
-    def validation_step(self, batch, batch_idx):
-        output = self.layers(batch)
-        if self.final_stage:
-            loss = self.loss(output)
-            self.log("val_loss", loss, on_epoch=True, sync_dist=True)
+    @property
+    def final_stage(self):
+        return self.module.final_stage
 
-    def test_step(self, batch, batch_idx):
-        output = self.layer(batch)
-        if self.final_stage:
-            loss = self.loss(batch, output)
-            self.log("test_loss", loss, on_epoch=True, sync_dist=True)
+    @property
+    def back_helper(self):
+        return self.module.back_helper
 
-    def test_epoch_end(self, outputs) -> None:
-        torch.stack([x["y"] for x in outputs]).mean()
-
-    def configure_optimizers(self):
-        optimizer = torch.optim.SGD(self.layers.parameters(), lr=0.1)
-        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
-        return [optimizer], [lr_scheduler]
-
-    def train_dataloader(self):
-        return torch.utils.data.DataLoader(RandomDataset(32, 64))
-
-    def val_dataloader(self):
-        return torch.utils.data.DataLoader(RandomDataset(32, 64))
-
-    def test_dataloader(self):
-        return torch.utils.data.DataLoader(RandomDataset(32, 64))
+    def forward(self, *args, **kwargs):
+        x = self.module(*args, **kwargs)
+        return x
 
 
-def test_pipe_plugin(tmpdir):
+class ModelParallelPlugin(DDPPlugin):
+    def __init__(self, balance: List[int], microbatches: int = 8, checkpoint='never', version: int = 1, **kwargs):
+        super().__init__(**kwargs)
+        assert isinstance(balance, list) and len(balance) > 0
+        self.balance = balance
+        self.microbatches = microbatches
+        self.checkpoint = checkpoint
+        self.version = version
 
-    model = SequentialModel()
-    model.training_step_end = None
-    model.training_epoch_end = None
-    model.validation_epoch_end = None
-    trainer = Trainer(
-        fast_dev_run=True,
-        gpus=2,
-        distributed_backend='ddp',
-        plugins=[ModelParallelPlugin(balance=[2, 1])],
-        automatic_optimization=False,
-    )
-    trainer.fit(model)
+    def on_setup(self, model):
+        # TODO this should be connected to the accelerators via a hook, hasn't been yet...
+        self.pipe_module = self._find_pipe_module(model)
 
-    torch_distrib.rpc.shutdown()
+    def _find_pipe_module(self, model):
+        pipe_module = None
+        found_module = False
+        for m in model.modules():
+            if type(m) is LightningPipeModule:
+                pipe_module = m
+                if found_module:
+                    raise MisconfigurationException('Currently DDP Pipe only supports one PipeLightningModule')
+                found_module = True
+
+        # try to wrap for the user
+        if not found_module and hasattr(model, "layers") and isinstance(model.layers, nn.Sequential):
+            model.layers = LightningPipeModule(
+                model.layers,
+                balance=self.balance,
+                microbatches=self.microbatches,
+                checkpoint=self.checkpoint,
+                version=self.version
+            )
+            model.final_stage = model.layers.final_stage
+            model.back_helper = model.layers.back_helper
+            pipe_module = model
+            found_module = True
+
+        if not found_module:
+            raise MisconfigurationException(
+                'Could not find a PipeLightningModule within the model. '
+                'Did you defined set your sequential model as an `layers` attribute of your model ?')
+        return pipe_module
+
+    def init_ddp_connection(
+            self,
+            trainer,
+            cluster_environment,
+            global_rank: int,
+            world_size: int,
+            is_slurm_managing_tasks: bool = True,
+    ) -> None:
+        super().init_ddp_connection(
+            trainer=trainer,
+            cluster_environment=cluster_environment,
+            global_rank=global_rank,
+            world_size=world_size,
+            is_slurm_managing_tasks=is_slurm_managing_tasks
+        )
+
+        os.environ["MASTER_PORT"] = get_random_port()  # TODO change...
+        rpc.init_rpc(f"worker{global_rank}", rank=global_rank, world_size=world_size)
+        mpu.initialize_model_parallel(1, world_size)
+
+        # Create pipe_module
+        model_ref = trainer.get_model()
+        self.pipe_module = self._find_pipe_module(model_ref)
+
+    def configure_ddp(
+            self, model: LightningModule, device_ids: List[int]
+    ) -> DistributedDataParallel:
+        self.ddp_plugin = DDPPlugin(process_group=mpu.get_data_parallel_group())
+        model = self.ddp_plugin.configure_ddp(model, device_ids)
+        return model
