@@ -95,9 +95,6 @@ class SequentialModel(LightningModule):
 def test_model_parallel_plugin(tmpdir, args=None):
 
     model = SequentialModel()
-    model.training_step_end = None
-    model.training_epoch_end = None
-    model.validation_epoch_end = None
     trainer = Trainer(
         max_epochs=2,
         limit_train_batches=2,
