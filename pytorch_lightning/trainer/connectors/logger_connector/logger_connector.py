@@ -270,7 +270,7 @@ class LoggerConnector:
         self.prepare_eval_loop_results()
 
         # log results of test
-        if self.trainer.evaluating and self.trainer.is_global_zero and self.trainer.verbose_test:
+        if self.trainer.evaluating and self.trainer.is_global_zero and self.trainer.verbose_evaluate:
             print('-' * 80)
             for result_idx, results in enumerate(self.eval_loop_results):
                 print(f'DATALOADER:{result_idx} TEST RESULTS')

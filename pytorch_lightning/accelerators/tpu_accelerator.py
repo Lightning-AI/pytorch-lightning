@@ -133,8 +133,8 @@ class TPUAccelerator(Accelerator):
         # set up training routine
         self.trainer.train_loop.setup_training(model)
 
-        # train or test
-        results = self.train_or_test()
+        # train or evaluate
+        results = self.train_or_evaluate()
 
         # save weights at the end of training
         self.__save_end_of_training_weights(model, trainer)

@@ -47,7 +47,7 @@ class EvaluationLoop(object):
         self.trainer.tested_ckpt_path = None
 
         # when true, print evaluation results in .validate() and .test()
-        self.trainer.verbose_test = True
+        self.trainer.verbose_evaluate = True
 
     def get_evaluation_dataloaders(self, max_batches):
         # select dataloaders

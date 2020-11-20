@@ -655,8 +655,7 @@ class Trainer(
             outputs.append(output)
         return outputs
 
-    # TODO: rename run_test_or_validate?
-    def run_test(self):
+    def run_test_or_validate(self):
         # only load test dataloader for testing
         # self.reset_test_dataloader(ref_model)
         test_mode = True if self.evaluating == 'test' else False
@@ -739,7 +738,7 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
-        self.verbose_test = verbose  # TODO: rename / else?
+        self.verbose_evaluate = verbose
 
         self.logger_connector.set_stage("validation")
 
@@ -793,7 +792,7 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
-        self.verbose_test = verbose
+        self.verbose_evaluate = verbose
 
         self.logger_connector.set_stage("test")
 
