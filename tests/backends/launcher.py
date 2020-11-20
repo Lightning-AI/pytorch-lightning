@@ -36,14 +36,14 @@ def import_from(module, name):
     return getattr(module, name)
 
 
-def call_training_script(cli_args, tmpdir, env, timeout=20):
+def call_training_script(cli_args: str, tmpdir: str, env: Dict, timeout: int = 20):
     file = Path(__file__).absolute()
     cli_args = cli_args.split(' ') if cli_args else []
     cli_args += ['--tmpdir', str(tmpdir)]
     command = [sys.executable, '-m', 'coverage', 'run', str(file)] + cli_args
 
     # need to set the PYTHONPATH in case pytorch_lightning was not installed into the environment
-    env['PYTHONPATH'] = f'{pytorch_lightning.__file__}:' + env.get('PYTHONPATH', '')
+    env['PYTHONPATH'] = f'{pytorch_lightning.__file__}:{env.get("PYTHONPATH", "")}'
 
     # for running in ddp mode, we need to lauch it's own process or pytest will get stuck
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
@@ -114,7 +114,44 @@ def looks_like_a_decorator(a):
 
 
 class DDPLauncher:
-    """ Class used to run ddp tests
+    """
+    This script is used to launch DDP related tests.
+    It provides a simple decorator to use in order to run the test. See below:
+
+    Explication:
+
+        1 - DDPLauncher.run will emulate pytest `parametrize` function and generate as many resolved cmd_lines
+            from your provided cmd_line + product of your kwargs arguments.
+
+        2 - For each cmd_line, the launcher will save the module and function name of your decorated test
+            in env variable and run the cmd_line on tests/backend/launcher.py.
+
+        3 - When running python tests/backend/launcher.py {ENV} {your_cmd_line},
+            the script will start in `__name__ == "__main__"` where argparse
+            is used to parsed your command line.
+            The parsed_args will be provided to `main` function.
+
+        4 - main function will extract module and function name of your decorated test
+            from os.environ variables, import dymically your function, undecorate it,
+            and run result = your_test_func(tmpdir, args=args).
+
+        5 - main function will save a `ddp.result` object which will be read by
+            the launcher to make sure your test run correctly.
+
+    Example:
+
+        # The decorator will read cmd_line + arguments provided as kwargs.
+
+        @DDPLauncher.run("--max_epochs [max_epochs] --gpus 2 --accelerator [accelerator]",
+                         max_epochs=["1"],
+                         accelerator=["ddp", "ddp_spawn"])
+        def test_cli_to_pass(tmpdir, args=None):
+
+            ... do something with args + BoringModel
+
+            return '1'
+
+
     """
     @staticmethod
     def run_from_cmd_line(cli_args:str = None, func_to_run: Optional[Callable] = None, tmpdir: Optional[str] = None, timeout: int = 20):
