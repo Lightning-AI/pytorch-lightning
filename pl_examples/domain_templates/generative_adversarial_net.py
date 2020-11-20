@@ -76,7 +76,7 @@ class GAN(LightningModule):
         parser.add_argument("--b1", type=float, default=0.5,
                             help="adam: decay of first order momentum of gradient")
         parser.add_argument("--b2", type=float, default=0.999,
-                            help="adam: decay of first order momentum of gradient")
+                            help="adam: decay of second order momentum of gradient")
         parser.add_argument("--latent_dim", type=int, default=100,
                             help="dimensionality of the latent space")
 

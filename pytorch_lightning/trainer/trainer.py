@@ -137,7 +137,7 @@ class Trainer(
         amp_backend: str = 'native',
         amp_level: str = 'O2',
         distributed_backend: Optional[str] = None,
-        automatic_optimization: bool = True,
+        automatic_optimization: Optional[bool] = None,
         move_metrics_to_cpu: bool = False,
     ):
         r"""
@@ -212,7 +212,9 @@ class Trainer(
             log_every_n_steps: How often to log within steps (defaults to every 50 steps).
 
             automatic_optimization: If False you are responsible for calling .backward, .step, zero_grad.
-                Meant to be used with multiple optimizers by advanced users.
+                If False you are responsible for calling .backward, .step, zero_grad in LightningModule.
+                This argument has been moved to LightningModule. It is deprecated here in v1.1 and
+                will be removed in v1.3.
 
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
@@ -355,6 +357,14 @@ class Trainer(
         )
 
         # init train loop related flags
+        # TODO: deprecate in 1.2.0
+        if automatic_optimization is None:
+            automatic_optimization = True
+        else:
+            rank_zero_warn(
+                "Disable automatic optimization with the trainer flag is deprecated and will be removed in v1.3.0!"
+                "Please use the property on the LightningModule for disabling automatic optimization"
+            )
         self.train_loop.on_trainer_init(
             max_epochs,
             min_epochs,

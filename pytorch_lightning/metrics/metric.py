@@ -86,7 +86,7 @@ class Metric(nn.Module, ABC):
         self._reductions = {}
 
     def add_state(
-        self, name: str, default, dist_reduce_fx: Optional[Union[str, Callable]] = None, persistent: bool = True
+        self, name: str, default, dist_reduce_fx: Optional[Union[str, Callable]] = None, persistent: bool = False
     ):
         """
         Adds metric state variable. Only used by subclasses.
@@ -100,6 +100,7 @@ class Metric(nn.Module, ABC):
                 and ``torch.cat`` respectively, each with argument ``dim=0``. The user can also pass a custom
                 function in this parameter.
             persistent (Optional): whether the state will be saved as part of the modules ``state_dict``.
+                Default is ``False``.
 
         Note:
             Setting ``dist_reduce_fx`` to None will return the metric state synchronized across different processes.
@@ -278,7 +279,7 @@ class Metric(nn.Module, ABC):
                                 f'or a list of torch.Tensor, but encountered {current_val}')
         return self
 
-    def persistent(self, mode: bool = True):
+    def persistent(self, mode: bool = False):
         """ Method for post-init to change if metric states should be saved to
             its state_dict
         """
