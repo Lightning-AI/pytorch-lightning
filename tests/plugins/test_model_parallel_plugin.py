@@ -23,7 +23,7 @@ from torch import nn
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.plugins.model_parallel_plugin import ModelParallelPlugin
+from pytorch_lightning.plugins.model_parallel_plugin import HAS_FAIRSCALE, ModelParallelPlugin
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
 from tests.backends.launcher import DDPLauncher
 from tests.base.boring_model import BoringModel, RandomDataset
@@ -105,6 +105,7 @@ class SequentialModel(LightningModule):
         return torch.utils.data.DataLoader(RandomDataset(32, 64))
 
 
+@pytest.mark.skipif(not HAS_FAIRSCALE, reason="test requires fairscale to be installed")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @DDPLauncher.run("--distributed_backend ddp --gpus 2")
 def test_model_parallel_plugin(tmpdir, args=None):

@@ -2,14 +2,19 @@ import os
 from enum import Enum
 from typing import List, Optional
 
-import fairscale.nn.model_parallel as mpu
 import numpy as np
 import torch
 import torch.distributed as torch_distrib
-from fairscale.nn.pipe.pipeline import PipelineStyle
 from torch import nn
 from torch.distributed import rpc
 from torch.nn.parallel import DistributedDataParallel
+
+try:
+    import fairscale.nn.model_parallel as mpu
+    from fairscale.nn.pipe.pipeline import PipelineStyle
+    HAS_FAIRSCALE = True
+except
+    HAS_FAIRSCALE = False
 
 from pytorch_lightning import LightningModule, seed_everything
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
