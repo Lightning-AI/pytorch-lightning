@@ -96,6 +96,24 @@ def test_cpu_slurm_save_load(tmpdir):
     trainer.fit(model)
 
 
+def test_all_features_cpu_model(tmpdir):
+    """Test each of the trainer options."""
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        gradient_clip_val=1.0,
+        overfit_batches=0.20,
+        track_grad_norm=2,
+        progress_bar_refresh_rate=0,
+        accumulate_grad_batches=2,
+        max_epochs=1,
+        limit_train_batches=0.4,
+        limit_val_batches=0.4,
+    )
+
+    model = BoringModel()
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, min_acc=0.01)
+
+
 def test_early_stopping_cpu_model(tmpdir):
     """Test each of the trainer options."""
     stopping = EarlyStopping(monitor="val_loss", min_delta=0.1)
@@ -138,7 +156,7 @@ def test_multi_cpu_model_ddp(tmpdir):
         distributed_backend="ddp_cpu",
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
@@ -270,25 +288,7 @@ def test_cpu_model(tmpdir):
 
     model = BoringModel()
 
-    tpipes.run_model_test(trainer_options, model, on_gpu=False)
-
-
-def test_all_features_cpu_model(tmpdir):
-    """Test each of the trainer options."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        gradient_clip_val=1.0,
-        overfit_batches=0.20,
-        track_grad_norm=2,
-        progress_bar_refresh_rate=0,
-        accumulate_grad_batches=2,
-        max_epochs=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
-    )
-
-    model = EvalModelTemplate()
-    tpipes.run_model_test(trainer_options, model, on_gpu=False)
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, min_acc=0.01)
 
 
 def test_tbptt_cpu_model(tmpdir):
@@ -307,7 +307,7 @@ def test_tbptt_cpu_model(tmpdir):
         def __len__(self):
             return 1
 
-    class BpttTestModel(EvalModelTemplate):
+    class BpttTestModel(BoringModel):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.test_hidden = None
@@ -343,11 +343,10 @@ def test_tbptt_cpu_model(tmpdir):
                 sampler=None,
             )
 
-    hparams = EvalModelTemplate.get_default_hparams()
+    hparams = BoringModel.get_default_hparams()
     hparams.update(
         batch_size=batch_size,
         in_features=truncated_bptt_steps,
-        hidden_dim=truncated_bptt_steps,
         out_features=truncated_bptt_steps,
     )
 

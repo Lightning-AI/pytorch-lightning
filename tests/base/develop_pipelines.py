@@ -49,7 +49,8 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
         trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
 
 
-def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, with_hpc: bool = True):
+def run_model_test(trainer_options, model, on_gpu: bool = True, version=None,
+                   with_hpc: bool = True, min_acc: float = 0.25):
 
     reset_seed()
     save_dir = trainer_options["default_root_dir"]
@@ -79,7 +80,7 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
         test_loaders = [test_loaders]
 
     for dataloader in test_loaders:
-        run_prediction(pretrained_model, dataloader)
+        run_prediction(pretrained_model, dataloader, min_acc=min_acc)
 
     if with_hpc:
         if trainer.use_ddp or trainer.use_ddp2:
