@@ -136,7 +136,7 @@ class TrainLoop:
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
         if self.trainer.amp_backend == AMPType.NATIVE and self.trainer.precision == 16 and not self.trainer.use_tpu:
-            self.trainer.scaler = torch.cuda.amp.GradScaler()
+            self.trainer.scaler = self.trainer.precision_connector.backend.scaler
 
         # log hyper-parameters
         if self.trainer.logger is not None:
