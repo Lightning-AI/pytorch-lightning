@@ -173,7 +173,8 @@ class DDPLauncher:
                 for cmd_line in cmd_lines:
                     print(f"Launching {func.__name__} with {cmd_line}")
                     std, err = DDPLauncher.run_from_cmd_line(cmd_line, func, tmpdir, timeout=20)
-                    print(std)
+                    if std is not None:
+                        print(std.decode("utf-8"))
                     print(err)
                     # Make sure the test run properly
                     result_path = os.path.join(tmpdir, 'ddp.result')
