@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Abstract base class used to build new loggers."""
+
 import argparse
 import functools
 import operator
@@ -249,7 +251,13 @@ class LightningLoggerBase(ABC):
          'namespace': 'Namespace(foo=3)',
          'string': 'abc'}
         """
-        return {k: v if type(v) in [bool, int, float, str, torch.Tensor] else str(v) for k, v in params.items()}
+        for k in params.keys():
+            # convert relevant np scalars to python types first (instead of str)
+            if isinstance(params[k], (np.bool_, np.integer, np.floating)):
+                params[k] = params[k].item()
+            elif type(params[k]) not in [bool, int, float, str, torch.Tensor]:
+                params[k] = str(params[k])
+        return params
 
     @abstractmethod
     def log_hyperparams(self, params: argparse.Namespace):

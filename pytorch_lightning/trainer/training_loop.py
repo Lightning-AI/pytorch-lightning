@@ -136,7 +136,7 @@ class TrainLoop:
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
         if self.trainer.amp_backend == AMPType.NATIVE and self.trainer.precision == 16 and not self.trainer.use_tpu:
-            self.trainer.scaler = torch.cuda.amp.GradScaler()
+            self.trainer.scaler = self.trainer.precision_connector.backend.scaler
 
         # log hyper-parameters
         if self.trainer.logger is not None:
@@ -485,11 +485,11 @@ class TrainLoop:
 
         return training_step_output_for_epoch_end
 
-    def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):
+    def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure, *args, **kwargs):
         with self.trainer.profiler.profile("optimizer_step"):
             # optimizer step lightningModule hook
             self.trainer.accelerator_backend.optimizer_step(
-                optimizer, batch_idx, opt_idx, train_step_and_backward_closure
+                optimizer, batch_idx, opt_idx, train_step_and_backward_closure, *args, **kwargs
             )
 
     def on_before_zero_grad(self, optimizer):
@@ -951,7 +951,8 @@ class TrainLoop:
             self.on_before_zero_grad(optimizer)
             optimizers = enumerate([optimizer])
         else:
-            optimizers = self.get_optimizers_iterable()
+            # should be called handled in `manual_optimizer_step`
+            optimizers = []
 
         for idx, optimizer in optimizers:
             self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
