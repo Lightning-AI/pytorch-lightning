@@ -32,6 +32,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     [#4495](https://github.com/PyTorchLightning/pytorch-lightning/pull/4495),
     [#4439](https://github.com/PyTorchLightning/pytorch-lightning/pull/4439))
 
+- Added `Trainer.validate()` method to perform one evaluation epoch over the validation set (
+    [#4707](https://github.com/PyTorchLightning/pytorch-lightning/pull/4707))
 
 ### Changed
 
