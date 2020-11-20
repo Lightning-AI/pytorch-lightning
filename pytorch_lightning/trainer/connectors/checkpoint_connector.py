@@ -326,10 +326,9 @@ class CheckpointConnector:
             if hasattr(model, '_hparams_name'):
                 checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_NAME] = model._hparams_name
             # dump arguments
-            if OMEGACONF_AVAILABLE:
+            if OMEGACONF_AVAILABLE and isinstance(model.hparams, Container):
                 checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = model.hparams
-                if isinstance(model.hparams, Container):
-                    checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_TYPE] = type(model.hparams)
+                checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_TYPE] = type(model.hparams)
             else:
                 checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = dict(model.hparams)
 
