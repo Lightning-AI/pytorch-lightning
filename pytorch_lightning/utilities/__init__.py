@@ -39,6 +39,3 @@ FLOAT64_EPSILON = numpy.finfo(numpy.float64).eps
 class AMPType(Enum):
     APEX = 'apex'
     NATIVE = 'native'
-
-
-IS_COLAB = 'google.colab' in sys.modules

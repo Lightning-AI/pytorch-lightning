@@ -15,7 +15,7 @@ import os
 from typing import Optional, Union
 
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBar, ProgressBarBase
-from pytorch_lightning.utilities import IS_COLAB, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -74,7 +74,7 @@ class CallbackConnector:
 
     def configure_progress_bar(self, refresh_rate=1, process_position=0):
         # smaller refresh rate on colab causes crashes, warn user about this
-        if IS_COLAB and refresh_rate < 20:
+        if os.getenv('COLAB_GPU') and refresh_rate < 20:
             rank_zero_warn(
                 "You have set progress_bar_refresh_rate < 20 on Google Colab. This"
                 " may crash. Consider using progress_bar_refresh_rate>=20 in Trainer.",
