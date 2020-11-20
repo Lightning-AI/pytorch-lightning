@@ -98,7 +98,7 @@ def test_cpu_slurm_save_load(tmpdir):
 
 def test_early_stopping_cpu_model(tmpdir):
     """Test each of the trainer options."""
-    stopping = EarlyStopping(monitor="early_stop_on", min_delta=0.1)
+    stopping = EarlyStopping(monitor="val_loss", min_delta=0.1)
     trainer_options = dict(
         default_root_dir=tmpdir,
         callbacks=[stopping],
@@ -110,7 +110,7 @@ def test_early_stopping_cpu_model(tmpdir):
         limit_val_batches=0.1,
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
     # test freeze on cpu
