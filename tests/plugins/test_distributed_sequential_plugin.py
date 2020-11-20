@@ -54,21 +54,21 @@ class SequentialModel(LightningModule):
             loss = self.loss(output)
             self.manual_backward(loss, opt)
             self.manual_optimizer_step(opt)
-            self.log("train_loss", loss, on_step=True, on_epoch=True, sync_dist=True)
+            self.log("train_loss", loss, sync_dist=True, on_step=True, on_epoch=True, reduce_fx = torch.sum, prog_bar=True)
         else:
             self.back_helper(output)
+            loss = torch.zeros(1).to(self.device)
+            self.log("train_loss", loss, sync_dist=True, on_step=True, on_epoch=True, reduce_fx = torch.sum, prog_bar=True)
 
     def validation_step(self, batch, batch_idx):
         output = self.layers(batch)
         if self.final_stage:
             loss = self.loss(output)
-            self.log("val_loss", loss, on_epoch=True, sync_dist=True)
 
     def test_step(self, batch, batch_idx):
         output = self.layer(batch)
         if self.final_stage:
             loss = self.loss(batch, output)
-            self.log("test_loss", loss, on_epoch=True, sync_dist=True)
 
     def test_epoch_end(self, outputs) -> None:
         torch.stack([x["y"] for x in outputs]).mean()
@@ -89,18 +89,20 @@ class SequentialModel(LightningModule):
 
 
 @pytest.mark.skipif(not HAS_FAIRSCALE, reason="test requires fairscale to be installed")
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @DDPLauncher.run("--distributed_backend ddp --gpus 2")
-def test_distributed_sequential_plugin(tmpdir, args=None):
-    """
-    This test makes sure DistributedSequentialPlugin correctly train on a Sequential Model
-    """
+def test_model_parallel_plugin(tmpdir, args=None):
 
     model = SequentialModel()
     model.training_step_end = None
     model.training_epoch_end = None
     model.validation_epoch_end = None
     trainer = Trainer(
+        max_epochs=2,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
         gpus=args.gpus,
         distributed_backend=args.distributed_backend,
         plugins=[DistributedSequentialPlugin(balance=[2, 1])],
@@ -108,4 +110,4 @@ def test_distributed_sequential_plugin(tmpdir, args=None):
     )
     trainer.fit(model)
 
-    torch_distrib.rpc.shutdown()
+    assert len(trainer.dev_debugger.pbar_added_metrics) > 0
