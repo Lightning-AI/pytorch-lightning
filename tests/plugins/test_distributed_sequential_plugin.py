@@ -91,7 +91,7 @@ class SequentialModel(LightningModule):
 @pytest.mark.skipif(not HAS_FAIRSCALE, reason="test requires fairscale to be installed")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @DDPLauncher.run("--distributed_backend ddp --gpus 2")
-def test_model_parallel_plugin(tmpdir, args=None):
+def test_distributed_sequential_plugin(tmpdir, args=None):
 
     model = SequentialModel()
     model.training_step_end = None
