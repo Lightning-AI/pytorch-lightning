@@ -152,6 +152,9 @@ class LitClassifier(pl.LightningModule):
 
 
 def cli_main():
+    if not DALI_AVAILABLE:
+        return
+
     pl.seed_everything(1234)
 
     # ------------
