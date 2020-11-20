@@ -13,15 +13,26 @@
 # limitations under the License.
 from typing import List, Any, Optional
 
-from fairscale.optim import OSS
-
 from pytorch_lightning import LightningModule
-from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel
+
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+try:
+    from fairscale.optim import OSS
+    from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel
+except (ModuleNotFoundError, ImportError):
+    FAIRSCALE_AVAILABLE = False
+else:
+    FAIRSCALE_AVAILABLE = True
 
 
 class DDPShardedPlugin(DDPPlugin):
+
+    def __init__(self, **kwargs):
+        self._check_fairscale()
+        super().__init__(**kwargs)
 
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
@@ -45,6 +56,12 @@ class DDPShardedPlugin(DDPPlugin):
         batch = model.transfer_batch_to_device(batch, model.trainer.root_gpu)
         args[0] = batch
         return args
+
+    def _check_fairscale(self):
+        if not FAIRSCALE_AVAILABLE:
+            raise MisconfigurationException(
+                'Requested Fairscale Feature, but Fairscale is not installed.'
+            )
 
     @rank_zero_only
     def _optim_state_dict(self, optimizer):
