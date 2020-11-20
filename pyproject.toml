@@ -13,3 +13,42 @@ ignore = ["W504", "W504", "E402", "E731", "C40", "E741", "F40", "F841"]
 line-length = 120
 target-version = ["py38"]
 exclude = "(.eggs|.git|.hg|.mypy_cache|.nox|.tox|.venv|.svn|_build|buck-out|build|dist)"
+
+[tool.isort]
+known_first_party = [
+    "bencharmks",
+    "docs",
+    "pl_examples",
+    "pytorch_lightning",
+    "tests",
+]
+skip_glob = [
+    "pl_examples/*",
+    "pytorch_lightning/accelerators/*",
+    "pytorch_lightning/callbacks/*",
+    "pytorch_lightning/cluster_environments/*",
+    "pytorch_lightning/core/*",
+    "pytorch_lightning/distributed/*",
+    "pytorch_lightning/loggers/*",
+    "pytorch_lightning/metrics/*",
+    "pytorch_lightning/overrides/*",
+    "pytorch_lightning/plugins/*",
+    "pytorch_lightning/profiler/*",
+    "pytorch_lightning/trainer/*",
+    "pytorch_lightning/tuner/*",
+    "pytorch_lightning/utilities/*",
+    "tests/backends/*",
+    "tests/base/*",
+    "tests/callbacks/*",
+    "tests/checkpointing/*",
+    "tests/core/*",
+    "tests/loggers/*",
+    "tests/metrics/*",
+    "tests/models/*",
+    "tests/plugins/*",
+    "tests/trainer/*",
+    "tests/tuner/*",
+    "tests/utilities/*",
+]
+profile = "black"
+line_length = 120

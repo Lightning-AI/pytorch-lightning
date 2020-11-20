@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from collections import defaultdict, ChainMap
+from collections import ChainMap, defaultdict
+from copy import deepcopy
 from enum import Enum
-from typing import Union, Tuple, Any, Dict, Optional, List
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 # used to map boolean to right LoggerStage values
@@ -419,13 +421,14 @@ class EpochResultStore:
         logger_connector = self.trainer.logger_connector
 
         callback_metrics = {}
+        is_train = self._stage in LoggerStages.TRAIN.value
 
         if not self._has_batch_loop_finished:
             # get pbar
             batch_pbar_metrics = self.get_latest_batch_pbar_metrics()
             logger_connector.add_progress_bar_metrics(batch_pbar_metrics)
 
-            if self._stage in LoggerStages.TRAIN.value:
+            if is_train:
                 # Only log and add to callback epoch step during evaluation, test.
                 batch_log_metrics = self.get_latest_batch_log_metrics()
                 logger_connector.logged_metrics.update(batch_log_metrics)
@@ -450,6 +453,9 @@ class EpochResultStore:
             callback_metrics.update(epoch_pbar_metrics)
             callback_metrics.update(epoch_log_metrics)
             callback_metrics.update(forked_metrics)
+
+        if not is_train:
+            logger_connector.evaluation_callback_metrics.update(callback_metrics)
 
         # update callback_metrics
         logger_connector.callback_metrics.update(callback_metrics)
