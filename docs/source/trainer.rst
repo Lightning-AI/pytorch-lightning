@@ -580,7 +580,7 @@ You can override the default behavior by initializing the :class:`~pytorch_light
 callback, and adding it to the :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks` list.
 See :ref:`Saving and Loading Weights <weights_loading>` for how to customize checkpointing.
 
-.. code-block:: python
+.. testcode::
 
     # Init ModelCheckpoint callback, monitoring 'val_loss'
     checkpoint_callback = ModelCheckpoint(monitor='val_loss')
@@ -1710,4 +1710,3 @@ The metrics sent to the progress bar.
 
     progress_bar_metrics = trainer.progress_bar_metrics
     assert progress_bar_metrics['a_val'] == 2
-
