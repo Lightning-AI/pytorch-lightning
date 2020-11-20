@@ -151,12 +151,13 @@ class CheckpointConnector:
         self.trainer.current_epoch = checkpoint['epoch']
 
         # crash if max_epochs is lower then the current epoch from the checkpoint
-        if self.trainer.current_epoch > self.trainer.max_epochs:
-            m = f"""
-            you restored a checkpoint with current_epoch={self.trainer.current_epoch}
-            but the Trainer(max_epochs={self.trainer.max_epochs})
-            """
-            raise MisconfigurationException(m)
+        if self.trainer.max_epochs is not None:
+            if self.trainer.current_epoch > self.trainer.max_epochs:
+                m = f"""
+                you restored a checkpoint with current_epoch={self.trainer.current_epoch}
+                but the Trainer(max_epochs={self.trainer.max_epochs})
+                """
+                raise MisconfigurationException(m)
 
         # Division deals with global step stepping once per accumulated batch
         # Inequality deals with different global step for odd vs even num_training_batches
