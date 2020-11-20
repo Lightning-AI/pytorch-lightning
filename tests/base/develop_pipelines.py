@@ -124,7 +124,7 @@ def run_prediction(trained_model, dataloader, dp=False, min_acc=0.50):
 
 
 @run_prediction.register(BoringModel)
-def _(trained_model, dataloader, dp=False, min_acc=0.25):
+def _(trained_model, dataloader, dp=False, min_acc=0.5):
     # run prediction on 1 batch
     batch = next(iter(dataloader))
 
@@ -138,4 +138,4 @@ def _(trained_model, dataloader, dp=False, min_acc=0.25):
             output = trained_model(batch)
         output = output.cpu()
         acc = trained_model.loss(batch, output)
-    assert acc >= min_acc, f"This model is expected to get , {min_acc} in test set (it got {error})"
+    assert acc >= min_acc, f"This model is expected to get , {min_acc} in test set (it got {acc})"

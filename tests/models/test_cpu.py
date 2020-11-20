@@ -42,7 +42,7 @@ def test_cpu_slurm_save_load(tmpdir):
         logger=logger,
         limit_train_batches=0.2,
         limit_val_batches=0.2,
-        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )
     result = trainer.fit(model)
     real_global_step = trainer.global_step
@@ -143,7 +143,7 @@ def test_multi_cpu_model_ddp(tmpdir):
 
 
 def test_lbfgs_cpu_model(tmpdir):
-    """Test each of the trainer options."""
+    """Test each of the trainer options. Testing LBFGS optimizer"""
     trainer_options = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -156,7 +156,6 @@ def test_lbfgs_cpu_model(tmpdir):
     hparams = BoringModel.get_default_hparams()
     hparams.update(optimizer_name="LBFGS", learning_rate=0.004)
     model = BoringModel(**hparams)
-#    model.configure_optimizers = model.configure_optimizers__lbfgs
     tpipes.run_model_test_without_loggers(trainer_options, model, min_acc=0.25)
 
 
@@ -172,8 +171,8 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
         limit_val_batches=0.01,
     )
 
-    model = EvalModelTemplate()
-    tpipes.run_model_test_without_loggers(trainer_options, model)
+    model = BoringModel()
+    tpipes.run_model_test_without_loggers(trainer_options, model, min_acc=0.01)
 
     # test freeze on cpu
     model.freeze()
@@ -182,7 +181,7 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
 
 def test_running_test_after_fitting(tmpdir):
     """Verify test() on fitted model."""
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -198,7 +197,7 @@ def test_running_test_after_fitting(tmpdir):
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         limit_test_batches=0.2,
-        checkpoint_callback=checkpoint,
+        callbacks=[checkpoint],
         logger=logger,
     )
     result = trainer.fit(model)
@@ -208,7 +207,7 @@ def test_running_test_after_fitting(tmpdir):
     trainer.test()
 
     # test we have good test accuracy
-    tutils.assert_ok_model_acc(trainer, thr=0.5)
+    tutils.assert_ok_model_acc(trainer, key='test_loss', thr=0.5)
 
 
 def test_running_test_no_val(tmpdir):
@@ -229,7 +228,7 @@ def test_running_test_no_val(tmpdir):
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         limit_test_batches=0.2,
-        checkpoint_callback=checkpoint,
+        callbacks=[checkpoint],
         logger=logger,
     )
     result = trainer.fit(model)
