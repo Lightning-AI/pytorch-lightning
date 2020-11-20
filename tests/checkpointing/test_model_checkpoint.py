@@ -27,6 +27,8 @@ from pathlib import Path
 import cloudpickle
 import pytest
 import torch
+from omegaconf import Container, OmegaConf
+from argparse import Namespace
 
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer, seed_everything
@@ -323,7 +325,7 @@ def test_model_checkpoint_none_monitor(tmpdir):
     # these should not be set if monitor is None
     assert checkpoint_callback.monitor is None
     assert checkpoint_callback.best_model_path == checkpoint_callback.last_model_path == tmpdir / 'epoch=1-step=19.ckpt'
-    assert checkpoint_callback.best_model_score == 0
+    assert checkpoint_callback.best_model_score is None
     assert checkpoint_callback.best_k_models == {}
     assert checkpoint_callback.kth_best_model_path == ''
 
@@ -367,7 +369,7 @@ def test_model_checkpoint_topk_zero(tmpdir):
     # these should not be set if monitor is None
     assert checkpoint_callback.monitor is None
     assert checkpoint_callback.best_model_path == ''
-    assert checkpoint_callback.best_model_score == 0
+    assert checkpoint_callback.best_model_score is None
     assert checkpoint_callback.best_k_models == {}
     assert checkpoint_callback.kth_best_model_path == ''
     # check that no ckpts were created
@@ -861,3 +863,93 @@ def test_val_check_interval_checkpoint_files(tmpdir):
     trainer.fit(model)
     files = sorted([p.name for p in Path(tmpdir).glob("*.ckpt")])
     assert files == [f"epoch=0-step={s}.ckpt" for s in [1, 3, 5, 7, 9]]
+
+
+def test_current_score(tmpdir):
+    """ Check that the current_score value is correct and was saved """
+    class TestModel(BoringModel):
+        def training_step(self, *args):
+            self.log("foo", (self.current_epoch + 1) / 10)
+            return super().training_step(*args)
+
+    model_checkpoint = ModelCheckpoint(
+        dirpath=tmpdir,
+        save_top_k=3,
+        monitor="foo",
+        mode="min",
+    )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        callbacks=[model_checkpoint],
+        logger=False,
+        weights_summary=None,
+        progress_bar_refresh_rate=0,
+    )
+    trainer.fit(TestModel())
+    assert model_checkpoint.current_score == 0.3
+    ckpts = [torch.load(str(ckpt)) for ckpt in tmpdir.listdir()]
+    ckpts = [ckpt["callbacks"][type(model_checkpoint)] for ckpt in ckpts]
+    assert sorted(ckpt["current_score"] for ckpt in ckpts) == [0.1, 0.2, 0.3]
+
+
+@pytest.mark.parametrize("mode", ["min", "max"])
+def test_current_score_when_nan(tmpdir, mode):
+    """ Check that ModelCheckpoint handles NaN values correctly """
+    class TestModel(BoringModel):
+        def training_step(self, *args):
+            self.log("foo", float("nan"))
+            return super().training_step(*args)
+
+    model_checkpoint = ModelCheckpoint(
+        dirpath=tmpdir,
+        save_top_k=1,
+        monitor="foo",
+        mode=mode,
+    )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        callbacks=[model_checkpoint],
+        logger=False,
+        weights_summary=None,
+        progress_bar_refresh_rate=0,
+    )
+    trainer.fit(TestModel())
+    expected = float("inf" if mode == "min" else "-inf")
+    assert model_checkpoint.best_model_score == expected
+    assert model_checkpoint.current_score == expected
+
+
+@pytest.mark.parametrize("hparams_type", [dict, Container])
+def test_hparams_type(tmpdir, hparams_type):
+    class TestModel(BoringModel):
+        def __init__(self, hparams):
+            super().__init__()
+            self.save_hyperparameters(hparams)
+
+    model_checkpoint = ModelCheckpoint(
+        dirpath=tmpdir,
+        save_top_k=1,
+        monitor="foo",
+    )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        callbacks=[model_checkpoint],
+        logger=False,
+        weights_summary=None,
+        progress_bar_refresh_rate=0,
+    )
+    hp = {"test_hp_0": 1, "test_hp_1": 2}
+    hp = OmegaConf.create(hp) if hparams_type == Container else Namespace(**hp)
+    model = TestModel(hp)
+    trainer.fit(model)
+    ckpt = trainer.checkpoint_connector.dump_checkpoint()
+    if hparams_type == Container:
+        assert isinstance(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY], hparams_type)
+    else:
+        # make sure it's not AttributeDict
+        assert type(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY]) == hparams_type
