@@ -31,7 +31,8 @@ def get_worker_map():
 
 class LightningPipeModule(nn.Module):
 
-    def __init__(self, module: nn.Sequential, balance: List[int], microbatches: int = 8, checkpoint='never', version: int = 1):
+    def __init__(self, module: nn.Sequential, balance: List[int],
+                 microbatches: int = 8, checkpoint='never', version: int = 1):
         super().__init__()
         assert version in [1, 2]
         self._pipe_version = version
