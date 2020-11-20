@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from distutils.version import LooseVersion
-import numpy as np
-from collections import namedtuple
 
 import pytest
 import torch
@@ -153,59 +151,3 @@ def test_torchscript_with_no_input(tmpdir):
 
     with pytest.raises(ValueError, match='requires either `example_inputs` or `model.example_input_array`'):
         model.to_torchscript(method='trace')
-
-
-@pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.4.0"),
-    reason="torch has bug parsing namedtuples on torch < 1.4",
-)
-def test_torchscript_with_sequence_input(tmpdir):
-    """Test that traced LightningModule is created when input is tuple of tensors"""
-    class CustomModel(BoringModel):
-        def forward(self, x, y=None):
-            return super().forward(x)
-
-    def _assert_torchscript_export(model, example_inputs):
-        script = model.to_torchscript(example_inputs=example_inputs, method='trace')
-        assert isinstance(script, torch.jit.ScriptModule)
-
-        model.eval()
-        with torch.no_grad():
-            model_output = model(*example_inputs)
-            script_output = script(*example_inputs)
-        assert torch.allclose(script_output, model_output)
-
-    model = CustomModel()
-
-    # tuple input
-    example_inputs = (torch.randn(1, 32), torch.randn(1, 32))
-    _assert_torchscript_export(model, example_inputs)
-
-    # list input
-    example_inputs = [torch.randn(1, 32), torch.randn(1, 32)]
-    _assert_torchscript_export(model, example_inputs)
-
-    # NamedTuple input
-    example_inputs = namedtuple('sample', ['x', 'y'])
-    example_inputs = example_inputs(x=torch.randn(1, 32), y=torch.randn(1, 32))
-    _assert_torchscript_export(model, example_inputs)
-
-    with pytest.raises(ValueError, match='neither a Tensor nor tuple of Tensors'):
-        example_inputs = (torch.randn(1, 32), np.random.randn(1, 32))
-        _assert_torchscript_export(model, example_inputs)
-
-
-def test_error_with_invalid_input(tmpdir):
-    """Test that an error is thrown with invalid input"""
-    class CustomModel(BoringModel):
-        def forward(self, x):
-            if isinstance(x, dict):
-                x = x['x']
-
-            return super().forward(x)
-
-    model = CustomModel()
-    example_inputs = {'x': torch.randn(1, 32)}
-
-    with pytest.raises(ValueError, match='neither a Tensor nor tuple of Tensors'):
-        model.to_torchscript(example_inputs=example_inputs, method='trace')

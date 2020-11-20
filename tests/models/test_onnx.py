@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from collections import namedtuple
 
 import numpy as np
 import onnxruntime
@@ -142,52 +141,3 @@ def test_if_inference_output_is_valid(tmpdir):
 
     # compare ONNX Runtime and PyTorch results
     assert np.allclose(to_numpy(torch_out), ort_outs[0], rtol=1e-03, atol=1e-05)
-
-
-def test_model_saves_with_sequence_input(tmpdir):
-    """Test that ONNX model saves when input is tuple of tensors"""
-    class CustomModel(BoringModel):
-        def forward(self, x, y=None):
-            return super().forward(x)
-
-    def _assert_onnx_export(model, input_sample, filename):
-        file_path = os.path.join(tmpdir, filename)
-        model.to_onnx(file_path, input_sample)
-        assert os.path.exists(file_path) is True
-
-    model = CustomModel()
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
-    trainer.fit(model)
-
-    # tuple input
-    input_sample = (torch.randn(1, 32), torch.randn(1, 32))
-    _assert_onnx_export(model, input_sample, 'model_tuple.onnx')
-
-    # NamedTuple input
-    input_sample = namedtuple('sample', ['x', 'y'])
-    input_sample = input_sample(x=torch.randn(1, 32), y=torch.randn(1, 32))
-    _assert_onnx_export(model, input_sample, 'model_ntuple.onnx')
-
-    with pytest.raises(ValueError, match='neither a Tensor nor tuple of Tensors'):
-        input_sample = (torch.randn(1, 32), np.random.randn(1, 32))
-        _assert_onnx_export(model, input_sample, 'model_error.onnx')
-
-
-def test_error_with_invalid_input(tmpdir):
-    """Test that an error is thrown with invalid input"""
-    class CustomModel(BoringModel):
-        def forward(self, x):
-            if isinstance(x, dict):
-                x = x['x']
-
-            return super().forward(x)
-
-    model = CustomModel()
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
-    trainer.fit(model)
-
-    file_path = os.path.join(tmpdir, "model.onnx")
-    input_sample = {'x': torch.randn((2, 32))}
-
-    with pytest.raises(ValueError, match='neither a Tensor nor tuple of Tensors'):
-        model.to_onnx(file_path, input_sample)
