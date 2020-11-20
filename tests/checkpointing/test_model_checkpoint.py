@@ -941,4 +941,8 @@ def test_hparams_type(tmpdir, hparams_type):
     model = TestModel(hp)
     trainer.fit(model)
     ckpt = trainer.checkpoint_connector.dump_checkpoint()
-    assert isinstance(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY], hparams_type)
+    if hparams_type == Container:
+        assert isinstance(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY], hparams_type)
+    else:
+        # make sure it's not AttributeDict
+        assert type(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY]) == hparams_type
