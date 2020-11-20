@@ -1121,7 +1121,8 @@ def test_replace_sampler_with_multiprocessing_context(tmpdir):
     This test verifies that replace_sampler conserves multiprocessing context
     """
     train = RandomDataset(32, 64)
-    train = DataLoader(train, batch_size=32, num_workers=2, multiprocessing_context='spawn', shuffle=True)
+    context = 'spawn'
+    train = DataLoader(train, batch_size=32, num_workers=2, multiprocessing_context=context, shuffle=True)
 
     class ExtendedBoringModel(BoringModel):
 
