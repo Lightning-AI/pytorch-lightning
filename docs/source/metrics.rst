@@ -153,7 +153,7 @@ All you need to do is call ``add_state`` correctly to implement a custom metric 
 .. note::
 
     ``reset()`` is automatically called whenever ``compute()`` is called. Therefore
-    you should very rearly have to call ``reset()`` yourself.
+    you should very rarely have to call ``reset()`` yourself.
 
 To see how metric states are synchronized across distributed processes,
 refer to ``add_state()`` docs from the base ``Metric`` class.
@@ -202,9 +202,9 @@ Metric API
     :noindex:
 
 
-****************
+*************
 Class metrics
-****************
+*************
 
 .. currentmodule:: pytorch_lightning.metrics
 
@@ -218,10 +218,10 @@ Classification
     :template: classtemplate.rst
 
     Accuracy
+    ConfusionMatrix
+    Fbeta
     Precision
     Recall
-    Fbeta
-    ConfusionMatrix
 
 Regression
 ----------
@@ -231,10 +231,10 @@ Regression
     :nosignatures:
     :template: classtemplate.rst
 
-    MeanSquaredError
+    ExplainedVariance
     MeanAbsoluteError
     MeanSquaredLogError
-    ExplainedVariance
+    MeanSquaredError
     PSNR
     SSIM
 
@@ -265,13 +265,13 @@ Classification [func]
     accuracy
     auc
     auroc
-    multiclass_auroc
     average_precision
     confusion_matrix
     dice_score
     f1_score
     fbeta_score
     iou
+    multiclass_auroc
     multiclass_roc
     precision
     precision_recall
@@ -293,9 +293,9 @@ Regression [func]
 
     explained_variance
     mean_absolute_error
+    mean_squared_log_error
     mean_squared_error
     psnr
-    mean_squared_log_error
     ssim
 
 NLP [func]
