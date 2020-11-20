@@ -582,6 +582,7 @@ See :ref:`Saving and Loading Weights <weights_loading>` for how to customize che
 
 .. testcode::
 
+    from pytorch_lightning.callbacks import ModelCheckpoint
     # Init ModelCheckpoint callback, monitoring 'val_loss'
     checkpoint_callback = ModelCheckpoint(monitor='val_loss')
 
