@@ -252,7 +252,7 @@ over batches. They simply compute the metric value based on the given inputs.
 Also the integration within other parts of PyTorch Lightning will never be as tight
 as with the class-based interface. If you look for just computing the values,
 the functional metrics are the way to go. However, if you are looking for the
-best integration and user experience, please consider also to use the class interface.
+best integration and user experience, please consider to use the class interface.
 
 Classification [func]
 ---------------------
