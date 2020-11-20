@@ -153,10 +153,10 @@ def test_lbfgs_cpu_model(tmpdir):
         limit_val_batches=0.2,
     )
 
-    hparams = EvalModelTemplate.get_default_hparams()
-    hparams.update(optimizer_name="lbfgs", learning_rate=0.004)
-    model = EvalModelTemplate(**hparams)
-    model.configure_optimizers = model.configure_optimizers__lbfgs
+    hparams = BoringModel.get_default_hparams()
+    hparams.update(optimizer_name="LBFGS", learning_rate=0.004)
+    model = BoringModel(**hparams)
+#    model.configure_optimizers = model.configure_optimizers__lbfgs
     tpipes.run_model_test_without_loggers(trainer_options, model, min_acc=0.25)
 
 

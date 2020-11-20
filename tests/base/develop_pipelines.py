@@ -32,6 +32,7 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
     pretrained_model = load_model_from_checkpoint(
         trainer.logger,
         trainer.checkpoint_callback.best_model_path,
+        type(model)
     )
 
     # test new model accuracy
@@ -123,19 +124,18 @@ def run_prediction(trained_model, dataloader, dp=False, min_acc=0.50):
 
 
 @run_prediction.register(BoringModel)
-def _(trained_model, dataloader, dp=False, min_acc=5):
+def _(trained_model, dataloader, dp=False, min_acc=0.25):
     # run prediction on 1 batch
     batch = next(iter(dataloader))
 
     if dp:
         with torch.no_grad():
             output = trained_model(batch)
-        error = trained_model.loss(batch, output)
+        acc = trained_model.loss(batch, output)
 
     else:
         with torch.no_grad():
             output = trained_model(batch)
         output = output.cpu()
-        error = trained_model.loss(batch, output)
-
-    assert error <= min_acc, f"This model is expected to get , {min_acc} in test set (it got {error})"
+        acc = trained_model.loss(batch, output)
+    assert acc >= min_acc, f"This model is expected to get , {min_acc} in test set (it got {error})"
