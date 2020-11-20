@@ -67,7 +67,7 @@ def test_multi_gpu_model_dp(tmpdir):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_dp_test(tmpdir):
+def test_dp_evaluate(tmpdir):
     tutils.set_random_master_port()
 
     import os
@@ -84,6 +84,22 @@ def test_dp_test(tmpdir):
     )
     trainer.fit(model)
     assert 'ckpt' in trainer.checkpoint_callback.best_model_path
+
+    # validate
+    results = trainer.validate()
+    assert 'val_acc' in results[0]
+
+    old_weights = model.c_d1.weight.clone().detach().cpu()
+
+    results = trainer.validate(model)
+    assert 'val_acc' in results[0]
+
+    # make sure weights didn't change
+    new_weights = model.c_d1.weight.clone().detach().cpu()
+
+    assert torch.all(torch.eq(old_weights, new_weights))
+
+    # test
     results = trainer.test()
     assert 'test_acc' in results[0]
 
