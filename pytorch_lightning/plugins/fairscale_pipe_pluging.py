@@ -1,10 +1,10 @@
 import os
-from typing import List
+from enum import Enum
+from typing import List, Optional
 
 import fairscale.nn.model_parallel as mpu
 import torch
 import torch.distributed as torch_distrib
-from fairscale.nn import PipeRPCWrapper
 from fairscale.nn.pipe.pipeline import PipelineStyle
 from torch import nn
 from torch.distributed import rpc
@@ -21,23 +21,51 @@ def get_worker_map():
 
 
 class LightningPipeModule(nn.Module):
-    def __init__(self, module: nn.Sequential, balance: List[int], microbatches: int = 8, checkpoint='never'):
+
+    def __init__(self, module: nn.Sequential, balance: List[int], microbatches: int = 8, checkpoint='never', version: int = 1):
         super().__init__()
+        assert version in [1, 2]
+        self._set_pipe_type(version)
         self.module = module
         self.balance = balance
         self.microbatches = microbatches
         self.checkpoint = checkpoint
 
+    def _set_pipe_type(self, version):
+        if version == 1:
+            from fairscale.nn import PipeRPCWrapper
+            self.pipe_type = PipeRPCWrapper
+        else:
+            from fairscale.nn import Pipe
+            self.pipe_type = Pipe
+
     def init_pipe(self):
-        self.module = PipeRPCWrapper(
-            module=self.module,
-            balance=self.balance,
-            chunks=self.microbatches,
-            style=PipelineStyle.MultiProcess,
-            input_device=torch.cuda.current_device(),
-            worker_map=get_worker_map(),
-            checkpoint=self.checkpoint,
-        )
+        if self._pipe_version == 1:
+            from fairscale.nn import PipeRPCWrapper
+            self.module = PipeRPCWrapper(
+                module=self.module,
+                balance=self.balance,
+                chunks=self.microbatches,
+                style=PipelineStyle.MultiProcess,
+                input_device=torch.cuda.current_device(),
+                worker_map=get_worker_map(),
+                checkpoint=self.checkpoint,
+            )
+        else:
+            from fairscale.nn import Pipe
+            self.module = Pipe(
+                module=self.module,
+                balance=self.balance,
+                chunks=self.microbatches,
+                style=PipelineStyle.MultiProcess,
+                input_device=torch.cuda.current_device(),
+                worker_map=get_worker_map(),
+                checkpoint=self.checkpoint,
+            )
+
+    @property
+    def final_stage(self):
+        return self.module.final_stage
 
     def forward(self, *args, **kwargs):
         x = self.module(*args, **kwargs)
@@ -45,8 +73,13 @@ class LightningPipeModule(nn.Module):
 
 
 class PipePlugin(DDPPlugin):
-    def __init__(self, **kwargs):
+    def __init__(self, balance: Optional[List[int]] = None, microbatches: int = 8, checkpoint='never', version: int = 1, **kwargs):
         super().__init__(**kwargs)
+
+        self.balance = balance
+        self.microbatches = microbatches
+        self.checkpoint = checkpoint
+        self.version = version
 
     def on_setup(self, model):
         # TODO this should be connected to the accelerators via a hook, hasn't been yet...
@@ -61,6 +94,17 @@ class PipePlugin(DDPPlugin):
                 if found_module:
                     raise MisconfigurationException('Currently DDP Pipe only supports one PipeLightningModule')
                 found_module = True
+
+        # try to wrap for the user
+        if hasattr(model, "layers") and isinstance(model.layers, nn.Sequential):
+            model.layers = LightningPipeModule(model.layers,
+                                               balance=self.balance,
+                                               microbatches=self.microbatches,
+                                               checkpoint=self.checkpoint,
+                                               version=self.version)
+            pipe_module = model
+            found_module = True
+
         if not found_module:
             raise MisconfigurationException(
                 'Could not find a PipeLightningModule within the model. '
@@ -84,25 +128,11 @@ class PipePlugin(DDPPlugin):
         )
 
         os.environ["MASTER_PORT"] = "10639"  # TODO change...
-        init_method = f"tcp://{os.environ['MASTER_ADDR']}:{os.environ['MASTER_PORT']}"
+        rpc.init_rpc(f"worker{global_rank}", rank=global_rank, world_size=world_size)
+        mpu.initialize_model_parallel(1, world_size)
 
-        rpc.init_rpc(
-            f"Test{global_rank}",
-            rank=global_rank,
-            world_size=world_size,
-            backend=rpc.BackendType.TENSORPIPE,
-            rpc_backend_options=rpc.TensorPipeRpcBackendOptions(init_method=init_method),
-        )
-        mpu.initialize_model_parallel(model_parallel_size_=1, pipeline_length=len(self.pipe_module.balance))
-
-        if self._not_control_rank(global_rank):
-            # For RPC, all ranks other than 0 (??) just need to call rpc.shutdown()
-            torch.distributed.rpc.shutdown()
-            return
-
-    def _not_control_rank(self, rank):
-        # TODO I think this is wrong, what if we have multiple data parallel groups?
-        return rank != 0
+        model_ref = self.trainer.get_model()
+        self.pipe_module = self._find_pipe_module(model_ref)
 
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
