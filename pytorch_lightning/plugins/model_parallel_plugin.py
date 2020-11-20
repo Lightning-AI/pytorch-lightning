@@ -13,7 +13,7 @@ try:
     import fairscale.nn.model_parallel as mpu
     from fairscale.nn.pipe.pipeline import PipelineStyle
     HAS_FAIRSCALE = True
-except
+except Exception:
     HAS_FAIRSCALE = False
 
 from pytorch_lightning import LightningModule, seed_everything
