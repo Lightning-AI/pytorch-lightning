@@ -1,11 +1,8 @@
 from abc import ABC, abstractmethod
-from contextlib import contextmanager
-from os import stat
 import re
 from pytorch_lightning.utilities.cloud_io import atomic_save, load as pl_load
 from pytorch_lightning.accelerators.base_plugin import Plugin
 
-from torch.nn.parallel.distributed import DistributedDataParallel
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -15,7 +12,6 @@ import os
 from pytorch_lightning.core.step_result import Result
 from typing import Any, Dict, List, Optional, Union
 from pytorch_lightning.overrides.data_parallel import LightningDataParallel, LightningDistributedDataParallel
-from torch.nn.parallel.data_parallel import DataParallel
 import sys
 from os.path import abspath
 from time import sleep
@@ -26,7 +22,7 @@ import torch.distributed as torch_distrib
 from pytorch_lightning import _logger as log
 import contextlib
 import torch.multiprocessing as mp
-from pytorch_lightning.utilities.distributed import sync_ddp_if_available, rank_zero_warn
+from pytorch_lightning.utilities.distributed import sync_ddp_if_available, rank_zero_warn, rank_zero_info
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -73,6 +69,37 @@ class TrainingTypePlugin(Plugin, ABC):
     def barrier(self):
         raise NotImplementedError
 
+    def set_nvidia_flags(self, is_slurm_managing_tasks, device_ids):
+        if device_ids is None:
+            return
+
+        # set the correct cuda visible devices (using pci order)
+        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+        all_gpu_ids = ",".join([str(x) for x in range(torch.cuda.device_count())])
+        devices = os.environ.get("CUDA_VISIBLE_DEVICES", all_gpu_ids)
+        log.info(f'LOCAL_RANK: {self.trainer.local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]')
+
+
+    def determine_local_rank(self):
+        return int(os.environ.get('LOCAL_RANK', 0))
+        
+
+    def determine_node_rank(self):
+
+        # torchelastic uses the envvar GROUP_RANK, whereas other systems(?) use NODE_RANK.
+        # otherwise use given node rank or default to node rank 0
+        env_vars = ['NODE_RANK', 'GROUP_RANK']
+        node_ids = [(k, os.environ.get(k, None)) for k in env_vars]
+        node_ids = [(k, v) for k, v in node_ids if v is not None]
+        if len(node_ids) == 0:
+            return 0
+        if len(node_ids) > 1:
+            log.warning(f"Multiple environment variables ({node_ids}) defined for node rank. Using the first one.")
+        k, rank = node_ids.pop()
+        rank_zero_info(f"Using environment variable {k} for node rank ({rank}).")
+        return int(rank)
+
+
 class SingleDevicePlugin(TrainingTypePlugin):
     def __init__(self, device, logger=None):
         super().__init__(logger=logger)
@@ -90,10 +117,16 @@ class SingleDevicePlugin(TrainingTypePlugin):
         return self.device
     
     def model_to_device(self):
+        if self.on_gpu:
+            torch.cuda.set_device(self.root_device)
+
         self.model.to(self.root_device)
 
-    def connect(self, model: torch.nn.Module, optimizers, lr_schedulers):
+    def connect(self, model: torch.nn.Module):
         self.model = model
+        self.model_to_device()
+
+        return self.model
 
     @property
     def is_global_zero(self):
@@ -173,6 +206,18 @@ class DDPPlugin(ParallelPlugin):
     @property
     def root_device(self):
         return self.parallel_device_ids[self.local_rank]
+
+    def determine_local_rank(self):
+        if self.is_slurm_managing_tasks:
+            return int(os.environ['SLURM_LOCALID'])
+        else:
+            return super().determine_node_rank()
+
+    def determine_node_rank(self):
+        if self.is_slurm_managing_tasks:
+            return int(os.environ['SLURM_NODEID'])
+        else:
+            return super().determine_node_rank()
 
     def setup(self, model):
 
@@ -269,7 +314,7 @@ class DDPPlugin(ParallelPlugin):
     def set_world_ranks(self):
         self.local_rank = self.task_idx
         # TODO: check from where we get node_rank and num_processes
-        self.global_rank = self.node_rank * self.num_processes + self.task_idx
+        self.global_rank = self.determine_node_rank() * self.num_processes + self.task_idx
         self.world_size = self.num_nodes * self.num_processes
 
     def configure_ddp(self):
@@ -302,8 +347,8 @@ class DDPPlugin(ParallelPlugin):
 
         # show progressbar only on progress_rank 0
         # TODO: check where to move this. Cannot stay here, since we won't have access to progressbar here
-        if (self.node_rank != 0 or self.task_idx != 0) and self.trainer.progress_bar_callback is not None:
-            self.trainer.progress_bar_callback.disable()
+        # if (self.node_rank != 0 or self.task_idx != 0) and self.trainer.progress_bar_callback is not None:
+        #     self.trainer.progress_bar_callback.disable()
 
         # determine which process we are and world size
         self.set_world_ranks()
@@ -312,7 +357,7 @@ class DDPPlugin(ParallelPlugin):
         rank_zero_only.rank = self.global_rank
 
         # TODO: This has to be done somewhere else!
-        self.model.trainer = self.trainer
+        # self.model.trainer = self.trainer
 
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
@@ -321,7 +366,7 @@ class DDPPlugin(ParallelPlugin):
         self.init_ddp_connection(self.global_rank, self.world_size, self.is_slurm_managing_tasks)
 
         # TODO: Move this somewhere else
-        self.trainer.call_setup_hook(self.model)
+        # self.trainer.call_setup_hook(self.model)
 
         # on world_size=0 let everyone know training is starting
         if self.is_global_zero and not torch.distributed.is_initialized():
@@ -337,7 +382,7 @@ class DDPPlugin(ParallelPlugin):
 
         # TODO: Check where this can be moved
         # set model properties before going into wrapper
-        self.trainer.model_connector.copy_trainer_model_properties(self.model)
+        # self.trainer.model_connector.copy_trainer_model_properties(self.model)
 
         self.configure_ddp()
 
@@ -393,7 +438,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
         self.dist = LightningDistributed()
         # TODO: how to get in nprocs? probably pass it
-        self.nprocs = nprocs
+        self.num_processes = num_processes
         self.mp_queue = None
         self.proc_offset = proc_offset
 
@@ -407,14 +452,14 @@ class DDPSpawnPlugin(ParallelPlugin):
     def set_world_ranks(self):
         self.local_rank = self.process_idx
         # check from where we get node_rank, num_processes and num_nodes
-        self.global_rank = self.node_rank * self.num_processes + self.self.process_idx
+        self.global_rank = self.determine_node_rank() * self.num_processes + self.process_idx
         self.world_size = self.num_nodes * self.num_processes
 
     def pre_training(self):
 
         # TODO: Check if current process can be used as one training proc
         # start from one since current process is proc 0
-        for proc_idx in range(1, self.nprocs):
+        for proc_idx in range(1, self.num_processes):
             # use os.fork, since this enables us to continue from here 
             # instead of spawning with separate function
             pid = os.fork()
@@ -430,8 +475,8 @@ class DDPSpawnPlugin(ParallelPlugin):
 
         # TODO: Check where to put that since we don't have access to the pbar here
         # show progressbar only on progress_rank 0
-        if (self.trainer.node_rank != 0 or self.process_idx != 0) and self.trainer.progress_bar_callback is not None:
-            self.trainer.progress_bar_callback.disable()
+        # if (self.trainer.node_rank != 0 or self.process_idx != 0) and self.trainer.progress_bar_callback is not None:
+        #     self.trainer.progress_bar_callback.disable()
 
         self.set_world_ranks()
 
@@ -439,7 +484,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         rank_zero_only.rank = self.global_rank
     
         # TODO: This has to be done somewhere else!
-        self.model.trainer = self.trainer
+        # self.model.trainer = self.trainer
 
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
@@ -448,7 +493,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.init_ddp_connection(self.global_rank, self.world_size, self.is_slurm_managing_tasks)
 
         # TODO: Move this somewhere else
-        self.trainer.call_setup_hook(self.model)
+        # self.trainer.call_setup_hook(self.model)
 
         # on world_size=0 let everyone know training is starting
         if self.is_global_zero and not torch.distributed.is_initialized():
@@ -464,7 +509,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
         # TODO: Check where this can be moved
         # set model properties before going into wrapper
-        self.trainer.model_connector.copy_trainer_model_properties(self.model)
+        # self.trainer.model_connector.copy_trainer_model_properties(self.model)
 
         self.configure_ddp()
 
@@ -473,7 +518,8 @@ class DDPSpawnPlugin(ParallelPlugin):
     def post_training(self, results, best_model_path):
         # get original model
         # TODO: How To get this? is this simply self.model?
-        model = self.trainer.get_model()
+        # model = self.trainer.get_model()
+        model = self.model
 
         # persist info in ddp_spawn
         self.transfer_distrib_spawn_state_on_fit_end(model, self.mp_queue, results, best_model_path)
@@ -513,7 +559,8 @@ class DDPSpawnPlugin(ParallelPlugin):
             # save the last weights
             last_path = None
             # TODO: From where to get self.trainer.testing?
-            if not self.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
+            # if not self.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
+            if best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
                 atomic_save(self.model.state_dict(), last_path)
             self.mp_queue.put(last_path)
@@ -522,18 +569,30 @@ class DDPSpawnPlugin(ParallelPlugin):
     def __recover_child_process_weights(self, model, best_path, last_path):
         # TODO: Where can we set this?
         # transfer back the best path to the trainer
-        if self.trainer.checkpoint_callback:
-            self.trainer.checkpoint_callback.best_model_path = best_path
+        # if self.trainer.checkpoint_callback:
+        #     self.trainer.checkpoint_callback.best_model_path = best_path
         # todo, pass also best score
 
         # load last weights
         # TODO: How to get self.trainer.testing?
-        if last_path is not None and not self.trainer.testing:
+        if last_path is not None: # and not self.trainer.testing:
             ckpt = pl_load(last_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt)
 
         # TODO: Where to set this?
         # Do we really need to set this or can we just make the trainer property forward our current property here?
-        self.trainer.model = model
+        # self.trainer.model = model
+
+    def determine_local_rank(self):
+        if self.is_slurm_managing_tasks:
+            return int(os.environ['SLURM_LOCALID'])
+        else:
+            return super().determine_node_rank()
+
+    def determine_node_rank(self):
+        if self.is_slurm_managing_tasks:
+            return int(os.environ['SLURM_NODEID'])
+        else:
+            return super().determine_node_rank()
 
 # STILL MISSING: DDP2 (?), HOROVOD DDP AND HPC DDP

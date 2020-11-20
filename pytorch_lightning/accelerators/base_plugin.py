@@ -3,10 +3,10 @@ import torch
 
 class Plugin(object):
 
-    def connect(self, model: torch.nn.Module, optimizers, lr_schedulers):
-        return model, optimizers, lr_schedulers
+    def connect(self, model: torch.nn.Module, *args, **kwargs):
+        return model
 
-    def pre_optimizer_step(self, optimizer, optiizer_idx):
+    def pre_optimizer_step(self, optimizer, optimizer_idx):
         pass
 
     def post_optimizer_step(self, optimizer, optimizer_idx):
