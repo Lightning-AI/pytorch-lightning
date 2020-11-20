@@ -1135,6 +1135,4 @@ def test_replace_sampler_with_multiprocessing_context(tmpdir):
     )
 
     new_data_loader = trainer.replace_sampler(train, SequentialSampler(train.dataset))
-    # Train the model ⚡
-    # print(new_data_loader)
     assert (new_data_loader.multiprocessing_context == train.multiprocessing_context)
