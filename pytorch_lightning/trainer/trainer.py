@@ -179,7 +179,7 @@ class Trainer(
                 :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks`. Default: ``True``.
 
                 .. warning:: Passing a ModelCheckpoint instance to this argument is deprecated since
-                    v1.1.0 and will be unsupported from v1.3.0. Use `callbacks` argument instead.
+                    v1.1 and will be unsupported from v1.3. Use `callbacks` argument instead.
 
             check_val_every_n_epoch: Check val every n train epochs.
 

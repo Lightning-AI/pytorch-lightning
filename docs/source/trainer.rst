@@ -591,7 +591,7 @@ See :ref:`Saving and Loading Weights <weights_loading>` for how to customize che
 
 
 .. warning:: Passing a ModelCheckpoint instance to this argument is deprecated since
-    v1.1.0 and will be unsupported from v1.3.0. Use `callbacks` argument instead.
+    v1.1 and will be unsupported from v1.3. Use `callbacks` argument instead.
 
 
 default_root_dir
