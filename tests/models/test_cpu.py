@@ -212,7 +212,7 @@ def test_running_test_after_fitting(tmpdir):
 
 def test_running_test_no_val(tmpdir):
     """Verify `test()` works on a model with no `val_loader`."""
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -238,12 +238,12 @@ def test_running_test_no_val(tmpdir):
     trainer.test()
 
     # test we have good test accuracy
-    tutils.assert_ok_model_acc(trainer)
+    tutils.assert_ok_model_acc(trainer, key='test_loss')
 
 
 def test_simple_cpu(tmpdir):
     """Verify continue training session on CPU."""
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     # fit model
     trainer = Trainer(
@@ -268,7 +268,7 @@ def test_cpu_model(tmpdir):
         limit_val_batches=0.4,
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     tpipes.run_model_test(trainer_options, model, on_gpu=False)
 

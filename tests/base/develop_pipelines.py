@@ -124,7 +124,7 @@ def run_prediction(trained_model, dataloader, dp=False, min_acc=0.50):
 
 
 @run_prediction.register(BoringModel)
-def _(trained_model, dataloader, dp=False, min_acc=0.5):
+def _(trained_model, dataloader, dp=False, min_acc=0.25):
     # run prediction on 1 batch
     batch = next(iter(dataloader))
 
