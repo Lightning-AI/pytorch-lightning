@@ -382,13 +382,13 @@ def get_human_readable_count(number: int) -> str:
         >>> get_human_readable_count(123)
         '123  '
         >>> get_human_readable_count(1234)  # (one thousand)
-        '1 K'
+        '1.2 K'
         >>> get_human_readable_count(2e6)   # (two million)
-        '2 M'
+        '2.0 M'
         >>> get_human_readable_count(3e9)   # (three billion)
-        '3 B'
-        >>> get_human_readable_count(4e12)  # (four trillion)
-        '4 T'
+        '3.0 B'
+        >>> get_human_readable_count(4e14)  # (four hundred trillion)
+        '400 T'
         >>> get_human_readable_count(5e15)  # (more than trillion)
         '5,000 T'
 
@@ -407,4 +407,7 @@ def get_human_readable_count(number: int) -> str:
     shift = -3 * (num_groups - 1)
     number = number * (10 ** shift)
     index = num_groups - 1
-    return f"{int(number):,d} {labels[index]}"
+    if index < 1 or number >= 100:
+        return f"{int(number):,d} {labels[index]}"
+    else:
+        return f"{number:,.1f} {labels[index]}"
