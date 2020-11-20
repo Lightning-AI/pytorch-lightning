@@ -160,7 +160,7 @@ class TrainLoop:
             ref_model.on_pretrain_routine_start()
 
         # print model summary
-        if self.trainer.is_global_zero and self.trainer.weights_summary is not None and not self.trainer.testing:
+        if self.trainer.is_global_zero and self.trainer.weights_summary is not None and not self.trainer.evaluating:
             if self.trainer.weights_summary in ModelSummary.MODES:
                 ref_model.summarize(mode=self.trainer.weights_summary)
             else:

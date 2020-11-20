@@ -45,7 +45,10 @@ class ModelConnector:
             m.use_ddp2 = self.trainer.use_ddp2
             m.use_ddp = self.trainer.use_ddp
             m.use_amp = self.trainer.amp_backend is not None
-            m.testing = self.trainer.testing
+            # TODO: I only find usages of m.testing in DDP, where it's used to
+            #  discriminate test from validation, as opposed to test from fit in
+            #  Trainer. Still need to fully determine if it's correct.
+            m.testing = self.trainer.evaluating == 'test'
             m.use_single_gpu = self.trainer.use_single_gpu
             m.use_tpu = self.trainer.use_tpu
             m.tpu_local_core_rank = self.trainer.tpu_local_core_rank
