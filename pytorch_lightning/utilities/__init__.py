@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """General utilities"""
+import importlib
 from enum import Enum
 
 import numpy
@@ -21,13 +22,26 @@ from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, rank_zero_info
 from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable
 
-try:
-    from apex import amp
-except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
 
+def _module_available(module_path: str) -> bool:
+    """Testing if given module is avalaible in your env
+
+    >>> _module_available('system')
+    True
+    >>> _module_available('bla.bla')
+    False
+    """
+    mods = module_path.split('.')
+    assert mods, 'nothing given to test'
+    # it has to be tested as per partets
+    for i in range(1, len(mods)):
+        module_path = '.'.join(mods[:i])
+        if importlib.util.find_spec(module_path) is None:
+            return False
+    return True
+
+
+APEX_AVAILABLE = _module_available("apex.amp")
 NATIVE_AMP_AVALAIBLE = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
 
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
