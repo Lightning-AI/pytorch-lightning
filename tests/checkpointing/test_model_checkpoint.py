@@ -27,8 +27,7 @@ from pathlib import Path
 import cloudpickle
 import pytest
 import torch
-from omegaconf import Container
-from omegaconf import OmegaConf
+from omegaconf import Container, OmegaConf
 from argparse import Namespace
 
 import tests.base.develop_utils as tutils
