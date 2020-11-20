@@ -23,7 +23,7 @@ from torch import nn
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.plugins.model_parallel_plugin import HAS_FAIRSCALE, ModelParallelPlugin
+from pytorch_lightning.plugins.distributed_sequential_plugin import HAS_FAIRSCALE, DistributedSequentialPlugin
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
 from tests.backends.launcher import DDPLauncher
 from tests.base.boring_model import BoringModel, RandomDataset
@@ -32,23 +32,6 @@ from tests.base.boring_model import BoringModel, RandomDataset
 class SequentialModel(LightningModule):
 
     def __init__(self):
-        """
-        Testing PL Module
-
-        Use as follows:
-        - subclass
-        - modify the behavior for what you want
-
-        class TestModel(BaseTestModel):
-            def training_step(...):
-                # do your own thing
-
-        or:
-
-        model = BaseTestModel()
-        model.training_epoch_end = None
-
-        """
         super().__init__()
         self.layers = nn.Sequential(torch.nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2))
 
@@ -117,7 +100,7 @@ def test_model_parallel_plugin(tmpdir, args=None):
     trainer = Trainer(
         gpus=args.gpus,
         distributed_backend=args.distributed_backend,
-        plugins=[ModelParallelPlugin(balance=[2, 1])],
+        plugins=[DistributedSequentialPlugin(balance=[2, 1])],
         automatic_optimization=False,
     )
     trainer.fit(model)
