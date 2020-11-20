@@ -60,7 +60,7 @@ def test_trainer_callback_system(tmpdir):
 
         def setup(self, trainer, pl_module, stage: str):
             assert isinstance(trainer, Trainer)
-            self.setup_called = True
+            self.setup_called = stage
 
         def teardown(self, trainer, pl_module, step: str):
             assert isinstance(trainer, Trainer)
@@ -245,7 +245,7 @@ def test_trainer_callback_system(tmpdir):
 
     trainer.fit(model)
 
-    assert test_callback.setup_called
+    assert test_callback.setup_called == 'fit'
     assert test_callback.teardown_called
     assert test_callback.on_init_start_called
     assert test_callback.on_init_end_called
@@ -278,12 +278,32 @@ def test_trainer_callback_system(tmpdir):
     test_callback.teardown_called = False
     test_callback.setup_called = False
 
+    # validate model
+    test_callback = TestCallback()
+    trainer_options.update(callbacks=[test_callback])
+    trainer = Trainer(**trainer_options)
+    trainer.validate(model)
+
+    assert test_callback.setup_called == 'validation'
+    assert test_callback.teardown_called
+    assert test_callback.on_validation_start_called
+    assert test_callback.on_validation_end_called
+    assert test_callback.on_validation_batch_end_called
+    assert test_callback.on_validation_batch_start_called
+    assert not test_callback.on_test_batch_start_called
+    assert not test_callback.on_test_batch_end_called
+    assert not test_callback.on_test_start_called
+    assert not test_callback.on_test_end_called
+    assert not test_callback.on_after_backward_called
+    assert not test_callback.on_before_zero_grad_called
+
+    # test model
     test_callback = TestCallback()
     trainer_options.update(callbacks=[test_callback])
     trainer = Trainer(**trainer_options)
     trainer.test(model)
 
-    assert test_callback.setup_called
+    assert test_callback.setup_called == 'test'
     assert test_callback.teardown_called
     assert test_callback.on_test_batch_start_called
     assert test_callback.on_test_batch_end_called
