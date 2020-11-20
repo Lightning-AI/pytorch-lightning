@@ -92,6 +92,9 @@ class SequentialModel(LightningModule):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @DDPLauncher.run("--distributed_backend ddp --gpus 2")
 def test_distributed_sequential_plugin(tmpdir, args=None):
+    """
+    This test makes sure DistributedSequentialPlugin correctly train on a Sequential Model
+    """
 
     model = SequentialModel()
     model.training_step_end = None
