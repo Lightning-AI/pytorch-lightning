@@ -848,7 +848,7 @@ class Trainer(
 
         # run tests
         self.evaluating = stage
-        self.tested_ckpt_path = ckpt_path
+        self.evaluated_ckpt_path = ckpt_path
         self.model = model
         results = self.fit(model)
         self.evaluating = None
@@ -884,6 +884,11 @@ class Trainer(
     def testing(self):
         warnings.warn('Trainer.testing is deprecated, use Trainer.evaluating instead.', FutureWarning, stacklevel=2)
         return bool(self.evaluating)
+
+    @property
+    def tested_ckpt_path(self):
+        warnings.warn('Trainer.tested_ckpt_path is deprecated and has been replaced by Trainer.evaluated_ckpt_path.', FutureWarning, stacklevel=2)
+        return self.evaluated_ckpt_path
 
     def tune(
         self,
