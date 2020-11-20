@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from pytorch_lightning.accelerators.base_plugin import Plugin
 from pytorch_lightning.accelerators.scheduler_properties import reinit_scheduler_properties
 from pytorch_lightning.core.lightning import LightningModule
@@ -18,7 +19,7 @@ class PrecisionPlugin(Plugin):
     EPSILON = 1e-6
     precision = 32
 
-    def pre_optimizer_step(self, optimizer, optiizer_idx):
+    def pre_optimizer_step(self, optimizer, optimizer_idx):
         pass
 
     def post_optimizer_step(self, optimizer, optimizer_idx):
@@ -77,19 +78,20 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
         return closure_loss
 
+    @contextmanager
+    def train_step_context(self):
+        yield torch.cuda.amp.autocast()
+
 
 class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
-    def __init__(self):
+    def __init__(self, amp_level):
         self.backend = AMPType.APEX
+        self.amp_level = amp_level
 
     def connect(self, model, optimizers, lr_schedulers):
-        model, optimizers = self.configure_apex(amp, model, optimizers, self.trainer.amp_level)
+        model, optimizers = self.configure_apex(amp, model, optimizers, self.amp_level)
         reinit_scheduler_properties(optimizers, lr_schedulers)
         return model, optimizers, lr_schedulers
-
-    def training_step(self, fx, args):
-        output = fx(args)
-        return output
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         closure_loss = amp.scale_loss(closure_loss, optimizer)

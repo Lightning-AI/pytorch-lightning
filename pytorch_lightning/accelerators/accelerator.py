@@ -1,4 +1,4 @@
-from pytorch_lightning.accelerators.data_parallel import ParallelPlugin
+from pytorch_lightning.accelerators.data_parallel import ParallelPlugin, TrainingTypePlugin
 from pytorch_lightning.accelerators.base_plugin import Plugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import AMPType
@@ -15,30 +15,31 @@ from pytorch_lightning.utilities.apply_func import move_data_to_device
 
 
 class NewAccelerator(object):
-    root_device: Union[str, torch.device]
 
     def __init__(
         self,
         model_ref: LightningModule,
-        root_device: Union[str, torch.device],
         precision_plugin: PrecisionPlugin,
-        parallel_plugin: ParallelPlugin,
+        training_type_plugin: TrainingTypePlugin,
         gradient_clip_val,
     ):
         self.model_ref = model_ref
         self.precision_plugin = precision_plugin
-        self.parallel_plugin = parallel_plugin
+        self.training_type_plugin = training_type_plugin
         self.gradient_clip_val = gradient_clip_val
 
         self.optimizers = None
         self.lr_schedulers = None
         self.optimizer_frequencies = None
-        self.root_device = root_device
 
     def setup(self, model):
+        self.connect_training_type_plugin()
         self.setup_optimizers(model)
-        self.connect_plugin(self.precision_plugin)
-        self.connect_plugin(self.parallel_plugin)
+        self.connect_precision_plugin()
+
+    @property
+    def root_device(self):
+        return self.training_type_plugin.root_device
 
     def teardown(self):
         pass
@@ -55,7 +56,7 @@ class NewAccelerator(object):
         args[0] = batch
 
         with self.precision_plugin.train_step_context():
-            with self.parallel_plugin.train_step_context():
+            with self.training_type_plugin.train_step_context():
                 return self.model_ref.training_step(*args)
 
     def validation_step(self, args):
@@ -64,7 +65,7 @@ class NewAccelerator(object):
         args[0] = batch
 
         with self.precision_plugin.val_step_context():
-            with self.parallel_plugin.val_step_context():
+            with self.training_type_plugin.val_step_context():
                 return self.model_ref.validation_step(*args)
 
     def test_step(self, args):
@@ -73,7 +74,7 @@ class NewAccelerator(object):
         args[0] = batch
 
         with self.precision_plugin.test_step_context():
-            with self.parallel_plugin.test_step_context():
+            with self.training_type_plugin.test_step_context():
                 return self.model_ref.test_step(*args)
 
     def process_dataloader(self, dataloader):
@@ -170,9 +171,9 @@ class NewAccelerator(object):
         self.lr_schedulers = lr_schedulers
         self.optimizer_frequencies = optimizer_frequencies
 
-    def connect_plugin(self, plugin: Plugin):
+    def connect_training_type_plugin(self, plugin: Plugin):
         model, optimizers, schedulers = plugin.connect(
-            self.model_ref, self.optimizers, self.lr_schedulers
+            self.model_ref
         )
 
         self.model_ref = model
