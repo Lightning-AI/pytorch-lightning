@@ -24,13 +24,6 @@ from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
-# def get_len(d):
-#     if isinstance(d, dict):
-#         v = max(d.items(), key=lambda x: len(x[1]))
-#         return len(v[1])
-#     else:
-#         return len(d)
-
 class MultiIterator(object):
     SUPPORTED_MODES = ('min_size', 'max_size_cycle')
 

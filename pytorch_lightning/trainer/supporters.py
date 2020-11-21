@@ -467,8 +467,6 @@ class CombinedLoaderIterator(object):
             Any: a collections of batch data
 
         """
-        # if self._loader_iters is None:
-        #     self._loader_iters = self.create_loader_iters(self.loaders)
         return self.request_next_batch(self.loader_iters)
 
     @staticmethod
