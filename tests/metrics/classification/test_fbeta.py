@@ -25,7 +25,9 @@ from tests.metrics.utils import EXTRA_DIM, NUM_CLASSES, THRESHOLD, MetricTester
 torch.manual_seed(42)
 
 
-def _sk_fbeta(preds, target, beta, sk_fn, num_classes, average, logits, is_multiclass, zero_division, ignore_index):
+def _sk_fbeta(
+    preds, target, beta, num_classes, average, logits, is_multiclass, zero_division, ignore_index, mdmc_average
+):
     if average == "none":
         average = None
     if num_classes == 1:
@@ -42,7 +44,7 @@ def _sk_fbeta(preds, target, beta, sk_fn, num_classes, average, logits, is_multi
     )
     sk_preds, sk_target = sk_preds.numpy(), sk_target.numpy()
 
-    sk_scores = sk_fn(sk_target, sk_preds, beta=beta, average=average, zero_division=zero_division, labels=labels)
+    sk_scores = fbeta_score(sk_target, sk_preds, beta=beta, average=average, zero_division=zero_division, labels=labels)
 
     if len(labels) != num_classes and not average:
         sk_scores = np.insert(sk_scores, ignore_index, np.nan)
@@ -51,7 +53,7 @@ def _sk_fbeta(preds, target, beta, sk_fn, num_classes, average, logits, is_multi
 
 
 def _sk_fbeta_mdmc(
-    preds, target, sk_fn, beta, num_classes, average, logits, is_multiclass, zero_division, ignore_index, mdmc_average
+    preds, target, beta, num_classes, average, logits, is_multiclass, zero_division, ignore_index, mdmc_average
 ):
     preds, target, _ = _input_format_classification(
         preds, target, threshold=THRESHOLD, num_classes=num_classes, logits=logits, is_multiclass=is_multiclass
@@ -61,7 +63,9 @@ def _sk_fbeta_mdmc(
         preds = torch.movedim(preds, 1, -1).reshape(-1, preds.shape[1])
         target = torch.movedim(target, 1, -1).reshape(-1, target.shape[1])
 
-        return _sk_fbeta(preds, target, beta, sk_fn, num_classes, average, logits, False, zero_division, ignore_index)
+        return _sk_fbeta(
+            preds, target, beta, num_classes, average, logits, False, zero_division, ignore_index, mdmc_average
+        )
     else:  # mdmc_average == "samples"
         scores = []
 
@@ -69,75 +73,12 @@ def _sk_fbeta_mdmc(
             pred_i = preds[i, ...].T
             target_i = target[i, ...].T
             scores_i = _sk_fbeta(
-                pred_i, target_i, beta, sk_fn, num_classes, average, logits, False, zero_division, ignore_index
+                pred_i, target_i, beta, num_classes, average, logits, False, zero_division, ignore_index, mdmc_average
             )
 
             scores.append(np.expand_dims(scores_i, 0))
 
         return np.concatenate(scores).mean()
-
-
-@pytest.mark.parametrize("ddp", [False])
-@pytest.mark.parametrize("dist_sync_on_step", [True, False])
-@pytest.mark.parametrize("average", ["micro"])  # Only micro, as this is equiv to "binary" in sklearn
-@pytest.mark.parametrize("zero_division", [0, 1])
-@pytest.mark.parametrize("ignore_index", [None])
-@pytest.mark.parametrize(
-    "preds, target, num_classes, logits, is_multiclass",
-    [
-        (_binary_prob_inputs.preds, _binary_prob_inputs.target, 1, False, None),
-        (_binary_inputs.preds, _binary_inputs.target, 1, False, False),
-    ],
-)
-@pytest.mark.parametrize("beta", [1.0, 0.5])
-@pytest.mark.parametrize("metric_class, sk_fn", [(FBeta, fbeta_score)])
-class TestFBetaBinary(MetricTester):
-    def test_fbeta_binary(
-        self,
-        ddp,
-        dist_sync_on_step,
-        preds,
-        target,
-        beta,
-        metric_class,
-        sk_fn,
-        logits,
-        is_multiclass,
-        num_classes,
-        average,
-        zero_division,
-        ignore_index,
-    ):
-        self.run_class_metric_test(
-            ddp=ddp,
-            preds=preds,
-            target=target,
-            metric_class=metric_class,
-            sk_metric=partial(
-                _sk_fbeta,
-                beta=beta,
-                sk_fn=sk_fn,
-                average=average,
-                num_classes=num_classes,
-                logits=logits,
-                is_multiclass=is_multiclass,
-                zero_division=zero_division,
-                ignore_index=ignore_index,
-            ),
-            dist_sync_on_step=dist_sync_on_step,
-            metric_args={
-                "beta": beta,
-                "num_classes": num_classes,
-                "average": average,
-                "threshold": THRESHOLD,
-                "logits": logits,
-                "is_multiclass": is_multiclass,
-                "zero_division": zero_division,
-                "ignore_index": ignore_index,
-            },
-            check_dist_sync_on_step=True,
-            check_batch=True,
-        )
 
 
 # A single test of F1 for coverage
@@ -152,12 +93,83 @@ def test_f1():
     assert np.allclose(score.numpy(), sk_score)
 
 
+class FBetaBaseTest(MetricTester):
+    def test_fbeta(
+        self,
+        ddp,
+        dist_sync_on_step,
+        sk_fn,
+        preds,
+        target,
+        beta,
+        logits,
+        is_multiclass,
+        num_classes,
+        average,
+        mdmc_average,
+        zero_division,
+        ignore_index,
+    ):
+        self.run_class_metric_test(
+            ddp=ddp,
+            preds=preds,
+            target=target,
+            metric_class=FBeta,
+            sk_metric=partial(
+                sk_fn,
+                beta=beta,
+                average=average,
+                num_classes=num_classes,
+                logits=logits,
+                is_multiclass=is_multiclass,
+                zero_division=zero_division,
+                ignore_index=ignore_index,
+                mdmc_average=mdmc_average,
+            ),
+            dist_sync_on_step=dist_sync_on_step,
+            metric_args={
+                "beta": beta,
+                "num_classes": num_classes,
+                "average": average,
+                "threshold": THRESHOLD,
+                "logits": logits,
+                "is_multiclass": is_multiclass,
+                "zero_division": zero_division,
+                "ignore_index": ignore_index,
+                "mdmc_average": mdmc_average,
+            },
+            check_dist_sync_on_step=True,
+            check_batch=True,
+        )
+
+
+@pytest.mark.parametrize("ddp", [False])
+@pytest.mark.parametrize("dist_sync_on_step", [True, False])
+@pytest.mark.parametrize("average", ["micro"])  # Only micro, as this is equiv to "binary" in sklearn
+@pytest.mark.parametrize("zero_division", [0, 1])
+@pytest.mark.parametrize("ignore_index", [None])
+@pytest.mark.parametrize("sk_fn", [_sk_fbeta])
+@pytest.mark.parametrize("mdmc_average", [None])
+@pytest.mark.parametrize(
+    "preds, target, num_classes, logits, is_multiclass",
+    [
+        (_binary_prob_inputs.preds, _binary_prob_inputs.target, 1, False, None),
+        (_binary_inputs.preds, _binary_inputs.target, 1, False, False),
+    ],
+)
+@pytest.mark.parametrize("beta", [1.0, 0.5])
+class TestFBetaBinary(FBetaBaseTest):
+    pass
+
+
 @pytest.mark.parametrize("ddp", [True, False])
 @pytest.mark.parametrize("dist_sync_on_step", [True, False])
 @pytest.mark.parametrize("average", ["micro", "macro", "none", None, "weighted", "samples"])
 @pytest.mark.parametrize("zero_division", [0, 1])
 @pytest.mark.parametrize("ignore_index", [None, 1])
 @pytest.mark.parametrize("beta", [0.5, 1])
+@pytest.mark.parametrize("sk_fn", [_sk_fbeta])
+@pytest.mark.parametrize("mdmc_average", [None])
 @pytest.mark.parametrize(
     "preds, target, num_classes, logits, is_multiclass",
     [
@@ -175,54 +187,8 @@ def test_f1():
         (_multilabel_multidim_inputs.preds, _multilabel_multidim_inputs.target, EXTRA_DIM * NUM_CLASSES, False, False),
     ],
 )
-@pytest.mark.parametrize("metric_class, sk_fn", [(FBeta, fbeta_score)])
-class TestFBetaNormal(MetricTester):
-    def test_fbeta_normal(
-        self,
-        ddp,
-        dist_sync_on_step,
-        preds,
-        target,
-        beta,
-        metric_class,
-        sk_fn,
-        logits,
-        is_multiclass,
-        num_classes,
-        average,
-        zero_division,
-        ignore_index,
-    ):
-        self.run_class_metric_test(
-            ddp=ddp,
-            preds=preds,
-            target=target,
-            metric_class=metric_class,
-            sk_metric=partial(
-                _sk_fbeta,
-                beta=beta,
-                sk_fn=sk_fn,
-                average=average,
-                num_classes=num_classes,
-                logits=logits,
-                is_multiclass=is_multiclass,
-                zero_division=zero_division,
-                ignore_index=ignore_index,
-            ),
-            dist_sync_on_step=dist_sync_on_step,
-            metric_args={
-                "beta": beta,
-                "num_classes": num_classes,
-                "average": average,
-                "threshold": THRESHOLD,
-                "logits": logits,
-                "is_multiclass": is_multiclass,
-                "zero_division": zero_division,
-                "ignore_index": ignore_index,
-            },
-            check_dist_sync_on_step=True,
-            check_batch=True,
-        )
+class TestFBetaNormal(FBetaBaseTest):
+    pass
 
 
 # ######################################################################################
@@ -241,8 +207,8 @@ class TestFBetaNormal(MetricTester):
 @pytest.mark.parametrize("mdmc_average", ["global", "samplewise"])
 @pytest.mark.parametrize("zero_division", [0, 1])
 @pytest.mark.parametrize("ignore_index", [None])
-@pytest.mark.parametrize("metric_class, sk_fn", [(FBeta, fbeta_score)])
 @pytest.mark.parametrize("beta", [0.5, 1])
+@pytest.mark.parametrize("sk_fn", [_sk_fbeta_mdmc])
 @pytest.mark.parametrize(
     "preds, target, num_classes, logits, is_multiclass",
     [
@@ -251,56 +217,8 @@ class TestFBetaNormal(MetricTester):
         (_multidim_multiclass_prob_inputs1.preds, _multidim_multiclass_prob_inputs1.target, NUM_CLASSES, False, None),
     ],
 )
-class TestFBetaMDMC1(MetricTester):
-    def test_fbeta_mdmc1(
-        self,
-        ddp,
-        dist_sync_on_step,
-        preds,
-        target,
-        beta,
-        metric_class,
-        sk_fn,
-        logits,
-        is_multiclass,
-        num_classes,
-        average,
-        mdmc_average,
-        zero_division,
-        ignore_index,
-    ):
-        self.run_class_metric_test(
-            ddp=ddp,
-            preds=preds,
-            target=target,
-            metric_class=metric_class,
-            sk_metric=partial(
-                _sk_fbeta_mdmc,
-                beta=beta,
-                sk_fn=sk_fn,
-                average=average,
-                num_classes=num_classes,
-                logits=logits,
-                is_multiclass=is_multiclass,
-                zero_division=zero_division,
-                ignore_index=ignore_index,
-                mdmc_average=mdmc_average,
-            ),
-            dist_sync_on_step=dist_sync_on_step,
-            metric_args={
-                "beta": beta,
-                "num_classes": num_classes,
-                "average": average,
-                "threshold": THRESHOLD,
-                "logits": logits,
-                "is_multiclass": is_multiclass,
-                "zero_division": zero_division,
-                "ignore_index": ignore_index,
-                "mdmc_average": mdmc_average,
-            },
-            check_dist_sync_on_step=True,
-            check_batch=True,
-        )
+class TestFBetaMDMC1(FBetaBaseTest):
+    pass
 
 
 @pytest.mark.parametrize("ddp", [False])  # True was basically already checked, speeds up the testing
@@ -309,8 +227,8 @@ class TestFBetaMDMC1(MetricTester):
 @pytest.mark.parametrize("mdmc_average", ["samplewise", "global"])
 @pytest.mark.parametrize("zero_division", [0, 1])
 @pytest.mark.parametrize("ignore_index", [1])
-@pytest.mark.parametrize("metric_class, sk_fn", [(FBeta, fbeta_score)])
 @pytest.mark.parametrize("beta", [0.5, 1])
+@pytest.mark.parametrize("sk_fn", [_sk_fbeta_mdmc])
 @pytest.mark.parametrize(
     "preds, target, num_classes, logits, is_multiclass",
     [
@@ -319,53 +237,5 @@ class TestFBetaMDMC1(MetricTester):
         (_multidim_multiclass_prob_inputs1.preds, _multidim_multiclass_prob_inputs1.target, NUM_CLASSES, False, None),
     ],
 )
-class TestFBetaMDMC2(MetricTester):
-    def test_fbeta_mdmc2(
-        self,
-        ddp,
-        dist_sync_on_step,
-        preds,
-        target,
-        beta,
-        metric_class,
-        sk_fn,
-        logits,
-        is_multiclass,
-        num_classes,
-        average,
-        mdmc_average,
-        zero_division,
-        ignore_index,
-    ):
-        self.run_class_metric_test(
-            ddp=ddp,
-            preds=preds,
-            target=target,
-            metric_class=metric_class,
-            sk_metric=partial(
-                _sk_fbeta_mdmc,
-                beta=beta,
-                sk_fn=sk_fn,
-                average=average,
-                num_classes=num_classes,
-                logits=logits,
-                is_multiclass=is_multiclass,
-                zero_division=zero_division,
-                ignore_index=ignore_index,
-                mdmc_average=mdmc_average,
-            ),
-            dist_sync_on_step=dist_sync_on_step,
-            metric_args={
-                "beta": beta,
-                "num_classes": num_classes,
-                "average": average,
-                "threshold": THRESHOLD,
-                "logits": logits,
-                "is_multiclass": is_multiclass,
-                "zero_division": zero_division,
-                "ignore_index": ignore_index,
-                "mdmc_average": mdmc_average,
-            },
-            check_dist_sync_on_step=True,
-            check_batch=True,
-        )
+class TestFBetaMDMC2(FBetaBaseTest):
+    pass

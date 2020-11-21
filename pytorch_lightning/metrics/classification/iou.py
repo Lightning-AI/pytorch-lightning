@@ -130,6 +130,7 @@ class IoU(StatScores):
         logits: bool = True,
         is_multiclass: Optional[bool] = None,
         ignore_index: Optional[int] = None,
+        zero_division: int = 0,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -149,11 +150,15 @@ class IoU(StatScores):
             dist_sync_fn=dist_sync_fn,
         )
 
+        if zero_division not in [0, 1]:
+            raise ValueError("zero_division has to be either 0 or 1")
+
         # Check average
         if average not in ["micro", "macro", "weighted", "samples", "none", None]:
             raise ValueError("Uncrecognized average option: %s" % average)
 
         self.average = average
+        self.zero_division = zero_division
 
     def compute(self) -> torch.Tensor:
         """
@@ -165,5 +170,5 @@ class IoU(StatScores):
             weights=self.tp + self.fn,
             average=self.average,
             mdmc_average=self.mdmc_average,
-            zero_division=0,
+            zero_division=self.zero_division,
         )
