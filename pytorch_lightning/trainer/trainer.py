@@ -877,7 +877,8 @@ class Trainer(
     @property
     def testing(self):
         warnings.warn(
-            'Trainer.testing has been deprecated in v1.1 and will be removed in v1.3, use Trainer.evaluating instead.',
+            'Trainer.testing has been deprecated in v1.1 and will be removed '
+            'in v1.3, use Trainer.evaluating instead.',
             DeprecationWarning, stacklevel=2
         )
         return bool(self.evaluating)
@@ -885,7 +886,8 @@ class Trainer(
     @property
     def tested_ckpt_path(self):
         warnings.warn(
-            'Trainer.tested_ckpt_path has been renamed Trainer.evaluated_ckpt_path in v1.1 and will be removed in v1.3.',
+            'Trainer.tested_ckpt_path has been renamed Trainer.evaluated_ckpt_path '
+            'in v1.1 and will be removed in v1.3.',
             DeprecationWarning, stacklevel=2
         )
         return self.evaluated_ckpt_path
