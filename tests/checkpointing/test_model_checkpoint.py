@@ -13,17 +13,12 @@
 # limitations under the License.
 import os
 import os.path as osp
-from unittest import mock
-
-import pytorch_lightning as pl
-from unittest.mock import Mock
-
-import yaml
 import pickle
 import platform
 import re
 from distutils.version import LooseVersion
 from pathlib import Path
+from unittest import mock
 from unittest.mock import MagicMock, Mock
 
 import cloudpickle
@@ -41,7 +36,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel
 
 
-class LessBoringModel(BoringModel):
+class LogInTwoMethods(BoringModel):
     def training_step(self, batch, batch_idx):
         out = super().training_step(batch, batch_idx)
         self.log('early_stop_on', out['loss'])
@@ -59,7 +54,7 @@ def test_model_checkpoint_correct_score(tmpdir, save_top_k):
     """Test that when a model checkpoint is saved, it saves with the correct score appended to ckpt_path"""
     tutils.reset_seed()
 
-    model = LessBoringModel()
+    model = LogInTwoMethods()
 
     filename = "{val_acc:.4f}-{epoch}"
 
@@ -80,7 +75,7 @@ def test_model_checkpoint_correct_score(tmpdir, save_top_k):
 def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
     """Test that dirpath=None in checkpoint callback is valid and that ckpt_path is set correctly"""
     tutils.reset_seed()
-    model = LessBoringModel()
+    model = LogInTwoMethods()
 
     checkpoint = ModelCheckpoint(monitor='early_stop_on', dirpath=None, filename='{epoch}', save_top_k=save_top_k)
     max_epochs = 2
@@ -106,7 +101,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
 def test_model_checkpoint_to_yaml(tmpdir, save_top_k):
     """ Test that None in checkpoint callback is valid and that chkp_path is set correctly """
     tutils.reset_seed()
-    model = LessBoringModel()
+    model = LogInTwoMethods()
 
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_top_k=save_top_k)
 
@@ -127,7 +122,7 @@ def test_model_checkpoint_to_yaml(tmpdir, save_top_k):
 def test_model_checkpoint_path(tmpdir, logger_version, expected):
     """Test that "version_" prefix is only added when logger's version is an integer"""
     tutils.reset_seed()
-    model = LessBoringModel()
+    model = LogInTwoMethods()
     logger = TensorBoardLogger(str(tmpdir), version=logger_version)
 
     trainer = Trainer(
@@ -185,7 +180,7 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
 )
 def test_model_checkpoint_no_extraneous_invocations(tmpdir):
     """Test to ensure that the model callback saves the checkpoints only once in distributed mode."""
-    model = LessBoringModel()
+    model = LogInTwoMethods()
     num_epochs = 4
     model_checkpoint = ModelCheckpointTestInvocations(monitor='early_stop_on', expected_count=num_epochs, save_top_k=-1)
     trainer = Trainer(
@@ -267,7 +262,7 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
 def test_model_checkpoint_save_last(tmpdir):
     """Tests that save_last produces only one last checkpoint."""
     seed_everything()
-    model = LessBoringModel()
+    model = LogInTwoMethods()
     epochs = 3
     ModelCheckpoint.CHECKPOINT_NAME_LAST = 'last-{epoch}'
     model_checkpoint = ModelCheckpoint(monitor='early_stop_on', dirpath=tmpdir, save_top_k=-1, save_last=True)
@@ -324,7 +319,7 @@ def test_none_monitor_save_last(tmpdir):
 def test_model_checkpoint_none_monitor(tmpdir):
     """ Test that it is possible to save all checkpoints when monitor=None. """
     seed_everything()
-    model = LessBoringModel()
+    model = LogInTwoMethods()
 
     epochs = 2
     checkpoint_callback = ModelCheckpoint(monitor=None, dirpath=tmpdir, save_top_k=-1)
@@ -352,7 +347,7 @@ def test_model_checkpoint_none_monitor(tmpdir):
 
 @pytest.mark.parametrize("period", list(range(4)))
 def test_model_checkpoint_period(tmpdir, period):
-    model = LessBoringModel()
+    model = LogInTwoMethods()
     epochs = 5
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, filename='{epoch}', save_top_k=-1, period=period)
     trainer = Trainer(
@@ -373,7 +368,7 @@ def test_model_checkpoint_period(tmpdir, period):
 
 def test_model_checkpoint_topk_zero(tmpdir):
     """ Test that no checkpoints are saved when save_top_k=0. """
-    model = LessBoringModel()
+    model = LogInTwoMethods()
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_top_k=0)
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -397,7 +392,7 @@ def test_model_checkpoint_topk_all(tmpdir):
     seed_everything(1000)
     epochs = 3
 
-    class CustomModel(LessBoringModel):
+    class CustomModel(LogInTwoMethods):
         def validation_epoch_end(self, outputs):
             return {'epoch': self.current_epoch}
 
@@ -427,7 +422,7 @@ def test_model_checkpoint_topk_all(tmpdir):
 
 
 def test_ckpt_metric_names(tmpdir):
-    model = LessBoringModel()
+    model = LogInTwoMethods()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -453,16 +448,9 @@ def test_ckpt_metric_names(tmpdir):
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_default_checkpoint_behavior(tmpdir):
     seed_everything(1234)
-
-<<<<<<< HEAD
     os.environ['PL_DEV_DEBUG'] = '1'
-=======
-    model = EvalModelTemplate()
-    model.validation_step = model.validation_step_no_monitor
-    model.validation_epoch_end = model.validation_epoch_end_no_monitor
->>>>>>> origin/master
 
-    model = LessBoringModel()
+    model = LogInTwoMethods()
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=3,
@@ -484,7 +472,7 @@ def test_default_checkpoint_behavior(tmpdir):
 
 
 def test_ckpt_metric_names_results(tmpdir):
-    class LessBoringModel(BoringModel):
+    class ResultLog(BoringModel):
         def training_step(self, batch, batch_idx):
             y_hat = self(batch)
 
@@ -518,7 +506,7 @@ def test_ckpt_metric_names_results(tmpdir):
             })
             return result
 
-    model = LessBoringModel()
+    model = ResultLog()
     model.training_step_end = None
     model.training_epoch_end = None
     model.validation_step_end = None
@@ -550,7 +538,7 @@ def test_ckpt_metric_names_results(tmpdir):
 @pytest.mark.parametrize('save_last', [True, False])
 def test_model_checkpoint_save_last_warning(tmpdir, caplog, max_epochs, should_validate, save_last):
     """Tests 'Saving latest checkpoint...' log"""
-    model = LessBoringModel()
+    model = LogInTwoMethods()
     if not should_validate:
         model.validation_step = None
     trainer = Trainer(
@@ -566,7 +554,7 @@ def test_model_checkpoint_save_last_warning(tmpdir, caplog, max_epochs, should_v
 def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     """ Tests that the save_last checkpoint contains the latest information. """
     seed_everything(100)
-    model = LessBoringModel()
+    model = LogInTwoMethods()
     num_epochs = 3
     model_checkpoint = ModelCheckpoint(
         monitor='early_stop_on', dirpath=tmpdir, filename="{epoch}", save_top_k=num_epochs, save_last=True
@@ -591,8 +579,8 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     assert ckpt_last["callbacks"][ch_type] == ckpt_last_epoch["callbacks"][ch_type]
 
     # it is easier to load the model objects than to iterate over the raw dict of tensors
-    model_last_epoch = LessBoringModel.load_from_checkpoint(path_last_epoch)
-    model_last = LessBoringModel.load_from_checkpoint(
+    model_last_epoch = LogInTwoMethods.load_from_checkpoint(path_last_epoch)
+    model_last = LogInTwoMethods.load_from_checkpoint(
         model_checkpoint.last_model_path
     )
     for w0, w1 in zip(model_last_epoch.parameters(), model_last.parameters()):
@@ -605,7 +593,7 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
     monitor = [float('nan')]
     monitor += [5, 7, 8] if mode == 'max' else [8, 7, 5]
 
-    class CurrentModel(LessBoringModel):
+    class CurrentModel(LogInTwoMethods):
         def validation_epoch_end(self, outputs):
             val_loss = monitor[self.current_epoch]
             self.log('abc', val_loss)
@@ -715,7 +703,7 @@ def test_checkpoint_repeated_strategy_tmpdir(tmpdir):
 
         # load from checkpoint
         chk = get_last_checkpoint()
-        model = LessBoringModel.load_from_checkpoint(chk)
+        model = LogInTwoMethods.load_from_checkpoint(chk)
         trainer = pl.Trainer(default_root_dir=tmpdir,
                              max_epochs=1,
                              limit_train_batches=2,
@@ -888,7 +876,7 @@ def test_configure_model_checkpoint(tmpdir):
 
 def test_val_check_interval_checkpoint_files(tmpdir):
     """ Test correct checkpoint naming when validating/checkpointing multiple times per epoch. """
-    model = LessBoringModel()
+    model = LogInTwoMethods()
     model_checkpoint = ModelCheckpoint(
         dirpath=tmpdir,
         save_top_k=-1,
