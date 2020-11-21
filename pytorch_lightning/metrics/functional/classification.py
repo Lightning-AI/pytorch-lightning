@@ -21,7 +21,6 @@ from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matr
 
 from pytorch_lightning.utilities import rank_zero_warn
 
-
 def to_onehot(
         tensor: torch.Tensor,
         num_classes: Optional[int] = None,

@@ -15,7 +15,14 @@ from typing import Any, Callable, Optional
 
 import torch
 from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.metrics.classification.utils import _input_format_classification
+from pytorch_lightning.metrics.functional.accuracy import (
+    _accuracy_update,
+    _topk_accuracy_update,
+    _hamming_loss_update,
+    _topk_accuracy_compute,
+    _accuracy_compute,
+    _hamming_loss_compute,
+)
 
 
 class Accuracy(Metric):
@@ -91,19 +98,17 @@ class Accuracy(Metric):
             preds: Predictions from model (probabilities, logits, or labels)
             target: Ground truth values
         """
-        preds, target, _ = _input_format_classification(preds, target, threshold=self.threshold, logits=self.logits)
 
-        extra_dims = list(range(1, len(preds.shape)))
-        sample_correct = (preds == target).sum(dim=extra_dims)
+        correct, total = _accuracy_update(preds, target, self.threshold, self.logits)
 
-        self.correct += (sample_correct == preds[0].numel()).sum()
-        self.total += preds.shape[0]
+        self.correct += correct
+        self.total += total
 
     def compute(self) -> torch.Tensor:
         """
         Computes accuracy based on inputs passed in to ``update`` previously.
         """
-        return self.correct.float() / self.total
+        return _accuracy_compute(self.correct, self.total)
 
 
 class HammingLoss(Metric):
@@ -178,16 +183,16 @@ class HammingLoss(Metric):
             preds: Predictions from model (probabilities, logits, or labels)
             target: Ground truth values
         """
-        preds, target, _ = _input_format_classification(preds, target, threshold=self.threshold, logits=self.logits)
+        correct, total = _hamming_loss_update(preds, target, self.threshold, self.logits)
 
-        self.correct += (preds == target).sum()
-        self.total += preds.numel()
+        self.correct += correct
+        self.total += total
 
     def compute(self) -> torch.Tensor:
         """
         Computes hamming loss based on inputs passed in to ``update`` previously.
         """
-        return 1 - self.correct.float() / self.total
+        return _hamming_loss_compute(self.correct, self.total)
 
 
 class TopKAccuracy(Metric):
@@ -281,20 +286,13 @@ class TopKAccuracy(Metric):
             preds: Predictions from model (probabilities, logits, or labels)
             target: Ground truth values
         """
-        preds, target, mode = _input_format_classification(preds, target, logits=True, top_k=self.k)
+        correct, total = _topk_accuracy_update(preds, target, self.subset_accuracy, self.k)
 
-        if "multi-dim" not in mode or not self.subset_accuracy:
-            self.correct += (preds * target).sum()
-            self.total += int(preds.numel() / preds.shape[1])
-        else:
-            extra_dims = list(range(1, len(preds.shape)))
-            sample_correct = (preds * target).sum(dim=extra_dims)
-
-            self.correct += (sample_correct == preds[0, 0].numel()).sum()
-            self.total += preds.shape[0]
+        self.correct += correct
+        self.total += total
 
     def compute(self) -> torch.Tensor:
         """
         Computes top k accuracy  based on inputs passed in to ``update`` previously.
         """
-        return self.correct.float() / self.total
+        return _topk_accuracy_compute(self.correct, self.total)
