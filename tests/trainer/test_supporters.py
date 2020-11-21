@@ -17,6 +17,18 @@ def test_cycle_iterator():
     assert idx == len(iterator) - 1
 
 
+def test_none_length_cycle_iterator():
+    """Test the infinite cycling function of `CycleIterator`"""
+    iterator = CycleIterator(range(100))
+    assert iterator.__len__() == float('inf')
+
+    # test infinite loop
+    for idx, item in enumerate(iterator):
+        if idx == 1000:
+            break
+    assert item == 0
+
+
 @pytest.mark.parametrize(['dataset_1', 'dataset_2'], [
     ([list(range(10)), list(range(20))]),
     ([range(10), range(20)]),
@@ -32,6 +44,11 @@ def test_combined_dataset(dataset_1, dataset_2):
     assert combined_dataset.min_len == len(combined_dataset) == 10
 
 
+def test_combined_dataset_length_mode_error():
+    with pytest.raises(ValueError):
+        CombinedDataset._calc_num_data([range(10)], 'test')
+
+
 def test_combined_loader_iterator_dict_min_size():
     """Test `CombinedLoaderIterator` given mapping loaders"""
     loaders = {'a': torch.utils.data.DataLoader(range(10), batch_size=4),
@@ -45,6 +62,24 @@ def test_combined_loader_iterator_dict_min_size():
         assert 'a' in item and 'b' in item
 
     assert idx == min(len(loaders['a']), len(loaders['b'])) - 1
+
+
+def test_combined_loader_init_mode_error():
+    """Test the ValueError when constructing `CombinedLoader`"""
+    with pytest.raises(ValueError):
+        CombinedLoader([range(10)], 'test')
+
+
+def test_combined_loader_loader_type_error():
+    """Test the ValueError when wrapping the loaders"""
+    with pytest.raises(ValueError):
+        CombinedLoader(None, 'max_size_cycle')
+
+
+def test_combined_loader_calc_length_mode_error():
+    """Test the ValueError when calculating the number of batches"""
+    with pytest.raises(TypeError):
+        CombinedLoader._calc_num_batches(None)
 
 
 def test_combined_loader_dict_min_size():
