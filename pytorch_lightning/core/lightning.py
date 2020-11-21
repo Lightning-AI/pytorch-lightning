@@ -179,6 +179,12 @@ class LightningModule(
         """ Reference to the logger object in the Trainer. """
         return self.trainer.logger if self.trainer else None
 
+    def _prepare_batch_for_transfer(self, batch: Any, device: Optional[torch.device] = None):
+        batch = self.on_before_batch_transfer(batch)
+        batch = self.transfer_batch_to_device(batch, device)
+        batch = self.on_after_batch_transfer(batch)
+        return batch
+
     def print(self, *args, **kwargs) -> None:
         r"""
         Prints only from process 0. Use this in any distributed mode to log only once.
@@ -1760,6 +1766,7 @@ class LightningModule(
         """
         mode = self.training
 
+<<<<<<< HEAD
         if method == 'script':
             torchscript_module = torch.jit.script(self.eval(), **kwargs)
         elif method == 'trace':
@@ -1781,6 +1788,21 @@ class LightningModule(
                 f" but value given was: {method}"
             )
 
+=======
+        with torch.no_grad():
+            if method == 'script':
+                torchscript_module = torch.jit.script(self.eval(), **kwargs)
+            elif method == 'trace':
+                # if no example inputs are provided, try to see if model has example_input_array set
+                if example_inputs is None:
+                    example_inputs = self.example_input_array
+                # automatically send example inputs to the right device and use trace
+                example_inputs = self._prepare_batch_for_transfer(example_inputs)
+                torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
+            else:
+                raise ValueError(f"The 'method' parameter only supports 'script' or 'trace', but value given was:"
+                                 f"{method}")
+>>>>>>> make it private
         self.train(mode)
 
         if file_path is not None:

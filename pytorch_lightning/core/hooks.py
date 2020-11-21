@@ -569,15 +569,15 @@ class DataHooks:
         return move_data_to_device(batch, device)
 
     def on_before_batch_transfer(self, batch):
+        """
+        Called before batch is transfered to the device
+        """
         return batch
 
     def on_after_batch_transfer(self, batch):
-        return batch
-
-    def prepare_batch_for_transfer(self, batch: Any, device: Optional[torch.device] = None):
-        batch = self.on_before_batch_transfer(batch)
-        batch = self.transfer_batch_to_device(batch, device)
-        batch = self.on_after_batch_transfer(batch)
+        """
+        Called after batch is transfered to the device
+        """
         return batch
 
 
