@@ -145,26 +145,52 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @mock.patch("pytorch_lightning.accelerators.accelerator.Accelerator.lightning_module", new_callable=PropertyMock)
-def test_transfer_batch_hook(model_getter_mock):
+def test_apply_batch_transfer_handler(model_getter_mock):
 
     class CustomBatch:
-
         def __init__(self, data):
             self.samples = data[0]
             self.targets = data[1]
 
     class CurrentTestModel(BoringModel):
+        rank = 0
+        transfer_batch_to_device_hook_rank = None
+        on_before_batch_transfer_hook_rank = None
+        on_after_batch_transfer_hook_rank = None
 
-        hook_called = False
+        def on_before_batch_transfer(self, batch):
+            self.on_before_batch_transfer_hook_rank = self.rank
+            self.rank += 1
 
-        def transfer_batch_to_device(self, data, device):
-            self.hook_called = True
-            if isinstance(data, CustomBatch):
-                data.samples = data.samples.to(device)
-                data.targets = data.targets.to(device)
+            if isinstance(batch, CustomBatch):
+                batch.samples += 1
             else:
-                data = super().transfer_batch_to_device(data, device)
-            return data
+                batch = super().on_before_batch_transfer(batch)
+
+            return batch
+
+        def on_after_batch_transfer(self, batch):
+            self.on_after_batch_transfer_hook_rank = self.rank
+            self.rank += 1
+
+            if isinstance(batch, CustomBatch):
+                batch.targets *= 2
+            else:
+                batch = super().on_after_batch_transfer(batch)
+
+            return batch
+
+        def transfer_batch_to_device(self, batch, device):
+            self.transfer_batch_to_device_hook_rank = self.rank
+            self.rank += 1
+
+            if isinstance(batch, CustomBatch):
+                batch.samples = batch.samples.to(device)
+                batch.targets = batch.targets.to(device)
+            else:
+                batch = super().transfer_batch_to_device(batch, device)
+
+            return batch
 
     model = CurrentTestModel()
     batch = CustomBatch((torch.zeros(5, 32), torch.ones(5, 1, dtype=torch.long)))
@@ -173,9 +199,14 @@ def test_transfer_batch_hook(model_getter_mock):
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
     model_getter_mock.return_value = model
     batch_gpu = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
-    expected = torch.device('cuda', 0)
-    assert model.hook_called
-    assert batch_gpu.samples.device == batch_gpu.targets.device == expected
+    expected_device = torch.device('cuda', 0)
+
+    assert model.on_before_batch_transfer_hook_rank == 0
+    assert model.transfer_batch_to_device_hook_rank == 1
+    assert model.on_after_batch_transfer_hook_rank == 2
+    assert batch_gpu.samples.device == batch_gpu.targets.device == expected_device
+    assert torch.allclose(batch_gpu.samples.cpu(), torch.ones(5, 28))
+    assert torch.allclose(batch_gpu.targets.cpu(), torch.ones(5, 1) * 2)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
