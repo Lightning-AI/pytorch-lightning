@@ -119,7 +119,7 @@ class DataConnector(object):
             if is_overridden('test_dataloader', datamodule):
                 model.test_dataloader = datamodule.test_dataloader
 
-            # Override transfer_batch_to_device if dataset-specific to_device logic has been defined in datamodule
+            # Override data transfer hooks if dataset-specific to_device logic has been defined in datamodule
             if is_overridden('on_before_batch_transfer', datamodule):
                 model.on_before_batch_transfer = datamodule.on_before_batch_transfer
             if is_overridden('transfer_batch_to_device', datamodule):
