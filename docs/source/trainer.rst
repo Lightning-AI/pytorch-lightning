@@ -150,9 +150,10 @@ So you can run it like so:
 
 Validation
 ----------
-After training, you can perform a new evaluation epoch over the validation set
-with :meth:`pytorch_lightning.trainer.trainer.Trainer.validate`. This might be
-useful if you want to collect new metrics from a model you already trained.
+You can perform an evaluation epoch over the validation set, outside of the training loop,
+using :meth:`pytorch_lightning.trainer.trainer.Trainer.validate`. This might be
+useful if you want to collect new metrics from a model right at its initialization
+or that has already been trained.
 
 .. code-block:: python
 
