@@ -39,5 +39,6 @@ class TrainDataloaderVariations(ABC):
         return dataloader
 
     def train_dataloader__multiple(self):
+        """Return a mapping loaders with different lengths"""
         return {'a': self.dataloader(train=True, num_samples=100),
                 'b': self.dataloader(train=True, num_samples=50)}

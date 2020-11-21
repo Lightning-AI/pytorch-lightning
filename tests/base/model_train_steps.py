@@ -217,7 +217,7 @@ class TrainingStepVariations(ABC):
         return result
 
     def training_step__multiple_dataloaders(self, batch, batch_idx, optimizer_idx=None):
-        """Lightning calls this inside the training loop"""
+        """Training step for multiple train loaders"""
 
         assert isinstance(batch, dict)
         assert len(batch) == 2

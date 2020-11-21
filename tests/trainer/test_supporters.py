@@ -8,6 +8,7 @@ from pytorch_lightning.trainer.supporters import CycleIterator, CombinedLoader, 
 
 
 def test_cycle_iterator():
+    """Test the cycling function of `CycleIterator`"""
     iterator = CycleIterator(range(100), 1000)
     assert len(iterator) == 1000
     for idx, item in enumerate(iterator):
@@ -23,6 +24,7 @@ def test_cycle_iterator():
     ([TensorDataset(torch.randn(10, 3, 2)), TensorDataset(torch.randn(20, 5, 6))])
 ])
 def test_combined_dataset(dataset_1, dataset_2):
+    """Verify the length of the CombinedDataset"""
     datasets = [dataset_1, dataset_2]
     combined_dataset = CombinedDataset(datasets)
 
@@ -31,6 +33,7 @@ def test_combined_dataset(dataset_1, dataset_2):
 
 
 def test_combined_loader_iterator_dict_min_size():
+    """Test `CombinedLoaderIterator` given mapping loaders"""
     loaders = {'a': torch.utils.data.DataLoader(range(10), batch_size=4),
                'b': torch.utils.data.DataLoader(range(20), batch_size=5)}
 
@@ -45,6 +48,7 @@ def test_combined_loader_iterator_dict_min_size():
 
 
 def test_combined_loader_dict_min_size():
+    """Test `CombinedLoader` of mode 'min_size' given mapping loaders"""
     loaders = {'a': torch.utils.data.DataLoader(range(10), batch_size=4),
                'b': torch.utils.data.DataLoader(range(20), batch_size=5)}
 
@@ -61,6 +65,7 @@ def test_combined_loader_dict_min_size():
 
 
 def test_combined_loader_dict_max_size_cycle():
+    """Test `CombinedLoader` of mode 'max_size_cycle' given mapping loaders"""
     loaders = {'a': torch.utils.data.DataLoader(range(10), batch_size=4),
                'b': torch.utils.data.DataLoader(range(20), batch_size=5)}
 
@@ -77,6 +82,7 @@ def test_combined_loader_dict_max_size_cycle():
 
 
 def test_combined_loader_sequence_min_size():
+    """Test `CombinedLoader` of mode 'min_size' given sequence loaders"""
     loaders = [torch.utils.data.DataLoader(range(10), batch_size=4),
                torch.utils.data.DataLoader(range(20), batch_size=5)]
 
@@ -92,6 +98,7 @@ def test_combined_loader_sequence_min_size():
 
 
 def test_combined_loader_sequence_max_size_cycle():
+    """Test `CombinedLoader` of mode 'max_size_cycle' given sequence loaders"""
     loaders = [torch.utils.data.DataLoader(range(10), batch_size=4),
                torch.utils.data.DataLoader(range(20), batch_size=5)]
 
