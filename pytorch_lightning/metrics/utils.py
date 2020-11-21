@@ -74,14 +74,6 @@ def _get_topk_preds(preds: torch.Tensor, target: torch.Tensor, topk: Optional[in
             f'topk should be >= 1 but got topk={topk}'
         )
 
-    if (target.ndim > 1) and (preds.ndim == target.ndim) and (topk is not None):
-        raise ValueError(
-            f'topk={topk} is not supported for multi-label target values'
-        )
-
-    if ((target.ndim > 1) and (preds.ndim == target.ndim)) or (preds.ndim == 1):  # multi-label or binary probs
-        return preds
-
     if topk is None:
         topk = 1
 
@@ -108,18 +100,15 @@ def _input_format_classification(preds: torch.Tensor, target: torch.Tensor, thre
         preds: tensor with labels
         target: tensor with labels
     """
-    if not (len(preds.shape) == len(target.shape) or len(preds.shape) == len(target.shape) + 1):
+    if not (len(preds.shape) == len(target.shape)
+            or (preds.dtype == torch.float and len(preds.shape) == len(target.shape) + 1)):
         raise ValueError(
             "preds and target must have same number of dimensions, or one additional dimension for preds"
         )
 
-    # topk is possible with probabilities only
-    if preds.dtype == torch.float:
+    # topk is possible with multi-class probabilities only
+    if preds.dtype == torch.float and preds.ndim == target.ndim + 1:
         preds = _get_topk_preds(preds, target, topk)
-
-    # if len(preds.shape) == len(target.shape) + 1:
-        # multi class probabilites
-        # preds = torch.argmax(preds, dim=1)
 
     if len(preds.shape) == len(target.shape) and preds.dtype == torch.float:
         # binary or multilabel probablities
