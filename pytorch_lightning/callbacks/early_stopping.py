@@ -138,13 +138,13 @@ class EarlyStopping(Callback):
         self.patience = checkpointed_state['patience']
 
     def on_validation_end(self, trainer, pl_module):
-        if trainer.running_sanity_check:
+        if trainer.running_sanity_check or trainer.evaluating:
             return
 
         self._run_early_stopping_check(trainer, pl_module)
 
     def on_validation_epoch_end(self, trainer, pl_module):
-        if trainer.running_sanity_check:
+        if trainer.running_sanity_check or trainer.evaluating:
             return
 
         if self._validate_condition_metric(trainer.logger_connector.callback_metrics):
