@@ -48,12 +48,12 @@ from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args
 
 class LightningModule(
     ABC,
+    CheckpointHooks,
+    DataHooks,
     DeviceDtypeModuleMixin,
     GradInformation,
-    ModelIO,
     ModelHooks,
-    DataHooks,
-    CheckpointHooks,
+    ModelIO,
     Module,
 ):
     # Below is for property support of JIT in PyTorch 1.7
@@ -1773,7 +1773,7 @@ class LightningModule(
                 example_inputs = self.example_input_array
 
             # automatically send example inputs to the right device and use trace
-            example_inputs = self.transfer_batch_to_device(example_inputs)
+            example_inputs = self.prepare_batch_for_transfer(example_inputs)
             torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
         else:
             raise ValueError(

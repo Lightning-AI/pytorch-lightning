@@ -156,13 +156,13 @@ class TestTubeLogger(LightningLoggerBase):
 
             if input_array is not None:
                 self.experiment.add_graph(
-                    model, model.transfer_batch_to_device(model.example_input_array, model.device)
+                    model, model._apply_batch_transfer_handler(input_array)
                 )
             else:
                 rank_zero_warn(
-                    'Could not log computational graph since the'
-                    ' `model.example_input_array` attribute is not set'
-                    ' or `input_array` was not given', UserWarning
+                    'Could not log computational graph since neither the'
+                    ' `model.example_input_array` attribute is set nor'
+                    ' `input_array` was given', UserWarning
                 )
 
     @rank_zero_only

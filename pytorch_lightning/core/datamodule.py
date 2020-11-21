@@ -95,7 +95,11 @@ def track_data_hook_calls(fn):
     return wrapped_fn
 
 
-class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapper):
+class LightningDataModule(
+    CheckpointHooks,
+    DataHooks,
+    metaclass=_DataModuleWrapper
+):
     """
     A DataModule standardizes the training, val, test splits, data preparation and transforms.
     The main advantage is consistent data splits, data preparation and transforms across models.
@@ -246,22 +250,6 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
 
     @abstractmethod
     def setup(self, stage: Optional[str] = None):
-        pass
-
-    @abstractmethod
-    def train_dataloader(self, *args, **kwargs) -> DataLoader:
-        pass
-
-    @abstractmethod
-    def val_dataloader(self, *args, **kwargs) -> Union[DataLoader, List[DataLoader]]:
-        pass
-
-    @abstractmethod
-    def test_dataloader(self, *args, **kwargs) -> Union[DataLoader, List[DataLoader]]:
-        pass
-
-    @abstractmethod
-    def transfer_batch_to_device(self, batch: Any, device: torch.device) -> Any:
         pass
 
     @classmethod
