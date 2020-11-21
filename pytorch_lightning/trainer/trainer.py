@@ -885,16 +885,16 @@ class Trainer(
     @property
     def testing(self):
         warnings.warn(
-            'Trainer.testing is deprecated, use Trainer.evaluating instead.',
-            FutureWarning, stacklevel=2
+            'Trainer.testing has been deprecated in v1.1 and will be removed in v1.3, use Trainer.evaluating instead.',
+            DeprecationWarning, stacklevel=2
         )
         return bool(self.evaluating)
 
     @property
     def tested_ckpt_path(self):
         warnings.warn(
-            'Trainer.tested_ckpt_path is deprecated and has been replaced by Trainer.evaluated_ckpt_path.',
-            FutureWarning, stacklevel=2
+            'Trainer.tested_ckpt_path has been renamed Trainer.evaluated_ckpt_path in v1.1 and will be removed in v1.3.',
+            DeprecationWarning, stacklevel=2
         )
         return self.evaluated_ckpt_path
 
