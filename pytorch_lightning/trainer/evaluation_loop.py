@@ -217,7 +217,7 @@ class EvaluationLoop(object):
 
     def log_epoch_metrics_on_evaluation_end(self):
         # get the final loop results
-        eval_loop_results = self.trainer.logger_connector.get_evaluate_epoch_results(self.testing)
+        eval_loop_results = self.trainer.logger_connector.get_evaluate_epoch_results()
         return eval_loop_results
 
     def __run_eval_epoch_end(self, num_dataloaders, using_eval_result):
