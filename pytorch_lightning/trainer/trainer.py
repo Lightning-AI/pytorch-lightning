@@ -716,25 +716,21 @@ class Trainer(
         datamodule: Optional[LightningDataModule] = None,
     ):
         r"""
-
         Perform one evaluation epoch over the validation set.
 
         Args:
-            ckpt_path: Either ``best`` or path to the checkpoint you wish to evaluate.
+            ckpt_path: Either ``best`` or path to the checkpoint you wish to validate.
                 If ``None``, use the current weights of the model. Default to ``best``.
-
             datamodule: A instance of :class:`LightningDataModule`.
-
             model: The model to evaluate.
-
             val_dataloaders: Either a single PyTorch DataLoader or a list of them,
                 specifying validation samples.
-
-            verbose: If True, prints the evaluation results
+            verbose: If True, prints the validation results.
 
         Returns:
-            The final validation results dictionary. If no validation_epoch_end
-            is defined, returns a list of dictionaries.
+            The dictionary with final validation results returned by validation_epoch_end.
+            If validation_epoch_end is not defined, the output is a list of the dictionaries
+            returned by validation_step.
         """
         # --------------------
         # SETUP HOOK
@@ -770,26 +766,22 @@ class Trainer(
         datamodule: Optional[LightningDataModule] = None,
     ):
         r"""
-
         Perform one evaluation epoch over the test set. It's separated from
         fit to make sure you never run on your test set until you want to.
 
         Args:
-            ckpt_path: Either ``best`` or path to the checkpoint you wish to evaluate.
+            ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
                 If ``None``, use the current weights of the model. Default to ``best``.
-
             datamodule: A instance of :class:`LightningDataModule`.
-
             model: The model to evaluate.
-
             test_dataloaders: Either a single PyTorch DataLoader or a list of them,
                 specifying test samples.
-
-            verbose: If True, prints the evaluation results
+            verbose: If True, prints the test results.
 
         Returns:
-            The final test results dictionary. If no test_epoch_end is defined,
-            returns a list of dictionaries.
+            The dictionary with final test results returned by test_epoch_end.
+            If test_epoch_end is not defined, the output is a list of the dictionaries
+            returned by test_step.
         """
         # --------------------
         # SETUP HOOK
