@@ -17,11 +17,8 @@ from typing import Callable, Optional, Sequence, Tuple
 import torch
 from distutils.version import LooseVersion
 
-from pytorch_lightning.metrics.functional.average_precision import average_precision as __ap
-from pytorch_lightning.metrics.functional.confusion_matrix import _confusion_matrix_update
 from pytorch_lightning.metrics.functional.precision_recall_curve import (
     _binary_clf_curve,
-    precision_recall_curve as __prc
 )
 from pytorch_lightning.metrics.functional.roc import roc as __roc
 from pytorch_lightning.metrics.utils import (
@@ -163,8 +160,8 @@ def stat_scores_multiple_classes(
         raise ValueError("reduction type %s not supported" % reduction)
 
     if reduction == 'none':
-        pred = pred.view((-1, )).long()
-        target = target.view((-1, )).long()
+        pred = pred.view((-1,)).long()
+        target = target.view((-1,)).long()
 
         tps = torch.zeros((num_classes + 1,), device=pred.device)
         fps = torch.zeros((num_classes + 1,), device=pred.device)
