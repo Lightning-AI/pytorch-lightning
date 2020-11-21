@@ -570,13 +570,13 @@ class DataHooks:
 
     def on_before_batch_transfer(self, batch):
         """
-        Called before batch is transfered to the device
+        Called before batch is transferred to the device
         """
         return batch
 
     def on_after_batch_transfer(self, batch):
         """
-        Called after batch is transfered to the device
+        Called after batch is transferred to the device
         """
         return batch
 

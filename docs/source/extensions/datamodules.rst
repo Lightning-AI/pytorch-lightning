@@ -286,7 +286,7 @@ Use this method to generate the test dataloader. Usually you just wrap the datas
 
 transfer_batch_to_device
 ^^^^^^^^^^^^^^^^^^^^^^^^
-Override to define how you want to move an arbitrary batch to a device
+Override to define how you want to move an arbitrary batch to a device.
 
 .. code-block:: python
 
@@ -298,6 +298,34 @@ Override to define how you want to move an arbitrary batch to a device
             x = batch['x']
             x = CustomDataWrapper(x)
             batch['x'].to(device)
+            return batch
+
+on_before_batch_transfer
+^^^^^^^^^^^^^^^^^^^^^^^^
+Override to alter or apply batch augmentations to your batch before it is transferred to the device.
+
+.. code-block:: python
+
+    import pytorch_lightning as pl
+
+
+    class MNISTDataModule(pl.LightningDataModule):
+        def on_before_batch_transfer(self, batch):
+            batch['x'] = transforms(batch['x'])
+            return batch
+
+on_after_batch_transfer
+^^^^^^^^^^^^^^^^^^^^^^^
+Override to alter or apply batch augmentations to your batch after it is transferred to the device.
+
+.. code-block:: python
+
+    import pytorch_lightning as pl
+
+
+    class MNISTDataModule(pl.LightningDataModule):
+        def on_after_batch_transfer(self, batch):
+            batch['x'] = gpu_transforms(batch['x'])
             return batch
 
 
