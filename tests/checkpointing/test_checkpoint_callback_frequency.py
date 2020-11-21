@@ -38,7 +38,7 @@ def test_mc_called_on_fastdevrun(tmpdir):
     # -----------------------
     # also called once with no val step
     # -----------------------
-    class LessBoringModel(BoringModel):
+    class TrainingStepCalled(BoringModel):
         def __init__(self):
             super().__init__()
             self.training_step_called = False
@@ -49,7 +49,7 @@ def test_mc_called_on_fastdevrun(tmpdir):
             self.training_step_called = True
             return super().training_step(batch, batch_idx)
 
-    train_step_only_model = LessBoringModel()
+    train_step_only_model = TrainingStepCalled()
     train_step_only_model.validation_step = None
 
     # fast dev run = called once
