@@ -162,7 +162,7 @@ def test_mlflow_experiment_id_retrieved_once(client, mlflow, tmpdir):
 
 @mock.patch('pytorch_lightning.loggers.mlflow.mlflow')
 @mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient')
-def test_mlflow_logger_with_unexpected_exceptions(client, mlflow, tmpdir):
+def test_mlflow_logger_with_unexpected_characters(client, mlflow, tmpdir):
     """
     Test that the logger raises warning with special characters not accepted by MLFlow.
     """
