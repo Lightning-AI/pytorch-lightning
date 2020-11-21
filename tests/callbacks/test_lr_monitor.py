@@ -14,11 +14,11 @@
 import pytest
 from torch import optim
 
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel
-import tests.base.develop_utils as tutils
 
 
 def test_lr_monitor_single_lr(tmpdir):
@@ -52,7 +52,7 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir):
     """ Test that learning rates and momentum are extracted and logged for single lr scheduler. """
     tutils.reset_seed()
 
-    class LessBoringModel(BoringModel):
+    class SingleLRSchedulerModel(BoringModel):
         def __init__(self):
             super().__init__()
             self.learning_rate = 0.01
@@ -64,7 +64,7 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir):
                                                          total_steps=10_000)
             return [optimizer], [lr_scheduler]
 
-    model = LessBoringModel()
+    model = SingleLRSchedulerModel()
 
     lr_monitor = LearningRateMonitor(log_momentum=True)
     trainer = Trainer(
@@ -88,11 +88,11 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir):
 def test_lr_monitor_no_lr_scheduler(tmpdir):
     tutils.reset_seed()
 
-    class LessBoringModel(BoringModel):
+    class NoLRSchedulerModel(BoringModel):
         def configure_optimizers(self):
             return optim.SGD(self.parameters(), lr=0.01)
 
-    model = LessBoringModel()
+    model = NoLRSchedulerModel()
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
@@ -130,7 +130,7 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval):
     """ Test that learning rates are extracted and logged for multi lr schedulers. """
     tutils.reset_seed()
 
-    class LessBoringModel(BoringModel):
+    class MultiLRSchedulerModel(BoringModel):
         def __init__(self):
             super().__init__()
             self.learning_rate = 0.01
@@ -146,7 +146,7 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval):
 
             return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
 
-    model = LessBoringModel()
+    model = MultiLRSchedulerModel()
     model.training_epoch_end = None
 
     lr_monitor = LearningRateMonitor(logging_interval=logging_interval)
@@ -182,7 +182,7 @@ def test_lr_monitor_param_groups(tmpdir):
     """ Test that learning rates are extracted and logged for single lr scheduler. """
     tutils.reset_seed()
 
-    class LessBoringModel(BoringModel):
+    class SingleLRSchedulerModel(BoringModel):
         def __init__(self):
             super().__init__()
             self.learning_rate = 0.1
@@ -197,7 +197,7 @@ def test_lr_monitor_param_groups(tmpdir):
             lr_scheduler = optim.lr_scheduler.StepLR(optimizer, 1, gamma=0.1)
             return [optimizer], [lr_scheduler]
 
-    model = LessBoringModel()
+    model = SingleLRSchedulerModel()
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(

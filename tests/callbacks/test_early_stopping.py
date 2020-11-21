@@ -21,8 +21,8 @@ import torch
 
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from tests.base import BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.base import BoringModel
 
 
 class EarlyStoppingTestRestore(EarlyStopping):
@@ -42,6 +42,13 @@ class EarlyStoppingTestRestore(EarlyStopping):
         self.saved_states.append(self.on_save_checkpoint(trainer, pl_module).copy())
 
 
+class ValidationStepLog(BoringModel):
+    def validation_step(self, batch, batch_idx):
+        output = super().validation_step(batch, batch_idx)
+        self.log('early_stop_on', output['x'])
+        return output
+
+
 def test_resume_early_stopping_from_checkpoint(tmpdir):
     """
     Prevent regressions to bugs:
@@ -50,13 +57,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     """
     seed_everything(42)
 
-    class LessBoringModel(BoringModel):
-        def validation_step(self, batch, batch_idx):
-            output = super().validation_step(batch, batch_idx)
-            self.log('early_stop_on', output['x'])
-            return output
-
-    model = LessBoringModel()
+    model = ValidationStepLog()
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_top_k=1)
     early_stop_callback = EarlyStoppingTestRestore()
     trainer = Trainer(
@@ -93,13 +94,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
 def test_early_stopping_no_extraneous_invocations(tmpdir):
     """Test to ensure that callback methods aren't being invoked outside of the callback handler."""
 
-    class LessBoringModel(BoringModel):
-        def validation_step(self, batch, batch_idx):
-            output = super().validation_step(batch, batch_idx)
-            self.log('early_stop_on', output['x'])
-            return output
-
-    model = LessBoringModel()
+    model = ValidationStepLog()
     expected_count = 4
     trainer = Trainer(
         default_root_dir=tmpdir,
