@@ -16,6 +16,7 @@ import os
 import pickle
 import platform
 from unittest import mock
+from unittest.mock import ANY, call
 
 import pytest
 
@@ -44,6 +45,13 @@ def _get_logger_args(logger_class, save_dir):
     if 'offline' in inspect.getfullargspec(logger_class).args:
         logger_args.update(offline=True)
     return logger_args
+
+
+def _instantiate_logger(logger_class, save_idr, **override_kwargs):
+    args = _get_logger_args(logger_class, save_idr)
+    args.update(**override_kwargs)
+    logger = logger_class(**args)
+    return logger
 
 
 def test_loggers_fit_test_all(tmpdir, monkeypatch):
@@ -322,54 +330,43 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     """
     Test that prefix is added at the beginning of the metric keys.
     """
-    _test_loggers_with_prefix(tmpdir, TensorBoardLogger)
+    prefix = 'tmp'
 
+    # Comet
     with mock.patch('pytorch_lightning.loggers.comet.comet_ml'), \
          mock.patch('pytorch_lightning.loggers.comet.CometOfflineExperiment'):
         _patch_comet_atexit(monkeypatch)
-        _test_loggers_with_prefix(tmpdir, CometLogger)
+        logger = _instantiate_logger(CometLogger, save_idr=tmpdir, prefix=prefix)
+        logger.log_metrics({"test": 1.0}, step=0)
+        logger.experiment.log_metrics.assert_called_once_with({"tmp-test": 1.0}, epoch=None, step=0)
 
+    # MLflow
     with mock.patch('pytorch_lightning.loggers.mlflow.mlflow'), \
          mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient'):
-        _test_loggers_with_prefix(tmpdir, MLFlowLogger)
+        logger = _instantiate_logger(MLFlowLogger, save_idr=tmpdir, prefix=prefix)
+        logger.log_metrics({"test": 1.0}, step=0)
+        logger.experiment.log_metric.has_calls([call(ANY, "tmp-test", 1.0, ANY, step=0)])
 
+    # Neptune
     with mock.patch('pytorch_lightning.loggers.neptune.neptune'):
-        _test_loggers_with_prefix(tmpdir, NeptuneLogger)
+        logger = _instantiate_logger(NeptuneLogger, save_idr=tmpdir, prefix=prefix)
+        logger.log_metrics({"test": 1.0}, step=0)
+        logger.experiment.log_metric.assert_called_once_with("tmp-test", x=0, y=1.0)
 
+    # TensorBoard
+    with mock.patch('pytorch_lightning.loggers.tensorboard.SummaryWriter'):
+        logger = _instantiate_logger(TensorBoardLogger, save_idr=tmpdir, prefix=prefix)
+        logger.log_metrics({"test": 1.0}, step=0)
+        logger.experiment.add_scalar.assert_called_once_with("tmp-test", 1.0, 0)
+
+    # TestTube
     with mock.patch('pytorch_lightning.loggers.test_tube.Experiment'):
-        _test_loggers_with_prefix(tmpdir, TestTubeLogger)
+        logger = _instantiate_logger(TestTubeLogger, save_idr=tmpdir, prefix=prefix)
+        logger.log_metrics({"test": 1.0}, step=0)
+        logger.experiment.log.assert_called_once_with({"tmp-test": 1.0}, global_step=0)
 
-    with mock.patch('pytorch_lightning.loggers.wandb.wandb'):
-        _test_loggers_with_prefix(tmpdir, WandbLogger)
-
-
-def _test_loggers_with_prefix(tmpdir, logger_class):
-    model = BoringModel()
-
-    class StoreHistoryLogger(logger_class):
-        LOGGER_JOIN_CHAR = '_'
-
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.history = []
-
-        def log_metrics(self, metrics, step):
-            super().log_metrics(metrics, step)
-            metrics = self._add_prefix(metrics)
-            self.history.extend(metrics.keys())
-
-    prefix = 'tmp'
-    logger_args = _get_logger_args(logger_class, tmpdir)
-    logger_args.update(prefix=prefix)
-    logger = StoreHistoryLogger(**logger_args)
-
-    trainer = Trainer(
-        max_epochs=1,
-        logger=logger,
-        fast_dev_run=True,
-        default_root_dir=tmpdir,
-    )
-    trainer.fit(model)
-    trainer.test()
-
-    assert all(m.startswith(f'{prefix}_') for m in logger.history)
+    # WandB
+    with mock.patch('pytorch_lightning.loggers.wandb.wandb') as wandb:
+        logger = _instantiate_logger(WandbLogger, save_idr=tmpdir, prefix=prefix)
+        logger.log_metrics({"test": 1.0}, step=0)
+        wandb.init().log.assert_called_once_with({'tmp-test': 1.0}, step=0)
