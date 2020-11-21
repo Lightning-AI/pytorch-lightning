@@ -19,44 +19,46 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.metrics.classification.utils import _input_format_classification
 
 
-def _confusion_matrix_update(preds: torch.Tensor,
-                             target: torch.Tensor,
-                             num_classes: int,
-                             threshold: float = 0.5) -> torch.Tensor:
-    preds, target = _input_format_classification(preds, target, threshold, num_classes)
+def _confusion_matrix_update(preds: torch.Tensor, target: torch.Tensor, num_classes: int) -> torch.Tensor:
+    preds, target, mode = _input_format_classification(preds, target, num_classes=num_classes)
+
+    if "multi-class" not in mode:
+        raise ValueError("Confusion matrix only accepts (multi-dimensional) multi-class inputs")
+
+    if "multi-dimensional" in mode:
+        preds = torch.movedim(preds, 1, -1).view(-1, num_classes)
+        target = torch.movedim(target, 1, -1).view(-1, num_classes)
+
+    preds = torch.argmax(preds, dim=1)
+    target = torch.argmax(target, dim=1)
+
     unique_mapping = (target.view(-1) * num_classes + preds.view(-1)).to(torch.long)
     bins = torch.bincount(unique_mapping, minlength=num_classes ** 2)
     confmat = bins.reshape(num_classes, num_classes)
     return confmat
 
 
-def _confusion_matrix_compute(confmat: torch.Tensor,
-                              normalize: Optional[str] = None) -> torch.Tensor:
-    allowed_normalize = ('true', 'pred', 'all', None)
-    assert normalize in allowed_normalize, \
-        f"Argument average needs to one of the following: {allowed_normalize}"
+def _confusion_matrix_compute(confmat: torch.Tensor, normalize: Optional[str] = None) -> torch.Tensor:
+    allowed_normalize = ("true", "pred", "all", None)
+    assert normalize in allowed_normalize, f"Argument average needs to one of the following: {allowed_normalize}"
     confmat = confmat.float()
     if normalize is not None:
-        if normalize == 'true':
+        if normalize == "true":
             cm = confmat / confmat.sum(axis=1, keepdim=True)
-        elif normalize == 'pred':
+        elif normalize == "pred":
             cm = confmat / confmat.sum(axis=0, keepdim=True)
-        elif normalize == 'all':
+        elif normalize == "all":
             cm = confmat / confmat.sum()
         nan_elements = cm[torch.isnan(cm)].nelement()
         if nan_elements != 0:
             cm[torch.isnan(cm)] = 0
-            rank_zero_warn(f'{nan_elements} nan values found in confusion matrix have been replaced with zeros.')
+            rank_zero_warn(f"{nan_elements} nan values found in confusion matrix have been replaced with zeros.")
         return cm
     return confmat
 
 
 def confusion_matrix(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: int,
-        normalize: Optional[str] = None,
-        threshold: float = 0.5
+    preds: torch.Tensor, target: torch.Tensor, num_classes: int, normalize: Optional[str] = None, threshold: float = 0.5
 ) -> torch.Tensor:
     """
     Computes the confusion matrix. Works with binary, multiclass, and multilabel data.

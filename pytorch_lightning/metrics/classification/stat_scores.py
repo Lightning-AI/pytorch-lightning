@@ -13,6 +13,7 @@
 # limitations under the License.
 from typing import Optional, Any, Tuple, Callable
 
+import numpy as np
 import torch
 from pytorch_lightning.metrics.utils import dim_zero_cat
 from pytorch_lightning.metrics import Metric
@@ -89,26 +90,90 @@ def _stat_scores(
     return tp.int(), fp.int(), tn.int(), fn.int()
 
 
-def _reduce_scores(scores: torch.Tensor, weights: torch.Tensor, average: str) -> torch.Tensor:
-    """Reduce scores according to the average method.
+def _reduce_scores(
+    numerator: torch.Tensor,
+    denominator: torch.Tensor,
+    weights: torch.Tensor,
+    average: str,
+    mdmc_average: Optional[str],
+    zero_division: int,
+) -> torch.Tensor:
+    """Reduces scores of type numerator/denominator (with possible weighting).
+
+    First, scores are computed by dividing the numerator by denominator. If
+    denominator is zero, then the score is set to the value of zero_division
+    parameters.
+
+    If average='micro' or 'none', no reduction is needed. In case of 'none',
+    scores for classes whose weights are negative are set to nan.
+
+    If average='macro' or 'weighted', the scores across each classes are
+    averaged (with weights). The scores for classes whose weights are
+    negative are ignored in averaging.
+
+    If average='samples', the scores across all samples are averaged.
+
+    In case if mdmc_average='samplewise', then the transformations mentioned
+    above are first applied across dimension 1, and the scores then averaged
+    across dimension 0.
 
     Parameters
     ----------
-    scores
-        A tensor with the scores to be reduced
+    numerator
+        A tensor with elements that are the upper part of the quotient
+    denominator
+        A tensor with elements that are the lower part of the quotient
     weights
-        If average='weighted', a tensor of weights - should be non-negative
-    average
-        One of 'micro', 'macro', 'weighted', 'samples' or 'none' (None)
-    """
+        A tensor of weights for each class - will be used for weighting
+        only if average='weighted'.
 
-    if average in ["micro", "none", None]:
-        return scores
-    elif average in ["macro", "samples"]:
-        return scores.mean()
-    elif average == "weighted":
-        w_scores = scores * (weights / weights.sum())
-        return w_scores.sum()
+        If a class is to be ignored (in case of macro or weighted average),
+        that class should have a negative weight. If average=none or None,
+        classes with negative weights will get a score of nan
+    average
+        The method to average the scores. Should be one of 'micro', 'macro',
+        'weighted', 'none', None, 'samples'
+    mdmc_average
+        The method to average the scores if inputs were multi-dimensional multi-class.
+        Should be either 'global' or 'samplewise'. If inputs were not
+        multi-dimensional multi-class, it should be None
+    zero_division
+        Should be either zero (if there is zero division set metric to 0), or 1W
+    """
+    numerator, denominator = numerator.double(),  denominator.double()
+    weights = weights.double()
+
+    zero_div_mask = denominator == 0
+    denominator = torch.where(zero_div_mask, 1.0, denominator)
+
+    scores = numerator / denominator
+    scores = torch.where(zero_div_mask, float(zero_division), scores)
+
+    ignore_mask = weights < 0
+
+    weights = torch.where(ignore_mask, 0.0, 1.0 if average == "macro" else weights)
+    weights = weights.double()
+    weights_sum = weights.sum(dim=-1, keepdims=True)
+
+    # In case if we ignore the only positive class (sum of weights is 0),
+    # return zero_division - this is to be consistent with sklearn and
+    # pass the tests
+    weights_sum = torch.where(weights_sum == 0, 1.0, weights_sum)
+    weights = weights / weights_sum
+
+    if average in ["none", None]:
+        scores = torch.where(ignore_mask, np.nan, scores)
+
+    elif average in ["macro", "weighted"]:
+        scores = (scores * weights).sum(dim=-1)
+
+    elif average == "samples":
+        scores = scores.mean()
+
+    if mdmc_average == "samplewise":
+        scores = scores.mean()
+
+    return scores
 
 
 class StatScores(Metric):
@@ -203,7 +268,7 @@ class StatScores(Metric):
             is not in the range ``[0, C-1]``, or if  ``C=1``, where ``C`` is the number of classes.
 
             If an index is ignored, and ``reduce='macro'``, the class statistics for the ignored
-            class will all be returned as ``-1`` (to not break the indexing of other labels).
+            class will all be returned as ``nan`` (to not break the indexing of other labels).
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
@@ -319,6 +384,7 @@ class StatScores(Metric):
 
         tp, fp, tn, fn = _stat_scores(preds, target, reduce=self.reduce)
 
+        # Update states
         if self.reduce != "samples" and self.mdmc_average != "samplewise":
             self.tp += tp
             self.fp += fp
@@ -329,6 +395,20 @@ class StatScores(Metric):
             self.fp = torch.cat((self.fp, fp))
             self.tn = torch.cat((self.tn, tn))
             self.fn = torch.cat((self.fn, fn))
+
+        # Take care of ignore index
+        if self.ignore_index and self.reduce == "macro":
+            if self.num_classes > 1 and 0 <= self.ignore_index < self.num_classes:
+                if self.mdmc_average == "global" or not self.mdmc_average:
+                    self.tp[self.ignore_index] = -1
+                    self.fp[self.ignore_index] = -1
+                    self.tn[self.ignore_index] = -1
+                    self.fn[self.ignore_index] = -1
+                else:
+                    self.tp[:, self.ignore_index] = -1
+                    self.fp[:, self.ignore_index] = -1
+                    self.tn[:, self.ignore_index] = -1
+                    self.fn[:, self.ignore_index] = -1
 
     def compute(self) -> torch.Tensor:
         """
@@ -344,13 +424,7 @@ class StatScores(Metric):
             self.fn.unsqueeze(-1),
             self.tp.unsqueeze(-1) + self.fn.unsqueeze(-1),
         ]
-        outputs = torch.cat(outputs, -1).int()
-
-        if self.ignore_index and self.reduce == "macro":
-            if self.num_classes > 1 and 0 <= self.ignore_index < self.num_classes:
-                if self.mdmc_average == "global" or not self.mdmc_average:
-                    outputs[self.ignore_index, :] = -1
-                else:
-                    outputs[:, self.ignore_index, :] = -1
+        outputs = torch.cat(outputs, -1).long()
+        outputs = torch.where(outputs < 0, -1, outputs)  # as support is otherwise -2
 
         return outputs

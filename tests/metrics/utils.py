@@ -76,12 +76,12 @@ def _class_test(
                 sk_batch_result = sk_metric(ddp_preds, ddp_target)
                 # assert for dist_sync_on_step
                 if check_dist_sync_on_step:
-                    assert np.allclose(batch_result.numpy(), sk_batch_result, atol=atol)
+                    assert np.allclose(batch_result.numpy(), sk_batch_result, atol=atol, equal_nan=True)
         else:
             sk_batch_result = sk_metric(preds[i], target[i])
             # assert for batch
             if check_batch:
-                assert np.allclose(batch_result.numpy(), sk_batch_result, atol=atol)
+                assert np.allclose(batch_result.numpy(), sk_batch_result, atol=atol, equal_nan=True)
 
     # check on all batches on all ranks
     result = metric.compute()
@@ -92,7 +92,7 @@ def _class_test(
     sk_result = sk_metric(total_preds, total_target)
 
     # assert after aggregation
-    assert np.allclose(result.numpy(), sk_result, atol=atol)
+    assert np.allclose(result.numpy(), sk_result, atol=atol, equal_nan=True)
 
 
 def _functional_test(
@@ -120,7 +120,7 @@ def _functional_test(
         sk_result = sk_metric(preds[i], target[i])
 
         # assert its the same
-        assert np.allclose(lightning_result.numpy(), sk_result, atol=atol)
+        assert np.allclose(lightning_result.numpy(), sk_result, atol=atol, equal_nan=True)
 
 
 class MetricTester:

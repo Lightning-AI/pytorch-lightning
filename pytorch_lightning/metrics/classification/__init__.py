@@ -13,5 +13,7 @@
 # limitations under the License.
 from pytorch_lightning.metrics.classification.accuracy import Accuracy, HammingLoss, TopKAccuracy
 from pytorch_lightning.metrics.classification.stat_scores import StatScores
-from pytorch_lightning.metrics.classification.precision_recall import Precision, Recall, FBeta
+from pytorch_lightning.metrics.classification.precision_recall import Precision, Recall
+from pytorch_lightning.metrics.classification.fbeta import FBeta, F1
+from pytorch_lightning.metrics.classification.iou import IoU
 from pytorch_lightning.metrics.classification.confusion_matrix import ConfusionMatrix

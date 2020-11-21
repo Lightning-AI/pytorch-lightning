@@ -47,8 +47,6 @@ class ConfusionMatrix(Metric):
             - ``'pred'``: normalization over the predictions
             - ``'all'``: normalization over the whole matrix
 
-        threshold:
-            Threshold value for binary or multi-label logits. default: 0.5
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
@@ -72,7 +70,6 @@ class ConfusionMatrix(Metric):
         self,
         num_classes: int,
         normalize: Optional[str] = None,
-        threshold: float = 0.5,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -85,7 +82,6 @@ class ConfusionMatrix(Metric):
         )
         self.num_classes = num_classes
         self.normalize = normalize
-        self.threshold = threshold
 
         allowed_normalize = ('true', 'pred', 'all', None)
         assert self.normalize in allowed_normalize, \
@@ -101,7 +97,7 @@ class ConfusionMatrix(Metric):
             preds: Predictions from model
             target: Ground truth values
         """
-        confmat = _confusion_matrix_update(preds, target, self.num_classes, self.threshold)
+        confmat = _confusion_matrix_update(preds, target, num_classes=self.num_classes)
         self.confmat += confmat
 
     def compute(self) -> torch.Tensor:

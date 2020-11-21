@@ -20,6 +20,8 @@ from pytorch_lightning.metrics.classification import (
     Precision,
     Recall,
     FBeta,
+    F1,
+    IoU,
     StatScores,
     ConfusionMatrix
 )

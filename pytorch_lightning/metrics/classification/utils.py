@@ -19,13 +19,6 @@ import torch
 from pytorch_lightning.metrics.utils import to_onehot, select_topk
 
 
-def _mask_zeros(tensor: torch.Tensor):
-    """ Mask zeros in a tensor with 1.0. """
-
-    ones = torch.ones(tensor.shape, device=tensor.device, dtype=tensor.dtype)
-    return torch.where(tensor == 0, ones, tensor)
-
-
 def _check_classification_inputs(
     preds: torch.Tensor,
     target: torch.Tensor,
