@@ -18,7 +18,7 @@ import pytest
 from unittest import mock
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ProgressBarBase, ProgressBar, ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBar, ProgressBarBase
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel
 

@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning import Callback
-from pytorch_lightning import Trainer, LightningModule
+from unittest.mock import ANY, MagicMock, call, patch
+
+from pytorch_lightning import Callback, LightningModule, Trainer
 from tests.base import BoringModel
-from unittest.mock import MagicMock, patch, ANY, call
 
 from pytorch_lightning import Trainer
 from tests.base import BoringModel
