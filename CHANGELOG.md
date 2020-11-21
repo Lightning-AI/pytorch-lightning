@@ -52,6 +52,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Deprecated
 
+- Deprecated `prefix` argument in `ModelCheckpoint` ([#4765](https://github.com/PyTorchLightning/pytorch-lightning/pull/4765))
 
 
 ### Removed
@@ -60,6 +61,29 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+
+
+## [unreleased.BugFix] - YYYY-MM-DD
+
+### Added
+
+
+
+### Changed
+
+
+
+### Deprecated
+
+
+
+### Removed
+
+
+
+### Fixed
+
+- Fixed checkpoint hparams dict casting when omegaconf is available ([#4770](https://github.com/PyTorchLightning/pytorch-lightning/pull/4770))
 
 
 ## [1.0.7] - 2020-11-17
