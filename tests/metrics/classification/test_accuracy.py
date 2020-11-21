@@ -122,6 +122,14 @@ def test_topk_accuracy(preds, target, exp_result, k, subset_accuracy):
 
     assert topk.compute() == exp_result
 
+    # Test functional
+    total_samples = target.shape[0] * target.shape[1]
+    
+    preds = preds.view(total_samples, 4, -1)
+    target = target.view(total_samples, -1)
+
+    assert topk_accuracy(preds, target, subset_accuracy, k) == exp_result
+
 
 # Only MC and MDMC with probs input type should be accepted
 @pytest.mark.parametrize(
@@ -142,3 +150,6 @@ def test_topk_accuracy_wrong_input_types(preds, target):
 
     with pytest.raises(ValueError):
         topk(preds[0], target[0])
+
+    with pytest.raises(ValueError):
+        topk_accuracy(preds[0], target[0])
