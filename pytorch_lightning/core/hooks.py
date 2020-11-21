@@ -535,7 +535,7 @@ class DataHooks:
 
         Example::
 
-            def transfer_batch_to_device(self, batch, device)
+            def transfer_batch_to_device(self, batch, device):
                 if isinstance(batch, CustomBatch):
                     # move all tensors in your custom data structure to the device
                     batch.samples = batch.samples.to(device)
