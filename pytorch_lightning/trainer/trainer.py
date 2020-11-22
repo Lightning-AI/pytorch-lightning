@@ -399,7 +399,7 @@ class Trainer(
         )
 
         # set precision
-        self.precision_connector.on_trainer_init(precision, amp_level, amp_backend)
+        self.precision_connector.on_trainer_init(precision, amp_level, amp_backend, plugins)
 
         # last thing are the plugins which override whatever the trainer used by default
         self.plugin_connector.on_trainer_init(plugins)
