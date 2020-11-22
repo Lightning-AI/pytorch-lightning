@@ -178,9 +178,9 @@ class ModelCheckpoint(Callback):
         self.__resolve_ckpt_dir(trainer, pl_module)
         self.save_function = trainer.save_checkpoint
 
-    def on_epoch_end(self, trainer, pl_module):
+    def on_validation_end(self, trainer, pl_module):
         """
-        checkpoints can be saved at the end of the epoch loop
+        checkpoints can be saved at the end of the val loop
         """
         self.save_checkpoint(trainer, pl_module)
 
@@ -349,7 +349,7 @@ class ModelCheckpoint(Callback):
         if not isinstance(current, torch.Tensor):
             rank_zero_warn(
                 f"{current} is supposed to be a `torch.Tensor`. Saving checkpoint may not work correctly."
-                f" HINT: check the value of {self.monitor} in your validation or training loop",
+                f" HINT: check the value of {self.monitor} in your validation loop",
                 RuntimeWarning,
             )
             current = torch.tensor(current)
