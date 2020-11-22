@@ -35,7 +35,7 @@ def test_torchscript_input_output(modelclass):
     model.eval()
     with torch.no_grad():
         model_output = model(model.example_input_array)
-        script_output = script(model.example_input_array)
+    script_output = script(model.example_input_array)
     assert torch.allclose(script_output, model_output)
 
 
