@@ -60,14 +60,8 @@ def iou(
     ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
     multi-dimensional multi-class case. Accepts all inputs listed in :ref:`metrics:Input types`.
 
-    In case where you need to ignore a class in computing the score, a ``ignore_index``
+    In case where you need to ignore a class in computing the score, an ``ignore_index``
     parameter is availible.
-
-    The of the returned tensor depends on the ``average`` parameter:
-
-    - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
-    - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
-    of classes
 
     Args:
         average:
@@ -126,6 +120,13 @@ def iou(
 
             If an index is ignored, and ``average=None`` or ``'none'``, the score for the ignored class
             will be returned as ``nan`` (to not break the indexing of other labels).
+
+    Return:
+        The of the returned tensor depends on the ``average`` parameter
+
+        - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
+        - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
+          of classes
 
     Example:
 

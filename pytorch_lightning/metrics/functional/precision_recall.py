@@ -55,14 +55,8 @@ def precision(
     ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
     multi-dimensional multi-class case. Accepts all inputs listed in :ref:`metrics:Input types`.
 
-    In case where you need to ignore a class in computing the score, a ``ignore_index``
+    In case where you need to ignore a class in computing the score, anI ``ignore_index``
     parameter is availible.
-
-    The of the returned tensor depends on the ``average`` parameter:
-
-    - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
-    - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
-    of classes
 
     Args:
         average:
@@ -124,6 +118,13 @@ def precision(
         zero_division:
             Score to use for classes/samples, whose score has 0 in the denominator. Has to be either
             0 [default] or 1.
+
+    Return:
+        The of the returned tensor depends on the ``average`` parameter
+
+        - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
+        - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
+          of classes
 
     Example:
 
@@ -190,14 +191,8 @@ def recall(
     ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
     multi-dimensional multi-class case. Accepts all inputs listed in :ref:`metrics:Input types`.
 
-    In case where you need to ignore a class in computing the score, a ``ignore_index``
+    In case where you need to ignore a class in computing the score, an ``ignore_index``
     parameter is availible.
-
-    The of the returned tensor depends on the ``average`` parameter:
-
-    - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
-    - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
-    of classes
 
     Args:
         average:
@@ -259,6 +254,13 @@ def recall(
         zero_division:
             Score to use for classes/samples, whose score has 0 in the denominator. Has to be either
             0 [default] or 1.
+
+    Return:
+        The of the returned tensor depends on the ``average`` parameter
+
+        - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
+        - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
+          of classes
 
     Example:
 

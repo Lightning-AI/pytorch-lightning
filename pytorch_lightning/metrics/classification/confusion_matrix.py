@@ -11,41 +11,40 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional
+from typing import Any, Optional, Callable
 
 import torch
 
 from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.metrics.functional.confusion_matrix import (
-    _confusion_matrix_update,
-    _confusion_matrix_compute
-)
+from pytorch_lightning.metrics.functional.confusion_matrix import _confusion_matrix_update, _confusion_matrix_compute
 
 
 class ConfusionMatrix(Metric):
     """
-    Computes the confusion matrix. Works with binary, multiclass, and multilabel data.
-    Accepts logits from a model output or integer class values in prediction.
-    Works with multi-dimensional preds and target.
+    Computes the confusion matrix.
 
-    Forward accepts
-
-    - ``preds`` (float or long tensor): ``(N, ...)`` or ``(N, C, ...)`` where C is the number of classes
-    - ``target`` (long tensor): ``(N, ...)``
-
-    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument.
-    This is the case for binary and multi-label logits.
-
-    If preds has an extra dimension as in the case of multi-class scores we perform an argmax on ``dim=1``.
+    While this metric is mainly meant for multi-class inputs, it accepts all input types
+    listed in :ref:`metrics:Input types`. If you pass binary or  multi-label inputs it
+    will convert them to 2-class multi-class or multi-dimensional multi-class, respectively.
+    In this case use the ``threshold`` argument to control the "binarization" of predictions.
 
     Args:
-        num_classes: Number of classes in the dataset.
+        num_classes:
+            Number of classes.
         normalize: Normalization mode for confusion matrix. Choose from
 
-            - ``None``: no normalization (default)
-            - ``'true'``: normalization over the targets (most commonly used)
-            - ``'pred'``: normalization over the predictions
-            - ``'all'``: normalization over the whole matrix
+        - ``None``: no normalization (default)
+        - ``'true'``: normalization over the targets (most commonly used)
+        - ``'pred'``: normalization over the predictions
+        - ``'all'``: normalization over the whole matrix
+
+        threshold:
+            Threshold probability value for transforming probability/logit predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs. If ``logits=True``,
+            this value is transformed to logits by ``logit_t = ln(t / (1-t))``. Default: 0.5
+        logits:
+            If predictions are floats, whether they are probabilities or logits. Default ``True``
+            (predictions are logits).
 
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
@@ -54,6 +53,9 @@ class ConfusionMatrix(Metric):
             before returning the value at the step. default: False
         process_group:
             Specify the process group on which synchronization is called. default: None (which selects the entire world)
+        dist_sync_fn:
+            Callback that performs the allgather operation on the metric state. When `None`, DDP
+            will be used to perform the allgather. default: None
 
     Example:
 
@@ -66,26 +68,34 @@ class ConfusionMatrix(Metric):
                 [1., 1.]])
 
     """
+
     def __init__(
         self,
         num_classes: int,
         normalize: Optional[str] = None,
+        threshold: float = 0.5,
+        logits: bool = True,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
+        dist_sync_fn: Callable = None,
     ):
 
         super().__init__(
             compute_on_step=compute_on_step,
             dist_sync_on_step=dist_sync_on_step,
             process_group=process_group,
+            dist_sync_fn=dist_sync_fn,
         )
         self.num_classes = num_classes
         self.normalize = normalize
+        self.threshold = threshold
+        self.logits = logits
 
-        allowed_normalize = ('true', 'pred', 'all', None)
-        assert self.normalize in allowed_normalize, \
-            f"Argument average needs to one of the following: {allowed_normalize}"
+        allowed_normalize = ("true", "pred", "all", None)
+        assert (
+            self.normalize in allowed_normalize
+        ), f"Argument average needs to one of the following: {allowed_normalize}"
 
         self.add_state("confmat", default=torch.zeros(num_classes, num_classes), dist_reduce_fx="sum")
 
@@ -97,11 +107,16 @@ class ConfusionMatrix(Metric):
             preds: Predictions from model
             target: Ground truth values
         """
-        confmat = _confusion_matrix_update(preds, target, num_classes=self.num_classes)
+        confmat = _confusion_matrix_update(
+            preds, target, num_classes=self.num_classes, threshold=self.threshold, logits=self.logits
+        )
         self.confmat += confmat
 
     def compute(self) -> torch.Tensor:
         """
         Computes confusion matrix
+
+        Return:
+            Returns an `[C, C]` matrix, where `C` is the number of classes.
         """
         return _confusion_matrix_compute(self.confmat, self.normalize)

@@ -19,7 +19,7 @@ from pytorch_lightning.metrics.functional.fbeta import _fbeta_compute
 
 
 class FBeta(StatScores):
-    """Computes the `F-score. <https://en.wikipedia.org/wiki/F-score>`_.
+    """Computes the `F-score <https://en.wikipedia.org/wiki/F-score>`_ .
 
     The metric computes weighted hamonic mean of recall and precision, where the square of
     ``beta`` is the weight on recall.
@@ -28,14 +28,8 @@ class FBeta(StatScores):
     ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
     multi-dimensional multi-class case. Accepts all inputs listed in :ref:`metrics:Input types`.
 
-    In case where you need to ignore a class in computing the score, a ``ignore_index``
+    In case where you need to ignore a class in computing the score, an ``ignore_index``
     parameter is availible.
-
-    The of the returned tensor depends on the ``average`` parameter:
-
-    - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
-    - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
-    of classes
 
     Args:
         beta:
@@ -170,7 +164,15 @@ class FBeta(StatScores):
 
     def compute(self) -> torch.Tensor:
         """
-        Computes the precision score based on inputs passed in to ``update`` previously.
+        Computes the F-score score based on inputs passed in to ``update`` previously.
+
+        Return:
+            The shape of the returned tensor depends on the ``average`` parameter
+
+            - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
+            - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
+              of classes
+
         """
         return _fbeta_compute(
             self.tp, self.fp, self.tn, self.fn, self.beta, self.average, self.mdmc_reduce, self.zero_division
@@ -178,23 +180,17 @@ class FBeta(StatScores):
 
 
 class F1(FBeta):
-    """Computes the `F1-score. <https://en.wikipedia.org/wiki/F-score>`_.
+    """Computes the `F1-score <https://en.wikipedia.org/wiki/F-score>`_ (also known as Dice score).
 
     The metric computes the hamonic mean of recall and precision. It is equivalent to
-    :class:`~pytorch_lightning.metrics.FBeta` with ``beta=1``.
+    :class:`~pytorch_lightning.metrics.classification.FBeta` with ``beta=1``.
 
     The reduction method (how the precision scores are aggregated) is controlled by the
     ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
     multi-dimensional multi-class case. Accepts all inputs listed in :ref:`metrics:Input types`.
 
-    In case where you need to ignore a class in computing the score, a ``ignore_index``
+    In case where you need to ignore a class in computing the score, an ``ignore_index``
     parameter is availible.
-
-    The of the returned tensor depends on the ``average`` parameter:
-
-    - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
-    - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
-    of classes
 
     Args:
         average:

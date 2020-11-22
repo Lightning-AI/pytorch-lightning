@@ -35,33 +35,6 @@ class StatScores(Metric):
     ``reduce`` parameter, and additionally by the ``mdmc_reduce`` parameter in the
     multi-dimensional multi-class case. Accepts all inputs listed in :ref:`metrics:Input types`.
 
-    The metric returns a tensor of shape ``(..., 5)``, where the last dimension corresponds
-    to ``[tp, fp, tn, fn, sup]`` (``sup`` stands for support and equals ``tp + fn``). The
-    shape depends on the ``reduce`` and ``mdmc_reduce`` (in case of multi-dimensional
-    multi-class data) parameters:
-
-    - If the data is not multi-dimensional multi-class, then
-
-      - If ``reduce='micro'``, the shape will be ``(5, )``
-      - If ``reduce='macro'``, the shape will be ``(C, 5)``,
-        where ``C`` stands for the number of classes
-      - If ``reduce='samples'``, the shape will be ``(N, 5)``, where ``N`` stands for
-        the number of samples
-
-    - If the data is multi-dimensional multi-class and ``mdmc_reduce='global'``, then
-
-      - If ``reduce='micro'``, the shape will be ``(5, )``
-      - If ``reduce='macro'``, the shape will be ``(C, 5)``
-      - If ``reduce='samples'``, the shape will be ``(N*X, 5)``, where ``X`` stands for
-        the product of sizes of all "extra" dimensions of the data (i.e. all dimensions
-        except for ``C`` and ``N``)
-
-    - If the data is multi-dimensional multi-class and ``mdmc_reduce='samplewise'``, then
-
-      - If ``reduce='micro'``, the shape will be ``(N, 5)``
-      - If ``reduce='macro'``, the shape will be ``(N, C, 5)``
-      - If ``reduce='samples'``, the shape will be ``(N, X, 5)``
-
     Args:
         reduce:
             Defines the reduction that is applied. Should be one of the following:
@@ -231,7 +204,34 @@ class StatScores(Metric):
         """
         Computes the stat scores based on inputs passed in to ``update`` previously.
 
-        The last dimension always has size 5 and corresponds to ``[tp, fp, tn, fn, sup]``.
+        Return:
+            The metric returns a tensor of shape ``(..., 5)``, where the last dimension corresponds
+            to ``[tp, fp, tn, fn, sup]`` (``sup`` stands for support and equals ``tp + fn``). The
+            shape depends on the ``reduce`` and ``mdmc_reduce`` (in case of multi-dimensional
+            multi-class data) parameters:
+
+            - If the data is not multi-dimensional multi-class, then
+
+              - If ``reduce='micro'``, the shape will be ``(5, )``
+              - If ``reduce='macro'``, the shape will be ``(C, 5)``,
+                where ``C`` stands for the number of classes
+              - If ``reduce='samples'``, the shape will be ``(N, 5)``, where ``N`` stands for
+                the number of samples
+
+            - If the data is multi-dimensional multi-class and ``mdmc_reduce='global'``, then
+
+              - If ``reduce='micro'``, the shape will be ``(5, )``
+              - If ``reduce='macro'``, the shape will be ``(C, 5)``
+              - If ``reduce='samples'``, the shape will be ``(N*X, 5)``, where ``X`` stands for
+                the product of sizes of all "extra" dimensions of the data (i.e. all dimensions
+                except for ``C`` and ``N``)
+
+            - If the data is multi-dimensional multi-class and ``mdmc_reduce='samplewise'``, then
+
+              - If ``reduce='micro'``, the shape will be ``(N, 5)``
+              - If ``reduce='macro'``, the shape will be ``(N, C, 5)``
+              - If ``reduce='samples'``, the shape will be ``(N, X, 5)``
+
         """
 
         return _stat_scores_compute(self.tp, self.fp, self.tn, self.fn)

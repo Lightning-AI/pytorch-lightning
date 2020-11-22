@@ -270,6 +270,8 @@ First, let's check that what happens usually - without setting ``is_multiclass``
     stat_scores_mc = StatScores(average='none', num_classes=2)
     stat_scores_mc(mc_binary_preds, mc_binary_target)
 
+Out:
+
 .. testoutput::
    :skipif: True
 
@@ -287,6 +289,8 @@ happens when we set ``is_multiclass=False``:
     stat_scores_binary = StatScores(average='none', num_classes=1, 
                                     is_multiclass=False)
     stat_scores_binary(mc_binary_preds, mc_binary_target)
+
+Out:
 
 .. testoutput::
    :skipif: True
@@ -314,15 +318,14 @@ Class Metrics (Classification)
     Precision
     Recall
     FBeta
+    F1
+    IoU
     ConfusionMatrix
 
-.. currentmodule:: pytorch_lightning.metrics.functional.classification
+.. currentmodule:: pytorch_lightning.metrics.functional
 
 Functional Metrics (Classification)
 -----------------------------------
-
-..
-    TODO: Fix confusion_matrix!!!!!
 
 .. autosummary::
     :toctree: generated
@@ -341,12 +344,10 @@ Functional Metrics (Classification)
     iou
     multiclass_roc
     precision
-    precision_recall
     precision_recall_curve
     recall
     roc
     stat_scores
-    stat_scores_multiple_classes
     to_categorical
     to_onehot
 
@@ -372,72 +373,46 @@ Class Metrics (Regression)
     SSIM
 
 
-The functional metrics follow the simple paradigm input in, output out. This means, they don't provide any advanced mechanisms for syncing across DDP nodes or aggregation over batches. They simply compute the metric value based on the given inputs.
-
-Also the integration within other parts of PyTorch Lightning will never be as tight as with the class-based interface.
-If you look for just computing the values, the functional metrics are the way to go. However, if you are looking for the best integration and user experience, please consider also to use the class interface.
-
-
 Functional Metrics (Regression)
--------------------------------
+-----------------------------------
 
-explained_variance [func]
-~~~~~~~~~~~~~~~~~~~~~~~~~
+.. currentmodule:: pytorch_lightning.metrics.functional
 
-.. autofunction:: pytorch_lightning.metrics.functional.explained_variance
-    :noindex:
+.. autosummary::
+    :toctree: generated
+    :nosignatures:
+    :template: functiontemplate.rst
 
+    explained_variance
+    mean_absolute_error
+    mean_squared_error
+    psnr
+    mean_squared_log_error
+    ssim
 
-mean_absolute_error [func]
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.metrics.functional.mean_absolute_error
-    :noindex:
-
-
-mean_squared_error [func]
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.metrics.functional.mean_squared_error
-    :noindex:
-
-
-psnr [func]
-~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.metrics.functional.psnr
-    :noindex:
-
-
-mean_squared_log_error [func]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.metrics.functional.mean_squared_log_error
-    :noindex:
-
-
-ssim [func]
-~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.metrics.functional.ssim
-    :noindex:
-
-
+***
 NLP
----
+***
 
-bleu_score [func]
-~~~~~~~~~~~~~~~~~
+.. currentmodule:: pytorch_lightning.metrics.functional.nlp
 
-.. autofunction:: pytorch_lightning.metrics.functional.nlp.bleu_score
-    :noindex:
+.. autosummary::
+    :toctree: generated
+    :nosignatures:
+    :template: functiontemplate.rst
+
+    bleu_score
 
 
+********
 Pairwise
---------
+********
 
-embedding_similarity [func]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. currentmodule:: pytorch_lightning.metrics.functional.self_supervised
 
-.. autofunction:: pytorch_lightning.metrics.functional.self_supervised.embedding_similarity
-    :noindex:
+.. autosummary::
+    :toctree: generated
+    :nosignatures:
+    :template: functiontemplate.rst
+
+    embedding_similarity

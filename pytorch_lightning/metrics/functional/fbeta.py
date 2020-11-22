@@ -51,7 +51,7 @@ def fbeta_score(
     ignore_index: Optional[int] = None,
     zero_division: int = 0,
 ) -> torch.Tensor:
-    """Computes the `F-score. <https://en.wikipedia.org/wiki/F-score>`_.
+    """Computes the `F-score <https://en.wikipedia.org/wiki/F-score>`_ .
 
     The metric computes weighted hamonic mean of recall and precision, where the square of
     ``beta`` is the weight on recall.
@@ -60,14 +60,8 @@ def fbeta_score(
     ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
     multi-dimensional multi-class case. Accepts all inputs listed in :ref:`metrics:Input types`.
 
-    In case where you need to ignore a class in computing the score, a ``ignore_index``
+    In case where you need to ignore a class in computing the score, an ``ignore_index``
     parameter is availible.
-
-    The of the returned tensor depends on the ``average`` parameter:
-
-    - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
-    - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
-    of classes
 
     Args:
         beta:
@@ -133,6 +127,13 @@ def fbeta_score(
             Score to use for classes/samples, whose score has 0 in the denominator. Has to be either
             0 [default] or 1.
 
+    Return:
+        The shape of the returned tensor depends on the ``average`` parameter
+
+        - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
+        - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
+          of classes
+
     Example:
 
         >>> from pytorch_lightning.metrics.functional import fbeta_score
@@ -173,23 +174,17 @@ def f1_score(
     ignore_index: Optional[int] = None,
     zero_division: int = 0,
 ) -> torch.Tensor:
-    """Computes the `F1-score. <https://en.wikipedia.org/wiki/F-score>`_.
+    """Computes the `F1-score <https://en.wikipedia.org/wiki/F-score>`_ (also known as Dice score).
 
     The metric computes the hamonic mean of recall and precision. It is equivalent to
-    :class:`~pytorch_lightning.metrics.FBeta` with ``beta=1``.
+    :class:`~pytorch_lightning.metrics.classification.FBeta` with ``beta=1``.
 
     The reduction method (how the precision scores are aggregated) is controlled by the
     ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
     multi-dimensional multi-class case. Accepts all inputs listed in :ref:`metrics:Input types`.
 
-    In case where you need to ignore a class in computing the score, a ``ignore_index``
+    In case where you need to ignore a class in computing the score, an ``ignore_index``
     parameter is availible.
-
-    The of the returned tensor depends on the ``average`` parameter:
-
-    - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
-    - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
-    of classes
 
     Args:
         average:
@@ -262,6 +257,13 @@ def f1_score(
         dist_sync_fn:
             Callback that performs the allgather operation on the metric state. When `None`, DDP
             will be used to perform the allgather. default: None
+
+    Return:
+        The shape of the returned tensor depends on the ``average`` parameter
+
+        - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
+        - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
+          of classes
 
     Example:
 

@@ -25,14 +25,8 @@ class Precision(StatScores):
     ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
     multi-dimensional multi-class case. Accepts all inputs listed in :ref:`metrics:Input types`.
 
-    In case where you need to ignore a class in computing the score, a ``ignore_index``
+    In case where you need to ignore a class in computing the score, anI ``ignore_index``
     parameter is availible.
-
-    The of the returned tensor depends on the ``average`` parameter:
-
-    - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
-    - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
-    of classes
 
     Args:
         average:
@@ -162,6 +156,13 @@ class Precision(StatScores):
     def compute(self) -> torch.Tensor:
         """
         Computes the precision score based on inputs passed in to ``update`` previously.
+
+        Return:
+            The of the returned tensor depends on the ``average`` parameter
+
+            - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
+            - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
+              of classes
         """
 
         return _precision_compute(
@@ -176,14 +177,8 @@ class Recall(StatScores):
     ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
     multi-dimensional multi-class case. Accepts all inputs listed in :ref:`metrics:Input types`.
 
-    In case where you need to ignore a class in computing the score, a ``ignore_index``
+    In case where you need to ignore a class in computing the score, an ``ignore_index``
     parameter is availible.
-
-    The of the returned tensor depends on the ``average`` parameter:
-
-    - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
-    - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
-    of classes
 
     Args:
         average:
@@ -313,6 +308,13 @@ class Recall(StatScores):
     def compute(self) -> torch.Tensor:
         """
         Computes the recall score based on inputs passed in to ``update`` previously.
+
+        Return:
+            The of the returned tensor depends on the ``average`` parameter
+
+            - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
+            - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
+              of classes
         """
 
         return _recall_compute(self.tp, self.fp, self.tn, self.fn, self.average, self.mdmc_reduce, self.zero_division)

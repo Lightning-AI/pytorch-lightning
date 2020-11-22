@@ -313,11 +313,13 @@ def _input_format_classification(
 
     if len(preds.shape) == len(target.shape) == 1 and preds_float:
         mode = "binary"
+        preds = (preds >= threshold).int()
+
         if is_multiclass:
             target = to_onehot(target, 2)
-            preds = to_onehot((preds >= threshold).int(), 2)
+            preds = to_onehot(preds, 2)
         else:
-            preds = (preds >= threshold).int().unsqueeze(-1)
+            preds = preds.unsqueeze(-1)
             target = target.unsqueeze(-1)
 
     elif len(preds.shape) == len(target.shape) and preds_float:

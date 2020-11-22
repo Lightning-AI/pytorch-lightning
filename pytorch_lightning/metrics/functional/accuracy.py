@@ -169,15 +169,8 @@ def topk_accuracy(preds: torch.Tensor, target: torch.Tensor, subset_accuracy: bo
     Accepts only multi-class and multi-dimensional multi-class inputs with predictions
     as probabilities (as defined in :ref:`metrics:Input types`).
 
-    For multi-dimensional multi-class inputs a ``subset_accuracy`` flag is provided:
-    if ``True``, all class predictions across the extra dimension(s) must be correct
-    for each sample, for the sample to be counted as correct - this is the same as
-    the :class:`~pytorch_lightning.metrics.classification.Accuracy` metric if ``k=1``.
-
-    If ``subset_accuracy=False`` (default), then each sample's accuracy is the share of
-    the correct class predictions across the extra dimension(s). This is equivalent to
-    computing the metric "globally", with the ``N`` dimension and all extra dimensions
-    (``...``) being unrolled into a new sample dimension.
+    For multi-dimensional multi-class inputs a ``subset_accuracy`` flag is provided,
+    which determines how the reduction is applied.
 
     Args:
         k:
@@ -186,14 +179,15 @@ def topk_accuracy(preds: torch.Tensor, target: torch.Tensor, subset_accuracy: bo
         subset_accuracy:
             Determines how the metric is computed for multi-dimensional multi-class data:
 
-            - If ``False`` [default], then each sample's accuracy is the share of
-              the correct class predictions across the extra dimension(s). This is equivalent to
-              computing the metric "globally", with the ``N`` dimension and all extra dimensions
-              (``...``) being unrolled into a new sample dimension.
+            - If ``False`` [default], then the the ``N`` dimension and all extra dimensions
+              (``...``) being unrolled into a new sample dimension, and the metric is computed
+              on these new unrolled inputs (aking to the ``global`` setting in some other
+              metrics, such as :class:`~pytorch_lightning.metrics.classification.Recall`).
 
             - If ``True``, all class predictions across the extra dimension(s) must be correct
               for each sample, for the sample to be counted as correct - this is the same as
-              the :class:`~pytorch_lightning.metrics.classification.Accuracy` metric if ``k=1``.
+              the :class:`~pytorch_lightning.metrics.classification.Accuracy` metric in the case
+              when ``k=1``.
 
     Example:
 
