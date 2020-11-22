@@ -66,7 +66,6 @@ from pytorch_lightning.utilities.model_utils import is_overridden
 warnings.filterwarnings(
     'ignore', message='torch.distributed.reduce_op is deprecated, ' 'please use torch.distributed.ReduceOp instead'
 )
-os.environ['PYTHONWARNINGS'] = 'ignore:semaphore_tracker:UserWarning'
 
 try:
     from apex import amp
