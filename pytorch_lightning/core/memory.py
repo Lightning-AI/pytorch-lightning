@@ -213,6 +213,23 @@ class ModelSummary(object):
     def param_nums(self) -> List[int]:
         return [layer.num_parameters for layer in self._layer_summary.values()]
 
+    @property
+    def total_out_params(self) -> int:
+        _map_out_size_prod = map(lambda out_size: np.prod(out_size), self.out_sizes)
+        return sum([out_size_prod for out_size_prod in _map_out_size_prod])
+
+    @property
+    def total_params(self) -> int:
+        return sum(self.param_nums)
+
+    def _get_total_size(self, input_size: tuple) -> int:
+        # TODO(kartik4949) : get precision.
+        _precision = 32.0 / 8.0  # 1 byte -> 8 bits
+        total_input_dsize = abs(np.prod(np.array(input_size))) * _precision / (1024 ** 2.0)
+        total_output_dsize = abs(2.0 * self.total_out_params * _precision / (1024 ** 2.0))
+        total_params_dsize = abs(self.total_params * _precision / (1024 ** 2.0))
+        return total_params_dsize + total_output_dsize + total_input_dsize
+
     def summarize(self) -> Dict[str, LayerSummary]:
         summary = OrderedDict((name, LayerSummary(module)) for name, module in self.named_modules)
         if self._model.example_input_array is not None:
@@ -321,7 +338,7 @@ def _format_summary_table(total_parameters: int, trainable_parameters: int, *col
 
 
 def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
-    """ Get a profile of the current memory usage.
+    """Get a profile of the current memory usage.
 
     Args:
         mode: There are two modes:
@@ -367,9 +384,7 @@ def get_gpu_memory_map() -> Dict[str, int]:
 
     # Convert lines into a dictionary
     gpu_memory = [float(x) for x in result.stdout.strip().split(os.linesep)]
-    gpu_memory_map = {
-        f"gpu_id: {gpu_id}/memory.used (MB)": memory for gpu_id, memory in enumerate(gpu_memory)
-    }
+    gpu_memory_map = {f"gpu_id: {gpu_id}/memory.used (MB)": memory for gpu_id, memory in enumerate(gpu_memory)}
     return gpu_memory_map
 
 
