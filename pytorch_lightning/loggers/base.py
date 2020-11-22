@@ -262,7 +262,13 @@ class LightningLoggerBase(ABC):
          'namespace': 'Namespace(foo=3)',
          'string': 'abc'}
         """
-        return {k: v if type(v) in [bool, int, float, str, torch.Tensor] else str(v) for k, v in params.items()}
+        for k in params.keys():
+            # convert relevant np scalars to python types first (instead of str)
+            if isinstance(params[k], (np.bool_, np.integer, np.floating)):
+                params[k] = params[k].item()
+            elif type(params[k]) not in [bool, int, float, str, torch.Tensor]:
+                params[k] = str(params[k])
+        return params
 
     @abstractmethod
     def log_hyperparams(self, params: argparse.Namespace):
@@ -317,6 +323,12 @@ class LightningLoggerBase(ABC):
     @abstractmethod
     def version(self) -> Union[int, str]:
         """Return the experiment version."""
+
+    def _add_prefix(self, metrics: Dict[str, float]):
+        if self._prefix:
+            metrics = {f'{self._prefix}{self.LOGGER_JOIN_CHAR}{k}': v for k, v in metrics.items()}
+
+        return metrics
 
 
 class LoggerCollection(LightningLoggerBase):

@@ -115,18 +115,23 @@ class CSVLogger(LightningLoggerBase):
         name: Experiment name. Defaults to ``'default'``.
         version: Experiment version. If version is not specified the logger inspects the save
             directory for existing versions, then automatically assigns the next available version.
+        prefix: A string to put at the beginning of metric keys.
     """
+
+    LOGGER_JOIN_CHAR = '-'
 
     def __init__(
         self,
         save_dir: str,
         name: Optional[str] = "default",
-        version: Optional[Union[int, str]] = None
+        version: Optional[Union[int, str]] = None,
+        prefix: str = '',
     ):
         super().__init__()
         self._save_dir = save_dir
         self._name = name or ''
         self._version = version
+        self._prefix = prefix
         self._experiment = None
 
     @property
@@ -183,6 +188,7 @@ class CSVLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+        metrics = self._add_prefix(metrics)
         self.experiment.log_metrics(metrics, step)
 
     @rank_zero_only

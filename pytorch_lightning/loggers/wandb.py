@@ -53,6 +53,7 @@ class WandbLogger(LightningLoggerBase):
         project: The name of the project to which this run will belong.
         log_model: Save checkpoints in wandb dir to upload on W&B servers.
         experiment: WandB experiment object.
+        prefix: A string to put at the beginning of metric keys.
         \**kwargs: Additional arguments like `entity`, `group`, `tags`, etc. used by
             :func:`wandb.init` can be passed as keyword arguments in this logger.
 
@@ -70,6 +71,8 @@ class WandbLogger(LightningLoggerBase):
 
     """
 
+    LOGGER_JOIN_CHAR = '-'
+
     def __init__(
         self,
         name: Optional[str] = None,
@@ -81,6 +84,7 @@ class WandbLogger(LightningLoggerBase):
         project: Optional[str] = None,
         log_model: bool = False,
         experiment=None,
+        prefix: str = '',
         **kwargs
     ):
         if wandb is None:
@@ -95,6 +99,7 @@ class WandbLogger(LightningLoggerBase):
         self._experiment = experiment
         self._offline = offline
         self._log_model = log_model
+        self._prefix = prefix
         self._kwargs = kwargs
         # logging multiple Trainer on a single W&B run (k-fold, etc)
         self._step_offset = 0
@@ -145,6 +150,8 @@ class WandbLogger(LightningLoggerBase):
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
+
+        metrics = self._add_prefix(metrics)
         self.experiment.log(metrics, step=(step + self._step_offset) if step is not None else None)
 
     @property
