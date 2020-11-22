@@ -15,7 +15,6 @@ from pytorch_lightning.metrics.functional.classification import (
     auc,
     auroc,
     average_precision,
-    # dice_score,
     multiclass_precision_recall_curve,
     multiclass_roc,
     multiclass_auroc,
@@ -44,4 +43,4 @@ from pytorch_lightning.metrics.functional.fbeta import f1_score, fbeta_score
 from pytorch_lightning.metrics.functional.iou import iou
 
 # Temporary (?) alias
-dice = iou
+dice_score = f1_score
