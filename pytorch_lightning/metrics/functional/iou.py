@@ -129,15 +129,13 @@ def iou(
 
     Example:
 
-        >>> from pytorch_lightning.metrics.classification import IoU
+        >>> from pytorch_lightning.metrics.functional import iou
         >>> preds  = torch.tensor([2, 0, 2, 1])
         >>> target = torch.tensor([1, 1, 2, 0])
-        >>> iou = IoU(average='macro', num_classes=3)
-        >>> iou(preds, target)
+        >>> iou(preds, target, average='macro', num_classes=3)
         tensor(0.1667)
-        >>> iou = IoU(average='micro')
-        >>> iou(preds, target)
-        tensor(0.2500)
+        >>> iou(preds, target, average='micro')
+        tensor(0.1429)
 
     """
 

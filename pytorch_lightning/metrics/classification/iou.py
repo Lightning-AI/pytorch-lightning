@@ -118,7 +118,7 @@ class IoU(StatScores):
         tensor(0.1667)
         >>> iou = IoU(average='micro')
         >>> iou(preds, target)
-        tensor(0.2500)
+        tensor(0.1429)
 
     """
 
