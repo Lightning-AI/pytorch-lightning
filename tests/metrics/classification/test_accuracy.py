@@ -17,7 +17,6 @@ from tests.metrics.classification.inputs import (
     _multilabel_prob_inputs,
     _multilabel_multidim_prob_inputs,
     _multilabel_multidim_inputs,
-    _multidim_multiclass_prob_inputs1,
 )
 from tests.metrics.utils import THRESHOLD, MetricTester
 
@@ -56,7 +55,6 @@ def _sk_hamming_loss(preds, target):
         (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target),
         (_multilabel_multidim_prob_inputs.preds, _multilabel_multidim_prob_inputs.target),
         (_multilabel_multidim_inputs.preds, _multilabel_multidim_inputs.target),
-        (_multidim_multiclass_prob_inputs1.preds, _multidim_multiclass_prob_inputs1.target),
     ],
 )
 class TestAccuracies(MetricTester):
@@ -124,7 +122,7 @@ def test_topk_accuracy(preds, target, exp_result, k, subset_accuracy):
 
     # Test functional
     total_samples = target.shape[0] * target.shape[1]
-    
+
     preds = preds.view(total_samples, 4, -1)
     target = target.view(total_samples, -1)
 
