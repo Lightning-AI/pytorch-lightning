@@ -406,7 +406,6 @@ class DummyLogger(LightningLoggerBase):
         self._experiment = DummyExperiment()
 
     @property
-    @rank_zero_experiment
     def experiment(self):
         return self._experiment
 
