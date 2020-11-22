@@ -19,6 +19,10 @@ def test_tbd_remove_in_v1_3_0(tmpdir):
         callback = ModelCheckpoint()
         Trainer(checkpoint_callback=callback, callbacks=[], default_root_dir=tmpdir)
 
+    # Deprecate prefix
+    with pytest.deprecated_call(match='will be removed in v1.3'):
+        callback = ModelCheckpoint(prefix='temp')
+
 
 def test_tbd_remove_in_v1_2_0():
     with pytest.deprecated_call(match='will be removed in v1.2'):
