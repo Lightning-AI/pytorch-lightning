@@ -224,14 +224,14 @@ Recall
 FBeta
 ~~~~~
 
-.. autoclass:: pytorch_lightning.metrics.classification.Fbeta
+.. autoclass:: pytorch_lightning.metrics.classification.FBeta
     :noindex:
-    
+
 F1
 ~~
 
 .. autoclass:: pytorch_lightning.metrics.classification.F1
-    :noindex:    
+    :noindex:
 
 ConfusionMatrix
 ~~~~~~~~~~~~~~~
