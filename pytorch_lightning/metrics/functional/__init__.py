@@ -42,3 +42,6 @@ from pytorch_lightning.metrics.functional.stat_scores import stat_scores
 from pytorch_lightning.metrics.functional.precision_recall import precision, recall
 from pytorch_lightning.metrics.functional.fbeta import f1_score, fbeta_score
 from pytorch_lightning.metrics.functional.iou import iou
+
+# Temporary (?) alias
+dice = iou

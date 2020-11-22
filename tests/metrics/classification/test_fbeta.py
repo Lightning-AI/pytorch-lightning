@@ -7,7 +7,7 @@ from sklearn.metrics import fbeta_score as sk_fbeta, f1_score as sk_f1
 
 from pytorch_lightning.metrics.classification.utils import _input_format_classification
 from pytorch_lightning.metrics import F1, FBeta
-from pytorch_lightning.metrics.functional import f1_score, fbeta_score
+from pytorch_lightning.metrics.functional import f1_score, fbeta_score, dice
 from tests.metrics.classification.inputs import (
     _binary_inputs,
     _binary_prob_inputs,
@@ -86,6 +86,7 @@ def test_f1():
     f1 = F1(logits=False)
     score = f1(_binary_prob_inputs.preds[0], _binary_prob_inputs.target[0])
     score_fn = f1_score(_binary_prob_inputs.preds[0], _binary_prob_inputs.target[0], logits=False)
+    dice_score = dice(_binary_prob_inputs.preds[0], _binary_prob_inputs.target[0], logits=False)
 
     sk_preds = (_binary_prob_inputs.preds[0] >= THRESHOLD).int().numpy()
     sk_target = _binary_prob_inputs.target[0].numpy()
@@ -93,6 +94,7 @@ def test_f1():
 
     assert np.allclose(score.numpy(), sk_score)
     assert np.allclose(score_fn.numpy(), sk_score)
+    assert np.allclose(dice_score.numpy(), sk_score)
 
 
 ######################################################################################
