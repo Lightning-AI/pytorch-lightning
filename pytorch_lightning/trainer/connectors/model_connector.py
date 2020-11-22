@@ -24,7 +24,7 @@ class ModelConnector:
         self.trainer = trainer
 
     def copy_trainer_model_properties(self, model):
-        ref_model = self._reference_model(model)
+        ref_model = self._reference_model
 
         automatic_optimization = ref_model.automatic_optimization and self.trainer.train_loop.automatic_optimization
         self.trainer.train_loop.automatic_optimization = automatic_optimization
@@ -46,11 +46,12 @@ class ModelConnector:
             m.local_rank = self.trainer.local_rank
 
     def get_model(self):
-        return self._reference_model(self.trainer.model)
+        return self._reference_model
 
-    def _reference_model(self, model):
+    @property
+    def _reference_model(self):
         if self.trainer.accelerator_backend:
-            ref_model = self.trainer.accelerator_backend.reference_model(model)
+            ref_model = self.trainer.accelerator_backend.model
         else:
-            ref_model = model
+            ref_model = self.trainer.model
         return ref_model

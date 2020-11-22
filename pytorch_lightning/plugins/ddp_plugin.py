@@ -109,7 +109,7 @@ class DDPPlugin(object):
     def optimizer_state(self, optimizer: Optimizer) -> dict:
         return optimizer.state_dict()
 
-    def reference_model_in_plugin_wrapper(
+    def module_from_plugin(
             self,
             model: Union[LightningDistributedDataParallel, LightningModule]
     ) -> LightningModule:
@@ -118,7 +118,7 @@ class DDPPlugin(object):
         when accessing variable and functions outside of the parallel wrapper.
 
         Example::
-            ref_model = ddp_plugin.reference_model(model)
+            ref_model = ddp_plugin.module_from_plugin(model)
             ref_model.training_step(...)
 
         Args:
@@ -129,5 +129,4 @@ class DDPPlugin(object):
         """
         if isinstance(model, LightningDistributedDataParallel):
             return model.module
-        else:
-            return model
+        return model
