@@ -155,12 +155,20 @@ class ModelSummary(object):
           | Name | Type       | Params | In sizes  | Out sizes
         ------------------------------------------------------------
         0 | net  | Sequential | 132 K  | [10, 256] | [10, 512]
+        ------------------------------------------------------------
+        132 K     Trainable params
+        0         Non-trainable params
+        132 K     Total params
         >>> ModelSummary(model, mode='full')  # doctest: +NORMALIZE_WHITESPACE
           | Name  | Type        | Params | In sizes  | Out sizes
         --------------------------------------------------------------
         0 | net   | Sequential  | 132 K  | [10, 256] | [10, 512]
         1 | net.0 | Linear      | 131 K  | [10, 256] | [10, 512]
         2 | net.1 | BatchNorm1d | 1.0 K    | [10, 512] | [10, 512]
+        --------------------------------------------------------------
+        132 K     Trainable params
+        0         Non-trainable params
+        132 K     Total params
     """
 
     MODE_TOP = "top"
@@ -252,7 +260,10 @@ class ModelSummary(object):
             arrays.append(["In sizes", self.in_sizes])
             arrays.append(["Out sizes", self.out_sizes])
 
-        return _format_summary_table(*arrays)
+        trainable_parameters = sum(p.numel() for p in self._model.parameters() if p.requires_grad)
+        total_parameters = sum(p.numel() for p in self._model.parameters())
+
+        return _format_summary_table(total_parameters, trainable_parameters, *arrays)
 
     def __repr__(self):
         return str(self)
@@ -269,7 +280,7 @@ def parse_batch_shape(batch: Any) -> Union[str, List]:
     return UNKNOWN_SIZE
 
 
-def _format_summary_table(*cols) -> str:
+def _format_summary_table(total_parameters: int, trainable_parameters: int, *cols) -> str:
     """
     Takes in a number of arrays, each specifying a column in
     the summary table, and combines them all into one big
@@ -297,6 +308,14 @@ def _format_summary_table(*cols) -> str:
         for c, l in zip(cols, col_widths):
             line.append(s.format(str(c[1][i]), l))
         summary += "\n" + " | ".join(line)
+    summary += "\n" + "-" * total_width
+
+    summary += "\n" + s.format(get_human_readable_count(trainable_parameters), 10)
+    summary += "Trainable params"
+    summary += "\n" + s.format(get_human_readable_count(total_parameters - trainable_parameters), 10)
+    summary += "Non-trainable params"
+    summary += "\n" + s.format(get_human_readable_count(total_parameters), 10)
+    summary += "Total params"
 
     return summary
 

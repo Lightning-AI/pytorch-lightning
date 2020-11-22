@@ -77,15 +77,19 @@ class MLFlowLogger(LightningLoggerBase):
         save_dir: A path to a local directory where the MLflow runs get saved.
             Defaults to `./mlflow` if `tracking_uri` is not provided.
             Has no effect if `tracking_uri` is provided.
+        prefix: A string to put at the beginning of metric keys.
 
     """
+
+    LOGGER_JOIN_CHAR = '-'
 
     def __init__(
         self,
         experiment_name: str = 'default',
         tracking_uri: Optional[str] = None,
         tags: Optional[Dict[str, Any]] = None,
-        save_dir: Optional[str] = './mlruns'
+        save_dir: Optional[str] = './mlruns',
+        prefix: str = '',
     ):
         if mlflow is None:
             raise ImportError('You want to use `mlflow` logger which is not installed yet,'
@@ -99,6 +103,7 @@ class MLFlowLogger(LightningLoggerBase):
         self._tracking_uri = tracking_uri
         self._run_id = None
         self.tags = tags
+        self._prefix = prefix
         self._mlflow_client = MlflowClient(tracking_uri)
 
     @property
@@ -148,6 +153,8 @@ class MLFlowLogger(LightningLoggerBase):
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
+
+        metrics = self._add_prefix(metrics)
 
         timestamp_ms = int(time() * 1000)
         for k, v in metrics.items():
