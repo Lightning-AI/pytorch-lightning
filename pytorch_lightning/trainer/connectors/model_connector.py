@@ -50,7 +50,5 @@ class ModelConnector:
 
     def _reference_model(self, model):
         if self.trainer.accelerator_backend:
-            ref_model = self.trainer.accelerator_backend.reference_model(model)
-        else:
-            ref_model = model
-        return ref_model
+            return self.trainer.accelerator_backend.reference_model(model)
+        return model
