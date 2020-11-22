@@ -458,7 +458,7 @@ hamming_distance [func]
 iou [func]
 ~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.iou
+.. autofunction:: pytorch_lightning.metrics.functional.iou
     :noindex:
 
 
