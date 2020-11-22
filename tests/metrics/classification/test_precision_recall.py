@@ -7,18 +7,18 @@ from sklearn.metrics import precision_score, recall_score
 
 from pytorch_lightning.metrics.classification.utils import _input_format_classification
 from pytorch_lightning.metrics import Precision, Recall
+from pytorch_lightning.metrics.functional import precision, recall
 from tests.metrics.classification.inputs import (
     _binary_inputs,
     _binary_prob_inputs,
     _multiclass_inputs,
-    _multiclass_prob_inputs,
-    _multidim_multiclass_inputs,
-    _multidim_multiclass_prob_inputs,
-    _multilabel_inputs,
-    _multilabel_prob_inputs,
-    _multilabel_multidim_prob_inputs,
-    _multilabel_multidim_inputs,
-    _multidim_multiclass_prob_inputs1,
+    _multiclass_prob_inputs as _mc_prob,
+    _multidim_multiclass_inputs as _mdmc,
+    _multidim_multiclass_prob_inputs as _mdmc_prob,
+    _multilabel_inputs as _ml,
+    _multilabel_prob_inputs as _ml_prob,
+    _multilabel_multidim_prob_inputs as _mlmd_prob,
+    _multilabel_multidim_inputs as _mlmd,
 )
 from tests.metrics.utils import EXTRA_DIM, NUM_CLASSES, THRESHOLD, MetricTester
 
@@ -66,7 +66,7 @@ def _sk_prec_recall_mdmc(
         return _sk_prec_recall(
             preds, target, sk_fn, num_classes, average, logits, False, zero_division, ignore_index, mdmc_average
         )
-    else:  # mdmc_average == "samples"
+    else:  # mdmc_average == "samplewise"
         scores = []
 
         for i in range(preds.shape[0]):
@@ -80,9 +80,42 @@ def _sk_prec_recall_mdmc(
 
         return np.concatenate(scores).mean()
 
+######################################################################################
+# Testing for MDMC inputs is partially skipped, because some cases appear where
+# (with mdmc_average1 =! None, ignore_index=1, average='weighted') a sample in
+# target contains only labels "1" - and as we are ignoring this index, weights of
+# all labels will be zero. In this special edge case, sklearn handles the situation
+# differently for each metric (recall, precision, fscore), which breaks ours handling
+# everything in _reduce_scores (where the return value is 0 in this situation).
+######################################################################################
 
-class PrecisionRecallTestBase(MetricTester):
-    def test_precision_recall(
+@pytest.mark.parametrize(
+    "metric_class, sk_fn, metric_fn", [(Precision, precision_score, precision), (Recall, recall_score, recall)]
+)
+@pytest.mark.parametrize("average", ["micro", "macro", None, "weighted", "samples"])
+@pytest.mark.parametrize("zero_division", [0, 1])
+@pytest.mark.parametrize("ignore_index", [None, 1])
+@pytest.mark.parametrize(
+    "preds, target, num_classes, logits, is_multiclass, mdmc_average, sk_wrapper",
+    [
+        (_binary_prob_inputs.preds, _binary_prob_inputs.target, 1, False, None, None, _sk_prec_recall),
+        (_binary_inputs.preds, _binary_inputs.target, 1, False, False, None, _sk_prec_recall),
+        (_ml_prob.preds, _ml_prob.target, NUM_CLASSES, False, None, None, _sk_prec_recall),
+        (_ml.preds, _ml.target, NUM_CLASSES, False, False, None, _sk_prec_recall),
+        (_mc_prob.preds, _mc_prob.target, NUM_CLASSES, False, None, None, _sk_prec_recall),
+        (_multiclass_inputs.preds, _multiclass_inputs.target, NUM_CLASSES, False, None, None, _sk_prec_recall),
+        (_mlmd_prob.preds, _mlmd_prob.target, EXTRA_DIM * NUM_CLASSES, False, None, None, _sk_prec_recall),
+        (_mlmd.preds, _mlmd.target, EXTRA_DIM * NUM_CLASSES, False, False, None, _sk_prec_recall),
+        (_mdmc.preds, _mdmc.target, NUM_CLASSES, False, None, "global", _sk_prec_recall_mdmc),
+        (_mdmc_prob.preds, _mdmc_prob.target, NUM_CLASSES, False, None, "global", _sk_prec_recall_mdmc),
+        (_mdmc.preds, _mdmc.target, NUM_CLASSES, False, None, "samplewise", _sk_prec_recall_mdmc),
+        (_mdmc_prob.preds, _mdmc_prob.target, NUM_CLASSES, False, None, "samplewise", _sk_prec_recall_mdmc),
+    ],
+)
+class TestPrecisionRecall(MetricTester):
+    @pytest.mark.parametrize("ddp", [True, False])
+    @pytest.mark.parametrize("dist_sync_on_step", [True, False])
+    def test_precision_recall_class(
         self,
         ddp,
         dist_sync_on_step,
@@ -90,6 +123,7 @@ class PrecisionRecallTestBase(MetricTester):
         target,
         sk_wrapper,
         metric_class,
+        metric_fn,
         sk_fn,
         logits,
         is_multiclass,
@@ -99,6 +133,12 @@ class PrecisionRecallTestBase(MetricTester):
         zero_division,
         ignore_index,
     ):
+        if num_classes == 1 and average != "micro":
+            pytest.skip("Only test binary data for 'micro' avg (equivalent of 'binary' in sklearn)")
+
+        if average == "weighted" and ignore_index is not None and mdmc_average is not None:
+            pytest.skip("Ignore special case where we are ignoring entire sample for 'weighted' average")
+
         self.run_class_metric_test(
             ddp=ddp,
             preds=preds,
@@ -130,100 +170,51 @@ class PrecisionRecallTestBase(MetricTester):
             check_batch=True,
         )
 
+    def test_precision_recall_fn(
+        self,
+        preds,
+        target,
+        sk_wrapper,
+        metric_class,
+        metric_fn,
+        sk_fn,
+        logits,
+        is_multiclass,
+        num_classes,
+        average,
+        mdmc_average,
+        zero_division,
+        ignore_index,
+    ):
+        if num_classes == 1 and average != "micro":
+            pytest.skip("Only test binary data for 'micro' avg (equivalent of 'binary' in sklearn)")
 
-@pytest.mark.parametrize("ddp", [True, False])
-@pytest.mark.parametrize("dist_sync_on_step", [True, False])
-@pytest.mark.parametrize("average", ["micro"])  # Only micro, as this is equiv to "binary" in sklearn
-@pytest.mark.parametrize("zero_division", [0, 1])
-@pytest.mark.parametrize("ignore_index", [None])
-@pytest.mark.parametrize("mdmc_average", [None])
-@pytest.mark.parametrize(
-    "preds, target, num_classes, logits, is_multiclass",
-    [
-        (_binary_prob_inputs.preds, _binary_prob_inputs.target, 1, False, None),
-        (_binary_inputs.preds, _binary_inputs.target, 1, False, False),
-    ],
-)
-@pytest.mark.parametrize("metric_class, sk_fn", [(Precision, precision_score), (Recall, recall_score)])
-@pytest.mark.parametrize("sk_wrapper", [_sk_prec_recall])
-class TestPrecisionRecallBinary(PrecisionRecallTestBase):
-    pass
+        if average == "weighted" and ignore_index is not None and mdmc_average is not None:
+            pytest.skip("Ignore special case where we are ignoring entire sample for 'weighted' average")
 
-
-@pytest.mark.parametrize("ddp", [True, False])
-@pytest.mark.parametrize("dist_sync_on_step", [True, False])
-@pytest.mark.parametrize("average", ["micro", "macro", "none", None, "weighted", "samples"])
-@pytest.mark.parametrize("zero_division", [0, 1])
-@pytest.mark.parametrize("ignore_index", [None, 1])
-@pytest.mark.parametrize("mdmc_average", [None])
-@pytest.mark.parametrize(
-    "preds, target, num_classes, logits, is_multiclass",
-    [
-        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target, NUM_CLASSES, False, None),
-        (_multilabel_inputs.preds, _multilabel_inputs.target, NUM_CLASSES, False, False),
-        (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, NUM_CLASSES, False, None),
-        (_multiclass_inputs.preds, _multiclass_inputs.target, NUM_CLASSES, False, None),
-        (
-            _multilabel_multidim_prob_inputs.preds,
-            _multilabel_multidim_prob_inputs.target,
-            EXTRA_DIM * NUM_CLASSES,
-            False,
-            None,
-        ),
-        (_multilabel_multidim_inputs.preds, _multilabel_multidim_inputs.target, EXTRA_DIM * NUM_CLASSES, False, False),
-    ],
-)
-@pytest.mark.parametrize("metric_class, sk_fn", [(Precision, precision_score), (Recall, recall_score)])
-@pytest.mark.parametrize("sk_wrapper", [_sk_prec_recall])
-class TestPrecisionRecallNormal(PrecisionRecallTestBase):
-    pass
-
-
-######################################################################################
-# Testing for MDMC inputs is split into two cases, because some cases appear where
-# (with mdmc_average='samplewise', ignore_index=1, average='weighted') a sample in
-# target contains only labels "1" - and as we are ignoring this index, weights of
-# all labels will be zero. In this special edge case, sklearn handles the situation
-# differently for each metric (recall, precision, fscore), which breaks ours handling
-# everything in _reduce_scores (where the return value is 0 in this situation).
-######################################################################################
-
-
-@pytest.mark.parametrize("ddp", [True, False])
-@pytest.mark.parametrize("dist_sync_on_step", [True, False])
-@pytest.mark.parametrize("average", ["micro", "macro", "none", "weighted", "samples"])
-@pytest.mark.parametrize("mdmc_average", ["global", "samplewise"])
-@pytest.mark.parametrize("zero_division", [0, 1])
-@pytest.mark.parametrize("ignore_index", [None])
-@pytest.mark.parametrize("metric_class, sk_fn", [(Precision, precision_score), (Recall, recall_score)])
-@pytest.mark.parametrize(
-    "preds, target, num_classes, logits, is_multiclass",
-    [
-        (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target, NUM_CLASSES, False, None),
-        (_multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target, NUM_CLASSES, False, None),
-        (_multidim_multiclass_prob_inputs1.preds, _multidim_multiclass_prob_inputs1.target, NUM_CLASSES, False, None),
-    ],
-)
-@pytest.mark.parametrize("sk_wrapper", [_sk_prec_recall_mdmc])
-class TestPrecisionRecallMDMC1(PrecisionRecallTestBase):
-    pass
-
-
-@pytest.mark.parametrize("ddp", [False])  # True was basically already checked, speeds up the testing
-@pytest.mark.parametrize("dist_sync_on_step", [False])  # True was basically already checked, speeds up the testing
-@pytest.mark.parametrize("average", ["micro", "macro", "none", "samples"])
-@pytest.mark.parametrize("mdmc_average", ["samplewise", "global"])
-@pytest.mark.parametrize("zero_division", [0, 1])
-@pytest.mark.parametrize("ignore_index", [1])
-@pytest.mark.parametrize("metric_class, sk_fn", [(Precision, precision_score), (Recall, recall_score)])
-@pytest.mark.parametrize(
-    "preds, target, num_classes, logits, is_multiclass",
-    [
-        (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target, NUM_CLASSES, False, None),
-        (_multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target, NUM_CLASSES, False, None),
-        (_multidim_multiclass_prob_inputs1.preds, _multidim_multiclass_prob_inputs1.target, NUM_CLASSES, False, None),
-    ],
-)
-@pytest.mark.parametrize("sk_wrapper", [_sk_prec_recall_mdmc])
-class TestPrecisionRecallMDMC2(PrecisionRecallTestBase):
-    pass
+        self.run_functional_metric_test(
+            preds,
+            target,
+            metric_functional=metric_fn,
+            sk_metric=partial(
+                sk_wrapper,
+                sk_fn=sk_fn,
+                average=average,
+                num_classes=num_classes,
+                logits=logits,
+                is_multiclass=is_multiclass,
+                zero_division=zero_division,
+                ignore_index=ignore_index,
+                mdmc_average=mdmc_average,
+            ),
+            metric_args={
+                "num_classes": num_classes,
+                "average": average,
+                "threshold": THRESHOLD,
+                "logits": logits,
+                "is_multiclass": is_multiclass,
+                "zero_division": zero_division,
+                "ignore_index": ignore_index,
+                "mdmc_average": mdmc_average,
+            },
+        )

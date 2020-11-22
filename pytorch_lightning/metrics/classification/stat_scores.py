@@ -11,9 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Any, Tuple, Callable
+from typing import Optional, Any, Callable
 
-import numpy as np
 import torch
 from pytorch_lightning.metrics.utils import dim_zero_cat
 from pytorch_lightning.metrics import Metric
@@ -27,92 +26,6 @@ def _dim_zero_cat_and_put_back(tensor: torch.Tensor):
     out = out.reshape(-1, *out.shape[2:])
 
     return out
-
-
-def _reduce_scores(
-    numerator: torch.Tensor,
-    denominator: torch.Tensor,
-    weights: torch.Tensor,
-    average: str,
-    mdmc_average: Optional[str],
-    zero_division: int,
-) -> torch.Tensor:
-    """Reduces scores of type numerator/denominator (with possible weighting).
-
-    First, scores are computed by dividing the numerator by denominator. If
-    denominator is zero, then the score is set to the value of zero_division
-    parameters.
-
-    If average='micro' or 'none', no reduction is needed. In case of 'none',
-    scores for classes whose weights are negative are set to nan.
-
-    If average='macro' or 'weighted', the scores across each classes are
-    averaged (with weights). The scores for classes whose weights are
-    negative are ignored in averaging.
-
-    If average='samples', the scores across all samples are averaged.
-
-    In case if mdmc_average='samplewise', then the transformations mentioned
-    above are first applied across dimension 1, and the scores then averaged
-    across dimension 0.
-
-    Parameters
-    ----------
-    numerator
-        A tensor with elements that are the upper part of the quotient
-    denominator
-        A tensor with elements that are the lower part of the quotient
-    weights
-        A tensor of weights for each class - will be used for weighting
-        only if average='weighted'.
-
-        If a class is to be ignored (in case of macro or weighted average),
-        that class should have a negative weight. If average=none or None,
-        classes with negative weights will get a score of nan
-    average
-        The method to average the scores. Should be one of 'micro', 'macro',
-        'weighted', 'none', None, 'samples'
-    mdmc_average
-        The method to average the scores if inputs were multi-dimensional multi-class.
-        Should be either 'global' or 'samplewise'. If inputs were not
-        multi-dimensional multi-class, it should be None
-    zero_division
-        Should be either zero (if there is zero division set metric to 0), or 1W
-    """
-    numerator, denominator = numerator.double(), denominator.double()
-    weights = weights.double()
-
-    zero_div_mask = denominator == 0
-    denominator = torch.where(zero_div_mask, 1.0, denominator)
-
-    scores = numerator / denominator
-    scores = torch.where(zero_div_mask, float(zero_division), scores)
-
-    ignore_mask = weights < 0
-
-    weights = torch.where(ignore_mask, 0.0, 1.0 if average == "macro" else weights)
-    weights = weights.double()
-    weights_sum = weights.sum(dim=-1, keepdims=True)
-
-    # In case if we ignore the only positive class (sum of weights is 0),
-    # return zero_division - this is to be consistent with sklearn and
-    # pass the tests
-    weights_sum = torch.where(weights_sum == 0, 1.0, weights_sum)
-    weights = weights / weights_sum
-
-    if average in ["none", None]:
-        scores = torch.where(ignore_mask, np.nan, scores)
-
-    elif average in ["macro", "weighted"]:
-        scores = (scores * weights).sum(dim=-1)
-
-    elif average == "samples":
-        scores = scores.mean()
-
-    if mdmc_average == "samplewise":
-        scores = scores.mean()
-
-    return scores
 
 
 class StatScores(Metric):

@@ -16,19 +16,13 @@ from pytorch_lightning.metrics.functional.classification import (
     auroc,
     average_precision,
     # dice_score,
-    # f1_score,
-    # fbeta_score,
     multiclass_precision_recall_curve,
     multiclass_roc,
     multiclass_auroc,
-    # precision,
-    # precision_recall,
     precision_recall_curve,
-    # recall,
     roc,
     to_categorical,
     to_onehot,
-    # iou,
 )
 from pytorch_lightning.metrics.functional.nlp import bleu_score
 from pytorch_lightning.metrics.functional.self_supervised import (
@@ -45,3 +39,6 @@ from pytorch_lightning.metrics.functional.ssim import ssim
 from pytorch_lightning.metrics.functional.accuracy import accuracy, topk_accuracy, hamming_loss
 from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matrix
 from pytorch_lightning.metrics.functional.stat_scores import stat_scores
+from pytorch_lightning.metrics.functional.precision_recall import precision, recall
+from pytorch_lightning.metrics.functional.fbeta import f1_score, fbeta_score
+from pytorch_lightning.metrics.functional.iou import iou

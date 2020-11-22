@@ -263,6 +263,15 @@ def stat_scores(
 
     """
 
+    if reduce not in ["micro", "macro", "samples"]:
+        raise ValueError("reduce %s is not valid." % reduce)
+
+    if mdmc_reduce not in [None, "samplewise", "global"]:
+        raise ValueError("mdmc_reduce %s is not valid." % mdmc_reduce)
+
+    if reduce == "macro" and (not num_classes or num_classes < 1):
+        raise ValueError("When you set reduce as macro, you have to provide the number of classes.")
+
     tp, fp, tn, fn = _stat_scores_update(
         preds, target, reduce, mdmc_reduce, threshold, num_classes, logits, is_multiclass, ignore_index
     )

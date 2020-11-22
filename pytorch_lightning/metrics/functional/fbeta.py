@@ -11,14 +11,46 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Any, Callable
+from typing import Optional
 
 import torch
-from pytorch_lightning.metrics.classification.stat_scores import StatScores
-from pytorch_lightning.metrics.functional.fbeta import _fbeta_compute
+from pytorch_lightning.metrics.functional.reduction import _reduce_scores
+from pytorch_lightning.metrics.functional.stat_scores import _stat_scores_update
 
 
-class FBeta(StatScores):
+def _fbeta_compute(
+    tp: torch.Tensor,
+    fp: torch.Tensor,
+    tn: torch.Tensor,
+    fn: torch.Tensor,
+    beta: float,
+    average: str,
+    mdmc_average: Optional[str],
+    zero_division: int,
+) -> torch.Tensor:
+    return _reduce_scores(
+        numerator=(1 + beta ** 2) * tp,
+        denominator=(1 + beta ** 2) * tp + beta ** 2 * fn + fp,
+        weights=tp + fn,
+        average=average,
+        mdmc_average=mdmc_average,
+        zero_division=zero_division,
+    )
+
+
+def fbeta_score(
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    beta: float,
+    average: str = "micro",
+    mdmc_average: Optional[str] = None,
+    threshold: float = 0.5,
+    num_classes: Optional[int] = None,
+    logits: bool = True,
+    is_multiclass: Optional[bool] = None,
+    ignore_index: Optional[int] = None,
+    zero_division: int = 0,
+) -> torch.Tensor:
     """Computes the `F-score. <https://en.wikipedia.org/wiki/F-score>`_.
 
     The metric computes weighted hamonic mean of recall and precision, where the square of
@@ -101,83 +133,46 @@ class FBeta(StatScores):
             Score to use for classes/samples, whose score has 0 in the denominator. Has to be either
             0 [default] or 1.
 
-        compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False. default: True
-        dist_sync_on_step:
-            Synchronize metric state across processes at each ``forward()``
-            before returning the value at the step. default: False
-        process_group:
-            Specify the process group on which synchronization is called. default: None (which selects the entire world)
-        dist_sync_fn:
-            Callback that performs the allgather operation on the metric state. When `None`, DDP
-            will be used to perform the allgather. default: None
-
     Example:
 
-        >>> from pytorch_lightning.metrics.classification import FBeta
+        >>> from pytorch_lightning.metrics.functional import fbeta_score
         >>> preds  = torch.tensor([2, 0, 2, 1])
         >>> target = torch.tensor([1, 1, 2, 0])
-        >>> fbeta = FBeta(beta=2.0, average='macro', num_classes=3)
-        >>> fbeta(preds, target)
+        >>> fbeta_score(preds, target, beta=2.0, average='macro', num_classes=3)
         tensor(0.2778)
-        >>> fbeta = FBeta(beta=2.0, average='micro')
-        >>> fbeta(preds, target)
+        >>> fbeta_score(preds, target, beta=2.0, average='micro')
         tensor(0.2500)
 
     """
 
-    def __init__(
-        self,
-        beta: float = 1.0,
-        average: str = "micro",
-        mdmc_average: Optional[str] = None,
-        threshold: float = 0.5,
-        num_classes: Optional[int] = None,
-        logits: bool = True,
-        is_multiclass: Optional[bool] = None,
-        ignore_index: Optional[int] = None,
-        zero_division: int = 0,
-        compute_on_step: bool = True,
-        dist_sync_on_step: bool = False,
-        process_group: Optional[Any] = None,
-        dist_sync_fn: Callable = None,
-    ):
-        super().__init__(
-            reduce="macro" if average in ["weighted", "none", None] else average,
-            mdmc_reduce=mdmc_average,
-            threshold=threshold,
-            num_classes=num_classes,
-            logits=logits,
-            is_multiclass=is_multiclass,
-            ignore_index=ignore_index,
-            compute_on_step=compute_on_step,
-            dist_sync_on_step=dist_sync_on_step,
-            process_group=process_group,
-            dist_sync_fn=dist_sync_fn,
-        )
+    reduce = "macro" if average in ["weighted", "none", None] else average
 
-        if zero_division not in [0, 1]:
-            raise ValueError("zero_division has to be either 0 or 1")
+    if zero_division not in [0, 1]:
+        raise ValueError("zero_division has to be either 0 or 1")
 
-        # Check average
-        if average not in ["micro", "macro", "weighted", "samples", "none", None]:
-            raise ValueError("Uncrecognized average option: %s" % average)
+    # Check average
+    if average not in ["micro", "macro", "weighted", "samples", "none", None]:
+        raise ValueError("Uncrecognized average option: %s" % average)
 
-        self.mdmc_average = mdmc_average
-        self.zero_division = zero_division
-        self.average = average
-        self.beta = beta
+    tp, fp, tn, fn = _stat_scores_update(
+        preds, target, reduce, mdmc_average, threshold, num_classes, logits, is_multiclass, ignore_index
+    )
 
-    def compute(self) -> torch.Tensor:
-        """
-        Computes the precision score based on inputs passed in to ``update`` previously.
-        """
-        return _fbeta_compute(
-            self.tp, self.fp, self.tn, self.fn, self.beta, self.average, self.mdmc_reduce, self.zero_division
-        )
+    return _fbeta_compute(tp, fp, tn, fn, beta, average, mdmc_average, zero_division)
 
 
-class F1(FBeta):
+def f1_score(
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    average: str = "micro",
+    mdmc_average: Optional[str] = None,
+    threshold: float = 0.5,
+    num_classes: Optional[int] = None,
+    logits: bool = True,
+    is_multiclass: Optional[bool] = None,
+    ignore_index: Optional[int] = None,
+    zero_division: int = 0,
+) -> torch.Tensor:
     """Computes the `F1-score. <https://en.wikipedia.org/wiki/F-score>`_.
 
     The metric computes the hamonic mean of recall and precision. It is equivalent to
@@ -270,45 +265,27 @@ class F1(FBeta):
 
     Example:
 
-        >>> from pytorch_lightning.metrics.classification import F1
+        >>> from pytorch_lightning.metrics.functional import f1_score
         >>> preds  = torch.tensor([2, 0, 2, 1])
         >>> target = torch.tensor([1, 1, 2, 0])
-        >>> f1 = F1(beta=2.0, average='macro', num_classes=3)
-        >>> f1(preds, target)
+        >>> f1_score(preds, target, average='macro', num_classes=3)
         tensor(0.2222)
-        >>> f1 = F1(beta=2.0, average='micro')
-        >>> f1(preds, target)
+        >>> f1_score(preds, target, average='micro')
         tensor(0.2500)
 
     """
 
-    def __init__(
-        self,
-        average: str = "micro",
-        mdmc_average: Optional[str] = None,
-        threshold: float = 0.5,
-        num_classes: Optional[int] = None,
-        logits: bool = True,
-        is_multiclass: Optional[bool] = None,
-        ignore_index: Optional[int] = None,
-        zero_division: int = 0,
-        compute_on_step: bool = True,
-        dist_sync_on_step: bool = False,
-        process_group: Optional[Any] = None,
-        dist_sync_fn: Callable = None,
-    ):
-        super().__init__(
-            beta=1.0,
-            average=average,
-            mdmc_average=mdmc_average,
-            threshold=threshold,
-            num_classes=num_classes,
-            logits=logits,
-            is_multiclass=is_multiclass,
-            ignore_index=ignore_index,
-            zero_division=zero_division,
-            compute_on_step=compute_on_step,
-            dist_sync_on_step=dist_sync_on_step,
-            process_group=process_group,
-            dist_sync_fn=dist_sync_fn,
-        )
+    reduce = "macro" if average in ["weighted", "none", None] else average
+
+    if zero_division not in [0, 1]:
+        raise ValueError("zero_division has to be either 0 or 1")
+
+    # Check average
+    if average not in ["micro", "macro", "weighted", "samples", "none", None]:
+        raise ValueError("Uncrecognized average option: %s" % average)
+
+    tp, fp, tn, fn = _stat_scores_update(
+        preds, target, reduce, mdmc_average, threshold, num_classes, logits, is_multiclass, ignore_index
+    )
+
+    return _fbeta_compute(tp, fp, tn, fn, 1.0, average, mdmc_average, zero_division)

@@ -14,7 +14,8 @@
 from typing import Optional, Any, Callable
 
 import torch
-from pytorch_lightning.metrics.classification.stat_scores import StatScores, _reduce_scores
+from pytorch_lightning.metrics.classification.stat_scores import StatScores
+from pytorch_lightning.metrics.functional.precision_recall import _precision_compute, _recall_compute
 
 
 class Precision(StatScores):
@@ -136,7 +137,7 @@ class Precision(StatScores):
     ):
         super().__init__(
             reduce="macro" if average in ["weighted", "none", None] else average,
-            mdmc_average=mdmc_average,
+            mdmc_reduce=mdmc_average,
             threshold=threshold,
             num_classes=num_classes,
             logits=logits,
@@ -162,13 +163,9 @@ class Precision(StatScores):
         """
         Computes the precision score based on inputs passed in to ``update`` previously.
         """
-        return _reduce_scores(
-            numerator=self.tp,
-            denominator=self.tp + self.fp,
-            weights=self.tp + self.fn,
-            average=self.average,
-            mdmc_average=self.mdmc_average,
-            zero_division=self.zero_division,
+
+        return _precision_compute(
+            self.tp, self.fp, self.tn, self.fn, self.average, self.mdmc_reduce, self.zero_division
         )
 
 
@@ -267,7 +264,7 @@ class Recall(StatScores):
         >>> target = torch.tensor([1, 1, 2, 0])
         >>> recall = Recall(average='macro', num_classes=3)
         >>> recall(preds, target)
-        tensor(0.1667)
+        tensor(0.3333)
         >>> recall = Recall(average='micro')
         >>> recall(preds, target)
         tensor(0.2500)
@@ -291,7 +288,7 @@ class Recall(StatScores):
     ):
         super().__init__(
             reduce="macro" if average in ["weighted", "none", None] else average,
-            mdmc_average=mdmc_average,
+            mdmc_reduce=mdmc_average,
             threshold=threshold,
             num_classes=num_classes,
             logits=logits,
@@ -317,11 +314,5 @@ class Recall(StatScores):
         """
         Computes the recall score based on inputs passed in to ``update`` previously.
         """
-        return _reduce_scores(
-            numerator=self.tp,
-            denominator=self.tp + self.fn,
-            weights=self.tp + self.fn,
-            average=self.average,
-            mdmc_average=self.mdmc_average,
-            zero_division=self.zero_division,
-        )
+
+        return _recall_compute(self.tp, self.fp, self.tn, self.fn, self.average, self.mdmc_reduce, self.zero_division)

@@ -11,14 +11,44 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Any, Callable
+from typing import Optional
 
 import torch
-from pytorch_lightning.metrics.classification.stat_scores import StatScores
-from pytorch_lightning.metrics.functional.iou import _iou_compute
+from pytorch_lightning.metrics.functional.reduction import _reduce_scores
+from pytorch_lightning.metrics.functional.stat_scores import _stat_scores_update
 
 
-class IoU(StatScores):
+def _iou_compute(
+    tp: torch.Tensor,
+    fp: torch.Tensor,
+    tn: torch.Tensor,
+    fn: torch.Tensor,
+    average: str,
+    mdmc_average: Optional[str],
+    zero_division: int,
+) -> torch.Tensor:
+    return _reduce_scores(
+        numerator=tp,
+        denominator=tp + fn + fp,
+        weights=tp + fn,
+        average=average,
+        mdmc_average=mdmc_average,
+        zero_division=zero_division,
+    )
+
+
+def iou(
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    average: str = "micro",
+    mdmc_average: Optional[str] = None,
+    threshold: float = 0.5,
+    num_classes: Optional[int] = None,
+    logits: bool = True,
+    is_multiclass: Optional[bool] = None,
+    ignore_index: Optional[int] = None,
+    zero_division: int = 0,
+) -> torch.Tensor:
     """Computes the Intersection over Union (the ratio ``tp / (tp + fp + fn)``), also known
     as the Jaccard Index or Jaccard Score).
 
@@ -97,17 +127,6 @@ class IoU(StatScores):
             If an index is ignored, and ``average=None`` or ``'none'``, the score for the ignored class
             will be returned as ``nan`` (to not break the indexing of other labels).
 
-        compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False. default: True
-        dist_sync_on_step:
-            Synchronize metric state across processes at each ``forward()``
-            before returning the value at the step. default: False
-        process_group:
-            Specify the process group on which synchronization is called. default: None (which selects the entire world)
-        dist_sync_fn:
-            Callback that performs the allgather operation on the metric state. When `None`, DDP
-            will be used to perform the allgather. default: None
-
     Example:
 
         >>> from pytorch_lightning.metrics.classification import IoU
@@ -122,50 +141,17 @@ class IoU(StatScores):
 
     """
 
-    def __init__(
-        self,
-        average: str = "micro",
-        mdmc_average: Optional[str] = None,
-        threshold: float = 0.5,
-        num_classes: Optional[int] = None,
-        logits: bool = True,
-        is_multiclass: Optional[bool] = None,
-        ignore_index: Optional[int] = None,
-        zero_division: int = 0,
-        compute_on_step: bool = True,
-        dist_sync_on_step: bool = False,
-        process_group: Optional[Any] = None,
-        dist_sync_fn: Callable = None,
-    ):
-        super().__init__(
-            reduce="macro" if average in ["weighted", "none", None] else average,
-            mdmc_reduce=mdmc_average,
-            threshold=threshold,
-            num_classes=num_classes,
-            logits=logits,
-            is_multiclass=is_multiclass,
-            ignore_index=ignore_index,
-            compute_on_step=compute_on_step,
-            dist_sync_on_step=dist_sync_on_step,
-            process_group=process_group,
-            dist_sync_fn=dist_sync_fn,
-        )
+    reduce = "macro" if average in ["weighted", "none", None] else average
 
-        if zero_division not in [0, 1]:
-            raise ValueError("zero_division has to be either 0 or 1")
+    if zero_division not in [0, 1]:
+        raise ValueError("zero_division has to be either 0 or 1")
 
-        # Check average
-        if average not in ["micro", "macro", "weighted", "samples", "none", None]:
-            raise ValueError("Uncrecognized average option: %s" % average)
+    # Check average
+    if average not in ["micro", "macro", "weighted", "samples", "none", None]:
+        raise ValueError("Uncrecognized average option: %s" % average)
 
-        self.average = average
-        self.zero_division = zero_division
-        self.mdmc_average = mdmc_average
+    tp, fp, tn, fn = _stat_scores_update(
+        preds, target, reduce, mdmc_average, threshold, num_classes, logits, is_multiclass, ignore_index
+    )
 
-    def compute(self) -> torch.Tensor:
-        """
-        Computes the precision score based on inputs passed in to ``update`` previously.
-        """
-        return _iou_compute(
-            self.tp, self.fp, self.tn, self.fn, self.average, self.mdmc_reduce, self.zero_division
-        )
+    return _iou_compute(tp, fp, tn, fn, average, mdmc_average, zero_division)
