@@ -95,7 +95,7 @@ def _multidim_multiclass_sk_metric(preds, target, average=None):
         _multidim_multiclass_inputs.preds,
         _multidim_multiclass_inputs.target,
         _multidim_multiclass_sk_metric,
-         NUM_CLASSES
+        NUM_CLASSES
     )
 ])
 class TestConfusionMatrix(MetricTester):
