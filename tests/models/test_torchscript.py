@@ -35,6 +35,7 @@ def test_torchscript_input_output(modelclass):
     model.eval()
     with torch.no_grad():
         model_output = model(model.example_input_array)
+
     script_output = script(model.example_input_array)
     assert torch.allclose(script_output, model_output)
 
@@ -53,7 +54,8 @@ def test_torchscript_example_input_output_trace(modelclass):
     model.eval()
     with torch.no_grad():
         model_output = model(model.example_input_array)
-        script_output = script(model.example_input_array)
+
+    script_output = script(model.example_input_array)
     assert torch.allclose(script_output, model_output)
 
 
@@ -67,7 +69,8 @@ def test_torchscript_input_output_trace():
     model.eval()
     with torch.no_grad():
         model_output = model(example_inputs)
-        script_output = script(example_inputs)
+
+    script_output = script(example_inputs)
     assert torch.allclose(script_output, model_output)
 
 
