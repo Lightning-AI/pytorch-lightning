@@ -288,6 +288,8 @@ def _input_format_classification(
         preds: binary tensor of shape (N, C) or (N, C, X)
         target: binary tensor of shape (N, C) or (N, C, X)
     """
+    preds, target = preds.clone().detach(), target.clone().detach()
+
     # Remove excess dimensions
     if preds.shape[0] == 1:
         preds, target = preds.squeeze().unsqueeze(0), target.squeeze().unsqueeze(0)
