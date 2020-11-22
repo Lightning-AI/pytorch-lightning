@@ -544,9 +544,6 @@ class Trainer(
                             ' not been met. Training will continue...'
                         )
 
-            # hook
-            self.train_loop.on_train_end()
-
         except KeyboardInterrupt:
             rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
 
@@ -558,6 +555,9 @@ class Trainer(
 
                 # hook
                 self.train_loop.on_train_end()
+        else:
+            # hook
+            self.train_loop.on_train_end()
 
     def run_evaluation(self, test_mode: bool = False, max_batches=None):
 
