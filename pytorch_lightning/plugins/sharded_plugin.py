@@ -11,10 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Any, Optional
+from typing import List, Any, Optional, Union
 
-from pytorch_lightning import LightningModule
-
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -105,3 +104,11 @@ class DDPShardedPlugin(DDPPlugin):
                     if scheduler.optimizer == optimizer:
                         scheduler.optimizer = zero_optimizer
                 del optimizer
+
+    def module_from_plugin(
+            self,
+            model: Union[LightningShardedDataParallel, LightningModule]
+    ) -> LightningModule:
+        if isinstance(model, LightningShardedDataParallel):
+            return model.module
+        return model
