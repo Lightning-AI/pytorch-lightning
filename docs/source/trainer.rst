@@ -54,7 +54,7 @@ Under the hood
 --------------
 Under the hood, the Lightning Trainer handles the training loop details for you, some examples include:
 
-- Automatically eenabling/disabling grads
+- Automatically enabling/disabling grads
 - Running the training, validation and test dataloaders
 - Calling the Callbacks at the appropriate times
 - Putting batches and computations on the correct devices
@@ -1475,6 +1475,11 @@ with the hidden
             # hiddens are the hiddens from the previous truncated backprop step
             out, hiddens = self.lstm(data, hiddens)
 
+            # remember to detach() hiddens.
+            # If you don't, you will get a RuntimeError: Trying to backward through
+            # the graph a second time...
+            # Using hiddens.detach() allows each split to be disconnected.
+
             return {
                 "loss": ...,
                 "hiddens": hiddens  # remember to detach() this
@@ -1666,6 +1671,17 @@ The metrics sent to the logger (visualizer).
     logged_metrics = trainer.logged_metrics
     assert logged_metrics['a_val'] == 2
 
+log_dir
+*******
+The directory for the current experiment. Use this to save images to, etc...
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        img = ...
+        save_img(img, self.trainer.log_dir)
+
+
 
 is_global_zero
 **************
@@ -1691,4 +1707,3 @@ The metrics sent to the progress bar.
 
     progress_bar_metrics = trainer.progress_bar_metrics
     assert progress_bar_metrics['a_val'] == 2
-

@@ -12,4 +12,16 @@
 /tests/metrics/*              @teddykoker @ananyahjha93 @justusschock
 /docs/source/metrics.rst      @teddykoker @ananyahjha93 @justusschock
 
+# API
+/pytorch_lightning/callbacks/base.py  @williamfalcon
+/pytorch_lightning/core/datamodule.py @williamfalcon
+/pytorch_lightning/trainer/trainer.py @williamfalcon
+/pytorch_lightning/core/hooks.py     @williamfalcon
+/pytorch_lightning/core/lightning.py  @williamfalcon
 
+
+# accelerators
+/pytorch_lightning/accelerators/*  @williamfalcon
+
+# owners
+/pytorch_lightning/.github/CODEOWNERS @williamfalcon

@@ -39,6 +39,7 @@ PyTorch Lightning Documentation
    :name: docs
    :caption: Optional extensions
 
+   accelerators
    callbacks
    datamodules
    logging
@@ -57,6 +58,13 @@ PyTorch Lightning Documentation
    From PyTorch to PyTorch Lightning [Video] <https://www.youtube.com/watch?v=QHww1JH7IDU>
 
 .. toctree::
+   :maxdepth: 2
+   :name: api
+   :caption: API References
+
+   api_references
+
+.. toctree::
    :maxdepth: 1
    :name: Bolts
    :caption: Bolts
@@ -68,6 +76,7 @@ PyTorch Lightning Documentation
    :name: Examples
    :caption: Examples
 
+   pytorch_ecoystem
    community_examples
    Autoencoder <https://pytorch-lightning-bolts.readthedocs.io/en/latest/autoencoders.html#autoencoders>
    BYOL <https://pytorch-lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#byol>

@@ -43,6 +43,15 @@ else:
 class DDPSpawnAccelerator(Accelerator):
 
     def __init__(self, trainer, nprocs, cluster_environment=None, ddp_plugin=None):
+        """
+        Runs training using DDP using mp.spawn via manual launch (not cluster launch)
+
+        Example::
+
+            # default
+            trainer = Trainer(accelerator=DDPSpawnAccelerator())
+
+        """
         super().__init__(trainer, cluster_environment, ddp_plugin)
         self.mp_queue = None
         self.nprocs = nprocs
@@ -173,19 +182,21 @@ class DDPSpawnAccelerator(Accelerator):
         return device_ids
 
     def training_step(self, args):
+        return self._step(args)
+
+    def validation_step(self, args):
+        return self._step(args)
+
+    def test_step(self, args):
+        return self._step(args)
+
+    def _step(self, args):
+        args = self.ddp_plugin.on_before_forward(self.trainer.get_model(), *args)
         if self.trainer.amp_backend == AMPType.NATIVE:
             with torch.cuda.amp.autocast():
                 output = self.trainer.model(*args)
         else:
             output = self.trainer.model(*args)
-        return output
-
-    def validation_step(self, args):
-        output = self.training_step(args)
-        return output
-
-    def test_step(self, args):
-        output = self.training_step(args)
         return output
 
     def barrier(self, name: Optional[str] = None):

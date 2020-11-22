@@ -13,8 +13,8 @@
 # limitations under the License.
 
 """
-Comet
------
+Comet Logger
+------------
 """
 
 import os
@@ -53,7 +53,9 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 class CometLogger(LightningLoggerBase):
     r"""
-    Log using `Comet.ml <https://www.comet.ml>`_. Install it with pip:
+    Log using `Comet.ml <https://www.comet.ml>`_.
+
+    Install it with pip:
 
     .. code-block:: bash
 
@@ -111,20 +113,24 @@ class CometLogger(LightningLoggerBase):
             the experiment will be in online or offline mode. This is useful if you use
             save_dir to control the checkpoints directory and have a ~/.comet.config
             file but still want to run offline experiments.
+        prefix: A string to put at the beginning of metric keys.
         \**kwargs: Additional arguments like `workspace`, `log_code`, etc. used by
             :class:`CometExperiment` can be passed as keyword arguments in this logger.
     """
 
+    LOGGER_JOIN_CHAR = '-'
+
     def __init__(
-            self,
-            api_key: Optional[str] = None,
-            save_dir: Optional[str] = None,
-            project_name: Optional[str] = None,
-            rest_api_key: Optional[str] = None,
-            experiment_name: Optional[str] = None,
-            experiment_key: Optional[str] = None,
-            offline: bool = False,
-            **kwargs
+        self,
+        api_key: Optional[str] = None,
+        save_dir: Optional[str] = None,
+        project_name: Optional[str] = None,
+        rest_api_key: Optional[str] = None,
+        experiment_name: Optional[str] = None,
+        experiment_key: Optional[str] = None,
+        offline: bool = False,
+        prefix: str = '',
+        **kwargs
     ):
         if comet_ml is None:
             raise ImportError(
@@ -157,6 +163,7 @@ class CometLogger(LightningLoggerBase):
         self._project_name = project_name
         self._experiment_key = experiment_key
         self._experiment_name = experiment_name
+        self._prefix = prefix
         self._kwargs = kwargs
         self._future_experiment_key = None
 
@@ -236,6 +243,7 @@ class CometLogger(LightningLoggerBase):
 
         metrics_without_epoch = metrics.copy()
         epoch = metrics_without_epoch.pop('epoch', None)
+        metrics_without_epoch = self._add_prefix(metrics_without_epoch)
         self.experiment.log_metrics(metrics_without_epoch, step=step, epoch=epoch)
 
     def reset_experiment(self):

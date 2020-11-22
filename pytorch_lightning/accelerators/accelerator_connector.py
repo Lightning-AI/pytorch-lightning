@@ -220,28 +220,28 @@ class AcceleratorConnector:
             )
 
         elif use_ddp_cpu_slurm:
-            accelerator_backend = accelerators.DDPCPUSLURMAccelerator(
+            accelerator_backend = accelerators.DDPCPUHPCAccelerator(
                 self.trainer,
                 cluster_env,
                 self.trainer.plugin_connector.ddp_plugin
             )
 
         elif use_slurm_ddp:
-            accelerator_backend = accelerators.DDPSLURMAccelerator(
+            accelerator_backend = accelerators.DDPHPCAccelerator(
                 self.trainer,
                 cluster_env,
                 self.trainer.plugin_connector.ddp_plugin
             )
 
         elif use_ddp_cpu_torch_elastic:
-            accelerator_backend = accelerators.DDPCPUTorchElasticAccelerator(
+            accelerator_backend = accelerators.DDPCPUHPCAccelerator(
                 self.trainer,
                 cluster_env,
                 self.trainer.plugin_connector.ddp_plugin
             )
 
         elif use_torchelastic_ddp:
-            accelerator_backend = accelerators.DDPTorchElasticAccelerator(
+            accelerator_backend = accelerators.DDPHPCAccelerator(
                 self.trainer,
                 cluster_env,
                 self.trainer.plugin_connector.ddp_plugin

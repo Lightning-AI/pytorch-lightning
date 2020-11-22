@@ -44,7 +44,7 @@ def test_validation_step_no_return(tmpdir):
     # out are the results of the full loop
     # eval_results are output of _evaluate
     out, eval_results = trainer.run_evaluation(test_mode=False)
-    assert len(out) == 0
+    assert len(out) == 1
     assert len(eval_results) == 0
 
     # make sure correct steps were called
@@ -75,7 +75,7 @@ def test_validation_step_scalar_return(tmpdir):
     # out are the results of the full loop
     # eval_results are output of _evaluate
     out, eval_results = trainer.run_evaluation(test_mode=False)
-    assert len(out) == 0
+    assert len(out) == 1
     assert len(eval_results) == 2
     assert eval_results[0] == 171 and eval_results[1] == 171
 
@@ -127,8 +127,6 @@ def test_validation_step_dict_return(tmpdir):
     in the correct place
     """
 
-    os.environ['PL_DEV_DEBUG'] = '0'
-
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
     model.validation_step = model.validation_step_dict_return
@@ -170,7 +168,6 @@ def test_val_step_step_end_no_return(tmpdir):
     """
     Test that val step + val step end work (with no return in val step end)
     """
-    os.environ['PL_DEV_DEBUG'] = '0'
 
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
@@ -190,7 +187,7 @@ def test_val_step_step_end_no_return(tmpdir):
     # out are the results of the full loop
     # eval_results are output of _evaluate
     callback_metrics, eval_results = trainer.run_evaluation(test_mode=False)
-    assert len(callback_metrics) == 0
+    assert len(callback_metrics) == 1
     assert len(eval_results) == 0
 
     # make sure correct steps were called
@@ -203,8 +200,6 @@ def test_val_step_step_end(tmpdir):
     """
     Test that val step + val step end work
     """
-
-    os.environ['PL_DEV_DEBUG'] = '0'
 
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
@@ -251,8 +246,6 @@ def test_no_val_step_end(tmpdir):
     Test that val step + val epoch end
     """
 
-    os.environ['PL_DEV_DEBUG'] = '0'
-
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
     model.validation_step = model.validation_step_dict_return
@@ -296,8 +289,6 @@ def test_full_val_loop(tmpdir):
     """
     Test that val step + val step end + val epoch end
     """
-
-    os.environ['PL_DEV_DEBUG'] = '0'
 
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
