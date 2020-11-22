@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 from enum import Enum
+from abc import ABCMeta
 from typing import Any, Optional, Union, List
 
 import torch
@@ -33,6 +34,7 @@ else:
 
 
 class Accelerator(object):
+    __metaclass__ = ABCMeta
 
     def __init__(self, trainer=None, cluster_environment=None, ddp_plugin=None):
         self.trainer = trainer
@@ -46,6 +48,7 @@ class Accelerator(object):
             self.validation_loop = self.trainer.run_evaluation
             self.test_loop = self.trainer.run_evaluation
 
+    @abstractmethod
     def setup(self, model):
         pass
 
@@ -71,6 +74,18 @@ class Accelerator(object):
         if model is not None:
             return model.transfer_batch_to_device(batch, device)
         return move_data_to_device(batch, device)
+
+    @abstractmethod
+    def training_step(self, args):
+        raise NotImplementedError("training_step not implemented!")
+
+    @abstractmethod
+    def validation_step(self, args):
+        raise NotImplementedError("validation_step not implemented!!")
+
+    @abstractmethod
+    def test_step(self, args):
+        raise NotImplementedError("test_step not implemented!!")
 
     def training_step_end(self, output):
         return output
@@ -218,6 +233,7 @@ class Accelerator(object):
         }
 
     def __setstate__(self, d):
+        assert isinstance(d, dict), f"Dict should be passed instead got {type(d)}"
         self.trainer = d['trainer']
         self.nickname = d['nickname']
         self.cluster_environment = d['cluster_environment']
