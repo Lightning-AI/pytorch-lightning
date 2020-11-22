@@ -9,13 +9,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-
-
 - Added casting to python types for numpy scalars when logging hparams ([#4647](https://github.com/PyTorchLightning/pytorch-lightning/pull/4647))
 
 
 ### Changed
 
+- Consistently use `step=trainer.global_step` in `LearningRateMonitor` independently of `logging_interval` ([#4376](https://github.com/PyTorchLightning/pytorch-lightning/pull/4376))
 
 
 - Metric states are no longer as default added to `state_dict` ([#4685](https://github.com/PyTorchLightning/pytorch-lightning/pull/))
