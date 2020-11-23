@@ -59,6 +59,8 @@ class WandbLogger(LightningLoggerBase):
 
     Example::
 
+    .. code::
+
         from pytorch_lightning.loggers import WandbLogger
         from pytorch_lightning import Trainer
         wandb_logger = WandbLogger()
@@ -131,7 +133,7 @@ class WandbLogger(LightningLoggerBase):
                 os.environ['WANDB_MODE'] = 'dryrun'
             self._experiment = wandb.init(
                 name=self._name, dir=self._save_dir, project=self._project, anonymous=self._anonymous,
-                reinit=True, id=self._id, resume='allow', **self._kwargs)
+                id=self._id, resume='allow', **self._kwargs) if wandb.run is None else wandb.run
             # save checkpoints in wandb dir to upload on W&B servers
             if self._log_model:
                 self._save_dir = self._experiment.dir
