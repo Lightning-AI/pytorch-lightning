@@ -7,7 +7,6 @@ import numpy as np
 import torch
 import torch.distributed as torch_distrib
 from torch import nn
-from torch.distributed import rpc
 from torch.nn.parallel import DistributedDataParallel
 
 try:
@@ -15,6 +14,7 @@ try:
     if IS_TORCH_AT_LEAST_1_6:
         import fairscale.nn.model_parallel as mpu
         from fairscale.nn.pipe.pipeline import PipelineStyle
+        from torch.distributed import rpc
 
         # todo: seems to work only for 1.6.0
         HAS_FAIRSCALE = LooseVersion(torch.__version__) == LooseVersion("1.6.0")

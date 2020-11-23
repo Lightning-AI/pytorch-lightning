@@ -17,7 +17,6 @@ from unittest import mock
 
 import pytest
 import torch
-import torch.distributed as torch_distrib
 from torch import nn
 
 from pytorch_lightning import LightningModule, Trainer
