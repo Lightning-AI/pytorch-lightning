@@ -28,8 +28,7 @@ class Precision(Metric):
     r"""
     Computes `Precision <https://en.wikipedia.org/wiki/Precision_and_recall>`_:
 
-    .. math::
-        \text{Precision} = \frac{TP}{TP + FP}
+    .. math:: \text{Precision} = \frac{TP}{TP + FP}
 
     Where :math:`TP` and :math:`FP` represent the number of true positives and
     false positives respecitively.  Works with binary, multiclass, and
@@ -120,11 +119,14 @@ class Precision(Metric):
 
 class Recall(Metric):
     """
-    Computes the recall metric.
+    Computes `Recall <https://en.wikipedia.org/wiki/Precision_and_recall>`_:
 
-    Works with binary, multiclass, and multilabel data.
-    Accepts logits from a model output or integer class values in prediction.
-    Works with multi-dimensional preds and target.
+    .. math:: \text{Recall} = \frac{TP}{TP + FN}
+
+    Where :math:`TP` and :math:`FN` represent the number of true positives and
+    false negatives respecitively. Works with binary, multiclass, and
+    multilabel data.  Accepts logits from a model output or integer class
+    values in prediction.  Works with multi-dimensional preds and target.
 
     Forward accepts
 
