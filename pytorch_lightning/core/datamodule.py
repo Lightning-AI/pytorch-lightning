@@ -76,7 +76,7 @@ def track_data_hook_calls(fn):
         if fn.__name__ == "setup":
 
             # Get stage either by grabbing from args or checking kwargs.
-            # If not provided, set call status of 'fit', 'validation' and 'test' to True.
+            # If not provided, set call status of 'fit', 'validation', and 'test' to True.
             # We do this so __attach_datamodule in trainer.py doesn't mistakenly call setup('test') on trainer.test()
             stage = args[1] if len(args) > 1 else kwargs.get("stage", None)
 

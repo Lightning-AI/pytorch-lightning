@@ -28,11 +28,11 @@ class Callback(abc.ABC):
     """
 
     def setup(self, trainer, pl_module, stage: str):
-        """Called when fit, validate or test begins"""
+        """Called when fit, validate, or test begins"""
         pass
 
     def teardown(self, trainer, pl_module, stage: str):
-        """Called when fit, validate or test ends"""
+        """Called when fit, validate, or test ends"""
         pass
 
     def on_init_start(self, trainer):
