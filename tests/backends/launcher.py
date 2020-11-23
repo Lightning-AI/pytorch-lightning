@@ -89,9 +89,9 @@ def undecorate(o):
                 continue
 
             if is_decorator(cell.cell_contents):
-                undecorated_func = undecorate(cell.cell_contents)
-                if undecorated_func:
-                    return undecorated_func
+                func = undecorate(cell.cell_contents)
+                if func:
+                    return func
         else:
             return o
     else:
