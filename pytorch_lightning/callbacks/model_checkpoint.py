@@ -75,6 +75,10 @@ class ModelCheckpoint(Callback):
             saved (``model.save_weights(filepath)``), else the full model
             is saved (``model.save(filepath)``).
         period: Interval (number of epochs) between checkpoints.
+        prefix: A string to put at the beginning of checkpoint filename.
+
+            .. warning::
+               This argument has been deprecated in v1.1 and will be removed in v1.3
 
         dirpath: directory to save the model file.
 
@@ -166,6 +170,12 @@ class ModelCheckpoint(Callback):
 
         if save_top_k is None and monitor is not None:
             self.save_top_k = 1
+
+        if prefix:
+            rank_zero_warn(
+                'Argument `prefix` is deprecated in v1.1 and will be removed in v1.3.'
+                ' Please prepend your prefix in `filename` instead.', DeprecationWarning
+            )
 
         self.__init_monitor_mode(monitor, mode)
         self.__init_ckpt_dir(filepath, dirpath, filename, save_top_k)
@@ -381,7 +391,11 @@ class ModelCheckpoint(Callback):
                 if name not in metrics:
                     metrics[name] = 0
             filename = filename.format(**metrics)
-        return cls.CHECKPOINT_JOIN_CHAR.join([txt for txt in (prefix, filename) if txt])
+
+        if prefix:
+            filename = cls.CHECKPOINT_JOIN_CHAR.join([prefix, filename])
+
+        return filename
 
     def format_checkpoint_name(
         self, epoch: int, step: int, metrics: Dict[str, Any], ver: Optional[int] = None
