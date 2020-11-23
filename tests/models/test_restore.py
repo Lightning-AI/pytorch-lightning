@@ -142,6 +142,7 @@ def test_callbacks_references_resume_from_checkpoint(enable_pl_optimizer, tmpdir
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_running_test_pretrained_model_distrib_dp(tmpdir):
     """Verify `test()` on pretrained model."""
+
     tutils.set_random_master_port()
 
     model = EvalModelTemplate()
@@ -186,7 +187,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
         dataloaders = [dataloaders]
 
     for dataloader in dataloaders:
-        tpipes.run_prediction(dataloader, pretrained_model)
+        tpipes.run_prediction(pretrained_model, dataloader)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -237,7 +238,7 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
         dataloaders = [dataloaders]
 
     for dataloader in dataloaders:
-        tpipes.run_prediction(dataloader, pretrained_model)
+        tpipes.run_prediction(pretrained_model, dataloader)
 
 
 def test_running_test_pretrained_model_cpu(tmpdir):
@@ -379,7 +380,7 @@ def test_dp_resume(tmpdir):
         dp_model.eval()
 
         dataloader = trainer.train_dataloader
-        tpipes.run_prediction(dataloader, dp_model, dp=True)
+        tpipes.run_prediction(dp_model, dataloader, dp=True)
 
     # new model
     model = EvalModelTemplate(**hparams)
