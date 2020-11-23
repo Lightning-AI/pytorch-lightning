@@ -35,13 +35,12 @@ steps:
     # when Image has defined CUDa version we can switch to this package spec "nvidia-dali-cuda${CUDA_VERSION%%.*}0"
     - pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda100 --upgrade-strategy only-if-needed
     - pip list
-    - python -m coverage run --source pytorch_lightning -m pytest pytest pytorch_lightning tests -v --durations=50
+    - python coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=25 # --flake8
     - pytest tests/plugins/test_pipe_plugin.py::test_pipe_plugin_ddp --verbose --capture=no
     # - python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50 # --flake8
     - coverage report
     - python -m pytest benchmarks pl_examples -v --maxfail=2 --durations=0
     #- cd docs; make doctest; make coverage
-    - coverage report
     # see: https://docs.codecov.io/docs/merging-reports
     - codecov --token $CODECOV_TOKEN --flags=gpu,pytest --name="GPU-coverage" --env=linux --build $DRONE_BUILD_NUMBER --commit $DRONE_COMMIT
     # --build $DRONE_BUILD_NUMBER --branch $DRONE_BRANCH --commit $DRONE_COMMIT --tag $DRONE_TAG --pr $DRONE_PULL_REQUEST
