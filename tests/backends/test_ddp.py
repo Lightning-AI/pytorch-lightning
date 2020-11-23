@@ -18,7 +18,7 @@ import pytest
 import torch
 
 from tests.backends import ddp_model
-from tests.backends.launcher import Tester
+from tests.backends.launcher import DDPLauncher
 from tests.utilities.dist import call_training_script
 
 
@@ -75,7 +75,7 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir, cli_args):
 
 
 # START: test_cli ddp test
-@pytest.mark.skipif(os.getenv("PL_IN_Tester", '0') == '1', reason="test runs only in Tester")
+@pytest.mark.skipif(os.getenv("PL_IN_LAUNCHER", '0') == '1', reason="test runs only in DDPLauncher")
 def internal_test_cli(tmpdir, args=None):
     """
     This test verify we can call function using test_cli name
@@ -86,7 +86,7 @@ def internal_test_cli(tmpdir, args=None):
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_cli(tmpdir):
-    Tester.run_from_str("--max_epochs 1 --gpus 2 --accelerator ddp", internal_test_cli, tmpdir)
+    DDPLauncher.run_from_cmd_line("--max_epochs 1 --gpus 2 --accelerator ddp", internal_test_cli, tmpdir)
     # load the results of the script
     result_path = os.path.join(tmpdir, 'ddp.result')
     result = torch.load(result_path)
@@ -97,8 +97,9 @@ def test_cli(tmpdir):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@Tester.run(max_epochs=["1"],
-            accelerator=["ddp", "ddp_spawn"])
+@DDPLauncher.run("--max_epochs [max_epochs] --gpus 2 --accelerator [accelerator]",
+                 max_epochs=["1"],
+                 accelerator=["ddp", "ddp_spawn"])
 def test_cli_to_pass(tmpdir, args=None):
     """
     This test verify we can call function using test_cli name
