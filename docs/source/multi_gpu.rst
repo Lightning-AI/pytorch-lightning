@@ -103,6 +103,33 @@ Lightning adds the correct samplers when needed, so no need to explicitly add sa
 
 .. note:: For iterable datasets, we don't do this automatically.
 
+
+Synchronize validation and test logging
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When using distributed, we have to ensure that the validation and test step logging calls are synchronized across processes.
+This is done by adding `sync_dist=True` to all `self.log` calls in the validation and test step.
+Ensures that each GPU worker has the same behaviour when tracking model checkpoints This is important for later downstream tasks, such as testing the best checkpoint across all workers.
+
+Note if you use any built in metrics or custom metrics that use the ``pytorch_lightning.metrics`` API, these do not need to be updated and are handled for you.
+
+.. testcode::
+
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        logits = self(x)
+        loss = self.loss(logits, y)
+        # Add sync_dist=True to sync logging across all GPU workers
+        self.log('validation_loss', loss, on_step=True, on_epoch=True, sync_dist=True)
+
+    def test_step(self, batch, batch_idx):
+        x, y = batch
+        logits = self(x)
+        loss = self.loss(logits, y)
+        # Add sync_dist=True to sync logging across all GPU workers
+        self.log('test_loss', loss, on_step=True, on_epoch=True, sync_dist=True)
+
+
 Make models pickleable
 ^^^^^^^^^^^^^^^^^^^^^^
 It's very likely your code is already `pickleable <https://docs.python.org/3/library/pickle.html>`_,
