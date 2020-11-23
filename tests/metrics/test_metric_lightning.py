@@ -53,6 +53,7 @@ def test_metric_lightning(tmpdir):
 
 
 def test_metric_lightning_log(tmpdir):
+    """ Test logging a metric object and that the metric state gets reset after each epoch."""
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
