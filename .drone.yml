@@ -35,7 +35,7 @@ steps:
     # when Image has defined CUDa version we can switch to this package spec "nvidia-dali-cuda${CUDA_VERSION%%.*}0"
     - pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda100 --upgrade-strategy only-if-needed
     - pip list
-    - python coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=25 # --flake8
+    - python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=25 # --flake8
     - pytest tests/plugins/test_pipe_plugin.py::test_pipe_plugin_ddp --verbose --capture=no
     # - python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50 # --flake8
     - coverage report
