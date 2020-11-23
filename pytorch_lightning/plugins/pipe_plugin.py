@@ -84,7 +84,7 @@ class LightningPipeModule(nn.Module):
         return x
 
 
-class DistributedSequentialPlugin(DDPPlugin):
+class PipePlugin(DDPPlugin):
     def __init__(self, balance: List[int], microbatches: int = 8, checkpoint='never', version: int = 1, **kwargs):
         super().__init__(**kwargs)
         assert isinstance(balance, list) and len(balance) > 0

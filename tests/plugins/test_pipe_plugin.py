@@ -23,7 +23,7 @@ from torch import nn
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.plugins.distributed_sequential_plugin import HAS_FAIRSCALE, DistributedSequentialPlugin
+from pytorch_lightning.plugins.distributed_sequential_plugin import HAS_FAIRSCALE, PipePlugin
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
 from tests.backends.launcher import DDPLauncher
 from tests.base.boring_model import BoringModel, RandomDataset
@@ -50,15 +50,18 @@ class SequentialModel(LightningModule):
     def training_step(self, batch, batch_idx):
         opt = self.optimizers()
         output = self.layers(batch)
+
+        loss = torch.zeros(1).to(self.device)
+
         if self.final_stage:
             loss = self.loss(output)
             self.manual_backward(loss, opt)
             self.manual_optimizer_step(opt)
-            self.log("train_loss", loss, sync_dist=True, on_step=True, on_epoch=True, reduce_fx = torch.sum, prog_bar=True)
         else:
             self.back_helper(output)
-            loss = torch.zeros(1).to(self.device)
-            self.log("train_loss", loss, sync_dist=True, on_step=True, on_epoch=True, reduce_fx = torch.sum, prog_bar=True)
+
+        self.log("train_loss", loss, sync_dist=True, on_step=True,
+                 on_epoch=True, reduce_fx=torch.sum, prog_bar=True)
 
     def validation_step(self, batch, batch_idx):
         output = self.layers(batch)
@@ -92,7 +95,7 @@ class SequentialModel(LightningModule):
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @DDPLauncher.run("--distributed_backend ddp --gpus 2")
-def test_model_parallel_plugin(tmpdir, args=None):
+def test_pipe_plugin_ddp(tmpdir, args=None):
 
     model = SequentialModel()
     trainer = Trainer(
@@ -102,7 +105,28 @@ def test_model_parallel_plugin(tmpdir, args=None):
         limit_test_batches=2,
         gpus=args.gpus,
         distributed_backend=args.distributed_backend,
-        plugins=[DistributedSequentialPlugin(balance=[2, 1])],
+        plugins=[PipePlugin(balance=[2, 1])],
+        automatic_optimization=False,
+    )
+    trainer.fit(model)
+
+    assert len(trainer.dev_debugger.pbar_added_metrics) > 0
+
+
+@pytest.mark.skipif(not HAS_FAIRSCALE, reason="test requires fairscale to be installed")
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_pipe_plugin_ddp_spawn(tmpdir):
+
+    model = SequentialModel()
+    trainer = Trainer(
+        max_epochs=2,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        gpus=2,
+        distributed_backend="ddp_spawn",
+        plugins=[PipePlugin(balance=[2, 1])],
         automatic_optimization=False,
     )
     trainer.fit(model)
