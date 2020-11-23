@@ -40,7 +40,7 @@ def call_training_script(cli_args: str, tmpdir: str, env: Dict, timeout: int = 2
     file = Path(__file__).absolute()
     cli_args = cli_args.split(' ') if cli_args else []
     cli_args += ['--tmpdir', str(tmpdir)]
-    command = [sys.executable, '-m', 'coverage', 'run', str(file)] + cli_args
+    command = [sys.executable, '-m', 'coverage', 'run', '--source', 'pytorch_lightning', str(file)] + cli_args
 
     # need to set the PYTHONPATH in case pytorch_lightning was not installed into the environment
     env['PYTHONPATH'] = f'{pytorch_lightning.__file__}:{env.get("PYTHONPATH", "")}'
@@ -73,9 +73,8 @@ def create_cmd_lines(cmd_line, **kwargs):
     return cmd_lines
 
 
-def undecorated(o):
+def undecorate(o):
     """Remove all decorators from a function, method or class"""
-    # class decorator
     if type(o) is type:
         return o
 
@@ -86,28 +85,20 @@ def undecorated(o):
 
     if closure:
         for cell in closure:
-            # avoid infinite recursion
             if cell.cell_contents is o:
                 continue
 
-            # check if the contents looks like a decorator; in that case
-            # we need to go one level down into the dream, otherwise it
-            # might just be a different closed-over variable, which we
-            # can ignore.
-
-            # Note: this favors supporting decorators defined without
-            # @wraps to the detriment of function/method/class closures
-            if looks_like_a_decorator(cell.cell_contents):
-                undecd = undecorated(cell.cell_contents)
-                if undecd:
-                    return undecd
+            if is_decorator(cell.cell_contents):
+                undecorated_func = undecorate(cell.cell_contents)
+                if undecorated_func:
+                    return undecorated_func
         else:
             return o
     else:
         return o
 
 
-def looks_like_a_decorator(a):
+def is_decorator(a):
     return (
         isfunction(a) or ismethod(a) or isclass(a)
     )
@@ -194,7 +185,7 @@ def main(args):
     func = import_from(env["PL_CURRENT_TEST_MODULE"], env["PL_CURRENT_TEST_NAME"])
 
     # Undecorate the function
-    func = undecorated(func)
+    func = undecorate(func)
 
     # Run the function and gather result
     result = func(args.tmpdir, args=args)
