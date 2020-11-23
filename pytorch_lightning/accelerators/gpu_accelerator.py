@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Union, Optional, Any
 
 import torch
 
-from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.distributed.dist import LightningDistributed
 
@@ -120,3 +121,9 @@ class GPUAccelerator(Accelerator):
         # be referenced from and if there are multiple optimizers the batch will
         # wind up copying it to the same device repeatedly.
         return self.batch_to_device(batch, gpu_id)
+
+    def sync_tensor(self,
+                    tensor: Union[torch.Tensor],
+                    group: Optional[Any] = None,
+                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
+        return tensor
