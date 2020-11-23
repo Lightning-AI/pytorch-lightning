@@ -41,4 +41,5 @@ def call_training_script(module_file, cli_args, method, tmpdir, timeout=60):
     except TimeoutExpired:
         p.kill()
         std, err = p.communicate()
+
     return std, err
