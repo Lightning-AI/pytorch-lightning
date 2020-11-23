@@ -104,7 +104,7 @@ class ConfusionMatrix(Metric):
         Update state with predictions and targets.
 
         Args:
-            preds: Predictions from model
+            preds: Predictions from model (probabilities, logits, or labels)
             target: Ground truth values
         """
         confmat = _confusion_matrix_update(

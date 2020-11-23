@@ -25,9 +25,7 @@ from tests.metrics.utils import EXTRA_DIM, NUM_CLASSES, THRESHOLD, MetricTester
 torch.manual_seed(42)
 
 
-def _sk_fbeta(
-    preds, target, beta, num_classes, average, logits, is_multiclass, zero_division, ignore_index, mdmc_average
-):
+def _sk_fbeta(preds, target, beta, num_classes, average, is_multiclass, zero_division, ignore_index, mdmc_average=None):
     if average == "none":
         average = None
     if num_classes == 1:
@@ -40,7 +38,7 @@ def _sk_fbeta(
         pass
 
     sk_preds, sk_target, _ = _input_format_classification(
-        preds, target, THRESHOLD, num_classes=num_classes, logits=logits, is_multiclass=is_multiclass
+        preds, target, THRESHOLD, num_classes=num_classes, logits=False, is_multiclass=is_multiclass
     )
     sk_preds, sk_target = sk_preds.numpy(), sk_target.numpy()
 
@@ -52,36 +50,30 @@ def _sk_fbeta(
     return sk_scores
 
 
-def _sk_fbeta_mdmc(
-    preds, target, beta, num_classes, average, logits, is_multiclass, zero_division, ignore_index, mdmc_average
-):
+def _sk_fbeta_mdmc(preds, target, beta, num_classes, average, is_multiclass, zero_division, ignore_index, mdmc_average):
     preds, target, _ = _input_format_classification(
-        preds, target, threshold=THRESHOLD, num_classes=num_classes, logits=logits, is_multiclass=is_multiclass
+        preds, target, threshold=THRESHOLD, num_classes=num_classes, logits=False, is_multiclass=is_multiclass
     )
 
     if mdmc_average == "global":
         preds = torch.movedim(preds, 1, -1).reshape(-1, preds.shape[1])
         target = torch.movedim(target, 1, -1).reshape(-1, target.shape[1])
 
-        return _sk_fbeta(
-            preds, target, beta, num_classes, average, logits, False, zero_division, ignore_index, mdmc_average
-        )
+        return _sk_fbeta(preds, target, beta, num_classes, average, False, zero_division, ignore_index)
     else:  # mdmc_average == "samplewise"
         scores = []
 
         for i in range(preds.shape[0]):
             pred_i = preds[i, ...].T
             target_i = target[i, ...].T
-            scores_i = _sk_fbeta(
-                pred_i, target_i, beta, num_classes, average, logits, False, zero_division, ignore_index, mdmc_average
-            )
+            scores_i = _sk_fbeta(pred_i, target_i, beta, num_classes, average, False, zero_division, ignore_index)
 
             scores.append(np.expand_dims(scores_i, 0))
 
         return np.concatenate(scores).mean()
 
 
-# A single test of F1 for coverage
+# A single test of F1 and dice for coverage
 def test_f1():
     f1 = F1(logits=False)
     score = f1(_binary_prob_inputs.preds[0], _binary_prob_inputs.target[0])
@@ -113,20 +105,20 @@ def test_f1():
 @pytest.mark.parametrize("zero_division", [0, 1])
 @pytest.mark.parametrize("ignore_index", [None, 1])
 @pytest.mark.parametrize(
-    "preds, target, num_classes, logits, is_multiclass, mdmc_average, sk_wrapper",
+    "preds, target, num_classes, is_multiclass, mdmc_average, sk_wrapper",
     [
-        (_binary_prob_inputs.preds, _binary_prob_inputs.target, 1, False, None, None, _sk_fbeta),
-        (_binary_inputs.preds, _binary_inputs.target, 1, False, False, None, _sk_fbeta),
-        (_ml_prob.preds, _ml_prob.target, NUM_CLASSES, False, None, None, _sk_fbeta),
-        (_ml.preds, _ml.target, NUM_CLASSES, False, False, None, _sk_fbeta),
-        (_mc_prob.preds, _mc_prob.target, NUM_CLASSES, False, None, None, _sk_fbeta),
-        (_multiclass_inputs.preds, _multiclass_inputs.target, NUM_CLASSES, False, None, None, _sk_fbeta),
-        (_mlmd_prob.preds, _mlmd_prob.target, EXTRA_DIM * NUM_CLASSES, False, None, None, _sk_fbeta),
-        (_mlmd.preds, _mlmd.target, EXTRA_DIM * NUM_CLASSES, False, False, None, _sk_fbeta),
-        (_mdmc.preds, _mdmc.target, NUM_CLASSES, False, None, "global", _sk_fbeta_mdmc),
-        (_mdmc_prob.preds, _mdmc_prob.target, NUM_CLASSES, False, None, "global", _sk_fbeta_mdmc),
-        (_mdmc.preds, _mdmc.target, NUM_CLASSES, False, None, "samplewise", _sk_fbeta_mdmc),
-        (_mdmc_prob.preds, _mdmc_prob.target, NUM_CLASSES, False, None, "samplewise", _sk_fbeta_mdmc),
+        (_binary_prob_inputs.preds, _binary_prob_inputs.target, 1, None, None, _sk_fbeta),
+        (_binary_inputs.preds, _binary_inputs.target, 1, False, None, _sk_fbeta),
+        (_ml_prob.preds, _ml_prob.target, NUM_CLASSES, None, None, _sk_fbeta),
+        (_ml.preds, _ml.target, NUM_CLASSES, False, None, _sk_fbeta),
+        (_mc_prob.preds, _mc_prob.target, NUM_CLASSES, None, None, _sk_fbeta),
+        (_multiclass_inputs.preds, _multiclass_inputs.target, NUM_CLASSES, None, None, _sk_fbeta),
+        (_mlmd_prob.preds, _mlmd_prob.target, EXTRA_DIM * NUM_CLASSES, None, None, _sk_fbeta),
+        (_mlmd.preds, _mlmd.target, EXTRA_DIM * NUM_CLASSES, False, None, _sk_fbeta),
+        (_mdmc.preds, _mdmc.target, NUM_CLASSES, None, "global", _sk_fbeta_mdmc),
+        (_mdmc_prob.preds, _mdmc_prob.target, NUM_CLASSES, None, "global", _sk_fbeta_mdmc),
+        (_mdmc.preds, _mdmc.target, NUM_CLASSES, None, "samplewise", _sk_fbeta_mdmc),
+        (_mdmc_prob.preds, _mdmc_prob.target, NUM_CLASSES, None, "samplewise", _sk_fbeta_mdmc),
     ],
 )
 class TestFBeta(MetricTester):
@@ -142,7 +134,6 @@ class TestFBeta(MetricTester):
         sk_wrapper,
         metric_class,
         metric_fn,
-        logits,
         is_multiclass,
         num_classes,
         average,
@@ -166,7 +157,6 @@ class TestFBeta(MetricTester):
                 beta=beta,
                 average=average,
                 num_classes=num_classes,
-                logits=logits,
                 is_multiclass=is_multiclass,
                 zero_division=zero_division,
                 ignore_index=ignore_index,
@@ -178,7 +168,7 @@ class TestFBeta(MetricTester):
                 "num_classes": num_classes,
                 "average": average,
                 "threshold": THRESHOLD,
-                "logits": logits,
+                "logits": False,
                 "is_multiclass": is_multiclass,
                 "zero_division": zero_division,
                 "ignore_index": ignore_index,
@@ -196,7 +186,6 @@ class TestFBeta(MetricTester):
         sk_wrapper,
         metric_class,
         metric_fn,
-        logits,
         is_multiclass,
         num_classes,
         average,
@@ -219,7 +208,6 @@ class TestFBeta(MetricTester):
                 beta=beta,
                 average=average,
                 num_classes=num_classes,
-                logits=logits,
                 is_multiclass=is_multiclass,
                 zero_division=zero_division,
                 ignore_index=ignore_index,
@@ -230,7 +218,7 @@ class TestFBeta(MetricTester):
                 "num_classes": num_classes,
                 "average": average,
                 "threshold": THRESHOLD,
-                "logits": logits,
+                "logits": False,
                 "is_multiclass": is_multiclass,
                 "zero_division": zero_division,
                 "ignore_index": ignore_index,

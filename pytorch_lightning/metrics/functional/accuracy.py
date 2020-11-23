@@ -53,6 +53,8 @@ def accuracy(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5, 
     Accepts all input types listed in :ref:`metrics:Input types`.
 
     Args:
+        preds: Predictions from model (probabilities, logits, or labels)
+        target: Ground truth values
         threshold:
             Threshold probability value for transforming probability/logit predictions to binary
             (0,1) predictions, in the case of binary or multi-label inputs. If ``logits=True``,

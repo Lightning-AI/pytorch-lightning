@@ -25,9 +25,9 @@ from tests.metrics.utils import NUM_CLASSES, THRESHOLD, EXTRA_DIM, MetricTester
 torch.manual_seed(42)
 
 
-def _sk_stat_scores(preds, target, reduce, num_classes, threshold, logits, is_multiclass, ignore_index, mdmc_reduce):
+def _sk_stat_scores(preds, target, reduce, num_classes, is_multiclass, ignore_index, mdmc_reduce=None):
     preds, target, _ = _input_format_classification(
-        preds, target, threshold=threshold, num_classes=num_classes, logits=logits, is_multiclass=is_multiclass
+        preds, target, threshold=THRESHOLD, num_classes=num_classes, logits=False, is_multiclass=is_multiclass
     )
     sk_preds, sk_target = preds.numpy(), target.numpy()
 
@@ -63,27 +63,23 @@ def _sk_stat_scores(preds, target, reduce, num_classes, threshold, logits, is_mu
     return sk_stats
 
 
-def _sk_stat_scores_mdmc(
-    preds, target, reduce, mdmc_reduce, num_classes, threshold, logits, is_multiclass, ignore_index
-):
+def _sk_stat_scores_mdmc(preds, target, reduce, mdmc_reduce, num_classes, is_multiclass, ignore_index):
     preds, target, _ = _input_format_classification(
-        preds, target, threshold=threshold, num_classes=num_classes, logits=logits, is_multiclass=is_multiclass
+        preds, target, threshold=THRESHOLD, num_classes=num_classes, logits=False, is_multiclass=is_multiclass
     )
 
     if mdmc_reduce == "global":
         preds = torch.movedim(preds, 1, -1).reshape(-1, preds.shape[1])
         target = torch.movedim(target, 1, -1).reshape(-1, target.shape[1])
 
-        return _sk_stat_scores(preds, target, reduce, None, threshold, False, False, ignore_index, mdmc_reduce)
+        return _sk_stat_scores(preds, target, reduce, None, False, ignore_index)
     else:  # mdmc_reduce == "samplewise"
         scores = []
 
         for i in range(preds.shape[0]):
             pred_i = preds[i, ...].T
             target_i = target[i, ...].T
-            scores_i = _sk_stat_scores(
-                pred_i, target_i, reduce, None, threshold, False, False, ignore_index, mdmc_reduce
-            )
+            scores_i = _sk_stat_scores(pred_i, target_i, reduce, None, False, ignore_index)
 
             scores.append(np.expand_dims(scores_i, 0))
 
@@ -93,20 +89,20 @@ def _sk_stat_scores_mdmc(
 @pytest.mark.parametrize("reduce", ["micro", "macro", "samples"])
 @pytest.mark.parametrize("ignore_index", [None, 1])
 @pytest.mark.parametrize(
-    "preds, target, sk_fn, mdmc_reduce, num_classes, logits, is_multiclass",
+    "preds, target, sk_fn, mdmc_reduce, num_classes, is_multiclass",
     [
-        (_binary_prob_inputs.preds, _binary_prob_inputs.target, _sk_stat_scores, None, 1, False, None),
-        (_binary_inputs.preds, _binary_inputs.target, _sk_stat_scores, None, 1, False, False),
-        (_ml_prob.preds, _ml_prob.target, _sk_stat_scores, None, NUM_CLASSES, False, None),
-        (_multilabel_inputs.preds, _multilabel_inputs.target, _sk_stat_scores, None, NUM_CLASSES, False, False),
-        (_mc_prob.preds, _mc_prob.target, _sk_stat_scores, None, NUM_CLASSES, False, None),
-        (_multiclass_inputs.preds, _multiclass_inputs.target, _sk_stat_scores, None, NUM_CLASSES, False, None),
-        (_mlmd_prob.preds, _mlmd_prob.target, _sk_stat_scores, None, EXTRA_DIM * NUM_CLASSES, False, None),
-        (_mlmd.preds, _mlmd.target, _sk_stat_scores, None, EXTRA_DIM * NUM_CLASSES, False, False),
-        (_mdmc.preds, _mdmc.target, _sk_stat_scores_mdmc, "samplewise", NUM_CLASSES, False, None),
-        (_mdmc_prob.preds, _mdmc_prob.target, _sk_stat_scores_mdmc, "samplewise", NUM_CLASSES, False, None),
-        (_mdmc.preds, _mdmc.target, _sk_stat_scores_mdmc, "global", NUM_CLASSES, False, None),
-        (_mdmc_prob.preds, _mdmc_prob.target, _sk_stat_scores_mdmc, "global", NUM_CLASSES, False, None),
+        (_binary_prob_inputs.preds, _binary_prob_inputs.target, _sk_stat_scores, None, 1, None),
+        (_binary_inputs.preds, _binary_inputs.target, _sk_stat_scores, None, 1, False),
+        (_ml_prob.preds, _ml_prob.target, _sk_stat_scores, None, NUM_CLASSES, None),
+        (_multilabel_inputs.preds, _multilabel_inputs.target, _sk_stat_scores, None, NUM_CLASSES, False),
+        (_mc_prob.preds, _mc_prob.target, _sk_stat_scores, None, NUM_CLASSES, None),
+        (_multiclass_inputs.preds, _multiclass_inputs.target, _sk_stat_scores, None, NUM_CLASSES, None),
+        (_mlmd_prob.preds, _mlmd_prob.target, _sk_stat_scores, None, EXTRA_DIM * NUM_CLASSES, None),
+        (_mlmd.preds, _mlmd.target, _sk_stat_scores, None, EXTRA_DIM * NUM_CLASSES, False),
+        (_mdmc.preds, _mdmc.target, _sk_stat_scores_mdmc, "samplewise", NUM_CLASSES, None),
+        (_mdmc_prob.preds, _mdmc_prob.target, _sk_stat_scores_mdmc, "samplewise", NUM_CLASSES, None),
+        (_mdmc.preds, _mdmc.target, _sk_stat_scores_mdmc, "global", NUM_CLASSES, None),
+        (_mdmc_prob.preds, _mdmc_prob.target, _sk_stat_scores_mdmc, "global", NUM_CLASSES, None),
     ],
 )
 class TestStatScores(MetricTester):
@@ -122,7 +118,6 @@ class TestStatScores(MetricTester):
         reduce,
         mdmc_reduce,
         num_classes,
-        logits,
         is_multiclass,
         ignore_index,
     ):
@@ -135,9 +130,7 @@ class TestStatScores(MetricTester):
                 sk_fn,
                 reduce=reduce,
                 mdmc_reduce=mdmc_reduce,
-                threshold=THRESHOLD,
                 num_classes=num_classes,
-                logits=logits,
                 is_multiclass=is_multiclass,
                 ignore_index=ignore_index,
             ),
@@ -147,7 +140,7 @@ class TestStatScores(MetricTester):
                 "reduce": reduce,
                 "mdmc_reduce": mdmc_reduce,
                 "threshold": THRESHOLD,
-                "logits": logits,
+                "logits": False,
                 "is_multiclass": is_multiclass,
                 "ignore_index": ignore_index,
             },
@@ -175,9 +168,7 @@ class TestStatScores(MetricTester):
                 sk_fn,
                 reduce=reduce,
                 mdmc_reduce=mdmc_reduce,
-                threshold=THRESHOLD,
                 num_classes=num_classes,
-                logits=logits,
                 is_multiclass=is_multiclass,
                 ignore_index=ignore_index,
             ),
@@ -186,7 +177,7 @@ class TestStatScores(MetricTester):
                 "reduce": reduce,
                 "mdmc_reduce": mdmc_reduce,
                 "threshold": THRESHOLD,
-                "logits": logits,
+                "logits": False,
                 "is_multiclass": is_multiclass,
                 "ignore_index": ignore_index,
             },

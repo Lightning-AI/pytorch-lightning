@@ -169,6 +169,8 @@ def stat_scores(
     multi-dimensional multi-class case. Accepts all inputs listed in :ref:`metrics:Input types`.
 
     Args:
+        preds: Predictions from model (probabilities, logits, or labels)
+        target: Ground truth values
         reduce:
             Defines the reduction that is applied. Should be one of the following:
 

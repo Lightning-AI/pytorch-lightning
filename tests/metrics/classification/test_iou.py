@@ -25,9 +25,7 @@ from tests.metrics.utils import EXTRA_DIM, NUM_CLASSES, THRESHOLD, MetricTester
 torch.manual_seed(42)
 
 
-def _iou(
-    preds, target, num_classes, average, logits, is_multiclass, ignore_index, mdmc_average
-):
+def _iou(preds, target, num_classes, average, is_multiclass, ignore_index, mdmc_average=None):
     if average == "none":
         average = None
     if num_classes == 1:
@@ -40,7 +38,7 @@ def _iou(
         pass
 
     sk_preds, sk_target, _ = _input_format_classification(
-        preds, target, THRESHOLD, num_classes=num_classes, logits=logits, is_multiclass=is_multiclass
+        preds, target, THRESHOLD, num_classes=num_classes, logits=False, is_multiclass=is_multiclass
     )
     sk_preds, sk_target = sk_preds.numpy(), sk_target.numpy()
 
@@ -52,33 +50,28 @@ def _iou(
     return sk_scores
 
 
-def _iou_mdmc(
-    preds, target, num_classes, average, logits, is_multiclass, ignore_index, mdmc_average
-):
+def _iou_mdmc(preds, target, num_classes, average, is_multiclass, ignore_index, mdmc_average):
     preds, target, _ = _input_format_classification(
-        preds, target, threshold=THRESHOLD, num_classes=num_classes, logits=logits, is_multiclass=is_multiclass
+        preds, target, threshold=THRESHOLD, num_classes=num_classes, logits=False, is_multiclass=is_multiclass
     )
 
     if mdmc_average == "global":
         preds = torch.movedim(preds, 1, -1).reshape(-1, preds.shape[1])
         target = torch.movedim(target, 1, -1).reshape(-1, target.shape[1])
 
-        return _iou(
-            preds, target, num_classes, average, logits, False, ignore_index, mdmc_average
-        )
+        return _iou(preds, target, num_classes, average, False, ignore_index)
     else:  # mdmc_average == "samplewise"
         scores = []
 
         for i in range(preds.shape[0]):
             pred_i = preds[i, ...].T
             target_i = target[i, ...].T
-            scores_i = _iou(
-                pred_i, target_i, num_classes, average, logits, False, ignore_index, mdmc_average
-            )
+            scores_i = _iou(pred_i, target_i, num_classes, average, False, ignore_index)
 
             scores.append(np.expand_dims(scores_i, 0))
 
         return np.concatenate(scores).mean()
+
 
 ######################################################################################
 # Testing for MDMC inputs is partially skipped, because some cases appear where
@@ -94,20 +87,20 @@ def _iou_mdmc(
 @pytest.mark.parametrize("average", ["micro", "macro", None, "weighted", "samples"])
 @pytest.mark.parametrize("ignore_index", [None, 1])
 @pytest.mark.parametrize(
-    "preds, target, num_classes, logits, is_multiclass, mdmc_average, sk_wrapper",
+    "preds, target, num_classes, is_multiclass, mdmc_average, sk_wrapper",
     [
-        (_binary_prob_inputs.preds, _binary_prob_inputs.target, 1, False, None, None, _iou),
-        (_binary_inputs.preds, _binary_inputs.target, 1, False, False, None, _iou),
-        (_ml_prob.preds, _ml_prob.target, NUM_CLASSES, False, None, None, _iou),
-        (_ml.preds, _ml.target, NUM_CLASSES, False, False, None, _iou),
-        (_mc_prob.preds, _mc_prob.target, NUM_CLASSES, False, None, None, _iou),
-        (_multiclass_inputs.preds, _multiclass_inputs.target, NUM_CLASSES, False, None, None, _iou),
-        (_mlmd_prob.preds, _mlmd_prob.target, EXTRA_DIM * NUM_CLASSES, False, None, None, _iou),
-        (_mlmd.preds, _mlmd.target, EXTRA_DIM * NUM_CLASSES, False, False, None, _iou),
-        (_mdmc.preds, _mdmc.target, NUM_CLASSES, False, None, "global", _iou_mdmc),
-        (_mdmc_prob.preds, _mdmc_prob.target, NUM_CLASSES, False, None, "global", _iou_mdmc),
-        (_mdmc.preds, _mdmc.target, NUM_CLASSES, False, None, "samplewise", _iou_mdmc),
-        (_mdmc_prob.preds, _mdmc_prob.target, NUM_CLASSES, False, None, "samplewise", _iou_mdmc),
+        (_binary_prob_inputs.preds, _binary_prob_inputs.target, 1, None, None, _iou),
+        (_binary_inputs.preds, _binary_inputs.target, 1, False, None, _iou),
+        (_ml_prob.preds, _ml_prob.target, NUM_CLASSES, None, None, _iou),
+        (_ml.preds, _ml.target, NUM_CLASSES, False, None, _iou),
+        (_mc_prob.preds, _mc_prob.target, NUM_CLASSES, None, None, _iou),
+        (_multiclass_inputs.preds, _multiclass_inputs.target, NUM_CLASSES, None, None, _iou),
+        (_mlmd_prob.preds, _mlmd_prob.target, EXTRA_DIM * NUM_CLASSES, None, None, _iou),
+        (_mlmd.preds, _mlmd.target, EXTRA_DIM * NUM_CLASSES, False, None, _iou),
+        (_mdmc.preds, _mdmc.target, NUM_CLASSES, None, "global", _iou_mdmc),
+        (_mdmc_prob.preds, _mdmc_prob.target, NUM_CLASSES, None, "global", _iou_mdmc),
+        (_mdmc.preds, _mdmc.target, NUM_CLASSES, None, "samplewise", _iou_mdmc),
+        (_mdmc_prob.preds, _mdmc_prob.target, NUM_CLASSES, None, "samplewise", _iou_mdmc),
     ],
 )
 class TestIoU(MetricTester):
@@ -122,7 +115,6 @@ class TestIoU(MetricTester):
         sk_wrapper,
         metric_class,
         metric_fn,
-        logits,
         is_multiclass,
         num_classes,
         average,
@@ -144,7 +136,6 @@ class TestIoU(MetricTester):
                 sk_wrapper,
                 average=average,
                 num_classes=num_classes,
-                logits=logits,
                 is_multiclass=is_multiclass,
                 ignore_index=ignore_index,
                 mdmc_average=mdmc_average,
@@ -154,11 +145,11 @@ class TestIoU(MetricTester):
                 "num_classes": num_classes,
                 "average": average,
                 "threshold": THRESHOLD,
-                "logits": logits,
+                "logits": False,
                 "is_multiclass": is_multiclass,
                 "ignore_index": ignore_index,
                 "mdmc_average": mdmc_average,
-                "zero_division": 0
+                "zero_division": 0,
             },
             check_dist_sync_on_step=True,
             check_batch=True,
@@ -171,7 +162,6 @@ class TestIoU(MetricTester):
         sk_wrapper,
         metric_class,
         metric_fn,
-        logits,
         is_multiclass,
         num_classes,
         average,
@@ -192,7 +182,6 @@ class TestIoU(MetricTester):
                 sk_wrapper,
                 average=average,
                 num_classes=num_classes,
-                logits=logits,
                 is_multiclass=is_multiclass,
                 ignore_index=ignore_index,
                 mdmc_average=mdmc_average,
@@ -201,10 +190,10 @@ class TestIoU(MetricTester):
                 "num_classes": num_classes,
                 "average": average,
                 "threshold": THRESHOLD,
-                "logits": logits,
+                "logits": False,
                 "is_multiclass": is_multiclass,
                 "ignore_index": ignore_index,
                 "mdmc_average": mdmc_average,
-                "zero_division": 0
+                "zero_division": 0,
             },
         )

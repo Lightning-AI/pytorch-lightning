@@ -75,6 +75,8 @@ def confusion_matrix(
     In this case use the ``threshold`` argument to control the "binarization" of predictions.
 
     Args:
+        preds: Predictions from model (probabilities, logits, or labels)
+        target: Ground truth values
         num_classes:
             Number of classes.
         normalize: Normalization mode for confusion matrix. Choose from

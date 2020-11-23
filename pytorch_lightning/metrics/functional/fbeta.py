@@ -64,6 +64,8 @@ def fbeta_score(
     parameter is availible.
 
     Args:
+        preds: Predictions from model (probabilities, logits, or labels)
+        target: Ground truth values
         beta:
             Determines the weight of recall in the harmonic mean. Default 1 (equal weight to precision
             and recall).
@@ -187,6 +189,8 @@ def f1_score(
     parameter is availible.
 
     Args:
+        preds: Predictions from model (probabilities, logits, or labels)
+        target: Ground truth values
         average:
             Defines the reduction that is applied. Should be one of the following:
 
