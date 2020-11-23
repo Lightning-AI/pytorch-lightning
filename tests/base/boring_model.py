@@ -106,31 +106,6 @@ class BoringModel(LightningModule):
         loss = self.loss(batch, output)
         return {"loss": loss}
 
-    def training_step_end(self, training_step_outputs):
-        return training_step_outputs
-
-    def training_epoch_end(self, outputs) -> None:
-        train_loss = torch.stack([x["loss"] for x in outputs]).mean()
-        self.log('train_loss', train_loss)
-
-    def validation_step(self, batch, batch_idx):
-        output = self.layer(batch)
-        loss = self.loss(batch, output)
-        return {"x": loss}
-
-    def validation_epoch_end(self, outputs) -> None:
-        val_loss = torch.stack([x["x"] for x in outputs]).mean()
-        self.log('val_loss', val_loss)
-
-    def test_step(self, batch, batch_idx):
-        output = self.layer(batch)
-        loss = self.loss(batch, output)
-        return {"y": loss}
-
-    def test_epoch_end(self, outputs) -> None:
-        test_loss = torch.stack([x["y"] for x in outputs]).mean()
-        self.log('test_loss', test_loss)
-
     def configure_optimizers(self):
         optimizer = getattr(torch.optim, self.optimizer_name)(self.layer.parameters(), lr=self.learning_rate)
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)

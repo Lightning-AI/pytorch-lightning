@@ -43,7 +43,7 @@ def test_multi_gpu_none_backend(tmpdir):
     )
 
     model = BoringModel()
-    tpipes.run_model_test(trainer_options, model)
+    tpipes.run_model_test(trainer_options, model, min_acc=0.20)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")

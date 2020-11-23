@@ -100,21 +100,35 @@ def test_cpu_slurm_save_load(enable_pl_optimizer, tmpdir):
 
 @pytest.mark.parametrize("enable_pl_optimizer", [False, True])
 def test_early_stopping_cpu_model(enable_pl_optimizer, tmpdir):
-    """Test each of the trainer options."""
+    """Test each of the trainer options. Simply test the combo trainer and
+    model; callbacks functionality tests are in /tests/callbacks"""
+    class ModelTrainVal(BoringModel):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+        def validation_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            return {"x": loss}
+
+        def validation_epoch_end(self, outputs) -> None:
+            val_loss = torch.stack([x["x"] for x in outputs]).mean()
+            self.log('val_loss', val_loss)
+
     stopping = EarlyStopping(monitor="val_loss", min_delta=0.1)
     trainer_options = dict(
         default_root_dir=tmpdir,
         callbacks=[stopping],
         max_epochs=2,
-        gradient_clip_val=1.0,
-        overfit_batches=0.20,
+        gradient_clip_val=1,
         track_grad_norm=2,
-        limit_train_batches=0.1,
+        limit_train_batches=0.2,
         limit_val_batches=0.1,
         enable_pl_optimizer=enable_pl_optimizer,
     )
 
-    model = BoringModel()
+    model = ModelTrainVal()
+
     tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
     # test freeze on cpu
@@ -187,7 +201,29 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
 
 def test_running_test_after_fitting(tmpdir):
     """Verify test() on fitted model."""
-    model = BoringModel()
+    class ModelTrainValTest(BoringModel):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+        def validation_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            return {"x": loss}
+
+        def validation_epoch_end(self, outputs) -> None:
+            val_loss = torch.stack([x["x"] for x in outputs]).mean()
+            self.log('val_loss', val_loss)
+
+        def test_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            return {"y": loss}
+
+        def test_epoch_end(self, outputs) -> None:
+            test_loss = torch.stack([x["y"] for x in outputs]).mean()
+            self.log('test_loss', test_loss)
+
+    model = ModelTrainValTest()
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -218,7 +254,20 @@ def test_running_test_after_fitting(tmpdir):
 
 def test_running_test_no_val(tmpdir):
     """Verify `test()` works on a model with no `val_loader`."""
-    model = BoringModel()
+    class ModelTrainTest(BoringModel):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+        def test_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            return {"y": loss}
+
+        def test_epoch_end(self, outputs) -> None:
+            test_loss = torch.stack([x["y"] for x in outputs]).mean()
+            self.log('test_loss', test_loss)
+
+    model = ModelTrainTest()
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)

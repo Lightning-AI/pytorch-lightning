@@ -61,6 +61,7 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None,
     logger = get_default_logger(save_dir, version=version)
     trainer_options.update(logger=logger)
 
+    # TODO: DEPRECATED option
     if "checkpoint_callback" not in trainer_options:
         trainer_options.update(checkpoint_callback=True)
 
@@ -71,7 +72,8 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None,
 
     assert result == 1, "trainer failed"
     # Check that the model is actually changed post-training
-    assert torch.norm(initial_values - post_train_values) > 0.1
+    change_ratio = torch.norm(initial_values - post_train_values)
+    assert change_ratio > 0.1, f"the model is changed of {change_ratio}"
 
     # test model loading
     pretrained_model = load_model_from_checkpoint(logger, trainer.checkpoint_callback.best_model_path, type(model))
