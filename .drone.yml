@@ -36,8 +36,7 @@ steps:
     - pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda100 --upgrade-strategy only-if-needed
     - pip list
     - python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=25 # --flake8
-    - pytest tests/plugins/test_pipe_plugin.py::test_pipe_plugin_ddp --verbose --capture=no
-    # - python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50 # --flake8
+    # - pytest tests/plugins/test_pipe_plugin.py::test_pipe_plugin_ddp --verbose --capture=no
     - coverage report
     - python -m pytest benchmarks pl_examples -v --maxfail=2 --durations=0
     #- cd docs; make doctest; make coverage

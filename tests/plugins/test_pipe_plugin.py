@@ -15,7 +15,6 @@ import os
 from distutils.version import LooseVersion
 from unittest import mock
 
-import fairscale
 import pytest
 import torch
 import torch.distributed as torch_distrib
