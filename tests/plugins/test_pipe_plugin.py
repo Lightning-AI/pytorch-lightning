@@ -111,24 +111,3 @@ def test_pipe_plugin_ddp(tmpdir, args=None):
     trainer.fit(model)
 
     assert len(trainer.dev_debugger.pbar_added_metrics) > 0
-
-
-@pytest.mark.skipif(not HAS_FAIRSCALE, reason="test requires fairscale to be installed")
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_pipe_plugin_ddp_spawn(tmpdir):
-
-    model = SequentialModel()
-    trainer = Trainer(
-        max_epochs=2,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        limit_test_batches=2,
-        gpus=2,
-        distributed_backend="ddp_spawn",
-        plugins=[PipePlugin(balance=[2, 1])],
-        automatic_optimization=False,
-    )
-    trainer.fit(model)
-
-    assert len(trainer.dev_debugger.pbar_added_metrics) > 0
