@@ -78,7 +78,7 @@ class CallbackConnector:
         if os.getenv('COLAB_GPU') and refresh_rate < 20:
             rank_zero_warn(
                 "You have set progress_bar_refresh_rate < 20 on Google Colab. This"
-                " may crash. Consider using progress_bar_refresh_rate>=20 in Trainer.",
+                " may crash. Consider using progress_bar_refresh_rate >= 20 in Trainer.",
                 UserWarning
             )
 
