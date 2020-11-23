@@ -56,15 +56,25 @@ class LightningPipeModule(nn.Module):
 
     def _init_pipe(self):
         device = torch.device("cuda", torch_distrib.get_rank())
-        from fairscale.nn import Pipe
-        self.module = Pipe(
-            module=self.module,
-            balance=self.balance,
-            chunks=self.microbatches,
-            style=PipelineStyle.MultiProcess,
-            input_device=device,
-            worker_map=get_worker_map(),
-            checkpoint=self.checkpoint)
+        if self._pipe_version == 1:
+            self.module = Pipe(
+                module=self.module,
+                balance=self.balance,
+                chunks=self.microbatches,
+                style=PipelineStyle.MultiProcess,
+                input_device=device,
+                worker_map=get_worker_map(),
+                checkpoint=self.checkpoint)
+        else:
+            from fairscale.nn import PipeRPCWrapper
+            self.module = PipeRPCWrapper(
+                module=self.module,
+                balance=self.balance,
+                chunks=self.microbatches,
+                style=PipelineStyle.MultiProcess,
+                input_device=device,
+                worker_map=get_worker_map(),
+                checkpoint=self.checkpoint)
 
     @property
     def final_stage(self):
@@ -145,6 +155,13 @@ class PipePlugin(DDPPlugin):
         # Create pipe_module
         model_ref = trainer.get_model()
         self.pipe_module = self._find_pipe_module(model_ref)
+
+        if self.pipe_module._pipe_version == 2:
+            if global_rank == 1:
+                # For RPC, all ranks other than 0 just need to call rpc.shutdown()
+                torch.distributed.rpc.shutdown()
+                return
+        self.pipe_module.foreach_worker(model_ref.configure_optimizers, include_self=True)
 
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
