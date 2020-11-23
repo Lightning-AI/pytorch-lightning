@@ -252,9 +252,6 @@ def test_running_test_no_val(tmpdir):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
 
-        def val_loader(self):
-            pass
-
         def test_step(self, batch, batch_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)
