@@ -199,11 +199,6 @@ def test_running_test_after_fitting(tmpdir):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
 
-        def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            return {"x": loss}
-
         def validation_epoch_end(self, outputs) -> None:
             val_loss = torch.stack([x["x"] for x in outputs]).mean()
             self.log('val_loss', val_loss)
@@ -251,6 +246,9 @@ def test_running_test_no_val(tmpdir):
     class ModelTrainTest(BoringModel):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
+
+        def val_loader(self):
+            pass
 
         def test_step(self, batch, batch_idx):
             output = self.layer(batch)
