@@ -365,6 +365,8 @@ class AcceleratorConnector:
     def _set_horovod_backend(self):
         self.check_horovod()
         self.trainer.use_horovod = True
+        # todo: Figure out why it doesn't work with horovod
+        self.trainer.enable_pl_optimizer = False
 
         # Initialize Horovod to get rank / size info
         hvd.init()
