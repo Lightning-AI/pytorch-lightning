@@ -156,19 +156,21 @@ class DDPCPUSpawnAccelerator(Accelerator):
         torch.cuda.empty_cache()
 
     def training_step(self, args):
+        return self._step(args)
+
+    def validation_step(self, args):
+        return self._step(args)
+
+    def test_step(self, args):
+        return self._step(args)
+
+    def _step(self, args):
+        args = self.ddp_plugin.on_before_forward(self.trainer.get_model(), *args)
         if self.trainer.amp_backend == AMPType.NATIVE:
             with torch.cuda.amp.autocast():
                 output = self.trainer.model(*args)
         else:
             output = self.trainer.model(*args)
-        return output
-
-    def validation_step(self, args):
-        output = self.training_step(args)
-        return output
-
-    def test_step(self, args):
-        output = self.training_step(args)
         return output
 
     def barrier(self, name: Optional[str] = None):
@@ -244,3 +246,6 @@ class DDPCPUSpawnAccelerator(Accelerator):
                     group: Optional[Any] = None,
                     reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
         return sync_ddp_if_available(tensor, group, reduce_op)
+
+    def get_reference_model(self, model) -> LightningModule:
+        return self.ddp_plugin.get_model_from_plugin(model)
