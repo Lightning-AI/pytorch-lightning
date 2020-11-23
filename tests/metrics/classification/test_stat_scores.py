@@ -156,7 +156,6 @@ class TestStatScores(MetricTester):
         reduce,
         mdmc_reduce,
         num_classes,
-        logits,
         is_multiclass,
         ignore_index,
     ):
