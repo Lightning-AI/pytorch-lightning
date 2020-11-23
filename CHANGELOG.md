@@ -27,22 +27,43 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added option to log momentum ([#4384](https://github.com/PyTorchLightning/pytorch-lightning/pull/4384))
 
 
+- Added `current_score` to `ModelCheckpoint.on_save_checkpoint` ([#4712](https://github.com/PyTorchLightning/pytorch-lightning/pull/4721))
+
+
 - Added logging using `self.log` in train and evaluation for most callbacks and model hooks (
     [#4552](https://github.com/PyTorchLightning/pytorch-lightning/pull/4552),
     [#4495](https://github.com/PyTorchLightning/pytorch-lightning/pull/4495),
     [#4439](https://github.com/PyTorchLightning/pytorch-lightning/pull/4439))
 
 
+- Added ability for DDP plugin to modify optimizer state saving ([#4675](https://github.com/PyTorchLightning/pytorch-lightning/pull/4675))
+
+
+- Added casting to python types for numpy scalars when logging hparams ([#4647](https://github.com/PyTorchLightning/pytorch-lightning/pull/4647))
+
+- Added `prefix` argument in loggers ([#4557](https://github.com/PyTorchLightning/pytorch-lightning/pull/4557))
+
+
+- Added printing of total num of params, trainable and non-trainable params in ModelSummary ([#4521](https://github.com/PyTorchLightning/pytorch-lightning/pull/4521))
+
+
+- Added `F1` class metric ([#4656](https://github.com/PyTorchLightning/pytorch-lightning/pull/4656))
+
+
 ### Changed
+
+- Consistently use `step=trainer.global_step` in `LearningRateMonitor` independently of `logging_interval` ([#4376](https://github.com/PyTorchLightning/pytorch-lightning/pull/4376))
+
 
 - Tuner algorithms will be skipped if `fast_dev_run=True` ([#3903](https://github.com/PyTorchLightning/pytorch-lightning/pull/3903))
 
 
-- Metric states are no longer as default added to `state_dict` ([#4685](https://github.com/PyTorchLightning/pytorch-lightning/pull/))
+- Renamed class metric `Fbeta` -> `FBeta` ([#4656](https://github.com/PyTorchLightning/pytorch-lightning/pull/4656))
 
 
 ### Deprecated
 
+- Deprecated `prefix` argument in `ModelCheckpoint` ([#4765](https://github.com/PyTorchLightning/pytorch-lightning/pull/4765))
 
 
 ### Removed
@@ -50,11 +71,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 ### Fixed
-
-- Allowing decorate model init with saving `hparams` inside ([#4662](https://github.com/PyTorchLightning/pytorch-lightning/pull/4662))
-
-
-- Fixed `setup` callback hook to correctly pass the LightningModule through ([#4608](https://github.com/PyTorchLightning/pytorch-lightning/pull/4608))
 
 
 
@@ -78,6 +94,27 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed checkpoint hparams dict casting when omegaconf is available ([#4770](https://github.com/PyTorchLightning/pytorch-lightning/pull/4770))
+
+
+## [1.0.7] - 2020-11-17
+
+### Added
+
+- Added lambda closure to `manual_optimizer_step` ([#4618](https://github.com/PyTorchLightning/pytorch-lightning/pull/4618))
+
+### Changed
+
+- Change Metrics `persistent` default mode to `False` ([#4685](https://github.com/PyTorchLightning/pytorch-lightning/pull/4685))
+
+
+### Fixed
+
+- Prevent crash if `sync_dist=True` on CPU ([#4626](https://github.com/PyTorchLightning/pytorch-lightning/pull/4626))
+- Fixed average pbar Metrics ([#4534](https://github.com/PyTorchLightning/pytorch-lightning/pull/4534))
+- Fixed `setup` callback hook to correctly pass the LightningModule through ([#4608](https://github.com/PyTorchLightning/pytorch-lightning/pull/4608))
+- Allowing decorate model init with saving `hparams` inside ([#4662](https://github.com/PyTorchLightning/pytorch-lightning/pull/4662))
+- Fixed `split_idx` set by `LoggerConnector` in `on_trainer_init` to `Trainer`  ([#4697](https://github.com/PyTorchLightning/pytorch-lightning/pull/4697))
 
 
 ## [1.0.6] - 2020-11-11
