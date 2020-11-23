@@ -6,7 +6,7 @@ from unittest import mock
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.metrics.functional.classification import auc
 from pytorch_lightning.profiler.profilers import PassThroughProfiler, SimpleProfiler
@@ -22,6 +22,13 @@ def test_tbd_remove_in_v1_3_0(tmpdir):
     # Deprecate prefix
     with pytest.deprecated_call(match='will be removed in v1.3'):
         callback = ModelCheckpoint(prefix='temp')
+
+    with pytest.deprecated_call(match="The setter for self.hparams in LightningModule is deprecated"):
+        class DeprecatedHparamsModel(LightningModule):
+            def __init__(self, hparams):
+                super().__init__()
+                self.hparams = hparams
+        DeprecatedHparamsModel({})
 
 
 def test_tbd_remove_in_v1_2_0():
