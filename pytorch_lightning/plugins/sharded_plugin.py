@@ -106,7 +106,7 @@ class DDPShardedPlugin(DDPPlugin):
                         scheduler.optimizer = zero_optimizer
                 del optimizer
 
-    def module_from_plugin(
+    def get_model_from_plugin(
             self,
             model: Union[LightningShardedDataParallel, LightningModule]
     ) -> LightningModule:
