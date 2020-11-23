@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import pytest
+from unittest import mock
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ProgressBarBase, ProgressBar, ModelCheckpoint
@@ -239,3 +241,14 @@ def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches, expected):
     )
     trainer.fit(model)
     assert trainer.progress_bar_callback.val_progress_bar_total == expected
+
+
+@mock.patch.dict(os.environ, {'COLAB_GPU': '1'})
+def test_progress_bar_warning_on_colab(tmpdir):
+    with pytest.warns(UserWarning, match='on Google Colab. This may crash.'):
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            progress_bar_refresh_rate=19,
+        )
+
+    assert trainer.progress_bar_callback.refresh_rate == 19
