@@ -115,6 +115,7 @@ Simple installation from PyPI
 ```bash
 pip install pytorch-lightning
 ```
+_To get full package experience you can install also all optional dependencies with `pytorch-lightning['extra']` or for CPU users with `pytorch-lightning['cpu-extra']`._
 
 From Conda
 ```bash
