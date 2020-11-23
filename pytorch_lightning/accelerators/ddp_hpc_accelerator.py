@@ -213,3 +213,6 @@ class DDPHPCAccelerator(Accelerator):
                     group: Optional[Any] = None,
                     reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
         return sync_ddp_if_available(tensor, group, reduce_op)
+
+    def get_reference_model(self, model) -> LightningModule:
+        return self.ddp_plugin.get_model_from_plugin(model)
