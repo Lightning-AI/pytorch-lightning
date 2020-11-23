@@ -17,8 +17,6 @@ from pytorch_lightning.metrics.functional.classification import (
     auroc,
     average_precision,
     dice_score,
-    f1_score,
-    fbeta_score,
     multiclass_precision_recall_curve,
     multiclass_roc,
     multiclass_auroc,
@@ -45,3 +43,4 @@ from pytorch_lightning.metrics.functional.mean_squared_log_error import mean_squ
 from pytorch_lightning.metrics.functional.psnr import psnr
 from pytorch_lightning.metrics.functional.ssim import ssim
 from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matrix
+from pytorch_lightning.metrics.functional.f_beta import fbeta, f1
