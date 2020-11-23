@@ -14,10 +14,8 @@
 from functools import singledispatch
 
 import torch
-from torch.utils.data import DataLoader
-
-from pytorch_lightning import LightningModule, Trainer
-from tests.base import BoringModel, EvalModelTemplate
+from pytorch_lightning import Trainer
+from tests.base import BoringModel
 from tests.base.develop_utils import get_default_logger, load_model_from_checkpoint, reset_seed
 
 

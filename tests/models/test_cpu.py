@@ -123,7 +123,6 @@ def test_early_stopping_cpu_model(enable_pl_optimizer, tmpdir):
     )
 
     model = ModelTrainVal()
-
     tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
     # test freeze on cpu
@@ -398,4 +397,4 @@ def test_tbptt_cpu_model(tmpdir):
     )
     result = trainer.fit(model)
 
-    assert result == 1, 'training failed to complete'
+    assert result == 1, "training failed to complete"
