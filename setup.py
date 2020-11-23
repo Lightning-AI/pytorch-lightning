@@ -15,8 +15,9 @@
 
 import os
 from io import open
+
 # Always prefer setuptools over distutils
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 try:
     import builtins
@@ -71,6 +72,16 @@ extras = {
 }
 extras['dev'] = extras['extra'] + extras['loggers'] + extras['test']
 extras['all'] = extras['dev'] + extras['examples']  # + extras['docs']
+
+# These packages shall be installed only on GPU machines
+PACKAGES_GPU_ONLY = (
+    'horovod',
+)
+# create a version for CPU machines
+for ex in ('cpu', 'cpu-extra'):
+    kw = ex.split('-')[1] if '-' in ex else 'all'
+    # filter cpu only packages
+    extras[ex] = [pkg for pkg in extras[kw] if not any(pgpu.lower() in pkg.lower() for pgpu in PACKAGES_GPU_ONLY)]
 
 # https://packaging.python.org/discussions/install-requires-vs-requirements /
 # keep the meta-data here for simplicity in reading this file... it's not obvious

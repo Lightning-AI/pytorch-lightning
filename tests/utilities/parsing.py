@@ -24,6 +24,7 @@ def _get_test_cases():
 
     class TestModel1:  # test for namespace
         learning_rate = 0
+
     model1 = TestModel1()
 
     class TestModel2:  # test for hparams namespace
@@ -41,12 +42,23 @@ def _get_test_cases():
 
     model4 = TestModel4()
 
-    return model1, model2, model3, model4
+    class DataModule:
+        batch_size = 8
+
+    class Trainer:
+        datamodule = DataModule
+
+    class TestModel5:  # test for datamodule
+        trainer = Trainer
+
+    model5 = TestModel5()
+
+    return model1, model2, model3, model4, model5
 
 
 def test_lightning_hasattr(tmpdir):
     """ Test that the lightning_hasattr works in all cases"""
-    model1, model2, model3, model4 = _get_test_cases()
+    model1, model2, model3, model4, model5 = _get_test_cases()
     assert lightning_hasattr(model1, 'learning_rate'), \
         'lightning_hasattr failed to find namespace variable'
     assert lightning_hasattr(model2, 'learning_rate'), \
@@ -55,6 +67,8 @@ def test_lightning_hasattr(tmpdir):
         'lightning_hasattr failed to find hparams dict variable'
     assert not lightning_hasattr(model4, 'learning_rate'), \
         'lightning_hasattr found variable when it should not'
+    assert lightning_hasattr(model5, 'batch_size'), \
+        'lightning_hasattr failed to find batch_size in datamodule'
 
 
 def test_lightning_getattr(tmpdir):
@@ -64,6 +78,10 @@ def test_lightning_getattr(tmpdir):
         value = lightning_getattr(m, 'learning_rate')
         assert value == i, 'attribute not correctly extracted'
 
+    model5 = models[4]
+    assert lightning_getattr(model5, 'batch_size') == 8, \
+        'batch_size not correctly extracted'
+
 
 def test_lightning_setattr(tmpdir):
     """ Test that the lightning_setattr works in all cases"""
@@ -72,3 +90,8 @@ def test_lightning_setattr(tmpdir):
         lightning_setattr(m, 'learning_rate', 10)
         assert lightning_getattr(m, 'learning_rate') == 10, \
             'attribute not correctly set'
+
+    model5 = models[4]
+    lightning_setattr(model5, 'batch_size', 128)
+    assert lightning_getattr(model5, 'batch_size') == 128, \
+        'batch_size not correctly set'

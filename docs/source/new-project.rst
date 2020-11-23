@@ -608,7 +608,13 @@ Here's an example adding a not-so-fancy learning rate decay rule:
                     new_lr_group.append(new_lr)
                     param_group['lr'] = new_lr
                  self.old_lrs[opt_idx] = new_lr_group
-                 
+
+And pass the callback to the Trainer
+
+.. code-block:: python
+
+    decay_callback = DecayLearningRate()
+    trainer = Trainer(callbacks=[decay_callback])
 
 Things you can do with a callback:
 
