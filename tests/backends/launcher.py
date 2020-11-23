@@ -165,8 +165,15 @@ class DDPLauncher:
                     print(f"Launching {func.__name__} with {cmd_line}")
                     std, err = DDPLauncher.run_from_cmd_line(cmd_line, func, tmpdir, timeout=20)
                     if std is not None:
-                        print(std.decode("utf-8"))
-                    print(err)
+                        try:
+                            print(std.decode("utf-8"))
+                        except Exception:
+                            print(err)
+                    if err is not None:
+                        try:
+                            print(err.decode("utf-8"))
+                        except Exception:
+                            print(err)
                     # Make sure the test run properly
                     result_path = os.path.join(tmpdir, 'ddp.result')
                     result = torch.load(result_path)
