@@ -68,7 +68,6 @@ from pytorch_lightning.utilities.memory import recursive_detach
 warnings.filterwarnings(
     'ignore', message='torch.distributed.reduce_op is deprecated, ' 'please use torch.distributed.ReduceOp instead'
 )
-os.environ['PYTHONWARNINGS'] = 'ignore:semaphore_tracker:UserWarning'
 
 try:
     from apex import amp
@@ -179,7 +178,7 @@ class Trainer(
                 :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks`. Default: ``True``.
 
                 .. warning:: Passing a ModelCheckpoint instance to this argument is deprecated since
-                    v1.1.0 and will be unsupported from v1.3.0.
+                    v1.1 and will be unsupported from v1.3. Use `callbacks` argument instead.
 
             check_val_every_n_epoch: Check val every n train epochs.
 
