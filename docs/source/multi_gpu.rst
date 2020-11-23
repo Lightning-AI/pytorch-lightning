@@ -111,7 +111,7 @@ When running in distributed mode, we have to ensure that the validation and test
 This is done by adding `sync_dist=True` to all `self.log` calls in the validation and test step.
 This ensures that each GPU worker has the same behaviour when tracking model checkpoints, which is important for later downstream tasks such as testing the best checkpoint across all workers.
 
-Note if you use any built in metrics or custom metrics that use the ``pytorch_lightning.metrics`` API, these do not need to be updated and are automatically handled for you.
+Note if you use any built in metrics or custom metrics that use the :ref:`Metrics API <metrics>`, these do not need to be updated and are automatically handled for you.
 
 .. testcode::
 
