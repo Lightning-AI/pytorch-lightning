@@ -49,7 +49,7 @@ class FBeta(Metric):
         average:
             * `'micro'` computes metric globally
             * `'macro'` computes metric for each class and uniformly averages them
-            * `'weighted'` computes metric for each class and do a weighted-average,
+            * `'weighted'` computes metric for each class and does a weighted-average,
                 where each class is weighted by their support (accounts for class imbalance)
             * `None` computes and returns the metric per class
 
@@ -154,13 +154,13 @@ class F1(FBeta):
         average:
             * `'micro'` computes metric globally
             * `'macro'` computes metric for each class and uniformly averages them
-            * `'weighted'` computes metric for each class and do a weighted-average,
+            * `'weighted'` computes metric for each class and does a weighted-average,
                 where each class is weighted by their support (accounts for class imbalance)
             * `None` computes and returns the metric per class
 
         multilabel: If predictions are from multilabel classification.
         compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False. default: True
+            Forward only calls ``update()`` and returns None if this is set to False. default: True
         dist_sync_on_step:
             Synchronize metric state across processes at each ``forward()``
             before returning the value at the step. default: False

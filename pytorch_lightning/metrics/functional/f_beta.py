@@ -43,11 +43,11 @@ def _fbeta_compute(
         average: str = "micro"
 ) -> torch.Tensor:
     if average == "micro":
-        precision = true_positives.sum().float() / (predicted_positives.sum())
-        recall = true_positives.sum().float() / (actual_positives.sum())
+        precision = true_positives.sum().float() / predicted_positives.sum()
+        recall = true_positives.sum().float() / actual_positives.sum()
     else:
-        precision = true_positives.float() / (predicted_positives)
-        recall = true_positives.float() / (actual_positives)
+        precision = true_positives.float() / predicted_positives
+        recall = true_positives.float() / actual_positives
 
     num = (1 + beta ** 2) * precision * recall
     denom = beta ** 2 * precision + recall
@@ -86,7 +86,7 @@ def fbeta(
         average:
             * `'micro'` computes metric globally
             * `'macro'` computes metric for each class and uniformly averages them
-            * `'weighted'` computes metric for each class and do a weighted-average,
+            * `'weighted'` computes metric for each class and does a weighted-average,
                 where each class is weighted by their support (accounts for class imbalance)
             * `None` computes and returns the metric per class
 
@@ -139,7 +139,7 @@ def f1(
         average:
             * `'micro'` computes metric globally
             * `'macro'` computes metric for each class and uniformly averages them
-            * `'weighted'` computes metric for each class and do a weighted-average,
+            * `'weighted'` computes metric for each class and does a weighted-average,
                 where each class is weighted by their support (accounts for class imbalance)
             * `None` computes and returns the metric per class
 
