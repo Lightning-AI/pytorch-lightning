@@ -17,7 +17,8 @@ from pytorch_lightning.metrics.classification import (
     Accuracy,
     Precision,
     Recall,
-    Fbeta
+    F1,
+    FBeta,
 )
 
 from pytorch_lightning.metrics.regression import (

@@ -26,8 +26,6 @@ from pytorch_lightning.metrics.functional.classification import (
     confusion_matrix,
     precision,
     recall,
-    fbeta_score,
-    f1_score,
     _binary_clf_curve,
     dice_score,
     average_precision,
@@ -44,10 +42,6 @@ from pytorch_lightning.metrics.functional.classification import (
     pytest.param(partial(sk_jaccard_score, average='macro'), iou, False, id='iou'),
     pytest.param(partial(sk_precision, average='micro'), precision, False, id='precision'),
     pytest.param(partial(sk_recall, average='micro'), recall, False, id='recall'),
-    pytest.param(partial(sk_f1_score, average='micro'), f1_score, False, id='f1_score'),
-    pytest.param(partial(sk_fbeta_score, average='micro', beta=2),
-                 partial(fbeta_score, beta=2), False, id='fbeta_score'),
-    pytest.param(sk_confusion_matrix, confusion_matrix, False, id='confusion_matrix'),
     pytest.param(sk_roc_curve, roc, True, id='roc'),
     pytest.param(sk_precision_recall_curve, precision_recall_curve, True, id='precision_recall_curve'),
     pytest.param(sk_roc_auc_score, auroc, True, id='auroc')
@@ -83,8 +77,6 @@ def test_against_sklearn(sklearn_metric, torch_metric, only_binary):
 @pytest.mark.parametrize(['sklearn_metric', 'torch_metric'], [
     pytest.param(sk_precision, precision, id='precision'),
     pytest.param(sk_recall, recall, id='recall'),
-    pytest.param(sk_f1_score, f1_score, id='f1_score'),
-    pytest.param(partial(sk_fbeta_score, beta=2), partial(fbeta_score, beta=2), id='fbeta_score')
 ])
 def test_different_reduction_against_sklearn(class_reduction, sklearn_metric, torch_metric):
     """ Test metrics where the class_reduction parameter have a correponding
@@ -253,32 +245,6 @@ def test_precision_recall(pred, target, expected_prec, expected_rec):
 
     assert torch.allclose(torch.tensor(expected_prec).to(prec), prec)
     assert torch.allclose(torch.tensor(expected_rec).to(rec), rec)
-
-
-@pytest.mark.parametrize(['pred', 'target', 'beta', 'exp_score'], [
-    pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], 0.5, [0.5, 0.5]),
-    pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], 1, [0.5, 0.5]),
-    pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], 2, [0.5, 0.5]),
-])
-def test_fbeta_score(pred, target, beta, exp_score):
-    score = fbeta_score(torch.tensor(pred), torch.tensor(target), beta, class_reduction='none')
-    assert torch.allclose(score, torch.tensor(exp_score))
-
-    score = fbeta_score(to_onehot(torch.tensor(pred)), torch.tensor(target), beta, class_reduction='none')
-    assert torch.allclose(score, torch.tensor(exp_score))
-
-
-@pytest.mark.parametrize(['pred', 'target', 'exp_score'], [
-    pytest.param([0., 0., 0., 0.], [1., 1., 1., 1.], [0.0, 0.0]),
-    pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], [0.5, 0.5]),
-    pytest.param([1., 0., 1., 0.], [1., 0., 1., 0.], [1.0, 1.0]),
-])
-def test_f1_score(pred, target, exp_score):
-    score = f1_score(torch.tensor(pred), torch.tensor(target), class_reduction='none')
-    assert torch.allclose(score, torch.tensor(exp_score))
-
-    score = f1_score(to_onehot(torch.tensor(pred)), torch.tensor(target), class_reduction='none')
-    assert torch.allclose(score, torch.tensor(exp_score))
 
 
 @pytest.mark.parametrize(['sample_weight', 'pos_label', "exp_shape"], [
