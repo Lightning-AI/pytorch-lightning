@@ -14,6 +14,7 @@ try:
     IS_TORCH_AT_LEAST_1_6 = LooseVersion(torch.__version__) >= LooseVersion("1.6.0")
     if IS_TORCH_AT_LEAST_1_6:
         import fairscale.nn.model_parallel as mpu
+        from fairscale.nn import Pipe
         from fairscale.nn.pipe.pipeline import PipelineStyle
 
         # todo: seems to work only for 1.6.0
@@ -55,14 +56,12 @@ class LightningPipeModule(nn.Module):
         self._init_pipe()
 
     def _init_pipe(self):
-        device = torch.device("cuda", torch_distrib.get_rank())
-        from fairscale.nn import Pipe
         self.module = Pipe(
             module=self.module,
             balance=self.balance,
             chunks=self.microbatches,
             style=PipelineStyle.MultiProcess,
-            input_device=device,
+            input_device=torch.device("cuda", torch_distrib.get_rank()),
             worker_map=get_worker_map(),
             checkpoint=self.checkpoint)
 
