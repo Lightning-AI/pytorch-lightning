@@ -11,11 +11,15 @@ from torch.distributed import rpc
 from torch.nn.parallel import DistributedDataParallel
 
 try:
-    import fairscale.nn.model_parallel as mpu
-    from fairscale.nn.pipe.pipeline import PipelineStyle
+    IS_TORCH_AT_LEAST_1_6 = LooseVersion(torch.__version__) >= LooseVersion("1.6.0")
+    if IS_TORCH_AT_LEAST_1_6:
+        import fairscale.nn.model_parallel as mpu
+        from fairscale.nn.pipe.pipeline import PipelineStyle
 
-    # todo: seems to work only for 1.6.0
-    HAS_FAIRSCALE = LooseVersion(torch.__version__) == LooseVersion("1.6.0")
+        # todo: seems to work only for 1.6.0
+        HAS_FAIRSCALE = LooseVersion(torch.__version__) == LooseVersion("1.6.0")
+    else:
+        HAS_FAIRSCALE = False
 except Exception:
     HAS_FAIRSCALE = False
 
