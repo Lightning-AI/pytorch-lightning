@@ -21,7 +21,7 @@ import torch
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, Callback
+from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from tests.base import BoringModel
 
 
