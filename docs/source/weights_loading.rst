@@ -142,7 +142,7 @@ You can manually save checkpoints and restore your model from the checkpointed s
 Manual saving with accelerators
 ===============================
 
-Lightning also handles accelerators such as DDP where multiple processes are required. For example, when using DDP our training script is run across multiple devices automatically to parallelize training.
+Lightning also handles accelerators where multiple processes are running, such as DDP. For example, when using the DDP accelerator our training script is running across multiple devices at the same time.
 Lightning automatically ensures that the model is saved only on the main process, whilst other processes do not interfere with saving checkpoints. This requires no code changes as seen below.
 
 .. code-block:: python
@@ -152,6 +152,9 @@ Lightning automatically ensures that the model is saved only on the main process
     trainer.fit(model)
     # Saves only on the main process
     trainer.save_checkpoint("example.ckpt")
+
+Not using `trainer.save_checkpoint` can lead to unexpected behaviour and potential deadlock. Using other saving functions will result in all devices attempting to save the checkpoint. As a result, we highly recommend using the trainer's save functionality.
+If using custom saving functions cannot be avoided, we recommend using :func:`~pytorch_lightning.loggers.base.rank_zero_only` to ensure saving occurs only on the main process.
 
 ******************
 Checkpoint loading
