@@ -54,7 +54,7 @@ def call_training_script(cli_args: str, tmpdir: str, env: Dict, timeout: int = 2
     return std, err
 
 
-def create_runs(run, **kwargs):
+def create_runs(**kwargs):
     run = ''
     keys = sorted(kwargs.keys())
     for key in keys:
