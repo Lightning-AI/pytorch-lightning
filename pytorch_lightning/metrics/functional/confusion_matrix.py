@@ -27,8 +27,8 @@ def _confusion_matrix_update(
     )
 
     if len(preds.shape) > 2:
-        preds = torch.movedim(preds, 1, -1).view(-1, num_classes)
-        target = torch.movedim(target, 1, -1).view(-1, num_classes)
+        preds = torch.movedim(preds, 1, -1).reshape(-1, num_classes)
+        target = torch.movedim(target, 1, -1).reshape(-1, num_classes)
 
     preds = torch.argmax(preds, dim=1)
     target = torch.argmax(target, dim=1)

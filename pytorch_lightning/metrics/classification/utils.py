@@ -185,7 +185,13 @@ def _check_classification_inputs(
                     raise ValueError("The size of C dimension of preds does not match num_classes")
 
         elif case == "multi-label":
-            if num_classes != implied_classes:
+            if is_multiclass and num_classes != 2:
+                raise ValueError(
+                    "Your habe set is_multiclass=True, but num_classes is not equal to 2."
+                    "If you are trying to transform multi-label data to 2 class multi-dimensional"
+                    "multi-class, you should set num_classes to either 2 or None."
+                )
+            if not is_multiclass and num_classes != implied_classes:
                 raise ValueError("The implied number of classes (from shape of inputs) does not match num_classes.")
 
     # Check that if top_k > 1, we have (multi-class) multi-dim with probabilities
