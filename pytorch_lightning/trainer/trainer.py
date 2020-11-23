@@ -68,7 +68,6 @@ from pytorch_lightning.utilities.model_utils import is_overridden
 warnings.filterwarnings(
     'ignore', message='torch.distributed.reduce_op is deprecated, ' 'please use torch.distributed.ReduceOp instead'
 )
-os.environ['PYTHONWARNINGS'] = 'ignore:semaphore_tracker:UserWarning'
 
 try:
     from apex import amp
@@ -180,7 +179,7 @@ class Trainer(
                 :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks`. Default: ``True``.
 
                 .. warning:: Passing a ModelCheckpoint instance to this argument is deprecated since
-                    v1.1.0 and will be unsupported from v1.3.0.
+                    v1.1 and will be unsupported from v1.3. Use `callbacks` argument instead.
 
             check_val_every_n_epoch: Check val every n train epochs.
 
@@ -277,10 +276,10 @@ class Trainer(
             weights_summary: Prints a summary of the weights when training begins.
 
             weights_save_path: Where to save weights if specified. Will override default_root_dir
-                    for checkpoints only. Use this if for whatever reason you need the checkpoints
-                    stored in a different place than the logs written in `default_root_dir`.
-                    Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
-                    Defaults to `default_root_dir`.
+                for checkpoints only. Use this if for whatever reason you need the checkpoints
+                stored in a different place than the logs written in `default_root_dir`.
+                Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
+                Defaults to `default_root_dir`.
 
             move_metrics_to_cpu: Whether to force internal logged metrics to be moved to cpu.
                 This can save some gpu memory, but can make training slower. Use with attention.
