@@ -175,9 +175,7 @@ class DataParallelAccelerator(Accelerator):
                 if state is not None:
                     scheduler.load_state_dict(state)
 
-    @property
-    def reference_model(self) -> LightningModule:
-        model = self.trainer.model
+    def get_reference_model(self, model) -> LightningModule:
         if isinstance(model, LightningDataParallel):
             return model.module
         return model
