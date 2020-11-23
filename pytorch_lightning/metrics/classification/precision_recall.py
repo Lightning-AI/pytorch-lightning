@@ -118,7 +118,7 @@ class Precision(Metric):
 
 
 class Recall(Metric):
-    """
+    r"""
     Computes `Recall <https://en.wikipedia.org/wiki/Precision_and_recall>`_:
 
     .. math:: \text{Recall} = \frac{TP}{TP + FN}
