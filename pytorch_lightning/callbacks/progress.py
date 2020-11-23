@@ -334,13 +334,14 @@ class ProgressBar(ProgressBarBase):
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-        if self._should_update(self.train_batch_idx, self.total_train_batches):
+        if self._should_update(self.train_batch_idx, self.total_train_batches + self.total_val_batches):
             self._update_bar(self.main_progress_bar)
             self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
 
     def on_validation_start(self, trainer, pl_module):
         super().on_validation_start(trainer, pl_module)
         if not trainer.running_sanity_check:
+            self._update_bar(self.main_progress_bar)  # fill up remaining
             self.val_progress_bar = self.init_validation_tqdm()
             self.val_progress_bar.total = convert_inf(self.total_val_batches)
 
@@ -383,7 +384,8 @@ class ProgressBar(ProgressBarBase):
         else:
             # infinite / unknown size
             delta = self.refresh_rate
-        bar.update(delta)
+        if delta > 0:
+            bar.update(delta)
 
 
 def convert_inf(x):
