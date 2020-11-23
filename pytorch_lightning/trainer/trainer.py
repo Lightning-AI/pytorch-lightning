@@ -139,7 +139,7 @@ class Trainer(
         distributed_backend: Optional[str] = None,
         automatic_optimization: Optional[bool] = None,
         move_metrics_to_cpu: bool = False,
-        enable_pl_optimizer: bool = False,
+        enable_pl_optimizer: bool = True,
     ):
         r"""
         Customize every aspect of training via flags

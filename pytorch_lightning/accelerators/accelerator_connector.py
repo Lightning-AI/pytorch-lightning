@@ -122,10 +122,6 @@ class AcceleratorConnector:
         # distributed backend choice
         self.set_distributed_mode()
 
-        # enable optimizer wrapping with LightningOptimizer
-        # TODO: Understand why it doesn't work with Hovorod
-        self.trainer.enable_pl_optimizer = not self.trainer.use_horovod and self.trainer.enable_pl_optimizer
-
         # override dist backend when using tpus
         if self.trainer.on_tpu:
             self.trainer.distributed_backend = "tpu"
