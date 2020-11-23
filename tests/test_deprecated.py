@@ -6,7 +6,7 @@ from unittest import mock
 import pytest
 import torch
 
-from pytorch_lightning import Trainer, LightningModule
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.metrics.functional.classification import auc
 from pytorch_lightning.profiler.profilers import PassThroughProfiler, SimpleProfiler
