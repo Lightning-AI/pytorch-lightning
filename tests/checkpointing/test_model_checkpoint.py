@@ -13,30 +13,28 @@
 # limitations under the License.
 import os
 import os.path as osp
-from unittest import mock
-
-import pytorch_lightning as pl
-from unittest.mock import Mock
-
-import yaml
 import pickle
 import platform
 import re
+from argparse import Namespace
 from pathlib import Path
+from unittest import mock
+from unittest.mock import Mock
 
 import cloudpickle
 import pytest
 import torch
+import yaml
 from omegaconf import Container, OmegaConf
-from argparse import Namespace
 
+import pytorch_lightning as pl
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
-from tests.base import EvalModelTemplate, BoringModel
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.base import BoringModel, EvalModelTemplate
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
@@ -574,7 +572,8 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_checkpoint_repeated_strategy(tmpdir):
+@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
+def test_checkpoint_repeated_strategy(enable_pl_optimizer, tmpdir):
     """
     This test validates that the checkpoint can be called when provided to callacks list
     """
@@ -596,7 +595,8 @@ def test_checkpoint_repeated_strategy(tmpdir):
         limit_train_batches=2,
         limit_val_batches=2,
         limit_test_batches=2,
-        callbacks=[checkpoint_callback]
+        callbacks=[checkpoint_callback],
+        enable_pl_optimizer=enable_pl_optimizer
     )
 
     trainer.fit(model)
@@ -616,7 +616,8 @@ def test_checkpoint_repeated_strategy(tmpdir):
                              limit_train_batches=2,
                              limit_val_batches=2,
                              limit_test_batches=2,
-                             resume_from_checkpoint=chk)
+                             resume_from_checkpoint=chk,
+                             enable_pl_optimizer=enable_pl_optimizer)
         trainer.fit(model)
         trainer.test(model)
 
@@ -624,7 +625,8 @@ def test_checkpoint_repeated_strategy(tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_checkpoint_repeated_strategy_tmpdir(tmpdir):
+@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
+def test_checkpoint_repeated_strategy_tmpdir(enable_pl_optimizer, tmpdir):
     """
     This test validates that the checkpoint can be called when provided to callacks list
     """
@@ -647,7 +649,8 @@ def test_checkpoint_repeated_strategy_tmpdir(tmpdir):
         limit_train_batches=2,
         limit_val_batches=2,
         limit_test_batches=2,
-        callbacks=[checkpoint_callback])
+        callbacks=[checkpoint_callback],
+        enable_pl_optimizer=enable_pl_optimizer)
 
     trainer.fit(model)
     assert sorted(os.listdir(tmpdir)) == sorted(['epoch=00.ckpt', 'lightning_logs'])
@@ -670,7 +673,8 @@ def test_checkpoint_repeated_strategy_tmpdir(tmpdir):
                              limit_train_batches=2,
                              limit_val_batches=2,
                              limit_test_batches=2,
-                             resume_from_checkpoint=chk)
+                             resume_from_checkpoint=chk,
+                             enable_pl_optimizer=enable_pl_optimizer)
 
         trainer.fit(model)
         trainer.test(model)
@@ -679,7 +683,8 @@ def test_checkpoint_repeated_strategy_tmpdir(tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_checkpoint_repeated_strategy_extended(tmpdir):
+@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
+def test_checkpoint_repeated_strategy_extended(enable_pl_optimizer, tmpdir):
     """
     This test validates checkpoint can be called several times without
     increasing internally its global step if nothing run.
@@ -731,6 +736,7 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
         limit_train_batches=limit_train_batches,
         limit_val_batches=3,
         limit_test_batches=4,
+        enable_pl_optimizer=enable_pl_optimizer
     )
 
     trainer = pl.Trainer(
