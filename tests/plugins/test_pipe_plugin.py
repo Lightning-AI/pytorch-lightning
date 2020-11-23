@@ -25,7 +25,7 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
 from pytorch_lightning.plugins.pipe_plugin import HAS_FAIRSCALE, PipePlugin
-from tests.backends.Tester import Tester
+from tests.backends.launcher import Tester
 from tests.base.boring_model import BoringModel, RandomDataset
 
 

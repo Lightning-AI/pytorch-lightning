@@ -18,7 +18,7 @@ import pytest
 import torch
 
 from tests.backends import ddp_model
-from tests.backends.Tester import Tester
+from tests.backends.launcher import Tester
 from tests.utilities.dist import call_training_script
 
 
