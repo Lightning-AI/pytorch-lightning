@@ -216,13 +216,16 @@ class ModelSummary(object):
     @property
     def total_out_params(self) -> int:
         _map_out_size_prod = map(lambda out_size: np.prod(out_size), self.out_sizes)
-        return sum([out_size_prod for out_size_prod in _map_out_size_prod])
+        return sum(list(_map_out_size_prod))
 
     @property
     def total_params(self) -> int:
         return sum(self.param_nums)
 
-    def _get_total_size(self, input_size: tuple) -> int:
+    def model_size(self, input_size: tuple) -> float:
+        return self._get_total_size(input_size)
+
+    def _get_total_size(self, input_size: tuple) -> float:
         # TODO(kartik4949) : get precision.
         _precision = 32.0 / 8.0  # 1 byte -> 8 bits
         total_input_dsize = abs(np.prod(np.array(input_size))) * _precision / (1024 ** 2.0)
