@@ -146,10 +146,6 @@ class Precision(StatScores):
         if zero_division not in [0, 1]:
             raise ValueError("zero_division has to be either 0 or 1")
 
-        # Check average
-        if average not in ["micro", "macro", "weighted", "samples", "none", None]:
-            raise ValueError("Uncrecognized average option: %s" % average)
-
         self.zero_division = zero_division
         self.average = average
 
@@ -297,10 +293,6 @@ class Recall(StatScores):
 
         if zero_division not in [0, 1]:
             raise ValueError("zero_division has to be either 0 or 1")
-
-        # Check average
-        if average not in ["micro", "macro", "weighted", "samples", "none", None]:
-            raise ValueError("Uncrecognized average option: %s" % average)
 
         self.zero_division = zero_division
         self.average = average

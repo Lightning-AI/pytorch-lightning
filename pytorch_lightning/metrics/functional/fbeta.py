@@ -153,10 +153,6 @@ def fbeta_score(
     if zero_division not in [0, 1]:
         raise ValueError("zero_division has to be either 0 or 1")
 
-    # Check average
-    if average not in ["micro", "macro", "weighted", "samples", "none", None]:
-        raise ValueError("Uncrecognized average option: %s" % average)
-
     tp, fp, tn, fn = _stat_scores_update(
         preds, target, reduce, mdmc_average, threshold, num_classes, logits, is_multiclass, ignore_index
     )
@@ -285,10 +281,6 @@ def f1_score(
 
     if zero_division not in [0, 1]:
         raise ValueError("zero_division has to be either 0 or 1")
-
-    # Check average
-    if average not in ["micro", "macro", "weighted", "samples", "none", None]:
-        raise ValueError("Uncrecognized average option: %s" % average)
 
     tp, fp, tn, fn = _stat_scores_update(
         preds, target, reduce, mdmc_average, threshold, num_classes, logits, is_multiclass, ignore_index
