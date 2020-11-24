@@ -54,10 +54,6 @@ def register_optimizers(ctx, model):
     model.trainer.optimizer_frequencies = optimizer_frequencies
 
 
-def do_nothing_optimizer_closure():
-    return
-
-
 def run_optimizer(ctx, model):
     trainer = model.trainer
     model_ref = trainer.get_model()
@@ -65,6 +61,7 @@ def run_optimizer(ctx, model):
     args = ctx["args"]
     kwargs = ctx["kwargs"]
     batch_idx = ctx["batch_idx"]
+    on_tpu = ctx["on_tpu"]
     optimizer = trainer.optimizers[opt_idx]
 
     is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
@@ -84,12 +81,16 @@ def run_optimizer(ctx, model):
         optimizer=optimizer,
         optimizer_idx=opt_idx,
         optimizer_closure=do_nothing_optimizer_closure,
-        on_tpu=False,  # TPUAccelerator class sets this as True
+        on_tpu=on_tpu,  # TPUAccelerator class sets this as True
         using_native_amp=using_native_amp,
         using_lbfgs=is_lbfgs,
         *args,
         **kwargs,
     )
+
+
+def do_nothing_optimizer_closure():
+    return
 
 
 def optimizer_step(ctx, model):
@@ -112,6 +113,7 @@ def optimizer_step(ctx, model):
             ' To request, please file a Github issue in PyTorch and tag @mcarilli')
 
     optimizer_closure = getattr(trainer, "_optimizer_closure", do_nothing_optimizer_closure)
+    print(optimizer_closure)
 
     if optimizer_closure != do_nothing_optimizer_closure:
         with trainer.model.no_sync():
@@ -130,6 +132,7 @@ def optimizer_step(ctx, model):
             )
 
     else:
+
         # model hook
         model_ref.optimizer_step(
             epoch=trainer.current_epoch,
@@ -266,12 +269,13 @@ class PipePlugin(DDPPlugin):
         model.trainer.init_optimizers(model)
         return DDPPlugin(process_group=mpu.get_data_parallel_group()).configure_ddp(model, device_ids)
 
-    def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure, *args, **kwargs):
+    def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure, on_tpu, *args, **kwargs):
         # Create pipe_module
         automatic_optimization = self.trainer.train_loop.automatic_optimization
         model = self.trainer.get_model()
         if not automatic_optimization:
-            # model.foreach_worker(run_optimizer, include_self=True)
-            model.foreach_worker(run_optimizer, {"batch_idx":batch_idx, "opt_idx": opt_idx, "args": args, "kwargs":kwargs}, include_self=False)
+            #model.foreach_worker(run_optimizer, include_self=True)
+            ctx = {"batch_idx":batch_idx, "opt_idx": opt_idx, "on_tpu": on_tpu, "args": args, "kwargs":kwargs}
+            model.foreach_worker(run_optimizer, ctx, include_self=False)
         else:
             model.foreach_worker(optimizer_step, {"batch_idx":batch_idx, "opt_idx": opt_idx, "args": args, "kwargs":kwargs}, include_self=True)

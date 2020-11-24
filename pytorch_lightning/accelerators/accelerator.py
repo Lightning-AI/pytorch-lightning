@@ -104,7 +104,8 @@ class Accelerator(object):
         using_native_amp = self.trainer.amp_backend == AMPType.NATIVE
 
         if self.ddp_plugin.use_optimizer_step:
-            self.ddp_plugin.optimizer_step(optimizer, batch_idx, opt_idx, lambda_closure, *args, **kwargs)
+            on_tpu = False
+            self.ddp_plugin.optimizer_step(optimizer, batch_idx, opt_idx, lambda_closure, on_tpu, *args, **kwargs)
         else:
             model_ref = self.trainer.get_model()
             is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
