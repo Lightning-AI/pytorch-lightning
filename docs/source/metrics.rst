@@ -437,14 +437,7 @@ multiclass_roc [func]
 precision [func]
 ~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.precision
-    :noindex:
-
-
-precision_recall [func]
-~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.metrics.functional.classification.precision_recall
+.. autofunction:: pytorch_lightning.metrics.functional.precision
     :noindex:
 
 
@@ -458,7 +451,7 @@ precision_recall_curve [func]
 recall [func]
 ~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.recall
+.. autofunction:: pytorch_lightning.metrics.functional.recall
     :noindex:
 
 

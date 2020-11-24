@@ -11,14 +11,43 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Any, Callable
+from typing import Optional
 
 import torch
-from pytorch_lightning.metrics.classification.stat_scores import StatScores
-from pytorch_lightning.metrics.functional.precision_recall import _precision_compute, _recall_compute
+from pytorch_lightning.metrics.functional.reduction import _reduce_scores
+from pytorch_lightning.metrics.functional.stat_scores import _stat_scores_update
 
 
-class Precision(StatScores):
+def _precision_compute(
+    tp: torch.Tensor,
+    fp: torch.Tensor,
+    tn: torch.Tensor,
+    fn: torch.Tensor,
+    average: str,
+    mdmc_average: Optional[str],
+    zero_division: int,
+) -> torch.Tensor:
+    return _reduce_scores(
+        numerator=tp,
+        denominator=tp + fp,
+        weights=tp + fn,
+        average=average,
+        mdmc_average=mdmc_average,
+        zero_division=zero_division,
+    )
+
+
+def precision(
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    average: str = "micro",
+    mdmc_average: Optional[str] = None,
+    threshold: float = 0.5,
+    num_classes: Optional[int] = None,
+    is_multiclass: Optional[bool] = None,
+    ignore_index: Optional[int] = None,
+    zero_division: int = 0,
+) -> torch.Tensor:
     """Computes the precision score (the ratio ``tp / (tp + fp)``).
 
     The reduction method (how the precision scores are aggregated) is controlled by the
@@ -29,6 +58,8 @@ class Precision(StatScores):
     parameter is availible.
 
     Args:
+        preds: Predictions from model (probabilities or labels)
+        target: Ground truth values
         average:
             Defines the reduction that is applied. Should be one of the following:
 
@@ -85,82 +116,67 @@ class Precision(StatScores):
             Score to use for classes/samples, whose score has 0 in the denominator. Has to be either
             0 [default] or 1.
 
-        compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False. default: True
-        dist_sync_on_step:
-            Synchronize metric state across processes at each ``forward()``
-            before returning the value at the step. default: False
-        process_group:
-            Specify the process group on which synchronization is called. default: None (which selects the entire world)
-        dist_sync_fn:
-            Callback that performs the allgather operation on the metric state. When `None`, DDP
-            will be used to perform the allgather. default: None
+    Return:
+        The of the returned tensor depends on the ``average`` parameter
+
+        - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
+        - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
+          of classes
 
     Example:
 
-        >>> from pytorch_lightning.metrics.classification import Precision
+        >>> from pytorch_lightning.metrics.functional import precision
         >>> preds  = torch.tensor([2, 0, 2, 1])
         >>> target = torch.tensor([1, 1, 2, 0])
-        >>> precision = Precision(average='macro', num_classes=3)
-        >>> precision(preds, target)
+        >>> precision(preds, target, average='macro', num_classes=3)
         tensor(0.1667)
-        >>> precision = Precision(average='micro')
-        >>> precision(preds, target)
+        >>> precision(preds, target, average='micro')
         tensor(0.2500)
 
     """
 
-    def __init__(
-        self,
-        average: str = "micro",
-        mdmc_average: Optional[str] = None,
-        threshold: float = 0.5,
-        num_classes: Optional[int] = None,
-        is_multiclass: Optional[bool] = None,
-        ignore_index: Optional[int] = None,
-        zero_division: int = 0,
-        compute_on_step: bool = True,
-        dist_sync_on_step: bool = False,
-        process_group: Optional[Any] = None,
-        dist_sync_fn: Callable = None,
-    ):
-        super().__init__(
-            reduce="macro" if average in ["weighted", "none", None] else average,
-            mdmc_reduce=mdmc_average,
-            threshold=threshold,
-            num_classes=num_classes,
-            is_multiclass=is_multiclass,
-            ignore_index=ignore_index,
-            compute_on_step=compute_on_step,
-            dist_sync_on_step=dist_sync_on_step,
-            process_group=process_group,
-            dist_sync_fn=dist_sync_fn,
-        )
+    reduce = "macro" if average in ["weighted", "none", None] else average
 
-        if zero_division not in [0, 1]:
-            raise ValueError("zero_division has to be either 0 or 1")
+    if zero_division not in [0, 1]:
+        raise ValueError("zero_division has to be either 0 or 1")
 
-        self.zero_division = zero_division
-        self.average = average
+    tp, fp, tn, fn = _stat_scores_update(
+        preds, target, reduce, mdmc_average, threshold, num_classes, is_multiclass, ignore_index
+    )
 
-    def compute(self) -> torch.Tensor:
-        """
-        Computes the precision score based on inputs passed in to ``update`` previously.
-
-        Return:
-            The of the returned tensor depends on the ``average`` parameter
-
-            - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
-            - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
-              of classes
-        """
-
-        return _precision_compute(
-            self.tp, self.fp, self.tn, self.fn, self.average, self.mdmc_reduce, self.zero_division
-        )
+    return _precision_compute(tp, fp, tn, fn, average, mdmc_average, zero_division)
 
 
-class Recall(StatScores):
+def _recall_compute(
+    tp: torch.Tensor,
+    fp: torch.Tensor,
+    tn: torch.Tensor,
+    fn: torch.Tensor,
+    average: str,
+    mdmc_average: Optional[str],
+    zero_division: int,
+) -> torch.Tensor:
+    return _reduce_scores(
+        numerator=tp,
+        denominator=tp + fn,
+        weights=tp + fn,
+        average=average,
+        mdmc_average=mdmc_average,
+        zero_division=zero_division,
+    )
+
+
+def recall(
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    average: str = "micro",
+    mdmc_average: Optional[str] = None,
+    threshold: float = 0.5,
+    num_classes: Optional[int] = None,
+    is_multiclass: Optional[bool] = None,
+    ignore_index: Optional[int] = None,
+    zero_division: int = 0,
+) -> torch.Tensor:
     """Computes the recall score (the ratio ``tp / (tp + fn)``).
 
     The reduction method (how the recall scores are aggregated) is controlled by the
@@ -171,6 +187,8 @@ class Recall(StatScores):
     parameter is availible.
 
     Args:
+        preds: Predictions from model (probabilities, or labels)
+        target: Ground truth values
         average:
             Defines the reduction that is applied. Should be one of the following:
 
@@ -227,74 +245,32 @@ class Recall(StatScores):
             Score to use for classes/samples, whose score has 0 in the denominator. Has to be either
             0 [default] or 1.
 
-        compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False. default: True
-        dist_sync_on_step:
-            Synchronize metric state across processes at each ``forward()``
-            before returning the value at the step. default: False
-        process_group:
-            Specify the process group on which synchronization is called. default: None (which selects the entire world)
-        dist_sync_fn:
-            Callback that performs the allgather operation on the metric state. When `None`, DDP
-            will be used to perform the allgather. default: None
+    Return:
+        The of the returned tensor depends on the ``average`` parameter
+
+        - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
+        - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
+          of classes
 
     Example:
 
-        >>> from pytorch_lightning.metrics.classification import Recall
+        >>> from pytorch_lightning.metrics.functional import recall
         >>> preds  = torch.tensor([2, 0, 2, 1])
         >>> target = torch.tensor([1, 1, 2, 0])
-        >>> recall = Recall(average='macro', num_classes=3)
-        >>> recall(preds, target)
+        >>> recall(preds, target, average='macro', num_classes=3)
         tensor(0.3333)
-        >>> recall = Recall(average='micro')
-        >>> recall(preds, target)
+        >>> recall(preds, target, average='micro')
         tensor(0.2500)
 
     """
 
-    def __init__(
-        self,
-        average: str = "micro",
-        mdmc_average: Optional[str] = None,
-        threshold: float = 0.5,
-        num_classes: Optional[int] = None,
-        is_multiclass: Optional[bool] = None,
-        ignore_index: Optional[int] = None,
-        zero_division: int = 0,
-        compute_on_step: bool = True,
-        dist_sync_on_step: bool = False,
-        process_group: Optional[Any] = None,
-        dist_sync_fn: Callable = None,
-    ):
-        super().__init__(
-            reduce="macro" if average in ["weighted", "none", None] else average,
-            mdmc_reduce=mdmc_average,
-            threshold=threshold,
-            num_classes=num_classes,
-            is_multiclass=is_multiclass,
-            ignore_index=ignore_index,
-            compute_on_step=compute_on_step,
-            dist_sync_on_step=dist_sync_on_step,
-            process_group=process_group,
-            dist_sync_fn=dist_sync_fn,
-        )
+    reduce = "macro" if average in ["weighted", "none", None] else average
 
-        if zero_division not in [0, 1]:
-            raise ValueError("zero_division has to be either 0 or 1")
+    if zero_division not in [0, 1]:
+        raise ValueError("zero_division has to be either 0 or 1")
 
-        self.zero_division = zero_division
-        self.average = average
+    tp, fp, tn, fn = _stat_scores_update(
+        preds, target, reduce, mdmc_average, threshold, num_classes, is_multiclass, ignore_index
+    )
 
-    def compute(self) -> torch.Tensor:
-        """
-        Computes the recall score based on inputs passed in to ``update`` previously.
-
-        Return:
-            The of the returned tensor depends on the ``average`` parameter
-
-            - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
-            - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
-              of classes
-        """
-
-        return _recall_compute(self.tp, self.fp, self.tn, self.fn, self.average, self.mdmc_reduce, self.zero_division)
+    return _recall_compute(tp, fp, tn, fn, average, mdmc_average, zero_division)

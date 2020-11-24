@@ -20,10 +20,7 @@ from pytorch_lightning.metrics.functional.classification import (
     multiclass_precision_recall_curve,
     multiclass_roc,
     multiclass_auroc,
-    precision,
-    precision_recall,
     precision_recall_curve,
-    recall,
     roc,
     to_categorical,
     to_onehot,
@@ -43,3 +40,4 @@ from pytorch_lightning.metrics.functional.ssim import ssim
 from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matrix
 from pytorch_lightning.metrics.functional.f_beta import fbeta, f1
 from pytorch_lightning.metrics.functional.stat_scores import stat_scores
+from pytorch_lightning.metrics.functional.precision_recall import precision, recall
