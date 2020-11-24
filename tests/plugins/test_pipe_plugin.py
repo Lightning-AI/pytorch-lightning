@@ -17,6 +17,7 @@ from unittest import mock
 
 import pytest
 import torch
+import torch.distributed as torch_distrib
 from torch import nn
 
 from pytorch_lightning import LightningModule, Trainer
@@ -113,11 +114,11 @@ def test_pipe_plugin_ddp(tmpdir, args=None):
 
 
 def run_optimizer(ctx, model):
-    model.optimizer.step()
+    for opt in model.trainer.optimizers:
+        opt.step()
 
 
 class SequentialModelRPC(LightningModule):
-
     def __init__(self):
         super().__init__()
         self.layers = nn.Sequential(torch.nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2))
@@ -138,9 +139,8 @@ class SequentialModelRPC(LightningModule):
         opt = self.optimizers()
         output = self.layers(batch)
         loss = self.loss(output)
-        self.manual_backward(loss, opt)
-        self.foreach_worker(run_optimizer, include_self=True)
-        self.log("train_loss", loss, on_epoch=True, reduce_fx=torch.sum, prog_bar=True)
+        self.log("train_loss", loss, on_epoch=True, prog_bar=True)
+        return loss
 
     def validation_step(self, batch, batch_idx):
         output = self.layers(batch)
@@ -165,13 +165,15 @@ class SequentialModelRPC(LightningModule):
     def test_dataloader(self):
         return torch.utils.data.DataLoader(RandomDataset(32, 64))
 
+
 def cleanup(ctx, model):
     del model
+
 
 @pytest.mark.skipif(not HAS_FAIRSCALE, reason="test requires fairscale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
+# @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
 def test_pipe_plugin_ddp_rpc(tmpdir, args=None):
     model = SequentialModelRPC()
     trainer = Trainer(
@@ -182,7 +184,7 @@ def test_pipe_plugin_ddp_rpc(tmpdir, args=None):
         gpus=2,
         distributed_backend="ddp",
         plugins=[PipePlugin(balance=[2, 1], version=2)],
-        automatic_optimization=False,
+        automatic_optimization=True,
     )
     trainer.fit(model)
 

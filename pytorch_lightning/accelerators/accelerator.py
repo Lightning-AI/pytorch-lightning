@@ -13,17 +13,17 @@
 # limitations under the License.
 import os
 from enum import Enum
-from typing import Any, Optional, Union, List
+from typing import Any, List, Optional, Union
 
 import torch
+import torch.distributed as torch_distrib
 from torch.optim import Optimizer
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
-import torch.distributed as torch_distrib
-from pytorch_lightning import _logger as log
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
@@ -99,30 +99,37 @@ class Accelerator(object):
         return closure_loss
 
     def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure, *args, **kwargs):
-        model_ref = self.trainer.get_model()
-        is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-        using_native_amp = self.trainer.amp_backend == AMPType.NATIVE
+
         automatic_optimization = self.trainer.train_loop.automatic_optimization
+        using_native_amp = self.trainer.amp_backend == AMPType.NATIVE
 
-        # native amp + lbfgs is a no go right now
-        if using_native_amp and is_lbfgs:
-            raise MisconfigurationException(
-                'native PyTorch amp and lbfgs are not compatible.'
-                ' To request, please file a Github issue in PyTorch and tag @mcarilli')
+        if self.ddp_plugin.use_optimizer_step:
+            self.ddp_plugin.optimizer_step(optimizer, batch_idx, opt_idx, lambda_closure, *args, **kwargs)
+        else:
+            model_ref = self.trainer.get_model()
+            is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
+            using_native_amp = self.trainer.amp_backend == AMPType.NATIVE
+            automatic_optimization = self.trainer.train_loop.automatic_optimization
 
-        # model hook
-        model_ref.optimizer_step(
-            epoch=self.trainer.current_epoch,
-            batch_idx=batch_idx,
-            optimizer=optimizer,
-            optimizer_idx=opt_idx,
-            optimizer_closure=lambda_closure,
-            on_tpu=False,  # TPUAccelerator class sets this as True
-            using_native_amp=using_native_amp,
-            using_lbfgs=is_lbfgs,
-            *args,
-            **kwargs,
-        )
+            # native amp + lbfgs is a no go right now
+            if using_native_amp and is_lbfgs:
+                raise MisconfigurationException(
+                    'native PyTorch amp and lbfgs are not compatible.'
+                    ' To request, please file a Github issue in PyTorch and tag @mcarilli')
+
+            # model hook
+            model_ref.optimizer_step(
+                epoch=self.trainer.current_epoch,
+                batch_idx=batch_idx,
+                optimizer=optimizer,
+                optimizer_idx=opt_idx,
+                optimizer_closure=lambda_closure,
+                on_tpu=False,  # TPUAccelerator class sets this as True
+                using_native_amp=using_native_amp,
+                using_lbfgs=is_lbfgs,
+                *args,
+                **kwargs,
+            )
 
         # scale when native amp
         if automatic_optimization and using_native_amp:

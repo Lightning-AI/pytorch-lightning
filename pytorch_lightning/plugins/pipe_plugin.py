@@ -1,8 +1,9 @@
 import os
 import sys
+import weakref
 from distutils.version import LooseVersion
 from enum import Enum
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import torch
@@ -10,11 +11,14 @@ import torch.distributed as torch_distrib
 from torch import nn, optim
 from torch.nn.parallel import DistributedDataParallel
 
+from pytorch_lightning.utilities import AMPType
+
 try:
     IS_TORCH_AT_LEAST_1_6 = LooseVersion(torch.__version__) >= LooseVersion("1.6.0")
     if IS_TORCH_AT_LEAST_1_6:
         import fairscale.nn.model_parallel as mpu
         from fairscale.nn import Pipe, PipeRPCWrapper
+        from fairscale.nn.pipe import rpc as rpc_pipe
         from fairscale.nn.pipe.pipeline import PipelineStyle
         from torch.distributed import rpc
 
@@ -43,15 +47,109 @@ def get_worker_map():
     return {rank: f"worker{rank}" for rank in range(torch_distrib.get_world_size())}
 
 
-def register_optimizer(ctx, model):
-    # Set the optimizer as an attribute on the model so we can access it later
-    model.optimizer = optim.SGD(model.parameters(), **ctx)
-    # zero the parameter gradients
-    model.optimizer.zero_grad()
+def register_optimizers(ctx, model):
+    optimizers, lr_schedulers, optimizer_frequencies = model.trainer.init_optimizers(model)
+    model.trainer.optimizers = optimizers
+    model.trainer.lr_schedulers = lr_schedulers
+    model.trainer.optimizer_frequencies = optimizer_frequencies
+
+
+def do_nothing_optimizer_closure():
+    return
+
+
+def run_optimizer(ctx, model):
+    trainer = model.trainer
+    model_ref = trainer.get_model()
+    opt_idx = ctx["opt_idx"]
+    args = ctx["args"]
+    kwargs = ctx["kwargs"]
+    batch_idx = ctx["batch_idx"]
+    optimizer = trainer.optimizers[opt_idx]
+
+    is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
+    using_native_amp = trainer.amp_backend == AMPType.NATIVE
+    automatic_optimization = trainer.train_loop.automatic_optimization
+
+    # native amp + lbfgs is a no go right now
+    if using_native_amp and is_lbfgs:
+        raise MisconfigurationException(
+            'native PyTorch amp and lbfgs are not compatible.'
+            ' To request, please file a Github issue in PyTorch and tag @mcarilli')
+
+    # model hook
+    model_ref.optimizer_step(
+        epoch=trainer.current_epoch,
+        batch_idx=batch_idx,
+        optimizer=optimizer,
+        optimizer_idx=opt_idx,
+        optimizer_closure=do_nothing_optimizer_closure,
+        on_tpu=False,  # TPUAccelerator class sets this as True
+        using_native_amp=using_native_amp,
+        using_lbfgs=is_lbfgs,
+        *args,
+        **kwargs,
+    )
+
+
+def optimizer_step(ctx, model):
+    trainer = model.trainer
+    model_ref = trainer.get_model()
+    opt_idx = ctx["opt_idx"]
+    args = ctx["args"]
+    kwargs = ctx["kwargs"]
+    batch_idx = ctx["batch_idx"]
+    optimizer = trainer.optimizers[opt_idx]
+
+    is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
+    using_native_amp = trainer.amp_backend == AMPType.NATIVE
+    automatic_optimization = trainer.train_loop.automatic_optimization
+
+    # native amp + lbfgs is a no go right now
+    if using_native_amp and is_lbfgs:
+        raise MisconfigurationException(
+            'native PyTorch amp and lbfgs are not compatible.'
+            ' To request, please file a Github issue in PyTorch and tag @mcarilli')
+
+    optimizer_closure = getattr(trainer, "_optimizer_closure", do_nothing_optimizer_closure)
+
+    if optimizer_closure != do_nothing_optimizer_closure:
+        with trainer.model.no_sync():
+            # model hook
+            model_ref.optimizer_step(
+                epoch=trainer.current_epoch,
+                batch_idx=batch_idx,
+                optimizer=optimizer,
+                optimizer_idx=opt_idx,
+                optimizer_closure=optimizer_closure,
+                on_tpu=False,  # TPUAccelerator class sets this as True
+                using_native_amp=using_native_amp,
+                using_lbfgs=is_lbfgs,
+                *args,
+                **kwargs,
+            )
+
+    else:
+        # model hook
+        model_ref.optimizer_step(
+            epoch=trainer.current_epoch,
+            batch_idx=batch_idx,
+            optimizer=optimizer,
+            optimizer_idx=opt_idx,
+            optimizer_closure=optimizer_closure,
+            on_tpu=False,  # TPUAccelerator class sets this as True
+            using_native_amp=using_native_amp,
+            using_lbfgs=is_lbfgs,
+            *args,
+            **kwargs,
+        )
+
+    # scale when native amp
+    if automatic_optimization and using_native_amp:
+        trainer.scaler.update()
 
 
 class LightningPipeModule(nn.Module):
-
     def __init__(self, module: nn.Sequential, balance: List[int],
                  microbatches: int = 8, checkpoint='never', version: int = 1):
         super().__init__()
@@ -73,7 +171,7 @@ class LightningPipeModule(nn.Module):
             style=PipelineStyle.MultiProcess,
             input_device=device,
             worker_map=get_worker_map(),
-            checkpoint=self.checkpoint
+            checkpoint=self.checkpoint,
         )
 
     def forward(self, *args, **kwargs):
@@ -89,36 +187,32 @@ class PipePlugin(DDPPlugin):
         self.microbatches = microbatches
         self.checkpoint = checkpoint
         self.version = version
-        self._use_barrier_and_broadcast = version == 1
 
     @property
     def use_barrier_and_broadcast(self):
-        return self._use_barrier_and_broadcast
+        return self.version == 1
+
+    @property
+    def use_optimizer_step(self):
+        return not (self.version == 1)
 
     def _find_pipe_module(self, model):
-        pipe_module = None
-        found_module = False
-        for m in model.modules():
-            if type(m) is LightningPipeModule:
-                pipe_module = m
-                if found_module:
-                    raise MisconfigurationException('Currently DDP Pipe only supports one PipeLightningModule')
-                found_module = True
-
         # try to wrap for the user
-        if not found_module and hasattr(model, "layers") and isinstance(model.layers, nn.Sequential):
+        if hasattr(model, "layers") and isinstance(model.layers, nn.Sequential):
             model.layers = LightningPipeModule(
                 model.layers,
                 balance=self.balance,
                 microbatches=self.microbatches,
                 checkpoint=self.checkpoint,
-                version=self.version
+                version=self.version,
             )
             model.final_stage = model.layers.module.final_stage
             if self.version == 1:
                 model.back_helper = model.layers.module.back_helper
             else:
                 model.foreach_worker = model.layers.module.foreach_worker
+                model.layers.module.model.trainer = model.trainer
+                model.layers.module.model.configure_optimizers = model.configure_optimizers
             pipe_module = model
             found_module = True
 
@@ -143,25 +237,41 @@ class PipePlugin(DDPPlugin):
             world_size=world_size,
             is_slurm_managing_tasks=is_slurm_managing_tasks
         )
-
-        os.environ["MASTER_PORT"] = "15000" #get_random_port()  # TODO change...
+        os.environ["MASTER_PORT"] = "15000"     # get_random_port()
         rpc.init_rpc(f"worker{global_rank}", rank=global_rank, world_size=world_size)
         mpu.initialize_model_parallel(1, world_size)
+
+        self.trainer = trainer
+        model = trainer.get_model()
 
         if self.version == 2:
             if global_rank != 0:
                 # For RPC, all ranks other than 0 just need to call rpc.shutdown()
+                torch_distrib.barrier()
+                rpc_pipe.PipeModel.trainer = model.trainer
+                rpc_pipe.PipeModel.configure_optimizers = model.configure_optimizers
                 torch.distributed.rpc.shutdown()
                 return
 
         # Create pipe_module
-        model_ref = trainer.get_model()
-        self._find_pipe_module(model_ref)
-
-        if self.version == 2:
-            model_ref.foreach_worker(register_optimizer, {"lr": 0.001}, include_self=True)
+        model = trainer.get_model()
+        self._find_pipe_module(model)
+        torch_distrib.barrier()
+        model.foreach_worker(register_optimizers, include_self=True)
 
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
+
+        model.trainer.init_optimizers(model)
         return DDPPlugin(process_group=mpu.get_data_parallel_group()).configure_ddp(model, device_ids)
+
+    def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure, *args, **kwargs):
+        # Create pipe_module
+        automatic_optimization = self.trainer.train_loop.automatic_optimization
+        model = self.trainer.get_model()
+        if not automatic_optimization:
+            # model.foreach_worker(run_optimizer, include_self=True)
+            model.foreach_worker(run_optimizer, {"batch_idx":batch_idx, "opt_idx": opt_idx, "args": args, "kwargs":kwargs}, include_self=False)
+        else:
+            model.foreach_worker(optimizer_step, {"batch_idx":batch_idx, "opt_idx": opt_idx, "args": args, "kwargs":kwargs}, include_self=True)
