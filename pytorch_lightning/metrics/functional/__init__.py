@@ -25,8 +25,6 @@ from pytorch_lightning.metrics.functional.classification import (
     precision_recall_curve,
     recall,
     roc,
-    stat_scores,
-    stat_scores_multiple_classes,
     to_categorical,
     to_onehot,
     iou,
@@ -44,3 +42,4 @@ from pytorch_lightning.metrics.functional.psnr import psnr
 from pytorch_lightning.metrics.functional.ssim import ssim
 from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matrix
 from pytorch_lightning.metrics.functional.f_beta import fbeta, f1
+from pytorch_lightning.metrics.functional.stat_scores import stat_scores

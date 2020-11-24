@@ -19,7 +19,8 @@ from pytorch_lightning.metrics.classification import (
     Recall,
     FBeta,
     F1,
-    ConfusionMatrix
+    ConfusionMatrix,
+    StatScores
 )
 
 from pytorch_lightning.metrics.regression import (

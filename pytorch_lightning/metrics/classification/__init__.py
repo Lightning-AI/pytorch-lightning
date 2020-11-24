@@ -15,3 +15,4 @@ from pytorch_lightning.metrics.classification.accuracy import Accuracy
 from pytorch_lightning.metrics.classification.precision_recall import Precision, Recall
 from pytorch_lightning.metrics.classification.f_beta import FBeta, F1
 from pytorch_lightning.metrics.classification.confusion_matrix import ConfusionMatrix
+from pytorch_lightning.metrics.classification.stat_scores import StatScores

@@ -257,7 +257,56 @@ binary tensors. Or it could be the other way around, you want to treat binary/mu
 inputs as 2-class (multi-dimensional) multi-class inputs.
 
 For these cases, the metrics where this distinction would make a difference, expose the
-``is_multiclass`` argument.
+``is_multiclass`` argument. Let's see how this is used with the 
+:class:`~pytorch_lightning.metrics.classification.StatScores` metric.
+
+.. testcode::
+   :skipif: True
+
+   from pytorch_lightning.metrics import StatScores
+
+   # These inputs are supposed to be binary, but appear as multi-class
+   mc_binary_preds  = torch.tensor([0,1,0])
+   mc_binary_target = torch.tensor([1,1,0])
+
+First, let's check that what happens usually - without setting ``is_multiclass`` flag.
+
+.. testcode::
+   :skipif: True
+
+    # Treating inputs as they appear (multi-class)
+    stat_scores_mc = StatScores(average='none', num_classes=2)
+    stat_scores_mc(mc_binary_preds, mc_binary_target)
+
+Out:
+
+.. testoutput::
+   :skipif: True
+
+   torch.tensor([[1, 1, 1, 0, 1]],
+                [[1, 0, 1, 1, 2]], dtype=torch.int32)
+
+As expected, the metric interpreted the inputs as 2 class multi-class inputs (note that if
+change ``num_classes`` above to anything but 2 we would get an error). Now let's see what
+happens when we set ``is_multiclass=False``:
+
+.. testcode::
+   :skipif: True
+
+    # Treating inputs as binary
+    stat_scores_binary = StatScores(average='none', num_classes=1, 
+                                    is_multiclass=False)
+    stat_scores_binary(mc_binary_preds, mc_binary_target)
+
+Out:
+
+.. testoutput::
+   :skipif: True
+
+   torch.tensor([[1, 0, 1, 1, 2]], dtype=torch.int32)
+
+Now the metric correctly interpreted the inputs as binary, and thus returned result
+only for one class.
 
 Class Metrics (Classification)
 ------------------------------
@@ -297,6 +346,13 @@ ConfusionMatrix
 
 .. autoclass:: pytorch_lightning.metrics.classification.ConfusionMatrix
     :noindex:
+
+StatScores
+~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.StatScores
+    :noindex:
+
 
 Functional Metrics (Classification)
 -----------------------------------
@@ -416,14 +472,7 @@ roc [func]
 stat_scores [func]
 ~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.stat_scores
-    :noindex:
-
-
-stat_scores_multiple_classes [func]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.metrics.functional.classification.stat_scores_multiple_classes
+.. autofunction:: pytorch_lightning.metrics.functional.stat_scores
     :noindex:
 
 
