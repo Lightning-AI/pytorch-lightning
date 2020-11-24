@@ -57,6 +57,7 @@ class LightningPipeModule(nn.Module):
     def _init_pipe(self):
         device = torch.device("cuda", torch_distrib.get_rank())
         if self._pipe_version == 1:
+            from fairscale.nn import Pipe
             self.module = Pipe(
                 module=self.module,
                 balance=self.balance,
