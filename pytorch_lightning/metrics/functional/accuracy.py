@@ -45,7 +45,7 @@ def _accuracy_update(
 
 
 def _accuracy_compute(correct: torch.Tensor, total: torch.Tensor) -> torch.Tensor:
-    return correct / total
+    return correct.float() / total
 
 
 def accuracy(
