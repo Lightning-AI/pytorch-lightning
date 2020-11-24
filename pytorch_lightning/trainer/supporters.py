@@ -335,7 +335,7 @@ class CombinedLoader(object):
         """
         self.loaders = loaders
 
-        datasets = apply_to_collection(self.loaders, Iterable, self.extract_dataset,
+        datasets = apply_to_collection(self.loaders, Iterable, getattr, 'dataset', None,
                                        wrong_dtype=(Sequence, Mapping))
         # could be multiple datasets, but use self.dataset to follow the name convention in DataLoader
         self.dataset = CombinedDataset(datasets)
@@ -348,23 +348,10 @@ class CombinedLoader(object):
         if self.mode == 'max_size_cycle':
             self._wrap_loaders_max_size_cycle()
 
-    @staticmethod
-    def extract_dataset(loader: Any) -> Any:
-        """
-        Extract the variable `dataset` from loader. `dataset` can be torch.utils.data.Dataset or Iterable.
-
-        Args:
-            loader: a loader which can be all kinds of iterable object
-        Returns:
-            Return `dataset` if it exists. Otherwise, return None.
-
-        """
-        return getattr(loader, 'dataset', None)
-
     @property
     def sampler(self) -> Union[Iterable, Sequence, Mapping]:
         """Return a collections of samplers extracting from loaders."""
-        return apply_to_collection(self.loaders, Iterable, getattr, "sampler", None,
+        return apply_to_collection(self.loaders, Iterable, getattr, 'sampler', None,
                                    wrong_dtype=(Sequence, Mapping))
 
     def _wrap_loaders_max_size_cycle(self) -> Any:
