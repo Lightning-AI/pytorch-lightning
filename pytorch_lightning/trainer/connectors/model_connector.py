@@ -21,8 +21,6 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
-from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel
-
 
 class ModelConnector:
     def __init__(self, trainer):
@@ -32,8 +30,6 @@ class ModelConnector:
         if isinstance(model, LightningDataParallel):
             ref_model = model.module
         elif isinstance(model, LightningDistributedDataParallel):
-            ref_model = model.module
-        elif isinstance(model, LightningShardedDataParallel):
             ref_model = model.module
         else:
             ref_model = model
