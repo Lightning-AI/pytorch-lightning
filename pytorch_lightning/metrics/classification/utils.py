@@ -76,9 +76,7 @@ def _check_classification_inputs(
 
     if preds_float:
         if preds.min() < 0 or preds.max() > 1:
-            raise ValueError(
-                "preds should be probabilities, but values were detected outside of [0,1] range"
-            )
+            raise ValueError("preds should be probabilities, but values were detected outside of [0,1] range")
 
     if threshold > 1 or threshold < 0:
         raise ValueError("Threshold should be a probability in [0,1]")
@@ -92,7 +90,10 @@ def _check_classification_inputs(
     # Check that shape/types fall into one of the cases
     if preds.ndim == target.ndim:
         if preds.shape != target.shape:
-            raise ValueError("if preds and target have the same number of dimensions, they should have the same shape")
+            raise ValueError(
+                "preds and targets should have the same shape",
+                f" got preds shape = {preds.shape} and target shape = {target.shape}.",
+            )
         if preds_float and target.max() > 1:
             raise ValueError("if preds and target are of shape (N, ...) and preds are floats, target should be binary")
 
