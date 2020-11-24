@@ -20,6 +20,7 @@ METRIC_EPS = 1e-6
 
 
 def dim_zero_cat(x):
+    x = x if isinstance(x, (list, tuple)) else [x]
     return torch.cat(x, dim=0)
 
 
@@ -36,8 +37,8 @@ def _flatten(x):
 
 
 def to_onehot(
-        tensor: torch.Tensor,
-        num_classes: int,
+    tensor: torch.Tensor,
+    num_classes: int,
 ) -> torch.Tensor:
     """
     Converts a dense label tensor to one-hot format
@@ -57,24 +58,46 @@ def to_onehot(
                 [0, 0, 0, 1]])
     """
     dtype, device, shape = tensor.dtype, tensor.device, tensor.shape
-    tensor_onehot = torch.zeros(shape[0], num_classes, *shape[1:],
-                                dtype=dtype, device=device)
+    tensor_onehot = torch.zeros(shape[0], num_classes, *shape[1:], dtype=dtype, device=device)
     index = tensor.long().unsqueeze(1).expand_as(tensor_onehot)
     return tensor_onehot.scatter_(1, index, 1.0)
+
+
+def select_topk(tensor: torch.Tensor, topk: int = 1, dim: int = 1) -> torch.Tensor:
+    """
+    Convert a probability tensor to binary by selecting top-k highest entries.
+
+    Args:
+        tensor: dense tensor of shape ``[..., C, ...]``, where ``C`` is in the
+            position defined by the ``dim`` argument
+        topk: number of highest entries to turn into 1s
+        dim: dimension on which to compare entries
+
+    Output:
+        A binary tensor of the same shape as the input tensor of type torch.int32
+
+    Example:
+        >>> x = torch.tensor([[1.1, 2.0, 3.0], [2.0, 1.0, 0.5]])
+        >>> select_topk(x, topk=2)
+        tensor([[0, 1, 1],
+                [1, 1, 0]], dtype=torch.int32)
+    """
+    zeros = torch.zeros_like(tensor, device=tensor.device)
+    topk_tensor = zeros.scatter(1, tensor.topk(k=topk, dim=dim).indices, 1.0)
+
+    return topk_tensor.int()
 
 
 def _check_same_shape(pred: torch.Tensor, target: torch.Tensor):
     """ Check that predictions and target have the same shape, else raise error """
     if pred.shape != target.shape:
-        raise RuntimeError('Predictions and targets are expected to have the same shape')
+        raise RuntimeError("Predictions and targets are expected to have the same shape")
 
 
 def _input_format_classification(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        threshold: float = 0.5
+    preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5
 ) -> Tuple[torch.Tensor, torch.Tensor]:
-    """ Convert preds and target tensors into label tensors
+    """Convert preds and target tensors into label tensors
 
     Args:
         preds: either tensor with labels, tensor with probabilities/logits or
@@ -87,9 +110,7 @@ def _input_format_classification(
         target: tensor with labels
     """
     if not (len(preds.shape) == len(target.shape) or len(preds.shape) == len(target.shape) + 1):
-        raise ValueError(
-            "preds and target must have same number of dimensions, or one additional dimension for preds"
-        )
+        raise ValueError("preds and target must have same number of dimensions, or one additional dimension for preds")
 
     if len(preds.shape) == len(target.shape) + 1:
         # multi class probabilites
@@ -102,13 +123,9 @@ def _input_format_classification(
 
 
 def _input_format_classification_one_hot(
-        num_classes: int,
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        threshold: float = 0.5,
-        multilabel: bool = False
+    num_classes: int, preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5, multilabel: bool = False
 ) -> Tuple[torch.Tensor, torch.Tensor]:
-    """ Convert preds and target tensors into one hot spare label tensors
+    """Convert preds and target tensors into one hot spare label tensors
 
     Args:
         num_classes: number of classes
@@ -123,9 +140,7 @@ def _input_format_classification_one_hot(
         target: one hot tensors of shape [num_classes, -1] with true labels
     """
     if not (len(preds.shape) == len(target.shape) or len(preds.shape) == len(target.shape) + 1):
-        raise ValueError(
-            "preds and target must have same number of dimensions, or one additional dimension for preds"
-        )
+        raise ValueError("preds and target must have same number of dimensions, or one additional dimension for preds")
 
     if len(preds.shape) == len(target.shape) + 1:
         # multi class probabilites
