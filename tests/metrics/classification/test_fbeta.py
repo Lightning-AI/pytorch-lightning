@@ -34,7 +34,7 @@ def _sk_fbeta(preds, target, beta, num_classes, average, is_multiclass, zero_div
     labels = list(range(num_classes))
     try:
         labels.remove(ignore_index)
-    except:
+    except ValueError:
         pass
 
     sk_preds, sk_target, _ = _input_format_classification(
@@ -72,6 +72,7 @@ def _sk_fbeta_mdmc(preds, target, beta, num_classes, average, is_multiclass, zer
 
         return np.concatenate(scores).mean()
 
+
 @pytest.mark.parametrize("metric, fn_metric", [(FBeta, fbeta_score)])
 def test_wrong_params(metric, fn_metric):
     with pytest.raises(ValueError):
@@ -79,6 +80,7 @@ def test_wrong_params(metric, fn_metric):
 
     with pytest.raises(ValueError):
         fn_metric(_binary_inputs.preds[0], _binary_inputs.target[0], zero_division=None)
+
 
 # A single test of F1 and dice for coverage
 def test_f1():

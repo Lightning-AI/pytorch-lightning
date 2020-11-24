@@ -34,7 +34,7 @@ def _iou(preds, target, num_classes, average, is_multiclass, ignore_index, mdmc_
     labels = list(range(num_classes))
     try:
         labels.remove(ignore_index)
-    except:
+    except ValueError:
         pass
 
     sk_preds, sk_target, _ = _input_format_classification(
@@ -71,6 +71,7 @@ def _iou_mdmc(preds, target, num_classes, average, is_multiclass, ignore_index, 
             scores.append(np.expand_dims(scores_i, 0))
 
         return np.concatenate(scores).mean()
+
 
 @pytest.mark.parametrize("metric, fn_metric", [(IoU, iou)])
 def test_wrong_params(metric, fn_metric):

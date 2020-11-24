@@ -36,7 +36,7 @@ def _sk_prec_recall(
     labels = list(range(num_classes))
     try:
         labels.remove(ignore_index)
-    except:
+    except ValueError:
         pass
 
     sk_preds, sk_target, _ = _input_format_classification(

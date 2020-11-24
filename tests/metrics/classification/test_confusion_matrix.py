@@ -37,6 +37,7 @@ def _sk_confmat(preds, target, normalize, num_classes):
 
     return sk_confusion_matrix(y_true=sk_target, y_pred=sk_preds, normalize=normalize)
 
+
 @pytest.mark.parametrize("normalize", ["true", "pred", "all", None])
 @pytest.mark.parametrize(
     "preds, target, num_classes",
