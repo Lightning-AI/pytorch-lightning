@@ -11,7 +11,7 @@ from torch.multiprocessing import Pool, set_start_method
 
 from pytorch_lightning.metrics import Metric
 
-NUM_PROCESSES = 1
+NUM_PROCESSES = 2
 NUM_BATCHES = 10
 BATCH_SIZE = 16
 NUM_CLASSES = 5
