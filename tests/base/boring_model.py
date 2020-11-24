@@ -83,13 +83,7 @@ class BoringModel(LightningModule):
         """
         super().__init__()
         self.layer = torch.nn.Linear(in_features, out_features)
-        self.batch_size = batch_size
-        self.in_features = in_features
-        self.learning_rate = learning_rate
-        self.optimizer_name = optimizer_name
-        self.out_features = out_features
-        self.save_hyperparameters('batch_size', 'in_features', 'out_features',
-                                  'optimizer_name', 'learning_rate')
+        self.save_hyperparameters()
 
     def forward(self, x):
         return self.layer(x)
@@ -128,16 +122,16 @@ class BoringModel(LightningModule):
         torch.stack([x["y"] for x in outputs]).mean()
 
     def configure_optimizers(self):
-        optimizer_class = getattr(torch.optim, self.optimizer_name)
-        optimizer = optimizer_class(self.layer.parameters(), lr=self.learning_rate)
+        optimizer_class = getattr(torch.optim, self.hparams.optimizer_name)
+        optimizer = optimizer_class(self.layer.parameters(), lr=self.hparams.learning_rate)
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
         return [optimizer], [lr_scheduler]
 
     def train_dataloader(self):
-        return torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)
+        return torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=self.hparams.batch_size)
 
     def val_dataloader(self):
-        return torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)
+        return torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=self.hparams.batch_size)
 
     def test_dataloader(self):
-        return torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)
+        return torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=self.hparams.batch_size)
