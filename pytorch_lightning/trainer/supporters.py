@@ -361,6 +361,12 @@ class CombinedLoader(object):
         """
         return getattr(loader, 'dataset', None)
 
+    @property
+    def sampler(self) -> Union[Iterable, Sequence, Mapping]:
+        """Return a collections of samplers extracting from loaders."""
+        return apply_to_collection(self.loaders, Iterable, getattr, "sampler", None,
+                                   wrong_dtype=(Sequence, Mapping))
+
     def _wrap_loaders_max_size_cycle(self) -> Any:
         """
         Wraps all loaders to make sure they are cycled until the longest loader is exhausted
