@@ -136,11 +136,25 @@ class SequentialModelRPC(LightningModule):
         return out
 
     def training_step(self, batch, batch_idx):
-        opt = self.optimizers()
-        output = self.layers(batch)
-        loss = self.loss(output)
-        self.log("train_loss", loss, on_epoch=True, prog_bar=True)
-        return loss
+        if batch_idx % 2 == 0:
+            opt = self.optimizers()
+            output = self.layers(batch)
+            loss = self.loss(output)
+            self.log("train_loss", loss, on_epoch=True, prog_bar=True)
+            self.manual_backward(loss, opt)
+            assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() > 0
+            self.manual_optimizer_step(opt)
+        else:
+            opt = self.optimizers()
+
+            def optimizer_closure():
+                output = self.layers(batch)
+                loss = self.loss(output)
+                self.log("train_loss", loss, on_epoch=True, prog_bar=True)
+                self.manual_backward(loss, opt)
+                assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() > 0
+            self.manual_optimizer_step(opt, optimizer_closure=optimizer_closure)
+        assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() == 0
 
     def validation_step(self, batch, batch_idx):
         output = self.layers(batch)
@@ -173,9 +187,82 @@ def cleanup(ctx, model):
 @pytest.mark.skipif(not HAS_FAIRSCALE, reason="test requires fairscale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-# @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
-def test_pipe_plugin_ddp_rpc(tmpdir, args=None):
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
+def test_pipe_plugin_ddp_rpc_manual(tmpdir, args=None):
     model = SequentialModelRPC()
+    trainer = Trainer(
+        max_epochs=2,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        gpus=2,
+        distributed_backend="ddp",
+        plugins=[PipePlugin(balance=[2, 1], version=2)],
+        automatic_optimization=False,
+    )
+    trainer.fit(model)
+
+    assert len(trainer.dev_debugger.pbar_added_metrics) > 0
+
+    model.foreach_worker(cleanup, include_self=True)
+
+    del model
+
+
+class SequentialModelRPCAutomatic(LightningModule):
+    def __init__(self):
+        super().__init__()
+        self.layers = nn.Sequential(torch.nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2))
+
+    def forward(self, x):
+        return self.layer(x)
+
+    def loss(self, prediction):
+        # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
+        return torch.nn.functional.mse_loss(prediction, torch.ones_like(prediction))
+
+    def step(self, x):
+        x = self(x)
+        out = torch.nn.functional.mse_loss(x, torch.ones_like(x))
+        return out
+
+    def training_step(self, batch, batch_idx):
+        opt = self.optimizers()
+        output = self.layers(batch)
+        loss = self.loss(output)
+        self.log("train_loss", loss, on_epoch=True, prog_bar=True)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        output = self.layers(batch)
+        loss = self.loss(output)
+        return loss
+
+    def test_step(self, batch, batch_idx):
+        output = self.layer(batch)
+        return self.loss(batch, output)
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.SGD(self.layers.parameters(), lr=0.1)
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+        return [optimizer], [lr_scheduler]
+
+    def train_dataloader(self):
+        return torch.utils.data.DataLoader(RandomDataset(32, 64))
+
+    def val_dataloader(self):
+        return torch.utils.data.DataLoader(RandomDataset(32, 64))
+
+    def test_dataloader(self):
+        return torch.utils.data.DataLoader(RandomDataset(32, 64))
+
+
+@pytest.mark.skipif(not HAS_FAIRSCALE, reason="test requires fairscale to be installed")
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
+def test_pipe_plugin_ddp_rpc_automatic(tmpdir, args=None):
+    model = SequentialModelRPCAutomatic()
     trainer = Trainer(
         max_epochs=2,
         limit_train_batches=2,
