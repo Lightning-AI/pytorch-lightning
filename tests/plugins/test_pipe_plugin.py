@@ -92,6 +92,7 @@ class SequentialModel(LightningModule):
 @pytest.mark.skipif(not HAS_FAIRSCALE, reason="test requires fairscale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
 @DDPLauncher.run("--distributed_backend ddp --gpus 2")
 def test_pipe_plugin_ddp(tmpdir, args=None):
 
@@ -164,11 +165,14 @@ class SequentialModelRPC(LightningModule):
     def test_dataloader(self):
         return torch.utils.data.DataLoader(RandomDataset(32, 64))
 
+def cleanup(ctx, model):
+    del model
 
 @pytest.mark.skipif(not HAS_FAIRSCALE, reason="test requires fairscale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_pipe_plugin_ddp_rpc(tmpdir):
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
+def test_pipe_plugin_ddp_rpc(tmpdir, args=None):
     model = SequentialModelRPC()
     trainer = Trainer(
         max_epochs=2,
@@ -183,3 +187,7 @@ def test_pipe_plugin_ddp_rpc(tmpdir):
     trainer.fit(model)
 
     assert len(trainer.dev_debugger.pbar_added_metrics) > 0
+
+    model.foreach_worker(cleanup, include_self=True)
+
+    del model

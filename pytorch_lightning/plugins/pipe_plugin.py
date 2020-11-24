@@ -6,7 +6,7 @@ from typing import List, Optional
 import numpy as np
 import torch
 import torch.distributed as torch_distrib
-from torch import nn
+from torch import nn, optim
 from torch.nn.parallel import DistributedDataParallel
 
 try:
@@ -28,7 +28,7 @@ from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 # generate a list of random seeds for each test
-RANDOM_PORTS = list(np.random.randint(1200, 19000, 1))
+RANDOM_PORTS = list(np.random.randint(15000, 16000, 1))
 
 
 def get_random_port():
@@ -39,6 +39,13 @@ def get_random_port():
 def get_worker_map():
     # TODO, is this correct with multinodes?
     return {rank: f"worker{rank}" for rank in range(torch_distrib.get_world_size())}
+
+
+def register_optimizer(ctx, model):
+    # Set the optimizer as an attribute on the model so we can access it later
+    model.optimizer = optim.SGD(model.parameters(), **ctx)
+    # zero the parameter gradients
+    model.optimizer.zero_grad()
 
 
 class LightningPipeModule(nn.Module):
@@ -76,14 +83,6 @@ class LightningPipeModule(nn.Module):
                 input_device=device,
                 worker_map=get_worker_map(),
                 checkpoint=self.checkpoint)
-
-    @property
-    def final_stage(self):
-        return self.module.final_stage
-
-    @property
-    def back_helper(self):
-        return self.module.back_helper
 
     def forward(self, *args, **kwargs):
         x = self.module(*args, **kwargs)
@@ -123,8 +122,11 @@ class PipePlugin(DDPPlugin):
                 checkpoint=self.checkpoint,
                 version=self.version
             )
-            model.final_stage = model.layers.final_stage
-            model.back_helper = model.layers.back_helper
+            model.final_stage = model.layers.module.final_stage
+            if self.version == 1:
+                model.back_helper = model.layers.module.back_helper
+            else:
+                model.foreach_worker = model.layers.module.foreach_worker
             pipe_module = model
             found_module = True
 
@@ -150,20 +152,22 @@ class PipePlugin(DDPPlugin):
             is_slurm_managing_tasks=is_slurm_managing_tasks
         )
 
-        os.environ["MASTER_PORT"] = get_random_port()  # TODO change...
+        os.environ["MASTER_PORT"] = "15000" #get_random_port()  # TODO change...
         rpc.init_rpc(f"worker{global_rank}", rank=global_rank, world_size=world_size)
         mpu.initialize_model_parallel(1, world_size)
 
-        # Create pipe_module
-        model_ref = trainer.get_model()
-        self.pipe_module = self._find_pipe_module(model_ref)
-
-        if self.pipe_module._pipe_version == 2:
+        if self.version == 2:
             if global_rank == 1:
                 # For RPC, all ranks other than 0 just need to call rpc.shutdown()
                 torch.distributed.rpc.shutdown()
                 return
-        self.pipe_module.foreach_worker(model_ref.configure_optimizers, include_self=True)
+
+        # Create pipe_module
+        model_ref = trainer.get_model()
+        self._find_pipe_module(model_ref)
+
+        if self.version == 2:
+            model_ref.foreach_worker(register_optimizer, {"lr": 0.001}, include_self=True)
 
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
