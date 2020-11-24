@@ -312,7 +312,6 @@ Class Metrics (Classification)
     :template: classtemplate.rst
 
     Accuracy
-    TopKAccuracy
     HammingLoss
     StatScores
     Precision

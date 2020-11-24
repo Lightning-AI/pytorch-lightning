@@ -22,25 +22,35 @@ from pytorch_lightning.metrics.classification.utils import _input_format_classif
 
 
 def _accuracy_update(
-    preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5, logits: bool = True
-) -> Tuple[torch.Tensor, int]:
+    preds: torch.Tensor, target: torch.Tensor, threshold: float, top_k: int, mdmc_accuracy: str
+) -> Tuple[torch.Tensor, torch.Tensor]:
 
-    preds, target, _ = _input_format_classification(preds, target, threshold=threshold)
+    preds, target, mode = _input_format_classification(preds, target, threshold=threshold, top_k=top_k)
 
-    extra_dims = list(range(1, len(preds.shape)))
-    sample_correct = (preds == target).sum(dim=extra_dims)
+    if mode in ["binary", "multi-label"]:
+        correct = (preds == target).all(dim=1).sum()
+        total = target.shape[0]
+    elif mdmc_accuracy == "global":
+        correct = (preds * target).sum()
+        total = target.sum()
+    elif mdmc_accuracy == "subset":
+        extra_dims = list(range(1, len(preds.shape)))
+        sample_correct = (preds * target).sum(dim=extra_dims)
+        sample_total = target.sum(dim=extra_dims)
 
-    correct = (sample_correct == preds[0].numel()).sum()
-    total = preds.shape[0]
+        correct = (sample_correct == sample_total).sum()
+        total = target.shape[0]
 
-    return (correct, total)
-
-
-def _accuracy_compute(correct: torch.Tensor, total: Union[int, torch.Tensor]) -> torch.Tensor:
-    return correct.float() / total
+    return (torch.tensor(correct, device=preds.device), torch.tensor(total, device=preds.device))
 
 
-def accuracy(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5) -> torch.Tensor:
+def _accuracy_compute(correct: torch.Tensor, total: torch.Tensor) -> torch.Tensor:
+    return correct / total
+
+
+def accuracy(
+    preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5, top_k: int = 1, mdmc_accuracy: str = "subset"
+) -> torch.Tensor:
     """
     Computes the share of entirely correctly predicted samples.
 
@@ -50,11 +60,31 @@ def accuracy(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5) 
     ``N`` dimension. Consider using :class:`~pytorch_lightning.metrics.classification.HammingLoss`
     is this is not what you want.
 
+    For multi-class and multi-dimensional multi-class data with probability predictions, the
+    parameter ``top_k`` generalizes this metric to a Top-K accuracy metric: for each sample the
+    top-K highest probability items are considered to find the correct label.
+
     Accepts all input types listed in :ref:`metrics:Input types`.
 
     Args:
         preds: Predictions from model (probabilities, or labels)
-        target: Ground truth values
+        target: Ground truth values    
+        top_k:
+            Number of highest probability predictions considered to find the correct label, for
+            (multi-dimensional) multi-class inputs with probability predictions. Default 1
+
+            If your inputs are not (multi-dimensional) multi-class inputs with probability predictions,
+            an error will be raised if ``top_k`` is set to a value other than 1.
+        mdmc_accuracy:
+            Determines how should the extra dimension be handeled in case of multi-dimensional multi-class
+            inputs. Options are ``"global"`` or ``"subset"``.
+
+            If ``"global"``, then the inputs are treated as if the sample (``N``) and the extra dimension
+            were unrolled into a new sample dimension.
+
+            If ``"subset"``, than the equivalent of subset accuracy is performed for each sample on the
+            ``N`` dimension - that is, for the sample to count as correct, all labels on its extra dimension
+            must be predicted correctly (the ``top_k`` option still applies here).
         threshold:
             Threshold probability value for transforming probability predictions to binary
             (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
@@ -67,9 +97,13 @@ def accuracy(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5) 
         >>> accuracy(preds, target)
         tensor(0.5000)
 
+        >>> target = torch.tensor([0, 1, 2])
+        >>> preds = torch.tensor([[0.1, 0.9, 0], [0.3, 0.1, 0.6], [0.2, 0.5, 0.3]])
+        >>> accuracy(preds, target, top_k=2)
+        tensor(0.6667)
     """
 
-    correct, total = _accuracy_update(preds, target, threshold)
+    correct, total = _accuracy_update(preds, target, threshold, top_k, mdmc_accuracy)
     return _accuracy_compute(correct, total)
 
 
@@ -119,74 +153,3 @@ def hamming_loss(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0
 
     correct, total = _hamming_loss_update(preds, target, threshold)
     return _hamming_loss_compute(correct, total)
-
-
-################################
-# TopK Accuracy
-################################
-
-
-def _topk_accuracy_update(
-    preds: torch.Tensor, target: torch.Tensor, subset_accuracy: bool = False, k: int = 2
-) -> Tuple[torch.Tensor, int]:
-    preds, target, mode = _input_format_classification(preds, target, top_k=k)
-
-    if "multi-dim" not in mode or not subset_accuracy:
-        correct = (preds * target).sum()
-        total = int(preds.numel() / preds.shape[1])
-    else:
-        extra_dims = list(range(1, len(preds.shape)))
-        sample_correct = (preds * target).sum(dim=extra_dims)
-
-        correct = (sample_correct == preds[0, 0].numel()).sum()
-        total = preds.shape[0]
-
-    return correct, total
-
-
-def _topk_accuracy_compute(correct: torch.Tensor, total: Union[int, torch.Tensor]) -> torch.Tensor:
-    return correct.float() / total
-
-
-def topk_accuracy(preds: torch.Tensor, target: torch.Tensor, subset_accuracy: bool = False, k: int = 2) -> torch.Tensor:
-    """
-    Computes Top-k classification score for (multi-dimensional) multi-class data.
-
-    Top-k accuracy is the share of correctly predicted samples, where a sample is
-    considered correctly predicted if the ground truth label (class) is among the
-    ``k``  highest probability labels for the sample.
-
-    Accepts only multi-class and multi-dimensional multi-class inputs with predictions
-    as probabilities (as defined in :ref:`metrics:Input types`).
-
-    For multi-dimensional multi-class inputs a ``subset_accuracy`` flag is provided,
-    which determines how the reduction is applied.
-
-    Args:
-        k:
-            Number of highest probability predictions considered to find the correct label.
-            Default 2
-        subset_accuracy:
-            Determines how the metric is computed for multi-dimensional multi-class data:
-
-            - If ``False`` [default], then the the ``N`` dimension and all extra dimensions
-              (``...``) being unrolled into a new sample dimension, and the metric is computed
-              on these new unrolled inputs (aking to the ``global`` setting in some other
-              metrics, such as :class:`~pytorch_lightning.metrics.classification.Recall`).
-
-            - If ``True``, all class predictions across the extra dimension(s) must be correct
-              for each sample, for the sample to be counted as correct - this is the same as
-              the :class:`~pytorch_lightning.metrics.classification.Accuracy` metric in the case
-              when ``k=1``.
-
-    Example:
-
-        >>> from pytorch_lightning.metrics.functional import topk_accuracy
-        >>> target = torch.tensor([0, 1, 2])
-        >>> preds = torch.tensor([[-1, 0, -2], [0.5, -2, 5.0], [-1, 2, 1]]) # preds are logits
-        >>> topk_accuracy(preds, target)
-        tensor(0.6667)
-    """
-
-    correct, total = _topk_accuracy_update(preds, target, subset_accuracy, k)
-    return _topk_accuracy_compute(correct, total)

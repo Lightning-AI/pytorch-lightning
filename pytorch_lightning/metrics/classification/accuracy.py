@@ -17,9 +17,7 @@ import torch
 from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.metrics.functional.accuracy import (
     _accuracy_update,
-    _topk_accuracy_update,
     _hamming_loss_update,
-    _topk_accuracy_compute,
     _accuracy_compute,
     _hamming_loss_compute,
 )
@@ -35,9 +33,29 @@ class Accuracy(Metric):
     ``N`` dimension. Consider using :class:`~pytorch_lightning.metrics.classification.HammingLoss`
     is this is not what you want.
 
+    For multi-class and multi-dimensional multi-class data with probability predictions, the
+    parameter ``top_k`` generalizes this metric to a Top-K accuracy metric: for each sample the
+    top-K highest probability items are considered to find the correct label.
+
     Accepts all input types listed in :ref:`metrics:Input types`.
 
     Args:
+        top_k:
+            Number of highest probability predictions considered to find the correct label, for
+            (multi-dimensional) multi-class inputs with probability predictions. Default 1
+
+            If your inputs are not (multi-dimensional) multi-class inputs with probability predictions,
+            an error will be raised if ``top_k`` is set to a value other than 1.
+        mdmc_accuracy:
+            Determines how should the extra dimension be handeled in case of multi-dimensional multi-class
+            inputs. Options are ``"global"`` or ``"subset"``.
+
+            If ``"global"``, then the inputs are treated as if the sample (``N``) and the extra dimension
+            were unrolled into a new sample dimension.
+
+            If ``"subset"``, than the equivalent of subset accuracy is performed for each sample on the
+            ``N`` dimension - that is, for the sample to count as correct, all labels on its extra dimension
+            must be predicted correctly (the ``top_k`` option still applies here).
         threshold:
             Threshold probability value for transforming probability predictions to binary
             (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
@@ -61,10 +79,18 @@ class Accuracy(Metric):
         >>> accuracy(preds, target)
         tensor(0.5000)
 
+        >>> target = torch.tensor([0, 1, 2])
+        >>> preds = torch.tensor([[0.1, 0.9, 0], [0.3, 0.1, 0.6], [0.2, 0.5, 0.3]])
+        >>> accuracy = Accuracy(top_k=2)
+        >>> accuracy(preds, target)
+        tensor(0.6667)
+
     """
 
     def __init__(
         self,
+        top_k: int = 1,
+        mdmc_accuracy: str = "subset",
         threshold: float = 0.5,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
@@ -82,6 +108,8 @@ class Accuracy(Metric):
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
         self.threshold = threshold
+        self.top_k = top_k
+        self.mdmc_accuracy = mdmc_accuracy
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
@@ -93,7 +121,7 @@ class Accuracy(Metric):
             target: Ground truth values
         """
 
-        correct, total = _accuracy_update(preds, target, self.threshold)
+        correct, total = _accuracy_update(preds, target, self.threshold, self.top_k, self.mdmc_accuracy)
 
         self.correct += correct
         self.total += total
@@ -181,100 +209,3 @@ class HammingLoss(Metric):
         Computes hamming loss based on inputs passed in to ``update`` previously.
         """
         return _hamming_loss_compute(self.correct, self.total)
-
-
-class TopKAccuracy(Metric):
-    """
-    Computes Top-k classification score for (multi-dimensional) multi-class data.
-
-    Top-k accuracy is the share of correctly predicted samples, where a sample is
-    considered correctly predicted if the ground truth label (class) is among the
-    ``k``  highest probability labels for the sample.
-
-    Accepts only multi-class and multi-dimensional multi-class inputs with predictions
-    as probabilities (as defined in :ref:`metrics:Input types`).
-
-    For multi-dimensional multi-class inputs a ``subset_accuracy`` flag is provided,
-    which determines how the reduction is applied.
-
-    Args:
-        k:
-            Number of highest probability predictions considered to find the correct label.
-            Default 2
-        subset_accuracy:
-            Determines how the metric is computed for multi-dimensional multi-class data:
-
-            - If ``False`` [default], then the the ``N`` dimension and all extra dimensions
-              (``...``) being unrolled into a new sample dimension, and the metric is computed
-              on these new unrolled inputs (aking to the ``global`` setting in some other
-              metrics, such as :class:`~pytorch_lightning.metrics.classification.Recall`).
-
-            - If ``True``, all class predictions across the extra dimension(s) must be correct
-              for each sample, for the sample to be counted as correct - this is the same as
-              the :class:`~pytorch_lightning.metrics.classification.Accuracy` metric in the case
-              when ``k=1``.
-
-        compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False. default: True
-        dist_sync_on_step:
-            Synchronize metric state across processes at each ``forward()``
-            before returning the value at the step. default: False
-        process_group:
-            Specify the process group on which synchronization is called. default: None (which selects the entire world)
-        dist_sync_fn:
-            Callback that performs the allgather operation on the metric state. When `None`, DDP
-            will be used to perform the allgather. default: None
-
-    Example:
-
-        >>> from pytorch_lightning.metrics import TopKAccuracy
-        >>> target = torch.tensor([0, 1, 2])
-        >>> preds = torch.tensor([[-1, 0, -2], [0.5, -2, 5.0], [-1, 2, 1]]) # preds are logits
-        >>> accuracy = TopKAccuracy()
-        >>> accuracy(preds, target)
-        tensor(0.6667)
-    """
-
-    def __init__(
-        self,
-        k: int = 2,
-        subset_accuracy=False,
-        compute_on_step: bool = True,
-        dist_sync_on_step: bool = False,
-        process_group: Optional[Any] = None,
-        dist_sync_fn: Callable = None,
-    ):
-        super().__init__(
-            compute_on_step=compute_on_step,
-            dist_sync_on_step=dist_sync_on_step,
-            process_group=process_group,
-            dist_sync_fn=dist_sync_fn,
-        )
-
-        self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
-        self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
-
-        self.k = k
-        self.subset_accuracy = subset_accuracy
-
-    def update(self, preds: torch.Tensor, target: torch.Tensor):
-        """
-        Update state with predictions and targets.
-
-        Accepts only multi-class and multi-dimensional multi-class inputs (as defined
-        in :ref:`metrics:Input types`).
-
-        Args:
-            preds: Predictions from model (probabilities)
-            target: Ground truth values
-        """
-        correct, total = _topk_accuracy_update(preds, target, self.subset_accuracy, self.k)
-
-        self.correct += correct
-        self.total += total
-
-    def compute(self) -> torch.Tensor:
-        """
-        Computes top k accuracy  based on inputs passed in to ``update`` previously.
-        """
-        return _topk_accuracy_compute(self.correct, self.total)

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.metrics.classification.accuracy import Accuracy, HammingLoss, TopKAccuracy
+from pytorch_lightning.metrics.classification.accuracy import Accuracy, HammingLoss
 from pytorch_lightning.metrics.classification.stat_scores import StatScores
 from pytorch_lightning.metrics.classification.precision_recall import Precision, Recall
 from pytorch_lightning.metrics.classification.fbeta import FBeta, F1

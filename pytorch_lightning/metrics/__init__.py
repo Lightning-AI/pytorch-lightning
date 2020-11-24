@@ -16,7 +16,6 @@ from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.metrics.classification import (
     Accuracy,
     HammingLoss,
-    TopKAccuracy,
     Precision,
     Recall,
     FBeta,
