@@ -132,15 +132,8 @@ def run_prediction(trained_model, dataloader, dp=False, min_acc=0.50):
 def _(trained_model, dataloader, dp=False, min_acc=0.25):
     # run prediction on 1 batch
     batch = next(iter(dataloader))
+    with torch.no_grad():
+        output = trained_model(batch)
+    acc = trained_model.loss(batch, output)
 
-    if dp:
-        with torch.no_grad():
-            output = trained_model(batch)
-        acc = trained_model.loss(batch, output)
-
-    else:
-        with torch.no_grad():
-            output = trained_model(batch)
-        output = output.cpu()
-        acc = trained_model.loss(batch, output)
     assert acc >= min_acc, f"This model is expected to get , {min_acc} in test set (it got {acc})"

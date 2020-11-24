@@ -28,8 +28,7 @@ from tests.base import BoringModel
 @pytest.mark.parametrize("enable_pl_optimizer", [False, True])
 def test_cpu_slurm_save_load(enable_pl_optimizer, tmpdir):
     """Verify model save/load/checkpoint on CPU."""
-    hparams = BoringModel.get_default_hparams()
-    model = BoringModel(**hparams)
+    model = BoringModel()
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -72,7 +71,7 @@ def test_cpu_slurm_save_load(enable_pl_optimizer, tmpdir):
     # new logger file to get meta
     logger = tutils.get_default_logger(tmpdir, version=version)
 
-    model = BoringModel(**hparams)
+    model = BoringModel()
 
     class _StartCallback(Callback):
         def on_init_start(self, trainer):
@@ -167,9 +166,7 @@ def test_lbfgs_cpu_model(tmpdir):
         limit_val_batches=0.2,
     )
 
-    hparams = BoringModel.get_default_hparams()
-    hparams.update(optimizer_name="LBFGS", learning_rate=0.004)
-    model = BoringModel(**hparams)
+    model = BoringModel(optimizer_name="LBFGS", learning_rate=0.004)
     tpipes.run_model_test_without_loggers(trainer_options, model, min_acc=0.25)
 
 
@@ -372,14 +369,8 @@ def test_tbptt_cpu_model(tmpdir):
                 sampler=None,
             )
 
-    hparams = BoringModel.get_default_hparams()
-    hparams.update(
-        batch_size=batch_size,
-        in_features=truncated_bptt_steps,
-        out_features=truncated_bptt_steps,
-    )
-
-    model = BpttTestModel(**hparams)
+    model = BpttTestModel(batch_size=batch_size,
+                          in_features=truncated_bptt_steps, out_features=truncated_bptt_steps)
     model.example_input_array = torch.randn(5, truncated_bptt_steps)
 
     # fit model

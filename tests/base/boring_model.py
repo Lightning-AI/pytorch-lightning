@@ -88,6 +88,8 @@ class BoringModel(LightningModule):
         self.learning_rate = learning_rate
         self.optimizer_name = optimizer_name
         self.out_features = out_features
+        self.save_hyperparameters('batch_size', 'in_features', 'out_features',
+                                  'optimizer_name', 'learning_rate')
 
     def forward(self, x):
         return self.layer(x)
@@ -126,7 +128,8 @@ class BoringModel(LightningModule):
         torch.stack([x["y"] for x in outputs]).mean()
 
     def configure_optimizers(self):
-        optimizer = getattr(torch.optim, self.optimizer_name)(self.layer.parameters(), lr=self.learning_rate)
+        optimizer_class = getattr(torch.optim, self.optimizer_name)
+        optimizer = optimizer_class(self.layer.parameters(), lr=self.learning_rate)
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
         return [optimizer], [lr_scheduler]
 
@@ -138,14 +141,3 @@ class BoringModel(LightningModule):
 
     def test_dataloader(self):
         return torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)
-
-    def get_default_hparams(continue_training: bool = False, hpc_exp_number: int = 0) -> dict:
-        args = dict(
-            batch_size=1,
-            in_features=32,
-            learning_rate=0.1,
-            optimizer_name="SGD",
-            out_features=2,
-        )
-
-        return args
