@@ -35,6 +35,10 @@ class DDPPlugin(object):
     def use_barrier_and_broadcast(self):
         return True
 
+    @property
+    def use_optimizer_step(self):
+        return False
+
     def configure_ddp(
         self, model: LightningModule, device_ids: List[int]
     ) -> LightningDistributedDataParallel:
