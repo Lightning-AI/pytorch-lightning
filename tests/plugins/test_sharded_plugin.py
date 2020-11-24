@@ -1,3 +1,4 @@
+import glob
 import os
 import platform
 import time
@@ -9,8 +10,8 @@ import torch
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint
+from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin, FAIRSCALE_AVAILABLE
 from tests.base.boring_model import BoringModel, RandomDataset
 
 
@@ -30,6 +31,7 @@ from tests.base.boring_model import BoringModel, RandomDataset
     ["ddp_backend", "gpus", "num_processes"],
     [("ddp_cpu", None, None), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
 )
+@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_choice_sharded_cpu(tmpdir, ddp_backend, gpus, num_processes):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
@@ -52,6 +54,59 @@ def test_ddp_choice_sharded_cpu(tmpdir, ddp_backend, gpus, num_processes):
 
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+def test_ddp_sharded_plugin_checkpoint_cpu(tmpdir):
+    model = BoringModel()
+    trainer = Trainer(
+        callbacks=[ModelCheckpoint(dirpath=tmpdir, save_last=True)],
+        accelerator='ddp_cpu',
+        plugins=[DDPShardedPlugin()],
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1
+    )
+
+    trainer.fit(model)
+
+    checkpoint_path = glob.glob(os.path.join(tmpdir, "*.ckpt"))[0]
+
+    saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
+
+    # Assert model parameters are identical after loading
+    for ddp_param, shard_param in zip(model.parameters(), saved_model.parameters()):
+        assert torch.equal(ddp_param, shard_param)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(platform.system() == "Windows",
+                    reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+def test_ddp_sharded_plugin_checkpoint_multi_gpu(tmpdir):
+    model = BoringModel()
+    trainer = Trainer(
+        callbacks=[ModelCheckpoint(dirpath=tmpdir, save_last=True)],
+        gpus=2,
+        accelerator='ddp_spawn',
+        plugins=[DDPShardedPlugin()],
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1
+    )
+
+    trainer.fit(model)
+
+    checkpoint_path = glob.glob(os.path.join(tmpdir, "*.ckpt"))[0]
+
+    saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
+
+    # Assert model parameters are identical after loading
+    for ddp_param, shard_param in zip(model.parameters(), saved_model.parameters()):
+        assert torch.equal(ddp_param, shard_param)
+
+
+@pytest.mark.skipif(platform.system() == "Windows",
+                    reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_correctness_one_device():
     run_sharded_correctness(accelerator='ddp_cpu')
 
@@ -59,6 +114,7 @@ def test_ddp_sharded_plugin_correctness_one_device():
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_correctness_one_gpu():
     run_sharded_correctness(gpus=1, accelerator='ddp_spawn')
 
@@ -69,6 +125,7 @@ def test_ddp_sharded_plugin_correctness_one_gpu():
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_correctness_amp_one_gpu():
     run_sharded_correctness(gpus=1, precision=16, accelerator='ddp_spawn')
 
@@ -76,6 +133,8 @@ def test_ddp_sharded_plugin_correctness_amp_one_gpu():
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(not FAIRSCALE_AVAILABLE,
+                    reason="Fairscale is not available")
 def test_ddp_sharded_plugin_correctness_multi_gpu():
     run_sharded_correctness(gpus=2, accelerator='ddp_spawn')
 
@@ -86,6 +145,7 @@ def test_ddp_sharded_plugin_correctness_multi_gpu():
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_correctness_amp_multi_gpu():
     run_sharded_correctness(gpus=2, precision=16, accelerator='ddp_spawn')
 
