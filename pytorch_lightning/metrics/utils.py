@@ -109,14 +109,14 @@ def _input_format_classification(
         preds: tensor with labels
         target: tensor with labels
     """
-    if not (len(preds.shape) == len(target.shape) or len(preds.shape) == len(target.shape) + 1):
+    if not (preds.ndim == target.ndim or preds.ndim == target.ndim + 1):
         raise ValueError("preds and target must have same number of dimensions, or one additional dimension for preds")
 
-    if len(preds.shape) == len(target.shape) + 1:
+    if preds.ndim == target.ndim + 1:
         # multi class probabilites
         preds = torch.argmax(preds, dim=1)
 
-    if len(preds.shape) == len(target.shape) and preds.dtype == torch.float:
+    if preds.ndim == target.ndim and preds.dtype == torch.float:
         # binary or multilabel probablities
         preds = (preds >= threshold).long()
     return preds, target
@@ -139,24 +139,24 @@ def _input_format_classification_one_hot(
         preds: one hot tensor of shape [num_classes, -1] with predicted labels
         target: one hot tensors of shape [num_classes, -1] with true labels
     """
-    if not (len(preds.shape) == len(target.shape) or len(preds.shape) == len(target.shape) + 1):
+    if not (preds.ndim == target.ndim or preds.ndim == target.ndim + 1):
         raise ValueError("preds and target must have same number of dimensions, or one additional dimension for preds")
 
-    if len(preds.shape) == len(target.shape) + 1:
+    if preds.ndim == target.ndim + 1:
         # multi class probabilites
         preds = torch.argmax(preds, dim=1)
 
-    if len(preds.shape) == len(target.shape) and preds.dtype == torch.long and num_classes > 1 and not multilabel:
+    if preds.ndim == target.ndim and preds.dtype == torch.long and num_classes > 1 and not multilabel:
         # multi-class
         preds = to_onehot(preds, num_classes=num_classes)
         target = to_onehot(target, num_classes=num_classes)
 
-    elif len(preds.shape) == len(target.shape) and preds.dtype == torch.float:
+    elif preds.ndim == target.ndim and preds.dtype == torch.float:
         # binary or multilabel probablities
         preds = (preds >= threshold).long()
 
     # transpose class as first dim and reshape
-    if len(preds.shape) > 1:
+    if preds.ndim > 1:
         preds = preds.transpose(1, 0)
         target = target.transpose(1, 0)
 

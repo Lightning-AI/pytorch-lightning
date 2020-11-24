@@ -90,25 +90,25 @@ def _check_classification_inputs(
         raise ValueError("If you set is_multiclass=False and preds are integers, then preds should not exceed 1.")
 
     # Check that shape/types fall into one of the cases
-    if len(preds.shape) == len(target.shape):
+    if preds.ndim == target.ndim:
         if preds.shape != target.shape:
             raise ValueError("if preds and target have the same number of dimensions, they should have the same shape")
         if preds_float and target.max() > 1:
             raise ValueError("if preds and target are of shape (N, ...) and preds are floats, target should be binary")
 
         # Get the case
-        if len(preds.shape) == 1 and preds_float:
+        if preds.ndim == 1 and preds_float:
             case = "binary"
-        elif len(preds.shape) == 1 and not preds_float:
+        elif preds.ndim == 1 and not preds_float:
             case = "multi-class"
-        elif len(preds.shape) > 1 and preds_float:
+        elif preds.ndim > 1 and preds_float:
             case = "multi-label"
         else:
             case = "multi-dim multi-class"
 
         implied_classes = torch.prod(torch.Tensor(list(preds.shape[1:])))
 
-    elif len(preds.shape) == len(target.shape) + 1:
+    elif preds.ndim == target.ndim + 1:
         if not preds_float:
             raise ValueError("if preds have one dimension more than target, preds should be a float tensor")
         if not preds.shape[:-1] == target.shape:
@@ -120,7 +120,7 @@ def _check_classification_inputs(
 
         extra_dim_size = preds.shape[-1 if preds.shape[:-1] == target.shape else 1]
 
-        if len(preds.shape) == 2:
+        if preds.ndim == 2:
             case = "multi-class"
         else:
             case = "multi-dim multi-class"
@@ -299,7 +299,7 @@ def _input_format_classification(
 
     preds_float = preds.is_floating_point()
 
-    if len(preds.shape) == len(target.shape) == 1 and preds_float:
+    if preds.ndim == target.ndim == 1 and preds_float:
         mode = "binary"
         preds = (preds >= threshold).int()
 
@@ -310,7 +310,7 @@ def _input_format_classification(
             preds = preds.unsqueeze(-1)
             target = target.unsqueeze(-1)
 
-    elif len(preds.shape) == len(target.shape) and preds_float:
+    elif preds.ndim == target.ndim and preds_float:
         mode = "multi-label"
         preds = (preds >= threshold).int()
 
@@ -321,7 +321,7 @@ def _input_format_classification(
             preds = preds.reshape(preds.shape[0], -1)
             target = target.reshape(target.shape[0], -1)
 
-    elif len(preds.shape) == len(target.shape) + 1 == 2:
+    elif preds.ndim == target.ndim + 1 == 2:
         mode = "multi-class"
         if not num_classes:
             num_classes = preds.shape[1]
@@ -334,7 +334,7 @@ def _input_format_classification(
             target = target[:, [1]]
             preds = preds[:, [1]]
 
-    elif len(preds.shape) == len(target.shape) == 1 and not preds_float:
+    elif preds.ndim == target.ndim == 1 and not preds_float:
         mode = "multi-class"
 
         if not num_classes:
