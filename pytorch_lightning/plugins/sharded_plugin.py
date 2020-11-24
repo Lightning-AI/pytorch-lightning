@@ -45,7 +45,7 @@ class DDPShardedPlugin(DDPPlugin):
         else:
             return LightningShardedDataParallel(model, sharded_optimizer=model.trainer.optimizers)
 
-    def optimizer_state(self, optimizer: OSS) -> Optional[dict]:
+    def optimizer_state(self, optimizer: 'OSS') -> Optional[dict]:
         optimizer.consolidate_state_dict()
         return self._optim_state_dict(optimizer)
 
@@ -102,7 +102,7 @@ class DDPShardedPlugin(DDPPlugin):
 
     def get_model_from_plugin(
             self,
-            model: Union[LightningShardedDataParallel, LightningModule]
+            model: Union['LightningShardedDataParallel', LightningModule]
     ) -> LightningModule:
         if isinstance(model, LightningShardedDataParallel):
             return model.module
