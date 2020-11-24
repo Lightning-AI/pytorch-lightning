@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest.mock import Mock, call
+
 import pytest
 from unittest import mock
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ProgressBarBase, ProgressBar, ModelCheckpoint
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
+from tests.base import EvalModelTemplate, BoringModel
 
 
 @pytest.mark.parametrize('callbacks,refresh_rate', [
@@ -252,3 +254,77 @@ def test_progress_bar_warning_on_colab(tmpdir):
         )
 
     assert trainer.progress_bar_callback.refresh_rate == 19
+
+
+class MockedUpdateProgressBars(ProgressBar):
+    """ Mocks the update method once bars get initializied. """
+
+    def _mock_bar_update(self, bar):
+        bar.update = Mock(wraps=bar.update)
+        return bar
+
+    def init_train_tqdm(self):
+        bar = super().init_train_tqdm()
+        return self._mock_bar_update(bar)
+
+    def init_validation_tqdm(self):
+        bar = super().init_validation_tqdm()
+        return self._mock_bar_update(bar)
+
+    def init_test_tqdm(self):
+        bar = super().init_test_tqdm()
+        return self._mock_bar_update(bar)
+
+
+@pytest.mark.parametrize("train_batches,val_batches,refresh_rate,train_deltas,val_deltas", [
+    [2, 3, 1, [1, 1, 1, 1, 1], [1, 1, 1]],
+    [0, 0, 3, [], []],
+    [1, 0, 3, [1], []],
+    [1, 1, 3, [2], [1]],
+    [5, 0, 3, [3, 2], []],
+    [5, 2, 3, [3, 3, 1], [2]],
+    [5, 2, 6, [6, 1], [2]],
+])
+def test_main_progress_bar_update_amount(tmpdir, train_batches, val_batches, refresh_rate, train_deltas, val_deltas):
+    """
+    Test that the main progress updates with the correct amount together with the val progress. At the end of
+    the epoch, the progress must not overshoot if the number of steps is not divisible by the refresh rate.
+    """
+    model = BoringModel()
+    progress_bar = MockedUpdateProgressBars(refresh_rate=refresh_rate)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=train_batches,
+        limit_val_batches=val_batches,
+        callbacks=[progress_bar],
+        logger=False,
+        checkpoint_callback=False,
+    )
+    trainer.fit(model)
+    progress_bar.main_progress_bar.update.assert_has_calls([call(delta) for delta in train_deltas])
+    if val_batches > 0:
+        progress_bar.val_progress_bar.update.assert_has_calls([call(delta) for delta in val_deltas])
+
+
+@pytest.mark.parametrize("test_batches,refresh_rate,test_deltas", [
+    [1, 3, [1]],
+    [3, 1, [1, 1, 1]],
+    [5, 3, [3, 2]],
+])
+def test_test_progress_bar_update_amount(tmpdir, test_batches, refresh_rate, test_deltas):
+    """
+    Test that test progress updates with the correct amount.
+    """
+    model = BoringModel()
+    progress_bar = MockedUpdateProgressBars(refresh_rate=refresh_rate)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_test_batches=test_batches,
+        callbacks=[progress_bar],
+        logger=False,
+        checkpoint_callback=False,
+    )
+    trainer.test(model)
+    progress_bar.test_progress_bar.update.assert_has_calls([call(delta) for delta in test_deltas])
