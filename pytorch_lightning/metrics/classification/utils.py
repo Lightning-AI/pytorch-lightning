@@ -13,7 +13,6 @@
 # limitations under the License.
 from typing import Tuple, Optional
 
-import numpy as np
 import torch
 
 from pytorch_lightning.metrics.utils import to_onehot, select_topk
@@ -256,7 +255,8 @@ def _input_format_classification(
     dimension is ambiguous (e.g. if targets are a ``(7, 3)`` tensor, while predictions are a
     ``(7, 3, 3)`` tensor), it will be assumed that the ``C`` dimension is the second dimension.
     If this is not the case,  you should move it from the last to second place using
-    ``torch.movedim(preds, -1, 1)``.
+    ``torch.movedim(preds, -1, 1)``, or using ``preds.permute``, if you are using an older
+    version of Pytorch.
 
     Note that where a one-hot transformation needs to be performed and the number of classes
     is not implicitly given by a ``C`` dimension, the new ``C`` dimension will either be
@@ -370,7 +370,11 @@ def _input_format_classification(
     else:
         mode = "multi-dim multi-class"
         if preds.shape[:-1] == target.shape:
-            preds = torch.movedim(preds, -1, 1)
+            shape_permute = list(range(preds.ndim))
+            shape_permute[1] = shape_permute[-1]
+            shape_permute[2:] = range(1, len(shape_permute) - 1)
+
+            preds = preds.permute(*shape_permute)
 
         num_classes = preds.shape[1]
 

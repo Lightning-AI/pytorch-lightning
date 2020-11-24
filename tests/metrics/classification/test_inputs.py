@@ -84,7 +84,12 @@ def top2(x):
 
 
 def mvdim(x):
-    return torch.movedim(x, -1, 1)
+    """ Equivalent of torch.movedim(x, -1, 1) """
+    shape_permute = list(range(x.ndim))
+    shape_permute[1] = shape_permute[-1]
+    shape_permute[2:] = range(1, len(shape_permute) - 1)
+
+    return x.permute(*shape_permute)
 
 
 # To avoid ugly black line wrapping
