@@ -25,7 +25,7 @@ from pytorch_lightning.metrics.functional.confusion_matrix import (
 class ConfusionMatrix(Metric):
     """
     Computes the `confusion matrix
-    <https://en.wikipedia.org/wiki/Confusion_matrix>`_.  Works with binary,
+    <https://scikit-learn.org/stable/modules/model_evaluation.html#confusion-matrix>`_.  Works with binary,
     multiclass, and multilabel data.  Accepts logits from a model output or
     integer class values in prediction.  Works with multi-dimensional preds and
     target.
