@@ -210,6 +210,8 @@ def test_logit_threshold():
         (randint(high=2, size=(7, 3, 3)), randint(high=2, size=(7, 3, 3)), 0.5, False, 4, False, 1),
         # Multilabel input with implied class dimension != num_classes
         (rand(size=(7, 3, 3)), randint(high=2, size=(7, 3, 3)), 0.5, False, 4, False, 1),
+        # Multilabel input with is_multiclass=True, but num_classes != 2 (or None)
+        (rand(size=(7, 3)), randint(high=2, size=(7, 3)), 0.5, False, 4, True, 1),
         # Binary input, num_classes > 2
         (rand(size=(7,)), randint(high=2, size=(7,)), 0.5, False, 4, None, 1),
         # Binary input, num_classes == 2 and is_multiclass not True

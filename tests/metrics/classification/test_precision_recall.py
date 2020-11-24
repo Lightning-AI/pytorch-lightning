@@ -79,6 +79,15 @@ def _sk_prec_recall_mdmc(
         return np.concatenate(scores).mean()
 
 
+@pytest.mark.parametrize("metric, fn_metric", [(Precision, precision), (Recall, recall)])
+def test_wrong_params(metric, fn_metric):
+    with pytest.raises(ValueError):
+        metric(zero_division=None)
+
+    with pytest.raises(ValueError):
+        fn_metric(_binary_inputs.preds[0], _binary_inputs.target[0], zero_division=None)
+
+
 ######################################################################################
 # Testing for MDMC inputs is partially skipped, because some cases appear where
 # (with mdmc_average1 =! None, ignore_index=1, average='weighted') a sample in

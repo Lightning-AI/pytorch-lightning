@@ -187,7 +187,7 @@ def _check_classification_inputs(
         elif case == "multi-label":
             if is_multiclass and num_classes != 2:
                 raise ValueError(
-                    "Your habe set is_multiclass=True, but num_classes is not equal to 2."
+                    "Your have set is_multiclass=True, but num_classes is not equal to 2."
                     "If you are trying to transform multi-label data to 2 class multi-dimensional"
                     "multi-class, you should set num_classes to either 2 or None."
                 )

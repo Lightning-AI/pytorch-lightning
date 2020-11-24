@@ -86,6 +86,30 @@ def _sk_stat_scores_mdmc(preds, target, reduce, mdmc_reduce, num_classes, is_mul
         return np.concatenate(scores)
 
 
+@pytest.mark.parametrize(
+    "reduce, mdmc_reduce, num_classes, inputs",
+    [
+        ["unknown", None, None, _binary_inputs],
+        ["micro", "unknown", None, _binary_inputs],
+        ["macro", None, None, _binary_inputs],
+        ["micro", None, None, _mdmc_prob],
+    ],
+)
+def test_wrong_params(reduce, mdmc_reduce, num_classes, inputs):
+    with pytest.raises(ValueError):
+        stat_scores(
+            inputs.preds[0],
+            inputs.target[0],
+            reduce,
+            mdmc_reduce,
+            num_classes=num_classes,
+        )
+
+    with pytest.raises(ValueError):
+        sts = StatScores(reduce=reduce, mdmc_reduce=mdmc_reduce, num_classes=num_classes)
+        sts(inputs.preds[0], inputs.target[0])
+
+
 @pytest.mark.parametrize("reduce", ["micro", "macro", "samples"])
 @pytest.mark.parametrize("ignore_index", [None, 1])
 @pytest.mark.parametrize(

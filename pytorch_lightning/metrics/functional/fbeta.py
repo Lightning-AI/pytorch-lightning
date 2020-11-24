@@ -41,7 +41,7 @@ def _fbeta_compute(
 def fbeta_score(
     preds: torch.Tensor,
     target: torch.Tensor,
-    beta: float,
+    beta: float = 1.0,
     average: str = "micro",
     mdmc_average: Optional[str] = None,
     threshold: float = 0.5,

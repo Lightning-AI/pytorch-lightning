@@ -72,6 +72,13 @@ def _iou_mdmc(preds, target, num_classes, average, is_multiclass, ignore_index, 
 
         return np.concatenate(scores).mean()
 
+@pytest.mark.parametrize("metric, fn_metric", [(IoU, iou)])
+def test_wrong_params(metric, fn_metric):
+    with pytest.raises(ValueError):
+        metric(zero_division=None)
+
+    with pytest.raises(ValueError):
+        fn_metric(_binary_inputs.preds[0], _binary_inputs.target[0], zero_division=None)
 
 ######################################################################################
 # Testing for MDMC inputs is partially skipped, because some cases appear where
