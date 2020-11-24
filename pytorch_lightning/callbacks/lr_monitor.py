@@ -54,7 +54,7 @@ class LearningRateMonitor(Callback):
 
         def configure_optimizer(self):
             optimizer = torch.optim.Adam(...)
-            lr_scheduler = {'scheduler': torch.optim.lr_schedulers.LambdaLR(optimizer, ...)
+            lr_scheduler = {'scheduler': torch.optim.lr_scheduler.LambdaLR(optimizer, ...)
                             'name': 'my_logging_name'}
             return [optimizer], [lr_scheduler]
 
