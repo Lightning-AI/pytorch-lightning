@@ -265,10 +265,10 @@ class F1(FBeta):
         >>> from pytorch_lightning.metrics.classification import F1
         >>> preds  = torch.tensor([2, 0, 2, 1])
         >>> target = torch.tensor([1, 1, 2, 0])
-        >>> f1 = F1(beta=2.0, average='macro', num_classes=3)
+        >>> f1 = F1(average='macro', num_classes=3)
         >>> f1(preds, target)
         tensor(0.2222)
-        >>> f1 = F1(beta=2.0, average='micro')
+        >>> f1 = F1(average='micro')
         >>> f1(preds, target)
         tensor(0.2500)
 

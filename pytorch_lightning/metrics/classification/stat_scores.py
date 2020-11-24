@@ -108,10 +108,10 @@ class StatScores(Metric):
         >>> stat_scores(preds, target)
         tensor([[0, 1, 2, 1, 1],
                 [1, 1, 1, 1, 2],
-                [1, 0, 3, 0, 1]], dtype=torch.int32)
+                [1, 0, 3, 0, 1]])
         >>> stat_scores = StatScores(reduce='micro')
         >>> stat_scores(preds, target)
-        tensor([2, 2, 6, 2, 4], dtype=torch.int32)
+        tensor([2, 2, 6, 2, 4])
 
     """
 

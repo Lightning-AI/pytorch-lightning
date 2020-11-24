@@ -168,4 +168,4 @@ def _reduce_scores(
     if mdmc_average == "samplewise":
         scores = scores.mean()
 
-    return scores
+    return scores.float()
