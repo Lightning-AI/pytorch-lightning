@@ -369,4 +369,4 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     with mock.patch('pytorch_lightning.loggers.wandb.wandb') as wandb:
         logger = _instantiate_logger(WandbLogger, save_idr=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
-        wandb.init().log.assert_called_once_with({'tmp-test': 1.0}, step=0)
+        logger.experiment.log.assert_called_once_with({'tmp-test': 1.0}, step=0)
