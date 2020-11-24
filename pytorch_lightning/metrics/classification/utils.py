@@ -25,7 +25,6 @@ def _check_classification_inputs(
     threshold: float,
     num_classes: Optional[int] = None,
     is_multiclass: bool = False,
-    logits: bool = True,
     top_k: int = 1,
 ) -> None:
     """Performs error checking on inputs for classification.
@@ -35,8 +34,7 @@ def _check_classification_inputs(
     over-rides with ``is_multiclass`` by checking (for multi-class and multi-dim multi-class
     cases) that there are only up to 2 distinct labels.
 
-    In case where preds are floats and ``logits=False`` (so preds are probabilities), it is
-    checked whether they are in [0,1] interval.
+    In case where preds are floats (probabilities), it is checked whether they are in [0,1] interval.
 
     When ``num_classes`` is given, it is checked that it is consitent with input cases (binary,
     multi-label, ...), and that, if availible, the implied number of classes in the ``C``
@@ -46,7 +44,7 @@ def _check_classification_inputs(
     value against ``C`` dimension is checked for (multi-dimensional) multi-class cases.
 
     If ``top_k`` is larger than one, then an error is raised if the inputs are not (multi-dim)
-    multi-class with probability/logit predictions.
+    multi-class with probability predictions.
 
     Preds and target tensors are expected to be squeezed already - all dimensions should be
     greater than 1, except perhaps the first one (N).
@@ -55,12 +53,8 @@ def _check_classification_inputs(
         preds: tensor with predictions
         target: tensor with ground truth labels, always integers
         threshold:
-            Threshold probability value for transforming probability/logit predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. If ``logits=True``,
-            this value is transformed to logits by ``logit_t = ln(t / (1-t))``. Default: 0.5
-        logits:
-            If predictions are floats, whether they are probabilities or logits. Default ``True``
-            (predictions are logits).
+            Threshold probability value for transforming probability predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
         num_classes: number of classes
         is_multiclass: if True, treat binary and multi-label inputs as multi-class or multi-dim
             multi-class with 2 classes, respectively. If False, treat multi-class and multi-dim
@@ -80,10 +74,10 @@ def _check_classification_inputs(
     if not preds.shape[0] == target.shape[0]:
         raise ValueError("preds and target should have the same first dimension.")
 
-    if preds_float and not logits:
+    if preds_float:
         if preds.min() < 0 or preds.max() > 1:
             raise ValueError(
-                "preds should be probabilities (logits=False), but values were detected outside of [0,1] range"
+                "preds should be probabilities, but values were detected outside of [0,1] range"
             )
 
     if threshold > 1 or threshold < 0:
@@ -199,7 +193,7 @@ def _check_classification_inputs(
         if preds.shape == target.shape:
             raise ValueError(
                 "You have set top_k above 1, but your data is not (multi-dimensional) multi-class"
-                "with logit or probability predictions."
+                "with probability predictions."
             )
 
 
@@ -207,7 +201,6 @@ def _input_format_classification(
     preds: torch.Tensor,
     target: torch.Tensor,
     threshold: float = 0.5,
-    logits: bool = False,
     top_k: int = 1,
     num_classes: Optional[int] = None,
     is_multiclass: Optional[bool] = None,
@@ -269,19 +262,12 @@ def _input_format_classification(
     equal to ``num_classes``, if it is given, or the maximum label value in preds and
     target.
 
-    When thresholding needs to be applied, the threshold value (which should always be a probability),
-    will be be transformed to the logit value (using ``ln(t/(1-t))``), if ``is_logits=True``.
-
     Args:
         preds: tensor with predictions
         target: tensor with ground truth labels, always integers
         threshold:
-            Threshold probability value for transforming probability/logit predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. If ``logits=True``,
-            this value is transformed to logits by ``logit_t = ln(t / (1-t))``. Default: 0.5
-        logits:
-            If predictions are floats, whether they are probabilities or logits. Default ``True``
-            (predictions are logits).
+            Threshold probability value for transforming probability predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
         num_classes: number of classes
         top_k: number of highest probability entries for each sample to convert to 1s, relevant
             only for (multi-dimensional) multi-class cases.
@@ -308,12 +294,8 @@ def _input_format_classification(
         threshold=threshold,
         num_classes=num_classes,
         is_multiclass=is_multiclass,
-        logits=logits,
         top_k=top_k,
     )
-
-    if logits:
-        threshold = np.log(threshold / (1 - threshold))
 
     preds_float = preds.is_floating_point()
 

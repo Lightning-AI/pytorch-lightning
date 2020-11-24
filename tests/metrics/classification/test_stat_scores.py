@@ -27,7 +27,7 @@ torch.manual_seed(42)
 
 def _sk_stat_scores(preds, target, reduce, num_classes, is_multiclass, ignore_index, mdmc_reduce=None):
     preds, target, _ = _input_format_classification(
-        preds, target, threshold=THRESHOLD, num_classes=num_classes, logits=False, is_multiclass=is_multiclass
+        preds, target, threshold=THRESHOLD, num_classes=num_classes, is_multiclass=is_multiclass
     )
     sk_preds, sk_target = preds.numpy(), target.numpy()
 
@@ -65,7 +65,7 @@ def _sk_stat_scores(preds, target, reduce, num_classes, is_multiclass, ignore_in
 
 def _sk_stat_scores_mdmc(preds, target, reduce, mdmc_reduce, num_classes, is_multiclass, ignore_index):
     preds, target, _ = _input_format_classification(
-        preds, target, threshold=THRESHOLD, num_classes=num_classes, logits=False, is_multiclass=is_multiclass
+        preds, target, threshold=THRESHOLD, num_classes=num_classes, is_multiclass=is_multiclass
     )
 
     if mdmc_reduce == "global":
@@ -164,7 +164,6 @@ class TestStatScores(MetricTester):
                 "reduce": reduce,
                 "mdmc_reduce": mdmc_reduce,
                 "threshold": THRESHOLD,
-                "logits": False,
                 "is_multiclass": is_multiclass,
                 "ignore_index": ignore_index,
             },
@@ -200,7 +199,6 @@ class TestStatScores(MetricTester):
                 "reduce": reduce,
                 "mdmc_reduce": mdmc_reduce,
                 "threshold": THRESHOLD,
-                "logits": False,
                 "is_multiclass": is_multiclass,
                 "ignore_index": ignore_index,
             },

@@ -25,7 +25,7 @@ def _accuracy_update(
     preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5, logits: bool = True
 ) -> Tuple[torch.Tensor, int]:
 
-    preds, target, _ = _input_format_classification(preds, target, threshold=threshold, logits=logits)
+    preds, target, _ = _input_format_classification(preds, target, threshold=threshold)
 
     extra_dims = list(range(1, len(preds.shape)))
     sample_correct = (preds == target).sum(dim=extra_dims)
@@ -40,7 +40,7 @@ def _accuracy_compute(correct: torch.Tensor, total: Union[int, torch.Tensor]) ->
     return correct.float() / total
 
 
-def accuracy(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5, logits: bool = True) -> torch.Tensor:
+def accuracy(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5) -> torch.Tensor:
     """
     Computes the share of entirely correctly predicted samples.
 
@@ -53,15 +53,11 @@ def accuracy(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5, 
     Accepts all input types listed in :ref:`metrics:Input types`.
 
     Args:
-        preds: Predictions from model (probabilities, logits, or labels)
+        preds: Predictions from model (probabilities, or labels)
         target: Ground truth values
         threshold:
-            Threshold probability value for transforming probability/logit predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. If ``logits=True``,
-            this value is transformed to logits by ``logit_t = ln(t / (1-t))``. Default: 0.5
-        logits:
-            If predictions are floats, whether they are probabilities or logits. Default ``True``
-            (predictions are logits).
+            Threshold probability value for transforming probability predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
 
     Example:
 
@@ -73,7 +69,7 @@ def accuracy(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5, 
 
     """
 
-    correct, total = _accuracy_update(preds, target, threshold, logits)
+    correct, total = _accuracy_update(preds, target, threshold)
     return _accuracy_compute(correct, total)
 
 
@@ -82,10 +78,8 @@ def accuracy(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5, 
 ################################
 
 
-def _hamming_loss_update(
-    preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5, logits: bool = True
-) -> Tuple[torch.Tensor, int]:
-    preds, target, _ = _input_format_classification(preds, target, threshold=threshold, logits=logits)
+def _hamming_loss_update(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5) -> Tuple[torch.Tensor, int]:
+    preds, target, _ = _input_format_classification(preds, target, threshold=threshold)
 
     correct = (preds == target).sum()
     total = preds.numel()
@@ -97,9 +91,7 @@ def _hamming_loss_compute(correct: torch.Tensor, total: Union[int, torch.Tensor]
     return 1 - correct.float() / total
 
 
-def hamming_loss(
-    preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5, logits: bool = True
-) -> torch.Tensor:
+def hamming_loss(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5) -> torch.Tensor:
     """
     Computes the share of wrongly predicted labels.
 
@@ -112,12 +104,8 @@ def hamming_loss(
 
     Args:
         threshold:
-            Threshold probability value for transforming probability/logit predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. If ``logits=True``,
-            this value is transformed to logits by ``logit_t = ln(t / (1-t))``. Default: 0.5
-        logits:
-            If predictions are floats, whether they are probabilities or logits. Default ``True``
-            (predictions are logits).
+            Threshold probability value for transforming probability predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
 
     Example:
 
@@ -129,7 +117,7 @@ def hamming_loss(
 
     """
 
-    correct, total = _hamming_loss_update(preds, target, threshold, logits)
+    correct, total = _hamming_loss_update(preds, target, threshold)
     return _hamming_loss_compute(correct, total)
 
 
@@ -141,7 +129,7 @@ def hamming_loss(
 def _topk_accuracy_update(
     preds: torch.Tensor, target: torch.Tensor, subset_accuracy: bool = False, k: int = 2
 ) -> Tuple[torch.Tensor, int]:
-    preds, target, mode = _input_format_classification(preds, target, logits=True, top_k=k)
+    preds, target, mode = _input_format_classification(preds, target, top_k=k)
 
     if "multi-dim" not in mode or not subset_accuracy:
         correct = (preds * target).sum()

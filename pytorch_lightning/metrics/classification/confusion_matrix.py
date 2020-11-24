@@ -39,12 +39,8 @@ class ConfusionMatrix(Metric):
         - ``'all'``: normalization over the whole matrix
 
         threshold:
-            Threshold probability value for transforming probability/logit predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. If ``logits=True``,
-            this value is transformed to logits by ``logit_t = ln(t / (1-t))``. Default: 0.5
-        logits:
-            If predictions are floats, whether they are probabilities or logits. Default ``True``
-            (predictions are logits).
+            Threshold probability value for transforming probability predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
 
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
@@ -74,7 +70,6 @@ class ConfusionMatrix(Metric):
         num_classes: int,
         normalize: Optional[str] = None,
         threshold: float = 0.5,
-        logits: bool = True,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -90,7 +85,6 @@ class ConfusionMatrix(Metric):
         self.num_classes = num_classes
         self.normalize = normalize
         self.threshold = threshold
-        self.logits = logits
 
         allowed_normalize = ("true", "pred", "all", None)
         assert (
@@ -104,12 +98,10 @@ class ConfusionMatrix(Metric):
         Update state with predictions and targets.
 
         Args:
-            preds: Predictions from model (probabilities, logits, or labels)
+            preds: Predictions from model (probabilities, or labels)
             target: Ground truth values
         """
-        confmat = _confusion_matrix_update(
-            preds, target, num_classes=self.num_classes, threshold=self.threshold, logits=self.logits
-        )
+        confmat = _confusion_matrix_update(preds, target, num_classes=self.num_classes, threshold=self.threshold)
         self.confmat += confmat
 
     def compute(self) -> torch.Tensor:

@@ -40,7 +40,7 @@ def _sk_prec_recall(
         pass
 
     sk_preds, sk_target, _ = _input_format_classification(
-        preds, target, THRESHOLD, num_classes=num_classes, logits=False, is_multiclass=is_multiclass
+        preds, target, THRESHOLD, num_classes=num_classes, is_multiclass=is_multiclass
     )
     sk_preds, sk_target = sk_preds.numpy(), sk_target.numpy()
 
@@ -56,7 +56,7 @@ def _sk_prec_recall_mdmc(
     preds, target, sk_fn, num_classes, average, is_multiclass, zero_division, ignore_index, mdmc_average
 ):
     preds, target, _ = _input_format_classification(
-        preds, target, threshold=THRESHOLD, num_classes=num_classes, logits=False, is_multiclass=is_multiclass
+        preds, target, threshold=THRESHOLD, num_classes=num_classes, is_multiclass=is_multiclass
     )
 
     if mdmc_average == "global":
@@ -167,7 +167,6 @@ class TestPrecisionRecall(MetricTester):
                 "num_classes": num_classes,
                 "average": average,
                 "threshold": THRESHOLD,
-                "logits": False,
                 "is_multiclass": is_multiclass,
                 "zero_division": zero_division,
                 "ignore_index": ignore_index,
@@ -216,7 +215,6 @@ class TestPrecisionRecall(MetricTester):
                 "num_classes": num_classes,
                 "average": average,
                 "threshold": THRESHOLD,
-                "logits": False,
                 "is_multiclass": is_multiclass,
                 "zero_division": zero_division,
                 "ignore_index": ignore_index,

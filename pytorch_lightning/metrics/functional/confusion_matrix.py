@@ -20,10 +20,10 @@ from pytorch_lightning.metrics.classification.utils import _input_format_classif
 
 
 def _confusion_matrix_update(
-    preds: torch.Tensor, target: torch.Tensor, num_classes: int, threshold: float, logits: bool
+    preds: torch.Tensor, target: torch.Tensor, num_classes: int, threshold: float
 ) -> torch.Tensor:
     preds, target, _ = _input_format_classification(
-        preds, target, num_classes=num_classes, is_multiclass=True, threshold=threshold, logits=logits
+        preds, target, num_classes=num_classes, is_multiclass=True, threshold=threshold
     )
 
     if len(preds.shape) > 2:
@@ -64,7 +64,6 @@ def confusion_matrix(
     num_classes: int,
     normalize: Optional[str] = None,
     threshold: float = 0.5,
-    logits: bool = True,
 ) -> torch.Tensor:
     """
     Computes the confusion matrix.
@@ -75,7 +74,7 @@ def confusion_matrix(
     In this case use the ``threshold`` argument to control the "binarization" of predictions.
 
     Args:
-        preds: Predictions from model (probabilities, logits, or labels)
+        preds: Predictions from model (probabilities or labels)
         target: Ground truth values
         num_classes:
             Number of classes.
@@ -87,12 +86,8 @@ def confusion_matrix(
         - ``'all'``: normalization over the whole matrix
 
         threshold:
-            Threshold probability value for transforming probability/logit predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. If ``logits=True``,
-            this value is transformed to logits by ``logit_t = ln(t / (1-t))``. Default: 0.5
-        logits:
-            If predictions are floats, whether they are probabilities or logits. Default ``True``
-            (predictions are logits).
+            Threshold probability value for transforming probability predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
 
     Example:
 
@@ -103,5 +98,5 @@ def confusion_matrix(
         tensor([[2., 0.],
                 [1., 1.]])
     """
-    confmat = _confusion_matrix_update(preds, target, num_classes, threshold, logits)
+    confmat = _confusion_matrix_update(preds, target, num_classes, threshold)
     return _confusion_matrix_compute(confmat, normalize)

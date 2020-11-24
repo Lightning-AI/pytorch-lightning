@@ -44,7 +44,6 @@ def iou(
     mdmc_average: Optional[str] = None,
     threshold: float = 0.5,
     num_classes: Optional[int] = None,
-    logits: bool = True,
     is_multiclass: Optional[bool] = None,
     ignore_index: Optional[int] = None,
     zero_division: int = 0,
@@ -64,7 +63,7 @@ def iou(
     parameter is availible.
 
     Args:
-        preds: Predictions from model (probabilities, logits, or labels)
+        preds: Predictions from model (probabilities, or labels)
         target: Ground truth values
         average:
             Defines the reduction that is applied. Should be one of the following:
@@ -104,12 +103,8 @@ def iou(
             Number of classes. Necessary for (multi-dimensional) multi-class or multi-label data.
 
         threshold:
-            Threshold probability value for transforming probability/logit predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. If ``logits=True``,
-            this value is transformed to logits by ``logit_t = ln(t / (1-t))``. Default: 0.5
-        logits:
-            If predictions are floats, whether they are probabilities or logits. Default ``True``
-            (predictions are logits).
+            Threshold probability value for transforming probability predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
         is_multiclass:
             If ``False``, treat multi-class and multi-dim multi-class inputs with 1 or 2 classes as
             binary and multi-label, respectively. If ``True``, treat binary and multi-label inputs
@@ -148,7 +143,7 @@ def iou(
         raise ValueError("zero_division has to be either 0 or 1")
 
     tp, fp, tn, fn = _stat_scores_update(
-        preds, target, reduce, mdmc_average, threshold, num_classes, logits, is_multiclass, ignore_index
+        preds, target, reduce, mdmc_average, threshold, num_classes, is_multiclass, ignore_index
     )
 
     return _iou_compute(tp, fp, tn, fn, average, mdmc_average, zero_division)

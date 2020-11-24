@@ -38,7 +38,7 @@ def _sk_fbeta(preds, target, beta, num_classes, average, is_multiclass, zero_div
         pass
 
     sk_preds, sk_target, _ = _input_format_classification(
-        preds, target, THRESHOLD, num_classes=num_classes, logits=False, is_multiclass=is_multiclass
+        preds, target, THRESHOLD, num_classes=num_classes, is_multiclass=is_multiclass
     )
     sk_preds, sk_target = sk_preds.numpy(), sk_target.numpy()
 
@@ -52,7 +52,7 @@ def _sk_fbeta(preds, target, beta, num_classes, average, is_multiclass, zero_div
 
 def _sk_fbeta_mdmc(preds, target, beta, num_classes, average, is_multiclass, zero_division, ignore_index, mdmc_average):
     preds, target, _ = _input_format_classification(
-        preds, target, threshold=THRESHOLD, num_classes=num_classes, logits=False, is_multiclass=is_multiclass
+        preds, target, threshold=THRESHOLD, num_classes=num_classes, is_multiclass=is_multiclass
     )
 
     if mdmc_average == "global":
@@ -84,10 +84,10 @@ def test_wrong_params(metric, fn_metric):
 
 # A single test of F1 and dice for coverage
 def test_f1():
-    f1 = F1(logits=False)
+    f1 = F1()
     score = f1(_binary_prob_inputs.preds[0], _binary_prob_inputs.target[0])
-    score_fn = f1_score(_binary_prob_inputs.preds[0], _binary_prob_inputs.target[0], logits=False)
-    dice = dice_score(_binary_prob_inputs.preds[0], _binary_prob_inputs.target[0], logits=False)
+    score_fn = f1_score(_binary_prob_inputs.preds[0], _binary_prob_inputs.target[0])
+    dice = dice_score(_binary_prob_inputs.preds[0], _binary_prob_inputs.target[0])
 
     sk_preds = (_binary_prob_inputs.preds[0] >= THRESHOLD).int().numpy()
     sk_target = _binary_prob_inputs.target[0].numpy()
@@ -177,7 +177,6 @@ class TestFBeta(MetricTester):
                 "num_classes": num_classes,
                 "average": average,
                 "threshold": THRESHOLD,
-                "logits": False,
                 "is_multiclass": is_multiclass,
                 "zero_division": zero_division,
                 "ignore_index": ignore_index,
@@ -227,7 +226,6 @@ class TestFBeta(MetricTester):
                 "num_classes": num_classes,
                 "average": average,
                 "threshold": THRESHOLD,
-                "logits": False,
                 "is_multiclass": is_multiclass,
                 "zero_division": zero_division,
                 "ignore_index": ignore_index,

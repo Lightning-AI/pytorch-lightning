@@ -39,12 +39,8 @@ class Accuracy(Metric):
 
     Args:
         threshold:
-            Threshold probability value for transforming probability/logit predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. If ``logits=True``,
-            this value is transformed to logits by ``logit_t = ln(t / (1-t))``. Default: 0.5
-        logits:
-            If predictions are floats, whether they are probabilities or logits. Default ``True``
-            (predictions are logits).
+            Threshold probability value for transforming probability predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
@@ -70,7 +66,6 @@ class Accuracy(Metric):
     def __init__(
         self,
         threshold: float = 0.5,
-        logits: bool = True,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -87,7 +82,6 @@ class Accuracy(Metric):
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
         self.threshold = threshold
-        self.logits = logits
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
@@ -95,11 +89,11 @@ class Accuracy(Metric):
         on input types.
 
         Args:
-            preds: Predictions from model (probabilities, logits, or labels)
+            preds: Predictions from model (probabilities, or labels)
             target: Ground truth values
         """
 
-        correct, total = _accuracy_update(preds, target, self.threshold, self.logits)
+        correct, total = _accuracy_update(preds, target, self.threshold)
 
         self.correct += correct
         self.total += total
@@ -124,12 +118,8 @@ class HammingLoss(Metric):
 
     Args:
         threshold:
-            Threshold probability value for transforming probability/logit predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. If ``logits=True``,
-            this value is transformed to logits by ``logit_t = ln(t / (1-t))``. Default: 0.5
-        logits:
-            If predictions are floats, whether they are probabilities or logits. Default ``True``
-            (predictions are logits).
+            Threshold probability value for transforming probability predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
@@ -155,7 +145,6 @@ class HammingLoss(Metric):
     def __init__(
         self,
         threshold: float = 0.5,
-        logits: bool = True,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -172,7 +161,6 @@ class HammingLoss(Metric):
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
         self.threshold = threshold
-        self.logits = logits
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
@@ -180,10 +168,10 @@ class HammingLoss(Metric):
         on input types.
 
         Args:
-            preds: Predictions from model (probabilities, logits, or labels)
+            preds: Predictions from model (probabilities, or labels)
             target: Ground truth values
         """
-        correct, total = _hamming_loss_update(preds, target, self.threshold, self.logits)
+        correct, total = _hamming_loss_update(preds, target, self.threshold)
 
         self.correct += correct
         self.total += total
@@ -277,7 +265,7 @@ class TopKAccuracy(Metric):
         in :ref:`metrics:Input types`).
 
         Args:
-            preds: Predictions from model (probabilities, logits, or labels)
+            preds: Predictions from model (probabilities)
             target: Ground truth values
         """
         correct, total = _topk_accuracy_update(preds, target, self.subset_accuracy, self.k)

@@ -38,7 +38,7 @@ def _iou(preds, target, num_classes, average, is_multiclass, ignore_index, mdmc_
         pass
 
     sk_preds, sk_target, _ = _input_format_classification(
-        preds, target, THRESHOLD, num_classes=num_classes, logits=False, is_multiclass=is_multiclass
+        preds, target, THRESHOLD, num_classes=num_classes, is_multiclass=is_multiclass
     )
     sk_preds, sk_target = sk_preds.numpy(), sk_target.numpy()
 
@@ -52,7 +52,7 @@ def _iou(preds, target, num_classes, average, is_multiclass, ignore_index, mdmc_
 
 def _iou_mdmc(preds, target, num_classes, average, is_multiclass, ignore_index, mdmc_average):
     preds, target, _ = _input_format_classification(
-        preds, target, threshold=THRESHOLD, num_classes=num_classes, logits=False, is_multiclass=is_multiclass
+        preds, target, threshold=THRESHOLD, num_classes=num_classes, is_multiclass=is_multiclass
     )
 
     if mdmc_average == "global":
@@ -153,7 +153,6 @@ class TestIoU(MetricTester):
                 "num_classes": num_classes,
                 "average": average,
                 "threshold": THRESHOLD,
-                "logits": False,
                 "is_multiclass": is_multiclass,
                 "ignore_index": ignore_index,
                 "mdmc_average": mdmc_average,
@@ -198,7 +197,6 @@ class TestIoU(MetricTester):
                 "num_classes": num_classes,
                 "average": average,
                 "threshold": THRESHOLD,
-                "logits": False,
                 "is_multiclass": is_multiclass,
                 "ignore_index": ignore_index,
                 "mdmc_average": mdmc_average,

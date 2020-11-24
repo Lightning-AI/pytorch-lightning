@@ -24,7 +24,7 @@ torch.manual_seed(42)
 
 
 def _sk_accuracy(preds, target):
-    sk_preds, sk_target, _ = _input_format_classification(preds, target, threshold=THRESHOLD, logits=False)
+    sk_preds, sk_target, _ = _input_format_classification(preds, target, threshold=THRESHOLD)
     sk_preds, sk_target = sk_preds.numpy(), sk_target.numpy()
     sk_preds, sk_target = sk_preds.reshape(sk_preds.shape[0], -1), sk_target.reshape(sk_target.shape[0], -1)
 
@@ -32,7 +32,7 @@ def _sk_accuracy(preds, target):
 
 
 def _sk_hamming_loss(preds, target):
-    sk_preds, sk_target, _ = _input_format_classification(preds, target, threshold=THRESHOLD, logits=False)
+    sk_preds, sk_target, _ = _input_format_classification(preds, target, threshold=THRESHOLD)
     sk_preds, sk_target = sk_preds.numpy(), sk_target.numpy()
     sk_preds, sk_target = sk_preds.reshape(sk_preds.shape[0], -1), sk_target.reshape(sk_target.shape[0], -1)
 
@@ -68,7 +68,7 @@ class TestAccuracies(MetricTester):
             metric_class=metric,
             sk_metric=sk_metric,
             dist_sync_on_step=dist_sync_on_step,
-            metric_args={"threshold": THRESHOLD, "logits": False},
+            metric_args={"threshold": THRESHOLD},
         )
 
     def test_accuracy_fn(self, preds, target, metric, sk_metric, fn_metric):
@@ -77,11 +77,11 @@ class TestAccuracies(MetricTester):
             target,
             metric_functional=fn_metric,
             sk_metric=sk_metric,
-            metric_args={"threshold": THRESHOLD, "logits": False},
+            metric_args={"threshold": THRESHOLD},
         )
 
 
-l1to4 = [1, 2, 3, 4]
+l1to4 = [.1, .2, .3, .4]
 l1to4t3 = np.array([l1to4, l1to4, l1to4])
 l1to4t3_mc = [l1to4t3.T, l1to4t3.T, l1to4t3.T]
 

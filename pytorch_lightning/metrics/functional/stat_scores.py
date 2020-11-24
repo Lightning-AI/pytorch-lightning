@@ -85,7 +85,6 @@ def _stat_scores_update(
     mdmc_reduce: Optional[str] = None,
     threshold: float = 0.5,
     num_classes: Optional[int] = None,
-    logits: bool = True,
     is_multiclass: Optional[bool] = None,
     ignore_index: Optional[int] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -95,7 +94,6 @@ def _stat_scores_update(
         target,
         threshold=threshold,
         num_classes=num_classes,
-        logits=logits,
         is_multiclass=is_multiclass,
     )
 
@@ -158,7 +156,6 @@ def stat_scores(
     mdmc_reduce: Optional[str] = None,
     threshold: float = 0.5,
     num_classes: Optional[int] = None,
-    logits: bool = True,
     is_multiclass: Optional[bool] = None,
     ignore_index: Optional[int] = None,
 ) -> torch.Tensor:
@@ -169,7 +166,7 @@ def stat_scores(
     multi-dimensional multi-class case. Accepts all inputs listed in :ref:`metrics:Input types`.
 
     Args:
-        preds: Predictions from model (probabilities, logits, or labels)
+        preds: Predictions from model (probabilities, or labels)
         target: Ground truth values
         reduce:
             Defines the reduction that is applied. Should be one of the following:
@@ -205,12 +202,8 @@ def stat_scores(
             Number of classes. Necessary for (multi-dimensional) multi-class or multi-label data.
 
         threshold:
-            Threshold probability value for transforming probability/logit predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. If ``logits=True``,
-            this value is transformed to logits by ``logit_t = ln(t / (1-t))``. Default: 0.5
-        logits:
-            If predictions are floats, whether they are probabilities or logits. Default ``True``
-            (predictions are logits).
+            Threshold probability value for transforming probability predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
         is_multiclass:
             If ``False``, treat multi-class and multi-dim multi-class inputs with 1 or 2 classes as
             binary and multi-label, respectively. If ``True``, treat binary and multi-label inputs
@@ -276,6 +269,6 @@ def stat_scores(
         raise ValueError("When you set reduce as macro, you have to provide the number of classes.")
 
     tp, fp, tn, fn = _stat_scores_update(
-        preds, target, reduce, mdmc_reduce, threshold, num_classes, logits, is_multiclass, ignore_index
+        preds, target, reduce, mdmc_reduce, threshold, num_classes, is_multiclass, ignore_index
     )
     return _stat_scores_compute(tp, fp, tn, fn)

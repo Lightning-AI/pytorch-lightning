@@ -207,16 +207,16 @@ Input types
 For the purposes of classification metrics, inputs (predictions and targets) are split 
 into these categories (``N`` stands for the batch size and ``C`` for number of classes):
 
-.. csv-table:: \*dtype ``binary`` means integers that are either 0 or 1, \*\*probabilities in this case means either probabilities or logits
+.. csv-table:: \*dtype ``binary`` means integers that are either 0 or 1
     :header: "Type", "preds shape", "preds dtype", "target shape", "target dtype"
     :widths: 20, 10, 10, 10, 10
 
     "Binary", "(N,)", "``float``", "(N,)", "``binary``\*"
     "Multi-class", "(N,)", "``int``", "(N,)", "``int``"
-    "Multi-class with probabilities\*\*", "(N, C)", "``float``", "(N,)", "``int``"
+    "Multi-class with probabilities", "(N, C)", "``float``", "(N,)", "``int``"
     "Multi-label", "(N, ...)", "``float``", "(N, ...)", "``binary``\*"
     "Multi-dimensional multi-class", "(N, ...)", "``int``", "(N, ...)", "``int``"
-    "Multi-dimensional multi-class with probabilities\*\*", "(N, C, ...) or (N, ..., C)", "``float``", "(N, ...)", "``int``"
+    "Multi-dimensional multi-class with probabilities", "(N, C, ...) or (N, ..., C)", "``float``", "(N, ...)", "``int``"
 
 .. note::
     All dimensions of size 1 (except ``N``) are "squeezed out" at the beginning, so 

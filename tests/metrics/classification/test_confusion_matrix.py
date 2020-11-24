@@ -25,7 +25,7 @@ torch.manual_seed(42)
 
 def _sk_confmat(preds, target, normalize, num_classes):
     sk_preds, sk_target, _ = _input_format_classification(
-        preds, target, THRESHOLD, num_classes=num_classes, logits=False, is_multiclass=True
+        preds, target, THRESHOLD, num_classes=num_classes, is_multiclass=True
     )
 
     if len(sk_preds.shape) > 2:
@@ -63,7 +63,7 @@ class TestConfusionMatrix(MetricTester):
             metric_class=ConfusionMatrix,
             sk_metric=partial(_sk_confmat, normalize=normalize, num_classes=num_classes),
             dist_sync_on_step=dist_sync_on_step,
-            metric_args={"num_classes": num_classes, "threshold": THRESHOLD, "normalize": normalize, "logits": False},
+            metric_args={"num_classes": num_classes, "threshold": THRESHOLD, "normalize": normalize},
         )
 
     def test_confusion_matrix_functional(self, normalize, preds, target, num_classes):
@@ -72,7 +72,7 @@ class TestConfusionMatrix(MetricTester):
             target,
             metric_functional=confusion_matrix,
             sk_metric=partial(_sk_confmat, normalize=normalize, num_classes=num_classes),
-            metric_args={"num_classes": num_classes, "threshold": THRESHOLD, "normalize": normalize, "logits": False},
+            metric_args={"num_classes": num_classes, "threshold": THRESHOLD, "normalize": normalize},
         )
 
 

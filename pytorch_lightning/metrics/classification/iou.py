@@ -72,12 +72,8 @@ class IoU(StatScores):
             Number of classes. Necessary for (multi-dimensional) multi-class or multi-label data.
 
         threshold:
-            Threshold probability value for transforming probability/logit predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. If ``logits=True``,
-            this value is transformed to logits by ``logit_t = ln(t / (1-t))``. Default: 0.5
-        logits:
-            If predictions are floats, whether they are probabilities or logits. Default ``True``
-            (predictions are logits).
+            Threshold probability value for transforming probability predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
         is_multiclass:
             If ``False``, treat multi-class and multi-dim multi-class inputs with 1 or 2 classes as
             binary and multi-label, respectively. If ``True``, treat binary and multi-label inputs
@@ -125,7 +121,6 @@ class IoU(StatScores):
         mdmc_average: Optional[str] = None,
         threshold: float = 0.5,
         num_classes: Optional[int] = None,
-        logits: bool = True,
         is_multiclass: Optional[bool] = None,
         ignore_index: Optional[int] = None,
         zero_division: int = 0,
@@ -139,7 +134,6 @@ class IoU(StatScores):
             mdmc_reduce=mdmc_average,
             threshold=threshold,
             num_classes=num_classes,
-            logits=logits,
             is_multiclass=is_multiclass,
             ignore_index=ignore_index,
             compute_on_step=compute_on_step,

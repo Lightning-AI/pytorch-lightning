@@ -70,12 +70,8 @@ class StatScores(Metric):
             Number of classes. Necessary for (multi-dimensional) multi-class or multi-label data.
 
         threshold:
-            Threshold probability value for transforming probability/logit predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. If ``logits=True``,
-            this value is transformed to logits by ``logit_t = ln(t / (1-t))``. Default: 0.5
-        logits:
-            If predictions are floats, whether they are probabilities or logits. Default ``True``
-            (predictions are logits).
+            Threshold probability value for transforming probability predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
         is_multiclass:
             If ``False``, treat multi-class and multi-dim multi-class inputs with 1 or 2 classes as
             binary and multi-label, respectively. If ``True``, treat binary and multi-label inputs
@@ -121,7 +117,6 @@ class StatScores(Metric):
         mdmc_reduce: Optional[str] = None,
         threshold: float = 0.5,
         num_classes: Optional[int] = None,
-        logits: bool = True,
         is_multiclass: Optional[bool] = None,
         ignore_index: Optional[int] = None,
         compute_on_step: bool = True,
@@ -140,7 +135,6 @@ class StatScores(Metric):
         self.mdmc_reduce = mdmc_reduce
         self.num_classes = num_classes
         self.threshold = threshold
-        self.logits = logits
         self.is_multiclass = is_multiclass
         self.ignore_index = ignore_index
 
@@ -172,7 +166,7 @@ class StatScores(Metric):
         on input types.
 
         Args:
-            preds: Predictions from model (probabilities, logits, or labels)
+            preds: Predictions from model (probabilities or labels)
             target: Ground truth values
         """
 
@@ -183,7 +177,6 @@ class StatScores(Metric):
             mdmc_reduce=self.mdmc_reduce,
             threshold=self.threshold,
             num_classes=self.num_classes,
-            logits=self.logits,
             is_multiclass=self.is_multiclass,
             ignore_index=self.ignore_index,
         )
