@@ -1,4 +1,5 @@
 import os
+import sys
 from distutils.version import LooseVersion
 from enum import Enum
 from typing import List, Optional
@@ -13,6 +14,7 @@ try:
     IS_TORCH_AT_LEAST_1_6 = LooseVersion(torch.__version__) >= LooseVersion("1.6.0")
     if IS_TORCH_AT_LEAST_1_6:
         import fairscale.nn.model_parallel as mpu
+        from fairscale.nn import Pipe, PipeRPCWrapper
         from fairscale.nn.pipe.pipeline import PipelineStyle
         from torch.distributed import rpc
 
@@ -63,26 +65,16 @@ class LightningPipeModule(nn.Module):
 
     def _init_pipe(self):
         device = torch.device("cuda", torch_distrib.get_rank())
-        if self._pipe_version == 1:
-            from fairscale.nn import Pipe
-            self.module = Pipe(
-                module=self.module,
-                balance=self.balance,
-                chunks=self.microbatches,
-                style=PipelineStyle.MultiProcess,
-                input_device=device,
-                worker_map=get_worker_map(),
-                checkpoint=self.checkpoint)
-        else:
-            from fairscale.nn import PipeRPCWrapper
-            self.module = PipeRPCWrapper(
-                module=self.module,
-                balance=self.balance,
-                chunks=self.microbatches,
-                style=PipelineStyle.MultiProcess,
-                input_device=device,
-                worker_map=get_worker_map(),
-                checkpoint=self.checkpoint)
+        pipe_cls = Pipe if self._pipe_version == 1 else PipeRPCWrapper
+        self.module = pipe_cls(
+            module=self.module,
+            balance=self.balance,
+            chunks=self.microbatches,
+            style=PipelineStyle.MultiProcess,
+            input_device=device,
+            worker_map=get_worker_map(),
+            checkpoint=self.checkpoint
+        )
 
     def forward(self, *args, **kwargs):
         x = self.module(*args, **kwargs)
@@ -157,7 +149,7 @@ class PipePlugin(DDPPlugin):
         mpu.initialize_model_parallel(1, world_size)
 
         if self.version == 2:
-            if global_rank == 1:
+            if global_rank != 0:
                 # For RPC, all ranks other than 0 just need to call rpc.shutdown()
                 torch.distributed.rpc.shutdown()
                 return
@@ -172,6 +164,4 @@ class PipePlugin(DDPPlugin):
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
-        self.ddp_plugin = DDPPlugin(process_group=mpu.get_data_parallel_group())
-        model = self.ddp_plugin.configure_ddp(model, device_ids)
-        return model
+        return DDPPlugin(process_group=mpu.get_data_parallel_group()).configure_ddp(model, device_ids)

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-export PL_RUNNING_SPECIAL_TESTS='1'
+export PL_RUNNING_SPECIAL_TESTS=1
 # Running special tests
-pytest tests/plugins/test_pipe_plugin.py::test_pipe_plugin_ddp --verbose --capture=no
-python -m coverage run --source pytorch_lightning -m pytest tests/plugins/test_pipe_plugin.py::test_pipe_plugin_ddp_rpc --verbose --capture=no
+PL_RUNNING_SPECIAL_TESTS=1 pytest tests/plugins/test_pipe_plugin.py::test_pipe_plugin_ddp --verbose --capture=no
+PL_RUNNING_SPECIAL_TESTS=1 python -m coverage run --source pytorch_lightning -m pytest tests/plugins/test_pipe_plugin.py::test_pipe_plugin_ddp_rpc --verbose --capture=no
