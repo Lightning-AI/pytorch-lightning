@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning.metrics.functional.classification import (
-    accuracy,
     auc,
     auroc,
     average_precision,
@@ -37,6 +36,8 @@ from pytorch_lightning.metrics.functional.mean_squared_error import mean_squared
 from pytorch_lightning.metrics.functional.mean_squared_log_error import mean_squared_log_error
 from pytorch_lightning.metrics.functional.psnr import psnr
 from pytorch_lightning.metrics.functional.ssim import ssim
+
+from pytorch_lightning.metrics.functional.accuracy import accuracy, hamming_loss
 from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matrix
 from pytorch_lightning.metrics.functional.f_beta import fbeta, f1
 from pytorch_lightning.metrics.functional.stat_scores import stat_scores
