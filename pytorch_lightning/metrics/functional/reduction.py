@@ -56,22 +56,26 @@ def class_reduce(num: torch.Tensor,
             - ``'micro'``: calculate metrics globally (default)
             - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
             - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
-            - ``'none'``: returns calculated metric per class
+            - ``'none'`` or ``None``: returns calculated metric per class
 
     """
-    valid_reduction = ('micro', 'macro', 'weighted', 'none')
+    valid_reduction = ('micro', 'macro', 'weighted', 'none', None)
     if class_reduction == 'micro':
-        return torch.sum(num) / torch.sum(denom)
+        fraction = torch.sum(num) / torch.sum(denom)
+    else:
+        fraction = num / denom
 
-    # For the rest we need to take care of instances where the denom can be 0
-    # for some classes which will produce nans for that class
-    fraction = num / denom
+    # We need to take care of instances where the denom can be 0
+    # for some (or all) classes which will produce nans
     fraction[fraction != fraction] = 0
-    if class_reduction == 'macro':
+
+    if class_reduction == 'micro':
+        return fraction
+    elif class_reduction == 'macro':
         return torch.mean(fraction)
     elif class_reduction == 'weighted':
-        return torch.sum(fraction * (weights / torch.sum(weights)))
-    elif class_reduction == 'none':
+        return torch.sum(fraction * (weights.float() / torch.sum(weights)))
+    elif class_reduction == 'none' or class_reduction is None:
         return fraction
 
     raise ValueError(f'Reduction parameter {class_reduction} unknown.'
