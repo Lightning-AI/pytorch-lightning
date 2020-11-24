@@ -13,8 +13,13 @@
 # limitations under the License.
 from typing import cast
 
-from fairscale.optim import OSS
-from fairscale.optim.grad_scaler import ShardedGradScaler
+try:
+    from fairscale.optim import OSS
+    from fairscale.optim.grad_scaler import ShardedGradScaler
+except (ModuleNotFoundError, ImportError):
+    FAIRSCALE_AMP_AVAILABLE = False
+else:
+    FAIRSCALE_AMP_AVAILABLE = True
 
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
 

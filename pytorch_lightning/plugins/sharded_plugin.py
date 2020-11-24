@@ -59,7 +59,7 @@ class DDPShardedPlugin(DDPPlugin):
     def _check_fairscale(self):
         if not FAIRSCALE_AVAILABLE:
             raise MisconfigurationException(
-                'Requested Fairscale Feature, but Fairscale is not installed.'
+                'Sharded DDP Plugin requires Fairscale to be installed.'
             )
 
     @rank_zero_only
