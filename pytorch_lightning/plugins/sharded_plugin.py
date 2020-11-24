@@ -38,13 +38,12 @@ class DDPShardedPlugin(DDPPlugin):
     ):
         self._wrap_optimizers(model)
         if model.trainer.testing:  # Revert to standard DDP if using testing
-            super().configure_ddp(
+            return super().configure_ddp(
                 model=model,
                 device_ids=device_ids
             )
         else:
-            model = LightningShardedDataParallel(model, sharded_optimizer=model.trainer.optimizers)
-        return model
+            return LightningShardedDataParallel(model, sharded_optimizer=model.trainer.optimizers)
 
     def optimizer_state(self, optimizer: OSS) -> Optional[dict]:
         optimizer.consolidate_state_dict()
@@ -90,7 +89,6 @@ class DDPShardedPlugin(DDPPlugin):
             trainer: trainer object to reinit optimizers.
         """
         optimizers = trainer.optimizers
-        lr_schedulers = trainer.lr_schedulers
         for x, optimizer in enumerate(optimizers):
             if not isinstance(optimizer, OSS):
                 optim_class = type(optimizer)
@@ -100,10 +98,6 @@ class DDPShardedPlugin(DDPPlugin):
                     **optimizer.defaults
                 )
                 optimizers[x] = zero_optimizer
-                for scheduler in lr_schedulers:
-                    scheduler = scheduler['scheduler']
-                    if scheduler.optimizer == optimizer:
-                        scheduler.optimizer = zero_optimizer
                 del optimizer
 
     def get_model_from_plugin(
