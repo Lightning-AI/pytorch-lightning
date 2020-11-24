@@ -2,8 +2,9 @@ import os
 from typing import Any, Dict, List
 
 import torch.distributed as torch_distrib
-from pytorch_lightning import _logger as log
 from torch.optim import Optimizer
+
+from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 
@@ -29,6 +30,10 @@ class DDPPlugin(object):
 
     def __init__(self, **kwargs):
         self._ddp_kwargs: Dict[str, Any] = kwargs
+
+    @property
+    def use_barrier_and_broadcast(self):
+        return True
 
     def configure_ddp(
         self, model: LightningModule, device_ids: List[int]

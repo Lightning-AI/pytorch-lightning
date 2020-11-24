@@ -110,8 +110,10 @@ def test_pipe_plugin_ddp(tmpdir, args=None):
 
     assert len(trainer.dev_debugger.pbar_added_metrics) > 0
 
+
 def run_optimizer(ctx, model):
     model.optimizer.step()
+
 
 class SequentialModelRPC(LightningModule):
 
@@ -136,7 +138,7 @@ class SequentialModelRPC(LightningModule):
         output = self.layers(batch)
         loss = self.loss(output)
         self.manual_backward(loss, opt)
-        self.pipe_module.foreach_worker(run_optimizer, include_self=True)
+        self.foreach_worker(run_optimizer, include_self=True)
         self.log("train_loss", loss, on_epoch=True, reduce_fx=torch.sum, prog_bar=True)
 
     def validation_step(self, batch, batch_idx):

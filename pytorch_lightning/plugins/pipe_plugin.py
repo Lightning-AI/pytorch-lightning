@@ -98,10 +98,11 @@ class PipePlugin(DDPPlugin):
         self.microbatches = microbatches
         self.checkpoint = checkpoint
         self.version = version
+        self._use_barrier_and_broadcast = version == 1
 
-    def on_setup(self, model):
-        # TODO this should be connected to the accelerators via a hook, hasn't been yet...
-        self.pipe_module = self._find_pipe_module(model)
+    @property
+    def use_barrier_and_broadcast(self):
+        return self._use_barrier_and_broadcast
 
     def _find_pipe_module(self, model):
         pipe_module = None
