@@ -30,6 +30,9 @@ class ConfusionMatrix(Metric):
     integer class values in prediction.  Works with multi-dimensional preds and
     target.
 
+    Note:
+        This metric produces a multi-dimensional output, so it can not be directly logged.
+
     Forward accepts
 
     - ``preds`` (float or long tensor): ``(N, ...)`` or ``(N, C, ...)`` where C is the number of classes
