@@ -268,6 +268,12 @@ Accuracy
 .. autoclass:: pytorch_lightning.metrics.classification.Accuracy
     :noindex:
 
+Hamming Loss
+~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.HammingLoss
+    :noindex:
+
 Precision
 ~~~~~~~~~
 
@@ -304,9 +310,14 @@ Functional Metrics (Classification)
 accuracy [func]
 ~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.accuracy
+.. autofunction:: pytorch_lightning.metrics.functional.accuracy
     :noindex:
 
+hamming_loss [func]
+~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.metrics.functional.hamming_loss
+    :noindex:
 
 auc [func]
 ~~~~~~~~~~
