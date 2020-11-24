@@ -263,7 +263,7 @@ class CombinedDataset(object):
         self.min_len = self._calc_num_data(self.datasets, 'min')
 
     @staticmethod
-    def _calc_num_data(datasets: Union[Sequence, Mapping], mode: str = 'min'):
+    def _calc_num_data(datasets: Union[Sequence, Mapping], mode: str = 'min') -> Union[int, float]:
         """
         Compute the length of `CombinedDataset` according to the `mode`.
 
@@ -396,7 +396,7 @@ class CombinedLoader(object):
         return CombinedLoaderIterator(self.loaders)
 
     @staticmethod
-    def _calc_num_batches(loaders: Any) -> int:
+    def _calc_num_batches(loaders: Any) -> Union[int, float]:
         """
         Compute the length (aka the number of batches) of `CombinedLoader`.
 
