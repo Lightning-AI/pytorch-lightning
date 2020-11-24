@@ -68,7 +68,7 @@ def accuracy(
 
     Args:
         preds: Predictions from model (probabilities, or labels)
-        target: Ground truth values    
+        target: Ground truth values
         top_k:
             Number of highest probability predictions considered to find the correct label, for
             (multi-dimensional) multi-class inputs with probability predictions. Default 1
