@@ -5,45 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [unreleased.BugFix] - YYYY-MM-DD
+## [1.0.8] - 2020-11-24
 
 ### Added
 
-- Added casting to python types for numpy scalars when logging hparams ([#4647](https://github.com/PyTorchLightning/pytorch-lightning/pull/4647))
-
-
+- Added casting to python types for numpy scalars when logging `hparams` ([#4647](https://github.com/PyTorchLightning/pytorch-lightning/pull/4647))
 - Added warning when progress bar refresh rate is less than 20 on Google Colab to prevent crashing ([#4654](https://github.com/PyTorchLightning/pytorch-lightning/pull/4654))
-
-
 - Added `F1` class metric ([#4656](https://github.com/PyTorchLightning/pytorch-lightning/pull/4656))
-
 
 ### Changed
 
 - Consistently use `step=trainer.global_step` in `LearningRateMonitor` independently of `logging_interval` ([#4376](https://github.com/PyTorchLightning/pytorch-lightning/pull/4376))
-
-
-- Metric states are no longer as default added to `state_dict` ([#4685](https://github.com/PyTorchLightning/pytorch-lightning/pull/))
-
-
+- Metric states are no longer as default added to `state_dict` ([#4685](https://github.com/PyTorchLightning/pytorch-lightning/pull/4685))
 - Renamed class metric `Fbeta` >> `FBeta` ([#4656](https://github.com/PyTorchLightning/pytorch-lightning/pull/4656))
-
-
-### Deprecated
-
-
-
-### Removed
-
-
+- Model summary: add 1 decimal place ([#4745](https://github.com/PyTorchLightning/pytorch-lightning/pull/4745))
+- Do not override `PYTHONWARNINGS` ([#4700](https://github.com/PyTorchLightning/pytorch-lightning/pull/4700))
 
 ### Fixed
 
 - Fixed checkpoint `hparams` dict casting when `omegaconf` is available ([#4770](https://github.com/PyTorchLightning/pytorch-lightning/pull/4770))
-
-
-
 - Fixed incomplete progress bars when total batches not divisible by refresh rate ([#4577](https://github.com/PyTorchLightning/pytorch-lightning/pull/4577))
+- Updated SSIM metric (#4566)([#4656](https://github.com/PyTorchLightning/pytorch-lightning/pull/4656))
+- Fixed batch_arg_name - add `batch_arg_name` to all calls to `_adjust_batch_size`bug ([#4812](https://github.com/PyTorchLightning/pytorch-lightning/pull/4812))
+- Fixed `torchtext` data to GPU ([#4785](https://github.com/PyTorchLightning/pytorch-lightning/pull/4785))
+- Fixed a crash bug in MLFlow logger ([#4716](https://github.com/PyTorchLightning/pytorch-lightning/pull/4716))
 
 ## [1.0.7] - 2020-11-17
 
