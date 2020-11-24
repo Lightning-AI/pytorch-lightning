@@ -103,16 +103,6 @@ def get_num_classes(
     return num_classes
 
 
-def _confmat_normalize(cm):
-    """ Normalization function for confusion matrix """
-    cm = cm / cm.sum(-1, keepdim=True)
-    nan_elements = cm[torch.isnan(cm)].nelement()
-    if nan_elements != 0:
-        cm[torch.isnan(cm)] = 0
-        rank_zero_warn(f"{nan_elements} nan values found in confusion matrix have been replaced with zeros.")
-    return cm
-
-
 def _binary_clf_curve(
     pred: torch.Tensor,
     target: torch.Tensor,
