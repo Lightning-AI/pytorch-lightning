@@ -88,7 +88,6 @@ def select_topk(tensor: torch.Tensor, topk: int = 1, dim: int = 1) -> torch.Tens
     return topk_tensor.int()
 
 
-
 def _check_same_shape(pred: torch.Tensor, target: torch.Tensor):
     """ Check that predictions and target have the same shape, else raise error """
     if pred.shape != target.shape:
