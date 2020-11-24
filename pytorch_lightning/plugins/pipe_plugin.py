@@ -273,9 +273,9 @@ class PipePlugin(DDPPlugin):
         # Create pipe_module
         automatic_optimization = self.trainer.train_loop.automatic_optimization
         model = self.trainer.get_model()
+        ctx = {"batch_idx":batch_idx, "opt_idx": opt_idx, "on_tpu": on_tpu, "args": args, "kwargs":kwargs}
         if not automatic_optimization:
-            #model.foreach_worker(run_optimizer, include_self=True)
-            ctx = {"batch_idx":batch_idx, "opt_idx": opt_idx, "on_tpu": on_tpu, "args": args, "kwargs":kwargs}
-            model.foreach_worker(run_optimizer, ctx, include_self=False)
+            #   model.foreach_worker(run_optimizer, include_self=True)
+            model.foreach_worker(run_optimizer, ctx, include_self=True)
         else:
-            model.foreach_worker(optimizer_step, {"batch_idx":batch_idx, "opt_idx": opt_idx, "args": args, "kwargs":kwargs}, include_self=True)
+            model.foreach_worker(optimizer_step, ctx, include_self=True)
