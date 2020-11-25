@@ -168,16 +168,13 @@ class SequentialModelRPC(LightningModule):
         assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() == 0
 
     def validation_step(self, batch, batch_idx):
-        print(torch_distrib.get_rank(), batch, self.layers)
-        with torch.cuda.amp.autocast():
-            output = self.layers(batch)
-            loss = self.loss(output)
-            return loss
+        output = self.layers(batch)
+        loss = self.loss(output)
+        return loss
 
     def test_step(self, batch, batch_idx):
-        with torch.cuda.amp.autocast():
-            output = self.layers(batch)
-            return self.loss(batch, output)
+        output = self.layers(batch)
+        return self.loss(batch, output)
 
     def configure_optimizers(self):
         optimizer = torch.optim.SGD(self.layers.parameters(), lr=0.1)
