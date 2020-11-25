@@ -73,8 +73,8 @@ def _sk_stat_scores_mdmc(preds, target, reduce, mdmc_reduce, num_classes, is_mul
         shape_permute[1] = shape_permute[-1]
         shape_permute[2:] = range(1, len(shape_permute) - 1)
 
-        preds = torch.permute(*shape_permute).reshape(-1, preds.shape[1])
-        target = torch.permute(*shape_permute).reshape(-1, target.shape[1])
+        preds = preds.permute(*shape_permute).reshape(-1, preds.shape[1])
+        target = target.permute(*shape_permute).reshape(-1, target.shape[1])
 
         return _sk_stat_scores(preds, target, reduce, None, False, ignore_index)
     else:  # mdmc_reduce == "samplewise"
