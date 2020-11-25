@@ -14,7 +14,7 @@
 
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from typing import List, Optional, Union
+from typing import List, Mapping, Optional, OrderedDict, Sequence, Union
 from torch.utils.data import DataLoader
 from pytorch_lightning.utilities.model_utils import is_overridden
 
@@ -96,10 +96,10 @@ class DataConnector(object):
             model.train_dataloader = _PatchDataLoader(train_dataloader)
 
         if val_dataloaders is not None:
-            model.val_dataloader = _PatchDataLoader(val_dataloaders)
+            model.val_dataloader = _PatchDataLoader(self._format_val_test_loader_to_mapping(val_dataloaders))
 
         if test_dataloaders is not None:
-            model.test_dataloader = _PatchDataLoader(test_dataloaders)
+            model.test_dataloader = _PatchDataLoader(self._format_val_test_loader_to_mapping(test_dataloaders))
 
     def attach_datamodule(self, model, datamodule: Optional[LightningDataModule], stage: str) -> None:
 
@@ -113,9 +113,9 @@ class DataConnector(object):
             if is_overridden('train_dataloader', datamodule):
                 model.train_dataloader = datamodule.train_dataloader
             if is_overridden('val_dataloader', datamodule):
-                model.val_dataloader = datamodule.val_dataloader
+                model.val_dataloader = self._format_val_test_loader_to_mapping(datamodule.val_dataloader)
             if is_overridden('test_dataloader', datamodule):
-                model.test_dataloader = datamodule.test_dataloader
+                model.test_dataloader = self._format_val_test_loader_to_mapping(datamodule.test_dataloader)
 
             # Override transfer_batch_to_device if dataset-specific to_device logic has been defined in datamodule
             if is_overridden('transfer_batch_to_device', datamodule):
@@ -123,6 +123,16 @@ class DataConnector(object):
 
             self.trainer.datamodule = datamodule
             datamodule.trainer = self.trainer
+
+    @staticmethod
+    def _format_val_test_loader_to_mapping(val_loaders: Optional[Union[Mapping, Sequence]]):
+        if val_loaders is None or isinstance(val_loaders, Mapping):
+            return val_loaders
+
+        if isinstance(val_loaders, Sequence):
+            return OrderedDict(enumerate(val_loaders))
+
+        return val_loaders
 
 
 class _PatchDataLoader(object):
