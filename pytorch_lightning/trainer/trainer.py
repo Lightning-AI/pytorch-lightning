@@ -390,7 +390,7 @@ class Trainer(
             logger,
             flush_logs_every_n_steps,
             log_every_n_steps,
-            move_metrics_to_cpu
+            move_metrics_to_cpu,
         )
 
         # init debugging flags
