@@ -136,4 +136,4 @@ def _(trained_model, dataloader, dp=False, min_acc=0.25):
         output = trained_model(batch)
     acc = trained_model.loss(batch, output)
 
-    assert acc >= min_acc, f"This model is expected to get , {min_acc} in test set (it got {acc})"
+    assert acc >= min_acc, f"This model is expected to get, {min_acc} in test set but got {acc}"
