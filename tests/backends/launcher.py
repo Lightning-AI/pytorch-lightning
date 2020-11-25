@@ -40,7 +40,8 @@ def call_training_script(cli_args: str, tmpdir: str, env: Dict, timeout: int = 2
     file = Path(__file__).absolute()
     cli_args = cli_args.split(' ') if cli_args else []
     cli_args += ['--tmpdir', str(tmpdir)]
-    command = [sys.executable, '-m', 'coverage', 'run', '--rcfile=../multi.rc', '--source', 'pytorch_lightning', '--append', str(file)] + cli_args
+    dir_path = os.path.dirname(os.path.dirname(file))
+    command = [sys.executable, '-m', 'coverage', 'run', f'--rcfile={dir_path}/multi.rc', '--source', 'pytorch_lightning', '--append', str(file)] + cli_args
 
     # need to set the PYTHONPATH in case pytorch_lightning was not installed into the environment
     env['PYTHONPATH'] = f'{pytorch_lightning.__file__}:{env.get("PYTHONPATH", "")}'
