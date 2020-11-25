@@ -55,6 +55,10 @@ def register_optimizers(ctx, model):
     model.trainer.optimizer_frequencies = optimizer_frequencies
 
 
+def do_nothing_optimizer_closure():
+    return
+
+
 def run_optimizer(ctx, model):
     trainer = model.trainer
     model_ref = trainer.get_model()
@@ -75,82 +79,21 @@ def run_optimizer(ctx, model):
             'native PyTorch amp and lbfgs are not compatible.'
             ' To request, please file a Github issue in PyTorch and tag @mcarilli')
 
+    optimizer_closure = getattr(trainer, "_optimizer_closure", do_nothing_optimizer_closure)
+
     # model hook
     model_ref.optimizer_step(
         epoch=trainer.current_epoch,
         batch_idx=batch_idx,
         optimizer=optimizer,
         optimizer_idx=opt_idx,
-        optimizer_closure=do_nothing_optimizer_closure,
+        optimizer_closure=optimizer_closure,
         on_tpu=on_tpu,  # TPUAccelerator class sets this as True
         using_native_amp=using_native_amp,
         using_lbfgs=is_lbfgs,
         *args,
         **kwargs,
     )
-
-
-def do_nothing_optimizer_closure():
-    return
-
-
-def optimizer_step(ctx, model):
-    trainer = model.trainer
-    model_ref = trainer.get_model()
-    opt_idx = ctx["opt_idx"]
-    args = ctx["args"]
-    kwargs = ctx["kwargs"]
-    batch_idx = ctx["batch_idx"]
-    optimizer = trainer.optimizers[opt_idx]
-
-    is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-    using_native_amp = trainer.amp_backend == AMPType.NATIVE
-    automatic_optimization = trainer.train_loop.automatic_optimization
-
-    # native amp + lbfgs is a no go right now
-    if using_native_amp and is_lbfgs:
-        raise MisconfigurationException(
-            'native PyTorch amp and lbfgs are not compatible.'
-            ' To request, please file a Github issue in PyTorch and tag @mcarilli')
-
-    optimizer_closure = getattr(trainer, "_optimizer_closure", do_nothing_optimizer_closure)
-    print(optimizer_closure)
-
-    if optimizer_closure != do_nothing_optimizer_closure:
-        with trainer.model.no_sync():
-            # model hook
-            model_ref.optimizer_step(
-                epoch=trainer.current_epoch,
-                batch_idx=batch_idx,
-                optimizer=optimizer,
-                optimizer_idx=opt_idx,
-                optimizer_closure=optimizer_closure,
-                on_tpu=False,  # TPUAccelerator class sets this as True
-                using_native_amp=using_native_amp,
-                using_lbfgs=is_lbfgs,
-                *args,
-                **kwargs,
-            )
-
-    else:
-
-        # model hook
-        model_ref.optimizer_step(
-            epoch=trainer.current_epoch,
-            batch_idx=batch_idx,
-            optimizer=optimizer,
-            optimizer_idx=opt_idx,
-            optimizer_closure=optimizer_closure,
-            on_tpu=False,  # TPUAccelerator class sets this as True
-            using_native_amp=using_native_amp,
-            using_lbfgs=is_lbfgs,
-            *args,
-            **kwargs,
-        )
-
-    # scale when native amp
-    if automatic_optimization and using_native_amp:
-        trainer.scaler.update()
 
 
 class LightningPipeModule(nn.Module):
@@ -245,6 +188,11 @@ class PipePlugin(DDPPlugin):
         rpc.init_rpc(f"worker{global_rank}", rank=global_rank, world_size=world_size)
         mpu.initialize_model_parallel(1, world_size)
 
+        automatic_optimization = trainer.train_loop.automatic_optimization
+        if automatic_optimization:
+            raise MisconfigurationException(
+                'PipePlugin is currently not supported in automatic automatization')
+
         self.trainer = trainer
         model = trainer.get_model()
 
@@ -260,8 +208,9 @@ class PipePlugin(DDPPlugin):
         # Create pipe_module
         model = trainer.get_model()
         self._find_pipe_module(model)
-        torch_distrib.barrier()
-        model.foreach_worker(register_optimizers, include_self=True)
+        if self.version == 2:
+            torch_distrib.barrier()
+            model.foreach_worker(register_optimizers, include_self=True)
 
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
@@ -270,13 +219,14 @@ class PipePlugin(DDPPlugin):
         model.trainer.init_optimizers(model)
         return DDPPlugin(process_group=mpu.get_data_parallel_group()).configure_ddp(model, device_ids)
 
-    def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure, on_tpu, *args, **kwargs):
+    def optimizer_step(self, optimizer, batch_idx, opt_idx, optimizer_closure, on_tpu, *args, **kwargs):
         # Create pipe_module
         automatic_optimization = self.trainer.train_loop.automatic_optimization
         model = self.trainer.get_model()
         ctx = {"batch_idx":batch_idx, "opt_idx": opt_idx, "on_tpu": on_tpu, "args": args, "kwargs":kwargs}
+        if optimizer_closure is not None:
+            optimizer_closure()
         if not automatic_optimization:
-            #   model.foreach_worker(run_optimizer, include_self=True)
             model.foreach_worker(run_optimizer, ctx, include_self=True)
         else:
-            model.foreach_worker(optimizer_step, ctx, include_self=True)
+            model.foreach_worker(run_optimizer, ctx, include_self=True)

@@ -105,7 +105,7 @@ def test_pipe_plugin_ddp(tmpdir, args=None):
         limit_test_batches=2,
         gpus=args.gpus,
         distributed_backend=args.distributed_backend,
-        plugins=[PipePlugin(balance=[2, 1])],
+        plugins=[PipePlugin(balance=[2, 1], version=1)],
         automatic_optimization=False,
     )
     trainer.fit(model)
@@ -119,6 +119,10 @@ def run_optimizer(ctx, model):
 
 
 class SequentialModelRPC(LightningModule):
+
+    _count = 0
+    _called = 0
+
     def __init__(self):
         super().__init__()
         self.layers = nn.Sequential(torch.nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2))
@@ -137,6 +141,7 @@ class SequentialModelRPC(LightningModule):
 
     def training_step(self, batch, batch_idx):
         if batch_idx % 2 == 0:
+            self._count += 1
             opt = self.optimizers()
             output = self.layers(batch)
             loss = self.loss(output)
@@ -148,12 +153,15 @@ class SequentialModelRPC(LightningModule):
             opt = self.optimizers()
 
             def optimizer_closure():
+                self._count += 1
                 output = self.layers(batch)
                 loss = self.loss(output)
                 self.log("train_loss", loss, on_epoch=True, prog_bar=True)
                 self.manual_backward(loss, opt)
                 assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() > 0
             self.manual_optimizer_step(opt, optimizer_closure=optimizer_closure)
+        self._called += 1
+        assert self._called == self._count
         assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() == 0
 
     def validation_step(self, batch, batch_idx):
