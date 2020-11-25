@@ -551,6 +551,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
         amp_backend='native',
         accumulate_grad_batches=4,
         gpus=1,
+        enable_pl_optimizer=True,
     )
     trainer.fit(model)
 
@@ -612,7 +613,8 @@ def test_multiple_optimizers_manual_optimizer_step(tmpdir):
         weights_summary=None,
         precision=16,
         amp_backend='native',
-        gpus=1
+        gpus=1,
+        enable_pl_optimizer=True,
     )
 
     trainer.fit(model)
