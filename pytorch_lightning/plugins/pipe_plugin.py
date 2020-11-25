@@ -34,14 +34,6 @@ from pytorch_lightning import LightningModule, seed_everything
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-# generate a list of random seeds for each test
-RANDOM_PORTS = list(np.random.randint(15000, 16000, 1))
-
-
-def get_random_port():
-    seed_everything(np.random.randint(1, 10))
-    return str(RANDOM_PORTS.pop())
-
 
 def get_worker_map():
     # TODO, is this correct with multinodes?
@@ -187,7 +179,7 @@ class PipePlugin(DDPPlugin):
             world_size=world_size,
             is_slurm_managing_tasks=is_slurm_managing_tasks
         )
-        os.environ["MASTER_PORT"] = "15000"     # get_random_port()
+        os.environ["MASTER_PORT"] = "15000"
         rpc.init_rpc(f"worker{global_rank}", rank=global_rank, world_size=world_size)
         mpu.initialize_model_parallel(1, world_size)
 
@@ -237,7 +229,3 @@ class PipePlugin(DDPPlugin):
         else:
             run_optimizer(ctx, model)
             model.foreach_worker(run_optimizer, ctx, include_self=True)
-
-    def on_keyboard_interrupt(self):
-        model = self.trainer.get_model()
-        model.foreach_worker(cleanup, include_self=False)
