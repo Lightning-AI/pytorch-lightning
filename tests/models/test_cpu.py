@@ -81,9 +81,11 @@ def test_cpu_slurm_save_load(enable_pl_optimizer, tmpdir):
         def on_epoch_start(self, trainer, model):
             assert trainer.global_step == real_global_step and trainer.global_step > 0
             # predict with loaded model to make sure answers are the same
+            mode = model.training
             model.eval()
             new_pred = model(batch)
-            assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
+            assert torch.eq(pred_before_saving, new_pred).all()
+            model.train(mode)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
