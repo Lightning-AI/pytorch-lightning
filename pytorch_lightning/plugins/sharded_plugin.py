@@ -26,6 +26,8 @@ try:
     if IS_TORCH_AT_LEAST_1_6:
         from fairscale.optim import OSS
         from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel
+    else:
+        FAIRSCALE_AVAILABLE = False  # Requires AMP support
 except (ModuleNotFoundError, ImportError):
     FAIRSCALE_AVAILABLE = False
 else:
