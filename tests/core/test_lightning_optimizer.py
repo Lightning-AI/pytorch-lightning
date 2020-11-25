@@ -103,13 +103,13 @@ def test_lightning_optimizer_manual_optimization(mock_sgd_step, mock_adam_step, 
 
             output = self.layer(batch)
             loss_1 = self.loss(batch, output)
-            opt_1.backward(loss_1)
+            self.manual_backward(loss_1, opt_1)
             opt_1.step(idx="1")
 
             def closure():
                 output = self.layer(batch)
                 loss_2 = self.loss(batch, output)
-                opt_2.backward(loss_2)
+                self.manual_backward(loss_2, opt_2)
             opt_2.step(closure=closure, idx="2")
 
         def configure_optimizers(self):
@@ -152,13 +152,13 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(mock_
 
             output = self.layer(batch)
             loss_1 = self.loss(batch, output)
-            opt_1.backward(loss_1)
+            self.manual_backward(loss_1, opt_1)
             opt_1.step(idx="1")
 
             def closure():
                 output = self.layer(batch)
                 loss_2 = self.loss(batch, output)
-                opt_2.backward(loss_2)
+                self.manual_backward(loss_2, opt_2)
             opt_2.step(closure=closure, idx="2")
 
         def configure_optimizers(self):

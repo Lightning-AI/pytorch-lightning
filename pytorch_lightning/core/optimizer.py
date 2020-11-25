@@ -142,50 +142,6 @@ class LightningOptimizer(Optimizer):
         is_final_batch = self._trainer.train_loop._num_training_batches_reached()
         return not (accumulation_done or is_final_batch)
 
-    def backward(self, loss: Tensor, *args, **kwargs) -> None:
-        """
-        Call this directly from your training_step when doing optimizations manually.
-        By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
-
-        .. tip:: In manual mode we still automatically accumulate grad over batches if
-           Trainer(accumulate_grad_batches=x) is set.
-
-        Args:
-            loss: Optimizer used to perform `.step()` call
-
-        Example::
-
-            def training_step(...):
-                (opt_a, opt_b) = self.optimizers()
-                loss_a = ...
-
-                # automatically applies scaling, etc...
-                opt_a.backward(loss_a)
-                opt_a.step()
-
-        Example::
-
-            def training_step(...):
-                (opt_a, opt_b) = self.optimizers()
-                loss_a = ...
-
-                # automatically applies scaling, etc...
-                def closure_a():
-                    loss_a = ...
-                    opt_a.backward(loss)
-
-                opt_a.step(closure=closure_a)
-
-        """
-
-        model_ref = self._trainer.get_model()
-
-        # toggle params
-        model_ref.toggle_optimizer(self, self._optimizer_idx)
-
-        # perform manual_backward
-        model_ref.manual_backward(loss, self, *args, **kwargs)
-
     def step(self, *args, closure: Callable = None, make_optimizer_step: Optional[bool] = None, **kwargs):
         """
         Call this directly from your training_step when doing optimizations manually.
@@ -223,7 +179,7 @@ class LightningOptimizer(Optimizer):
                 (opt_a, opt_b) = self.optimizers()
                 loss_a = ...
                 # automatically applies scaling, etc...
-                opt_a.backward(loss_a)
+                self.manual_backward(loss_a, opt_a)
                 opt_a.step()
 
         Example::
@@ -248,7 +204,7 @@ class LightningOptimizer(Optimizer):
                         loss = compute_loss()
                         losses.append(loss)
                         retain_graph = num_backward!= backward_idx
-                        opt.backward(loss, retain_graph=retain_graph)
+                        self.manual_backward(loss, opt, retain_graph=retain_graph)
                     loss_mean = torch.stack(losses).mean()
                     loss_std = torch.stack(losses).std()
                     self.log("train_loss_mean", loss_mean, on_step=True, prog_bar=True, on_epoch=True)
@@ -272,13 +228,13 @@ class LightningOptimizer(Optimizer):
                     ... forward and compute loss for generator
                     loss_gen = ...
                     self.log("loss_gen", loss_gen, on_step=True, on_epoch=True)
-                    opt_gen.backward(loss_gen)
+                    self.manual_backward(loss_gen, opt_gen)
 
                 def dis_closure():
                     ... forward and compute loss for discriminator
                     loss_dis = ...
                     self.log("loss_dis", loss_dis, on_step=True, on_epoch=True)
-                    opt_dis.backward(loss_dis)
+                    self.manual_backward(loss_dis, opt_dis)
 
                 # this will accumulate gradients for 2 batches and then call opt_gen.step()
                 opt_gen.step(closure=gen_closure, make_optimizer_step=batch_idx % 2 == 0)
