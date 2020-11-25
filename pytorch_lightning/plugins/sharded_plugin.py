@@ -37,7 +37,7 @@ class DDPShardedPlugin(DDPPlugin):
             self, model: LightningModule, device_ids: List[int]
     ):
         self._wrap_optimizers(model)
-        if model.trainer.testing:  # Revert to standard DDP if using testing
+        if model.trainer.testing:  # Revert to standard DDP if testing
             return super().configure_ddp(
                 model=model,
                 device_ids=device_ids
@@ -64,14 +64,6 @@ class DDPShardedPlugin(DDPPlugin):
 
     @rank_zero_only
     def _optim_state_dict(self, optimizer):
-        """
-        Ensure we only return the state dict from the optimizer on rank 0.
-        Other ranks do not have the complete optimizer state.
-        Args:
-            optimizer: OSS Optimizer
-        Returns:
-            State dict if rank 0 else None.
-        """
         return optimizer.state_dict()
 
     def _wrap_optimizers(self, model):
@@ -82,12 +74,6 @@ class DDPShardedPlugin(DDPPlugin):
         self._reinit_with_fairscale_oss(trainer)
 
     def _reinit_with_fairscale_oss(self, trainer):
-        """
-        Re-initialise optimizers to use OSS wrapper. We need to re-initialise due to
-        the parameters being sharded across distributed processes, each optimizing a partition.
-        Args:
-            trainer: trainer object to reinit optimizers.
-        """
         optimizers = trainer.optimizers
         for x, optimizer in enumerate(optimizers):
             if not isinstance(optimizer, OSS):
