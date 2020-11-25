@@ -24,6 +24,7 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
 from pytorch_lightning.plugins.pipe_plugin import HAS_FAIRSCALE, PipePlugin
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.backends.launcher import DDPLauncher
 from tests.base.boring_model import BoringModel, RandomDataset
 
@@ -167,13 +168,16 @@ class SequentialModelRPC(LightningModule):
         assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() == 0
 
     def validation_step(self, batch, batch_idx):
-        output = self.layers(batch)
-        loss = self.loss(output)
-        return loss
+        print(torch_distrib.get_rank(), batch, self.layers)
+        with torch.cuda.amp.autocast():
+            output = self.layers(batch)
+            loss = self.loss(output)
+            return loss
 
     def test_step(self, batch, batch_idx):
-        output = self.layer(batch)
-        return self.loss(batch, output)
+        with torch.cuda.amp.autocast():
+            output = self.layers(batch)
+            return self.loss(batch, output)
 
     def configure_optimizers(self):
         optimizer = torch.optim.SGD(self.layers.parameters(), lr=0.1)
@@ -215,6 +219,32 @@ def test_pipe_plugin_ddp_rpc_manual(tmpdir, args=None):
     assert len(trainer.dev_debugger.pbar_added_metrics) > 0
 
     model.foreach_worker(cleanup, include_self=True)
+
+    del model
+
+
+@pytest.mark.skipif(not HAS_FAIRSCALE, reason="test requires fairscale to be installed")
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
+def test_pipe_plugin_ddp_rpc_manual_amp(tmpdir, args=None):
+    model = SequentialModelRPC()
+    trainer = Trainer(
+        max_epochs=2,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        gpus=2,
+        precision=16,
+        amp_backend="native",
+        distributed_backend="ddp",
+        plugins=[PipePlugin(balance=[2, 1], version=2)],
+        automatic_optimization=False,
+    )
+    with pytest.raises(MisconfigurationException, match='not supported in Automatic Mixed Precision'):
+        trainer.fit(model)
+
+        assert len(trainer.dev_debugger.pbar_added_metrics) > 0
 
     del model
 
@@ -283,10 +313,12 @@ def test_pipe_plugin_ddp_rpc_automatic(tmpdir, args=None):
         plugins=[PipePlugin(balance=[2, 1], version=2)],
         automatic_optimization=True,
     )
-    trainer.fit(model)
 
-    assert len(trainer.dev_debugger.pbar_added_metrics) > 0
+    with pytest.raises(MisconfigurationException, match='PipePlugin is currently not'):
+        trainer.fit(model)
 
-    model.foreach_worker(cleanup, include_self=True)
+        assert len(trainer.dev_debugger.pbar_added_metrics) > 0
+
+        model.foreach_worker(cleanup, include_self=True)
 
     del model

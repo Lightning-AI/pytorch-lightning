@@ -71,6 +71,7 @@ def run_optimizer(ctx, model):
     kwargs = ctx["kwargs"]
     batch_idx = ctx["batch_idx"]
     on_tpu = ctx["on_tpu"]
+    optimizer_closure = ctx.pop("optimizer_closure", do_nothing_optimizer_closure)
     optimizer = trainer.optimizers[opt_idx]
 
     is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
@@ -82,8 +83,6 @@ def run_optimizer(ctx, model):
         raise MisconfigurationException(
             'native PyTorch amp and lbfgs are not compatible.'
             ' To request, please file a Github issue in PyTorch and tag @mcarilli')
-
-    optimizer_closure = getattr(trainer, "_optimizer_closure", do_nothing_optimizer_closure)
 
     # model hook
     model_ref.optimizer_step(
@@ -145,7 +144,7 @@ class PipePlugin(DDPPlugin):
 
     @property
     def use_optimizer_step(self):
-        return self.version != 1
+        return not (self.version == 1)
 
     def _find_pipe_module(self, model):
         # try to wrap for the user
@@ -197,6 +196,10 @@ class PipePlugin(DDPPlugin):
             raise MisconfigurationException(
                 'PipePlugin is currently not supported in automatic automatization')
 
+        if trainer.amp_backend is not None:
+            raise MisconfigurationException(
+                'PipePlugin is currently not supported in Automatic Mixed Precision')
+
         self.trainer = trainer
         model = trainer.get_model()
 
@@ -227,12 +230,12 @@ class PipePlugin(DDPPlugin):
         # Create pipe_module
         automatic_optimization = self.trainer.train_loop.automatic_optimization
         model = self.trainer.get_model()
-        ctx = {"batch_idx":batch_idx, "opt_idx": opt_idx, "on_tpu": on_tpu, "args": args, "kwargs":kwargs}
-        if optimizer_closure is not None:
-            optimizer_closure()
+        ctx = {"batch_idx":batch_idx, "opt_idx": opt_idx, "on_tpu": on_tpu, "args": args, "kwargs":kwargs, "optimizer_closure": optimizer_closure}
         if not automatic_optimization:
-            model.foreach_worker(run_optimizer, ctx, include_self=True)
+            run_optimizer(ctx, model)
+            model.foreach_worker(run_optimizer, ctx, include_self=False)
         else:
+            run_optimizer(ctx, model)
             model.foreach_worker(run_optimizer, ctx, include_self=True)
 
     def on_keyboard_interrupt(self):

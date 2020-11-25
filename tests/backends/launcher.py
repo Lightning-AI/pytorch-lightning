@@ -75,7 +75,7 @@ def create_cmd_lines(cmd_line, **kwargs):
 
 def undecorate(o):
     """Remove all decorators from a function, method or class"""
-    if isinstance(o,  type):
+    if isinstance(o, type):
         return o
 
     try:
