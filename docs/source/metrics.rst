@@ -230,7 +230,7 @@ into these categories (``N`` stands for the batch size and ``C`` for number of c
     All dimensions of size 1 (except ``N``) are "squeezed out" at the beginning, so 
     that, for example, a tensor of shape ``(N, 1)`` is treated as ``(N, )``.
 
-When predictions or targets are integers, it is assumed that class labels start at , i.e. 
+When predictions or targets are integers, it is assumed that class labels start at 0, i.e. 
 the possible class labels are 0, 1, 2, 3, etc. Below are some examples of different input types
 
 .. code-block:: python
