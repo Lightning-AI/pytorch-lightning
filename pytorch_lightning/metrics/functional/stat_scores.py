@@ -108,8 +108,8 @@ def _stat_scores_update(
             shape_permute[1] = shape_permute[-1]
             shape_permute[2:] = range(1, len(shape_permute) - 1)
 
-            preds = torch.permute(*shape_permute).reshape(-1, preds.shape[1])
-            target = torch.permute(*shape_permute).reshape(-1, target.shape[1])
+            preds = preds.permute(*shape_permute).reshape(-1, preds.shape[1])
+            target = target.permute(*shape_permute).reshape(-1, target.shape[1])
 
     # Delete what is in ignore_index, if applicable (and classes don't matter):
     if ignore_index and reduce in ["micro", "samples"] and preds.shape[1] > 1:
