@@ -1,8 +1,6 @@
-import glob
 import os
 import platform
 import time
-from distutils.version import LooseVersion
 from unittest import mock
 
 import pytest
@@ -10,7 +8,7 @@ import torch
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.callbacks import Callback, ModelCheckpoint
+from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins.sharded_native_amp_plugin import ShardedNativeAMPPlugin
 from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin, FAIRSCALE_AVAILABLE
 from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
@@ -110,7 +108,6 @@ def test_ddp_sharded_plugin_checkpoint_cpu(tmpdir):
     """
     model = BoringModel()
     trainer = Trainer(
-        callbacks=[ModelCheckpoint(dirpath=tmpdir, save_last=True)],
         accelerator='ddp_cpu',
         plugins=[DDPShardedPlugin()],
         fast_dev_run=True,
@@ -118,8 +115,8 @@ def test_ddp_sharded_plugin_checkpoint_cpu(tmpdir):
 
     trainer.fit(model)
 
-    checkpoint_path = glob.glob(os.path.join(tmpdir, "*.ckpt"))[0]
-
+    checkpoint_path = os.path.join(tmpdir, 'model.pt')
+    trainer.save_checkpoint(checkpoint_path)
     saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
 
     # Assert model parameters are identical after loading
@@ -137,7 +134,6 @@ def test_ddp_sharded_plugin_checkpoint_multi_gpu(tmpdir):
     """
     model = BoringModel()
     trainer = Trainer(
-        callbacks=[ModelCheckpoint(dirpath=tmpdir, save_last=True)],
         gpus=2,
         accelerator='ddp_spawn',
         plugins=[DDPShardedPlugin()],
@@ -146,8 +142,8 @@ def test_ddp_sharded_plugin_checkpoint_multi_gpu(tmpdir):
 
     trainer.fit(model)
 
-    checkpoint_path = glob.glob(os.path.join(tmpdir, "*.ckpt"))[0]
-
+    checkpoint_path = os.path.join(tmpdir, 'model.pt')
+    trainer.save_checkpoint(checkpoint_path)
     saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
 
     # Assert model parameters are identical after loading
@@ -165,7 +161,6 @@ def test_ddp_sharded_plugin_finetune(tmpdir):
     """
     model = BoringModel()
     trainer = Trainer(
-        callbacks=[ModelCheckpoint(dirpath=tmpdir, save_last=True)],
         gpus=2,
         accelerator='ddp_spawn',
         plugins=[DDPShardedPlugin()],
@@ -173,11 +168,11 @@ def test_ddp_sharded_plugin_finetune(tmpdir):
     )
     trainer.fit(model)
 
-    checkpoint_path = glob.glob(os.path.join(tmpdir, "*.ckpt"))[0]
+    checkpoint_path = os.path.join(tmpdir, 'model.pt')
+    trainer.save_checkpoint(checkpoint_path)
     saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
 
     trainer = Trainer(
-        callbacks=[ModelCheckpoint(dirpath=tmpdir, save_last=True)],
         fast_dev_run=True,
     )
     trainer.fit(saved_model)
@@ -193,7 +188,6 @@ def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
     """
     model = BoringModel()
     trainer = Trainer(
-        callbacks=[ModelCheckpoint(dirpath=tmpdir, save_last=True)],
         accelerator='ddp_cpu',
         plugins=[DDPShardedPlugin()],
         fast_dev_run=True,
@@ -201,12 +195,12 @@ def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
 
     trainer.fit(model)
 
-    checkpoint_path = glob.glob(os.path.join(tmpdir, "*.ckpt"))[0]
+    checkpoint_path = os.path.join(tmpdir, 'model.pt')
+    trainer.save_checkpoint(checkpoint_path)
 
     model = BoringModel()
 
     trainer = Trainer(
-        callbacks=[ModelCheckpoint(dirpath=tmpdir, save_last=True)],
         accelerator='ddp_cpu',
         plugins=[DDPShardedPlugin()],
         fast_dev_run=True,
@@ -228,7 +222,6 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_downsize_gpus(tmpdir):
     """
     model = BoringModel()
     trainer = Trainer(
-        callbacks=[ModelCheckpoint(dirpath=tmpdir, save_last=True)],
         accelerator='ddp_spawn',
         plugins=[DDPShardedPlugin()],
         fast_dev_run=True,
@@ -237,12 +230,12 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_downsize_gpus(tmpdir):
 
     trainer.fit(model)
 
-    checkpoint_path = glob.glob(os.path.join(tmpdir, "*.ckpt"))[0]
+    checkpoint_path = os.path.join(tmpdir, 'model.pt')
+    trainer.save_checkpoint(checkpoint_path)
 
     model = BoringModel()
 
     trainer = Trainer(
-        callbacks=[ModelCheckpoint(dirpath=tmpdir, save_last=True)],
         accelerator='ddp_spawn',
         plugins=[DDPShardedPlugin()],
         fast_dev_run=True,
@@ -264,7 +257,6 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
     """
     model = BoringModel()
     trainer = Trainer(
-        callbacks=[ModelCheckpoint(dirpath=tmpdir, save_last=True)],
         accelerator='ddp_spawn',
         plugins=[DDPShardedPlugin()],
         gpus=1,
@@ -273,12 +265,12 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
 
     trainer.fit(model)
 
-    checkpoint_path = glob.glob(os.path.join(tmpdir, "*.ckpt"))[0]
+    checkpoint_path = os.path.join(tmpdir, 'model.pt')
+    trainer.save_checkpoint(checkpoint_path)
 
     model = BoringModel()
 
     trainer = Trainer(
-        callbacks=[ModelCheckpoint(dirpath=tmpdir, save_last=True)],
         plugins=[DDPShardedPlugin()],
         accelerator='ddp_cpu',
         fast_dev_run=True,
