@@ -148,7 +148,7 @@ def _stat_scores_compute(tp: torch.Tensor, fp: torch.Tensor, tn: torch.Tensor, f
     outputs = torch.cat(outputs, -1).long()
 
     # To standardzie ignore_index statistics as -1
-    outputs = torch.where(outputs < 0, -1, outputs)
+    outputs = torch.where(outputs < 0, torch.tensor(-1, device=outputs.device), outputs)
 
     return outputs
 

@@ -153,9 +153,9 @@ class StatScores(Metric):
             elif reduce == "macro":
                 default, reduce_fn = torch.zeros((num_classes,), dtype=torch.int), "sum"
             elif reduce == "samples":
-                default, reduce_fn = torch.empty(0), _dim_zero_cat_and_put_back
+                default, reduce_fn = torch.empty(0, dtype=torch.int), _dim_zero_cat_and_put_back
         else:
-            default, reduce_fn = torch.empty(0), _dim_zero_cat_and_put_back
+            default, reduce_fn = torch.empty(0, dtype=torch.int), _dim_zero_cat_and_put_back
 
         for s in ("tp", "fp", "tn", "fn"):
             self.add_state(s, default=default.detach().clone(), dist_reduce_fx=reduce_fn)
