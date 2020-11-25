@@ -121,10 +121,7 @@ class LightningModule(
         # single optimizer
         if isinstance(opts, list) and len(opts) == 1 and isinstance(opts[0], Optimizer):
             return opts[0]
-
-        # multiple opts
-        else:
-            return opts
+        return opts
 
     @property
     def example_input_array(self) -> Any:

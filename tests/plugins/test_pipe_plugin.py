@@ -55,7 +55,9 @@ class SequentialModel(LightningModule):
         if self.final_stage:
             loss = self.loss(output)
             self.manual_backward(loss, opt)
+            assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() > 0
             self.manual_optimizer_step(opt)
+            assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() == 0
         else:
             self.back_helper(output)
 
