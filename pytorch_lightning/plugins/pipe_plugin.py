@@ -26,7 +26,8 @@ try:
         HAS_FAIRSCALE = LooseVersion(torch.__version__) == LooseVersion("1.6.0")
     else:
         HAS_FAIRSCALE = False
-except Exception:
+except Exception as e:
+    print(e)
     HAS_FAIRSCALE = False
 
 from pytorch_lightning import LightningModule, seed_everything
