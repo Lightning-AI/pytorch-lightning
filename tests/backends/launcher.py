@@ -75,7 +75,7 @@ def create_cmd_lines(cmd_line, **kwargs):
 
 def undecorate(o):
     """Remove all decorators from a function, method or class"""
-    if type(o) is type:
+    if isinstance(o,  type):
         return o
 
     try:
@@ -92,10 +92,7 @@ def undecorate(o):
                 func = undecorate(cell.cell_contents)
                 if func:
                     return func
-        else:
-            return o
-    else:
-        return o
+    return o
 
 
 def is_decorator(a):
