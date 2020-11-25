@@ -23,10 +23,14 @@ from pytorch_lightning.metrics.functional.f_beta import (
 
 
 class FBeta(Metric):
-    """
-    Computes f_beta metric.
+    r"""
+    Computes `F-score <https://en.wikipedia.org/wiki/F-score>`_, specifically:
 
-    Works with binary, multiclass, and multilabel data.
+    .. math::
+        F_\beta = (1 + \beta^2) * \frac{\text{precision} * \text{recall}}
+        {(\beta^2 * \text{precision}) + \text{recall}}
+
+    Where :math:`\beta` is some positive real factor. Works with binary, multiclass, and multilabel data.
     Accepts logits from a model output or integer class values in prediction.
     Works with multi-dimensional preds and target.
 
@@ -129,7 +133,7 @@ class FBeta(Metric):
 
 class F1(FBeta):
     """
-    Computes F1 metric. F1 metrics correspond to a equally weighted average of the
+    Computes F1 metric. F1 metrics correspond to a harmonic mean of the
     precision and recall scores.
 
     Works with binary, multiclass, and multilabel data.
