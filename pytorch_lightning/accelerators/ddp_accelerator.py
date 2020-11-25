@@ -101,7 +101,7 @@ class DDPAccelerator(Accelerator):
 
         running_test = os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1'
         if running_test:
-            command = [sys.executable '-m', 'coverage', 'run', '--source', 'pytorch_lightning', '-a'] + command
+            command = [sys.executable, '-m', 'coverage', 'run', '--source', 'pytorch_lightning', '-a'] + command
         else:
             command = [sys.executable] + command
 
