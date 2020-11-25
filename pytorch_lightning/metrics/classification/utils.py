@@ -62,23 +62,23 @@ def _check_classification_inputs(
     """
 
     if target.is_floating_point():
-        raise ValueError("`target` has to be an integer tensor")
+        raise ValueError("`target` has to be an integer tensor.")
     elif target.min() < 0:
-        raise ValueError("`target` has to be a non-negative tensor")
+        raise ValueError("`target` has to be a non-negative tensor.")
 
     preds_float = preds.is_floating_point()
     if not preds_float and preds.min() < 0:
-        raise ValueError("if `preds` are integers, they have to be non-negative")
+        raise ValueError("if `preds` are integers, they have to be non-negative.")
 
     if not preds.shape[0] == target.shape[0]:
         raise ValueError("`preds` and `target` should have the same first dimension.")
 
     if preds_float:
         if preds.min() < 0 or preds.max() > 1:
-            raise ValueError("`preds` should be probabilities, but values were detected outside of [0,1] range")
+            raise ValueError("`preds` should be probabilities, but values were detected outside of [0,1] range.")
 
     if threshold > 1 or threshold < 0:
-        raise ValueError("Threshold should be a probability in [0,1]")
+        raise ValueError("`threshold` should be a probability in [0,1].")
 
     if is_multiclass is False and target.max() > 1:
         raise ValueError("If you set `is_multiclass=False`, then `target` should not exceed 1.")
@@ -94,8 +94,9 @@ def _check_classification_inputs(
                 f" got `preds shape = {preds.shape} and `target` shape = {target.shape}.",
             )
         if preds_float and target.max() > 1:
-            raise ValueError("if `preds` and `target` are of shape (N, ...)"
-        " and `preds` are floats, `target` should be binary")
+            raise ValueError(
+                "if `preds` and `target` are of shape (N, ...) and `preds` are floats, `target` should be binary."
+            )
 
         # Get the case
         if preds.ndim == 1 and preds_float:
@@ -111,12 +112,12 @@ def _check_classification_inputs(
 
     elif preds.ndim == target.ndim + 1:
         if not preds_float:
-            raise ValueError("if `preds` have one dimension more than `target`, `preds` should be a float tensor")
+            raise ValueError("if `preds` have one dimension more than `target`, `preds` should be a float tensor.")
         if not preds.shape[:-1] == target.shape:
             if preds.shape[2:] != target.shape[1:]:
                 raise ValueError(
                     "if `preds` have one dimension more than `target`, the shape of `preds` should be"
-                    " either of shape (N, C, ...) or (N, ..., C), and of `target` of shape (N, ...)"
+                    " either of shape (N, C, ...) or (N, ..., C), and of `target` of shape (N, ...)."
                 )
 
         extra_dim_size = preds.shape[-1 if preds.shape[:-1] == target.shape else 1]
@@ -128,7 +129,7 @@ def _check_classification_inputs(
     else:
         raise ValueError(
             "`preds` and `target` should both have the (same) shape (N, ...), or `target` (N, ...)"
-            " and `preds` (N, C, ...) or (N, ..., C)"
+            " and `preds` (N, C, ...) or (N, ..., C)."
         )
 
     if preds.shape != target.shape and is_multiclass is False and extra_dim_size != 2:
@@ -140,7 +141,7 @@ def _check_classification_inputs(
     # Check that num_classes is consistent
     if not num_classes:
         if preds.shape != target.shape and target.max() >= extra_dim_size:
-            raise ValueError("The highest label in `target` should be smaller than the size of C dimension")
+            raise ValueError("The highest label in `target` should be smaller than the size of C dimension.")
     else:
         if case == "binary":
             if num_classes > 2:
@@ -173,11 +174,11 @@ def _check_classification_inputs(
                             " See Input Types in Metrics documentation."
                         )
                 if num_classes <= target.max():
-                    raise ValueError("The highest label in `target` should be smaller than `num_classes`")
+                    raise ValueError("The highest label in `target` should be smaller than `num_classes`.")
                 if num_classes <= preds.max():
-                    raise ValueError("The highest label in `preds` should be smaller than `num_classes`")
+                    raise ValueError("The highest label in `preds` should be smaller than `num_classes`.")
                 if preds.shape != target.shape and num_classes != extra_dim_size:
-                    raise ValueError("The size of C dimension of `preds` does not match `num_classes`")
+                    raise ValueError("The size of C dimension of `preds` does not match `num_classes`.")
 
         elif case == "multi-label":
             if is_multiclass and num_classes != 2:
