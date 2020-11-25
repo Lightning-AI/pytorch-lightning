@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections import OrderedDict
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from typing import List, Mapping, Optional, OrderedDict, Sequence, Union
+from typing import List, Mapping, Optional, Sequence, Union
 from torch.utils.data import DataLoader
 from pytorch_lightning.utilities.model_utils import is_overridden
 
