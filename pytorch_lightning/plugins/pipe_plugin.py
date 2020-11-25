@@ -59,6 +59,10 @@ def do_nothing_optimizer_closure():
     return
 
 
+def cleanup(ctx, model):
+    del model
+
+
 def run_optimizer(ctx, model):
     trainer = model.trainer
     model_ref = trainer.get_model()
@@ -230,3 +234,7 @@ class PipePlugin(DDPPlugin):
             model.foreach_worker(run_optimizer, ctx, include_self=True)
         else:
             model.foreach_worker(run_optimizer, ctx, include_self=True)
+
+    def on_keyboard_interrupt(self):
+        model = self.trainer.get_model()
+        model.foreach_worker(cleanup, include_self=False)
