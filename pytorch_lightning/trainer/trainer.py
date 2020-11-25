@@ -591,7 +591,7 @@ class Trainer(
         self.evaluation_loop.on_evaluation_epoch_start()
 
         # run validation/testing
-        for dataloader_idx, dataloader in enumerate(dataloaders):
+        for dataloader_idx, dataloader in dataloaders.items():
             # bookkeeping
             dl_outputs = []
             dataloader = self.accelerator_backend.process_dataloader(dataloader)
