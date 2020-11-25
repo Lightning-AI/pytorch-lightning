@@ -21,7 +21,8 @@ from pytorch_lightning.metrics.functional.ssim import _ssim_update, _ssim_comput
 
 class SSIM(Metric):
     """
-    Computes Structual Similarity Index Measure
+    Computes `Structual Similarity Index Measure
+    <https://en.wikipedia.org/wiki/Structural_similarity>`_ (SSIM).
 
     Args:
         kernel_size: size of the gaussian kernel (default: (11, 11))
