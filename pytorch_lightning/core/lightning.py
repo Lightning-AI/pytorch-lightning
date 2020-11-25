@@ -1096,7 +1096,7 @@ class LightningModule(
         .. tip:: In manual mode we still automatically clip grads if Trainer(gradient_clip_val=x) is set
 
         .. tip:: In manual mode we still automatically accumulate grad over batches if
-           Trainer(accumulate_grad_batches=x) is set and you use `model.manual_optimizer_step(optimizer)`
+           Trainer(accumulate_grad_batches=x) is set and you use `model.step(optimizer)`
 
         Example::
 
@@ -1105,7 +1105,7 @@ class LightningModule(
                 loss = ...
                 # automatically applies scaling, etc...
                 self.manual_backward(loss, opt_a)
-                self.manual_optimizer_step(opt_a)
+                opt_a.step()
         """
         # make sure we're using manual opt
         self._verify_is_manual_optimization('manual_backward')
@@ -1176,7 +1176,7 @@ class LightningModule(
         By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example
         once per optimizer.
 
-        .. tip:: Consider using `manual_optimizer_step` instead of overriding this method as done previously.
+        .. tip:: Consider using `.step()` instead of overriding this method as done previously.
 
         Warning:
             If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter

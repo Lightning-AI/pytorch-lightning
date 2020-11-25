@@ -512,7 +512,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
             if self.should_update:
 
                 self.manual_backward(loss, opt)
-                self.manual_optimizer_step(opt)
+                opt.step()
 
             return loss.detach() if self.detach else loss
 
@@ -575,7 +575,7 @@ def test_multiple_optimizers_manual_optimizer_step(tmpdir):
                 assert torch.all(self.layer.weight.grad == 0)
 
             self.manual_backward(loss_1, opt_a)
-            self.manual_optimizer_step(opt_a)
+            opt_a.step()
 
             # fake discriminator
             loss_2 = self(x)
@@ -587,7 +587,7 @@ def test_multiple_optimizers_manual_optimizer_step(tmpdir):
             self.manual_backward(loss_2, opt_a, retain_graph=True)
 
             assert self.layer.weight.grad is not None
-            self.manual_optimizer_step(opt_b)
+            opt_b.step()
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
