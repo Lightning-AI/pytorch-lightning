@@ -22,16 +22,15 @@ from typing import Any, Dict, List, Optional, Union
 
 import torch.nn as nn
 
-try:
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
+from pytorch_lightning.utilities import rank_zero_only, _module_available
+from pytorch_lightning.utilities.warning_utils import WarningCache
+
+WANDB_AVAILABLE = _module_available("wandb")
+
+if WANDB_AVAILABLE:
     import wandb
     from wandb.wandb_run import Run
-except ImportError:  # pragma: no-cover
-    wandb = None
-    Run = None
-
-from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only
-from pytorch_lightning.utilities.warning_utils import WarningCache
 
 
 class WandbLogger(LightningLoggerBase):

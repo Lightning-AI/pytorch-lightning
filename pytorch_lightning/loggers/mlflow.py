@@ -21,17 +21,17 @@ from argparse import Namespace
 from time import time
 from typing import Any, Dict, Optional, Union
 
-try:
-    import mlflow
-    from mlflow.tracking import MlflowClient
-except ModuleNotFoundError:  # pragma: no-cover
-    mlflow = None
-    MlflowClient = None
-
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn, _module_available
+
+MLFLOW_AVAILABLE = _module_available("mlflow")
+
+if MLFLOW_AVAILABLE:
+    import mlflow
+    from mlflow.tracking import MlflowClient
+
 
 LOCAL_FILE_URI_PREFIX = "file:"
 
