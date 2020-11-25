@@ -22,8 +22,13 @@ from pytorch_lightning.metrics.functional.psnr import (
 
 
 class PSNR(Metric):
-    """
-    Computes peak signal-to-noise ratio
+    r"""
+    Computes `peak signal-to-noise ratio <https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio>`_ (PSNR):
+
+    .. math:: \text{PSNR}(I, J) = 10 * \log_{10} \left(\frac{\max(I)^2}{\text{MSE}(I, J)}\right)
+
+    Where :math:`\text{MSE}` denotes the `mean-squared-error
+    <https://en.wikipedia.org/wiki/Mean_squared_error>`_ function.
 
     Args:
         data_range: the range of the data. If None, it is determined from the data (max - min)
