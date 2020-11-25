@@ -145,7 +145,7 @@ class PipePlugin(DDPPlugin):
 
     @property
     def use_optimizer_step(self):
-        return not (self.version == 1)
+        return self.version != 1
 
     def _find_pipe_module(self, model):
         # try to wrap for the user

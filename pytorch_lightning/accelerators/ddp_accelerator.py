@@ -203,8 +203,7 @@ class DDPAccelerator(Accelerator):
     def broadcast(self, obj, src=0):
         if self.ddp_plugin.use_barrier_and_broadcast:
             return self.dist.broadcast(obj)
-        else:
-            return obj
+        return obj
 
     def ddp_train(self, process_idx, model):
         """

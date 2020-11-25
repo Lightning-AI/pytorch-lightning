@@ -1239,6 +1239,7 @@ class LightningModule(
             is_callable = isinstance(optimizer_closure, types.FunctionType)
             optimizer_closure = optimizer_closure if is_callable else do_nothing_optimizer_closure
 
+            opt_idx = None
             for opt_idx, opt in enumerate(self.trainer.optimizers):
                 if opt == optimizer:
                     break
@@ -1716,11 +1717,10 @@ class LightningModule(
                 raise ValueError(
                     f"Received `input_sample` of type {type(input_sample)}. Expected type is `Tensor`"
                 )
-            else:
-                raise ValueError(
-                    "Could not export to ONNX since neither `input_sample` nor"
-                    " `model.example_input_array` attribute is set."
-                )
+            raise ValueError(
+                "Could not export to ONNX since neither `input_sample` nor"
+                " `model.example_input_array` attribute is set."
+            )
         input_data = input_data.to(self.device)
         if "example_outputs" not in kwargs:
             self.eval()
