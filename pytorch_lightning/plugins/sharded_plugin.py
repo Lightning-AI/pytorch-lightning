@@ -18,7 +18,7 @@ from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.utilities import rank_zero_only, _module_available, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if _module_available('fairscale.optim') and NATIVE_AMP_AVALAIBLE:
+if NATIVE_AMP_AVALAIBLE and _module_available('fairscale.optim'):
     from fairscale.optim import OSS
     from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel
 

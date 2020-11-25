@@ -13,7 +13,7 @@
 # limitations under the License.
 from pytorch_lightning.utilities import _module_available, NATIVE_AMP_AVALAIBLE
 
-if _module_available('fairscale.nn.data_parallel.sharded_ddp') and NATIVE_AMP_AVALAIBLE:
+if NATIVE_AMP_AVALAIBLE and _module_available('fairscale.nn.data_parallel.sharded_ddp'):
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
 
     class LightningShardedDataParallel(ShardedDataParallel):
