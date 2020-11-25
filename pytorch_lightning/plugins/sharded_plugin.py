@@ -26,12 +26,12 @@ try:
     if IS_TORCH_AT_LEAST_1_6:
         from fairscale.optim import OSS
         from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel
+
+        FAIRSCALE_AVAILABLE = True
     else:
         FAIRSCALE_AVAILABLE = False  # Requires AMP support
 except (ModuleNotFoundError, ImportError):
     FAIRSCALE_AVAILABLE = False
-else:
-    FAIRSCALE_AVAILABLE = True
 
 
 class DDPShardedPlugin(DDPPlugin):
