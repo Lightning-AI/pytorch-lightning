@@ -24,8 +24,13 @@ from pytorch_lightning.metrics.functional.accuracy import (
 
 
 class Accuracy(Metric):
-    """
-    Computes the share of entirely correctly predicted samples.
+    r"""
+    Computes `Accuracy <https://en.wikipedia.org/wiki/Accuracy_and_precision>`_:
+
+    .. math:: \text{Accuracy} = \frac{1}{N}\sum_i^N 1(y_i = \hat{y_i})
+
+    Where :math:`y` is a tensor of target values, and :math:`\hat{y}` is a
+    tensor of predictions.
 
     This metric generalizes to subset accuracy for multilabel data, and similarly for
     multi-dimensional multi-class data: for the sample to be counted as correct, the the
