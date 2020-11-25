@@ -11,10 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Union
 
 import torch
 from torch import optim
 
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.core.step_result import Result
@@ -172,3 +174,8 @@ class DataParallelAccelerator(Accelerator):
                 scheduler.__class__.__mro__[idx].__init__(scheduler, optimizer)
                 if state is not None:
                     scheduler.load_state_dict(state)
+
+    def get_reference_model(self, model) -> LightningModule:
+        if isinstance(model, LightningDataParallel):
+            return model.module
+        return model

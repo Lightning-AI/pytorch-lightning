@@ -319,3 +319,6 @@ class DDPAccelerator(Accelerator):
 
         """
         return sync_ddp_if_available(tensor, group, reduce_op)
+
+    def get_reference_model(self, model) -> LightningModule:
+        return self.ddp_plugin.get_model_from_plugin(model)
