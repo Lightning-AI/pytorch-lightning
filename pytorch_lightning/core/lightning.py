@@ -205,6 +205,7 @@ class LightningModule(
         sync_dist: bool = False,
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
+        dataloader_idx_suffix: bool = True,
     ):
         """
         Log a key, value
@@ -240,6 +241,8 @@ class LightningModule(
             sync_dist: if True, reduces the metric across GPUs/TPUs
             sync_dist_op: the op to sync across GPUs/TPUs
             sync_dist_group: the ddp group
+            dataloader_idx_suffix: Whether to add the ``dataloader_idx`` as a suffix if multiple loaders are present. 
+                If False, will add it as a prefix.
         """
         if self._results is not None:
             # in any epoch end can't log step metrics (only epoch metric)
@@ -288,6 +291,7 @@ class LightningModule(
                 sync_dist_group,
                 accelerator.sync_tensor,
                 self._current_dataloader_idx,
+                dataloader_idx_suffix,
             )
 
     def log_dict(
@@ -304,6 +308,7 @@ class LightningModule(
         sync_dist: bool = False,
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
+        dataloader_idx_suffix: bool = True,
     ):
         """
         Log a dictonary of values at once
@@ -325,7 +330,9 @@ class LightningModule(
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
             sync_dist_op: the op to sync across GPUs/TPUs
-            sync_dist_group: the ddp group:
+            sync_dist_group: the ddp group
+            dataloader_idx_suffix: Whether to add the ``dataloader_idx`` as a suffix if multiple loaders are present. 
+                If False, will add it as a prefix.
         """
         for k, v in dictionary.items():
             self.log(
@@ -342,6 +349,7 @@ class LightningModule(
                 sync_dist_op=sync_dist_op,
                 tbptt_pad_token=tbptt_pad_token,
                 tbptt_reduce_fx=tbptt_reduce_fx,
+                dataloader_idx_suffix=dataloader_idx_suffix
             )
 
     def write_prediction(self, name, value, filename='predictions.pt'):

@@ -128,6 +128,7 @@ class Result(Dict):
         sync_dist_group: Optional[Any] = None,
         sync_fn: Callable = None,
         dataloader_idx: Optional[int] = None,
+        dataloader_idx_suffix: bool = True,
     ):
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
@@ -165,6 +166,7 @@ class Result(Dict):
                 tbptt_pad_token=tbptt_pad_token,
                 forked=False,
                 dataloader_idx=dataloader_idx,
+                dataloader_idx_suffix=dataloader_idx_suffix,
             )
 
             self.__setitem__(step_name, value)
@@ -217,7 +219,8 @@ class Result(Dict):
         tbptt_pad_token: int,
         tbptt_reduce_fx: Callable,
         forked: bool,
-        dataloader_idx: Union[int, None]
+        dataloader_idx: Union[int, None],
+        dataloader_idx_suffix: bool
     ):
         # set the meta for the item
         meta_value = value
@@ -232,6 +235,7 @@ class Result(Dict):
             tbptt_pad_token=tbptt_pad_token,
             forked=forked,
             dataloader_idx=dataloader_idx,
+            dataloader_idx_suffix=dataloader_idx_suffix
         )
 
         self['meta'][name] = meta
@@ -267,9 +271,18 @@ class Result(Dict):
 
         return result
 
-    def _add_dataloader_idx(self, k: str, dataloader_idx: Union[int, None], add_dataloader_idx: bool) -> str:
+    def _add_dataloader_idx(self, k: str, dataloader_idx: Union[int, str, None], add_dataloader_idx: bool, dataloader_idx_suffix: bool) -> str:
         if dataloader_idx is not None and add_dataloader_idx:
-            return f"{k}/dataloader_idx_{dataloader_idx}"
+
+            if isinstance(dataloader_idx, int):
+                dataloader_idx_str = f"dataloader_idx_{dataloader_idx}"
+            else:
+                dataloader_idx_str = dataloader_idx
+
+            if dataloader_idx_suffix:
+                return f"{k}/{dataloader_idx_str}"
+            else:
+                return f"{dataloader_idx_str}/{k}"
         return k
 
     def get_batch_log_metrics(self, include_forked_originals=True, add_dataloader_idx=False) -> dict:
