@@ -22,8 +22,12 @@ from pytorch_lightning.metrics.functional.mean_squared_error import (
 
 
 class MeanSquaredError(Metric):
-    """
-    Computes mean squared error.
+    r"""
+    Computes `mean squared error <https://en.wikipedia.org/wiki/Mean_squared_error>`_ (MSE):
+
+    .. math:: \text{MSE} = \frac{1}{N}\sum_i^N(y_i - \hat{y_i})^2
+
+    Where :math:`y` is a tensor of target values, and :math:`\hat{y}` is a tensor of predictions.
 
     Args:
         compute_on_step:
