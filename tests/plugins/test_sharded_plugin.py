@@ -293,7 +293,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
 @pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_correctness_one_device():
     # Allow slightly slower speed due to one CPU machine doing rigorously memory saving calls
-    run_sharded_correctness(accelerator='ddp_cpu', max_percent_speed_regression=0.3)
+    run_sharded_correctness(accelerator='ddp_cpu')
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
@@ -348,7 +348,7 @@ def test_ddp_sharded_plugin_correctness_multi_gpu_multi_optim():
         gpus=2,
         accelerator='ddp_spawn',
         model_cls=TestMultipleOptimizersModel,
-        max_percent_speed_regression=0.5  # multiple optimizers sharded across only two GPUs is costly.
+        max_percent_speed_diff=0.3  # Increase speed diff since only 2 GPUs sharding 2 optimizers
     )
 
 
@@ -367,7 +367,6 @@ def test_ddp_sharded_plugin_correctness_multi_gpu_multi_optim_manual(tmpdir):
         gpus=2,
         accelerator='ddp_spawn',
         model_cls=TestManualModel,
-        max_percent_speed_regression=0.5  # multiple optimizers sharded across only two GPUs is costly.
     )
 
 
@@ -445,16 +444,18 @@ def record_ddp_fit_model_stats(trainer, model, gpus):
 
     """
     max_memory = None
+
+    time_start = time.perf_counter()
     if gpus > 0:
         torch.cuda.reset_peak_memory_stats()
         torch.cuda.synchronize()
 
-    time_start = time.perf_counter()
     trainer.fit(model)
 
     if gpus > 0:
         torch.cuda.synchronize()
         max_memory = torch.cuda.max_memory_allocated() / 2 ** 20
+
     total_time = time.perf_counter() - time_start
 
     return max_memory, total_time
@@ -464,7 +465,7 @@ def run_sharded_correctness(
         accelerator='ddp_spawn',
         gpus=0,
         precision=32,
-        max_percent_speed_regression=0.2,
+        max_percent_speed_diff=0.25,
         model_cls=TestModel):
     """
         Ensures that the trained model is identical to the standard DDP implementation.
@@ -473,7 +474,7 @@ def run_sharded_correctness(
         accelerator: Accelerator type for test.
         gpus: Number of GPUS to enable.
         precision: Whether to use AMP or normal FP32 training.
-        max_percent_speed_regression: The maximum speed regression compared to normal DDP training.
+        max_percent_speed_diff: The maximum speed difference compared to normal DDP training.
         This is more a safety net for variability in CI which can vary in speed, not for benchmarking.
         model_cls: Model class to use for test.
 
@@ -518,12 +519,15 @@ def run_sharded_correctness(
 
     # Assert model parameters are identical after fit
     for ddp_param, shard_param in zip(ddp_model.parameters(), sharded_model.parameters()):
-        assert torch.equal(ddp_param, shard_param)
+        assert torch.equal(ddp_param, shard_param), 'Model parameters are different between DDP and Sharded plugin'
 
-    # Assert speed parity
-    upper_bound_speed = ddp_time * (1 + max_percent_speed_regression)
-    assert sharded_time <= upper_bound_speed
+    # Assert speed parity by ensuring percentage difference between sharded/ddp is below threshold
+    percent_diff = (abs(sharded_time - ddp_time) / sharded_time)
+    assert percent_diff <= max_percent_speed_diff, \
+        f'Sharded plugin was too slow compared to DDP, Sharded Time: {sharded_time}, DDP Time: {ddp_time}'
 
     if gpus > 0:
         # Assert CUDA memory parity
-        assert max_sharded_memory <= max_ddp_memory
+        assert max_sharded_memory <= max_ddp_memory, \
+            f'Sharded plugin used too much memory compared to DDP,' \
+            f'Sharded Mem: {max_sharded_memory}, DDP Mem: {max_ddp_memory}'
