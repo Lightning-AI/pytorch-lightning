@@ -59,7 +59,7 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None,
     logger = get_default_logger(save_dir, version=version)
     trainer_options.update(logger=logger)
 
-    # DEPRECATED option
+    # TODO: DEPRECATED option
     if "checkpoint_callback" not in trainer_options:
         trainer_options.update(checkpoint_callback=True)
 
