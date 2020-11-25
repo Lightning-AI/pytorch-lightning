@@ -1001,19 +1001,23 @@ def test_hparams_type(tmpdir, hparams_type):
 
 def test_model_checkpoint_with_same_filename(tmpdir):
     """
-    Test that when un-formatted filename is provided, it should add versions correctly if required.
+    Test that when unformatted filename is provided, it should add versions correctly if required.
     """
+    class CustomModel(LogInTwoMethods):
+        def validation_epoch_end(self, outputs):
+            return {'epoch': self.current_epoch}
+
     model_checkpoint = ModelCheckpoint(
         dirpath=tmpdir,
-        filename='val_acc',
+        filename='curr_epoch',
         save_top_k=1,
-        monitor='val_acc',
+        monitor='epoch',
         mode='max',
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[model_checkpoint],
-        max_epochs=3,
+        max_epochs=4,
         limit_train_batches=4,
         limit_val_batches=4,
         logger=None,
@@ -1021,9 +1025,9 @@ def test_model_checkpoint_with_same_filename(tmpdir):
         progress_bar_refresh_rate=0,
     )
 
-    model = LogInTwoMethods()
+    model = CustomModel()
     trainer.fit(model)
     ckpt_files = os.listdir(tmpdir)
-    expected_ckpt_files = ['val_acc.ckpt']
+    expected_ckpt_files = ['curr_epoch.ckpt']
     assert len(ckpt_files) == len(expected_ckpt_files)
     assert set(ckpt_files) == set(expected_ckpt_files)
