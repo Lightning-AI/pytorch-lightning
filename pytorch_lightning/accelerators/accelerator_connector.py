@@ -15,7 +15,7 @@ from pytorch_lightning import accelerators
 import os
 import torch
 
-from pytorch_lightning.utilities import device_parser, XLA_AVAILABLE
+from pytorch_lightning.utilities import device_parser, XLA_AVAILABLE, HOROVOD_AVAILABLE
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -24,12 +24,8 @@ from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnviro
 from pytorch_lightning.cluster_environments.torchelastic_environment import TorchElasticEnvironment
 from pytorch_lightning.accelerators.accelerator import Accelerator
 
-try:
+if HOROVOD_AVAILABLE:
     import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
 
 
 class AcceleratorConnector:
