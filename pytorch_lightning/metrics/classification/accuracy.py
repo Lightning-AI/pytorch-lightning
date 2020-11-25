@@ -25,10 +25,15 @@ from pytorch_lightning.metrics.utils import _input_format_classification
 
 
 class Accuracy(Metric):
-    """
-    Computes accuracy. Works with binary, multiclass, and multilabel data.
-    Accepts logits from a model output or integer class values in prediction.
-    Works with multi-dimensional preds and target.
+    r"""
+    Computes `Accuracy <https://en.wikipedia.org/wiki/Accuracy_and_precision>`_:
+
+    .. math:: \text{Accuracy} = \frac{1}{N}\sum_i^N 1(y_i = \hat{y_i})
+
+    Where :math:`y` is a tensor of target values, and :math:`\hat{y}` is a
+    tensor of predictions.  Works with binary, multiclass, and multilabel
+    data.  Accepts logits from a model output or integer class values in
+    prediction.  Works with multi-dimensional preds and target.
 
     Forward accepts
 
