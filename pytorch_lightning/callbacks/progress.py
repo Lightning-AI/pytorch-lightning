@@ -356,7 +356,7 @@ class ProgressBar(ProgressBarBase):
         super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         if self._should_update(self.val_batch_idx, self.total_val_batches):
             self._update_bar(self.val_progress_bar)
-            
+
             # The main progress bar doesn't exist in trainer.validate(...)
             if self.main_progress_bar is not None:
                 self._update_bar(self.main_progress_bar)
