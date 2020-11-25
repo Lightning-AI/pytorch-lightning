@@ -122,7 +122,7 @@ class BoringModel(LightningModule):
 
     def configure_optimizers(self):
         optimizer_class = getattr(torch.optim, self.optimizer_name)
-        optimizer = optimizer_class(self.layer.parameters(), lr=self.learning_rate)
+        optimizer = optimizer_class(self.parameters(), lr=self.learning_rate)
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
         return [optimizer], [lr_scheduler]
 
