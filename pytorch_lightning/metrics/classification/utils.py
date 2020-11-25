@@ -36,8 +36,8 @@ def _check_shape_and_type_consistency(preds: torch.Tensor, target: torch.Tensor)
     if preds.ndim == target.ndim:
         if preds.shape != target.shape:
             raise ValueError(
-                "`preds` and `target` should have the same shape",
-                f" got `preds shape = {preds.shape} and `target` shape = {target.shape}.",
+                "`preds` and `target` should have the same shape,",
+                f" got `preds` shape = {preds.shape} and `target` shape = {target.shape}.",
             )
         if preds_float and target.max() > 1:
             raise ValueError(
@@ -62,7 +62,7 @@ def _check_shape_and_type_consistency(preds: torch.Tensor, target: torch.Tensor)
         if preds.shape[2:] != target.shape[1:]:
             raise ValueError(
                 "if `preds` have one dimension more than `target`, the shape of `preds` should be"
-                " of shape (N, C, ...), and `target` of shape (N, ...)."
+                " (N, C, ...), and the shape of `target` should be (N, ...)."
             )
 
         implied_classes = preds.shape[1]
@@ -74,7 +74,7 @@ def _check_shape_and_type_consistency(preds: torch.Tensor, target: torch.Tensor)
     else:
         raise ValueError(
             "`preds` and `target` should both have the (same) shape (N, ...), or `target` (N, ...)"
-            " and `preds` (N, C, ...) or (N, ..., C)."
+            " and `preds` (N, C, ...)."
         )
 
     return case, implied_classes
