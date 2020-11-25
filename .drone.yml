@@ -39,7 +39,6 @@ steps:
     - python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=25 # --flake8
     # Running special tests
     - sh tests/special_tests.sh
-    - coverage combine
     - coverage report
     - python -m pytest benchmarks pl_examples -v --maxfail=2 --durations=0
     #- cd docs; make doctest; make coverage
