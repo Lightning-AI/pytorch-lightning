@@ -101,6 +101,7 @@ def test_submodules_multi_gpu_ddp_spawn(tmpdir):
     )
     trainer.fit(model)
 
+
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_gpu_device_includes_index():
     model = TopModule()
