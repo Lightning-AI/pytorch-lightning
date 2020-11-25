@@ -35,7 +35,7 @@ steps:
     # when Image has defined CUDa version we can switch to this package spec "nvidia-dali-cuda${CUDA_VERSION%%.*}0"
     - pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda100 --upgrade-strategy only-if-needed
     - pip list
-    - git clone https://github.com/facebookresearch/fairscale.git && cd fairscale && pip install -e .
+    - git clone https://github.com/facebookresearch/fairscale.git && cd fairscale && pip install -e . && cd ..
     - python -m coverage run --source pytorch_lightning -a -m pytest pytorch_lightning tests -v --durations=25 # --flake8
     # Running special tests
     - sh tests/special_tests.sh
