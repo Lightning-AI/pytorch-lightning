@@ -15,6 +15,5 @@
 export PL_RUNNING_SPECIAL_TESTS=1
 # Running special tests
 PL_RUNNING_SPECIAL_TESTS=1 pytest tests/plugins/test_pipe_plugin.py::test_pipe_plugin_ddp --verbose --capture=no
-PL_RUNNING_SPECIAL_TESTS=1 python -m coverage run --rcfile=tests/multi.rc --source pytorch_lightning --append -m pytest tests/plugins/test_pipe_plugin.py::test_pipe_plugin_ddp_rpc_manual --verbose --capture=no
-PL_RUNNING_SPECIAL_TESTS=1 python -m coverage run --rcfile=tests/multi.rc --source pytorch_lightning --append -m pytest tests/plugins/test_pipe_plugin.py::test_pipe_plugin_ddp_rpc_manual_amp --verbose --capture=no
-PL_RUNNING_SPECIAL_TESTS=1 python -m coverage run --rcfile=tests/multi.rc --source pytorch_lightning --append -m pytest tests/plugins/test_pipe_plugin.py::test_pipe_plugin_ddp_rpc_automatic --verbose --capture=no
+PL_RUNNING_SPECIAL_TESTS=1 python -m coverage run --source pytorch_lightning -a -m pytest tests/plugins/test_pipe_plugin.py::test_pipe_plugin_ddp_rpc_manual --verbose --capture=no
+PL_RUNNING_SPECIAL_TESTS=1 python -m coverage run --source pytorch_lightning -a -m pytest tests/plugins/test_pipe_plugin.py::test_pipe_plugin_ddp_rpc_automatic --verbose --capture=no

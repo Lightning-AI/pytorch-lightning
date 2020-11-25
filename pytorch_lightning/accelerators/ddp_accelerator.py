@@ -15,7 +15,6 @@ import os
 import subprocess
 import sys
 from os.path import abspath
-from pathlib import Path
 from time import sleep
 from typing import Any, List, Optional, Union
 
@@ -102,9 +101,7 @@ class DDPAccelerator(Accelerator):
 
         running_test = os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1'
         if running_test:
-            file = Path(__file__).absolute()
-            dir_path = os.path.dirname(os.path.dirname(os.path.dirname(file)))
-            command = [sys.executable, '-m', 'coverage', 'run', f'--rcfile={dir_path}/tests/multi.rc', '--source', 'pytorch_lightning', '--append'] + command
+            command = [sys.executable, '-m', 'coverage', 'run', '--source', 'pytorch_lightning', '-a'] + command
         else:
             command = [sys.executable] + command
 

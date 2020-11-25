@@ -227,5 +227,4 @@ class PipePlugin(DDPPlugin):
             run_optimizer(ctx, model)
             model.foreach_worker(run_optimizer, ctx, include_self=False)
         else:
-            run_optimizer(ctx, model)
-            model.foreach_worker(run_optimizer, ctx, include_self=True)
+            raise NotImplementedError
