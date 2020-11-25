@@ -300,7 +300,8 @@ class Result(Dict):
             if options['forked'] and not include_forked_originals:
                 continue
 
-            dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx)
+            dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx,
+                                              options["dataloader_idx_suffix"])
 
             if options['logger'] and options['on_step']:
                 if isinstance(self[k], Metric):
@@ -324,7 +325,8 @@ class Result(Dict):
             if options['forked']:
                 continue
 
-            dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx)
+            dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx,
+                                              options["dataloader_idx_suffix"])
 
             if options['logger'] and options['on_epoch']:
                 if isinstance(self[k], Metric):
@@ -352,7 +354,8 @@ class Result(Dict):
             if options['forked']:
                 continue
 
-            dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx)
+            dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx,
+                                              options["dataloader_idx_suffix"])
 
             if options['prog_bar'] and options['on_epoch']:
                 if isinstance(self[k], Metric):
@@ -377,7 +380,8 @@ class Result(Dict):
             if k == '_internal':
                 continue
 
-            dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx)
+            dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx,
+                                              options["dataloader_idx_suffix"])
 
             if options['forked']:
                 result[dl_key] = self[k]
@@ -398,7 +402,8 @@ class Result(Dict):
             if options['forked'] and not include_forked_originals:
                 continue
 
-            dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx)
+            dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx,
+                                              options["dataloader_idx_suffix"])
 
             if options['prog_bar'] and options['on_step']:
                 if isinstance(self[k], Metric):
