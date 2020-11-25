@@ -36,7 +36,7 @@ steps:
     - pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda100 --upgrade-strategy only-if-needed
     - pip list
     - git clone https://github.com/facebookresearch/fairscale.git && cd fairscale && git checkout pipe-rpc-no-sendrecv && pip install -e . && cd .. && rm -r fairscale
-    - python -m coverage run --source pytorch_lightning -a -m pytest pytorch_lightning tests -v --durations=25 # --flake8
+    - python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=25 # --flake8
     # Running special tests
     - sh tests/special_tests.sh
     - coverage combine
