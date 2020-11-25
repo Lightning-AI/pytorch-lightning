@@ -194,7 +194,7 @@ class PipePlugin(DDPPlugin):
         automatic_optimization = trainer.train_loop.automatic_optimization
         if automatic_optimization:
             raise MisconfigurationException(
-                'PipePlugin is currently not supported in automatic automatization')
+                'PipePlugin is currently not supported in automatic optimization')
 
         if trainer.amp_backend is not None:
             raise MisconfigurationException(

@@ -98,7 +98,12 @@ class DDPAccelerator(Accelerator):
 
         command[0] = full_path
         # use the same python interpreter and actually running
-        command = [sys.executable] + command
+
+        running_test = os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1'
+        if running_test:
+            command = [sys.executable '-m', 'coverage', 'run', '--source', 'pytorch_lightning', '-a'] + command
+        else:
+            command = [sys.executable] + command
 
         # the visible devices tell us how many GPUs we want to use.
         # when the trainer script was called the device has already been scoped by the time
