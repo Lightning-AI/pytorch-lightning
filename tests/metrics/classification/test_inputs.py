@@ -12,7 +12,6 @@ from tests.metrics.classification.inputs import (
     _multiclass_prob_inputs as _mc_prob,
     _multidim_multiclass_inputs as _mdmc,
     _multidim_multiclass_prob_inputs as _mdmc_prob,
-    _multidim_multiclass_prob_inputs1 as _mdmc_prob1,
     _multilabel_inputs as _ml,
     _multilabel_prob_inputs as _ml_prob,
     _multilabel_multidim_inputs as _mlmd,
@@ -28,15 +27,8 @@ _mdmc_prob_many_dims = Input(
     rand(NUM_BATCHES, BATCH_SIZE, NUM_CLASSES, EXTRA_DIM, EXTRA_DIM),
     randint(high=2, size=(NUM_BATCHES, BATCH_SIZE, EXTRA_DIM, EXTRA_DIM)),
 )
-_mdmc_prob_many_dims1 = Input(
-    rand(NUM_BATCHES, BATCH_SIZE, EXTRA_DIM, EXTRA_DIM, NUM_CLASSES),
-    randint(high=2, size=(NUM_BATCHES, BATCH_SIZE, EXTRA_DIM, EXTRA_DIM)),
-)
 _mdmc_prob_2cls = Input(
     rand(NUM_BATCHES, BATCH_SIZE, 2, EXTRA_DIM), randint(high=2, size=(NUM_BATCHES, BATCH_SIZE, EXTRA_DIM))
-)
-_mdmc_prob_2cls1 = Input(
-    rand(NUM_BATCHES, BATCH_SIZE, EXTRA_DIM, 2), randint(high=2, size=(NUM_BATCHES, BATCH_SIZE, EXTRA_DIM))
 )
 
 # Some utils
@@ -79,15 +71,6 @@ def _top2(x):
     return select_topk(x, 2)
 
 
-def _mvdim(x):
-    """ Equivalent of torch.movedim(x, -1, 1) """
-    shape_permute = list(range(x.ndim))
-    shape_permute[1] = shape_permute[-1]
-    shape_permute[2:] = range(1, len(shape_permute) - 1)
-
-    return x.permute(*shape_permute)
-
-
 # To avoid ugly black line wrapping
 def _ml_preds_tr(x):
     return _rshp1(_thrs(x).int())
@@ -109,24 +92,12 @@ def _top2_rshp2(x):
     return _top2(_rshp2(x))
 
 
-def _mdmc1_top1_tr(x):
-    return _top1(_rshp2(_mvdim(x)))
-
-
-def _mdmc1_top2_tr(x):
-    return _top2(_rshp2(_mvdim(x)))
-
-
 def _probs_to_mc_preds_tr(x):
     return _onehot2(_thrs(x)).int()
 
 
 def _mlmd_prob_to_mc_preds_tr(x):
     return _onehot2(_rshp1(_thrs(x).int()))
-
-
-def _mdmc_prob_to__ml_preds_tr(x):
-    return _top1(_mvdim(x))[:, 1]
 
 
 ########################
@@ -153,11 +124,6 @@ def _mdmc_prob_to__ml_preds_tr(x):
         (_mdmc_prob, THRESHOLD, None, None, 2, "multi-dim multi-class", _top2_rshp2, _onehot),
         (_mdmc_prob_many_dims, THRESHOLD, None, None, 1, "multi-dim multi-class", _top1_rshp2, _onehot_rshp1),
         (_mdmc_prob_many_dims, THRESHOLD, None, None, 2, "multi-dim multi-class", _top2_rshp2, _onehot_rshp1),
-        # Test with C dim in last place
-        (_mdmc_prob1, THRESHOLD, None, None, 1, "multi-dim multi-class", _mdmc1_top1_tr, _onehot),
-        (_mdmc_prob1, THRESHOLD, None, None, 2, "multi-dim multi-class", _mdmc1_top2_tr, _onehot),
-        (_mdmc_prob_many_dims1, THRESHOLD, None, None, 1, "multi-dim multi-class", _mdmc1_top1_tr, _onehot_rshp1),
-        (_mdmc_prob_many_dims1, THRESHOLD, None, None, 2, "multi-dim multi-class", _mdmc1_top2_tr, _onehot_rshp1),
         ###########################
         # Test some special cases
         # Binary as multiclass
@@ -176,7 +142,6 @@ def _mdmc_prob_to__ml_preds_tr(x):
         (_mc_prob_2cls, THRESHOLD, None, False, 1, "multi-class", lambda x: _top1(x)[:, [1]], _usq),
         # Multi-dim multi-class with 2 classes as multi-label
         (_mdmc_prob_2cls, THRESHOLD, None, False, 1, "multi-dim multi-class", lambda x: _top1(x)[:, 1], _idn),
-        (_mdmc_prob_2cls1, THRESHOLD, None, False, 1, "multi-dim multi-class", _mdmc_prob_to__ml_preds_tr, _idn),
     ],
 )
 def test_usual_cases(inputs, threshold, num_classes, is_multiclass, top_k, exp_mode, post_preds, post_target):

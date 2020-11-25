@@ -59,14 +59,13 @@ def _check_shape_and_type_consistency(preds: torch.Tensor, target: torch.Tensor)
     elif preds.ndim == target.ndim + 1:
         if not preds_float:
             raise ValueError("if `preds` have one dimension more than `target`, `preds` should be a float tensor.")
-        if not preds.shape[:-1] == target.shape:
-            if preds.shape[2:] != target.shape[1:]:
-                raise ValueError(
-                    "if `preds` have one dimension more than `target`, the shape of `preds` should be"
-                    " either of shape (N, C, ...) or (N, ..., C), and of `target` of shape (N, ...)."
-                )
+        if preds.shape[2:] != target.shape[1:]:
+            raise ValueError(
+                "if `preds` have one dimension more than `target`, the shape of `preds` should be"
+                " of shape (N, C, ...), and `target` of shape (N, ...)."
+            )
 
-        implied_classes = preds.shape[-1 if preds.shape[:-1] == target.shape else 1]
+        implied_classes = preds.shape[1]
 
         if preds.ndim == 2:
             case = "multi-class"
@@ -263,15 +262,15 @@ def _input_format_classification(
 
     * Both preds and target are of shape ``(N,)``, and both are integers (multi-class)
     * Both preds and target are of shape ``(N,)``, and target is binary, while preds
-        are a float (binary)
+      are a float (binary)
     * preds are of shape ``(N, C)`` and are floats, and target is of shape ``(N,)`` and
-        is integer (multi-class)
+      is integer (multi-class)
     * preds and target are of shape ``(N, ...)``, target is binary and preds is a float
-         (multi-label)
-    * preds are of shape ``(N, ..., C)`` or ``(N, C, ...)`` and are floats, target is of
-        shape ``(N, ...)`` and is integer (multi-dimensional multi-class)
+      (multi-label)
+    * preds are of shape ``(N, C, ...)`` and are floats, target is of shape ``(N, ...)``
+      and is integer (multi-dimensional multi-class)
     * preds and target are of shape ``(N, ...)`` both are integers (multi-dimensional
-        multi-class)
+      multi-class)
 
     To avoid ambiguities, all dimensions of size 1, except the first one, are squeezed out.
 
@@ -301,13 +300,6 @@ def _input_format_classification(
     ``C``. The transformations performed here are equivalent to the multi-class case. However, if
     ``is_multiclass=False`` (and there are up to two classes), then the data is returned as
     ``(N, X)`` binary tensors (multi-label).
-
-    Also, in multi-dimensional multi-class case, if the position of the ``C``
-    dimension is ambiguous (e.g. if targets are a ``(7, 3)`` tensor, while predictions are a
-    ``(7, 3, 3)`` tensor), it will be assumed that the ``C`` dimension is the second dimension.
-    If this is not the case,  you should move it from the last to second place using
-    ``torch.movedim(preds, -1, 1)``, or using ``preds.permute``, if you are using an older
-    version of Pytorch.
 
     Note that where a one-hot transformation needs to be performed and the number of classes
     is not implicitly given by a ``C`` dimension, the new ``C`` dimension will either be
@@ -420,13 +412,6 @@ def _input_format_classification(
     # Multi-dim multi-class (N, C, ...) and (N, ..., C)
     else:
         mode = "multi-dim multi-class"
-        if preds.shape[:-1] == target.shape:
-            shape_permute = list(range(preds.ndim))
-            shape_permute[1] = shape_permute[-1]
-            shape_permute[2:] = range(1, len(shape_permute) - 1)
-
-            preds = preds.permute(*shape_permute)
-
         num_classes = preds.shape[1]
 
         if is_multiclass is False:
