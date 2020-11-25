@@ -27,7 +27,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added option to log momentum ([#4384](https://github.com/PyTorchLightning/pytorch-lightning/pull/4384))
 
 
-- Added `current_score` to `ModelCheckpoint.on_save_checkpoint` ([#4712](https://github.com/PyTorchLightning/pytorch-lightning/pull/4721))
+- Added `current_score` to `ModelCheckpoint.on_save_checkpoint` ([#4721](https://github.com/PyTorchLightning/pytorch-lightning/pull/4721))
 
 
 - Added logging using `self.log` in train and evaluation for most callbacks and model hooks (
@@ -35,13 +35,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     [#4495](https://github.com/PyTorchLightning/pytorch-lightning/pull/4495),
     [#4439](https://github.com/PyTorchLightning/pytorch-lightning/pull/4439))
 
-- Added warning when progress bar refresh rate is less than 20 on Google Colab to prevent crashing ([#4654](https://github.com/PyTorchLightning/pytorch-lightning/pull/4654))
-
 
 - Added ability for DDP plugin to modify optimizer state saving ([#4675](https://github.com/PyTorchLightning/pytorch-lightning/pull/4675))
 
-
-- Added casting to python types for numpy scalars when logging hparams ([#4647](https://github.com/PyTorchLightning/pytorch-lightning/pull/4647))
 
 - Added `prefix` argument in loggers ([#4557](https://github.com/PyTorchLightning/pytorch-lightning/pull/4557))
 
@@ -49,20 +45,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added printing of total num of params, trainable and non-trainable params in ModelSummary ([#4521](https://github.com/PyTorchLightning/pytorch-lightning/pull/4521))
 
 
-- Added `F1` class metric ([#4656](https://github.com/PyTorchLightning/pytorch-lightning/pull/4656))
-
-
 ### Changed
-
-- Consistently use `step=trainer.global_step` in `LearningRateMonitor` independently of `logging_interval` ([#4376](https://github.com/PyTorchLightning/pytorch-lightning/pull/4376))
-
 
 - Tuner algorithms will be skipped if `fast_dev_run=True` ([#3903](https://github.com/PyTorchLightning/pytorch-lightning/pull/3903))
 
 - WandbLogger does not force wandb `reinit` arg to True anymore and creates a run only when needed ([#4648](https://github.com/PyTorchLightning/pytorch-lightning/pull/4648))
-
-
-- Renamed class metric `Fbeta` -> `FBeta` ([#4656](https://github.com/PyTorchLightning/pytorch-lightning/pull/4656))
 
 
 ### Deprecated
@@ -78,29 +65,30 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 
-## [unreleased.BugFix] - YYYY-MM-DD
+## [1.0.8] - 2020-11-24
 
 ### Added
 
-
+- Added casting to python types for numpy scalars when logging `hparams` ([#4647](https://github.com/PyTorchLightning/pytorch-lightning/pull/4647))
+- Added warning when progress bar refresh rate is less than 20 on Google Colab to prevent crashing ([#4654](https://github.com/PyTorchLightning/pytorch-lightning/pull/4654))
+- Added `F1` class metric ([#4656](https://github.com/PyTorchLightning/pytorch-lightning/pull/4656))
 
 ### Changed
 
-
-
-### Deprecated
-
-
-
-### Removed
-
-
+- Consistently use `step=trainer.global_step` in `LearningRateMonitor` independently of `logging_interval` ([#4376](https://github.com/PyTorchLightning/pytorch-lightning/pull/4376))
+- Metric states are no longer as default added to `state_dict` ([#4685](https://github.com/PyTorchLightning/pytorch-lightning/pull/4685))
+- Renamed class metric `Fbeta` >> `FBeta` ([#4656](https://github.com/PyTorchLightning/pytorch-lightning/pull/4656))
+- Model summary: add 1 decimal place ([#4745](https://github.com/PyTorchLightning/pytorch-lightning/pull/4745))
+- Do not override `PYTHONWARNINGS` ([#4700](https://github.com/PyTorchLightning/pytorch-lightning/pull/4700))
 
 ### Fixed
 
-- Fixed checkpoint hparams dict casting when omegaconf is available ([#4770](https://github.com/PyTorchLightning/pytorch-lightning/pull/4770))
-
+- Fixed checkpoint `hparams` dict casting when `omegaconf` is available ([#4770](https://github.com/PyTorchLightning/pytorch-lightning/pull/4770))
 - Fixed incomplete progress bars when total batches not divisible by refresh rate ([#4577](https://github.com/PyTorchLightning/pytorch-lightning/pull/4577))
+- Updated SSIM metric (#4566)([#4656](https://github.com/PyTorchLightning/pytorch-lightning/pull/4656))
+- Fixed batch_arg_name - add `batch_arg_name` to all calls to `_adjust_batch_size`bug ([#4812](https://github.com/PyTorchLightning/pytorch-lightning/pull/4812))
+- Fixed `torchtext` data to GPU ([#4785](https://github.com/PyTorchLightning/pytorch-lightning/pull/4785))
+- Fixed a crash bug in MLFlow logger ([#4716](https://github.com/PyTorchLightning/pytorch-lightning/pull/4716))
 
 ## [1.0.7] - 2020-11-17
 
@@ -111,6 +99,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Change Metrics `persistent` default mode to `False` ([#4685](https://github.com/PyTorchLightning/pytorch-lightning/pull/4685))
+
+- LoggerConnector log_metrics will use `total_batch_idx` instead of `global_step` when logging on `training step` ([#4738](https://github.com/PyTorchLightning/pytorch-lightning/pull/4738))
 
 
 ### Fixed
