@@ -997,3 +997,33 @@ def test_hparams_type(tmpdir, hparams_type):
     else:
         # make sure it's not AttributeDict
         assert type(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY]) == hparams_type
+
+
+def test_model_checkpoint_with_same_filename(tmpdir):
+    """
+    Test that when un-formatted filename is provided, it should add versions correctly if required.
+    """
+    model_checkpoint = ModelCheckpoint(
+        dirpath=tmpdir,
+        filename='val_acc',
+        save_top_k=1,
+        monitor='val_acc',
+        mode='max',
+    )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[model_checkpoint],
+        max_epochs=3,
+        limit_train_batches=4,
+        limit_val_batches=4,
+        logger=None,
+        weights_summary=None,
+        progress_bar_refresh_rate=0,
+    )
+
+    model = LogInTwoMethods()
+    trainer.fit(model)
+    ckpt_files = os.listdir(tmpdir)
+    expected_ckpt_files = ['val_acc.ckpt']
+    assert len(ckpt_files) == len(expected_ckpt_files)
+    assert set(ckpt_files) == set(expected_ckpt_files)

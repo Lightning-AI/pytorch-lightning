@@ -24,7 +24,7 @@ import os
 import re
 import yaml
 from copy import deepcopy
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from pathlib import Path
 
 import numpy as np
@@ -233,17 +233,14 @@ class ModelCheckpoint(Callback):
         # what can be monitored
         monitor_candidates = self._monitor_candidates(trainer)
 
-        # ie: path/val_loss=0.5.ckpt
-        filepath = self._get_metric_interpolated_filepath_name(monitor_candidates, epoch, global_step)
-
         # callback supports multiple simultaneous modes
         # here we call each mode sequentially
         # Mode 1: save all checkpoints OR only the top k
         if self.save_top_k:
-            self._save_top_k_checkpoints(monitor_candidates, trainer, pl_module, filepath)
+            self._save_top_k_checkpoints(trainer, pl_module, monitor_candidates)
 
         # Mode 2: save the last checkpoint
-        self._save_last_checkpoint(trainer, pl_module, monitor_candidates, filepath)
+        self._save_last_checkpoint(trainer, pl_module, monitor_candidates)
 
     def __validate_init_configuration(self):
         if self.save_top_k is not None and self.save_top_k < -1:
@@ -426,6 +423,7 @@ class ModelCheckpoint(Callback):
         )
         if ver is not None:
             filename = self.CHECKPOINT_JOIN_CHAR.join((filename, f"v{ver}"))
+
         ckpt_name = f"{filename}.ckpt"
         return os.path.join(self.dirpath, ckpt_name) if self.dirpath else ckpt_name
 
@@ -497,13 +495,20 @@ class ModelCheckpoint(Callback):
             )
             raise MisconfigurationException(m)
 
-    def _get_metric_interpolated_filepath_name(self, ckpt_name_metrics: Dict[str, Any], epoch: int, step: int):
+    def _get_metric_interpolated_filepath_name(
+        self, ckpt_name_metrics: Dict[str, Any], epoch: int, step: int, del_list: List[str] = []
+    ) -> str:
         filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics)
+
         version_cnt = 0
         while self._fs.exists(filepath):
+            if filepath in del_list:
+                break
+
             filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics, ver=version_cnt)
             # this epoch called before
             version_cnt += 1
+
         return filepath
 
     def _monitor_candidates(self, trainer):
@@ -513,12 +518,12 @@ class ModelCheckpoint(Callback):
         ckpt_name_metrics.update({"step": trainer.global_step, "epoch": trainer.current_epoch})
         return ckpt_name_metrics
 
-    def _save_last_checkpoint(self, trainer, pl_module, ckpt_name_metrics, filepath):
+    def _save_last_checkpoint(self, trainer, pl_module, ckpt_name_metrics):
         should_save_last = self.monitor is None or self.save_last
         if not should_save_last:
             return
 
-        last_filepath = filepath
+        last_filepath = self._get_metric_interpolated_filepath_name(ckpt_name_metrics, trainer.current_epoch, trainer.global_step)
 
         # when user ALSO asked for the 'last.ckpt' change the name
         if self.save_last:
@@ -544,7 +549,7 @@ class ModelCheckpoint(Callback):
         if self.monitor is None:
             self.best_model_path = self.last_model_path
 
-    def _save_top_k_checkpoints(self, metrics, trainer, pl_module, filepath):
+    def _save_top_k_checkpoints(self, trainer, pl_module, metrics):
         current = metrics.get(self.monitor)
         epoch = metrics.get("epoch")
         step = metrics.get("step")
@@ -553,7 +558,7 @@ class ModelCheckpoint(Callback):
             current = torch.tensor(current, device=pl_module.device)
 
         if self.check_monitor_top_k(current):
-            self._update_best_and_save(filepath, current, epoch, step, trainer, pl_module)
+            self._update_best_and_save(current, epoch, step, trainer, pl_module, metrics)
         elif self.verbose:
             rank_zero_info(
                 f"Epoch {epoch:d}, step {step:d}: {self.monitor} was not in top {self.save_top_k}"
@@ -564,12 +569,12 @@ class ModelCheckpoint(Callback):
 
     def _update_best_and_save(
         self,
-        filepath: str,
         current: torch.Tensor,
         epoch: int,
         step: int,
         trainer,
         pl_module,
+        ckpt_name_metrics
     ):
         k = len(self.best_k_models) + 1 if self.save_top_k == -1 else self.save_top_k
 
@@ -582,6 +587,9 @@ class ModelCheckpoint(Callback):
         # do not save nan, replace with +/- inf
         if torch.isnan(current):
             current = torch.tensor(float('inf' if self.mode == "min" else '-inf'))
+
+        # ie: path/val_loss=0.5.ckpt
+        filepath = self._get_metric_interpolated_filepath_name(ckpt_name_metrics, epoch, step, del_list)
 
         # save the current score
         self.current_score = current
