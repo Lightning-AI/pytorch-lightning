@@ -19,7 +19,13 @@ from pytorch_lightning.metrics.functional.precision_recall import _precision_com
 
 
 class Precision(StatScores):
-    """Computes the precision score (the ratio ``tp / (tp + fp)``).
+    r"""
+    Computes `Precision <https://en.wikipedia.org/wiki/Precision_and_recall>`_:
+
+    .. math:: \text{Precision} = \frac{\text{TP}}{\text{TP} + \text{FP}}
+
+    Where :math:`\text{TP}` and :math:`\text{FP}` represent the number of true positives and
+    false positives respecitively.
 
     The reduction method (how the precision scores are aggregated) is controlled by the
     ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
@@ -161,7 +167,13 @@ class Precision(StatScores):
 
 
 class Recall(StatScores):
-    """Computes the recall score (the ratio ``tp / (tp + fn)``).
+    r"""
+    Computes `Recall <https://en.wikipedia.org/wiki/Precision_and_recall>`_:
+
+    .. math:: \text{Recall} = \frac{\text{TP}}{\text{TP} + \text{FN}}
+
+    Where :math:`\text{TP}` and :math:`\text{FN}` represent the number of true positives and
+    false negatives respecitively.
 
     The reduction method (how the recall scores are aggregated) is controlled by the
     ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the

@@ -23,8 +23,14 @@ from pytorch_lightning.metrics.functional.explained_variance import (
 
 
 class ExplainedVariance(Metric):
-    """
-    Computes explained variance.
+    r"""
+    Computes `explained variance
+    <https://en.wikipedia.org/wiki/Explained_variation>`_:
+
+    .. math:: \text{ExplainedVariance} = 1 - \frac{\text{Var}(y - \hat{y})}{\text{Var}(y)}
+
+    Where :math:`y` is a tensor of target values, and :math:`\hat{y}` is a
+    tensor of predictions.
 
     Forward accepts
 

@@ -43,47 +43,43 @@ _mdmc_prob_2cls1 = Input(
 T = torch.Tensor
 
 
-def idn(x):
+def _idn(x):
     return x
 
 
-def usq(x):
+def _usq(x):
     return x.unsqueeze(-1)
 
 
-def toint(x):
-    return x.int()
-
-
-def thrs(x):
+def _thrs(x):
     return x >= THRESHOLD
 
 
-def rshp1(x):
+def _rshp1(x):
     return x.reshape(x.shape[0], -1)
 
 
-def rshp2(x):
+def _rshp2(x):
     return x.reshape(x.shape[0], x.shape[1], -1)
 
 
-def onehot(x):
+def _onehot(x):
     return to_onehot(x, NUM_CLASSES)
 
 
-def onehot2(x):
+def _onehot2(x):
     return to_onehot(x, 2)
 
 
-def top1(x):
+def _top1(x):
     return select_topk(x, 1)
 
 
-def top2(x):
+def _top2(x):
     return select_topk(x, 2)
 
 
-def mvdim(x):
+def _mvdim(x):
     """ Equivalent of torch.movedim(x, -1, 1) """
     shape_permute = list(range(x.ndim))
     shape_permute[1] = shape_permute[-1]
@@ -93,44 +89,44 @@ def mvdim(x):
 
 
 # To avoid ugly black line wrapping
-def ml_preds_tr(x):
-    return rshp1(toint(thrs(x)))
+def _ml_preds_tr(x):
+    return _rshp1(_thrs(x).int())
 
 
-def onehot_rshp1(x):
-    return onehot(rshp1(x))
+def _onehot_rshp1(x):
+    return _onehot(_rshp1(x))
 
 
-def onehot2_rshp1(x):
-    return onehot2(rshp1(x))
+def _onehot2_rshp1(x):
+    return _onehot2(_rshp1(x))
 
 
-def top1_rshp2(x):
-    return top1(rshp2(x))
+def _top1_rshp2(x):
+    return _top1(_rshp2(x))
 
 
-def top2_rshp2(x):
-    return top2(rshp2(x))
+def _top2_rshp2(x):
+    return _top2(_rshp2(x))
 
 
-def mdmc1_top1_tr(x):
-    return top1(rshp2(mvdim(x)))
+def _mdmc1_top1_tr(x):
+    return _top1(_rshp2(_mvdim(x)))
 
 
-def mdmc1_top2_tr(x):
-    return top2(rshp2(mvdim(x)))
+def _mdmc1_top2_tr(x):
+    return _top2(_rshp2(_mvdim(x)))
 
 
-def probs_to_mc_preds_tr(x):
-    return toint(onehot2(thrs(x)))
+def _probs_to_mc_preds_tr(x):
+    return _onehot2(_thrs(x)).int()
 
 
-def mlmd_prob_to_mc_preds_tr(x):
-    return onehot2(rshp1(toint(thrs(x))))
+def _mlmd_prob_to_mc_preds_tr(x):
+    return _onehot2(_rshp1(_thrs(x).int()))
 
 
-def mdmc_prob_to_ml_preds_tr(x):
-    return top1(mvdim(x))[:, 1]
+def _mdmc_prob_to__ml_preds_tr(x):
+    return _top1(_mvdim(x))[:, 1]
 
 
 ########################
@@ -143,44 +139,44 @@ def mdmc_prob_to_ml_preds_tr(x):
     [
         #############################
         # Test usual expected cases
-        (_bin, THRESHOLD, None, False, 1, "multi-class", usq, usq),
-        (_bin_prob, THRESHOLD, None, None, 1, "binary", lambda x: usq(toint(thrs(x))), usq),
-        (_ml_prob, THRESHOLD, None, None, 1, "multi-label", lambda x: toint(thrs(x)), idn),
-        (_ml, THRESHOLD, None, False, 1, "multi-dim multi-class", idn, idn),
-        (_ml_prob, THRESHOLD, None, None, 1, "multi-label", ml_preds_tr, rshp1),
-        (_mlmd, THRESHOLD, None, False, 1, "multi-dim multi-class", rshp1, rshp1),
-        (_mc, THRESHOLD, NUM_CLASSES, None, 1, "multi-class", onehot, onehot),
-        (_mc_prob, THRESHOLD, None, None, 1, "multi-class", top1, onehot),
-        (_mc_prob, THRESHOLD, None, None, 2, "multi-class", top2, onehot),
-        (_mdmc, THRESHOLD, NUM_CLASSES, None, 1, "multi-dim multi-class", onehot, onehot),
-        (_mdmc_prob, THRESHOLD, None, None, 1, "multi-dim multi-class", top1_rshp2, onehot),
-        (_mdmc_prob, THRESHOLD, None, None, 2, "multi-dim multi-class", top2_rshp2, onehot),
-        (_mdmc_prob_many_dims, THRESHOLD, None, None, 1, "multi-dim multi-class", top1_rshp2, onehot_rshp1),
-        (_mdmc_prob_many_dims, THRESHOLD, None, None, 2, "multi-dim multi-class", top2_rshp2, onehot_rshp1),
+        (_bin, THRESHOLD, None, False, 1, "multi-class", _usq, _usq),
+        (_bin_prob, THRESHOLD, None, None, 1, "binary", lambda x: _usq(_thrs(x).int()), _usq),
+        (_ml_prob, THRESHOLD, None, None, 1, "multi-label", lambda x: _thrs(x).int(), _idn),
+        (_ml, THRESHOLD, None, False, 1, "multi-dim multi-class", _idn, _idn),
+        (_ml_prob, THRESHOLD, None, None, 1, "multi-label", _ml_preds_tr, _rshp1),
+        (_mlmd, THRESHOLD, None, False, 1, "multi-dim multi-class", _rshp1, _rshp1),
+        (_mc, THRESHOLD, NUM_CLASSES, None, 1, "multi-class", _onehot, _onehot),
+        (_mc_prob, THRESHOLD, None, None, 1, "multi-class", _top1, _onehot),
+        (_mc_prob, THRESHOLD, None, None, 2, "multi-class", _top2, _onehot),
+        (_mdmc, THRESHOLD, NUM_CLASSES, None, 1, "multi-dim multi-class", _onehot, _onehot),
+        (_mdmc_prob, THRESHOLD, None, None, 1, "multi-dim multi-class", _top1_rshp2, _onehot),
+        (_mdmc_prob, THRESHOLD, None, None, 2, "multi-dim multi-class", _top2_rshp2, _onehot),
+        (_mdmc_prob_many_dims, THRESHOLD, None, None, 1, "multi-dim multi-class", _top1_rshp2, _onehot_rshp1),
+        (_mdmc_prob_many_dims, THRESHOLD, None, None, 2, "multi-dim multi-class", _top2_rshp2, _onehot_rshp1),
         # Test with C dim in last place
-        (_mdmc_prob1, THRESHOLD, None, None, 1, "multi-dim multi-class", mdmc1_top1_tr, onehot),
-        (_mdmc_prob1, THRESHOLD, None, None, 2, "multi-dim multi-class", mdmc1_top2_tr, onehot),
-        (_mdmc_prob_many_dims1, THRESHOLD, None, None, 1, "multi-dim multi-class", mdmc1_top1_tr, onehot_rshp1),
-        (_mdmc_prob_many_dims1, THRESHOLD, None, None, 2, "multi-dim multi-class", mdmc1_top2_tr, onehot_rshp1),
+        (_mdmc_prob1, THRESHOLD, None, None, 1, "multi-dim multi-class", _mdmc1_top1_tr, _onehot),
+        (_mdmc_prob1, THRESHOLD, None, None, 2, "multi-dim multi-class", _mdmc1_top2_tr, _onehot),
+        (_mdmc_prob_many_dims1, THRESHOLD, None, None, 1, "multi-dim multi-class", _mdmc1_top1_tr, _onehot_rshp1),
+        (_mdmc_prob_many_dims1, THRESHOLD, None, None, 2, "multi-dim multi-class", _mdmc1_top2_tr, _onehot_rshp1),
         ###########################
         # Test some special cases
         # Binary as multiclass
-        (_bin, THRESHOLD, None, None, 1, "multi-class", onehot2, onehot2),
+        (_bin, THRESHOLD, None, None, 1, "multi-class", _onehot2, _onehot2),
         # Binary probs as multiclass
-        (_bin_prob, THRESHOLD, None, True, 1, "binary", probs_to_mc_preds_tr, onehot2),
+        (_bin_prob, THRESHOLD, None, True, 1, "binary", _probs_to_mc_preds_tr, _onehot2),
         # Multilabel as multiclass
-        (_ml, THRESHOLD, None, True, 1, "multi-dim multi-class", onehot2, onehot2),
+        (_ml, THRESHOLD, None, True, 1, "multi-dim multi-class", _onehot2, _onehot2),
         # Multilabel probs as multiclass
-        (_ml_prob, THRESHOLD, None, True, 1, "multi-label", probs_to_mc_preds_tr, onehot2),
+        (_ml_prob, THRESHOLD, None, True, 1, "multi-label", _probs_to_mc_preds_tr, _onehot2),
         # Multidim multilabel as multiclass
-        (_mlmd, THRESHOLD, None, True, 1, "multi-dim multi-class", onehot2_rshp1, onehot2_rshp1),
+        (_mlmd, THRESHOLD, None, True, 1, "multi-dim multi-class", _onehot2_rshp1, _onehot2_rshp1),
         # Multidim multilabel probs as multiclass
-        (_mlmd_prob, THRESHOLD, None, True, 1, "multi-label", mlmd_prob_to_mc_preds_tr, onehot2_rshp1),
+        (_mlmd_prob, THRESHOLD, None, True, 1, "multi-label", _mlmd_prob_to_mc_preds_tr, _onehot2_rshp1),
         # Multiclass prob with 2 classes as binary
-        (_mc_prob_2cls, THRESHOLD, None, False, 1, "multi-class", lambda x: top1(x)[:, [1]], usq),
+        (_mc_prob_2cls, THRESHOLD, None, False, 1, "multi-class", lambda x: _top1(x)[:, [1]], _usq),
         # Multi-dim multi-class with 2 classes as multi-label
-        (_mdmc_prob_2cls, THRESHOLD, None, False, 1, "multi-dim multi-class", lambda x: top1(x)[:, 1], idn),
-        (_mdmc_prob_2cls1, THRESHOLD, None, False, 1, "multi-dim multi-class", mdmc_prob_to_ml_preds_tr, idn),
+        (_mdmc_prob_2cls, THRESHOLD, None, False, 1, "multi-dim multi-class", lambda x: _top1(x)[:, 1], _idn),
+        (_mdmc_prob_2cls1, THRESHOLD, None, False, 1, "multi-dim multi-class", _mdmc_prob_to__ml_preds_tr, _idn),
     ],
 )
 def test_usual_cases(inputs, threshold, num_classes, is_multiclass, top_k, exp_mode, post_preds, post_target):

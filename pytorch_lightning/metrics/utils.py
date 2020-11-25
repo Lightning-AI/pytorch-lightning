@@ -37,14 +37,14 @@ def _flatten(x):
 
 
 def to_onehot(
-    tensor: torch.Tensor,
+    label_tensor: torch.Tensor,
     num_classes: int,
 ) -> torch.Tensor:
     """
     Converts a dense label tensor to one-hot format
 
     Args:
-        tensor: dense label tensor, with shape [N, d1, d2, ...]
+        label_tensor: dense label tensor, with shape [N, d1, d2, ...]
         num_classes: number of classes C
 
     Output:
@@ -57,18 +57,18 @@ def to_onehot(
                 [0, 0, 1, 0],
                 [0, 0, 0, 1]])
     """
-    dtype, device, shape = tensor.dtype, tensor.device, tensor.shape
+    dtype, device, shape = label_tensor.dtype, label_tensor.device, label_tensor.shape
     tensor_onehot = torch.zeros(shape[0], num_classes, *shape[1:], dtype=dtype, device=device)
-    index = tensor.long().unsqueeze(1).expand_as(tensor_onehot)
+    index = label_tensor.long().unsqueeze(1).expand_as(tensor_onehot)
     return tensor_onehot.scatter_(1, index, 1.0)
 
 
-def select_topk(tensor: torch.Tensor, topk: int = 1, dim: int = 1) -> torch.Tensor:
+def select_topk(prob_tensor: torch.Tensor, topk: int = 1, dim: int = 1) -> torch.Tensor:
     """
     Convert a probability tensor to binary by selecting top-k highest entries.
 
     Args:
-        tensor: dense tensor of shape ``[..., C, ...]``, where ``C`` is in the
+        prob_tensor: dense tensor of shape ``[..., C, ...]``, where ``C`` is in the
             position defined by the ``dim`` argument
         topk: number of highest entries to turn into 1s
         dim: dimension on which to compare entries
@@ -82,8 +82,8 @@ def select_topk(tensor: torch.Tensor, topk: int = 1, dim: int = 1) -> torch.Tens
         tensor([[0, 1, 1],
                 [1, 1, 0]], dtype=torch.int32)
     """
-    zeros = torch.zeros_like(tensor, device=tensor.device)
-    topk_tensor = zeros.scatter(1, tensor.topk(k=topk, dim=dim).indices, 1.0)
+    zeros = torch.zeros_like(prob_tensor, device=prob_tensor.device)
+    topk_tensor = zeros.scatter(1, prob_tensor.topk(k=topk, dim=dim).indices, 1.0)
 
     return topk_tensor.int()
 
