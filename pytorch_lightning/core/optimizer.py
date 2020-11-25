@@ -275,4 +275,5 @@ class LightningOptimizer(Optimizer):
         else:
             # make sure to call optimizer_closure when accumulating
             if isinstance(closure, types.FunctionType):
-                closure()
+                with self._trainer.train_loop.block_ddp_sync_behaviour()
+                    closure()
