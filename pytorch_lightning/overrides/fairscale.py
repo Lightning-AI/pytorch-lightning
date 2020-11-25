@@ -18,7 +18,6 @@ except (ModuleNotFoundError, ImportError):
 else:
     FAIRSCALE_SHARDED_AVAILABLE = True
 
-
     class LightningShardedDataParallel(ShardedDataParallel):
 
         def forward(self, *inputs, **kwargs):
