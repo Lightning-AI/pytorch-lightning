@@ -960,7 +960,7 @@ class LightningModule(
         """
 
     def configure_optimizers(
-            self,
+        self,
     ):
         r"""
         Choose what optimizers and learning-rate schedulers to use in your optimization.
@@ -978,13 +978,36 @@ class LightningModule(
             - None - Fit will run without any optimizer.
 
         Note:
-            The 'frequency' value is an int corresponding to the number of sequential batches
-            optimized with the specific optimizer. It should be given to none or to all of the optimizers.
+            The 'frequency' value specified in a dict along with the 'optimizer' key is an int corresponding
+            to the number of sequential batches optimized with the specific optimizer.
+            It should be given to none or to all of the optimizers.
             There is a difference between passing multiple optimizers in a list,
             and passing multiple optimizers in dictionaries with a frequency of 1:
             In the former case, all optimizers will operate on the given batch in each optimization step.
             In the latter, only one optimizer will operate on the given batch at every step.
+            This is different from the 'frequency' value specified in the lr_dict mentioned below.
 
+            .. code-block:: python
+
+                def configure_optimizers(self):
+                    optimizer_one = torch.optim.SGD(self.model.parameters(), lr=0.01)
+                    optimizer_two = torch.optim.SGD(self.model.parameters(), lr=0.01)
+                    return [
+                        {
+                            'optimizer': optimizer_one,
+                            'frequency': 5
+                        },
+                        {
+                            'optimizer': optimizer_two,
+                            'frequency': 10
+                    }]
+
+            In this example, the first optimizer will be used for the first 5 steps,
+            the second optimizer for the next 10 steps and that cycle will continue.
+            If an LR scheduler is specified for an optimizer using the `lr_scheduler` key in the above dict,
+            the scheduler will only be updated when its optimizer is being used.
+
+        Note:
             The lr_dict is a dictionary which contains scheduler and its associated configuration.
             It has five keys. The default configuration is shown below.
 
