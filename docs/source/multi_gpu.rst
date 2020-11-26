@@ -429,8 +429,6 @@ You can then call your scripts anywhere
     cd /project/src
     python some_file.py --accelerator 'ddp' --gpus 8
 
-
-
 Sharded DDP
 ^^^^^^^^^^^
 Sharded DDP is a direct implementation of `DeepSpeed ZeRO <https://arxiv.org/abs/1910.02054>`_ and
