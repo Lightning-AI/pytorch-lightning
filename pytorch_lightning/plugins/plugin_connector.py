@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from enum import Enum
+from typing import Union, Optional
+
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
@@ -29,7 +32,9 @@ class PluginConnector:
         self.amp_plugin = NativeAMPPlugin(trainer)
         self.apex_plugin = ApexPlugin(trainer)
 
-    def on_trainer_init(self, plugins):
+    def on_trainer_init(self, plugins: Optional[Union[str, list]]):
+        if isinstance(plugins, str):
+            plugins = self.__select_plugin(plugins)
         self.plugins = plugins
         if self.plugins is None:
             self.plugins = []
@@ -38,6 +43,17 @@ class PluginConnector:
         self.__attach_cluster()
         self.__attach_amp()
         self.__attach_apex()
+
+    def __select_plugin(self, plugins: str):
+        if plugins in DDPPluginType.__members__:
+            ddp_plugin_cls = DDPPluginType[plugins].value
+            return [ddp_plugin_cls()]
+
+        raise MisconfigurationException(
+            f"{plugins} is not a supported standard plugin. "
+            f"If you're trying to pass a custom plugin, please pass this as an object to the trainer's plugin."
+            f"Supported plugins as string input to the plugins argument: {(e.name for e in DDPPluginType)}."
+        )
 
     def __attach_amp(self):
         amp_plugin = self.__attach_plugin(NativeAMPPlugin)
@@ -94,3 +110,7 @@ class PluginConnector:
 
                 # set the cluster
                 self.cloud_environment = plugin
+
+
+class DDPPluginType(Enum):
+    standard_ddp = DDPPlugin
