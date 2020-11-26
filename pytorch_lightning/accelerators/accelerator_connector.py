@@ -365,10 +365,6 @@ class AcceleratorConnector:
     def _set_horovod_backend(self):
         self.check_horovod()
         self.trainer.use_horovod = True
-        # todo: Figure out why it doesn't work with horovod
-        #   if self.trainer.enable_pl_optimizer:
-        #    log.warn("LightningOptimizer is currently not supported with Horovod. Setting enable_pl_optimizer to False")
-        #    self.trainer.enable_pl_optimizer = False
 
         # Initialize Horovod to get rank / size info
         hvd.init()
@@ -408,8 +404,7 @@ class AcceleratorConnector:
     def determine_local_rank(self):
         if self.trainer.is_slurm_managing_tasks:
             return int(os.environ['SLURM_LOCALID'])
-        else:
-            return int(os.environ.get('LOCAL_RANK', 0))
+        return int(os.environ.get('LOCAL_RANK', 0))
 
     def determine_ddp_node_rank(self):
         if self.trainer.is_slurm_managing_tasks:
