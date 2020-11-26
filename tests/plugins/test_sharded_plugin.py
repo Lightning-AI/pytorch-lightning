@@ -458,8 +458,9 @@ def run_sharded_correctness(
         max_percent_speed_diff=0.25,
         model_cls=TestModel):
     """
-        Ensures that the trained model is identical to the standard DDP implementation.
-        Also checks for speed/memory regressions, we should expect always less memory but performance to fluctuate.
+    Ensures that the trained model is identical to the standard DDP implementation.
+    Also checks for speed/memory regressions, we should expect always less memory but performance to fluctuate.
+
     Args:
         accelerator: Accelerator type for test.
         gpus: Number of GPUS to enable.
