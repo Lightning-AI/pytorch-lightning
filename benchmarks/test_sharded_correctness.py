@@ -41,8 +41,7 @@ def test_ddp_sharded_plugin_correctness_amp_one_gpu():
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(not FAIRSCALE_AVAILABLE,
-                    reason="Fairscale is not available")
+@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_correctness_multi_gpu():
     run_sharded_correctness(gpus=2, accelerator='ddp_spawn')
 
@@ -59,8 +58,7 @@ def test_ddp_sharded_plugin_correctness_amp_multi_gpu():
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(not FAIRSCALE_AVAILABLE,
-                    reason="Fairscale is not available")
+@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_correctness_multi_gpu_multi_optim():
     """
         Ensures same results using multiple optimizers across multiple GPUs
