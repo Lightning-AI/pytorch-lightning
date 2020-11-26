@@ -505,10 +505,7 @@ class ModelCheckpoint(Callback):
         filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics)
 
         version_cnt = 0
-        while self._fs.exists(filepath):
-            if filepath == del_filepath:
-                break
-
+        while self._fs.exists(filepath) and filepath != del_filepath:
             filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics, ver=version_cnt)
             version_cnt += 1
 
