@@ -51,7 +51,7 @@ def do_nothing_closure():
     return
 
 
-class LightningOptimizer(Optimizer):
+class LightningOptimizer:
     """
     This class is used to wrap the user optimizers and handle properly
     the backward and optimizer_step logic across accelerators, AMP, accumulated_grad_batches
