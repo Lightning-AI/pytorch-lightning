@@ -48,7 +48,7 @@ class CPUAccelerator(Accelerator):
         self.setup_optimizers(model)
 
         # convert to LightningOptimizers
-        self.convert_to_lightning_optimizers()
+        self.trainer.convert_to_lightning_optimizers()
 
         self.trainer.model = model
 
