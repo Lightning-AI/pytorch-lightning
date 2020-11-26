@@ -13,6 +13,7 @@
 # limitations under the License.
 from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE
 
+LightningShardedDataParallel = None
 if FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
 
@@ -29,6 +30,3 @@ if FAIRSCALE_AVAILABLE:
             else:
                 outputs = self.module.validation_step(*inputs, **kwargs)
             return outputs
-
-else:
-    LightningShardedDataParallel = None
