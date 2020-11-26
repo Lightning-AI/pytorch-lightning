@@ -13,6 +13,7 @@
 # limitations under the License.
 """General utilities"""
 import importlib
+import platform
 from enum import Enum
 
 import numpy
@@ -43,6 +44,7 @@ def _module_available(module_path: str) -> bool:
 
 APEX_AVAILABLE = _module_available("apex.amp")
 NATIVE_AMP_AVALAIBLE = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
+FAIRSCALE_AVAILABLE = platform.system() != 'Windows' and _module_available('fairscale.nn.data_parallel')
 
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
 FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps

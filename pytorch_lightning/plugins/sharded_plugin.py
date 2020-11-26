@@ -11,21 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import platform
 from typing import List, Optional, Union
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
-from pytorch_lightning.utilities import rank_zero_only, _module_available
+from pytorch_lightning.utilities import rank_zero_only, FAIRSCALE_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if platform.system() != "Windows" and _module_available('fairscale.optim'):  # Distributed not supported on windows
+if FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
     from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel
-
-    FAIRSCALE_AVAILABLE = True
-else:
-    FAIRSCALE_AVAILABLE = False
 
 
 class DDPShardedPlugin(DDPPlugin):
