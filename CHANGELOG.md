@@ -97,6 +97,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added feature to move tensors to CPU before saving ([#4309](https://github.com/PyTorchLightning/pytorch-lightning/pull/4309))
 
+- Fixed the saved filename in `ModelCheckpoint` when it's already present ([#4861](https://github.com/PyTorchLightning/pytorch-lightning/pull/4861))
+
 
 
 ## [1.0.8] - 2020-11-24
