@@ -19,7 +19,7 @@ from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.utilities import rank_zero_only, _module_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if _module_available('fairscale.optim') and platform.system() != "Windows":  # Distributed not supported on windows
+if platform.system() != "Windows" and _module_available('fairscale.optim'):  # Distributed not supported on windows
     from fairscale.optim import OSS
     from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel
 
@@ -43,8 +43,7 @@ class DDPShardedPlugin(DDPPlugin):
                 model=model,
                 device_ids=device_ids
             )
-        else:
-            return LightningShardedDataParallel(model, sharded_optimizer=model.trainer.optimizers)
+        return LightningShardedDataParallel(model, sharded_optimizer=model.trainer.optimizers)
 
     def optimizer_state(self, optimizer: 'OSS') -> Optional[dict]:
         optimizer.consolidate_state_dict()

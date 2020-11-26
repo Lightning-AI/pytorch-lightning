@@ -15,7 +15,7 @@ import platform
 
 from pytorch_lightning.utilities import _module_available
 
-if _module_available('fairscale.nn.data_parallel.sharded_ddp') and platform.system() != "Windows":
+if platform.system() != "Windows" and _module_available('fairscale.nn.data_parallel.sharded_ddp'):
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
 
     class LightningShardedDataParallel(ShardedDataParallel):
