@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import platform
+
 from pytorch_lightning.utilities import _module_available
 
-if _module_available('fairscale.nn.data_parallel.sharded_ddp'):
+if _module_available('fairscale.nn.data_parallel.sharded_ddp') and platform.system() != "Windows":
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
 
     class LightningShardedDataParallel(ShardedDataParallel):

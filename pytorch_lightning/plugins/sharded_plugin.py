@@ -19,7 +19,7 @@ from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.utilities import rank_zero_only, _module_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if _module_available('fairscale.optim') and not platform.system() == "Windows":  # Distributed not supported on windows
+if _module_available('fairscale.optim') and platform.system() != "Windows":  # Distributed not supported on windows
     from fairscale.optim import OSS
     from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel
 
