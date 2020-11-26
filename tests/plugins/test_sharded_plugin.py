@@ -73,6 +73,7 @@ def test_ddp_choice_sharded(tmpdir, ddp_backend, gpus, num_processes):
     [("ddp_cpu", None, None), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
 )
 @pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@pytest.mark.skipif(not NATIVE_AMP_AVALAIBLE, reason="Requires native AMP")
 def test_ddp_choice_sharded_amp(tmpdir, ddp_backend, gpus, num_processes):
     """
         Test to ensure that plugin native amp plugin is correctly chosen when using sharded
@@ -285,8 +286,8 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
                     reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_correctness_one_device():
-    # Allow slightly slower speed due to one CPU machine doing rigorously memory saving calls
-    run_sharded_correctness(accelerator='ddp_cpu')
+    # Allow slightly slower speed due to one CPU doing additional sequential memory saving calls
+    run_sharded_correctness(accelerator='ddp_cpu', max_percent_speed_diff=0.5)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
