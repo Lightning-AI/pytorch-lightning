@@ -78,7 +78,7 @@ class TrainerOptimizersMixin(ABC):
         lr_schedulers = self.configure_schedulers(lr_schedulers, monitor=monitor)
 
         if self.enable_pl_optimizer:
-            optimizers = [self.convert_to_lightning_optimizers(opt)
+            optimizers = [self.convert_to_lightning_optimizer(opt)
                           for opt_idx, opt in enumerate(optimizers)]
 
         return optimizers, lr_schedulers, optimizer_frequencies
