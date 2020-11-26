@@ -155,7 +155,7 @@ def _check_classification_inputs(
     num_classes: Optional[int] = None,
     is_multiclass: bool = False,
     top_k: int = 1,
-) -> None:
+) -> str:
     """Performs error checking on inputs for classification.
 
     This ensures that preds and target take one of the shape/type combinations that are
@@ -189,6 +189,10 @@ def _check_classification_inputs(
             multi-class with 2 classes, respectively. If False, treat multi-class and multi-dim
             multi-class inputs with 1 or 2 classes as binary and multi-label, respectively.
             Defaults to None, which treats inputs as they appear.
+
+    Return:
+        case: The case the inputs fall in, one of 'binary', 'multi-class', 'multi-label' or
+            'multi-dim multi-class'
     """
 
     if target.is_floating_point():
@@ -246,6 +250,8 @@ def _check_classification_inputs(
                 " with probability predictions."
             )
 
+    return case
+
 
 def _input_format_classification(
     preds: torch.Tensor,
@@ -276,7 +282,7 @@ def _input_format_classification(
 
     The returned output tensors will be binary tensors of the same shape, either ``(N, C)``
     of ``(N, C, X)``, the details for each case are described below. The function also returns
-    a ``mode`` string, which describes which of the above cases the inputs belonged to - regardless
+    a ``case`` string, which describes which of the above cases the inputs belonged to - regardless
     of whether this was "overridden" by other settings (like ``is_multiclass``).
 
     In binary case, targets are normally returned as ``(N,1)`` tensor, while preds are transformed
@@ -323,6 +329,8 @@ def _input_format_classification(
     Returns:
         preds: binary tensor of shape (N, C) or (N, C, X)
         target: binary tensor of shape (N, C) or (N, C, X)
+        case: The case the inputs fall in, one of 'binary', 'multi-class', 'multi-label' or
+            'multi-dim multi-class'        
     """
     # Remove excess dimensions
     if preds.shape[0] == 1:
@@ -330,7 +338,7 @@ def _input_format_classification(
     else:
         preds, target = preds.squeeze(), target.squeeze()
 
-    _check_classification_inputs(
+    case = _check_classification_inputs(
         preds,
         target,
         threshold=threshold,
@@ -341,8 +349,7 @@ def _input_format_classification(
 
     preds_float = preds.is_floating_point()
 
-    if preds.ndim == target.ndim == 1 and preds_float:
-        mode = "binary"
+    if case == "binary":
         preds = (preds >= threshold).int()
 
         if is_multiclass:
@@ -352,8 +359,7 @@ def _input_format_classification(
             preds = preds.unsqueeze(-1)
             target = target.unsqueeze(-1)
 
-    elif preds.ndim == target.ndim and preds_float:
-        mode = "multi-label"
+    elif case == "multi-label":
         preds = (preds >= threshold).int()
 
         if is_multiclass:
@@ -363,8 +369,8 @@ def _input_format_classification(
             preds = preds.reshape(preds.shape[0], -1)
             target = target.reshape(target.shape[0], -1)
 
+    # Multi-class with probabilities
     elif preds.ndim == target.ndim + 1 == 2:
-        mode = "multi-class"
         if not num_classes:
             num_classes = preds.shape[1]
 
@@ -376,9 +382,8 @@ def _input_format_classification(
             target = target[:, [1]]
             preds = preds[:, [1]]
 
+    # Multi-class with labels
     elif preds.ndim == target.ndim == 1 and not preds_float:
-        mode = "multi-class"
-
         if not num_classes:
             num_classes = max(preds.max(), target.max()) + 1
 
@@ -392,8 +397,6 @@ def _input_format_classification(
 
     # Multi-dim multi-class (N, ...) with integers
     elif preds.shape == target.shape and not preds_float:
-        mode = "multi-dim multi-class"
-
         if not num_classes:
             num_classes = max(preds.max(), target.max()) + 1
 
@@ -407,9 +410,8 @@ def _input_format_classification(
             preds = to_onehot(preds, num_classes)
             preds = preds.reshape(preds.shape[0], preds.shape[1], -1)
 
-    # Multi-dim multi-class (N, C, ...) and (N, ..., C)
+    # Multi-dim multi-class (N, C, ...)
     else:
-        mode = "multi-dim multi-class"
         num_classes = preds.shape[1]
 
         if is_multiclass is False:
@@ -421,4 +423,4 @@ def _input_format_classification(
             target = target.reshape(target.shape[0], target.shape[1], -1)
             preds = select_topk(preds, top_k).reshape(preds.shape[0], preds.shape[1], -1)
 
-    return preds, target, mode
+    return preds, target, case
