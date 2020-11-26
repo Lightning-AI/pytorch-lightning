@@ -187,14 +187,20 @@ def test_trainer_callback_system(tmpdir):
         'on_epoch_start',
         'on_batch_start',
         'on_train_batch_start',
+        'on_after_backward',
+        'on_before_zero_grad',
         'on_batch_end',
         'on_train_batch_end',
         'on_batch_start',
         'on_train_batch_start',
+        'on_after_backward',
+        'on_before_zero_grad',
         'on_batch_end',
         'on_train_batch_end',
         'on_batch_start',
         'on_train_batch_start',
+        'on_after_backward',
+        'on_before_zero_grad',
         'on_batch_end',
         'on_train_batch_end',
         'on_validation_start',
@@ -204,7 +210,7 @@ def test_trainer_callback_system(tmpdir):
         'on_epoch_end',
         'on_train_end',
         'on_fit_end',
-        'teardown'
+        'teardown',
     ]
 
     test_callback = TestCallback()
