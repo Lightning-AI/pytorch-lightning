@@ -33,11 +33,6 @@ class DDPShardedPlugin(DDPPlugin):
             self, model: LightningModule, device_ids: List[int]
     ):
         self._wrap_optimizers(model)
-        if model.trainer.testing:  # Revert to standard DDP if testing
-            return super().configure_ddp(
-                model=model,
-                device_ids=device_ids
-            )
         return LightningShardedDataParallel(model, sharded_optimizer=model.trainer.optimizers)
 
     def optimizer_state(self, optimizer: 'OSS') -> Optional[dict]:
