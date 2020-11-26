@@ -38,7 +38,7 @@ if HOROVOD_AVAILABLE:
     import horovod
     import horovod.torch as hvd
 
-HOROVOD_NCCL_AVAILABLE = _module_available("horovod.common.util.nccl_built")
+HOROVOD_NCCL_AVAILABLE = _module_available("horovod.common.util") and hasattr(horovod.common.util, "nccl_built")
 # This script will run the actual test model training in parallel
 TEST_SCRIPT = os.path.join(os.path.dirname(__file__), 'data', 'horovod', 'train_default_model.py')
 
