@@ -51,7 +51,7 @@ def do_nothing_closure():
     return
 
 
-class LightningOptimizer(Optimizer):
+class LightningOptimizer:
 
     """
     This class is used to wrap the user optimizers and handle properly
@@ -69,10 +69,11 @@ class LightningOptimizer(Optimizer):
             raise MisconfigurationException(f"accumulate_grad_batches parameters "
                                             f"{accumulate_grad_batches} should be >= 1")
         self._trainer = None
+        self._optimizer = optimizer  # the unwrapped optimizer
         self._accumulate_grad_batches = accumulate_grad_batches
         self._use_accumulate_grad_batches_from_trainer = accumulate_grad_batches is None
 
-    def _on_trainer_init(self, trainer, optimizer_idx):
+    def _on_trainer_init(self, trainer):
         self._trainer = proxy(trainer)
 
     def _accumulated_batches_reached(self):
@@ -206,22 +207,20 @@ class LightningOptimizer(Optimizer):
                 # native amp does not yet support closures.
                 # TODO: pass the closure to the step ASAP
                 closure()
-                self._trainer.scaler.step(self)
+                self._trainer.scaler.step(self._optimizer)
                 self._trainer.scaler.update()
             elif self._trainer.amp_backend == AMPType.APEX:
                 # apex amp does not yet support closures.
                 # TODO: pass the closure to the step ASAP
                 closure()
-                super().step()
+                self._optimizer.step()
             else:
-                super().step(*args, closure=closure, **kwargs)
+                self._optimizer.step(*args, closure=closure, **kwargs)
 
             # perform zero grad
-            super().zero_grad()
+            self._optimizer.zero_grad()
         else:
             # make sure to call optimizer_closure when accumulating
             if isinstance(closure, types.FunctionType):
                 with self._trainer.train_loop.block_ddp_sync_behaviour():
                     closure()
-
-
