@@ -430,6 +430,25 @@ You can then call your scripts anywhere
     python some_file.py --accelerator 'ddp' --gpus 8
 
 
+
+Sharded DDP
+^^^^^^^^^^^
+Sharded DDP is a direct implementation of `DeepSpeed ZeRO <https://arxiv.org/abs/1910.02054>`_ and
+`ZeRO-2 <https://www.microsoft.com/en-us/research/blog/zero-2-deepspeed-shattering-barriers-of-deep-learning-speed-scale/>`_
+provided by `Fairscale <https://github.com/facebookresearch/fairscale/tree/master/fairscale>`_. Sharded DDP is similar to normal DDP, except optimizer state and gradients are sharded across your GPUs.
+This means the memory overhead per GPU is less, as each GPU only has to maintain a section of your optimizer state and gradients.
+The benefits are model variant, but we've recorded up to a 25% memory reduction per GPU. Because of
+extremely efficient communication, these benefits using multi-GPU setups are free and throughput scales well into multi-node setups.
+
+It is highly recommended to use Sharded DDP in multi-GPU environments where memory is limited or where training larger models are effective.
+
+.. code-block:: python
+
+    # train using Sharded DDP
+    trainer = Trainer(accelerator='ddp', plugin='sharded')
+
+Sharded DDP can work across all DDP variants by adding the additional `plugin='sharded` flag.
+
 Horovod
 ^^^^^^^
 `Horovod <http://horovod.ai>`_ allows the same training script to be used for single-GPU,
@@ -640,16 +659,16 @@ The reason is that the full batch is visible to all GPUs on the node when using 
 
 ----------
 
-PytorchElastic
+TorchElastic
 --------------
-Lightning supports the use of PytorchElastic to enable fault-tolerent and elastic distributed job scheduling. To use it, specify the 'ddp' or 'ddp2' backend and the number of gpus you want to use in the trainer.
+Lightning supports the use of TorchElastic to enable fault-tolerant and elastic distributed job scheduling. To use it, specify the 'ddp' or 'ddp2' backend and the number of gpus you want to use in the trainer.
 
 .. code-block:: python
 
     Trainer(gpus=8, accelerator='ddp')
     
     
-Following the `PytorchElastic Quickstart documentation <https://pytorch.org/elastic/latest/quickstart.html>`_, you then need to start a single-node etcd server on one of the hosts:
+Following the `TorchElastic Quickstart documentation <https://pytorch.org/elastic/latest/quickstart.html>`_, you then need to start a single-node etcd server on one of the hosts:
 
 .. code-block:: bash
 
@@ -671,7 +690,7 @@ And then launch the elastic job with:
             YOUR_LIGHTNING_TRAINING_SCRIPT.py (--arg1 ... train script args...)
             
 
-See the official `PytorchElastic documentation <https://pytorch.org/elastic>`_ for details
+See the official `TorchElastic documentation <https://pytorch.org/elastic>`_ for details
 on installation and more use cases.
 
 ----------
