@@ -26,6 +26,7 @@ from weakref import proxy
 import torch
 from torch import ScriptModule, Tensor
 from torch.nn import Module
+from torch.optim import SGD
 from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning import _logger as log
@@ -69,11 +70,6 @@ class LightningOptimizer(Optimizer):
         if hasattr(optimizer, "skip_synchronize"):
             self.skip_synchronize = optimizer.skip_synchronize
             self.synchronize = optimizer.synchronize
-            # horovod wraps the optimizer class, so we need to unwrap it
-            #self.__class__ = type(optimizer.__class__.__name__, (self.__class__, optimizer.__class__.__bases__[0]), {})
-        else:
-            pass
-            #self.__class__ = type(optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
 
         optim_dict = {}
         for k, v in optimizer.__dict__.items():
