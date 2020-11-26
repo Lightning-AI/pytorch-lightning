@@ -81,6 +81,8 @@ class LightningOptimizer(Optimizer):
         self._optimizer = optimizer
         self._accumulate_grad_batches = accumulate_grad_batches
         self._use_accumulate_grad_batches_from_trainer = accumulate_grad_batches is None
+        # used to find back the step
+        self._lightning_step = self.step
 
     def _on_trainer_init(self, trainer):
         self._trainer = proxy(trainer)
