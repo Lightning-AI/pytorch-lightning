@@ -21,10 +21,11 @@ import json
 import os
 import sys
 
+from pytorch_lightning.utilities import HOROVOD_AVAILABLE
 
-try:
+if HOROVOD_AVAILABLE:
     import horovod.torch as hvd
-except ImportError:
+else:
     print('You requested to import Horovod which is missing or not supported for your OS.')
 
 PATH_HERE = os.path.abspath(os.path.dirname(__file__))

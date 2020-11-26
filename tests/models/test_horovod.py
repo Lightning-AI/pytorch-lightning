@@ -28,19 +28,14 @@ import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.horovod_accelerator import HorovodAccelerator
-from pytorch_lightning.core.step_result import Result, TrainResult, EvalResult
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
-from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVAILABLE
+from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVAILABLE, HOROVOD_AVAILABLE
 from tests.base import EvalModelTemplate
 from tests.base.models import BasicGAN
 
-try:
+if HOROVOD_AVAILABLE:
     import horovod
     from horovod.common.util import nccl_built
-except ImportError:
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
 
 
 # This script will run the actual test model training in parallel
