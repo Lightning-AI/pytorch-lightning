@@ -57,8 +57,13 @@ def to_onehot(
                 [0, 0, 1, 0],
                 [0, 0, 0, 1]])
     """
-    dtype, device, shape = label_tensor.dtype, label_tensor.device, label_tensor.shape
-    tensor_onehot = torch.zeros(shape[0], num_classes, *shape[1:], dtype=dtype, device=device)
+    tensor_onehot = torch.zeros(
+        label_tensor.shape[0],
+        num_classes,
+        *label_tensor.shape[1:],
+        dtype=label_tensor.dtype,
+        device=label_tensor.device,
+    )
     index = label_tensor.long().unsqueeze(1).expand_as(tensor_onehot)
     return tensor_onehot.scatter_(1, index, 1.0)
 
