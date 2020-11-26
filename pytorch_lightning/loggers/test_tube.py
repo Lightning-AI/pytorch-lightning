@@ -89,7 +89,7 @@ class TestTubeLogger(LightningLoggerBase):
         log_graph: bool = False,
         prefix: str = '',
     ):
-        if Experiment is None:
+        if not TESTTUBE_AVAILABLE:
             raise ImportError('You want to use `test_tube` logger which is not installed yet,'
                               ' install it with `pip install test-tube`.')
         super().__init__()

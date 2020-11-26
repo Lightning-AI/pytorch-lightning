@@ -32,6 +32,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 COMET_AVAILABLE = _module_available("comet_ml")
 
 if COMET_AVAILABLE:
+    import comet_ml
     from comet_ml import ExistingExperiment as CometExistingExperiment
     from comet_ml import Experiment as CometExperiment
     from comet_ml import OfflineExperiment as CometOfflineExperiment
@@ -125,7 +126,7 @@ class CometLogger(LightningLoggerBase):
         prefix: str = '',
         **kwargs
     ):
-        if comet_ml is None:
+        if not COMET_AVAILABLE:
             raise ImportError(
                 "You want to use `comet_ml` logger which is not installed yet,"
                 " install it with `pip install comet-ml`."
