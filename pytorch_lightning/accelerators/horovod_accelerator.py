@@ -85,13 +85,12 @@ class HorovodAccelerator(Accelerator):
             return [(name, p) for name, p in model.named_parameters() if p in opt_params]
 
         # Horovod: wrap optimizers to perform gradient aggregation via allreduce
-        self.trainer.optimizers = [
+        optimizers = [
             hvd.DistributedOptimizer(optimizer, named_parameters=_filter_named_parameters(model, optimizer))
             for optimizer in self.trainer.optimizers
         ]
 
-        # convert to LightningOptimizer
-        self.trainer.convert_to_lightning_optimizers()
+        self.trainer.optimizers = self.trainer.convert_to_lightning_optimizers(optimizers)
 
         # 16-bit
         model = self.trainer.precision_connector.connect(model)

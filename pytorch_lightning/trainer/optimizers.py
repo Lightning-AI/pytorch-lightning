@@ -91,6 +91,7 @@ class TrainerOptimizersMixin(ABC):
 
         if self.enable_pl_optimizer:
             return [convert_to_lightning_optimizer(self, opt) for opt in optimizers]
+        return optimizers
 
     def configure_schedulers(self, schedulers: list, monitor: Optional[str] = None):
         # Convert each scheduler into dict structure with relevant information
