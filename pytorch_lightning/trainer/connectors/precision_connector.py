@@ -50,6 +50,7 @@ class PrecisionConnector:
             # no AMP requested, so we can leave now
             return
 
+        using_sharded_plugin = self._check_sharded_plugin(plugins)
         amp_type = amp_type.lower()
         assert amp_type in ('native', 'apex'), f'Unsupported amp type {amp_type}'
         if amp_type == 'native':
@@ -60,10 +61,8 @@ class PrecisionConnector:
                 amp_type = 'apex'
             else:
                 self.trainer.amp_backend = AMPType.NATIVE
-                if plugins and self._sharded_in_plugins(plugins):
-                    if not FAIRSCALE_AVAILABLE:
-                        raise MisconfigurationException('Sharded DDP Plugin requires Fairscale to be installed.')
-                    log.info('Using Sharded 16bit plugin.')
+                if using_sharded_plugin:
+                    log.info('Using sharded 16bit precision.')
                     self.backend = ShardedNativeAMPPlugin(self.trainer)
                 else:
                     log.info('Using native 16bit precision.')
@@ -73,6 +72,9 @@ class PrecisionConnector:
             if not APEX_AVAILABLE:
                 rank_zero_warn('You have asked for Apex AMP but you have not installed it yet.'
                                ' Install apex first using this guide: https://github.com/NVIDIA/apex#linux')
+            if using_sharded_plugin:
+                rank_zero_warn(
+                    'Sharded Plugin is not supported with Apex AMP, please using native AMP for 16 bit precision.')
             else:
                 log.info('Using APEX 16bit precision.')
                 self.trainer.amp_backend = AMPType.APEX
@@ -90,6 +92,13 @@ class PrecisionConnector:
             self.trainer.optimizers = optimizers
 
         return model
+
+    def _check_sharded_plugin(self, plugins):
+        if plugins and self._sharded_in_plugins(plugins):
+            if not FAIRSCALE_AVAILABLE:
+                raise MisconfigurationException('Sharded DDP Plugin requires Fairscale to be installed.')
+            return True
+        return False
 
     def _sharded_in_plugins(self, plugins):
         for plugin in plugins:
