@@ -15,7 +15,7 @@ import io
 import math
 import os
 import re
-from typing import Optional, Union, Any
+from typing import Any, Optional, Union
 
 import torch
 import torch.multiprocessing as mp
@@ -233,6 +233,9 @@ class TPUAccelerator(Accelerator):
         log.info(f'INIT TPU local core: {trainer.tpu_local_core_rank},'
                  f' global rank: {trainer.tpu_global_core_rank}'
                  f' with XLA_USE_BF16={os.environ.get("XLA_USE_BF16")}')
+
+        # convert to LightningOptimizers
+        self.convert_to_lightning_optimizers()
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         # do backward pass
