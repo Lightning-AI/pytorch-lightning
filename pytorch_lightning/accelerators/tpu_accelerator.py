@@ -235,7 +235,7 @@ class TPUAccelerator(Accelerator):
                  f' with XLA_USE_BF16={os.environ.get("XLA_USE_BF16")}')
 
         # convert to LightningOptimizers
-        self.convert_to_lightning_optimizers()
+        self.trainer.convert_to_lightning_optimizers()
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         # do backward pass

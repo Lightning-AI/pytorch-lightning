@@ -64,7 +64,7 @@ class DataParallelAccelerator(Accelerator):
             model = self.__init_half_precision(model)
 
         # convert to LightningOptimizers
-        self.convert_to_lightning_optimizers()
+        self.trainer.convert_to_lightning_optimizers()
 
         self.trainer.model = model
 
