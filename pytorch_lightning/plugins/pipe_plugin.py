@@ -18,6 +18,7 @@ try:
     if IS_TORCH_AT_LEAST_1_6:
         import fairscale.nn.model_parallel as mpu
         from fairscale.nn import Pipe, PipeRPCWrapper
+        from fairscale.nn.model_parallel.utils import ensure_divisibility
         from fairscale.nn.pipe import rpc as rpc_pipe
         from fairscale.nn.pipe.pipeline import PipelineStyle
         from torch.distributed import rpc
@@ -91,6 +92,39 @@ def run_optimizer(ctx, model):
     )
 
 
+# https://github.com/facebookresearch/fairscale/blob/master/fairscale/nn/model_parallel/initialize.py#L41
+def get_data_parallel_size(
+    model_parallel_size_: int,
+    pipeline_length: int = 1,
+    *,
+    model_parallel_backend: Optional[str] = None,
+    pipeline_backend: Optional[str] = None,
+    ddp_backend: Optional[str] = None
+) -> None:
+    """
+    Let's say we have a total of 8 GPUs denoted by g0 ... g7 and we
+    use 2 GPUs to parallelize the model. The present function will
+    create 4 model parallel groups and 2 data parallel grous as:
+        4 model parallel groups:
+            [g0, g1], [g2, g3], [g4, g5], [g6, g7]
+        2 data parallel groups:
+            [g0, g2, g4, g6], [g1, g3, g5, g7]
+    Note that for efficiency, the caller should make sure adjacent ranks
+    are on the same DGX box. For example if we are using 2 DGX-1 boxes
+    with a total of 16 GPUs, rank 0 to 7 belong to the first box and
+    ranks 8 to 15 belong to the second box.
+    """
+    # Get world size and rank. Ensure some consistencies.
+    assert torch.distributed.is_initialized()
+    world_size = torch.distributed.get_world_size()
+    model_parallel_size = int(min(model_parallel_size_, world_size))
+    ensure_divisibility(world_size, model_parallel_size)
+    ensure_divisibility(world_size, model_parallel_size * pipeline_length)
+    rank = torch.distributed.get_rank()
+
+    return int(world_size / (model_parallel_size * pipeline_length))
+
+
 class LightningPipeModule(nn.Module):
     def __init__(self, module: nn.Sequential, balance: List[int],
                  microbatches: int = 8, checkpoint='never', version: int = 1):
@@ -129,14 +163,15 @@ class PipePlugin(DDPPlugin):
         self.microbatches = microbatches
         self.checkpoint = checkpoint
         self.version = version
+        self._use_barrier_and_broadcast = None
 
     @property
     def use_barrier_and_broadcast(self):
-        return self.version == 1
+        return self._use_barrier_and_broadcast
 
     @property
     def use_optimizer_step(self):
-        return not (self.version == 1)
+        return self.version != 1
 
     def _find_pipe_module(self, model):
         # try to wrap for the user
@@ -182,6 +217,8 @@ class PipePlugin(DDPPlugin):
         os.environ["MASTER_PORT"] = "15000"
         rpc.init_rpc(f"worker{global_rank}", rank=global_rank, world_size=world_size)
         mpu.initialize_model_parallel(1, world_size)
+        data_parallel_size = get_data_parallel_size(1, world_size)
+        self._use_barrier_and_broadcast = (self.version == 1 or data_parallel_size > 1)
 
         automatic_optimization = trainer.train_loop.automatic_optimization
         if automatic_optimization:
