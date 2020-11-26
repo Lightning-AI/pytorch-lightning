@@ -62,7 +62,7 @@ def test_ddp_sharded_plugin_correctness_amp_multi_gpu():
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
                     reason="test should be run outside of pytest")
 @DDPLauncher.run("--distributed_backend ddp --gpus 2 --precision 32")
-def test_ddp_sharded_plugin_correctness_amp_multi_gpu_ddp(tmpdir, args=None):
+def test_ddp_sharded_plugin_correctness_multi_gpu_ddp(tmpdir, args=None):
     run_sharded_correctness(gpus=args.gpus, precision=args.precision, accelerator=args.distributed_backend)
 
 
