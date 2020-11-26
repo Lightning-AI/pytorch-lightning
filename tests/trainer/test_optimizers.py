@@ -329,14 +329,19 @@ def test_configure_optimizers_with_frequency_and_lr_schedulers(tmpdir):
     _, lr_schedulers, _ = trainer.init_optimizers(model)
     assert lr_schedulers[0]['opt_idx'] == 1
 
+    model.configure_optimizers = model.configure_optimizers__multiple_optimizers_frequency_with_epoch_lr_schedulers
+    _, lr_schedulers, _ = trainer.init_optimizers(model)
+    assert lr_schedulers[0]['opt_idx'] == 1
+
     model.configure_optimizers = model.configure_optimizers__multiple_schedulers
     _, lr_schedulers, _ = trainer.init_optimizers(model)
-    assert lr_schedulers[0]['opt_idx'] == None
+    assert lr_schedulers[0]['opt_idx'] is None
 
 
 def test_step_scheduling_for_multiple_optimizers_with_frequency(tmpdir):
     """
-    Test that step LR schedulers for multiple optimizers follow the optimizer frequencies when corresponding frequency is set.
+    Test that step LR schedulers for multiple optimizers follow
+    the optimizer frequencies when corresponding frequency is set.
     """
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
@@ -349,7 +354,8 @@ def test_step_scheduling_for_multiple_optimizers_with_frequency(tmpdir):
 
 def test_epoch_scheduling_for_multiple_optimizers_with_frequency(tmpdir):
     """
-    Test that epoch LR schedulers for multiple optimizers follow the optimizer frequencies when corresponding frequency is set.
+    Test that epoch LR schedulers for multiple optimizers follow
+    the optimizer frequencies when corresponding frequency is set.
     """
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
