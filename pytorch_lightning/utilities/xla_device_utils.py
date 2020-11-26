@@ -18,11 +18,10 @@ from multiprocessing import Process, Queue
 
 import torch
 
-TORCHXLA_AVAILABLE = importlib.util.find_spec("torch_xla") is not None
-if TORCHXLA_AVAILABLE:
+from pytorch_lightning.utilities import XLA_AVAILABLE
+
+if XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
-else:
-    xm = None
 
 
 def inner_f(queue, func, *args, **kwargs):  # pragma: no cover
@@ -90,6 +89,6 @@ class XLADeviceUtils:
         Return:
             A boolean value indicating if a TPU device exists on the system
         """
-        if XLADeviceUtils.TPU_AVAILABLE is None and TORCHXLA_AVAILABLE:
+        if XLADeviceUtils.TPU_AVAILABLE is None and XLA_AVAILABLE:
             XLADeviceUtils.TPU_AVAILABLE = pl_multi_process(XLADeviceUtils._is_device_tpu)()
         return XLADeviceUtils.TPU_AVAILABLE
