@@ -38,10 +38,6 @@ class ApexPlugin(PrecisionPlugin):
         self.trainer.reinit_scheduler_properties(optimizers, self.trainer.lr_schedulers)
         return model, optimizers
 
-    def training_step(self, fx, args):
-        output = fx(args)
-        return output
-
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         closure_loss = amp.scale_loss(closure_loss, optimizer)
 
