@@ -90,6 +90,9 @@ class HorovodAccelerator(Accelerator):
             for optimizer in self.trainer.optimizers
         ]
 
+        # convert to LightningOptimizer
+        self.trainer.convert_to_lightning_optimizers()
+
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
 

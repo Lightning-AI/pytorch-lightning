@@ -77,17 +77,20 @@ class TrainerOptimizersMixin(ABC):
             )
         lr_schedulers = self.configure_schedulers(lr_schedulers, monitor=monitor)
 
-        if self.enable_pl_optimizer:
-            optimizers = [self.convert_to_lightning_optimizer(opt)
-                          for opt_idx, opt in enumerate(optimizers)]
+        if not self.use_horovod:
+            optimizers = self.convert_to_lightning_optimizers(optimizers)
 
         return optimizers, lr_schedulers, optimizer_frequencies
 
-    def convert_to_lightning_optimizer(self, optimizer: Optimizer):
-        if not isinstance(optimizer, LightningOptimizer):
-            optimizer = LightningOptimizer(optimizer)
-        optimizer._on_trainer_init(self)
-        return optimizer
+    def convert_to_lightning_optimizers(self, optimizers):
+        def convert_to_lightning_optimizer(trainer, optimizer):
+            if not isinstance(optimizer, LightningOptimizer):
+                optimizer = LightningOptimizer(optimizer)
+            optimizer._on_trainer_init(trainer)
+            return optimizer
+
+        if self.enable_pl_optimizer:
+            return [convert_to_lightning_optimizer(self, opt) for opt in optimizers]
 
     def configure_schedulers(self, schedulers: list, monitor: Optional[str] = None):
         # Convert each scheduler into dict structure with relevant information

@@ -65,12 +65,17 @@ class LightningOptimizer(Optimizer):
             raise MisconfigurationException(f"accumulate_grad_batches parameters "
                                             f"{accumulate_grad_batches} should be >= 1")
 
-        self.__class__ = type(optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
         optim_dict = {}
         for k, v in optimizer.__dict__.items():
             if k != 'step':
                 optim_dict[k] = v
         self.__dict__ = optim_dict
+
+        # For Horovod
+        if hasattr(optimizer, "skip_synchronize"):
+            self.skip_synchronize = optimizer.skip_synchronize
+            self.synchronize = optimizer.synchronize
+
         self._trainer = None
         self._optimizer = optimizer
         self._accumulate_grad_batches = accumulate_grad_batches
