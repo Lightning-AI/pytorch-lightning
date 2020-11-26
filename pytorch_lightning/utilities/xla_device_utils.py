@@ -18,7 +18,7 @@ from multiprocessing import Process, Queue
 
 import torch
 
-from pytorch_lightning.utilities import XLA_AVAILABLE
+XLA_AVAILABLE = importlib.util.find_spec("torch_xla") is not None
 
 if XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
