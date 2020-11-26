@@ -22,7 +22,7 @@ def _check_shape_and_type_consistency(preds: torch.Tensor, target: torch.Tensor)
     """
     This checks that the shape and type of inputs are consistent with
     each other and fall into one of the allowed input types (see the
-    documentation of docstring of _input_format_classification). It does
+    documentation of docstring of ``_input_format_classification``). It does
     not check for consistency of number of classes, other functions take
     care of that.
 
