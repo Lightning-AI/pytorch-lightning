@@ -99,8 +99,6 @@ def test_cpu_slurm_save_load(enable_pl_optimizer, tmpdir):
 
 @pytest.mark.parametrize("enable_pl_optimizer", [False, True])
 def test_early_stopping_cpu_model(enable_pl_optimizer, tmpdir):
-    """Test each of the trainer options. Simply test the combo trainer and
-    model; callbacks functionality tests are in /tests/callbacks"""
     class ModelTrainVal(BoringModel):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
@@ -112,13 +110,16 @@ def test_early_stopping_cpu_model(enable_pl_optimizer, tmpdir):
     stopping = EarlyStopping(monitor="val_loss", min_delta=0.1)
     trainer_options = dict(
         default_root_dir=tmpdir,
-        callbacks=[stopping],
-        max_epochs=2,
-        gradient_clip_val=1,
+        gradient_clip_val=1.0,
+        overfit_batches=0.20,
         track_grad_norm=2,
-        limit_train_batches=0.2,
-        limit_val_batches=0.1,
         enable_pl_optimizer=enable_pl_optimizer,
+        progress_bar_refresh_rate=0,
+        accumulate_grad_batches=2,
+        max_epochs=1,
+        limit_train_batches=0.4,
+        limit_val_batches=0.4,
+        callbacks=[stopping],
     )
 
     model = ModelTrainVal()

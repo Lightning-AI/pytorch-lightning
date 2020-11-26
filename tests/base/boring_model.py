@@ -109,6 +109,7 @@ class BoringModel(LightningModule):
 
     def validation_epoch_end(self, outputs) -> None:
         torch.stack([x['x'] for x in outputs]).mean()
+        # TODO: add self.log() and refactoring appropriate tests
 
     def test_step(self, batch, batch_idx):
         output = self.layer(batch)
@@ -117,6 +118,7 @@ class BoringModel(LightningModule):
 
     def test_epoch_end(self, outputs) -> None:
         torch.stack([x["y"] for x in outputs]).mean()
+        # TODO: add self.log() and refactoring appropriate tests
 
     def configure_optimizers(self):
         optimizer_class = getattr(torch.optim, self.optimizer_name)
