@@ -30,7 +30,7 @@ WANDB_AVAILABLE = _module_available("wandb")
 
 if WANDB_AVAILABLE:
     import wandb
-    from wandb.wandb_run import Run
+    from wandb.wandb_run import Run as WBRun
 
 
 class WandbLogger(LightningLoggerBase):
@@ -121,7 +121,7 @@ class WandbLogger(LightningLoggerBase):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> Run:
+    def experiment(self) -> "WBRun":
         r"""
 
         Actual wandb object. To use wandb features in your
