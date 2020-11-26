@@ -15,10 +15,10 @@ from typing import List, Optional, Union
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
-from pytorch_lightning.utilities import rank_zero_only, _module_available, NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.utilities import rank_zero_only, _module_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if NATIVE_AMP_AVALAIBLE and _module_available('fairscale.optim'):
+if _module_available('fairscale.optim'):
     from fairscale.optim import OSS
     from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel
 
@@ -59,7 +59,7 @@ class DDPShardedPlugin(DDPPlugin):
     def _check_fairscale(self):
         if not FAIRSCALE_AVAILABLE:
             raise MisconfigurationException(
-                'Sharded DDP Plugin requires Fairscale to be installed and Pytorch version 1.6 or above.'
+                'Sharded DDP Plugin requires Fairscale to be installed.'
             )
 
     @rank_zero_only

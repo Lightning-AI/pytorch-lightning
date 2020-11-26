@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.utilities import _module_available, NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.utilities import _module_available
 
-if NATIVE_AMP_AVALAIBLE and _module_available('fairscale.nn.data_parallel.sharded_ddp'):
+if _module_available('fairscale.nn.data_parallel.sharded_ddp'):
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
 
     class LightningShardedDataParallel(ShardedDataParallel):
