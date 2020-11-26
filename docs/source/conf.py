@@ -357,8 +357,10 @@ import importlib
 import os
 import torch
 
-from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
-APEX_AVAILABLE = importlib.util.find_spec("apex") is not None
+from pytorch_lightning.utilities import (
+    NATIVE_AMP_AVAILABLE,
+    APEX_AVAILABLE,
+)
 XLA_AVAILABLE = importlib.util.find_spec("torch_xla") is not None
 TORCHVISION_AVAILABLE = importlib.util.find_spec("torchvision") is not None
 

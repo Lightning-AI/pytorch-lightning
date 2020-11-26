@@ -1177,7 +1177,7 @@ If used on TPU will use torch.bfloat16 but tensor printing
 will still show torch.float32.
 
 .. testcode::
-    :skipif: not APEX_AVAILABLE and not NATIVE_AMP_AVALAIBLE
+    :skipif: not APEX_AVAILABLE and not NATIVE_AMP_AVAILABLE
 
     # default used by the Trainer
     trainer = Trainer(precision=32)

@@ -32,10 +32,6 @@ from copy import deepcopy
 from typing import Iterable
 
 TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
-try:
-    from apex import amp
-except ImportError:
-    amp = None
 
 if TPU_AVAILABLE:
     import torch_xla
