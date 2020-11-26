@@ -24,7 +24,7 @@ import os
 import re
 import yaml
 from copy import deepcopy
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional, Union
 from pathlib import Path
 
 import numpy as np
@@ -496,13 +496,17 @@ class ModelCheckpoint(Callback):
             raise MisconfigurationException(m)
 
     def _get_metric_interpolated_filepath_name(
-        self, ckpt_name_metrics: Dict[str, Any], epoch: int, step: int, del_list: List[str] = []
+        self,
+        ckpt_name_metrics: Dict[str, Any],
+        epoch: int,
+        step: int,
+        del_filepath: Optional[str] = None
     ) -> str:
         filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics)
 
         version_cnt = 0
         while self._fs.exists(filepath):
-            if filepath in del_list:
+            if filepath == del_filepath:
                 break
 
             filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics, ver=version_cnt)
@@ -579,17 +583,16 @@ class ModelCheckpoint(Callback):
     ):
         k = len(self.best_k_models) + 1 if self.save_top_k == -1 else self.save_top_k
 
-        del_list = []
+        del_filepath = None
         if len(self.best_k_models) == k and k > 0:
-            delpath = self.kth_best_model_path
-            self.best_k_models.pop(self.kth_best_model_path)
-            del_list.append(delpath)
+            del_filepath = self.kth_best_model_path
+            self.best_k_models.pop(del_filepath)
 
         # do not save nan, replace with +/- inf
         if torch.isnan(current):
             current = torch.tensor(float('inf' if self.mode == "min" else '-inf'))
 
-        filepath = self._get_metric_interpolated_filepath_name(ckpt_name_metrics, epoch, step, del_list)
+        filepath = self._get_metric_interpolated_filepath_name(ckpt_name_metrics, epoch, step, del_filepath)
 
         # save the current score
         self.current_score = current
@@ -614,9 +617,8 @@ class ModelCheckpoint(Callback):
             )
         self._save_model(filepath, trainer, pl_module)
 
-        for cur_path in del_list:
-            if cur_path != filepath:
-                self._del_model(cur_path)
+        if del_filepath is not None and filepath != del_filepath:
+            self._del_model(del_filepath)
 
     def to_yaml(self, filepath: Optional[Union[str, Path]] = None):
         """

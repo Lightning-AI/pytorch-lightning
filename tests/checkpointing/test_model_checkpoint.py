@@ -999,6 +999,7 @@ def test_hparams_type(tmpdir, hparams_type):
         assert type(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY]) == hparams_type
 
 
+@pytest.mark.parametrize('max_epochs', [3, 4])
 @pytest.mark.parametrize(
     'save_top_k, expected',
     [
@@ -1006,7 +1007,7 @@ def test_hparams_type(tmpdir, hparams_type):
         (2, ['curr_epoch.ckpt', 'curr_epoch-v0.ckpt']),
     ]
 )
-def test_model_checkpoint_file_already_exists(tmpdir, save_top_k, expected):
+def test_model_checkpoint_file_already_exists(tmpdir, max_epochs, save_top_k, expected):
     """
     Test that version is added to filename if required and it already exists in dirpath.
     """
@@ -1024,7 +1025,7 @@ def test_model_checkpoint_file_already_exists(tmpdir, save_top_k, expected):
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[model_checkpoint],
-        max_epochs=4,
+        max_epochs=max_epochs,
         limit_train_batches=2,
         limit_val_batches=2,
         logger=None,
@@ -1035,5 +1036,4 @@ def test_model_checkpoint_file_already_exists(tmpdir, save_top_k, expected):
     model = CustomModel()
     trainer.fit(model)
     ckpt_files = os.listdir(tmpdir)
-    assert len(ckpt_files) == len(expected)
     assert set(ckpt_files) == set(expected)
