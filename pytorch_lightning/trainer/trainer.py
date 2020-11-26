@@ -541,12 +541,11 @@ class Trainer(
                     if met_min_epochs and met_min_steps:
                         self.train_loop.on_train_end()
                         return
-                    else:
-                        log.info(
-                            'Trainer was signaled to stop but required minimum epochs'
-                            f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
-                            ' not been met. Training will continue...'
-                        )
+                    log.info(
+                        'Trainer was signaled to stop but required minimum epochs'
+                        f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
+                        ' not been met. Training will continue...'
+                    )
 
             # hook
             self.train_loop.on_train_end()

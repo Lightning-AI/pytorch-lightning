@@ -122,10 +122,8 @@ class LightningModule(
         # single optimizer
         if isinstance(opts, list) and len(opts) == 1 and isinstance(opts[0], Optimizer):
             return opts[0]
-
         # multiple opts
-        else:
-            return opts
+        return opts
 
     @property
     def example_input_array(self) -> Any:
@@ -1567,11 +1565,10 @@ class LightningModule(
                 raise ValueError(
                     f"Received `input_sample` of type {type(input_sample)}. Expected type is `Tensor`"
                 )
-            else:
-                raise ValueError(
-                    "Could not export to ONNX since neither `input_sample` nor"
-                    " `model.example_input_array` attribute is set."
-                )
+            raise ValueError(
+                "Could not export to ONNX since neither `input_sample` nor"
+                " `model.example_input_array` attribute is set."
+            )
         input_data = input_data.to(self.device)
         if "example_outputs" not in kwargs:
             self.eval()
@@ -1673,7 +1670,6 @@ class LightningModule(
             self._hparams_initial = copy.deepcopy(self._hparams)
 
     def __get_hparams_assignment_variable(self):
-        """"""
         """
         looks at the code of the class to figure out what the user named self.hparams
         this only happens when the user explicitly sets self.hparams
