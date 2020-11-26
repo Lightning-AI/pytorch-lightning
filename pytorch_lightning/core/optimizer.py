@@ -239,12 +239,15 @@ class LightningOptimizer(Optimizer):
                     closure()
 
     def __repr__(self):
-        format_string = "Lightning" + self._optimizer.__class__.__name__ + ' ('
+        groups = "["
         for i, group in enumerate(self.param_groups):
-            format_string += '\n'
-            format_string += 'Parameter Group {0}\n'.format(i)
+            groups += '('
+            params = ''
             for key in sorted(group.keys()):
                 if key != 'params':
-                    format_string += '    {0}: {1}\n'.format(key, group[key])
-        format_string += ')'
+                    params += f'{key}={round(group[key], 5)}, '
+            groups += params[:-2]
+            groups += '),'
+        groups = groups[:-1] + ']'
+        format_string = f"{self.__class__.__name__}(optim={self._optimizer.__class__.__name__}, groups={groups})"
         return format_string

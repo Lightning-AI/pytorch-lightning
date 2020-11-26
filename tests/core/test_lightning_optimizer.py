@@ -44,16 +44,8 @@ def test_lightning_optimizer(tmpdir):
         enable_pl_optimizer=True)
     trainer.fit(model)
 
-    expected = """LightningSGD (
-                  Parameter Group 0
-                    dampening: 0
-                    initial_lr: 0.1
-                    lr: 0.010000000000000002
-                    momentum: 0
-                    nesterov: False
-                    weight_decay: 0
-                  )"""
-    assert trainer.optimizers[0].__repr__().replace(" ", '') == expected.replace(" ", '')
+    expected = "LightningOptimizer(optim=SGD, groups=[(dampening=0, initial_lr=0.1, lr=0.01, momentum=0, nesterov=0, weight_decay=0)])"
+    assert trainer.optimizers[0].__repr__() == expected
 
 
 def test_lightning_optimizer_from_user(tmpdir):
@@ -77,16 +69,8 @@ def test_lightning_optimizer_from_user(tmpdir):
         enable_pl_optimizer=True)
     trainer.fit(model)
 
-    expected = """LightningSGD (
-                  Parameter Group 0
-                    dampening: 0
-                    initial_lr: 0.1
-                    lr: 0.010000000000000002
-                    momentum: 0
-                    nesterov: False
-                    weight_decay: 0
-                  )"""
-    assert trainer.optimizers[0].__repr__().replace(" ", '') == expected.replace(" ", '')
+    expected = """LightningOptimizer(optim=SGD, groups=[(dampening=0, initial_lr=0.1, lr=0.01, momentum=0, nesterov=0, weight_decay=0)])"""
+    assert trainer.optimizers[0].__repr__() == expected
 
 
 @patch("torch.optim.Adam.step")
