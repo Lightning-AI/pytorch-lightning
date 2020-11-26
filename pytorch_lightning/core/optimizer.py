@@ -51,7 +51,7 @@ def do_nothing_closure():
     return
 
 
-class LightningOptimizer:
+class LightningOptimizer(Optimizer):
     """
     This class is used to wrap the user optimizers and handle properly
     the backward and optimizer_step logic across accelerators, AMP, accumulated_grad_batches
@@ -65,20 +65,21 @@ class LightningOptimizer:
             raise MisconfigurationException(f"accumulate_grad_batches parameters "
                                             f"{accumulate_grad_batches} should be >= 1")
 
-        optim_dict = {}
-        for k, v in optimizer.__dict__.items():
-            if k != 'step':
-                optim_dict[k] = v
-        self.__dict__ = optim_dict
-
         # For Horovod
         if hasattr(optimizer, "skip_synchronize"):
             self.skip_synchronize = optimizer.skip_synchronize
             self.synchronize = optimizer.synchronize
             # horovod wraps the optimizer class, so we need to unwrap it
-            self.__class__ = type(optimizer.__class__.__name__, (self.__class__, optimizer.__class__.__bases__[0]), {})
+            #self.__class__ = type(optimizer.__class__.__name__, (self.__class__, optimizer.__class__.__bases__[0]), {})
         else:
-            self.__class__ = type(optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
+            pass
+            #self.__class__ = type(optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
+
+        optim_dict = {}
+        for k, v in optimizer.__dict__.items():
+            if k != 'step':
+                optim_dict[k] = v
+        self.__dict__ = optim_dict
 
         self._trainer = None
         self._optimizer = optimizer
