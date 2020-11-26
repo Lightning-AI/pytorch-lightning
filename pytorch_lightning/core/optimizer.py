@@ -75,6 +75,10 @@ class LightningOptimizer(Optimizer):
         if hasattr(optimizer, "skip_synchronize"):
             self.skip_synchronize = optimizer.skip_synchronize
             self.synchronize = optimizer.synchronize
+            # horovod wraps the optimizer class, so we need to unwrap it
+            self.__class__ = type(optimizer.__class__.__name__, (self.__class__, optimizer.__class__.__bases__[0]), {})
+        else:
+            self.__class__ = type(optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
 
         self._trainer = None
         self._optimizer = optimizer
@@ -211,20 +215,26 @@ class LightningOptimizer(Optimizer):
 
         if make_optimizer_step:
             if self._trainer.on_tpu:
-                xm.optimizer_step(self._optimizer, optimizer_args={'closure': closure, **kwargs})
+                with self._trainer.profiler.profile("optimizer_step_and_closure"):
+                    xm.optimizer_step(self._optimizer, optimizer_args={'closure': closure, **kwargs})
             elif self._trainer.amp_backend == AMPType.NATIVE:
                 # native amp does not yet support closures.
                 # TODO: pass the closure to the step ASAP
-                closure()
-                self._trainer.scaler.step(self._optimizer)
-                self._trainer.scaler.update()
+                with self._trainer.profiler.profile("closure"):
+                    closure()
+                with self._trainer.profiler.profile("optimizer_step"):
+                    self._trainer.scaler.step(self._optimizer)
+                    self._trainer.scaler.update()
             elif self._trainer.amp_backend == AMPType.APEX:
                 # apex amp does not yet support closures.
                 # TODO: pass the closure to the step ASAP
-                closure()
-                self._optimizer.step()
+                with self._trainer.profiler.profile("closure"):
+                    closure()
+                with self._trainer.profiler.profile("optimizer_step"):
+                    self._optimizer.step()
             else:
-                self._optimizer.step(closure=closure, *args, **kwargs)
+                with self._trainer.profiler.profile("optimizer_step_and_closure"):
+                    self._optimizer.step(closure=closure, *args, **kwargs)
 
             # perform zero grad
             self._optimizer.zero_grad()
@@ -232,7 +242,8 @@ class LightningOptimizer(Optimizer):
             # make sure to call optimizer_closure when accumulating
             if isinstance(closure, types.FunctionType):
                 with self._trainer.train_loop.block_ddp_sync_behaviour():
-                    closure()
+                    with self._trainer.profiler.profile("closure"):
+                        closure()
 
     def __repr__(self):
         format_string = "Lightning" + self._optimizer.__class__.__name__ + ' ('
