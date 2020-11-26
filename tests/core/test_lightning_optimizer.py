@@ -180,7 +180,7 @@ def test_state(tmpdir):
     assert isinstance(lightning_optimizer, Optimizer)
     lightning_dict = {}
     special_attrs = ["_accumulate_grad_batches", "_optimizer", "_optimizer_idx",
-                     "_trainer", "_use_accumulate_grad_batches_from_trainer"]
+                     "_trainer", "_use_accumulate_grad_batches_from_trainer", "_lightning_step"]
     for k, v in lightning_optimizer.__dict__.items():
         if k not in special_attrs:
             lightning_dict[k] = v
