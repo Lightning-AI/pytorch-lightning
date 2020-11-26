@@ -34,15 +34,15 @@ def _module_available(module_path: str) -> bool:
     mods = module_path.split('.')
     assert mods, 'nothing given to test'
     # it has to be tested as per partets
-    for i in range(1, len(mods)):
-        module_path = '.'.join(mods[:i])
+    for i in range(len(mods)):
+        module_path = '.'.join(mods[:i + 1])
         if importlib.util.find_spec(module_path) is None:
             return False
     return True
 
 
 APEX_AVAILABLE = _module_available("apex.amp")
-NATIVE_AMP_AVALAIBLE = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
+NATIVE_AMP_AVAILABLE = _module_available("torch.cuda.amp") and hasattr(torch.cuda.amp, "autocast")
 
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
 FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps
