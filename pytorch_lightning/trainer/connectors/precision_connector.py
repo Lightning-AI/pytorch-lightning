@@ -72,7 +72,7 @@ class PrecisionConnector:
             if not APEX_AVAILABLE:
                 rank_zero_warn('You have asked for Apex AMP but you have not installed it yet.'
                                ' Install apex first using this guide: https://github.com/NVIDIA/apex#linux')
-            if using_sharded_plugin:
+            elif using_sharded_plugin:
                 rank_zero_warn(
                     'Sharded Plugin is not supported with Apex AMP, please using native AMP for 16 bit precision.')
             else:
