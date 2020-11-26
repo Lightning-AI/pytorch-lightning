@@ -475,12 +475,12 @@ class TrainLoop:
     def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure, *args, **kwargs):
         with self.trainer.profiler.profile("optimizer_step"):
             # optimizer step lightningModule hook
-            if isinstance(optimizer, LightningOptimizer):
-                optimizer.step(closure=train_step_and_backward_closure)
-            else:
-                self.trainer.accelerator_backend.optimizer_step(
-                    optimizer, batch_idx, opt_idx, train_step_and_backward_closure, *args, **kwargs
-                )
+            # if isinstance(optimizer, LightningOptimizer):
+            # optimizer.step(closure=train_step_and_backward_closure)
+            # else:
+            self.trainer.accelerator_backend.optimizer_step(
+                optimizer, batch_idx, opt_idx, train_step_and_backward_closure, *args, **kwargs
+            )
 
     def on_before_zero_grad(self, optimizer):
         self.trainer.call_hook('on_before_zero_grad', optimizer)

@@ -61,72 +61,19 @@ class LightningOptimizer(Optimizer):
     def __init__(self,
                  optimizer: Optimizer,
                  accumulate_grad_batches: Optional[int] = None):
-
+        # NOTE: super().__init__ intentionally missing!
+        self.__class__ = type(optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
+        self.__dict__ = optimizer.__dict__
         assert accumulate_grad_batches is None or isinstance(accumulate_grad_batches, int)
         if isinstance(accumulate_grad_batches, int) and accumulate_grad_batches < 1:
             raise MisconfigurationException(f"accumulate_grad_batches parameters "
                                             f"{accumulate_grad_batches} should be >= 1")
         self._trainer = None
-        self._optimizer = optimizer
-        self._optimizer_idx = None
         self._accumulate_grad_batches = accumulate_grad_batches
         self._use_accumulate_grad_batches_from_trainer = accumulate_grad_batches is None
 
     def _on_trainer_init(self, trainer, optimizer_idx):
         self._trainer = proxy(trainer)
-        self._optimizer_idx = optimizer_idx
-
-    @property
-    def param_groups(self):
-        return self._optimizer.param_groups
-
-    @param_groups.setter
-    def param_groups(self, param_groups):
-        self._optimizer.param_groups = param_groups
-
-    @property
-    def defaults(self):
-        return self._optimizer.defaults
-
-    @defaults.setter
-    def defaults(self, defaults):
-        self._optimizer.defaults = defaults
-
-    @property
-    def state(self):
-        return {
-            'defaults': self._optimizer.defaults,
-            'state': self._optimizer.state,
-            'param_groups': self._optimizer.param_groups,
-            'optimizer_cls': self._optimizer.__class__,
-            'optimizer_idx': self._optimizer_idx,
-            "accumulate_grad_batches": self._accumulate_grad_batches,
-        }
-
-    def __getstate__(self):
-        return self.state
-
-    def __setstate__(self, state):
-        # todo understand why state creates a state key
-        try:
-            self._optimizer_idx = state["optimizer_idx"]
-            self._accumulate_grad_batches = state["accumulate_grad_batches"]
-            self._optimizer = state["optimizer_cls"](state['param_groups'], **state['defaults'])
-        except Exception:
-            self._optimizer_idx = state["state"]["optimizer_idx"]
-            self._accumulate_grad_batches = state["state"]["accumulate_grad_batches"]
-            self._optimizer = state["state"]["optimizer_cls"](state['param_groups'], **state["state"]['defaults'])
-
-    def __repr__(self):
-        format_string = "Lightning" + self._optimizer.__class__.__name__ + ' ('
-        for i, group in enumerate(self.param_groups):
-            format_string += '\n'
-            format_string += 'Parameter Group {0}\n'.format(i)
-            for key in sorted(group.keys()):
-                if key != 'params':
-                    format_string += '    {0}: {1}\n'.format(key, group[key])
-        format_string += ')'
-        return format_string
 
     def _accumulated_batches_reached(self):
         if self._use_accumulate_grad_batches_from_trainer:
@@ -246,7 +193,6 @@ class LightningOptimizer(Optimizer):
                     # Trainer(accumulate_grad_batches=x)
                     opt_dis.step(closure=optimizer_closure, make_optimizer_step=True)
         """
-
         if closure is None:
             closure = do_nothing_closure
 
@@ -255,25 +201,27 @@ class LightningOptimizer(Optimizer):
 
         if make_optimizer_step:
             if self._trainer.on_tpu:
-                xm.optimizer_step(self._optimizer, optimizer_args={'closure': closure, **kwargs})
+                xm.optimizer_step(self, optimizer_args={'closure': closure, **kwargs})
             elif self._trainer.amp_backend == AMPType.NATIVE:
                 # native amp does not yet support closures.
                 # TODO: pass the closure to the step ASAP
                 closure()
-                self._trainer.scaler.step(self._optimizer)
+                self._trainer.scaler.step(self)
                 self._trainer.scaler.update()
             elif self._trainer.amp_backend == AMPType.APEX:
                 # apex amp does not yet support closures.
                 # TODO: pass the closure to the step ASAP
                 closure()
-                self._optimizer.step()
+                super().step()
             else:
-                self._optimizer.step(closure=closure, *args, **kwargs)
+                super().step(*args, closure=closure, **kwargs)
 
             # perform zero grad
-            self._optimizer.zero_grad()
+            super().zero_grad()
         else:
             # make sure to call optimizer_closure when accumulating
             if isinstance(closure, types.FunctionType):
                 with self._trainer.train_loop.block_ddp_sync_behaviour():
                     closure()
+
+
