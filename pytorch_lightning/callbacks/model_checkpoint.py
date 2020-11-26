@@ -506,7 +506,6 @@ class ModelCheckpoint(Callback):
                 break
 
             filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics, ver=version_cnt)
-            # this epoch called before
             version_cnt += 1
 
         return filepath
@@ -590,7 +589,6 @@ class ModelCheckpoint(Callback):
         if torch.isnan(current):
             current = torch.tensor(float('inf' if self.mode == "min" else '-inf'))
 
-        # ie: path/val_loss=0.5.ckpt
         filepath = self._get_metric_interpolated_filepath_name(ckpt_name_metrics, epoch, step, del_list)
 
         # save the current score

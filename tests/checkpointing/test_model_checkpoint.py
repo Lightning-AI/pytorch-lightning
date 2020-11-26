@@ -999,9 +999,16 @@ def test_hparams_type(tmpdir, hparams_type):
         assert type(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY]) == hparams_type
 
 
-def test_model_checkpoint_with_same_filename(tmpdir):
+@pytest.mark.parametrize(
+    'save_top_k, expected',
+    [
+        (1, ['curr_epoch.ckpt']),
+        (2, ['curr_epoch.ckpt', 'curr_epoch-v0.ckpt']),
+    ]
+)
+def test_model_checkpoint_file_already_exist(tmpdir, save_top_k, expected):
     """
-    Test that when unformatted filename is provided, it should add versions correctly if required.
+    Test that version is added to filename if required and it's already exist in dirpath.
     """
     class CustomModel(LogInTwoMethods):
         def validation_epoch_end(self, outputs):
@@ -1010,7 +1017,7 @@ def test_model_checkpoint_with_same_filename(tmpdir):
     model_checkpoint = ModelCheckpoint(
         dirpath=tmpdir,
         filename='curr_epoch',
-        save_top_k=1,
+        save_top_k=save_top_k,
         monitor='epoch',
         mode='max',
     )
@@ -1018,8 +1025,8 @@ def test_model_checkpoint_with_same_filename(tmpdir):
         default_root_dir=tmpdir,
         callbacks=[model_checkpoint],
         max_epochs=4,
-        limit_train_batches=4,
-        limit_val_batches=4,
+        limit_train_batches=2,
+        limit_val_batches=2,
         logger=None,
         weights_summary=None,
         progress_bar_refresh_rate=0,
@@ -1028,6 +1035,5 @@ def test_model_checkpoint_with_same_filename(tmpdir):
     model = CustomModel()
     trainer.fit(model)
     ckpt_files = os.listdir(tmpdir)
-    expected_ckpt_files = ['curr_epoch.ckpt']
-    assert len(ckpt_files) == len(expected_ckpt_files)
-    assert set(ckpt_files) == set(expected_ckpt_files)
+    assert len(ckpt_files) == len(expected)
+    assert set(ckpt_files) == set(expected)
