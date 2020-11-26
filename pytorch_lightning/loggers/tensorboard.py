@@ -31,7 +31,6 @@ from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn, OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
