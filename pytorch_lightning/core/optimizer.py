@@ -245,7 +245,9 @@ class LightningOptimizer(Optimizer):
             params = ''
             for key in sorted(group.keys()):
                 if key != 'params':
-                    params += f'{key}={group[key])}, '
+                    v = group[key]
+                    v = round(v, 12) if isinstance(v, (float)) else v
+                    params += f'{key}={v}, '
             groups += params[:-2]
             groups += '),'
         groups = groups[:-1] + ']'
