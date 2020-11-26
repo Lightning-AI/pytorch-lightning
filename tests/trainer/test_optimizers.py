@@ -181,6 +181,7 @@ def test_reducelronplateau_scheduling(tmpdir):
         frequency=1,
         reduce_on_plateau=True,
         strict=True,
+        opt_idx=None,
     ), 'lr scheduler was not correctly converted to dict'
 
 
@@ -219,7 +220,13 @@ def test_optimizer_return_options(enable_pl_optimizer):
     assert len(freq) == 0
     assert optim[0] == opt_a
     assert lr_sched[0] == dict(
-        scheduler=scheduler_a, interval='epoch', frequency=1, reduce_on_plateau=False, monitor=None, strict=True
+        scheduler=scheduler_a,
+        interval='epoch',
+        frequency=1,
+        reduce_on_plateau=False,
+        monitor=None,
+        strict=True,
+        opt_idx=None,
     )
 
     # opt tuple of 1 list
@@ -229,7 +236,13 @@ def test_optimizer_return_options(enable_pl_optimizer):
     assert len(freq) == 0
     assert optim[0] == opt_a
     assert lr_sched[0] == dict(
-        scheduler=scheduler_a, interval='epoch', frequency=1, reduce_on_plateau=False, monitor=None, strict=True
+        scheduler=scheduler_a,
+        interval='epoch',
+        frequency=1,
+        reduce_on_plateau=False,
+        monitor=None,
+        strict=True,
+        opt_idx=None,
     )
 
     # opt single dictionary
@@ -239,7 +252,13 @@ def test_optimizer_return_options(enable_pl_optimizer):
     assert len(freq) == 0
     assert optim[0] == opt_a
     assert lr_sched[0] == dict(
-        scheduler=scheduler_a, interval='epoch', frequency=1, reduce_on_plateau=False, monitor=None, strict=True
+        scheduler=scheduler_a,
+        interval='epoch',
+        frequency=1,
+        reduce_on_plateau=False,
+        monitor=None,
+        strict=True,
+        opt_idx=None,
     )
 
     # opt multiple dictionaries with frequencies
@@ -251,7 +270,22 @@ def test_optimizer_return_options(enable_pl_optimizer):
     assert len(optim) == len(lr_sched) == len(freq) == 2
     assert optim[0] == opt_a
     assert lr_sched[0] == dict(
-        scheduler=scheduler_a, interval='epoch', frequency=1, reduce_on_plateau=False, monitor=None, strict=True
+        scheduler=scheduler_a,
+        interval='epoch',
+        frequency=1,
+        reduce_on_plateau=False,
+        monitor=None,
+        strict=True,
+        opt_idx=0,
+    )
+    assert lr_sched[1] == dict(
+        scheduler=scheduler_b,
+        interval='epoch',
+        frequency=1,
+        reduce_on_plateau=False,
+        monitor=None,
+        strict=True,
+        opt_idx=1,
     )
     assert freq == [1, 5]
 

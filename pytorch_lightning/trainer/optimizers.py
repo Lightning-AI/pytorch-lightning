@@ -54,8 +54,14 @@ class TrainerOptimizersMixin(ABC):
         # multiple dictionaries
         elif isinstance(optim_conf, (list, tuple)) and all(isinstance(d, dict) for d in optim_conf):
             optimizers = [opt_dict["optimizer"] for opt_dict in optim_conf]
+            scheduler_dict = (
+                lambda scheduler, opt_idx: dict(scheduler, opt_idx=opt_idx)
+                if isinstance(scheduler, dict)
+                else dict({'scheduler': scheduler, 'opt_idx': opt_idx})
+            )
+
             lr_schedulers = [
-                dict(opt_dict["lr_scheduler"], opt_idx=opt_idx)
+                scheduler_dict(opt_dict["lr_scheduler"], opt_idx)
                 for opt_idx, opt_dict in enumerate(optim_conf)
                 if "lr_scheduler" in opt_dict
             ]
