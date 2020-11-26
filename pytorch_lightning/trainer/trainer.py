@@ -456,6 +456,9 @@ class Trainer(
         self.accelerator_backend = self.accelerator_connector.select_accelerator()
         self.accelerator_backend.setup(model)
 
+        # Convert optimizers to LightningOptimizer
+        self.convert_to_lightning_optimizers()
+
         # ----------------------------
         # INSPECT THESE FOR MAIN LOOPS
         # ----------------------------
