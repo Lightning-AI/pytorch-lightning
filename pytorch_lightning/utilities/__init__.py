@@ -43,6 +43,8 @@ def _module_available(module_path: str) -> bool:
 
 APEX_AVAILABLE = _module_available("apex.amp")
 NATIVE_AMP_AVAILABLE = _module_available("torch.cuda.amp") and hasattr(torch.cuda.amp, "autocast")
+OMEGACONF_AVAILABLE = _module_available("omegaconf")
+HYDRA_AVAILABLE = _module_available("hydra")
 
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
 FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps
