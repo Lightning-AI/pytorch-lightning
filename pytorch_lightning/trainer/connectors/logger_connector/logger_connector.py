@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from collections import ChainMap
 from copy import deepcopy
 from pprint import pprint
-from typing import Iterable, Union, cast
+from typing import Iterable, Union
 
 import torch
 
@@ -23,11 +22,7 @@ from pytorch_lightning.core import memory
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
-from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import (
-    LOOKUP_TABLE,
-    EpochResultStore,
-    LoggerStages,
-)
+from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore, LoggerStages
 from pytorch_lightning.utilities import flatten_dict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_utils import is_overridden
@@ -42,8 +37,7 @@ class LoggerConnector:
         self.logged_metrics = {}
         self.progress_bar_metrics = {}
         self.eval_loop_results = []
-        self._stages = sorted([s.value for s in LoggerStages])
-        self._cached_results = {stage: EpochResultStore(trainer, stage) for stage in self._stages}
+        self._cached_results = {stage: EpochResultStore(trainer, stage) for stage in LoggerStages}
         self._callback_hook_validator = CallbackHookNameValidator()
         self._current_stage = None
 
@@ -51,8 +45,8 @@ class LoggerConnector:
     def cached_results(self) -> Union[EpochResultStore, None]:
         return self._cached_results[self._current_stage]
 
-    def set_stage(self, stage_or_testing: str, reset:bool = False) -> None:
-        self._current_stage = self._determine_stage(stage_or_testing)
+    def set_stage(self, stage_or_testing: Union[str, bool], reset: bool = False) -> None:
+        self._current_stage = LoggerStages.determine_stage(stage_or_testing)
         if reset:
             self.cached_results.reset()
 
@@ -78,20 +72,7 @@ class LoggerConnector:
         self.cached_results._opt_idx = None
         self.cached_results._batch_size = None
 
-    def _determine_stage(self, stage_or_testing: Union[str, bool]) -> str:
-        stage_or_testing = str(stage_or_testing)
-        stages = self._stages
-        if stage_or_testing in stages:
-            return stage_or_testing
-        if stage_or_testing in LOOKUP_TABLE:
-            # Acces using trainer.testing
-            return LOOKUP_TABLE[stage_or_testing]
-        raise MisconfigurationException(
-            f"Provide stage_or_testing {stage_or_testing} doesn't belong either to {stages}"
-            f" or {LOOKUP_TABLE.keys()}"
-        )
-
-    def cache_logged_metrics(self) -> Union[EpochResultStore, None]:
+    def cache_logged_metrics(self):
         if self._current_stage is not None:
             self._cached_results[self._current_stage].cache_result()
 

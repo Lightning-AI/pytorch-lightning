@@ -14,53 +14,49 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
-import os
-from unittest import mock
-
-import torch
-import pytest
 from copy import deepcopy
-from pytorch_lightning.trainer import Trainer
-from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore
-from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
+
+import pytest
+import torch
+
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.trainer import Trainer
+from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel, RandomDataset
 
 
-class Helper:
-    def decorator_with_arguments(fx_name='', hook_fx_name=None):
-        def decorator(func):
-            def wrapper(self, *args, **kwargs):
-                # Set information
-                self._current_fx_name = fx_name
-                self._current_hook_fx_name = hook_fx_name
-                self._results = Result()
+def decorator_with_arguments(fx_name='', hook_fx_name=None):
+    def decorator(func):
+        def wrapper(self, *args, **kwargs):
+            # Set information
+            self._current_fx_name = fx_name
+            self._current_hook_fx_name = hook_fx_name
+            self._results = Result()
 
-                result = func(self, *args, **kwargs)
+            result = func(self, *args, **kwargs)
 
-                # cache metrics
-                self.trainer.logger_connector.cache_logged_metrics()
-                return result
-            return wrapper
+            # cache metrics
+            self.trainer.logger_connector.cache_logged_metrics()
+            return result
+        return wrapper
 
-        return decorator
+    return decorator
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test__logger_connector__epoch_result_store__train(tmpdir):
+def test__logger_connector__epoch_result_store__train(tmpdir, monkeypatch):
     """
     Tests that LoggerConnector will properly capture logged information
     and reduce them
     """
+    monkeypatch.setenv("PL_DEV_DEBUG", "1")
 
     class TestModel(BoringModel):
 
         train_losses = []
 
-        @Helper.decorator_with_arguments(fx_name="training_step")
+        @decorator_with_arguments(fx_name="training_step")
         def training_step(self, batch, batch_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)
@@ -89,18 +85,18 @@ def test__logger_connector__epoch_result_store__train(tmpdir):
 
     train_results = model.train_results
 
-    assert len(train_results(fx_name="training_step", dl_idx="0", opt_idx="0")) == 2
+    assert len(train_results(fx_name="training_step", dl_idx=0, opt_idx=0)) == 2
     generated = train_results(fx_name="training_step",
-                              dl_idx="0",
-                              opt_idx="0",
-                              batch_idx="0",
-                              split_idx="0")["train_loss"]
+                              dl_idx=0,
+                              opt_idx=0,
+                              batch_idx=0,
+                              split_idx=0)["train_loss"]
     assert generated == model.train_losses[0]
     generated = train_results(fx_name="training_step",
-                              dl_idx="0",
-                              opt_idx="0",
-                              batch_idx="1",
-                              split_idx="0")["train_loss"]
+                              dl_idx=0,
+                              opt_idx=0,
+                              batch_idx=1,
+                              split_idx=0)["train_loss"]
     assert generated == model.train_losses[1]
 
     assert train_results.has_reduced is not True
@@ -109,7 +105,7 @@ def test__logger_connector__epoch_result_store__train(tmpdir):
 
     assert train_results.has_reduced is True
 
-    generated = train_results(fx_name="training_step", dl_idx="0", opt_idx="0", reduced=True)['train_loss_epoch'].item()
+    generated = train_results(fx_name="training_step", dl_idx=0, opt_idx=0, reduced=True)['train_loss_epoch'].item()
     excepted = torch.stack(model.train_losses).mean().item()
     assert generated == excepted
 
@@ -142,7 +138,7 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
             self.test_hidden = None
             self.layer = torch.nn.Linear(2, 2)
 
-        @Helper.decorator_with_arguments(fx_name="training_step")
+        @decorator_with_arguments(fx_name="training_step")
         def training_step(self, batch, batch_idx, hiddens):
             try:
                 assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
@@ -199,7 +195,7 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
 
     train_results = model.train_results
 
-    generated = train_results(fx_name="training_step", dl_idx="0", opt_idx="0", batch_idx="0")
+    generated = train_results(fx_name="training_step", dl_idx=0, opt_idx=0, batch_idx=0)
     assert len(generated) == len(model.train_losses)
 
     # assert reduction didn't happen yet
@@ -211,31 +207,28 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
     # assert reduction did happen
     assert train_results.has_reduced is True
 
-    generated = train_results(fx_name="training_step", dl_idx="0", opt_idx="0", reduced=True)['a_epoch'].item()
+    generated = train_results(fx_name="training_step", dl_idx=0, opt_idx=0, reduced=True)['a_epoch'].item()
     assert generated == torch.stack(model.train_losses).mean().item()
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize('num_dataloaders', [1, 2])
-def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, num_dataloaders):
+def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, monkeypatch, num_dataloaders):
     """
     Tests that LoggerConnector will properly capture logged information in multi_dataloaders scenario
     """
+    monkeypatch.setenv("PL_DEV_DEBUG", "1")
 
     class TestModel(BoringModel):
 
         test_losses = {}
 
-        @Helper.decorator_with_arguments(fx_name="test_step")
+        @decorator_with_arguments(fx_name="test_step")
         def test_step(self, batch, batch_idx, dl_idx=0):
             output = self.layer(batch)
             loss = self.loss(batch, output)
 
-            primary_key = str(dl_idx)
-            if primary_key not in self.test_losses:
-                self.test_losses[primary_key] = []
-
-            self.test_losses[primary_key].append(loss)
+            self.test_losses.setdefault(dl_idx, [])
+            self.test_losses[dl_idx].append(loss)
 
             self.log("test_loss", loss, on_step=True, on_epoch=True)
             return {"test_loss": loss}
@@ -274,14 +267,14 @@ def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, n
     assert len(generated) == num_dataloaders
 
     for dl_idx in range(num_dataloaders):
-        generated = len(test_results(fx_name="test_step", dl_idx=str(dl_idx)))
+        generated = len(test_results(fx_name="test_step", dl_idx=dl_idx))
         assert generated == limit_test_batches
 
     test_results = model.reduce_results
 
     for dl_idx in range(num_dataloaders):
-        expected = torch.stack(model.test_losses[str(dl_idx)]).mean()
-        generated = test_results(fx_name="test_step", dl_idx=str(dl_idx), reduced=True)["test_loss_epoch"]
+        expected = torch.stack(model.test_losses[dl_idx]).mean()
+        generated = test_results(fx_name="test_step", dl_idx=dl_idx, reduced=True)["test_loss_epoch"]
         assert abs(expected.item() - generated.item()) < 1e-6
 
 
@@ -353,7 +346,7 @@ def test_call_back_validator(tmpdir):
     validator = CallbackHookNameValidator()
 
     for func_name in funcs_name:
-        # This summurize where and what is currently possible to log using `self.log` function.
+        # This summarizes where and what is currently possible to log using `self.log`
         is_stage = "train" in func_name or "test" in func_name or "validation" in func_name
         is_start = "start" in func_name or "batch" in func_name
         on_step = is_stage and is_start
@@ -387,7 +380,7 @@ def test_call_back_validator(tmpdir):
                                                      on_step=on_step,
                                                      on_epoch=on_epoch)
 
-        result = validator.check_logging_in_callbacks(current_hook_fx_name=None,
-                                                      on_step=None,
-                                                      on_epoch=None)
-        assert result is None
+        # should not fail
+        validator.check_logging_in_callbacks(current_hook_fx_name=None,
+                                             on_step=None,
+                                             on_epoch=None)
