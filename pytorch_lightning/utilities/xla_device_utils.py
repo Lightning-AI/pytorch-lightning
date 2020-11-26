@@ -65,7 +65,7 @@ class XLADeviceUtils:
         Return:
             Returns a str of the device hardware type. i.e TPU
         """
-        if xm is not None:
+        if XLA_AVAILABLE:
             return xm.xla_device_hw(device)
 
     @staticmethod
@@ -76,7 +76,7 @@ class XLADeviceUtils:
         Return:
             A boolean value indicating if the xla device is a TPU device or not
         """
-        if xm is not None:
+        if XLA_AVAILABLE:
             device = xm.xla_device()
             device_type = XLADeviceUtils._fetch_xla_device_type(device)
             return device_type == "TPU"
