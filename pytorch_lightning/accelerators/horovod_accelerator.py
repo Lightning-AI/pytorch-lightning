@@ -94,7 +94,8 @@ class HorovodAccelerator(Accelerator):
         model = self.trainer.precision_connector.connect(model)
 
         # convert to LightningOptimizers
-        self.trainer.convert_to_lightning_optimizers()
+        if self.trainer.amp_backend == AMPType.NATIVE:
+            self.trainer.convert_to_lightning_optimizers()
 
         # Update logger rank info from Horovod to avoid race conditions from  different ranks
         # creating directories / writing files in the same locations.
