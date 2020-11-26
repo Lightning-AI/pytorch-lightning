@@ -10,6 +10,7 @@ from torch.utils.data.distributed import DistributedSampler
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
 from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE, NATIVE_AMP_AVALAIBLE
+from tests.backends.launcher import DDPLauncher
 from tests.base.boring_model import BoringModel, RandomDataset
 
 
@@ -53,6 +54,26 @@ def test_ddp_sharded_plugin_correctness_multi_gpu():
 @pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_correctness_amp_multi_gpu():
     run_sharded_correctness(gpus=2, precision=16, accelerator='ddp_spawn')
+
+
+@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
+@DDPLauncher.run("--distributed_backend ddp --gpus 2 --precision 32")
+def test_ddp_sharded_plugin_correctness_amp_multi_gpu_ddp(tmpdir, args=None):
+    run_sharded_correctness(gpus=args.gpus, precision=args.precision, accelerator=args.distributed_backend)
+
+
+@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
+@DDPLauncher.run("--distributed_backend ddp --gpus 2  --precision 16")
+def test_ddp_sharded_plugin_correctness_amp_multi_gpu_ddp(tmpdir, args=None):
+    run_sharded_correctness(gpus=args.gpus, precision=args.precision, accelerator=args.distributed_backend)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")

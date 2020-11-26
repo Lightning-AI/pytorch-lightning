@@ -9,7 +9,8 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins.sharded_native_amp_plugin import ShardedNativeAMPPlugin
 from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin, FAIRSCALE_AVAILABLE
-from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE, APEX_AVAILABLE
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel
 
 
@@ -51,6 +52,26 @@ def test_ddp_choice_sharded(tmpdir, ddp_backend, gpus, num_processes):
     )
 
     with pytest.raises(SystemExit):
+        trainer.fit(model)
+
+
+@pytest.mark.skipif(not APEX_AVAILABLE, reason="test requires apex")
+@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+def test_invalid_apex_sharded(tmpdir):
+    """
+        Test to ensure that we raise an error when we try to use apex and sharded
+    """
+
+    model = BoringModel()
+    with pytest.raises(MisconfigurationException, match='Sharded Plugin is not supported with Apex AMP'):
+        trainer = Trainer(
+            fast_dev_run=True,
+            distributed_backend='ddp_spawn',
+            plugins=[DDPShardedPlugin()],
+            precision=16,
+            amp_backend='apex'
+        )
+
         trainer.fit(model)
 
 
