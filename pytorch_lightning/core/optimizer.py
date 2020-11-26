@@ -52,12 +52,10 @@ def do_nothing_closure():
 
 
 class LightningOptimizer(Optimizer):
-
     """
     This class is used to wrap the user optimizers and handle properly
     the backward and optimizer_step logic across accelerators, AMP, accumulated_grad_batches
     """
-
     def __init__(self,
                  optimizer: Optimizer,
                  accumulate_grad_batches: Optional[int] = None):
@@ -66,6 +64,13 @@ class LightningOptimizer(Optimizer):
         if isinstance(accumulate_grad_batches, int) and accumulate_grad_batches < 1:
             raise MisconfigurationException(f"accumulate_grad_batches parameters "
                                             f"{accumulate_grad_batches} should be >= 1")
+
+        self.__class__ = type(optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
+        optim_dict = {}
+        for k, v in optimizer.__dict__.items():
+            if k != 'step':
+                optim_dict[k] = v
+        self.__dict__ = optim_dict
         self._trainer = None
         self._optimizer = optimizer
         self._optimizer_idx = None
@@ -75,58 +80,6 @@ class LightningOptimizer(Optimizer):
     def _on_trainer_init(self, trainer, optimizer_idx):
         self._trainer = proxy(trainer)
         self._optimizer_idx = optimizer_idx
-
-    @property
-    def param_groups(self):
-        return self._optimizer.param_groups
-
-    @param_groups.setter
-    def param_groups(self, param_groups):
-        self._optimizer.param_groups = param_groups
-
-    @property
-    def defaults(self):
-        return self._optimizer.defaults
-
-    @defaults.setter
-    def defaults(self, defaults):
-        self._optimizer.defaults = defaults
-
-    @property
-    def state(self):
-        return {
-            'defaults': self._optimizer.defaults,
-            'state': self._optimizer.state,
-            'param_groups': self._optimizer.param_groups,
-            'optimizer_cls': self._optimizer.__class__,
-            'optimizer_idx': self._optimizer_idx,
-            "accumulate_grad_batches": self._accumulate_grad_batches,
-        }
-
-    def __getstate__(self):
-        return self.state
-
-    def __setstate__(self, state):
-        # todo understand why state creates a state key
-        try:
-            self._optimizer_idx = state["optimizer_idx"]
-            self._accumulate_grad_batches = state["accumulate_grad_batches"]
-            self._optimizer = state["optimizer_cls"](state['param_groups'], **state['defaults'])
-        except Exception:
-            self._optimizer_idx = state["state"]["optimizer_idx"]
-            self._accumulate_grad_batches = state["state"]["accumulate_grad_batches"]
-            self._optimizer = state["state"]["optimizer_cls"](state['param_groups'], **state["state"]['defaults'])
-
-    def __repr__(self):
-        format_string = "Lightning" + self._optimizer.__class__.__name__ + ' ('
-        for i, group in enumerate(self.param_groups):
-            format_string += '\n'
-            format_string += 'Parameter Group {0}\n'.format(i)
-            for key in sorted(group.keys()):
-                if key != 'params':
-                    format_string += '    {0}: {1}\n'.format(key, group[key])
-        format_string += ')'
-        return format_string
 
     def _accumulated_batches_reached(self):
         if self._use_accumulate_grad_batches_from_trainer:
@@ -277,3 +230,14 @@ class LightningOptimizer(Optimizer):
             if isinstance(closure, types.FunctionType):
                 with self._trainer.train_loop.block_ddp_sync_behaviour():
                     closure()
+
+    def __repr__(self):
+        format_string = "Lightning" + self._optimizer.__class__.__name__ + ' ('
+        for i, group in enumerate(self.param_groups):
+            format_string += '\n'
+            format_string += 'Parameter Group {0}\n'.format(i)
+            for key in sorted(group.keys()):
+                if key != 'params':
+                    format_string += '    {0}: {1}\n'.format(key, group[key])
+        format_string += ')'
+        return format_string

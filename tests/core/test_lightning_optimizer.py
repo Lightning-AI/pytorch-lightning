@@ -17,6 +17,7 @@ from unittest.mock import patch
 import pytest
 import torch
 import torch.nn as nn
+from torch.optim import Adam, Optimizer
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -185,3 +186,20 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(mock_
 
     assert len(mock_sgd_step.mock_calls) == 2
     assert len(mock_adam_step.mock_calls) == 4
+
+
+def test_state(tmpdir):
+    model = torch.nn.Linear(3, 4)
+    optimizer = torch.optim.Adam(model.parameters())
+    lightning_optimizer = LightningOptimizer(optimizer)
+    assert isinstance(lightning_optimizer, Adam)
+    assert isinstance(lightning_optimizer, Optimizer)
+    lightning_dict = {}
+    special_attrs = ["_accumulate_grad_batches", "_optimizer", "_optimizer_idx",
+                     "_trainer", "_use_accumulate_grad_batches_from_trainer"]
+    for k, v in lightning_optimizer.__dict__.items():
+        if k not in special_attrs:
+            lightning_dict[k] = v
+    assert lightning_dict == optimizer.__dict__
+    assert optimizer.state_dict() == lightning_optimizer.state_dict()
+    assert optimizer.state == lightning_optimizer.state
