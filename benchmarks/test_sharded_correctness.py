@@ -9,7 +9,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
-from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE, FAIRSCALE_AVAILABLE
+from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE, NATIVE_AMP_AVALAIBLE
 from tests.base.boring_model import BoringModel, RandomDataset
 
 
