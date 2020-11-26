@@ -224,7 +224,7 @@ class LightningOptimizer(Optimizer):
                     xm.optimizer_step(optimizer, optimizer_args={'closure': closure, **kwargs})
 
             elif trainer.amp_backend is not None:
-                trainer.amp_backend.step(trainer, optimizer, closure)
+                trainer.precision_connector.backend.step(trainer, optimizer, closure)
 
             else:
                 with trainer.profiler.profile(profiler_name):
