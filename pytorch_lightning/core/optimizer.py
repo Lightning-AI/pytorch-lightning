@@ -73,13 +73,11 @@ class LightningOptimizer(Optimizer):
         self.__dict__ = optim_dict
         self._trainer = None
         self._optimizer = optimizer
-        self._optimizer_idx = None
         self._accumulate_grad_batches = accumulate_grad_batches
         self._use_accumulate_grad_batches_from_trainer = accumulate_grad_batches is None
 
-    def _on_trainer_init(self, trainer, optimizer_idx):
+    def _on_trainer_init(self, trainer):
         self._trainer = proxy(trainer)
-        self._optimizer_idx = optimizer_idx
 
     def _accumulated_batches_reached(self):
         if self._use_accumulate_grad_batches_from_trainer:
