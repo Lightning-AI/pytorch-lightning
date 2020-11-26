@@ -612,10 +612,7 @@ class TrainLoop:
 
         # log epoch metrics
         self.trainer.logger_connector.log_train_epoch_end_metrics(
-            epoch_output,
-            self.checkpoint_accumulator,
-            self.early_stopping_accumulator,
-            self.num_optimizers
+            epoch_output, self.checkpoint_accumulator, self.early_stopping_accumulator, self.num_optimizers
         )
 
         # when no val loop is present or fast-dev-run still need to call checkpoints
@@ -669,7 +666,9 @@ class TrainLoop:
 
                     # perform dpp sync only when performing optimizer_step
                     with self.block_ddp_sync_behaviour():
-                        self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens)
+                        self.training_step_and_backward(
+                            split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
+                        )
 
                     batch_outputs = self._process_closure_result(
                         batch_outputs=batch_outputs,
@@ -686,11 +685,7 @@ class TrainLoop:
 
                         def train_step_and_backward_closure():
                             result = self.training_step_and_backward(
-                                split_batch,
-                                batch_idx,
-                                opt_idx,
-                                optimizer,
-                                self.trainer.hiddens
+                                split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
                             )
                             return None if result is None else result.loss
 
@@ -699,10 +694,7 @@ class TrainLoop:
 
                     else:
                         self._curr_step_result = self.training_step(
-                            split_batch,
-                            batch_idx,
-                            opt_idx,
-                            self.trainer.hiddens
+                            split_batch, batch_idx, opt_idx, self.trainer.hiddens
                         )
 
                     if self._curr_step_result is None:
@@ -740,9 +732,7 @@ class TrainLoop:
         else:
             yield
 
-    def _process_closure_result(
-        self, batch_outputs: list, opt_idx: int
-    ) -> list:
+    def _process_closure_result(self, batch_outputs: list, opt_idx: int) -> list:
         opt_closure_result = self._curr_step_result
 
         if opt_closure_result is not None:
@@ -819,7 +809,11 @@ class TrainLoop:
 
         if num_accumulated_batches_reached or num_training_batches_reached:
             # update lr
-            self.trainer.optimizer_connector.update_learning_rates(interval="step", monitor_metrics=monitor_metrics)
+            self.trainer.optimizer_connector.update_learning_rates(
+                interval="step",
+                monitor_metrics=monitor_metrics,
+                opt_indices=[opt_idx for opt_idx, _ in self.get_optimizers_iterable()],
+            )
 
     def run_on_epoch_end_hook(self, epoch_output):
         # inform logger the batch loop has finished

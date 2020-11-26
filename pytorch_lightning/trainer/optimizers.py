@@ -54,7 +54,11 @@ class TrainerOptimizersMixin(ABC):
         # multiple dictionaries
         elif isinstance(optim_conf, (list, tuple)) and all(isinstance(d, dict) for d in optim_conf):
             optimizers = [opt_dict["optimizer"] for opt_dict in optim_conf]
-            lr_schedulers = [opt_dict["lr_scheduler"] for opt_dict in optim_conf if "lr_scheduler" in opt_dict]
+            lr_schedulers = [
+                dict(opt_dict["lr_scheduler"], opt_idx=opt_idx)
+                for opt_idx, opt_dict in enumerate(optim_conf)
+                if "lr_scheduler" in opt_dict
+            ]
             optimizer_frequencies = [
                 opt_dict["frequency"] for opt_dict in optim_conf if opt_dict.get("frequency", None) is not None
             ]
@@ -99,6 +103,7 @@ class TrainerOptimizersMixin(ABC):
             'reduce_on_plateau': False,  # most often not ReduceLROnPlateau scheduler
             'monitor': monitor,  # value to monitor for ReduceLROnPlateau
             'strict': True,  # enforce that the monitor exists for ReduceLROnPlateau
+            'opt_idx': None,  # necessary to store opt_idx when optimizer frequencies are specified
         }
         for scheduler in schedulers:
             if isinstance(scheduler, dict):

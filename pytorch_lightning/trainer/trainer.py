@@ -365,12 +365,7 @@ class Trainer(
                 "Please use the property on the LightningModule for disabling automatic optimization"
             )
         self.train_loop.on_trainer_init(
-            max_epochs,
-            min_epochs,
-            max_steps,
-            min_steps,
-            num_sanity_val_steps,
-            automatic_optimization
+            max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps, automatic_optimization
         )
         self.evaluation_loop.on_trainer_init()
 
@@ -527,7 +522,10 @@ class Trainer(
                     return
 
                 # update LR schedulers
-                self.optimizer_connector.update_learning_rates(interval='epoch')
+                self.optimizer_connector.update_learning_rates(
+                    interval='epoch',
+                    opt_indices=[opt_idx for opt_idx, _ in self.train_loop.get_optimizers_iterable()],
+                )
 
                 # early stopping
                 met_min_epochs = epoch >= self.min_epochs - 1
