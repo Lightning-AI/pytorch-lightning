@@ -1006,9 +1006,9 @@ def test_hparams_type(tmpdir, hparams_type):
         (2, ['curr_epoch.ckpt', 'curr_epoch-v0.ckpt']),
     ]
 )
-def test_model_checkpoint_file_already_exist(tmpdir, save_top_k, expected):
+def test_model_checkpoint_file_already_exists(tmpdir, save_top_k, expected):
     """
-    Test that version is added to filename if required and it's already exist in dirpath.
+    Test that version is added to filename if required and it already exists in dirpath.
     """
     class CustomModel(LogInTwoMethods):
         def validation_epoch_end(self, outputs):
