@@ -207,43 +207,39 @@ class LightningOptimizer:
                     opt_dis.step(closure=optimizer_closure, make_optimizer_step=True)
         """
 
+        profiler_name = "optimizer_step_and_closure"
         if closure is None:
             closure = do_nothing_closure
+            profile_name = "optimizer_step"
+        else:
+            if not isinstance(closure, types.FunctionType):
+                raise MisconfigurationException("When closure is provided, it should be a function")
 
         if make_optimizer_step is None:
             make_optimizer_step = not self._should_accumulate
 
+        trainer = self._trainer
+        optimizer = self._optimizer
+
         if make_optimizer_step:
-            if self._trainer.on_tpu:
-                with self._trainer.profiler.profile("optimizer_step_and_closure"):
-                    xm.optimizer_step(self._optimizer, optimizer_args={'closure': closure, **kwargs})
-            elif self._trainer.amp_backend == AMPType.NATIVE:
-                # native amp does not yet support closures.
-                # TODO: pass the closure to the step ASAP
-                with self._trainer.profiler.profile("closure"):
-                    closure()
-                with self._trainer.profiler.profile("optimizer_step"):
-                    self._trainer.scaler.step(self._optimizer)
-                    self._trainer.scaler.update()
-            elif self._trainer.amp_backend == AMPType.APEX:
-                # apex amp does not yet support closures.
-                # TODO: pass the closure to the step ASAP
-                with self._trainer.profiler.profile("closure"):
-                    closure()
-                with self._trainer.profiler.profile("optimizer_step"):
-                    self._optimizer.step()
+            if trainer.on_tpu:
+                with trainer.profiler.profile(profiler_name):
+                    xm.optimizer_step(optimizer, optimizer_args={'closure': closure, **kwargs})
+
+            elif trainer.amp_backend is not None:
+                trainer.amp_backend.step(trainer, optimizer, closure)
+
             else:
-                with self._trainer.profiler.profile("optimizer_step_and_closure"):
-                    self._optimizer.step(closure=closure, *args, **kwargs)
+                with trainer.profiler.profile(profiler_name):
+                    optimizer.step(closure=closure, *args, **kwargs)
 
             # perform zero grad
-            self._optimizer.zero_grad()
+            optimizer.zero_grad()
         else:
             # make sure to call optimizer_closure when accumulating
-            if isinstance(closure, types.FunctionType):
-                with self._trainer.train_loop.block_ddp_sync_behaviour():
-                    with self._trainer.profiler.profile("closure"):
-                        closure()
+            with trainer.train_loop.block_ddp_sync_behaviour():
+                with trainer.profiler.profile("closure"):
+                    closure()
 
     def __repr__(self):
         format_string = "Lightning" + self._optimizer.__class__.__name__ + ' ('

@@ -63,3 +63,12 @@ class NativeAMPPlugin(PrecisionPlugin):
     @property
     def scaler(self):
         return torch.cuda.amp.GradScaler()
+
+    def step(self, trainer, optimizer, closure):
+        # native amp does not yet support closures.
+        # TODO: pass the closure to the step ASAP
+        with trainer.profiler.profile("closure"):
+            closure()
+        with trainer.profiler.profile("optimizer_step"):
+            trainer.scaler.step(optimizer)
+            trainer.scaler.update()
