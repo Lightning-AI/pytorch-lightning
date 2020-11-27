@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
+
+from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.supporters import PredictionCollection
-from pytorch_lightning.core.step_result import Result, EvalResult
+from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_utils import is_overridden
-from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.warning_utils import WarningCache
 
 
@@ -105,9 +106,9 @@ class EvaluationLoop(object):
 
     def on_evaluation_end(self, *args, **kwargs):
         if self.testing:
-            self.trainer.call_hook('on_test_end', *args, **kwargs)
+            self.trainer.call_hook('on_test_end', *args, capture=True, **kwargs)
         else:
-            self.trainer.call_hook('on_validation_end', *args, **kwargs)
+            self.trainer.call_hook('on_validation_end', *args, capture=True, **kwargs)
 
     def reload_evaluation_dataloaders(self):
         model = self.trainer.get_model()
@@ -167,6 +168,7 @@ class EvaluationLoop(object):
         args = self.build_args(test_mode, batch, batch_idx, dataloader_idx)
 
         model_ref = self.trainer.get_model()
+        model_ref._results = Result()
         # run actual test step
         if self.testing:
             model_ref._current_fx_name = "test_step"
@@ -327,9 +329,9 @@ class EvaluationLoop(object):
     def on_evaluation_epoch_end(self, *args, **kwargs):
         # call the callback hook
         if self.testing:
-            self.trainer.call_hook('on_test_epoch_end', *args, **kwargs)
+            self.trainer.call_hook('on_test_epoch_end', *args, capture=True, **kwargs)
         else:
-            self.trainer.call_hook('on_validation_epoch_end', *args, **kwargs)
+            self.trainer.call_hook('on_validation_epoch_end', *args, capture=True, **kwargs)
 
     def log_evaluation_step_metrics(self, output, batch_idx):
         if self.trainer.running_sanity_check:
