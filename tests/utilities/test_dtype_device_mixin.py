@@ -55,7 +55,6 @@ class DeviceAssertCallback(Callback):
 ])
 @pytest.mark.parametrize(['dst_device'], [
     pytest.param(torch.device('cpu')),
-    pytest.param(torch.device('cuda')),
     pytest.param(torch.device('cuda', 0)),
 ])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
@@ -100,3 +99,16 @@ def test_submodules_multi_gpu_ddp_spawn(tmpdir):
         max_steps=1,
     )
     trainer.fit(model)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_gpu_device_includes_index():
+    model = TopModule()
+
+    # explicitly call without an index to see if the returning device contains an index (it should!)
+    model.cuda()
+
+    device = model.device
+    assert device.type == 'cuda'
+    assert device.index is not None
+    assert device.index == torch.cuda.current_device()
