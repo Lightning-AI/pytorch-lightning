@@ -30,9 +30,7 @@ class LoggerStages(str, Enum):
         if isinstance(stage_or_testing, (bool, int)):
             # stage_or_testing is trainer.testing
             return LoggerStages.TEST if bool(stage_or_testing) else LoggerStages.VAL
-        raise RuntimeError(
-            f"Invalid stage {stage_or_testing} of type {type(stage_or_testing)} given"
-        )
+        raise RuntimeError(f"Invalid stage {stage_or_testing} of type {type(stage_or_testing)} given")
 
 
 class ResultStoreType(Enum):
@@ -63,6 +61,7 @@ class HookResultStore:
 
     Those data structures enables us to reduce properly Result object when batch loop is finished.
     """
+
     def __init__(self, fx_name):
         self._fx_name = fx_name
         self._internals = {}
@@ -107,23 +106,16 @@ class HookResultStore:
         ]
 
     def get_batch_pbar_metrics(self, *args, **kwargs):
-        return self.run_latest_batch_metrics_with_func_name("get_batch_pbar_metrics",
-                                                            *args,
-                                                            **kwargs)
+        return self.run_latest_batch_metrics_with_func_name("get_batch_pbar_metrics", *args, **kwargs)
 
     def get_batch_log_metrics(self, *args, **kwargs):
-        return self.run_latest_batch_metrics_with_func_name("get_batch_log_metrics",
-                                                            *args,
-                                                            **kwargs)
+        return self.run_latest_batch_metrics_with_func_name("get_batch_log_metrics", *args, **kwargs)
 
     def run_epoch_func(self, results, opt_metric, func_name, *args, **kwargs) -> None:
         if not isinstance(opt_metric, Result):
             raise Exception("The provided opt_metric should be a Result Object. Something is wrong")
         func = getattr(opt_metric, func_name)
-        metrics_to_log = func(
-            *args,
-            add_dataloader_idx=self.has_several_dataloaders,
-            **kwargs)
+        metrics_to_log = func(*args, add_dataloader_idx=self.has_several_dataloaders, **kwargs)
         results.append(metrics_to_log)
 
     def get_epoch_from_func_name(self, func_name, *args, **kwargs) -> List[Dict]:
@@ -267,6 +259,7 @@ class EpochResultStore:
     epoch_result_store.cache_result()
     ```
     """
+
     def __init__(self, trainer, stage):
         self.trainer = trainer
         self._stage = stage
@@ -287,9 +280,7 @@ class EpochResultStore:
         """
         This function provides necessary parameters to properly configure HookResultStore obj
         """
-        return {"batch_idx": self.trainer.batch_idx,
-                "split_idx": self._split_idx,
-                "opt_idx": self._opt_idx}
+        return {"batch_idx": self.trainer.batch_idx, "split_idx": self._split_idx, "opt_idx": self._opt_idx}
 
     def reset_model(self):
         """
@@ -338,10 +329,7 @@ class EpochResultStore:
             if self.trainer.move_metrics_to_cpu:
                 hook_result.cpu()
 
-            self._internals[fx_name].append(
-                hook_result,
-                dataloader_idx=dataloader_idx,
-                extra_info=extra_info)
+            self._internals[fx_name].append(hook_result, dataloader_idx=dataloader_idx, extra_info=extra_info)
 
             # update logged_metrics, progress_bar_metrics, callback_metrics
             self.update_logger_connector()
@@ -467,13 +455,13 @@ class EpochResultStore:
         self.legacy_batch_pbar_metrics = {}
 
     def __call__(
-            self,
-            fx_name: str,
-            dl_idx: Optional[int] = None,
-            opt_idx: Optional[int] = None,
-            batch_idx: Optional[int] = None,
-            split_idx: Optional[int] = None,
-            reduced: bool = False,
+        self,
+        fx_name: str,
+        dl_idx: Optional[int] = None,
+        opt_idx: Optional[int] = None,
+        batch_idx: Optional[int] = None,
+        split_idx: Optional[int] = None,
+        reduced: bool = False,
     ):
         """
         This function is an helper to access stored data

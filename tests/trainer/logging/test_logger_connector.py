@@ -40,6 +40,7 @@ def decorator_with_arguments(fx_name='', hook_fx_name=None):
             # cache metrics
             self.trainer.logger_connector.cache_logged_metrics()
             return result
+
         return wrapper
 
     return decorator
@@ -86,17 +87,9 @@ def test__logger_connector__epoch_result_store__train(tmpdir, monkeypatch):
     train_results = model.train_results
 
     assert len(train_results(fx_name="training_step", dl_idx=0, opt_idx=0)) == 2
-    generated = train_results(fx_name="training_step",
-                              dl_idx=0,
-                              opt_idx=0,
-                              batch_idx=0,
-                              split_idx=0)["train_loss"]
+    generated = train_results(fx_name="training_step", dl_idx=0, opt_idx=0, batch_idx=0, split_idx=0)["train_loss"]
     assert generated == model.train_losses[0]
-    generated = train_results(fx_name="training_step",
-                              dl_idx=0,
-                              opt_idx=0,
-                              batch_idx=1,
-                              split_idx=0)["train_loss"]
+    generated = train_results(fx_name="training_step", dl_idx=0, opt_idx=0, batch_idx=1, split_idx=0)["train_loss"]
     assert generated == model.train_losses[1]
 
     assert train_results.has_reduced is not True
@@ -154,8 +147,7 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
             assert y_tensor.shape[1] == truncated_bptt_steps, "tbptt split list failed"
 
             pred = self(x_tensor.view(batch_size, truncated_bptt_steps))
-            loss = torch.nn.functional.mse_loss(
-                pred, y_tensor.view(batch_size, truncated_bptt_steps))
+            loss = torch.nn.functional.mse_loss(pred, y_tensor.view(batch_size, truncated_bptt_steps))
 
             self.train_losses.append(loss)
 
@@ -291,7 +283,8 @@ def test_call_back_validator(tmpdir):
         'on_epoch_start',
         'on_fit_end',
         'on_fit_start',
-        'on_init_end', 'on_init_start',
+        'on_init_end',
+        'on_init_start',
         'on_keyboard_interrupt',
         'on_load_checkpoint',
         'on_pretrain_routine_end',
@@ -340,7 +333,9 @@ def test_call_back_validator(tmpdir):
         "teardown",
     ]
 
-    assert funcs_name == callbacks_func, """Detected new callback function.
+    assert (
+        funcs_name == callbacks_func
+    ), """Detected new callback function.
         Need to add its logging permission to CallbackHookNameValidator and update this test"""
 
     validator = CallbackHookNameValidator()
@@ -353,11 +348,7 @@ def test_call_back_validator(tmpdir):
         on_epoch = True
         # creating allowed condition
         allowed = (
-            is_stage
-            or "batch" in func_name
-            or "epoch" in func_name
-            or "grad" in func_name
-            or "backward" in func_name
+            is_stage or "batch" in func_name or "epoch" in func_name or "grad" in func_name or "backward" in func_name
         )
         allowed = (
             allowed
@@ -365,22 +356,16 @@ def test_call_back_validator(tmpdir):
             and func_name not in ["on_train_end", "on_test_end", "on_validation_end"]
         )
         if allowed:
-            validator.check_logging_in_callbacks(current_hook_fx_name=func_name,
-                                                 on_step=on_step,
-                                                 on_epoch=on_epoch)
+            validator.check_logging_in_callbacks(current_hook_fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
             if not is_start and is_stage:
                 with pytest.raises(MisconfigurationException, match="function supports only"):
-                    validator.check_logging_in_callbacks(current_hook_fx_name=func_name,
-                                                         on_step=True,
-                                                         on_epoch=on_epoch)
+                    validator.check_logging_in_callbacks(
+                        current_hook_fx_name=func_name, on_step=True, on_epoch=on_epoch
+                    )
         else:
             assert func_name in not_supported
             with pytest.raises(MisconfigurationException, match="function doesn't support"):
-                validator.check_logging_in_callbacks(current_hook_fx_name=func_name,
-                                                     on_step=on_step,
-                                                     on_epoch=on_epoch)
+                validator.check_logging_in_callbacks(current_hook_fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
 
         # should not fail
-        validator.check_logging_in_callbacks(current_hook_fx_name=None,
-                                             on_step=None,
-                                             on_epoch=None)
+        validator.check_logging_in_callbacks(current_hook_fx_name=None, on_step=None, on_epoch=None)
