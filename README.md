@@ -115,6 +115,7 @@ Simple installation from PyPI
 ```bash
 pip install pytorch-lightning
 ```
+_To get full package experience you can install also all optional dependencies with `pytorch-lightning['extra']` or for CPU users with `pytorch-lightning['cpu-extra']`._
 
 From Conda
 ```bash
@@ -270,7 +271,7 @@ class LitAutoEncoder(pl.LightningModule):
 
 
 ###### Reinforcement Learning
-[DQN](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=NWvMLBDySQI5)   
+[DQN](https://pytorch-lightning-bolts.readthedocs.io/en/latest/reinforce_learn.html?highlight=dqn#dqn-models)   
 [Dueling-DQN](https://pytorch-lightning-bolts.readthedocs.io/en/latest/reinforce_learn.html#dueling-dqn)   
 [Reinforce](https://pytorch-lightning-bolts.readthedocs.io/en/latest/reinforce_learn.html#reinforce)
 

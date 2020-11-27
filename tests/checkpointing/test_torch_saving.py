@@ -18,12 +18,12 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from tests.base import EvalModelTemplate
+from tests.base import BoringModel
 
 
 def test_model_torch_save(tmpdir):
     """Test to ensure torch save does not fail for model and trainer."""
-    model = EvalModelTemplate()
+    model = BoringModel()
     num_epochs = 1
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -41,7 +41,7 @@ def test_model_torch_save(tmpdir):
                     reason="Distributed training is not supported on Windows")
 def test_model_torch_save_ddp_cpu(tmpdir):
     """Test to ensure torch save does not fail for model and trainer using cpu ddp."""
-    model = EvalModelTemplate()
+    model = BoringModel()
     num_epochs = 1
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -60,7 +60,7 @@ def test_model_torch_save_ddp_cpu(tmpdir):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_model_torch_save_ddp_cuda(tmpdir):
     """Test to ensure torch save does not fail for model and trainer using gpu ddp."""
-    model = EvalModelTemplate()
+    model = BoringModel()
     num_epochs = 1
     trainer = Trainer(
         default_root_dir=tmpdir,
