@@ -364,7 +364,7 @@ def _input_format_classification(
         target = to_onehot(target, num_classes)
 
         if is_multiclass is False:
-            preds, target = preds[:, 1, ...],  target[:, 1, ...]
+            preds, target = preds[:, 1, ...], target[:, 1, ...]
 
     if ("multi-class" in case and is_multiclass is not False) or is_multiclass:
         target = target.reshape(target.shape[0], target.shape[1], -1)
