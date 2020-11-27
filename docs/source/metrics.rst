@@ -251,7 +251,7 @@ the possible class labels are 0, 1, 2, 3, etc. Below are some examples of differ
     ml_preds  = torch.tensor([[0.2, 0.8, 0.9], [0.5, 0.6, 0.1], [0.3, 0.1, 0.1]])
     ml_target = torch.tensor([[0, 1, 1], [1, 0, 0], [0, 0, 0]])
 
-In some rare cases, you might have inputs which appear to be (multi-dimensional) multi-class,
+In some rare cases, you might have inputs which appear to be (multi-dimensional) multi-class
 but are actually binary/multi-label. For example, if both predictions and targets are 1d
 binary tensors. Or it could be the other way around, you want to treat binary/multi-label
 inputs as 2-class (multi-dimensional) multi-class inputs.
