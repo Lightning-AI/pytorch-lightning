@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
+
 from enum import Enum
 from typing import Any, Optional, Union
 
@@ -22,8 +22,8 @@ from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
+from pytorch_lightning.core.lightning import LightningModule
 import torch.distributed as torch_distrib
-from pytorch_lightning import _logger as log
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
@@ -171,18 +171,13 @@ class Accelerator(object):
     def init_ddp_connection(
             self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
     ) -> None:
-        os.environ["MASTER_ADDR"] = str(self.cluster_environment.master_address())
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        os.environ["WORLD_SIZE"] = str(self.cluster_environment.world_size())
-        torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
-
-        if not torch.distributed.is_initialized():
-            log.info(
-                f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}"
-            )
-            torch_distrib.init_process_group(
-                torch_backend, rank=global_rank, world_size=world_size
-            )
+        self.ddp_plugin.init_ddp_connection(
+            self.trainer,
+            self.cluster_environment,
+            global_rank,
+            world_size,
+            is_slurm_managing_tasks,
+        )
 
     def sync_tensor(self,
                     tensor: Union[torch.Tensor],
@@ -201,6 +196,34 @@ class Accelerator(object):
             reduced value
         """
         raise NotImplementedError()
+
+    def optimizer_state(self, optimizer: Optimizer) -> dict:
+        """
+        Returns state of an optimizer. Allows for syncing/collating optimizer state from processes in custom
+        plugins.
+        Return:
+            Optimizer state dict
+        """
+        if self.ddp_plugin:
+            return self.ddp_plugin.optimizer_state(optimizer)
+        return optimizer.state_dict()
+
+    def get_reference_model(self, model) -> LightningModule:
+        """
+        Override to modify returning base :class:`LightningModule`
+        when accessing variable and functions if the accelerator has wrapped the model.
+
+        Example::
+            ref_model = accelerator.get_reference_model(model)
+            ref_model.training_step(...)
+
+        Args:
+            model: Accelerator model.
+
+        Returns: Reference :class:`LightningModule`.
+
+        """
+        return model
 
     def __getstate__(self):
         return {

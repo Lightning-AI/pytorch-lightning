@@ -56,7 +56,7 @@ class LearningRateMonitor(Callback):
 
         def configure_optimizer(self):
             optimizer = torch.optim.Adam(...)
-            lr_scheduler = {'scheduler': torch.optim.lr_schedulers.LambdaLR(optimizer, ...)
+            lr_scheduler = {'scheduler': torch.optim.lr_scheduler.LambdaLR(optimizer, ...)
                             'name': 'my_logging_name'}
             return [optimizer], [lr_scheduler]
 
@@ -114,7 +114,7 @@ class LearningRateMonitor(Callback):
             latest_stat = self._extract_stats(trainer, interval)
 
             if trainer.logger is not None and latest_stat:
-                trainer.logger.log_metrics(latest_stat, step=trainer.current_epoch)
+                trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
     def _extract_stats(self, trainer, interval: str) -> Dict[str, float]:
         latest_stat = {}

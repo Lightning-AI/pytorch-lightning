@@ -71,9 +71,11 @@ class TestTubeLogger(LightningLoggerBase):
         log_graph: Adds the computational graph to tensorboard. This requires that
             the user has defined the `self.example_input_array` attribute in their
             model.
+        prefix: A string to put at the beginning of metric keys.
     """
 
     __test__ = False
+    LOGGER_JOIN_CHAR = '-'
 
     def __init__(
         self,
@@ -83,7 +85,8 @@ class TestTubeLogger(LightningLoggerBase):
         debug: bool = False,
         version: Optional[int] = None,
         create_git_tag: bool = False,
-        log_graph: bool = False
+        log_graph: bool = False,
+        prefix: str = '',
     ):
         if Experiment is None:
             raise ImportError('You want to use `test_tube` logger which is not installed yet,'
@@ -96,6 +99,7 @@ class TestTubeLogger(LightningLoggerBase):
         self._version = version
         self.create_git_tag = create_git_tag
         self._log_graph = log_graph
+        self._prefix = prefix
         self._experiment = None
 
     @property
@@ -136,6 +140,7 @@ class TestTubeLogger(LightningLoggerBase):
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         # TODO: HACK figure out where this is being set to true
+        metrics = self._add_prefix(metrics)
         self.experiment.debug = self.debug
         self.experiment.log(metrics, global_step=step)
 
