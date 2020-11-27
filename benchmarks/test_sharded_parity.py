@@ -63,7 +63,7 @@ def test_ddp_sharded_plugin_correctness_multi_gpu():
         accelerator='ddp_spawn',
         plugin=DDPShardedPlugin(),
         model_cls=SeedTrainLoaderModel,
-        max_percent_speed_diff=0.15
+        max_percent_speed_diff=0.2
     )
 
 
@@ -78,7 +78,8 @@ def test_ddp_sharded_plugin_correctness_amp_multi_gpu():
         precision=16,
         accelerator='ddp_spawn',
         plugin=DDPShardedPlugin(),
-        model_cls=SeedTrainLoaderModel
+        model_cls=SeedTrainLoaderModel,
+        max_percent_speed_diff=0.2
     )
 
 
