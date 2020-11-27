@@ -16,11 +16,9 @@ from typing import Optional
 from pytorch_lightning import _logger as log
 from pytorch_lightning.plugins.apex import ApexPlugin
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
-from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVAILABLE, AMPType, rank_zero_warn, \
-    FAIRSCALE_AVAILABLE
 from pytorch_lightning.plugins.sharded_native_amp_plugin import ShardedNativeAMPPlugin
 from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
-
+from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVAILABLE, AMPType, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 

@@ -14,12 +14,11 @@
 from typing import cast
 
 from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE, FAIRSCALE_AVAILABLE
+from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
 
 if NATIVE_AMP_AVAILABLE and FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
     from fairscale.optim.grad_scaler import ShardedGradScaler
-
-from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
 
 
 class ShardedNativeAMPPlugin(NativeAMPPlugin):

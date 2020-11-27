@@ -196,7 +196,6 @@ def test_ddp_sharded_plugin_finetune(tmpdir):
         fast_dev_run=True,
     )
     trainer.fit(saved_model)
-    return 1
 
 
 @pytest.mark.skipif(platform.system() == "Windows",
@@ -228,7 +227,6 @@ def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
     )
 
     trainer.fit(model)
-    return 1
 
 
 @pytest.mark.skip(reason="Currently unsupported restarting training on different number of devices.")
@@ -264,7 +262,6 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_downsize_gpus(tmpdir):
     )
 
     trainer.fit(model)
-    return 1
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
@@ -298,7 +295,6 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
     )
 
     trainer.fit(model)
-    return 1
 
 
 @pytest.mark.skipif(platform.system() == "Windows",
@@ -316,7 +312,6 @@ def test_ddp_sharded_plugin_test(tmpdir):
     )
 
     trainer.test(model)
-    return 1
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -336,4 +331,3 @@ def test_ddp_sharded_plugin_test_multigpu(tmpdir):
     )
 
     trainer.test(model)
-    return 1
