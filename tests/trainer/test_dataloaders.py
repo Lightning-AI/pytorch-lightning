@@ -22,12 +22,14 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import IterableDataset, Subset
 from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data.sampler import SequentialSampler
 
 import tests.base.develop_pipelines as tpipes
-from pytorch_lightning import Trainer, Callback
+from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+from tests.base.boring_model import BoringModel, RandomDataset
 
 
 def test_fit_train_loader_only(tmpdir):
@@ -1112,3 +1114,26 @@ def test_dataloaders_load_only_once_passed_loaders(tmpdir):
     ]
     for call, expected in zip(calls, expected_sequence):
         assert call['name'] == expected
+
+
+def test_replace_sampler_with_multiprocessing_context(tmpdir):
+    """
+    This test verifies that replace_sampler conserves multiprocessing context
+    """
+    train = RandomDataset(32, 64)
+    context = 'spawn'
+    train = DataLoader(train, batch_size=32, num_workers=2, multiprocessing_context=context, shuffle=True)
+
+    class ExtendedBoringModel(BoringModel):
+
+        def train_dataloader(self):
+            return train
+
+    trainer = Trainer(
+        max_epochs=1,
+        progress_bar_refresh_rate=20,
+        overfit_batches=5,
+    )
+
+    new_data_loader = trainer.replace_sampler(train, SequentialSampler(train.dataset))
+    assert (new_data_loader.multiprocessing_context == train.multiprocessing_context)
