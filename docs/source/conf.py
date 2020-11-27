@@ -311,6 +311,7 @@ PACKAGE_MAPPING = {
     'PyYAML': 'yaml',
     'comet-ml': 'comet_ml',
     'neptune-client': 'neptune',
+    'hydra-core': 'hydra',
 }
 MOCK_PACKAGES = []
 if SPHINX_MOCK_REQUIREMENTS:
@@ -360,8 +361,8 @@ import torch
 from pytorch_lightning.utilities import (
     NATIVE_AMP_AVAILABLE,
     APEX_AVAILABLE,
+    XLA_AVAILABLE,
 )
-XLA_AVAILABLE = importlib.util.find_spec("torch_xla") is not None
 TORCHVISION_AVAILABLE = importlib.util.find_spec("torchvision") is not None
 
 
