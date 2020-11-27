@@ -41,14 +41,13 @@ if HOROVOD_AVAILABLE:
 # This script will run the actual test model training in parallel
 TEST_SCRIPT = os.path.join(os.path.dirname(__file__), 'data', 'horovod', 'train_default_model.py')
 
-if HOROVOD_AVAILABLE and _module_available("horovod.common.util"):
-    try:
-        from horovod.common.util import nccl_built
-        nccl_built()
-    except AttributeError:
-        HOROVOD_NCCL_AVAILABLE = False
-    finally:
-        HOROVOD_NCCL_AVAILABLE = True
+try:
+    from horovod.common.util import nccl_built
+    nccl_built()
+except (ImportError, ModuleNotFoundError, AttributeError):
+    HOROVOD_NCCL_AVAILABLE = False
+finally:
+    HOROVOD_NCCL_AVAILABLE = True
 
 
 def _run_horovod(trainer_options, on_gpu=False):
