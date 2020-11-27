@@ -21,6 +21,7 @@ ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
 sys.path.insert(0, ROOT)
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
+from tests.backends.launcher import DDPLauncher  # noqa E402
 from tests.base.boring_model import RandomDataset  # noqa E402
 
 
@@ -28,17 +29,9 @@ from tests.base.boring_model import RandomDataset  # noqa E402
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not HAS_FAIRSCALE, reason="Fairscale is not available")
-def test_ddp_pipe_plugin_correctness_multi_gpu():
-    run_pipe_correctness(gpus=2, accelerator='ddp')
-
-
-@pytest.mark.skipif(reason="wip")
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(platform.system() == "Windows",
-                    reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(not HAS_FAIRSCALE, reason="Fairscale is not available")
-def test_ddp_pipe_plugin_correctness_multi_gpu_version_2():
-    run_pipe_correctness_version_2(gpus=2, accelerator='ddp')
+@DDPLauncher.run("--accelerator ddp --gpus 2")
+def test_ddp_pipe_plugin_correctness_multi_gpu(tmpdir, args=None):
+    run_pipe_correctness(gpus=args.gpus, accelerator=args.accelerator)
 
 
 class PipeRandomDataset(Dataset):
