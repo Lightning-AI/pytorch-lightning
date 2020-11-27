@@ -32,6 +32,7 @@ def test_ddp_pipe_plugin_correctness_multi_gpu():
     run_pipe_correctness(gpus=2, accelerator='ddp')
 
 
+@pytest.mark.skipif(reason="wip")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
@@ -290,7 +291,7 @@ def run_pipe_correctness(
         f'pipe plugin was too slow compared to DDP, pipe Time: {pipe_time}, DDP Time: {ddp_time_2}'
 
     # Assert CUDA memory parity
-    print(torch_distrib.get_rank(), max_pipe_memory, max_ddp_memory_2)
+    print(f"rank: {torch_distrib.get_rank()}, max_pipe_memory: {max_pipe_memory}, max_ddp_memory: {max_ddp_memory_2} ")
     # assert max_pipe_memory <= max_ddp_memory
 
 
