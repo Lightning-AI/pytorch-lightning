@@ -170,21 +170,26 @@ class SimpleProfiler(BaseProfiler):
 
         if self.extended:
 
-            max_key = np.max([len(k) for k in self.recorded_durations.keys()])
+            if len(self.recorded_durations) > 0:
+                max_key = np.max([len(k) for k in self.recorded_durations.keys()])
 
-            def log_row(action, mean, num_calls, total, per):
-                return f"{os.linesep}{action:<{max_key}s}\t|  {mean:<15}\t|  {num_calls:<15}\t|  {total:<15}\t|  {per:<15}\t|"
+                def log_row(action, mean, num_calls, total, per):
+                    row = f"{os.linesep}{action:<{max_key}s}\t|  {mean:<15}\t|"
+                    row += f"{num_calls:<15}\t|  {total:<15}\t|  {per:<15}\t|"
+                    return row
 
-            output_string += log_row("Action", "Mean duration (s)", "Num calls", "Total time (s)", "Percentage %")
-            output_string_len = len(output_string)
-            output_string += f"{os.linesep}{'-' * output_string_len}"
-            report, total_duration = self.make_report()
-            output_string += log_row("Total", "-", "_", f"{total_duration:.5}", "100 %")
-            output_string += f"{os.linesep}{'-' * output_string_len}"
-            for action, durations, duration_per in report:
-                output_string += log_row(
-                    action, f"{np.mean(durations):.5}", f"{len(durations):}", f"{np.sum(durations):.5}", f"{duration_per:.5}"
-                )
+                output_string += log_row("Action", "Mean duration (s)", "Num calls",
+                                        "Total time (s)", "Percentage %")
+                output_string_len = len(output_string)
+                output_string += f"{os.linesep}{'-' * output_string_len}"
+                report, total_duration = self.make_report()
+                output_string += log_row("Total", "-", "_", f"{total_duration:.5}", "100 %")
+                output_string += f"{os.linesep}{'-' * output_string_len}"
+                for action, durations, duration_per in report:
+                    output_string += log_row(
+                        action, f"{np.mean(durations):.5}", f"{len(durations):}",
+                        f"{np.sum(durations):.5}", f"{duration_per:.5}"
+                    )
         else:
             def log_row(action, mean, total):
                 return f"{os.linesep}{action:<20s}\t|  {mean:<15}\t|  {total:<15}"
