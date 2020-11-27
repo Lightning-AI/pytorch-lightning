@@ -366,13 +366,12 @@ def _input_format_classification(
         if is_multiclass is False:
             preds, target = preds[:, 1, ...],  target[:, 1, ...]
 
-    if (case in ["binary", "multi-label"] and not is_multiclass) or is_multiclass is False:
-        preds = preds.reshape(preds.shape[0], -1)
-        target = target.reshape(target.shape[0], -1)
-
-    elif "multi-class" in case or is_multiclass:
+    if ("multi-class" in case and is_multiclass is not False) or is_multiclass:
         target = target.reshape(target.shape[0], target.shape[1], -1)
         preds = preds.reshape(preds.shape[0], preds.shape[1], -1)
+    else:
+        preds = preds.reshape(preds.shape[0], -1)
+        target = target.reshape(target.shape[0], -1)
 
     # Some operatins above create an extra dimension for MC/binary case - this removes it
     if preds.ndim > 2:

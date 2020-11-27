@@ -112,7 +112,7 @@ def _mlmd_prob_to_mc_preds_tr(x):
         # Test usual expected cases
         (_bin, THRESHOLD, None, False, 1, "multi-class", _usq, _usq),
         (_bin_prob, THRESHOLD, None, None, 1, "binary", lambda x: _usq(_thrs(x)), _usq),
-        (_ml_prob, THRESHOLD, None, None, 1, "multi-label", lambda x: _thrs(x), _idn),
+        (_ml_prob, THRESHOLD, None, None, 1, "multi-label", _thrs, _idn),
         (_ml, THRESHOLD, None, False, 1, "multi-dim multi-class", _idn, _idn),
         (_ml_prob, THRESHOLD, None, None, 1, "multi-label", _ml_preds_tr, _rshp1),
         (_mlmd, THRESHOLD, None, False, 1, "multi-dim multi-class", _rshp1, _rshp1),
