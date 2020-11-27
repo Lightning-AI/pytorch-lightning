@@ -1244,16 +1244,10 @@ class LightningModule(
         """
         if on_tpu:
             xm.optimizer_step(optimizer, optimizer_args={'closure': optimizer_closure, **kwargs})
-        elif self.trainer.amp_backend == AMPType.NATIVE:
-            # native amp does not yet support closures.
-            # TODO: pass the closure to the step ASAP
-            optimizer_closure()
-            self.trainer.scaler.step(optimizer)
-        elif self.trainer.amp_backend == AMPType.APEX:
-            # apex amp does not yet support closures.
-            # TODO: pass the closure to the step ASAP
-            optimizer_closure()
-            optimizer.step(*args, **kwargs)
+
+        elif self.trainer.amp_backend is not None:
+            self.trainer.precision_connector.backend.step(self.trainer, optimizer, optimizer_closure)
+
         else:
             optimizer.step(closure=optimizer_closure, *args, **kwargs)
 
