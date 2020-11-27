@@ -73,7 +73,7 @@ def _top2(x):
 
 # To avoid ugly black line wrapping
 def _ml_preds_tr(x):
-    return _rshp1(_thrs(x).int())
+    return _rshp1(_thrs(x))
 
 
 def _onehot_rshp1(x):
@@ -93,11 +93,11 @@ def _top2_rshp2(x):
 
 
 def _probs_to_mc_preds_tr(x):
-    return _onehot2(_thrs(x)).int()
+    return _onehot2(_thrs(x))
 
 
 def _mlmd_prob_to_mc_preds_tr(x):
-    return _onehot2(_rshp1(_thrs(x).int()))
+    return _onehot2(_rshp1(_thrs(x)))
 
 
 ########################
@@ -111,8 +111,8 @@ def _mlmd_prob_to_mc_preds_tr(x):
         #############################
         # Test usual expected cases
         (_bin, THRESHOLD, None, False, 1, "multi-class", _usq, _usq),
-        (_bin_prob, THRESHOLD, None, None, 1, "binary", lambda x: _usq(_thrs(x).int()), _usq),
-        (_ml_prob, THRESHOLD, None, None, 1, "multi-label", lambda x: _thrs(x).int(), _idn),
+        (_bin_prob, THRESHOLD, None, None, 1, "binary", lambda x: _usq(_thrs(x)), _usq),
+        (_ml_prob, THRESHOLD, None, None, 1, "multi-label", _thrs, _idn),
         (_ml, THRESHOLD, None, False, 1, "multi-dim multi-class", _idn, _idn),
         (_ml_prob, THRESHOLD, None, None, 1, "multi-label", _ml_preds_tr, _rshp1),
         (_mlmd, THRESHOLD, None, False, 1, "multi-dim multi-class", _rshp1, _rshp1),
@@ -155,8 +155,8 @@ def test_usual_cases(inputs, threshold, num_classes, is_multiclass, top_k, exp_m
     )
 
     assert mode == exp_mode
-    assert torch.equal(preds_out, post_preds(inputs.preds[0]))
-    assert torch.equal(target_out, post_target(inputs.target[0]))
+    assert torch.equal(preds_out, post_preds(inputs.preds[0]).int())
+    assert torch.equal(target_out, post_target(inputs.target[0]).int())
 
     # Test that things work when batch_size = 1
     preds_out, target_out, mode = _input_format_classification(
@@ -169,8 +169,8 @@ def test_usual_cases(inputs, threshold, num_classes, is_multiclass, top_k, exp_m
     )
 
     assert mode == exp_mode
-    assert torch.equal(preds_out, post_preds(inputs.preds[0][[0], ...]))
-    assert torch.equal(target_out, post_target(inputs.target[0][[0], ...]))
+    assert torch.equal(preds_out, post_preds(inputs.preds[0][[0], ...]).int())
+    assert torch.equal(target_out, post_target(inputs.target[0][[0], ...]).int())
 
 
 # Test that threshold is correctly applied
@@ -180,7 +180,7 @@ def test_threshold():
 
     preds_probs_out, _, _ = _input_format_classification(preds_probs, target, threshold=0.5)
 
-    assert torch.equal(torch.tensor([0, 1, 1]), preds_probs_out.squeeze().long())
+    assert torch.equal(torch.tensor([0, 1, 1], dtype=torch.int), preds_probs_out.squeeze().int())
 
 
 ########################################################################
@@ -222,7 +222,7 @@ def test_threshold():
         # Max target larger or equal to C dimension
         (rand(size=(7, 3)), randint(low=4, high=6, size=(7,)), 0.5, None, None, 1),
         # C dimension not equal to num_classes
-        (rand(size=(7, 3, 4)), randint(high=4, size=(7, 3)), 0.5, 7, None, 1),
+        (rand(size=(7, 4, 3)), randint(high=4, size=(7, 3)), 0.5, 7, None, 1),
         # Max target larger than num_classes (with #dim preds = 1 + #dims target)
         (rand(size=(7, 3, 4)), randint(low=5, high=7, size=(7, 3)), 0.5, 4, None, 1),
         # Max target larger than num_classes (with #dim preds = #dims target)
@@ -253,6 +253,8 @@ def test_threshold():
         (_ml_prob.preds[0], _ml_prob.target[0], 0.5, None, None, 2),
         (_mlmd_prob.preds[0], _mlmd_prob.target[0], 0.5, None, None, 2),
         (_mdmc.preds[0], _mdmc.target[0], 0.5, None, None, 2),
+        # Topk =2 with 2 classes, is_multiclass=False
+        (_mc_prob_2cls.preds[0], _mc_prob_2cls.target[0], 0.5, None, False, 2),
     ],
 )
 def test_incorrect_inputs(preds, target, threshold, num_classes, is_multiclass, top_k):

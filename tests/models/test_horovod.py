@@ -30,7 +30,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.horovod_accelerator import HorovodAccelerator
 from pytorch_lightning.core.step_result import Result, TrainResult, EvalResult
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
-from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVAILABLE
 from tests.base import EvalModelTemplate
 from tests.base.models import BasicGAN
 
@@ -157,7 +157,7 @@ def test_horovod_apex(tmpdir):
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 @pytest.mark.skipif(not _nccl_available(), reason="test requires Horovod with NCCL support")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not NATIVE_AMP_AVALAIBLE, reason="test requires torch.cuda.amp")
+@pytest.mark.skipif(not NATIVE_AMP_AVAILABLE, reason="test requires torch.cuda.amp")
 def test_horovod_amp(tmpdir):
     """Test Horovod with multi-GPU support using native amp."""
     trainer_options = dict(

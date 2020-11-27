@@ -22,7 +22,7 @@ def _check_shape_and_type_consistency(preds: torch.Tensor, target: torch.Tensor)
     """
     This checks that the shape and type of inputs are consistent with
     each other and fall into one of the allowed input types (see the
-    documentation of docstring of _input_format_classification). It does
+    documentation of docstring of ``_input_format_classification``). It does
     not check for consistency of number of classes, other functions take
     care of that.
 
@@ -36,12 +36,12 @@ def _check_shape_and_type_consistency(preds: torch.Tensor, target: torch.Tensor)
     if preds.ndim == target.ndim:
         if preds.shape != target.shape:
             raise ValueError(
-                "`preds` and `target` should have the same shape,",
+                "The `preds` and `target` should have the same shape,",
                 f" got `preds` shape = {preds.shape} and `target` shape = {target.shape}.",
             )
         if preds_float and target.max() > 1:
             raise ValueError(
-                "if `preds` and `target` are of shape (N, ...) and `preds` are floats, `target` should be binary."
+                "If `preds` and `target` are of shape (N, ...) and `preds` are floats, `target` should be binary."
             )
 
         # Get the case
@@ -58,10 +58,10 @@ def _check_shape_and_type_consistency(preds: torch.Tensor, target: torch.Tensor)
 
     elif preds.ndim == target.ndim + 1:
         if not preds_float:
-            raise ValueError("if `preds` have one dimension more than `target`, `preds` should be a float tensor.")
+            raise ValueError("If `preds` have one dimension more than `target`, `preds` should be a float tensor.")
         if preds.shape[2:] != target.shape[1:]:
             raise ValueError(
-                "if `preds` have one dimension more than `target`, the shape of `preds` should be"
+                "If `preds` have one dimension more than `target`, the shape of `preds` should be"
                 " (N, C, ...), and the shape of `target` should be (N, ...)."
             )
 
@@ -73,7 +73,7 @@ def _check_shape_and_type_consistency(preds: torch.Tensor, target: torch.Tensor)
             case = "multi-dim multi-class"
     else:
         raise ValueError(
-            "`preds` and `target` should both have the (same) shape (N, ...), or `target` (N, ...)"
+            "The `preds` and `target` should both have the (same) shape (N, ...), or `target` (N, ...)"
             " and `preds` (N, C, ...)."
         )
 
@@ -155,7 +155,7 @@ def _check_classification_inputs(
     num_classes: Optional[int] = None,
     is_multiclass: bool = False,
     top_k: int = 1,
-) -> None:
+) -> str:
     """Performs error checking on inputs for classification.
 
     This ensures that preds and target take one of the shape/type combinations that are
@@ -189,26 +189,30 @@ def _check_classification_inputs(
             multi-class with 2 classes, respectively. If False, treat multi-class and multi-dim
             multi-class inputs with 1 or 2 classes as binary and multi-label, respectively.
             Defaults to None, which treats inputs as they appear.
+
+    Return:
+        case: The case the inputs fall in, one of 'binary', 'multi-class', 'multi-label' or
+            'multi-dim multi-class'
     """
 
     if target.is_floating_point():
-        raise ValueError("`target` has to be an integer tensor.")
+        raise ValueError("The `target` has to be an integer tensor.")
     elif target.min() < 0:
-        raise ValueError("`target` has to be a non-negative tensor.")
+        raise ValueError("The `target` has to be a non-negative tensor.")
 
     preds_float = preds.is_floating_point()
     if not preds_float and preds.min() < 0:
-        raise ValueError("if `preds` are integers, they have to be non-negative.")
+        raise ValueError("If `preds` are integers, they have to be non-negative.")
 
     if not preds.shape[0] == target.shape[0]:
-        raise ValueError("`preds` and `target` should have the same first dimension.")
+        raise ValueError("The `preds` and `target` should have the same first dimension.")
 
     if preds_float:
         if preds.min() < 0 or preds.max() > 1:
-            raise ValueError("`preds` should be probabilities, but values were detected outside of [0,1] range.")
+            raise ValueError("The `preds` should be probabilities, but values were detected outside of [0,1] range.")
 
     if threshold > 1 or threshold < 0:
-        raise ValueError("`threshold` should be a probability in [0,1].")
+        raise ValueError("The `threshold` should be a probability in [0,1].")
 
     if is_multiclass is False and target.max() > 1:
         raise ValueError("If you set `is_multiclass=False`, then `target` should not exceed 1.")
@@ -245,6 +249,10 @@ def _check_classification_inputs(
                 "You have set `top_k` above 1, but your data is not (multi-dimensional) multi-class"
                 " with probability predictions."
             )
+        if is_multiclass is False:
+            raise ValueError("If you set `is_multiclass` to False, you can not set `top_k` above 1.")
+
+    return case
 
 
 def _input_format_classification(
@@ -276,7 +284,7 @@ def _input_format_classification(
 
     The returned output tensors will be binary tensors of the same shape, either ``(N, C)``
     of ``(N, C, X)``, the details for each case are described below. The function also returns
-    a ``mode`` string, which describes which of the above cases the inputs belonged to - regardless
+    a ``case`` string, which describes which of the above cases the inputs belonged to - regardless
     of whether this was "overridden" by other settings (like ``is_multiclass``).
 
     In binary case, targets are normally returned as ``(N,1)`` tensor, while preds are transformed
@@ -323,6 +331,8 @@ def _input_format_classification(
     Returns:
         preds: binary tensor of shape (N, C) or (N, C, X)
         target: binary tensor of shape (N, C) or (N, C, X)
+        case: The case the inputs fall in, one of 'binary', 'multi-class', 'multi-label' or
+            'multi-dim multi-class'
     """
     # Remove excess dimensions
     if preds.shape[0] == 1:
@@ -330,7 +340,7 @@ def _input_format_classification(
     else:
         preds, target = preds.squeeze(), target.squeeze()
 
-    _check_classification_inputs(
+    case = _check_classification_inputs(
         preds,
         target,
         threshold=threshold,
@@ -339,86 +349,33 @@ def _input_format_classification(
         top_k=top_k,
     )
 
-    preds_float = preds.is_floating_point()
-
-    if preds.ndim == target.ndim == 1 and preds_float:
-        mode = "binary"
+    if case in ["binary", "multi-label"]:
         preds = (preds >= threshold).int()
+        num_classes = num_classes if not is_multiclass else 2
 
-        if is_multiclass:
-            target = to_onehot(target, 2)
-            preds = to_onehot(preds, 2)
-        else:
-            preds = preds.unsqueeze(-1)
-            target = target.unsqueeze(-1)
-
-    elif preds.ndim == target.ndim and preds_float:
-        mode = "multi-label"
-        preds = (preds >= threshold).int()
-
-        if is_multiclass:
-            preds = to_onehot(preds, 2).reshape(preds.shape[0], 2, -1)
-            target = to_onehot(target, 2).reshape(target.shape[0], 2, -1)
-        else:
-            preds = preds.reshape(preds.shape[0], -1)
-            target = target.reshape(target.shape[0], -1)
-
-    elif preds.ndim == target.ndim + 1 == 2:
-        mode = "multi-class"
-        if not num_classes:
+    if "multi-class" in case or is_multiclass:
+        if preds.is_floating_point():
             num_classes = preds.shape[1]
+            preds = select_topk(preds, top_k)
+        else:
+            num_classes = num_classes if num_classes else max(preds.max(), target.max()) + 1
+            preds = to_onehot(preds, num_classes)
 
         target = to_onehot(target, num_classes)
-        preds = select_topk(preds, top_k)
 
-        # If is_multiclass=False, force to binary
         if is_multiclass is False:
-            target = target[:, [1]]
-            preds = preds[:, [1]]
+            preds, target = preds[:, 1, ...],  target[:, 1, ...]
 
-    elif preds.ndim == target.ndim == 1 and not preds_float:
-        mode = "multi-class"
-
-        if not num_classes:
-            num_classes = max(preds.max(), target.max()) + 1
-
-        # If is_multiclass=False, force to binary
-        if is_multiclass is False:
-            preds = preds.unsqueeze(1)
-            target = target.unsqueeze(1)
-        else:
-            preds = to_onehot(preds, num_classes)
-            target = to_onehot(target, num_classes)
-
-    # Multi-dim multi-class (N, ...) with integers
-    elif preds.shape == target.shape and not preds_float:
-        mode = "multi-dim multi-class"
-
-        if not num_classes:
-            num_classes = max(preds.max(), target.max()) + 1
-
-        # If is_multiclass=False, force to multi-label
-        if is_multiclass is False:
-            preds = preds.reshape(preds.shape[0], -1)
-            target = target.reshape(target.shape[0], -1)
-        else:
-            target = to_onehot(target, num_classes)
-            target = target.reshape(target.shape[0], target.shape[1], -1)
-            preds = to_onehot(preds, num_classes)
-            preds = preds.reshape(preds.shape[0], preds.shape[1], -1)
-
-    # Multi-dim multi-class (N, C, ...) and (N, ..., C)
+    if ("multi-class" in case and is_multiclass is not False) or is_multiclass:
+        target = target.reshape(target.shape[0], target.shape[1], -1)
+        preds = preds.reshape(preds.shape[0], preds.shape[1], -1)
     else:
-        mode = "multi-dim multi-class"
-        num_classes = preds.shape[1]
+        preds = preds.reshape(preds.shape[0], -1)
+        target = target.reshape(target.shape[0], -1)
 
-        if is_multiclass is False:
-            target = target.reshape(target.shape[0], -1)
-            preds = select_topk(preds, 1)[:, 1, ...]
-            preds = preds.reshape(preds.shape[0], -1)
-        else:
-            target = to_onehot(target, num_classes)
-            target = target.reshape(target.shape[0], target.shape[1], -1)
-            preds = select_topk(preds, top_k).reshape(preds.shape[0], preds.shape[1], -1)
+    # Some operatins above create an extra dimension for MC/binary case - this removes it
+    if preds.ndim > 2:
+        preds = preds.squeeze(-1)
+        target = target.squeeze(-1)
 
-    return preds, target, mode
+    return preds.int(), target.int(), case
