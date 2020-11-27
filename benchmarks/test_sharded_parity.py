@@ -9,7 +9,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
-from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE, NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE, NATIVE_AMP_AVAILABLE
 from tests.backends.launcher import DDPLauncher
 from tests.base.boring_model import BoringModel, RandomDataset
 
@@ -30,7 +30,7 @@ def test_ddp_sharded_plugin_correctness_one_gpu():
     run_sharded_correctness(gpus=1, accelerator='ddp_spawn')
 
 
-@pytest.mark.skipif(not NATIVE_AMP_AVALAIBLE, reason="Requires native AMP")
+@pytest.mark.skipif(not NATIVE_AMP_AVAILABLE, reason="Requires native AMP")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
@@ -47,7 +47,7 @@ def test_ddp_sharded_plugin_correctness_multi_gpu():
     run_sharded_correctness(gpus=2, accelerator='ddp_spawn')
 
 
-@pytest.mark.skipif(not NATIVE_AMP_AVALAIBLE, reason="Requires native AMP")
+@pytest.mark.skipif(not NATIVE_AMP_AVAILABLE, reason="Requires native AMP")
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")

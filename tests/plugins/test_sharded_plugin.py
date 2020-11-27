@@ -9,7 +9,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins.sharded_native_amp_plugin import ShardedNativeAMPPlugin
 from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin, FAIRSCALE_AVAILABLE
-from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE, APEX_AVAILABLE
+from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE, APEX_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel
 
@@ -92,7 +92,7 @@ def test_invalid_apex_sharded(tmpdir):
     [("ddp_cpu", None, None), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
 )
 @pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
-@pytest.mark.skipif(not NATIVE_AMP_AVALAIBLE, reason="Requires native AMP")
+@pytest.mark.skipif(not NATIVE_AMP_AVAILABLE, reason="Requires native AMP")
 def test_ddp_choice_sharded_amp(tmpdir, ddp_backend, gpus, num_processes):
     """
         Test to ensure that plugin native amp plugin is correctly chosen when using sharded

@@ -13,9 +13,9 @@
 # limitations under the License.
 from typing import cast
 
-from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE, FAIRSCALE_AVAILABLE
+from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE, FAIRSCALE_AVAILABLE
 
-if NATIVE_AMP_AVALAIBLE and FAIRSCALE_AVAILABLE:
+if NATIVE_AMP_AVAILABLE and FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
     from fairscale.optim.grad_scaler import ShardedGradScaler
 
