@@ -37,7 +37,7 @@ def _check_shape_and_type_consistency(preds: torch.Tensor, target: torch.Tensor)
         if preds.shape != target.shape:
             raise ValueError(
                 "The `preds` and `target` should have the same shape,",
-                f" got `preds` shape = {preds.shape} and `target` shape = {target.shape}.",
+                f" got `preds` with shape={preds.shape} and `target` with shape={target.shape}.",
             )
         if preds_float and target.max() > 1:
             raise ValueError(
