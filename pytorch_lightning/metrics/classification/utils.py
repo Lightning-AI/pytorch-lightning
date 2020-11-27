@@ -73,8 +73,8 @@ def _check_shape_and_type_consistency(preds: torch.Tensor, target: torch.Tensor)
             case = "multi-dim multi-class"
     else:
         raise ValueError(
-            "The `preds` and `target` should both have the (same) shape (N, ...), or `target` (N, ...)"
-            " and `preds` (N, C, ...)."
+            "Either `preds` and `target` both should have the (same) shape (N, ...), or `target` should be (N, ...)"
+            " and `preds` should be (N, C, ...)."
         )
 
     return case, implied_classes
