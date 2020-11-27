@@ -311,6 +311,7 @@ PACKAGE_MAPPING = {
     'PyYAML': 'yaml',
     'comet-ml': 'comet_ml',
     'neptune-client': 'neptune',
+    'hydra-core': 'hydra',
 }
 MOCK_PACKAGES = []
 if SPHINX_MOCK_REQUIREMENTS:
