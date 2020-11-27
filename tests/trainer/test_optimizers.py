@@ -180,86 +180,14 @@ def test_reducelronplateau_scheduling(tmpdir):
     ), 'lr scheduler was not correctly converted to dict'
 
 
-def test_optimizer_return_options():
-    trainer = Trainer(enable_pl_optimizer=False)
+@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
+def test_optimizer_return_options(enable_pl_optimizer):
+    trainer = Trainer(enable_pl_optimizer=enable_pl_optimizer)
     model = EvalModelTemplate()
 
     # single optimizer
     opt_a = torch.optim.Adam(model.parameters(), lr=0.002)
     opt_b = torch.optim.SGD(model.parameters(), lr=0.002)
-    scheduler_a = torch.optim.lr_scheduler.StepLR(opt_a, 10)
-    scheduler_b = torch.optim.lr_scheduler.StepLR(opt_b, 10)
-
-    # single optimizer
-    model.configure_optimizers = lambda: opt_a
-    optim, lr_sched, freq = trainer.init_optimizers(model)
-    assert len(optim) == 1 and len(lr_sched) == len(freq) == 0
-
-    # opt tuple
-    model.configure_optimizers = lambda: (opt_a, opt_b)
-    optim, lr_sched, freq = trainer.init_optimizers(model)
-    assert optim == [opt_a, opt_b]
-    assert len(lr_sched) == len(freq) == 0
-
-    # opt list
-    model.configure_optimizers = lambda: [opt_a, opt_b]
-    optim, lr_sched, freq = trainer.init_optimizers(model)
-    assert optim == [opt_a, opt_b]
-    assert len(lr_sched) == len(freq) == 0
-
-    # opt tuple of 2 lists
-    model.configure_optimizers = lambda: ([opt_a], [scheduler_a])
-    optim, lr_sched, freq = trainer.init_optimizers(model)
-    assert len(optim) == len(lr_sched) == 1
-    assert len(freq) == 0
-    assert optim[0] == opt_a
-    assert lr_sched[0] == dict(
-        scheduler=scheduler_a, interval='epoch', frequency=1, reduce_on_plateau=False, monitor=None, strict=True
-    )
-
-    # opt tuple of 1 list
-    model.configure_optimizers = lambda: ([opt_a], scheduler_a)
-    optim, lr_sched, freq = trainer.init_optimizers(model)
-    assert len(optim) == len(lr_sched) == 1
-    assert len(freq) == 0
-    assert optim[0] == opt_a
-    assert lr_sched[0] == dict(
-        scheduler=scheduler_a, interval='epoch', frequency=1, reduce_on_plateau=False, monitor=None, strict=True
-    )
-
-    # opt single dictionary
-    model.configure_optimizers = lambda: {"optimizer": opt_a, "lr_scheduler": scheduler_a}
-    optim, lr_sched, freq = trainer.init_optimizers(model)
-    assert len(optim) == len(lr_sched) == 1
-    assert len(freq) == 0
-    assert optim[0] == opt_a
-    assert lr_sched[0] == dict(
-        scheduler=scheduler_a, interval='epoch', frequency=1, reduce_on_plateau=False, monitor=None, strict=True
-    )
-
-    # opt multiple dictionaries with frequencies
-    model.configure_optimizers = lambda: (
-        {"optimizer": opt_a, "lr_scheduler": scheduler_a, "frequency": 1},
-        {"optimizer": opt_b, "lr_scheduler": scheduler_b, "frequency": 5},
-    )
-    optim, lr_sched, freq = trainer.init_optimizers(model)
-    assert len(optim) == len(lr_sched) == len(freq) == 2
-    assert optim[0] == opt_a
-    assert lr_sched[0] == dict(
-        scheduler=scheduler_a, interval='epoch', frequency=1, reduce_on_plateau=False, monitor=None, strict=True
-    )
-    assert freq == [1, 5]
-
-
-def test_optimizer_return_options_enable_pl_optimizer():
-    trainer = Trainer(enable_pl_optimizer=True)
-    model = EvalModelTemplate()
-
-    # single optimizer
-    opt_a = torch.optim.Adam(model.parameters(), lr=0.002)
-    opt_b = torch.optim.SGD(model.parameters(), lr=0.002)
-    opt_a = LightningOptimizer(opt_a)
-    opt_b = LightningOptimizer(opt_b)
     scheduler_a = torch.optim.lr_scheduler.StepLR(opt_a, 10)
     scheduler_b = torch.optim.lr_scheduler.StepLR(opt_b, 10)
 
