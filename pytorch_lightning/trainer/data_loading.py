@@ -14,7 +14,7 @@
 
 import multiprocessing
 import platform
-from abc import ABC, abstractmethod
+from abc import ABC
 from copy import deepcopy
 from typing import Callable, Iterable, List, Optional, Tuple, Union
 
