@@ -69,11 +69,6 @@ warnings.filterwarnings(
     'ignore', message='torch.distributed.reduce_op is deprecated, ' 'please use torch.distributed.ReduceOp instead'
 )
 
-try:
-    from apex import amp
-except ImportError:
-    amp = None
-
 
 class Trainer(
     TrainerProperties,
