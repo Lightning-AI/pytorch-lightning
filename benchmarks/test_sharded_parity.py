@@ -53,6 +53,7 @@ def test_ddp_sharded_plugin_correctness_amp_one_gpu():
     )
 
 
+@pytest.mark.skip(reason="Not a critical test, skip till drone CI performance improves.")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")

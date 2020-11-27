@@ -229,6 +229,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
     trainer.fit(model)
 
 
+@pytest.mark.skip(reason="Not a critical test, skip till drone CI performance improves.")
 @pytest.mark.skip(reason="Currently unsupported restarting training on different number of devices.")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows",
