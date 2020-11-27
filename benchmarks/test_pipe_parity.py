@@ -1,11 +1,6 @@
 import os
-import sys
-
-ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
-sys.path.insert(0, ROOT)
-DIR_PATH = os.path.dirname(os.path.realpath(__file__))
-
 import platform
+import sys
 import time
 from copy import deepcopy
 from unittest import mock
@@ -21,7 +16,12 @@ from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning import LightningModule, Trainer, seed_everything
 from pytorch_lightning.plugins.pipe_plugin import HAS_FAIRSCALE, PipePlugin
-from tests.base.boring_model import RandomDataset
+
+ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
+sys.path.insert(0, ROOT)
+DIR_PATH = os.path.dirname(os.path.realpath(__file__))
+
+from tests.base.boring_model import RandomDataset  # noqa E402
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -274,7 +274,6 @@ def run_pipe_correctness(
     for ddp_param, shard_param in zip(pipe_model_clone.parameters(), pipe_model.parameters()):
         assert not torch.equal(ddp_param, shard_param), (ddp_param.shape, shard_param.shape)
 
-
     if torch_distrib.get_rank() == 0:
         for ddp_param, shard_param in zip(list(ddp_model.parameters()), pipe_model.parameters()):
             assert torch.equal(ddp_param, shard_param), (ddp_param.shape, shard_param.shape)
@@ -341,6 +340,7 @@ class PipeBoringModelV2(LightningModule):
     @property
     def automatic_optimization(self) -> bool:
         return False
+
 
 def run_pipe_correctness_version_2(
         accelerator='ddp_spawn',
@@ -419,7 +419,7 @@ def run_pipe_correctness_version_2(
         f'pipe plugin was too slow compared to DDP, pipe Time: {pipe_time}, DDP Time: {ddp_time}'
 
     if gpus > 0:
-            # Assert CUDA memory parity
+        # Assert CUDA memory parity
         relative_memory = np.abs(max_pipe_memory - max_ddp_memory) / max_ddp_memory
         assert np.abs(max_pipe_memory - max_ddp_memory) / max_pipe_memory <= 0.02, \
             f'pipe plugin used too much memory compared to DDP,' \
