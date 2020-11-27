@@ -37,7 +37,7 @@ def _check_shape_and_type_consistency(preds: torch.Tensor, target: torch.Tensor)
         if preds.shape != target.shape:
             raise ValueError(
                 "The `preds` and `target` should have the same shape,",
-                f" got `preds` shape = {preds.shape} and `target` shape = {target.shape}.",
+                f" got `preds` with shape={preds.shape} and `target` with shape={target.shape}.",
             )
         if preds_float and target.max() > 1:
             raise ValueError(
@@ -54,7 +54,7 @@ def _check_shape_and_type_consistency(preds: torch.Tensor, target: torch.Tensor)
         else:
             case = "multi-dim multi-class"
 
-        implied_classes = torch.prod(torch.Tensor(list(preds.shape[1:])))
+        implied_classes = preds[0].numel()
 
     elif preds.ndim == target.ndim + 1:
         if not preds_float:
@@ -73,8 +73,8 @@ def _check_shape_and_type_consistency(preds: torch.Tensor, target: torch.Tensor)
             case = "multi-dim multi-class"
     else:
         raise ValueError(
-            "The `preds` and `target` should both have the (same) shape (N, ...), or `target` (N, ...)"
-            " and `preds` (N, C, ...)."
+            "Either `preds` and `target` both should have the (same) shape (N, ...), or `target` should be (N, ...)"
+            " and `preds` should be (N, C, ...)."
         )
 
     return case, implied_classes
@@ -96,7 +96,7 @@ def _check_num_classes_binary(num_classes: int, is_multiclass: bool):
     elif num_classes == 1 and is_multiclass:
         raise ValueError(
             "You have binary data and have set `is_multiclass=True`, but `num_classes` is 1."
-            " Either leave `is_multiclass` unset or set it to 2 to transform binary data to multi-class format."
+            " Either set `is_multiclass=None`(default) or set `num_classes=2` to transform binary data to multi-class format."
         )
 
 

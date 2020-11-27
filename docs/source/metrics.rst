@@ -203,7 +203,7 @@ Class vs Functional Metrics
 The functional metrics follow the simple paradigm input in, output out. This means, they don't provide any advanced mechanisms for syncing across DDP nodes or aggregation over batches. They simply compute the metric value based on the given inputs.
 
 Also, the integration within other parts of PyTorch Lightning will never be as tight as with the class-based interface.
-If you look for just computing the values, the functional metrics are the way to go. However, if you are looking for the best integration and user experience, please consider also to use the class interface.
+If you look for just computing the values, the functional metrics are the way to go. However, if you are looking for the best integration and user experience, please consider also using the class interface.
 
 **********************
 Classification Metrics
@@ -251,7 +251,7 @@ the possible class labels are 0, 1, 2, 3, etc. Below are some examples of differ
     ml_preds  = torch.tensor([[0.2, 0.8, 0.9], [0.5, 0.6, 0.1], [0.3, 0.1, 0.1]])
     ml_target = torch.tensor([[0, 1, 1], [1, 0, 0], [0, 0, 0]])
 
-In some rare cases, you might have inputs which appear to be (multi-dimensional) multi-class,
+In some rare cases, you might have inputs which appear to be (multi-dimensional) multi-class
 but are actually binary/multi-label. For example, if both predictions and targets are 1d
 binary tensors. Or it could be the other way around, you want to treat binary/multi-label
 inputs as 2-class (multi-dimensional) multi-class inputs.
