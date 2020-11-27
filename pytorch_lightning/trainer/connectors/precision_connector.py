@@ -94,8 +94,9 @@ class PrecisionConnector:
 
         return model
 
-    def _check_using_sharded_plugin(self, plugins):
-        for plugin in plugins:
-            if isinstance(plugin, DDPShardedPlugin):
-                return True
+    def _check_using_sharded_plugin(self, plugins: Optional[list]):
+        if plugins is not None:
+            for plugin in plugins:
+                if isinstance(plugin, DDPShardedPlugin):
+                    return True
         return False
