@@ -36,7 +36,7 @@ from pytorch_lightning.profiler.profilers import AdvancedProfiler, PassThroughPr
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE
 from tests.base import EvalModelTemplate, BoringModel
 
 
@@ -988,7 +988,7 @@ def test_gradient_clipping(tmpdir):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@pytest.mark.skipif(not NATIVE_AMP_AVALAIBLE, reason="test requires native AMP.")
+@pytest.mark.skipif(not NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
 def test_gradient_clipping_fp16(tmpdir):
     """
     Test gradient clipping with fp16

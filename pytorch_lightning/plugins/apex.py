@@ -20,12 +20,10 @@ from torch.optim.optimizer import Optimizer
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities.distributed import rank_zero_warn
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities import AMPType, APEX_AVAILABLE
 
-try:
+if APEX_AVAILABLE:
     from apex import amp
-except ImportError:
-    amp = None
 
 
 class ApexPlugin(PrecisionPlugin):

@@ -26,7 +26,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities import AMPType, HYDRA_AVAILABLE
 from pytorch_lightning.utilities.distributed import find_free_network_port
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.distributed import sync_ddp_if_available
@@ -35,13 +35,9 @@ from pytorch_lightning.utilities.seed import seed_everything
 from torch.nn.parallel import DistributedDataParallel
 
 
-try:
+if HYDRA_AVAILABLE:
     from hydra.utils import to_absolute_path, get_original_cwd
     from hydra.core.hydra_config import HydraConfig
-except ImportError:
-    HYDRA_AVAILABLE = False
-else:
-    HYDRA_AVAILABLE = True
 
 
 class DDPAccelerator(Accelerator):
