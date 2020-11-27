@@ -426,7 +426,6 @@ class EpochResultStore:
         logger_connector = self.trainer.logger_connector
 
         callback_metrics = {}
-        update_logs = logger_connector.should_update_logs or self.trainer.fast_dev_run
         is_train = self._stage in LoggerStages.TRAIN.value
 
         if not self._has_batch_loop_finished:
@@ -438,7 +437,7 @@ class EpochResultStore:
                 # Only log and add to callback epoch step during evaluation, test.
                 callback_metrics.update(batch_pbar_metrics)
 
-                if update_logs:
+                if logger_connector.should_update_logs or self.trainer.fast_dev_run:
                     batch_log_metrics = self.get_latest_batch_log_metrics()
                     logger_connector.logged_metrics.update(batch_log_metrics)
                     callback_metrics.update(batch_log_metrics)
