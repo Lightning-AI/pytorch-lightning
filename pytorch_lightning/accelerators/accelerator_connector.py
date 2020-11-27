@@ -15,7 +15,7 @@ from pytorch_lightning import accelerators
 import os
 import torch
 
-from pytorch_lightning.utilities import device_parser
+from pytorch_lightning.utilities import device_parser, XLA_AVAILABLE
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -23,13 +23,6 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.cluster_environments.torchelastic_environment import TorchElasticEnvironment
 from pytorch_lightning.accelerators.accelerator import Accelerator
-
-try:
-    import torch_xla
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
 
 try:
     import horovod.torch as hvd

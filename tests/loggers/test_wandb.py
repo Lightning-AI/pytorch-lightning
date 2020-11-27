@@ -23,19 +23,27 @@ from tests.base import EvalModelTemplate, BoringModel
 
 
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
-def test_wandb_logger(wandb):
+def test_wandb_logger_init(wandb):
     """Verify that basic functionality of wandb logger works.
     Wandb doesn't work well with pytest so we have to mock it out here."""
-    logger = WandbLogger(anonymous=True, offline=True)
 
+    # test wandb.init called when there is no W&B run
+    wandb.run = None
+    logger = WandbLogger()
     logger.log_metrics({'acc': 1.0})
+    wandb.init.assert_called_once()
     wandb.init().log.assert_called_once_with({'acc': 1.0}, step=None)
 
+    # test wandb.init not called if there is a W&B run
     wandb.init().log.reset_mock()
+    wandb.init.reset_mock()
+    wandb.run = wandb.init()
+    logger = WandbLogger()
     logger.log_metrics({'acc': 1.0}, step=3)
+    wandb.init.assert_called_once()
     wandb.init().log.assert_called_once_with({'acc': 1.0}, step=3)
 
-    # continue training on same W&B run
+    # continue training on same W&B run and offset step
     wandb.init().step = 3
     logger.finalize('success')
     logger.log_metrics({'acc': 1.0}, step=3)
@@ -67,6 +75,7 @@ def test_wandb_pickle(wandb, tmpdir):
         def project_name(self):
             return 'the_project_name'
 
+    wandb.run = None
     wandb.init.return_value = Experiment()
     logger = WandbLogger(id='the_id', offline=True)
 
