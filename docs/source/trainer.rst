@@ -580,9 +580,18 @@ You can override the default behavior by initializing the :class:`~pytorch_light
 callback, and adding it to the :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks` list.
 See :ref:`Saving and Loading Weights <weights_loading>` for how to customize checkpointing.
 
+.. testcode::
+
+    from pytorch_lightning.callbacks import ModelCheckpoint
+    # Init ModelCheckpoint callback, monitoring 'val_loss'
+    checkpoint_callback = ModelCheckpoint(monitor='val_loss')
+
+    # Add your callback to the callbacks list
+    trainer = Trainer(callbacks=[checkpoint_callback])
+
 
 .. warning:: Passing a ModelCheckpoint instance to this argument is deprecated since
-    v1.1.0 and will be unsupported from v1.3.0.
+    v1.1 and will be unsupported from v1.3. Use `callbacks` argument instead.
 
 
 default_root_dir
@@ -1168,7 +1177,7 @@ If used on TPU will use torch.bfloat16 but tensor printing
 will still show torch.float32.
 
 .. testcode::
-    :skipif: not APEX_AVAILABLE and not NATIVE_AMP_AVALAIBLE
+    :skipif: not APEX_AVAILABLE and not NATIVE_AMP_AVAILABLE
 
     # default used by the Trainer
     trainer = Trainer(precision=32)
@@ -1475,6 +1484,11 @@ with the hidden
             # hiddens are the hiddens from the previous truncated backprop step
             out, hiddens = self.lstm(data, hiddens)
 
+            # remember to detach() hiddens.
+            # If you don't, you will get a RuntimeError: Trying to backward through
+            # the graph a second time...
+            # Using hiddens.detach() allows each split to be disconnected.
+
             return {
                 "loss": ...,
                 "hiddens": hiddens  # remember to detach() this
@@ -1702,4 +1716,3 @@ The metrics sent to the progress bar.
 
     progress_bar_metrics = trainer.progress_bar_metrics
     assert progress_bar_metrics['a_val'] == 2
-

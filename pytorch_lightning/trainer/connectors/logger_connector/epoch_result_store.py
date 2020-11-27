@@ -372,17 +372,22 @@ class EpochResultStore:
         This function is called after every hook
         and store the result object
         """
-        model_ref = self.trainer.get_model()
+        with self.trainer.profiler.profile("cache_result"):
+            model_ref = self.trainer.get_model()
 
-        # extract hook results
-        hook_result = model_ref._results
+            # extract hook results
+            hook_result = model_ref._results
 
-        # extract model information
-        fx_name, dataloader_idx = self.current_model_info()
+            if len(hook_result) == 1:
+                model_ref._current_hook_fx_name = None
+                model_ref._current_fx_name = ''
+                return
 
-        # add only if anything as been logged
-        # default len is 1 due to _internals
-        if len(hook_result) > 1:
+            # extract model information
+            fx_name, dataloader_idx = self.current_model_info()
+
+            # add only if anything as been logged
+            # default len is 1 due to _internals
 
             if fx_name not in self._internals:
                 self._internals[fx_name] = HookResultStore(fx_name)
@@ -406,8 +411,7 @@ class EpochResultStore:
             # update logged_metrics, progress_bar_metrics, callback_metrics
             self.update_logger_connector(fx_name)
 
-        # reset _results, fx_name
-        self.reset_model()
+            self.reset_model()
 
     def update_logger_connector(self, fx_name: str = None) -> None:
         """
