@@ -74,8 +74,9 @@ class PrecisionConnector:
                 rank_zero_warn('You have asked for Apex AMP but you have not installed it yet.'
                                ' Install apex first using this guide: https://github.com/NVIDIA/apex#linux')
             elif using_sharded_plugin:
-                raise MisconfigurationException('Sharded Plugin is not supported with Apex AMP, '
-                                                'please using native AMP for 16 bit precision.')
+                raise MisconfigurationException(
+                    'Sharded Plugin is not supported with Apex AMP, please using native AMP for 16-bit precision.'
+                )
             else:
                 log.info('Using APEX 16bit precision.')
                 self.trainer.amp_backend = AMPType.APEX
