@@ -6,10 +6,8 @@ from unittest import mock
 
 import pytest
 import torch
-from torch.utils.data.distributed import DistributedSampler
 
-from pytorch_lightning import Trainer
-from pytorch_lightning import seed_everything
+from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
 from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE, NATIVE_AMP_AVAILABLE
