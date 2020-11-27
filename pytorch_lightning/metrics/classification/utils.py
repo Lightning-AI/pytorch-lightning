@@ -54,7 +54,7 @@ def _check_shape_and_type_consistency(preds: torch.Tensor, target: torch.Tensor)
         else:
             case = "multi-dim multi-class"
 
-        implied_classes = torch.prod(torch.Tensor(list(preds.shape[1:])))
+        implied_classes = preds[0].numel()
 
     elif preds.ndim == target.ndim + 1:
         if not preds_float:
