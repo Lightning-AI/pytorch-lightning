@@ -249,6 +249,8 @@ def _check_classification_inputs(
                 "You have set `top_k` above 1, but your data is not (multi-dimensional) multi-class"
                 " with probability predictions."
             )
+        if is_multiclass is False:
+            raise ValueError("If you set `is_multiclass` to False, you can not set `top_k` above 1.")
 
     return case
 
@@ -330,7 +332,7 @@ def _input_format_classification(
         preds: binary tensor of shape (N, C) or (N, C, X)
         target: binary tensor of shape (N, C) or (N, C, X)
         case: The case the inputs fall in, one of 'binary', 'multi-class', 'multi-label' or
-            'multi-dim multi-class'        
+            'multi-dim multi-class'
     """
     # Remove excess dimensions
     if preds.shape[0] == 1:
@@ -347,80 +349,34 @@ def _input_format_classification(
         top_k=top_k,
     )
 
-    preds_float = preds.is_floating_point()
-
-    if case == "binary":
+    if case in ["binary", "multi-label"]:
         preds = (preds >= threshold).int()
+        num_classes = num_classes if not is_multiclass else 2
 
-        if is_multiclass:
-            target = to_onehot(target, 2)
-            preds = to_onehot(preds, 2)
-        else:
-            preds = preds.unsqueeze(-1)
-            target = target.unsqueeze(-1)
-
-    elif case == "multi-label":
-        preds = (preds >= threshold).int()
-
-        if is_multiclass:
-            preds = to_onehot(preds, 2).reshape(preds.shape[0], 2, -1)
-            target = to_onehot(target, 2).reshape(target.shape[0], 2, -1)
-        else:
-            preds = preds.reshape(preds.shape[0], -1)
-            target = target.reshape(target.shape[0], -1)
-
-    # Multi-class with probabilities
-    elif preds.ndim == target.ndim + 1 == 2:
-        if not num_classes:
+    if "multi-class" in case or is_multiclass:
+        if preds.is_floating_point():
             num_classes = preds.shape[1]
+            preds = select_topk(preds, top_k)
+        else:
+            num_classes = num_classes if num_classes else max(preds.max(), target.max()) + 1
+            preds = to_onehot(preds, num_classes)
 
         target = to_onehot(target, num_classes)
-        preds = select_topk(preds, top_k)
-
-        # If is_multiclass=False, force to binary
-        if is_multiclass is False:
-            target = target[:, [1]]
-            preds = preds[:, [1]]
-
-    # Multi-class with labels
-    elif preds.ndim == target.ndim == 1 and not preds_float:
-        if not num_classes:
-            num_classes = max(preds.max(), target.max()) + 1
-
-        # If is_multiclass=False, force to binary
-        if is_multiclass is False:
-            preds = preds.unsqueeze(1)
-            target = target.unsqueeze(1)
-        else:
-            preds = to_onehot(preds, num_classes)
-            target = to_onehot(target, num_classes)
-
-    # Multi-dim multi-class (N, ...) with integers
-    elif preds.shape == target.shape and not preds_float:
-        if not num_classes:
-            num_classes = max(preds.max(), target.max()) + 1
-
-        # If is_multiclass=False, force to multi-label
-        if is_multiclass is False:
-            preds = preds.reshape(preds.shape[0], -1)
-            target = target.reshape(target.shape[0], -1)
-        else:
-            target = to_onehot(target, num_classes)
-            target = target.reshape(target.shape[0], target.shape[1], -1)
-            preds = to_onehot(preds, num_classes)
-            preds = preds.reshape(preds.shape[0], preds.shape[1], -1)
-
-    # Multi-dim multi-class (N, C, ...)
-    else:
-        num_classes = preds.shape[1]
 
         if is_multiclass is False:
-            target = target.reshape(target.shape[0], -1)
-            preds = select_topk(preds, 1)[:, 1, ...]
-            preds = preds.reshape(preds.shape[0], -1)
-        else:
-            target = to_onehot(target, num_classes)
-            target = target.reshape(target.shape[0], target.shape[1], -1)
-            preds = select_topk(preds, top_k).reshape(preds.shape[0], preds.shape[1], -1)
+            preds, target = preds[:, 1, ...],  target[:, 1, ...]
 
-    return preds, target, case
+    if (case in ["binary", "multi-label"] and not is_multiclass) or is_multiclass is False:
+        preds = preds.reshape(preds.shape[0], -1)
+        target = target.reshape(target.shape[0], -1)
+
+    elif "multi-class" in case or is_multiclass:
+        target = target.reshape(target.shape[0], target.shape[1], -1)
+        preds = preds.reshape(preds.shape[0], preds.shape[1], -1)
+
+    # Some operatins above create an extra dimension for MC/binary case - this removes it
+    if preds.ndim > 2:
+        preds = preds.squeeze(-1)
+        target = target.squeeze(-1)
+
+    return preds.int(), target.int(), case
