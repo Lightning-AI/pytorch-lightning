@@ -511,8 +511,9 @@ class Trainer(
                 # hook
                 self.train_loop.on_train_epoch_start(epoch)
 
-                # run train epoch
-                self.train_loop.run_training_epoch()
+                with self.profiler.profile("run_training_epoch"):
+                    # run train epoch
+                    self.train_loop.run_training_epoch()
 
                 if self.max_steps and self.max_steps <= self.global_step:
 
@@ -604,8 +605,9 @@ class Trainer(
                 self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
 
                 # lightning module methods
-                output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
-                output = self.evaluation_loop.evaluation_step_end(output)
+                with self.trainer.profiler.profile("evaluation_step_and_end"):
+                    output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
+                    output = self.evaluation_loop.evaluation_step_end(output)
 
                 # hook + store predictions
                 self.evaluation_loop.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
@@ -656,7 +658,8 @@ class Trainer(
     def run_test(self):
         # only load test dataloader for testing
         # self.reset_test_dataloader(ref_model)
-        eval_loop_results, _ = self.run_evaluation(test_mode=True)
+        with self.trainer.profiler.profile("run_test_evaluation"):
+            eval_loop_results, _ = self.run_evaluation(test_mode=True)
 
         if len(eval_loop_results) == 0:
             return 1

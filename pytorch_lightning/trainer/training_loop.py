@@ -537,7 +537,8 @@ class TrainLoop:
             # ------------------------------------
             # TRAINING_STEP + TRAINING_STEP_END
             # ------------------------------------
-            batch_output = self.run_training_batch(batch, batch_idx, dataloader_idx)
+            with self.trainer.profiler.profile("run_training_batch"):
+                batch_output = self.run_training_batch(batch, batch_idx, dataloader_idx)
 
             # when returning -1 from train_step, we end epoch early
             if batch_output.signal == -1:
@@ -767,27 +768,28 @@ class TrainLoop:
         """
         wrap the forward step in a closure so second order methods work
         """
-        # lightning module hook
-        result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
-        self._curr_step_result = result
+        with self.trainer.profiler.profile("training_step_and_backward"):
+            # lightning module hook
+            result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
+            self._curr_step_result = result
 
-        if result is None:
-            self.warning_cache.warn("training_step returned None if it was on purpose, ignore this warning...")
-            return None
+            if result is None:
+                self.warning_cache.warn("training_step returned None if it was on purpose, ignore this warning...")
+                return None
 
-        if self.trainer.train_loop.automatic_optimization:
-            # backward pass
-            with self.trainer.profiler.profile("model_backward"):
-                self.backward(result, optimizer, opt_idx)
+            if self.trainer.train_loop.automatic_optimization:
+                # backward pass
+                with self.trainer.profiler.profile("model_backward"):
+                    self.backward(result, optimizer, opt_idx)
 
-            # hook - call this hook only
-            # when gradients have finished to accumulate
-            if not self.should_accumulate():
-                self.on_after_backward(result.training_step_output, batch_idx, result.loss)
+                # hook - call this hook only
+                # when gradients have finished to accumulate
+                if not self.should_accumulate():
+                    self.on_after_backward(result.training_step_output, batch_idx, result.loss)
 
-            # check if loss or model weights are nan
-            if self.trainer.terminate_on_nan:
-                self.trainer.detect_nan_tensors(result.loss)
+                # check if loss or model weights are nan
+                if self.trainer.terminate_on_nan:
+                    self.trainer.detect_nan_tensors(result.loss)
 
         return result
 

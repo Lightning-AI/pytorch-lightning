@@ -552,7 +552,6 @@ def test_log_works_in_val_callback(tmpdir):
     """
     assert test_callback.funcs_called_count["on_validation_epoch_end"] == 1
 
-
     # Make sure the func_name exists within callback_metrics. If not, we missed some
     callback_metrics_keys = [*trainer.callback_metrics.keys()]
     for func_name in test_callback.callback_funcs_called.keys():
@@ -695,7 +694,6 @@ def test_log_works_in_test_callback(tmpdir):
         def on_test_epoch_end(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_test_epoch_end', 7, on_steps=[False],
                               on_epochs=self.choices, prob_bars=self.choices)
-
 
     max_epochs = 2
     num_dataloaders = 2
