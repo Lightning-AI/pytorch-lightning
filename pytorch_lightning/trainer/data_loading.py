@@ -14,7 +14,7 @@
 
 import multiprocessing
 import platform
-from abc import ABC, abstractmethod
+from abc import ABC
 from copy import deepcopy
 from typing import Callable, Iterable, List, Optional, Tuple, Union
 
@@ -28,8 +28,6 @@ from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_utils import is_overridden
-from copy import deepcopy
-from typing import Iterable
 
 if TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
