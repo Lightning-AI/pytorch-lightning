@@ -41,6 +41,7 @@ steps:
     - sh tests/special_tests.sh
     - coverage report
     - python -m pytest benchmarks pl_examples -v --maxfail=2 --durations=0
+    - python -m pytest benchmarks/test_pipe_parity.py::test_ddp_pipe_plugin_correctness_multi_gpu --verbose --capture=no
     #- cd docs; make doctest; make coverage
     # see: https://docs.codecov.io/docs/merging-reports
     - codecov --token $CODECOV_TOKEN --flags=gpu,pytest --name="GPU-coverage" --env=linux --build $DRONE_BUILD_NUMBER --commit $DRONE_COMMIT
