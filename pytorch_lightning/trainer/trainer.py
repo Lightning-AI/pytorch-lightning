@@ -858,8 +858,6 @@ class Trainer(
         model.setup(stage_name)
 
     def _reset_result_and_set_hook_fx_name(self, hook_name):
-        if "end" in hook_name:
-            return True
         model_ref = self.get_model()
         if model_ref is not None:
             # used to track current hook name called
@@ -867,17 +865,16 @@ class Trainer(
             model_ref._current_hook_fx_name = hook_name
         return False
 
-    def _cache_logged_metrics(self, skip):
-        if skip:
-            return
+    def _cache_logged_metrics(self):
         model_ref = self.get_model()
         if model_ref is not None:
             # capture logging for this hook
             self.logger_connector.cache_logged_metrics()
 
-    def call_hook(self, hook_name, *args, **kwargs):
+    def call_hook(self, hook_name, *args, capture=False, **kwargs):
         # set hook_name to model + reset Result obj
-        skip = self._reset_result_and_set_hook_fx_name(hook_name)
+        if capture:
+            self._reset_result_and_set_hook_fx_name(hook_name)
 
         # always profile hooks
         with self.profiler.profile(hook_name):
@@ -900,6 +897,6 @@ class Trainer(
                 accelerator_hook = getattr(self.accelerator_backend, hook_name)
                 output = accelerator_hook(*args, **kwargs)
 
-        # capture logging
-        self._cache_logged_metrics(skip)
+        if capture:
+            self._cache_logged_metrics()
         return output

@@ -471,6 +471,8 @@ def test_log_works_in_val_callback(tmpdir):
                         "forked": False,
                         "func_name": func_name}
 
+        """
+
         def on_validation_start(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_validation_start', 1, on_steps=self.choices,
                               on_epochs=self.choices, prob_bars=self.choices)
@@ -507,6 +509,8 @@ def test_log_works_in_val_callback(tmpdir):
             self.make_logging(pl_module, 'on_epoch_end', 8, on_steps=[False],
                               on_epochs=self.choices, prob_bars=self.choices)
 
+        """
+
         def on_validation_epoch_end(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_validation_epoch_end', 9, on_steps=[False],
                               on_epochs=self.choices, prob_bars=self.choices)
@@ -536,6 +540,7 @@ def test_log_works_in_val_callback(tmpdir):
     trainer.fit(model)
     trainer.test()
 
+    """
     assert test_callback.funcs_called_count["on_epoch_start"] == 1
     assert test_callback.funcs_called_count["on_batch_start"] == 1
     assert test_callback.funcs_called_count["on_batch_end"] == 1
@@ -543,8 +548,10 @@ def test_log_works_in_val_callback(tmpdir):
     assert test_callback.funcs_called_count["on_validation_epoch_start"] == 1
     assert test_callback.funcs_called_count["on_validation_batch_start"] == 4
     assert test_callback.funcs_called_count["on_validation_batch_end"] == 4
-    assert test_callback.funcs_called_count["on_validation_epoch_end"] == 1
     assert test_callback.funcs_called_count["on_epoch_end"] == 1
+    """
+    assert test_callback.funcs_called_count["on_validation_epoch_end"] == 1
+
 
     # Make sure the func_name exists within callback_metrics. If not, we missed some
     callback_metrics_keys = [*trainer.callback_metrics.keys()]
@@ -655,6 +662,7 @@ def test_log_works_in_test_callback(tmpdir):
                         "forked": False,
                         "func_name": func_name}
 
+        """
         def on_test_start(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_test_start', 1, on_steps=self.choices,
                               on_epochs=self.choices, prob_bars=self.choices)
@@ -670,9 +678,8 @@ def test_log_works_in_test_callback(tmpdir):
         def on_test_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
             self.make_logging(pl_module, 'on_test_batch_start', 4, on_steps=self.choices,
                               on_epochs=self.choices, prob_bars=self.choices)
-
-        def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-            self.make_logging(pl_module, 'on_test_batch_end', 5, on_steps=self.choices,
+        def on_test_step_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+            self.make_logging(pl_module, 'on_test_step_end', 5, on_steps=self.choices,
                               on_epochs=self.choices, prob_bars=self.choices)
 
             # used to make sure aggregation works fine.
@@ -683,10 +690,12 @@ def test_log_works_in_test_callback(tmpdir):
         def on_epoch_end(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_epoch_end', 6, on_steps=[False],
                               on_epochs=self.choices, prob_bars=self.choices)
+        """
 
         def on_test_epoch_end(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_test_epoch_end', 7, on_steps=[False],
                               on_epochs=self.choices, prob_bars=self.choices)
+
 
     max_epochs = 2
     num_dataloaders = 2
@@ -720,13 +729,13 @@ def test_log_works_in_test_callback(tmpdir):
     )
     trainer.fit(model)
     trainer.test()
-
+    """
     assert test_callback.funcs_called_count["on_test_start"] == 1
     assert test_callback.funcs_called_count["on_epoch_start"] == 2
     assert test_callback.funcs_called_count["on_test_epoch_start"] == 1
     assert test_callback.funcs_called_count["on_test_batch_start"] == 4
-    assert test_callback.funcs_called_count["on_test_batch_end"] == 4
-    assert test_callback.funcs_called_count["on_epoch_end"] == 2
+    assert test_callback.funcs_called_count["on_test_step_end"] == 4
+    """
     assert test_callback.funcs_called_count["on_test_epoch_end"] == 1
 
     # Make sure the func_name exists within callback_metrics. If not, we missed some

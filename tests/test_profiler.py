@@ -85,7 +85,6 @@ def test_simple_profiler_overhead(simple_profiler, n_iter=5):
 
 def test_simple_profiler_describe(caplog, simple_profiler):
     """Ensure the profiler won't fail when reporting the summary."""
-    #simple_profiler.extended = False
     simple_profiler.describe()
 
     assert "Profiler Report" in caplog.text

@@ -178,8 +178,7 @@ class SimpleProfiler(BaseProfiler):
                     row += f"{num_calls:<15}\t|  {total:<15}\t|  {per:<15}\t|"
                     return row
 
-                output_string += log_row("Action", "Mean duration (s)", "Num calls",
-                                        "Total time (s)", "Percentage %")
+                output_string += log_row("Action", "Mean duration (s)", "Num calls", "Total time (s)", "Percentage %")
                 output_string_len = len(output_string)
                 output_string += f"{os.linesep}{'-' * output_string_len}"
                 report, total_duration = self.make_report()
