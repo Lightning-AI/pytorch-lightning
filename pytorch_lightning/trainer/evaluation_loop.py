@@ -193,9 +193,9 @@ class EvaluationLoop(object):
 
     def evaluation_step_end(self, *args, **kwargs):
         if self.testing:
-            output = self.trainer.call_hook('test_step_end', *args, capture=True, **kwargs)
+            output = self.trainer.call_hook('test_step_end', *args, **kwargs)
         else:
-            output = self.trainer.call_hook('validation_step_end', capture=True, *args, **kwargs)
+            output = self.trainer.call_hook('validation_step_end', *args, **kwargs)
         return output
 
     def evaluation_epoch_end(self):

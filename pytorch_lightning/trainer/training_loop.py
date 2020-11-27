@@ -322,12 +322,13 @@ class TrainLoop:
             # manually capture logged metrics
             model_ref._results = Result()
             model_ref._current_fx_name = 'training_step'
+            model_ref._results = Result()
             training_step_output = self.trainer.accelerator_backend.training_step(args)
             self.trainer.logger_connector.cache_logged_metrics()
 
             self._check_training_step_output(training_step_output)
 
-            training_step_output = self.trainer.call_hook("training_step_end", training_step_output, capture=True)
+            training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
 
             training_step_output_for_epoch_end, training_step_output = self._process_training_step_output(
                 training_step_output, split_batch
@@ -819,7 +820,6 @@ class TrainLoop:
     def run_on_epoch_end_hook(self, epoch_output):
         self.trainer.call_hook('on_epoch_end', capture=True)
         self.trainer.call_hook('on_train_epoch_end', epoch_output, capture=True)
-
         self.trainer.logger_connector.on_train_epoch_end()
 
     def increment_accumulated_grad_global_step(self):

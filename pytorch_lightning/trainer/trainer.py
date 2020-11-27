@@ -605,7 +605,7 @@ class Trainer(
                 self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
 
                 # lightning module methods
-                with self.trainer.profiler.profile("evaluation_step_and_end"):
+                with self.profiler.profile("evaluation_step_and_end"):
                     output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
                     output = self.evaluation_loop.evaluation_step_end(output)
 
@@ -658,7 +658,7 @@ class Trainer(
     def run_test(self):
         # only load test dataloader for testing
         # self.reset_test_dataloader(ref_model)
-        with self.trainer.profiler.profile("run_test_evaluation"):
+        with self.profiler.profile("run_test_evaluation"):
             eval_loop_results, _ = self.run_evaluation(test_mode=True)
 
         if len(eval_loop_results) == 0:
