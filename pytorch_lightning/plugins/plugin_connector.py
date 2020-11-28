@@ -15,6 +15,7 @@ from enum import Enum
 from typing import Union, Optional
 
 from pytorch_lightning.cluster_environments import ClusterEnvironment
+from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.apex import ApexPlugin
@@ -33,27 +34,42 @@ class PluginConnector:
         self.apex_plugin = ApexPlugin(trainer)
 
     def on_trainer_init(self, plugins: Optional[Union[str, list]]):
-        if isinstance(plugins, str):
-            plugins = self.__select_plugin(plugins)
         self.plugins = plugins
         if self.plugins is None:
             self.plugins = []
-
+        self.plugins = self._strings_to_lightning_custom_plugins(self.plugins)
         self.__attach_ddp()
         self.__attach_cluster()
         self.__attach_amp()
         self.__attach_apex()
 
-    def __select_plugin(self, plugins: str):
-        if plugins in DDPPluginType.__members__:
-            ddp_plugin_cls = DDPPluginType[plugins].value
-            return [ddp_plugin_cls()]
+    def _strings_to_lightning_custom_plugins(self, plugins: Union[str, list]):
+        """
+        Converts string inputs to corresponding supported lightning plugins.
+        Args:
+            plugins: List of plugins or string to choose lightning plugin.
 
-        raise MisconfigurationException(
-            f"{plugins} is not a supported standard plugin. "
-            f"If you're trying to pass a custom plugin, please pass this as an object to the trainer's plugin."
-            f"Supported plugins as string input to the plugins argument: {(e.name for e in DDPPluginType)}."
-        )
+        Returns: List of plugins where strings are now plugins.
+        """
+        if isinstance(plugins, str):
+            return [self._convert_plugin(plugins)]
+        else:
+            return [self._convert_plugin(plugin) for plugin in plugins]
+
+    def _convert_plugin(self, plugin):
+        if isinstance(plugin, str):
+            if plugin in LightningCustomPlugins.__members__:
+                plugin_cls = LightningCustomPlugins[plugin].value
+                return plugin_cls()
+            else:
+                raise MisconfigurationException(
+                    f"{plugin} is not a supported lightning custom plugin. "
+                    f"If you're trying to pass a custom plugin, please pass this as an object to "
+                    f"Trainer(plugins=[MyPlugin()]."
+                    f"Supported plugins as string input: "
+                    f"{(e.name for e in LightningCustomPlugins)}."
+                )
+        return plugin
 
     def __attach_amp(self):
         amp_plugin = self.__attach_plugin(NativeAMPPlugin)
@@ -112,5 +128,9 @@ class PluginConnector:
                 self.cloud_environment = plugin
 
 
-class DDPPluginType(Enum):
-    standard_ddp = DDPPlugin
+class LightningCustomPlugins(Enum):
+    """
+    String support for custom lightning plugins.
+    Allows easier access to custom lightning plugins from the command line.
+    """
+    ddp_sharded = DDPShardedPlugin

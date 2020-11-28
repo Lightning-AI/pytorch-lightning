@@ -223,7 +223,7 @@ class Trainer(
 
             overfit_batches: Overfit a percent of training data (float) or a set number of batches (int). Default: 0.0
 
-            plugins: Plugins allow modification of core behavior like ddp and amp.
+            plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
 
             precision: Full precision (32), half precision (16). Can be used on CPU, GPU or TPUs.
 
