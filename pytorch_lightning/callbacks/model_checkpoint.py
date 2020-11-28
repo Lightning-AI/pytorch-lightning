@@ -149,7 +149,7 @@ class ModelCheckpoint(Callback):
         save_last: Optional[bool] = None,
         save_top_k: Optional[int] = None,
         save_weights_only: bool = False,
-        mode: str = "min",
+        mode: str = "auto",
         period: int = 1,
         prefix: str = "",
         dirpath: Optional[Union[str, Path]] = None,
@@ -328,7 +328,8 @@ class ModelCheckpoint(Callback):
 
         if mode == 'auto':
             rank_zero_warn(
-                "mode='auto' is deprecated in v1.1 and will be removed in v1.3",
+                "mode='auto' is deprecated in v1.1 and will be removed in v1.3."
+                f" Default value for mode with be 'min' in v1.3."
                 DeprecationWarning
             )
 

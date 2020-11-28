@@ -48,7 +48,7 @@ class EarlyStopping(Callback):
             mode it will stop when the quantity
             monitored has stopped increasing; in `auto`
             mode, the direction is automatically inferred
-            from the name of the monitored quantity. Default: ``'min'``.
+            from the name of the monitored quantity.
 
             .. warning::
                Setting ``mode='auto'`` has been deprecated in v1.1 and will be removed in v1.3.
@@ -74,7 +74,7 @@ class EarlyStopping(Callback):
         min_delta: float = 0.0,
         patience: int = 3,
         verbose: bool = False,
-        mode: str = 'min',
+        mode: str = 'auto',
         strict: bool = True,
     ):
         super().__init__()
@@ -109,11 +109,12 @@ class EarlyStopping(Callback):
 
         if self.mode == 'auto':
             rank_zero_warn(
-                "mode='auto' is deprecated in v1.1 and will be removed in v1.3",
+                "mode='auto' is deprecated in v1.1 and will be removed in v1.3."
+                f" Default value for mode with be 'min' in v1.3."
                 DeprecationWarning
             )
 
-            if self.monitor == 'acc':
+            if "acc" in monitor or monitor.startswith("fmeasure")
                 self.mode = 'max'
             else:
                 self.mode = 'min'
