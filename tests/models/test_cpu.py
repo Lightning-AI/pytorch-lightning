@@ -115,9 +115,9 @@ def test_early_stopping_cpu_model(enable_pl_optimizer, tmpdir):
         enable_pl_optimizer=enable_pl_optimizer,
         progress_bar_refresh_rate=0,
         accumulate_grad_batches=2,
-        max_epochs=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
+        max_epochs=2,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
         callbacks=[stopping],
     )
 
