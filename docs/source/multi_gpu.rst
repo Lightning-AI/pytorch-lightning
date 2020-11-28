@@ -436,16 +436,16 @@ Sharded DDP is a direct implementation of `DeepSpeed ZeRO <https://arxiv.org/abs
 provided by `Fairscale <https://github.com/facebookresearch/fairscale/tree/master/fairscale>`_. Sharded DDP is similar to normal DDP, except optimizer state and gradients are sharded across your GPUs.
 This means the memory overhead per GPU is less, as each GPU only has to maintain a section of your optimizer state and gradients.
 The benefits are model variant, but we've recorded up to a 25% memory reduction per GPU. Because of
-extremely efficient communication, these benefits using multi-GPU setups are free and throughput scales well into multi-node setups.
+extremely efficient communication, these benefits using multi-GPU setups are almost free and throughput scales well into multi-node setups.
 
-It is highly recommended to use Sharded DDP in multi-GPU environments where memory is limited or where training larger models are effective.
+It is highly recommended to use Sharded DDP in multi-GPU environments where memory is limited or where training larger models are beneficial.
 
 .. code-block:: python
 
     # train using Sharded DDP
-    trainer = Trainer(accelerator='ddp', plugin='sharded')
+    trainer = Trainer(accelerator='ddp', plugins='ddp_sharded')
 
-Sharded DDP can work across all DDP variants by adding the additional `plugin='sharded` flag.
+Sharded DDP can work across all DDP variants by adding the additional ``--plugins ddp_sharded`` flag.
 
 Horovod
 ^^^^^^^

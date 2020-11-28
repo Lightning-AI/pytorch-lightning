@@ -114,3 +114,18 @@ However, know that 16-bit and multi-processing (any DDP) can have issues. Here a
     CUDA_LAUNCH_BLOCKING=1 python main.py
 
 .. tip:: We also recommend using 16-bit native found in PyTorch 1.6. Just install this version and Lightning will automatically use it.
+
+----------
+
+Use Sharded DDP for memory and GPU scaling optimization
+-------------------------------------------------------
+
+When training on multiple GPUs sharded DDP can assist to increase memory efficiency substantially, and in some cases performance on multi-node is better than traditional DDP.
+This is due to efficient communication and parallelization under the hood.
+
+.. code-block:: python
+
+    # train using Sharded DDP
+    trainer = Trainer(accelerator='ddp', plugins='ddp_sharded')
+
+Sharded DDP can work across all DDP variants by adding the additional `--plugins ddp_sharded` flag.
