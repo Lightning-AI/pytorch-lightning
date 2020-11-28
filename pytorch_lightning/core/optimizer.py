@@ -48,6 +48,10 @@ if TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
 
 
+def is_lightning_optimizer(optimizer):
+    return LightningOptimizer.__module__ == optimizer.__module__
+
+
 def do_nothing_closure():
     return
 

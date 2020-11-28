@@ -20,7 +20,7 @@ from typing import List, Optional, Type, TypeVar, Union, cast
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.core.optimizer import is_lightning_optimizer
 from pytorch_lightning.loggers.base import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
@@ -235,8 +235,7 @@ class TrainerProperties(ABC):
 
     def __getstate__(self):
         # unwrap optimizer
-        lightning_optimizer_module = "pytorch_lightning.core.optimizer"
-        self.optimizers = [opt._optimizer if lightning_optimizer_module in opt.__module__ else opt for opt in self.optimizers]
+        self.optimizers = [opt._optimizer if is_lightning_optimizer(opt) else opt for opt in self.optimizers]
         return self.__dict__
 
     def __setstate__(self, d):
