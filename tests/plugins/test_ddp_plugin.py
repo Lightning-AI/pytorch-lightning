@@ -85,6 +85,17 @@ def test_ddp_choice_custom_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
         trainer.fit(model)
 
 
+@mock.patch.dict(
+    os.environ,
+    {
+        "CUDA_VISIBLE_DEVICES": "0,1",
+        "SLURM_NTASKS": "2",
+        "SLURM_JOB_NAME": "SOME_NAME",
+        "SLURM_NODEID": "0",
+        "LOCAL_RANK": "0",
+        "SLURM_LOCALID": "0",
+    },
+)
 @mock.patch("torch.cuda.device_count", return_value=2)
 @pytest.mark.parametrize(
     ["ddp_backend", "gpus", "num_processes"],
@@ -110,6 +121,17 @@ def test_ddp_choice_string_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
         trainer.fit(model)
 
 
+@mock.patch.dict(
+    os.environ,
+    {
+        "CUDA_VISIBLE_DEVICES": "0,1",
+        "SLURM_NTASKS": "2",
+        "SLURM_JOB_NAME": "SOME_NAME",
+        "SLURM_NODEID": "0",
+        "LOCAL_RANK": "0",
+        "SLURM_LOCALID": "0",
+    },
+)
 @mock.patch("torch.cuda.device_count", return_value=2)
 @pytest.mark.parametrize(
     ["ddp_backend", "gpus", "num_processes"],
@@ -130,6 +152,17 @@ def test_ddp_invalid_choice_string_ddp_cpu(tmpdir, ddp_backend, gpus, num_proces
         trainer.fit(model)
 
 
+@mock.patch.dict(
+    os.environ,
+    {
+        "CUDA_VISIBLE_DEVICES": "0,1",
+        "SLURM_NTASKS": "2",
+        "SLURM_JOB_NAME": "SOME_NAME",
+        "SLURM_NODEID": "0",
+        "LOCAL_RANK": "0",
+        "SLURM_LOCALID": "0",
+    },
+)
 @mock.patch("torch.cuda.device_count", return_value=2)
 @pytest.mark.parametrize(
     ["ddp_backend", "gpus", "num_processes"],
