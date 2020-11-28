@@ -178,6 +178,7 @@ def test_state(tmpdir):
     model = torch.nn.Linear(3, 4)
     optimizer = torch.optim.Adam(model.parameters())
     lightning_optimizer = LightningOptimizer(optimizer)
+    assert isinstance(lightning_optimizer, LightningOptimizer)
     assert isinstance(lightning_optimizer, Adam)
     assert isinstance(lightning_optimizer, Optimizer)
     lightning_dict = {}

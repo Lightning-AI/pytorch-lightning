@@ -49,7 +49,7 @@ if TPU_AVAILABLE:
 
 
 def is_lightning_optimizer(optimizer):
-    return LightningOptimizer.__module__ == optimizer.__module__
+    return isinstance(optimizer, LightningOptimizer)
 
 
 def do_nothing_closure():
