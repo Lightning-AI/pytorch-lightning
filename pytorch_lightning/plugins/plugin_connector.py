@@ -53,15 +53,11 @@ class PluginConnector:
         """
         if isinstance(plugins, str):
             return [self._convert_plugin(plugins)]
-        else:
-            return [self._convert_plugin(plugin) for plugin in plugins]
+        return [self._convert_plugin(plugin) for plugin in plugins]
 
     def _convert_plugin(self, plugin):
         if isinstance(plugin, str):
-            if plugin in LightningCustomPlugins.__members__:
-                plugin_cls = LightningCustomPlugins[plugin].value
-                return plugin_cls()
-            else:
+            if plugin not in LightningCustomPlugins.__members__:
                 raise MisconfigurationException(
                     f"{plugin} is not a supported lightning custom plugin. "
                     f"If you're trying to pass a custom plugin, please pass this as an object to "
@@ -69,6 +65,8 @@ class PluginConnector:
                     f"Supported plugins as string input: "
                     f"{(e.name for e in LightningCustomPlugins)}."
                 )
+            plugin_cls = LightningCustomPlugins[plugin].value
+            return plugin_cls()
         return plugin
 
     def __attach_amp(self):
