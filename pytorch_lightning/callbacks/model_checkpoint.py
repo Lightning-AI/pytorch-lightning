@@ -329,7 +329,7 @@ class ModelCheckpoint(Callback):
         if mode == 'auto':
             rank_zero_warn(
                 "mode='auto' is deprecated in v1.1 and will be removed in v1.3."
-                f" Default value for mode with be 'min' in v1.3."
+                " Default value for mode with be 'min' in v1.3.",
                 DeprecationWarning
             )
 

@@ -110,11 +110,11 @@ class EarlyStopping(Callback):
         if self.mode == 'auto':
             rank_zero_warn(
                 "mode='auto' is deprecated in v1.1 and will be removed in v1.3."
-                f" Default value for mode with be 'min' in v1.3."
+                " Default value for mode with be 'min' in v1.3.",
                 DeprecationWarning
             )
 
-            if "acc" in monitor or monitor.startswith("fmeasure")
+            if "acc" in self.monitor or self.monitor.startswith("fmeasure"):
                 self.mode = 'max'
             else:
                 self.mode = 'min'
