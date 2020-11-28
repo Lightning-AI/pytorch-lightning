@@ -431,12 +431,13 @@ You can then call your scripts anywhere
 
 Sharded DDP
 ^^^^^^^^^^^
-Sharded DDP is a direct implementation of `DeepSpeed ZeRO <https://arxiv.org/abs/1910.02054>`_ and
+Sharded DDP is a lightning integration of `DeepSpeed ZeRO <https://arxiv.org/abs/1910.02054>`_ and
 `ZeRO-2 <https://www.microsoft.com/en-us/research/blog/zero-2-deepspeed-shattering-barriers-of-deep-learning-speed-scale/>`_
 provided by `Fairscale <https://github.com/facebookresearch/fairscale/tree/master/fairscale>`_. Sharded DDP is similar to normal DDP, except optimizer state and gradients are sharded across your GPUs.
 This means the memory overhead per GPU is less, as each GPU only has to maintain a section of your optimizer state and gradients.
-The benefits are model variant, but we've recorded up to a 25% memory reduction per GPU. Because of
-extremely efficient communication, these benefits using multi-GPU setups are almost free and throughput scales well into multi-node setups.
+
+The benefits are variable by model, but we've recorded up to a 25% memory reduction per GPU. Because of extremely efficient communication,
+these benefits in multi-GPU setups are almost free and throughput scales well with multi-node setups.
 
 It is highly recommended to use Sharded DDP in multi-GPU environments where memory is limited or where training larger models are beneficial.
 

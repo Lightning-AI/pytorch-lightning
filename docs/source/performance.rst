@@ -117,8 +117,12 @@ However, know that 16-bit and multi-processing (any DDP) can have issues. Here a
 
 ----------
 
-Use Sharded DDP for memory and GPU scaling optimization
+Use Sharded DDP for GPU memory and scaling optimization
 -------------------------------------------------------
+
+Sharded DDP is a lightning integration of `DeepSpeed ZeRO <https://arxiv.org/abs/1910.02054>`_ and
+`ZeRO-2 <https://www.microsoft.com/en-us/research/blog/zero-2-deepspeed-shattering-barriers-of-deep-learning-speed-scale/>`_
+provided by `Fairscale <https://github.com/facebookresearch/fairscale/tree/master/fairscale>`_.
 
 When training on multiple GPUs sharded DDP can assist to increase memory efficiency substantially, and in some cases performance on multi-node is better than traditional DDP.
 This is due to efficient communication and parallelization under the hood.
@@ -128,4 +132,4 @@ This is due to efficient communication and parallelization under the hood.
     # train using Sharded DDP
     trainer = Trainer(accelerator='ddp', plugins='ddp_sharded')
 
-Sharded DDP can work across all DDP variants by adding the additional `--plugins ddp_sharded` flag.
+Sharded DDP can work across all DDP variants by adding the additional ``--plugins ddp_sharded`` flag.
