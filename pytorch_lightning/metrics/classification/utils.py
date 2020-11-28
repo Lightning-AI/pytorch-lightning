@@ -18,6 +18,37 @@ import torch
 from pytorch_lightning.metrics.utils import to_onehot, select_topk
 
 
+def _basic_input_validation(preds: torch.Tensor, target: torch.Tensor, threshold: float, is_multiclass: bool):
+    """
+    Perform basic validation of inputs that does not require deducing any information
+    of the type of inputs.
+    """
+
+    if target.is_floating_point():
+        raise ValueError("The `target` has to be an integer tensor.")
+    if target.min() < 0:
+        raise ValueError("The `target` has to be a non-negative tensor.")
+
+    preds_float = preds.is_floating_point()
+    if not preds_float and preds.min() < 0:
+        raise ValueError("If `preds` are integers, they have to be non-negative.")
+
+    if not preds.shape[0] == target.shape[0]:
+        raise ValueError("The `preds` and `target` should have the same first dimension.")
+
+    if preds_float and (preds.min() < 0 or preds.max() > 1):
+        raise ValueError("The `preds` should be probabilities, but values were detected outside of [0,1] range.")
+
+    if threshold > 1 or threshold < 0:
+        raise ValueError("The `threshold` should be a probability in [0,1].")
+
+    if is_multiclass is False and target.max() > 1:
+        raise ValueError("If you set `is_multiclass=False`, then `target` should not exceed 1.")
+
+    if is_multiclass is False and not preds_float and preds.max() > 1:
+        raise ValueError("If you set `is_multiclass=False` and `preds` are integers, then `preds` should not exceed 1.")
+
+
 def _check_shape_and_type_consistency(preds: torch.Tensor, target: torch.Tensor) -> Tuple[str, int]:
     """
     This checks that the shape and type of inputs are consistent with
@@ -88,12 +119,12 @@ def _check_num_classes_binary(num_classes: int, is_multiclass: bool):
 
     if num_classes > 2:
         raise ValueError("Your data is binary, but `num_classes` is larger than 2.")
-    elif num_classes == 2 and not is_multiclass:
+    if num_classes == 2 and not is_multiclass:
         raise ValueError(
             "Your data is binary and `num_classes=2`, but `is_multiclass` is not True."
             " Set it to True if you want to transform binary data to multi-class format."
         )
-    elif num_classes == 1 and is_multiclass:
+    if num_classes == 1 and is_multiclass:
         raise ValueError(
             "You have binary data and have set `is_multiclass=True`, but `num_classes` is 1."
             " Either set `is_multiclass=None`(default) or set `num_classes=2` to transform binary data to multi-class format."
@@ -114,7 +145,7 @@ def _check_num_classes_mc(
             " If you want to convert (multi-dimensional) multi-class data with 2 classes"
             " to binary/multi-label, set `is_multiclass=False`."
         )
-    elif num_classes > 1:
+    if num_classes > 1:
         if is_multiclass is False:
             if implied_classes != num_classes:
                 raise ValueError(
@@ -210,29 +241,8 @@ def _check_classification_inputs(
             'multi-dim multi-class'
     """
 
-    if target.is_floating_point():
-        raise ValueError("The `target` has to be an integer tensor.")
-    if target.min() < 0:
-        raise ValueError("The `target` has to be a non-negative tensor.")
-
-    preds_float = preds.is_floating_point()
-    if not preds_float and preds.min() < 0:
-        raise ValueError("If `preds` are integers, they have to be non-negative.")
-
-    if not preds.shape[0] == target.shape[0]:
-        raise ValueError("The `preds` and `target` should have the same first dimension.")
-
-    if preds_float and (preds.min() < 0 or preds.max() > 1):
-        raise ValueError("The `preds` should be probabilities, but values were detected outside of [0,1] range.")
-
-    if threshold > 1 or threshold < 0:
-        raise ValueError("The `threshold` should be a probability in [0,1].")
-
-    if is_multiclass is False and target.max() > 1:
-        raise ValueError("If you set `is_multiclass=False`, then `target` should not exceed 1.")
-
-    if is_multiclass is False and not preds_float and preds.max() > 1:
-        raise ValueError("If you set `is_multiclass=False` and `preds` are integers, then `preds` should not exceed 1.")
+    # Baisc validation (that does not need case/type information)
+    _basic_input_validation(preds, target, threshold, is_multiclass)
 
     # Check that shape/types fall into one of the cases
     case, implied_classes = _check_shape_and_type_consistency(preds, target)
@@ -260,7 +270,7 @@ def _check_classification_inputs(
 
     # Check that top_k is consistent
     if top_k:
-        _check_top_k(top_k, case, implied_classes, is_multiclass, preds_float)
+        _check_top_k(top_k, case, implied_classes, is_multiclass, preds.is_floating_point())
 
     return case
 
