@@ -45,12 +45,9 @@ class Accuracy(Metric):
     Accepts all input types listed in :ref:`metrics:Input types`.
 
     Args:
-        top_k:
-            Number of highest probability predictions considered to find the correct label, for
-            (multi-dimensional) multi-class inputs with probability predictions. Default 1
-
-            If your inputs are not (multi-dimensional) multi-class inputs with probability predictions,
-            an error will be raised if ``top_k`` is set to a value other than 1.
+        threshold:
+            Threshold probability value for transforming probability predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
         mdmc_accuracy:
             Determines how should the extra dimension be handeled in case of multi-dimensional multi-class
             inputs. Options are ``"global"`` or ``"subset"``.
@@ -61,9 +58,12 @@ class Accuracy(Metric):
             If ``"subset"``, than the equivalent of subset accuracy is performed for each sample on the
             ``N`` dimension - that is, for the sample to count as correct, all labels on its extra dimension
             must be predicted correctly (the ``top_k`` option still applies here).
-        threshold:
-            Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
+        top_k:
+            Number of highest probability entries for each sample to convert to 1s, relevant
+            only for (multi-dimensional) multi-class inputs with probability predictions. The
+            default value (``None``) will be interpreted as 1 for these inputs.
+
+            Should be left at default (``None``) for all other types of inputs.
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
@@ -94,9 +94,9 @@ class Accuracy(Metric):
 
     def __init__(
         self,
-        top_k: int = 1,
-        mdmc_accuracy: str = "subset",
         threshold: float = 0.5,
+        mdmc_accuracy: str = "subset",
+        top_k: Optional[int] = None,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -126,7 +126,9 @@ class Accuracy(Metric):
             target: Ground truth values
         """
 
-        correct, total = _accuracy_update(preds, target, self.threshold, self.top_k, self.mdmc_accuracy)
+        correct, total = _accuracy_update(
+            preds, target, threshold=self.threshold, top_k=self.top_k, mdmc_accuracy=self.mdmc_accuracy
+        )
 
         self.correct += correct
         self.total += total

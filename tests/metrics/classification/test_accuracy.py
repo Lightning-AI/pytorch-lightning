@@ -81,7 +81,7 @@ class TestAccuracies(MetricTester):
         )
 
 
-l1to4 = [.1, .2, .3, .4]
+l1to4 = [0.1, 0.2, 0.3, 0.4]
 l1to4t3 = np.array([l1to4, l1to4, l1to4])
 l1to4t3_mc = [l1to4t3.T, l1to4t3.T, l1to4t3.T]
 
@@ -130,7 +130,7 @@ def test_topk_accuracy(preds, target, exp_result, k, mdmc_accuracy):
     assert accuracy(preds, target, top_k=k, mdmc_accuracy=mdmc_accuracy) == exp_result
 
 
-# Only MC and MDMC with probs input type should be accepted
+# Only MC and MDMC with probs input type should be accepted for top_k
 @pytest.mark.parametrize(
     "preds, target",
     [
@@ -145,10 +145,10 @@ def test_topk_accuracy(preds, target, exp_result, k, mdmc_accuracy):
     ],
 )
 def test_topk_accuracy_wrong_input_types(preds, target):
-    topk = Accuracy(top_k=2)
+    topk = Accuracy(top_k=1)
 
     with pytest.raises(ValueError):
         topk(preds[0], target[0])
 
     with pytest.raises(ValueError):
-        accuracy(preds[0], target[0], top_k=2)
+        accuracy(preds[0], target[0], top_k=1)

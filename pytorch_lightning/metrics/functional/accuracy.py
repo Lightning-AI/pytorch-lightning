@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Tuple, Union
+from typing import Tuple, Union, Optional
 
 import torch
 from pytorch_lightning.metrics.classification.utils import _input_format_classification
@@ -22,7 +22,7 @@ from pytorch_lightning.metrics.classification.utils import _input_format_classif
 
 
 def _accuracy_update(
-    preds: torch.Tensor, target: torch.Tensor, threshold: float, top_k: int, mdmc_accuracy: str
+    preds: torch.Tensor, target: torch.Tensor, threshold: float, top_k: Optional[int], mdmc_accuracy: str
 ) -> Tuple[torch.Tensor, torch.Tensor]:
 
     preds, target, mode = _input_format_classification(preds, target, threshold=threshold, top_k=top_k)
@@ -49,7 +49,11 @@ def _accuracy_compute(correct: torch.Tensor, total: torch.Tensor) -> torch.Tenso
 
 
 def accuracy(
-    preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5, top_k: int = 1, mdmc_accuracy: str = "subset"
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    threshold: float = 0.5,
+    mdmc_accuracy: str = "subset",
+    top_k: Optional[int] = None,
 ) -> torch.Tensor:
     """
     Computes the share of entirely correctly predicted samples.
@@ -69,12 +73,9 @@ def accuracy(
     Args:
         preds: Predictions from model (probabilities, or labels)
         target: Ground truth values
-        top_k:
-            Number of highest probability predictions considered to find the correct label, for
-            (multi-dimensional) multi-class inputs with probability predictions. Default 1
-
-            If your inputs are not (multi-dimensional) multi-class inputs with probability predictions,
-            an error will be raised if ``top_k`` is set to a value other than 1.
+        threshold:
+            Threshold probability value for transforming probability predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
         mdmc_accuracy:
             Determines how should the extra dimension be handeled in case of multi-dimensional multi-class
             inputs. Options are ``"global"`` or ``"subset"``.
@@ -85,9 +86,12 @@ def accuracy(
             If ``"subset"``, than the equivalent of subset accuracy is performed for each sample on the
             ``N`` dimension - that is, for the sample to count as correct, all labels on its extra dimension
             must be predicted correctly (the ``top_k`` option still applies here).
-        threshold:
-            Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
+        top_k:
+            Number of highest probability entries for each sample to convert to 1s, relevant
+            only for (multi-dimensional) multi-class inputs with probability predictions. The
+            default value (``None``) will be interpreted as 1 for these inputs.
+
+            Should be left at default (``None``) for all other types of inputs.
 
     Example:
 
