@@ -14,23 +14,20 @@
 from typing import cast
 
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
-from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE, NATIVE_AMP_AVAILABLE
+from pytorch_lightning.utilities import AMP_FAIRSCALE_AVAILABLE, NATIVE_AMP_AVAILABLE
 
 ShardedNativeAMPPlugin = None
-if NATIVE_AMP_AVAILABLE and FAIRSCALE_AVAILABLE:
-    try:
-        from fairscale.optim import OSS
-        from fairscale.optim.grad_scaler import ShardedGradScaler
+if NATIVE_AMP_AVAILABLE and AMP_FAIRSCALE_AVAILABLE:
+    from fairscale.optim import OSS
+    from fairscale.optim.grad_scaler import ShardedGradScaler
 
-        class ShardedNativeAMPPlugin(NativeAMPPlugin):
-            @property
-            def scaler(self):
-                return ShardedGradScaler()
+    class ShardedNativeAMPPlugin(NativeAMPPlugin):
+        @property
+        def scaler(self):
+            return ShardedGradScaler()
 
-            def clip_gradients(self, grad_clip_val, model, optimizer):
-                max_norm = grad_clip_val
-                norm_type = float(2.0)
-                optimizer = cast(OSS, optimizer)
-                optimizer.clip_grad_norm(max_norm, norm_type=norm_type)
-    except ImportError:
-        pass
+        def clip_gradients(self, grad_clip_val, model, optimizer):
+            max_norm = grad_clip_val
+            norm_type = float(2.0)
+            optimizer = cast(OSS, optimizer)
+            optimizer.clip_grad_norm(max_norm, norm_type=norm_type)

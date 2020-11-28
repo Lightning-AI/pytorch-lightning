@@ -50,6 +50,12 @@ HYDRA_AVAILABLE = _module_available("hydra")
 
 TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 FAIRSCALE_AVAILABLE = platform.system() != 'Windows' and _module_available('fairscale.nn.data_parallel')
+try:
+    from fairscale.optim.grad_scaler import ShardedGradScaler
+    AMP_FAIRSCALE_AVAILABLE = True
+except:
+    AMP_FAIRSCALE_AVAILABLE = False
+AMP_FAIRSCALE_AVAILABLE &= platform.system() != 'Windows'
 
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
 FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps
