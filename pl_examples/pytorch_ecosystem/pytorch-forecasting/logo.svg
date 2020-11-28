@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="128.27mm"
+   height="20.838005mm"
+   viewBox="0 0 128.27 20.838005"
+   version="1.1"
+   id="svg8"
+   sodipodi:docname="logo.svg"
+   inkscape:version="1.0 (4035a4f, 2020-05-01)">
+  <defs
+     id="defs2" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="31.678384"
+     inkscape:cx="258.02074"
+     inkscape:cy="58.345426"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     inkscape:document-rotation="0"
+     showgrid="false"
+     inkscape:snap-midpoints="false"
+     inkscape:snap-object-midpoints="true"
+     fit-margin-top="2"
+     fit-margin-left="2"
+     fit-margin-right="2"
+     fit-margin-bottom="2"
+     inkscape:window-width="2560"
+     inkscape:window-height="1395"
+     inkscape:window-x="0"
+     inkscape:window-y="23"
+     inkscape:window-maximized="1"
+     lock-margins="true" />
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-18.579755,-119.47397)">
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:300;font-stretch:normal;font-size:11.2889px;line-height:1.25;font-family:Helvetica;-inkscape-font-specification:'Helvetica, Light';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="45.628349"
+       y="134.81604"
+       id="text12"><tspan
+         sodipodi:role="line"
+         id="tspan10"
+         x="45.628349"
+         y="134.81604"
+         style="font-style:normal;font-variant:normal;font-weight:300;font-stretch:normal;font-size:11.2889px;font-family:Helvetica;-inkscape-font-specification:'Helvetica, Light';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.264583">PyTorch</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:11.2889px;line-height:1.25;font-family:Helvetica;-inkscape-font-specification:'Helvetica, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ee4c2c;fill-opacity:1;stroke-width:0.267732"
+       x="88.321182"
+       y="133.24466"
+       id="text16"
+       transform="scale(0.98823857,1.0119014)"><tspan
+         id="tspan14"
+         x="88.321182"
+         y="133.24466"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:11.2889px;font-family:Helvetica;-inkscape-font-specification:'Helvetica, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ee4c2c;fill-opacity:1;stroke-width:0.267732"
+         sodipodi:role="line">Forecasting</tspan></text>
+    <g
+       id="g888"
+       transform="matrix(1.9213483,0,0,2.0999965,-31.799067,-142.32057)">
+      <circle
+         r="0.93544334"
+         cy="126.5521"
+         cx="38.219543"
+         id="path841"
+         style="fill:#ee4c2c;fill-opacity:1;stroke-width:0.264583" />
+      <circle
+         style="fill:#ee4c2c;fill-opacity:1;stroke-width:0.264583"
+         id="path841-5"
+         cx="31.537806"
+         cy="128.8239"
+         r="0.93544334" />
+      <circle
+         style="fill:#ee4c2c;fill-opacity:1;stroke-width:0.264583"
+         id="path841-4"
+         cx="34.878674"
+         cy="131.49661"
+         r="0.93544334" />
+      <circle
+         r="0.93544334"
+         style="fill:#ee4c2c;fill-opacity:1;stroke-width:0.264583"
+         id="path841-9"
+         cx="28.196936"
+         cy="132.69933" />
+      <path
+         sodipodi:nodetypes="ccc"
+         id="path876"
+         d="m 28.196936,132.69933 3.34087,-3.87543 3.340868,2.67271"
+         style="fill:none;stroke:#ee4c2c;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+      <path
+         sodipodi:nodetypes="cc"
+         id="path880"
+         d="m 38.219543,126.5521 c -3.374278,5.01133 -2.87315,4.44338 -2.87315,4.44338"
+         style="fill:none;stroke:#ee4c2c;stroke-width:0.265;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:1.06, 1.06;stroke-dashoffset:0;stroke-opacity:1" />
+    </g>
+  </g>
+</svg>
