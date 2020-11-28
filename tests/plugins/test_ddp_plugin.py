@@ -1,4 +1,5 @@
 import os
+import platform
 from unittest import mock
 
 import pytest
@@ -101,6 +102,7 @@ def test_ddp_choice_custom_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
     ["ddp_backend", "gpus", "num_processes"],
     [("ddp_cpu", None, None), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
 )
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed sharded training is not supported on Windows")
 def test_ddp_choice_string_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
