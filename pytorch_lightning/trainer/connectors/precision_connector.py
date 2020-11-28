@@ -18,7 +18,13 @@ from pytorch_lightning.plugins.apex import ApexPlugin
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
 from pytorch_lightning.plugins.sharded_native_amp_plugin import ShardedNativeAMPPlugin
 from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
-from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVAILABLE, AMPType, rank_zero_warn
+from pytorch_lightning.utilities import (
+    AMP_FAIRSCALE_AVAILABLE,
+    APEX_AVAILABLE,
+    NATIVE_AMP_AVAILABLE,
+    AMPType,
+    rank_zero_warn,
+)
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -62,6 +68,10 @@ class PrecisionConnector:
                 self.trainer.amp_backend = AMPType.NATIVE
                 if using_sharded_plugin:
                     log.info('Using sharded 16bit precision.')
+                    if not AMP_FAIRSCALE_AVAILABLE:
+                        raise MisconfigurationException(
+                            "fairscale ShardedGradScaler wasn't found"
+                        )
                     self.backend = ShardedNativeAMPPlugin(self.trainer)
                 else:
                     log.info('Using native 16bit precision.')

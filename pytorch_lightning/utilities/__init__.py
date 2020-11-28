@@ -53,7 +53,7 @@ FAIRSCALE_AVAILABLE = platform.system() != 'Windows' and _module_available('fair
 try:
     from fairscale.optim.grad_scaler import ShardedGradScaler
     AMP_FAIRSCALE_AVAILABLE = True
-except:
+except ImportError:
     AMP_FAIRSCALE_AVAILABLE = False
 AMP_FAIRSCALE_AVAILABLE &= platform.system() != 'Windows'
 
