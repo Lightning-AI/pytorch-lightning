@@ -110,38 +110,38 @@ def _mlmd_prob_to_mc_preds_tr(x):
     [
         #############################
         # Test usual expected cases
-        (_bin, THRESHOLD, None, False, 1, "multi-class", _usq, _usq),
-        (_bin_prob, THRESHOLD, None, None, 1, "binary", lambda x: _usq(_thrs(x)), _usq),
-        (_ml_prob, THRESHOLD, None, None, 1, "multi-label", _thrs, _idn),
-        (_ml, THRESHOLD, None, False, 1, "multi-dim multi-class", _idn, _idn),
-        (_ml_prob, THRESHOLD, None, None, 1, "multi-label", _ml_preds_tr, _rshp1),
-        (_mlmd, THRESHOLD, None, False, 1, "multi-dim multi-class", _rshp1, _rshp1),
-        (_mc, THRESHOLD, NUM_CLASSES, None, 1, "multi-class", _onehot, _onehot),
-        (_mc_prob, THRESHOLD, None, None, 1, "multi-class", _top1, _onehot),
+        (_bin, THRESHOLD, None, False, None, "multi-class", _usq, _usq),
+        (_bin_prob, THRESHOLD, None, None, None, "binary", lambda x: _usq(_thrs(x)), _usq),
+        (_ml_prob, THRESHOLD, None, None, None, "multi-label", _thrs, _idn),
+        (_ml, THRESHOLD, None, False, None, "multi-dim multi-class", _idn, _idn),
+        (_ml_prob, THRESHOLD, None, None, None, "multi-label", _ml_preds_tr, _rshp1),
+        (_mlmd, THRESHOLD, None, False, None, "multi-dim multi-class", _rshp1, _rshp1),
+        (_mc, THRESHOLD, NUM_CLASSES, None, None, "multi-class", _onehot, _onehot),
+        (_mc_prob, THRESHOLD, None, None, None, "multi-class", _top1, _onehot),
         (_mc_prob, THRESHOLD, None, None, 2, "multi-class", _top2, _onehot),
-        (_mdmc, THRESHOLD, NUM_CLASSES, None, 1, "multi-dim multi-class", _onehot, _onehot),
-        (_mdmc_prob, THRESHOLD, None, None, 1, "multi-dim multi-class", _top1_rshp2, _onehot),
+        (_mdmc, THRESHOLD, NUM_CLASSES, None, None, "multi-dim multi-class", _onehot, _onehot),
+        (_mdmc_prob, THRESHOLD, None, None, None, "multi-dim multi-class", _top1_rshp2, _onehot),
         (_mdmc_prob, THRESHOLD, None, None, 2, "multi-dim multi-class", _top2_rshp2, _onehot),
-        (_mdmc_prob_many_dims, THRESHOLD, None, None, 1, "multi-dim multi-class", _top1_rshp2, _onehot_rshp1),
+        (_mdmc_prob_many_dims, THRESHOLD, None, None, None, "multi-dim multi-class", _top1_rshp2, _onehot_rshp1),
         (_mdmc_prob_many_dims, THRESHOLD, None, None, 2, "multi-dim multi-class", _top2_rshp2, _onehot_rshp1),
         ###########################
         # Test some special cases
         # Binary as multiclass
-        (_bin, THRESHOLD, None, None, 1, "multi-class", _onehot2, _onehot2),
+        (_bin, THRESHOLD, None, None, None, "multi-class", _onehot2, _onehot2),
         # Binary probs as multiclass
-        (_bin_prob, THRESHOLD, None, True, 1, "binary", _probs_to_mc_preds_tr, _onehot2),
+        (_bin_prob, THRESHOLD, None, True, None, "binary", _probs_to_mc_preds_tr, _onehot2),
         # Multilabel as multiclass
-        (_ml, THRESHOLD, None, True, 1, "multi-dim multi-class", _onehot2, _onehot2),
+        (_ml, THRESHOLD, None, True, None, "multi-dim multi-class", _onehot2, _onehot2),
         # Multilabel probs as multiclass
-        (_ml_prob, THRESHOLD, None, True, 1, "multi-label", _probs_to_mc_preds_tr, _onehot2),
+        (_ml_prob, THRESHOLD, None, True, None, "multi-label", _probs_to_mc_preds_tr, _onehot2),
         # Multidim multilabel as multiclass
-        (_mlmd, THRESHOLD, None, True, 1, "multi-dim multi-class", _onehot2_rshp1, _onehot2_rshp1),
+        (_mlmd, THRESHOLD, None, True, None, "multi-dim multi-class", _onehot2_rshp1, _onehot2_rshp1),
         # Multidim multilabel probs as multiclass
-        (_mlmd_prob, THRESHOLD, None, True, 1, "multi-label", _mlmd_prob_to_mc_preds_tr, _onehot2_rshp1),
+        (_mlmd_prob, THRESHOLD, None, True, None, "multi-label", _mlmd_prob_to_mc_preds_tr, _onehot2_rshp1),
         # Multiclass prob with 2 classes as binary
-        (_mc_prob_2cls, THRESHOLD, None, False, 1, "multi-class", lambda x: _top1(x)[:, [1]], _usq),
+        (_mc_prob_2cls, THRESHOLD, None, False, None, "multi-class", lambda x: _top1(x)[:, [1]], _usq),
         # Multi-dim multi-class with 2 classes as multi-label
-        (_mdmc_prob_2cls, THRESHOLD, None, False, 1, "multi-dim multi-class", lambda x: _top1(x)[:, 1], _idn),
+        (_mdmc_prob_2cls, THRESHOLD, None, False, None, "multi-dim multi-class", lambda x: _top1(x)[:, 1], _idn),
     ],
 )
 def test_usual_cases(inputs, threshold, num_classes, is_multiclass, top_k, exp_mode, post_preds, post_target):
@@ -192,59 +192,59 @@ def test_threshold():
     "preds, target, threshold, num_classes, is_multiclass, top_k",
     [
         # Target not integer
-        (randint(high=2, size=(7,)), randint(high=2, size=(7,)).float(), 0.5, None, None, 1),
+        (randint(high=2, size=(7,)), randint(high=2, size=(7,)).float(), 0.5, None, None, None),
         # Target negative
-        (randint(high=2, size=(7,)), -randint(high=2, size=(7,)), 0.5, None, None, 1),
+        (randint(high=2, size=(7,)), -randint(high=2, size=(7,)), 0.5, None, None, None),
         # Preds negative integers
-        (-randint(high=2, size=(7,)), randint(high=2, size=(7,)), 0.5, None, None, 1),
+        (-randint(high=2, size=(7,)), randint(high=2, size=(7,)), 0.5, None, None, None),
         # Negative probabilities
-        (-rand(size=(7,)), randint(high=2, size=(7,)), 0.5, None, None, 1),
+        (-rand(size=(7,)), randint(high=2, size=(7,)), 0.5, None, None, None),
         # Threshold outside of [0,1]
-        (rand(size=(7,)), randint(high=2, size=(7,)), 1.5, None, None, 1),
+        (rand(size=(7,)), randint(high=2, size=(7,)), 1.5, None, None, None),
         # is_multiclass=False and target > 1
-        (rand(size=(7,)), randint(low=2, high=4, size=(7,)), 0.5, None, False, 1),
+        (rand(size=(7,)), randint(low=2, high=4, size=(7,)), 0.5, None, False, None),
         # is_multiclass=False and preds integers with > 1
-        (randint(low=2, high=4, size=(7,)), randint(high=2, size=(7,)), 0.5, None, False, 1),
+        (randint(low=2, high=4, size=(7,)), randint(high=2, size=(7,)), 0.5, None, False, None),
         # Wrong batch size
-        (randint(high=2, size=(8,)), randint(high=2, size=(7,)), 0.5, None, None, 1),
+        (randint(high=2, size=(8,)), randint(high=2, size=(7,)), 0.5, None, None, None),
         # Completely wrong shape
-        (randint(high=2, size=(7,)), randint(high=2, size=(7, 4)), 0.5, None, None, 1),
+        (randint(high=2, size=(7,)), randint(high=2, size=(7, 4)), 0.5, None, None, None),
         # Same #dims, different shape
-        (randint(high=2, size=(7, 3)), randint(high=2, size=(7, 4)), 0.5, None, None, 1),
+        (randint(high=2, size=(7, 3)), randint(high=2, size=(7, 4)), 0.5, None, None, None),
         # Same shape and preds floats, target not binary
-        (rand(size=(7, 3)), randint(low=2, high=4, size=(7, 3)), 0.5, None, None, 1),
+        (rand(size=(7, 3)), randint(low=2, high=4, size=(7, 3)), 0.5, None, None, None),
         # #dims in preds = 1 + #dims in target, C shape not second or last
-        (rand(size=(7, 3, 4, 3)), randint(high=4, size=(7, 3, 3)), 0.5, None, None, 1),
+        (rand(size=(7, 3, 4, 3)), randint(high=4, size=(7, 3, 3)), 0.5, None, None, None),
         # #dims in preds = 1 + #dims in target, preds not float
-        (randint(high=2, size=(7, 3, 3, 4)), randint(high=4, size=(7, 3, 3)), 0.5, None, None, 1),
+        (randint(high=2, size=(7, 3, 3, 4)), randint(high=4, size=(7, 3, 3)), 0.5, None, None, None),
         # is_multiclass=False, with C dimension > 2
-        (rand(size=(7, 3, 5)), randint(high=2, size=(7, 5)), 0.5, None, False, 1),
+        (rand(size=(7, 3, 5)), randint(high=2, size=(7, 5)), 0.5, None, False, None),
         # Max target larger or equal to C dimension
-        (rand(size=(7, 3)), randint(low=4, high=6, size=(7,)), 0.5, None, None, 1),
+        (rand(size=(7, 3)), randint(low=4, high=6, size=(7,)), 0.5, None, None, None),
         # C dimension not equal to num_classes
-        (rand(size=(7, 4, 3)), randint(high=4, size=(7, 3)), 0.5, 7, None, 1),
+        (rand(size=(7, 4, 3)), randint(high=4, size=(7, 3)), 0.5, 7, None, None),
         # Max target larger than num_classes (with #dim preds = 1 + #dims target)
-        (rand(size=(7, 3, 4)), randint(low=5, high=7, size=(7, 3)), 0.5, 4, None, 1),
+        (rand(size=(7, 3, 4)), randint(low=5, high=7, size=(7, 3)), 0.5, 4, None, None),
         # Max target larger than num_classes (with #dim preds = #dims target)
-        (randint(high=4, size=(7, 3)), randint(low=5, high=7, size=(7, 3)), 0.5, 4, None, 1),
+        (randint(high=4, size=(7, 3)), randint(low=5, high=7, size=(7, 3)), 0.5, 4, None, None),
         # Max preds larger than num_classes (with #dim preds = #dims target)
-        (randint(low=5, high=7, size=(7, 3)), randint(high=4, size=(7, 3)), 0.5, 4, None, 1),
+        (randint(low=5, high=7, size=(7, 3)), randint(high=4, size=(7, 3)), 0.5, 4, None, None),
         # Num_classes=1, but is_multiclass not false
         (randint(high=2, size=(7,)), randint(high=2, size=(7,)), 0.5, 1, None, 1),
         # is_multiclass=False, but implied class dimension (for multi-label, from shape) != num_classes
-        (randint(high=2, size=(7, 3, 3)), randint(high=2, size=(7, 3, 3)), 0.5, 4, False, 1),
+        (randint(high=2, size=(7, 3, 3)), randint(high=2, size=(7, 3, 3)), 0.5, 4, False, None),
         # Multilabel input with implied class dimension != num_classes
-        (rand(size=(7, 3, 3)), randint(high=2, size=(7, 3, 3)), 0.5, 4, False, 1),
+        (rand(size=(7, 3, 3)), randint(high=2, size=(7, 3, 3)), 0.5, 4, False, None),
         # Multilabel input with is_multiclass=True, but num_classes != 2 (or None)
-        (rand(size=(7, 3)), randint(high=2, size=(7, 3)), 0.5, 4, True, 1),
+        (rand(size=(7, 3)), randint(high=2, size=(7, 3)), 0.5, 4, True, None),
         # Binary input, num_classes > 2
-        (rand(size=(7,)), randint(high=2, size=(7,)), 0.5, 4, None, 1),
+        (rand(size=(7,)), randint(high=2, size=(7,)), 0.5, 4, None, None),
         # Binary input, num_classes == 2 and is_multiclass not True
-        (rand(size=(7,)), randint(high=2, size=(7,)), 0.5, 2, None, 1),
-        (rand(size=(7,)), randint(high=2, size=(7,)), 0.5, 2, False, 1),
+        (rand(size=(7,)), randint(high=2, size=(7,)), 0.5, 2, None, None),
+        (rand(size=(7,)), randint(high=2, size=(7,)), 0.5, 2, False, None),
         # Binary input, num_classes == 1 and is_multiclass=True
-        (rand(size=(7,)), randint(high=2, size=(7,)), 0.5, 1, True, 1),
-        # Topk > 1 with non (md)mc prob data
+        (rand(size=(7,)), randint(high=2, size=(7,)), 0.5, 1, True, None),
+        # Topk set with non (md)mc prob data
         (_bin.preds[0], _bin.target[0], 0.5, None, None, 2),
         (_bin_prob.preds[0], _bin_prob.target[0], 0.5, None, None, 2),
         (_mc.preds[0], _mc.target[0], 0.5, None, None, 2),
@@ -253,8 +253,10 @@ def test_threshold():
         (_ml_prob.preds[0], _ml_prob.target[0], 0.5, None, None, 2),
         (_mlmd_prob.preds[0], _mlmd_prob.target[0], 0.5, None, None, 2),
         (_mdmc.preds[0], _mdmc.target[0], 0.5, None, None, 2),
-        # Topk =2 with 2 classes, is_multiclass=False
+        # top_k =2 with 2 classes, is_multiclass=False
         (_mc_prob_2cls.preds[0], _mc_prob_2cls.target[0], 0.5, None, False, 2),
+        # top_k = number of classes (C dimension)
+        (_mc_prob.preds[0], _mc_prob.target[0], 0.5, None, None, NUM_CLASSES),
     ],
 )
 def test_incorrect_inputs(preds, target, threshold, num_classes, is_multiclass, top_k):
