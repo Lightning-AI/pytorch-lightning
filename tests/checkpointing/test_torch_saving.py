@@ -35,6 +35,7 @@ def test_model_torch_save(tmpdir):
     # Ensure these do not fail
     torch.save(trainer.model, temp_path)
     torch.save(trainer, temp_path)
+    torch.load(temp_path)
 
 
 @pytest.mark.skipif(platform.system() == "Windows",

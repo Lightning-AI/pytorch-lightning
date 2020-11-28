@@ -170,7 +170,6 @@ class DDP2Accelerator(Accelerator):
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
 
-        # convert to LightningOptimizers
         self.trainer.convert_to_lightning_optimizers()
 
         # device ids change depending on the DDP setup

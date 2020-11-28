@@ -1091,7 +1091,7 @@ class LightningModule(
         .. tip:: In manual mode we still automatically clip grads if Trainer(gradient_clip_val=x) is set
 
         .. tip:: In manual mode we still automatically accumulate grad over batches if
-           Trainer(accumulate_grad_batches=x) is set and you use `model.step(optimizer)`
+           Trainer(accumulate_grad_batches=x) is set and you use `optimizer.step()`
 
         Example::
 

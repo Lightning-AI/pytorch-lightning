@@ -950,7 +950,6 @@ class TrainLoop:
             self.on_before_zero_grad(optimizer)
             optimizers = enumerate([optimizer])
         else:
-            # should be called handled in `manual_optimizer_step`
             optimizers = []
 
         for idx, optimizer in optimizers:

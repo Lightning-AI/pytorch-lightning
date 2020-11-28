@@ -474,7 +474,7 @@ def test_manual_optimization_and_return_detached_tensor(tmpdir):
 def test_manual_optimization_and_accumulated_gradient(tmpdir):
     """
     This test verify that in `automatic_optimization=False`,
-    manual_optimizer_step is being called only when we shouldn't accumulate.
+    step is being called only when we shouldn't accumulate.
     """
     seed_everything(234)
 
@@ -558,9 +558,9 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-def test_multiple_optimizers_manual_optimizer_step(tmpdir):
+def test_multiple_optimizers_step(tmpdir):
     """
-    Tests that `manual_optimizer_step` works with several optimizers
+    Tests that `step` works with several optimizers
     """
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
@@ -623,9 +623,9 @@ def test_multiple_optimizers_manual_optimizer_step(tmpdir):
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * num_manual_backward_calls
 
 
-def test_manual_optimizer_step_with_optimizer_closure(tmpdir):
+def test_step_with_optimizer_closure(tmpdir):
     """
-    Tests that `manual_optimizer_step` works with optimizer_closure
+    Tests that `step` works with optimizer_closure
     """
     os.environ['PL_DEV_DEBUG'] = '1'
 
@@ -701,9 +701,9 @@ def test_manual_optimizer_step_with_optimizer_closure(tmpdir):
     assert trainer.logger_connector.progress_bar_metrics["train_loss_epoch"] == torch.stack(model._losses).mean()
 
 
-def test_manual_optimizer_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
+def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
     """
-    Tests that `manual_optimizer_step` works with optimizer_closure and accumulated_grad
+    Tests that `step` works with optimizer_closure and accumulated_grad
     """
     os.environ['PL_DEV_DEBUG'] = '1'
 
@@ -762,9 +762,9 @@ def test_manual_optimizer_step_with_optimizer_closure_and_accumulated_grad(tmpdi
 
 
 @patch("torch.optim.SGD.step")
-def test_manual_optimizer_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
+def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
     """
-    Tests that `manual_optimizer_step` works with optimizer_closure and extra arguments
+    Tests that `step` works with optimizer_closure and extra arguments
     """
     os.environ['PL_DEV_DEBUG'] = '1'
 
@@ -817,9 +817,9 @@ def test_manual_optimizer_step_with_optimizer_closure_and_extra_arguments(step_m
 
 @patch("torch.optim.Adam.step")
 @patch("torch.optim.SGD.step")
-def test_manual_optimizer_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, mock_adam_step, tmpdir):
+def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, mock_adam_step, tmpdir):
     """
-    Tests that `manual_optimizer_step` works with optimizer_closure and different accumulated_gradient frequency
+    Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
     """
     os.environ['PL_DEV_DEBUG'] = '1'
 

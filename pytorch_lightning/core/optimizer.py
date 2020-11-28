@@ -52,7 +52,7 @@ def do_nothing_closure():
     return
 
 
-class LightningOptimizer(Optimizer):
+class LightningOptimizer:
     """
     This class is used to wrap the user optimizers and handle properly
     the backward and optimizer_step logic across accelerators, AMP, accumulated_grad_batches
@@ -74,8 +74,11 @@ class LightningOptimizer(Optimizer):
 
         # For Horovod
         if hasattr(optimizer, "skip_synchronize"):
+            self.__class__ = type("Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__.__bases__[0]), {})
             self.skip_synchronize = optimizer.skip_synchronize
             self.synchronize = optimizer.synchronize
+        else:
+            self.__class__ = type("Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
 
         self._trainer = None
         self._optimizer = optimizer
@@ -110,27 +113,17 @@ class LightningOptimizer(Optimizer):
            Trainer(accumulate_grad_batches=x) is set.
 
         Args:
-            closure: Closure should contain forward and backward step
-            make_optimizer_step: Whether to force an optimizer step. When nothing is provided,
-                we will use `accumulate_grad_batches` for accumulation frequency by default.
-                However, one coud provide True and False based on its own scheduling.
 
-        .. tip:: In manual mode we still automatically accumulate grad over batches if
-           Trainer(accumulate_grad_batches=x) is set.
-
-        Args:
-            optimizer: Optimizer used to perform `.step()` call
+            closure: One could provide its own optimizer_closure. Set to None by default.
 
             make_optimizer_step: Whether to force an optimizer step. When nothing is provided,
                 we will use `accumulate_grad_batches` for accumulation frequency by default.
                 However, one coud provide True and False based on its own scheduling.
-                c.f example 2 and 3
+                Refer to example 2 and 3
 
-            optimizer_closure: One could provide its own optimizer_closure. Set to None by default.
+            args: Any parameters provided to wrapped optimizer.step()
 
-            args: Any parameters provided to optimizer.step()
-
-            kwargs: Any parameters provided to optimizer.step()
+            kwargs: Any parameters provided to wrapped optimizer.step()
 
         Example::
 
@@ -241,17 +234,12 @@ class LightningOptimizer(Optimizer):
                     closure()
 
     def __repr__(self):
-        groups = "["
-        for i, group in enumerate(self.param_groups):
-            groups += '('
-            params = ''
-            for key in sorted(group.keys()):
-                if key != 'params':
-                    v = group[key]
-                    v = round(v, 12) if isinstance(v, (float)) else v
-                    params += f'{key}={v}, '
-            groups += params[:-2]
-            groups += '),'
-        groups = groups[:-1] + ']'
-        format_string = f"{self.__class__.__name__}(optim={self._optimizer.__class__.__name__}, groups={groups})"
-        return format_string
+        groups = [
+            {
+                k: round(v, 12) if isinstance(v, float) else v
+                for k, v in sorted(group.items())
+                if k != "params"
+            }
+            for group in self.param_groups
+        ]
+        return f"{self.__class__.__name__}(groups={groups})"
