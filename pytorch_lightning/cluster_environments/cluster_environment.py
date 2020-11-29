@@ -35,10 +35,10 @@ class ClusterEnvironment:
 
     def required_plugins(self, amp_backend: AMPType) -> Optional[list]:
         """
-            Allows custom plugins to define additional plugins. This is useful for when custom plugins
+            Override to define additional required plugins. This is useful for when custom plugins
             need to enforce override of plugins behaviour.
 
-        Returns: List of plugins containing additional plugins if needed.
+        Returns: Optional list of plugins containing additional plugins.
 
         Example::
             class MyPlugin(DDPPlugin):
