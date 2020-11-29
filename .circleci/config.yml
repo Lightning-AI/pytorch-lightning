@@ -36,7 +36,7 @@ references:
       command: |
         gcloud --quiet auth configure-docker
         #cd dockers/tpu-tests
-        docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f ./dockers/tpu-tests/Dockerfile --build-arg "PYTHON_VERSION=$PYTHON_VER" .
+        docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f ./dockers/tpu-tests/Dockerfile --build-arg "PYTHON_VERSION=$PYTHON_VER" --build-arg "PYTORCH_VERSION=$XLA_VER" .
         docker push "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID"
 
   deploy_cluster: &deploy_cluster
@@ -102,6 +102,7 @@ jobs:
       - image: circleci/python:3.7
     environment:
       - PYTHON_VER: << parameters.python >>
+      - XLA_VER: 1.7
       - MAX_CHECKS: 240
       - CHECK_SPEEP: 5
     steps:

@@ -24,6 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [3.6, 3.7]
+        xla-version: [1.6, 1.7]
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 50
 
@@ -68,7 +69,7 @@ jobs:
     - name: Build and Push Docker Image
       run: |
         #cd dockers/tpu-tests
-        docker build --tag "$IMAGE:$IMAGETAG" -f ./dockers/tpu-tests/Dockerfile --build-arg "PYTHON_VERSION=${{ matrix.python-version }}" .
+        docker build --tag "$IMAGE:$IMAGETAG" -f ./dockers/tpu-tests/Dockerfile --build-arg "PYTHON_VERSION=${{ matrix.python-version }}" --build-arg "PYTORCH_VERSION=${{ matrix.xla-version }}" .
         docker push "$IMAGE:$IMAGETAG"
       shell: bash
 
