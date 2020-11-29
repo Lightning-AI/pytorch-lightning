@@ -23,7 +23,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.utilities import rank_zero_warn, TPU_AVAILABLE
+from pytorch_lightning.utilities import TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
