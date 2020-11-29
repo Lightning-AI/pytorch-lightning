@@ -223,18 +223,37 @@ def _check_classification_inputs(
     greater than 1, except perhaps the first one (N).
 
     Args:
-        preds: tensor with predictions
-        target: tensor with ground truth labels, always integers
+        preds: Tensor with predictions (labels or probabilities)
+        target: Tensor with ground truth labels, always integers (labels)
         threshold:
             Threshold probability value for transforming probability predictions to binary
             (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
-        num_classes: number of classes
-        is_multiclass: if True, treat binary and multi-label inputs as multi-class or multi-dim
-            multi-class with 2 classes, respectively. If False, treat multi-class and multi-dim
-            multi-class inputs with 1 or 2 classes as binary and multi-label, respectively.
-            Defaults to None, which treats inputs as they appear.
-        top_k: number of highest probability entries for each sample to convert to 1s, relevant
-            only for (multi-dimensional) multi-class cases.
+        num_classes:
+            Number of classes. If not explicitly set, the number of classes will be infered
+            either from the shape of inputs, or the maximum label in the ``target`` and ``preds``
+            tensor, where applicable.
+        top_k:
+            Number of highest probability entries for each sample to convert to 1s - relevant
+            only for (multi-dimensional) multi-class inputs with probability predictions. The
+            default value (``None``) will be interepreted as 1 for these inputs.
+
+            Should be left unset (``None``) for all other types of inputs.
+        is_multiclass:
+            Used only in certain special cases, where you want to treat inputs as a different type
+            than what they appear to be (see :ref:`metrics: Input types` documentation section for
+            input classification and examples of the use of this parameter). Should be left at default
+            value (``None``) in most cases.
+
+            The special cases where this parameter should be set are:
+
+            - When you want to treat binary or multi-label inputs as multi-class or multi-dimensional
+              multi-class with 2 classes, respectively. The probabilities are interpreted as the
+              probability of the "1" class, and thresholding still applies as usual. In this case
+              the parameter should be set to ``True``.
+            - When you want to treat multi-class or multi-dimensional mulit-class inputs with 2 classes
+              as binary or multi-label inputs, respectively. This is mainly meant for the case when
+              inputs are labels, but will work if they are probabilities as well. For this case the
+              parameter should be set to ``False``.
 
     Return:
         case: The case the inputs fall in, one of 'binary', 'multi-class', 'multi-label' or
@@ -335,21 +354,38 @@ def _input_format_classification(
     target.
 
     Args:
-        preds: tensor with predictions
-        target: tensor with ground truth labels, always integers
+        preds: Tensor with predictions (labels or probabilities)
+        target: Tensor with ground truth labels, always integers (labels)
         threshold:
             Threshold probability value for transforming probability predictions to binary
             (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
-        num_classes: number of classes
-        top_k: number of highest probability entries for each sample to convert to 1s, relevant
+        num_classes:
+            Number of classes. If not explicitly set, the number of classes will be infered
+            either from the shape of inputs, or the maximum label in the ``target`` and ``preds``
+            tensor, where applicable.
+        top_k:
+            Number of highest probability entries for each sample to convert to 1s - relevant
             only for (multi-dimensional) multi-class inputs with probability predictions. The
-            default value (``None``) will be interepreted as one for these inputs.
+            default value (``None``) will be interepreted as 1 for these inputs.
 
             Should be left unset (``None``) for all other types of inputs.
-        is_multiclass: if True, treat binary and multi-label inputs as multi-class or multi-dim
-            multi-class with 2 classes, respectively. If False, treat multi-class and multi-dim
-            multi-class inputs with 1 or 2 classes as binary and multi-label, respectively.
-            Defaults to None, which treats inputs as they appear.
+        is_multiclass:
+            Used only in certain special cases, where you want to treat inputs as a different type
+            than what they appear to be (see :ref:`metrics: Input types` documentation section for
+            input classification and examples of the use of this parameter). Should be left at default
+            value (``None``) in most cases.
+
+            The special cases where this parameter should be set are:
+
+            - When you want to treat binary or multi-label inputs as multi-class or multi-dimensional
+              multi-class with 2 classes, respectively. The probabilities are interpreted as the
+              probability of the "1" class, and thresholding still applies as usual. In this case
+              the parameter should be set to ``True``.
+            - When you want to treat multi-class or multi-dimensional mulit-class inputs with 2 classes
+              as binary or multi-label inputs, respectively. This is mainly meant for the case when
+              inputs are labels, but will work if they are probabilities as well. For this case the
+              parameter should be set to ``False``.
+
 
     Returns:
         preds: binary tensor of shape (N, C) or (N, C, X)
