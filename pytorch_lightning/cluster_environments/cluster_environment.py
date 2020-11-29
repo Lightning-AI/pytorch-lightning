@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Optional
 
 
 class ClusterEnvironment:
@@ -28,4 +29,25 @@ class ClusterEnvironment:
         return self._world_size
 
     def local_rank(self):
+        pass
+
+    def required_plugins(self) -> Optional[list]:
+        """
+            Allows custom plugins to define additional plugins. This is useful for when custom plugins
+            need to enforce override of plugins behaviour.
+
+        Returns: List of plugins containing additional plugins if needed.
+
+        Example::
+            class MyPlugin(DDPPlugin):
+                def required_plugins(self):
+                    return [MyCustomAMPPlugin()]
+
+            # Will automatically add the necessary AMP plugin
+            trainer = Trainer(plugins=[MyPlugin()])
+
+            # Crash as MyPlugin enforces custom AMP plugin
+            trainer = Trainer(plugins=[MyPlugin(), NativeAMPPlugin()])
+
+        """
         pass

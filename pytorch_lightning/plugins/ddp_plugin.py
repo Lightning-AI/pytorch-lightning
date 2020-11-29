@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, Optional
 
 import torch.distributed as torch_distrib
 from pytorch_lightning import _logger as log
@@ -130,3 +130,24 @@ class DDPPlugin(object):
         if isinstance(model, LightningDistributedDataParallel):
             return model.module
         return model
+
+    def required_plugins(self) -> Optional[list]:
+        """
+            Allows custom plugins to define additional plugins. This is useful for when custom plugins
+            need to enforce override of native amp/apex behaviour.
+
+        Returns: List of plugins containing additional plugins if needed.
+
+        Example::
+            class MyPlugin(DDPPlugin):
+                def required_plugins(self):
+                    return [MyCustomAMPPlugin()]
+
+            # Will automatically add the necessary AMP plugin
+            trainer = Trainer(plugins=[MyPlugin()])
+
+            # Crash as MyPlugin enforces custom AMP plugin
+            trainer = Trainer(plugins=[MyPlugin(), NativeAMPPlugin()])
+
+        """
+        pass

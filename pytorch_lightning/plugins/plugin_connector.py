@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from enum import Enum
-from typing import Union, Optional
+from typing import Union, Optional, List
 
 from pytorch_lightning.cluster_environments import ClusterEnvironment
+from pytorch_lightning.plugins.precision_plugin import PrecisionPlugin
 from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
@@ -37,37 +38,12 @@ class PluginConnector:
         self.plugins = plugins
         if self.plugins is None:
             self.plugins = []
-        self.plugins = self._strings_to_lightning_custom_plugins(self.plugins)
+        self.plugins = self._str_to_lightning_custom_plugins(self.plugins)
+        self.plugins = self._add_required_plugin_combinations(self.plugins)
         self.__attach_ddp()
         self.__attach_cluster()
         self.__attach_amp()
         self.__attach_apex()
-
-    def _strings_to_lightning_custom_plugins(self, plugins: Union[str, list]):
-        """
-        Converts string inputs to corresponding supported lightning plugins.
-        Args:
-            plugins: List of plugins or string to choose lightning plugin.
-
-        Returns: List of plugins where strings are now plugins.
-        """
-        if isinstance(plugins, str):
-            return [self._convert_plugin(plugins)]
-        return [self._convert_plugin(plugin) for plugin in plugins]
-
-    def _convert_plugin(self, plugin):
-        if isinstance(plugin, str):
-            if plugin not in LightningCustomPlugins.__members__:
-                raise MisconfigurationException(
-                    f"{plugin} is not a supported lightning custom plugin. "
-                    f"If you're trying to pass a custom plugin, please pass this as an object to "
-                    f"Trainer(plugins=[MyPlugin()]."
-                    f"Supported plugins as string input: "
-                    f"{(e.name for e in LightningCustomPlugins)}."
-                )
-            plugin_cls = LightningCustomPlugins[plugin].value
-            return plugin_cls()
-        return plugin
 
     def __attach_amp(self):
         amp_plugin = self.__attach_plugin(NativeAMPPlugin)
@@ -124,6 +100,61 @@ class PluginConnector:
 
                 # set the cluster
                 self.cloud_environment = plugin
+
+    def _str_to_lightning_custom_plugins(self, plugins: Union[str, list]):
+        """
+        Converts string inputs to corresponding supported lightning plugins.
+        Args:
+            plugins: List of plugins or string to choose lightning plugin.
+
+        Returns: List of plugins where strings are now plugins.
+        """
+        if isinstance(plugins, str):
+            return [self._convert_str_to_plugin(plugins)]
+        return [self._convert_str_to_plugin(plugin) for plugin in plugins]
+
+    def _convert_str_to_plugin(self, plugin):
+        if isinstance(plugin, str):
+            if plugin not in LightningCustomPlugins.__members__:
+                raise MisconfigurationException(
+                    f"{plugin} is not a supported lightning custom plugin. "
+                    f"If you're trying to pass a custom plugin, please pass this as an object to "
+                    f"Trainer(plugins=[MyPlugin()]."
+                    f"Supported plugins as string input: "
+                    f"{(e.name for e in LightningCustomPlugins)}."
+                )
+            plugin_cls = LightningCustomPlugins[plugin].value
+            return plugin_cls()
+        return plugin
+
+    def _add_required_plugin_combinations(self,
+                                          plugins: List[Union[DDPPlugin, PrecisionPlugin, ClusterEnvironment]]):
+        """
+            Allows custom plugins to define additional plugins. This is useful for when custom plugins
+            need to enforce override of native amp/apex when they are enabled.
+        Args:
+            plugins: List of plugins
+
+        Returns: List of plugins containing additional plugins if needed.
+
+        Example::
+            class MyPlugin(DDPPlugin):
+                def required_plugins(self):
+                    return [MyCustomAMPPlugin()]
+
+            # Will automatically add the necessary AMP plugin
+            trainer = Trainer(plugins=[MyPlugin()])
+
+            # Crash as MyPlugin enforces custom AMP plugin
+            trainer = Trainer(plugins=[MyPlugin(), NativeAMPPlugin()])
+
+        """
+        additional_plugins = []
+        for plugin in plugins:
+            required_plugins = plugin.required_plugins()
+            if required_plugins:
+                additional_plugins += required_plugins
+        return plugins + additional_plugins
 
 
 class LightningCustomPlugins(Enum):
