@@ -6,6 +6,7 @@ from pytorch_lightning import _logger as log
 from torch.optim import Optimizer
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
+from pytorch_lightning.utilities import AMPType
 
 
 class DDPPlugin(object):
@@ -131,7 +132,7 @@ class DDPPlugin(object):
             return model.module
         return model
 
-    def required_plugins(self) -> Optional[list]:
+    def required_plugins(self, amp_backend: AMPType) -> Optional[list]:
         """
             Allows custom plugins to define additional plugins. This is useful for when custom plugins
             need to enforce override of native amp/apex behaviour.

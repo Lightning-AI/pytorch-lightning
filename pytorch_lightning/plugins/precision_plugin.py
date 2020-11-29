@@ -16,6 +16,8 @@ from typing import Union, Optional
 
 from torch.optim import Optimizer
 
+from pytorch_lightning.utilities import AMPType
+
 
 class PrecisionPlugin(abc.ABC):
     """
@@ -37,7 +39,7 @@ class PrecisionPlugin(abc.ABC):
     def clip_gradients(self, grad_clip_val: Union[int, float], optimizer: Optimizer, norm_type: float):
         raise NotImplementedError
 
-    def required_plugins(self) -> Optional[list]:
+    def required_plugins(self, amp_backend: AMPType) -> Optional[list]:
         """
             Allows custom plugins to define additional plugins. This is useful for when custom plugins
             need to enforce override of native amp/apex behaviour.

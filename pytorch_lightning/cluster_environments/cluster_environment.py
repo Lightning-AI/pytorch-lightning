@@ -13,6 +13,8 @@
 # limitations under the License.
 from typing import Optional
 
+from pytorch_lightning.utilities import AMPType
+
 
 class ClusterEnvironment:
 
@@ -31,7 +33,7 @@ class ClusterEnvironment:
     def local_rank(self):
         pass
 
-    def required_plugins(self) -> Optional[list]:
+    def required_plugins(self, amp_backend: AMPType) -> Optional[list]:
         """
             Allows custom plugins to define additional plugins. This is useful for when custom plugins
             need to enforce override of plugins behaviour.

@@ -54,7 +54,7 @@ class PluginConnector:
     def __attach_apex(self):
         apex_plugin = self.__attach_plugin(ApexPlugin)
         if apex_plugin:
-            self.trainer.amp_backend = AMPType.NATIVE
+            self.trainer.amp_backend = AMPType.APEX
             self.trainer.precision_connector.backend = apex_plugin
 
     def __attach_plugin(self, plugin_type, limit=1):
@@ -151,7 +151,7 @@ class PluginConnector:
         """
         additional_plugins = []
         for plugin in plugins:
-            required_plugins = plugin.required_plugins()
+            required_plugins = plugin.required_plugins(amp_backend=self.trainer.amp_backend)
             if required_plugins:
                 additional_plugins += required_plugins
         return plugins + additional_plugins
