@@ -13,6 +13,7 @@
 # limitations under the License.
 """General utilities"""
 import importlib
+import platform
 from enum import Enum
 
 import numpy
@@ -48,6 +49,7 @@ OMEGACONF_AVAILABLE = _module_available("omegaconf")
 HYDRA_AVAILABLE = _module_available("hydra")
 
 TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
+FAIRSCALE_AVAILABLE = platform.system() != 'Windows' and _module_available('fairscale.nn.data_parallel')
 
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
 FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps
