@@ -583,7 +583,7 @@ A callback is an arbitrary self-contained program that can be executed at arbitr
 
 Here's an example adding a not-so-fancy learning rate decay rule:
 
-.. code-block:: python
+.. testcode::
 
     class DecayLearningRate(pl.Callback):
 
