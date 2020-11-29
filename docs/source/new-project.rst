@@ -592,7 +592,7 @@ Here's an example adding a not-so-fancy learning rate decay rule:
 
         def on_train_start(self, trainer, pl_module):
             # track the initial learning rates
-            for opt_idx in optimizer in enumerate(trainer.optimizers):
+            for opt_idx, optimizer in enumerate(trainer.optimizers):
                 group = []
                 for param_group in optimizer.param_groups:
                     group.append(param_group['lr'])
