@@ -16,14 +16,11 @@ import time
 import pytest
 
 import pytorch_lightning.utilities.xla_device_utils as xla_utils
+from pytorch_lightning.utilities import XLA_AVAILABLE
 from tests.base.develop_utils import pl_multi_process_test
 
-try:
+if XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
-
-    XLA_AVAILABLE = True
-except ImportError as e:
-    XLA_AVAILABLE = False
 
 
 @pytest.mark.skipif(XLA_AVAILABLE, reason="test requires torch_xla to be absent")

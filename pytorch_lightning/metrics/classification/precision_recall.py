@@ -25,12 +25,15 @@ from pytorch_lightning.metrics.utils import to_onehot, METRIC_EPS, _input_format
 
 
 class Precision(Metric):
-    """
-    Computes the precision metric.
+    r"""
+    Computes `Precision <https://en.wikipedia.org/wiki/Precision_and_recall>`_:
 
-    Works with binary, multiclass, and multilabel data.
-    Accepts logits from a model output or integer class values in prediction.
-    Works with multi-dimensional preds and target.
+    .. math:: \text{Precision} = \frac{\text{TP}}{\text{TP} + \text{FP}}
+
+    Where :math:`\text{TP}` and :math:`\text{FP}` represent the number of true positives and
+    false positives respecitively.  Works with binary, multiclass, and
+    multilabel data.  Accepts logits from a model output or integer class
+    values in prediction.  Works with multi-dimensional preds and target.
 
     Forward accepts
 
@@ -115,12 +118,15 @@ class Precision(Metric):
 
 
 class Recall(Metric):
-    """
-    Computes the recall metric.
+    r"""
+    Computes `Recall <https://en.wikipedia.org/wiki/Precision_and_recall>`_:
 
-    Works with binary, multiclass, and multilabel data.
-    Accepts logits from a model output or integer class values in prediction.
-    Works with multi-dimensional preds and target.
+    .. math:: \text{Recall} = \frac{\text{TP}}{\text{TP} + \text{FN}}
+
+    Where :math:`\text{TP}` and :math:`\text{FN}` represent the number of true positives and
+    false negatives respecitively. Works with binary, multiclass, and
+    multilabel data.  Accepts logits from a model output or integer class
+    values in prediction.  Works with multi-dimensional preds and target.
 
     Forward accepts
 

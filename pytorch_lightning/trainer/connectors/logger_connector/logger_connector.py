@@ -95,14 +95,14 @@ class LoggerConnector:
         if self._current_stage is not None:
             self._cached_results[self._current_stage].cache_result()
 
-    def on_trainer_init(self, logger, flush_logs_every_n_steps: int, log_every_n_steps: int, move_metrics_to_cpu: bool):
+    def on_trainer_init(self, logger, flush_logs_every_n_steps: int,
+                        log_every_n_steps: int, move_metrics_to_cpu: bool):
         # logging
         self.configure_logger(logger)
         # todo: IDE is complaining, these shall be initialized in the Trainer init at leas as placeholders
-        #  and assign here the desired value
+        # and assign here the desired value
         self.trainer.flush_logs_every_n_steps = flush_logs_every_n_steps
         self.trainer.log_every_n_steps = log_every_n_steps
-
         self.trainer.move_metrics_to_cpu = move_metrics_to_cpu
         self.trainer.split_idx = None
 
@@ -181,7 +181,7 @@ class LoggerConnector:
         self.logged_metrics.update(logged_metrics_tmp)
         self.cached_results.legacy_batch_log_metrics.update(logged_metrics_tmp)
 
-    def log_metrics(self, metrics, grad_norm_dic, step=None):
+    def log_metrics(self, metrics, grad_norm_dic, step=None, log_train_step_metrics=False):
         """Logs the metric dict passed in.
         If `step` parameter is None and `step` key is presented is metrics,
         uses metrics["step"] as a step
@@ -190,6 +190,8 @@ class LoggerConnector:
             metrics (dict): Metric values
             grad_norm_dic (dict): Gradient norms
             step (int): Step for which metrics should be logged. Default value corresponds to `self.global_step`
+            log_train_step_metrics (bool): Used to track if log_metrics function is being called in during training steps.
+                In training steps, we will log metrics on step: total_nb_idx (for accumulated gradients) and global_step for the rest.
         """
         # add gpu memory
         if self.trainer.on_gpu and self.trainer.log_gpu_memory:
@@ -207,8 +209,11 @@ class LoggerConnector:
 
         elif step is None:
             # added metrics by Lightning for convenience
-            scalar_metrics['epoch'] = self.trainer.current_epoch
-            step = self.trainer.global_step
+            if log_train_step_metrics:
+                step = self.trainer.total_batch_idx
+            else:
+                scalar_metrics['epoch'] = self.trainer.current_epoch
+                step = self.trainer.global_step
 
         # log actual metrics
         if self.trainer.logger is not None:
@@ -619,5 +624,5 @@ class LoggerConnector:
             metrics = self.cached_results.get_latest_batch_log_metrics()
             grad_norm_dic = batch_output.grad_norm_dic
             if len(metrics) > 0 or len(grad_norm_dic) > 0:
-                self.log_metrics(metrics, grad_norm_dic)
+                self.log_metrics(metrics, grad_norm_dic, log_train_step_metrics=True)
                 self.callback_metrics.update(metrics)
