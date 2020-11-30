@@ -15,7 +15,8 @@ from typing import List, Optional, Union
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
-from pytorch_lightning.utilities import rank_zero_only, FAIRSCALE_AVAILABLE
+from pytorch_lightning.plugins.sharded_native_amp_plugin import ShardedNativeAMPPlugin
+from pytorch_lightning.utilities import rank_zero_only, FAIRSCALE_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if FAIRSCALE_AVAILABLE:
@@ -79,3 +80,11 @@ class DDPShardedPlugin(DDPPlugin):
         if isinstance(model, LightningShardedDataParallel):
             return model.module
         return model
+
+    def required_plugins(self, amp_backend: AMPType) -> Optional[list]:
+        if amp_backend == AMPType.APEX:
+            raise MisconfigurationException(
+                'Sharded Plugin is not supported with Apex AMP, please using native AMP for 16-bit precision.'
+            )
+        if amp_backend == AMPType.NATIVE:
+            return [ShardedNativeAMPPlugin()]
