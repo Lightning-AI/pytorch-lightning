@@ -94,7 +94,7 @@ def run_optimizer(ctx, model):
 
 class LightningPipeModule(nn.Module):
     def __init__(self, module: nn.Sequential, balance: List[int],
-                 microbatches: int = 8, checkpoint='never', version: int = 1):
+                 microbatches: int = 8, checkpoint='never', version: int = 1, **kwargs):
         super().__init__()
         assert version in [1, 2]
         self._pipe_version = version
@@ -103,6 +103,7 @@ class LightningPipeModule(nn.Module):
         self.microbatches = microbatches
         self.checkpoint = checkpoint
         self._init_pipe()
+        self._kwargs = kwargs
 
     def _init_pipe(self):
         device = torch.device("cuda", torch_distrib.get_rank())
@@ -115,6 +116,7 @@ class LightningPipeModule(nn.Module):
             input_device=device,
             worker_map=get_worker_map(),
             checkpoint=self.checkpoint,
+            **self._kwargs
         )
 
     def forward(self, *args, **kwargs):
@@ -123,6 +125,48 @@ class LightningPipeModule(nn.Module):
 
 
 class PipePlugin(DDPPlugin):
+    """This class wraps an arbitrary :class:`nn.Sequential <torch.nn.Sequential>` module
+    using Fairscale Pipe_.
+    If the module requires lots of memory, Pipe will be very efficient.
+
+    .. _Pipe: https://arxiv.org/abs/1811.06965
+
+
+
+    Pipe combines pipeline parallelism with checkpointing to reduce peak
+    memory required to train while minimizing device under-utilization.
+
+    You should determine the balance when defining a :class:`Pipe` module, as
+    balancing will not be done automatically. The module will be partitioned
+    into multiple devices according to the given balance. You may rely on
+    heuristics to find your own optimal configuration.
+
+    We expect your LightningModule to contain a sequential under attribute `.layers`
+
+    ::
+        class Model(LightningModule):
+
+            ....
+
+            self.layers = nn.Sequential(...)
+
+    Args:
+        balance (ints):
+            list of number of layers in each partition
+
+        microbatches: int = 8:
+            batches bigger than microbatches will be splitted to keep memory constrained
+
+        checkpoint (str) = 'except_last'
+            when to enable checkpointing, one of ``'always'``,
+            ``'except_last'``, or ``'never'`` (default: ``'except_last'``)
+
+        version: int = 2
+            Lightning supports both Fairscale Pipe (v1) and PipeRPCWrapper (v2) implementations
+
+        kwarg: Any
+
+    """
     def __init__(self, balance: List[int], microbatches: int = 8, checkpoint='never', version: int = 1, **kwargs):
         super().__init__(**kwargs)
         assert isinstance(balance, list) and len(balance) > 0
@@ -131,6 +175,7 @@ class PipePlugin(DDPPlugin):
         self.checkpoint = checkpoint
         self.version = version
         self._use_barrier_and_broadcast = None
+        self._kwargs = kwargs
 
     @property
     def use_barrier_and_broadcast(self):
@@ -149,6 +194,7 @@ class PipePlugin(DDPPlugin):
                 microbatches=self.microbatches,
                 checkpoint=self.checkpoint,
                 version=self.version,
+                **self._kwargs
             )
             model.final_stage = model.layers.module.final_stage
             if self.version == 1:
