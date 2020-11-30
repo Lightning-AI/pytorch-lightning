@@ -406,7 +406,13 @@ class TrainLoop:
         result.hiddens = hiddens
 
         # track batch for manual reduction with result
-        result.track_batch_size(len(split_batch))
+        if PYSYFT_AVAILABLE:
+            # TODO: skip for now !
+            split_batch_size = 1
+        else:
+            split_batch_size = len(split_batch)
+
+        result.track_batch_size(split_batch_size)
 
         # track metrics without grads for epoch reduction
         training_step_output_for_epoch_end = copy(result)

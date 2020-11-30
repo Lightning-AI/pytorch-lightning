@@ -66,6 +66,9 @@ class TrainerOptimizersMixin(ABC):
         elif isinstance(optim_conf, (list, tuple)):
             optimizers = list(optim_conf)
         # unknown configuration
+        elif PYSYFT_AVAILABLE:
+            if optim_conf.__module__ == "syft.proxy.torch.optim":
+                optimizers = [optim_conf]
         else:
             raise MisconfigurationException(
                 'Unknown configuration for model optimizers.'
