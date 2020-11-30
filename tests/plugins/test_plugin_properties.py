@@ -31,4 +31,3 @@ def test_available_plugins_connector():
     plugins = PluginConnector.available_plugins()
     expected_plugins = [e.name for e in LightningCustomPlugins]
     assert plugins == expected_plugins
-
