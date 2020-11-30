@@ -151,4 +151,3 @@ class DDPPlugin(object):
             trainer = Trainer(plugins=[MyPlugin(), NativeAMPPlugin()])
 
         """
-        pass

@@ -40,7 +40,6 @@ def test_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processes):
             This allows us to ensure this plugin is added when using CustomPlugin rather than ensuring
             the user passes it manually into the list.
         """
-        pass
 
     class CustomPlugin(DDPPlugin):
         def required_plugins(self, amp_backend: AMPType) -> Optional[list]:
@@ -87,7 +86,6 @@ def test_invalid_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processe
             This allows us to ensure this plugin is added when using CustomPlugin rather than ensuring
             the user passes it manually into the list.
         """
-        pass
 
     class CustomPlugin(DDPPlugin):
         def required_plugins(self, amp_backend: AMPType) -> Optional[list]:

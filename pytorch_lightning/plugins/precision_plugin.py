@@ -58,4 +58,3 @@ class PrecisionPlugin(abc.ABC):
             trainer = Trainer(plugins=[MyPlugin(), NativeAMPPlugin()])
 
         """
-        pass

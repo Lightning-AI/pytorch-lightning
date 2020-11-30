@@ -52,4 +52,3 @@ class ClusterEnvironment:
             trainer = Trainer(plugins=[MyPlugin(), NativeAMPPlugin()])
 
         """
-        pass
