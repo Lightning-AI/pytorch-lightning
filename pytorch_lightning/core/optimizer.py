@@ -104,7 +104,7 @@ class LightningOptimizer:
         is_final_batch = self._trainer.train_loop._num_training_batches_reached()
         return not (accumulation_done or is_final_batch)
 
-    def step(self, *args, closure: Callable = None, make_optimizer_step: Optional[bool] = None, **kwargs):
+    def step(self, *args, closure: Optional[Callable] = None, make_optimizer_step: Optional[bool] = None, **kwargs):
         """
         Call this directly from your training_step when doing optimizations manually.
         By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
