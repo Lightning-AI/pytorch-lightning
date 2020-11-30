@@ -57,6 +57,13 @@ jobs:
       run : |
         python -c "fname = 'requirements.txt' ; req = open(fname).read().replace('torch>=1.3', 'torch>=1.4') ; open(fname, 'w').write(req)"
 
+    # Remove extra dependencies that are incompatible with 'minimal'
+    - name: Remove Minimal Incompatible Extra Dependencies
+      if: matrix.requires == 'minimal'
+      run: |
+        # remove Fairscale from requirements
+        python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)"
+
     - name: Set min. dependencies
       if: matrix.requires == 'minimal'
       run: |
