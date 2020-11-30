@@ -197,6 +197,7 @@ class LightningOptimizer:
                     # Trainer(accumulate_grad_batches=x)
                     opt_dis.step(closure=optimizer_closure, make_optimizer_step=True)
         """
+        profiler_name = "optimizer_step_and_closure"
 
         if closure is None:
             closure = do_nothing_closure
@@ -204,7 +205,6 @@ class LightningOptimizer:
         else:
             if not isinstance(closure, types.FunctionType):
                 raise MisconfigurationException("When closure is provided, it should be a function")
-            profiler_name = "optimizer_step_and_closure"
 
         if make_optimizer_step is None:
             make_optimizer_step = not self._should_accumulate
