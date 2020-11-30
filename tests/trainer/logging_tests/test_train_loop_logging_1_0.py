@@ -761,9 +761,14 @@ def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
             self.log("foo", torch.tensor(self.current_epoch), on_step=False, on_epoch=True, prog_bar=True)
             return super().training_step(*args)
 
-        def on_train_epoch_end(self, *_):
+        def on_epoch_end(self):
             self.epoch_end_called = True
+            self.log('foo_2', torch.tensor(self.current_epoch), prog_bar=True, on_epoch=True, sync_dist=True, sync_dist_op='sum')
+
+        def on_train_epoch_end(self, *_):
+            self.on_train_epoch_end_called = True
             assert self.trainer.progress_bar_dict["foo"] == self.current_epoch
+            assert self.trainer.progress_bar_dict["foo_2"] == self.current_epoch
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -778,3 +783,4 @@ def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
     model = TestModel()
     trainer.fit(model)
     assert model.epoch_end_called
+    assert model.on_train_epoch_end_called
