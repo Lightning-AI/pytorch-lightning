@@ -122,7 +122,7 @@ Use Sharded DDP for GPU memory and scaling optimization
 
 Sharded DDP is a lightning integration of `DeepSpeed ZeRO <https://arxiv.org/abs/1910.02054>`_ and
 `ZeRO-2 <https://www.microsoft.com/en-us/research/blog/zero-2-deepspeed-shattering-barriers-of-deep-learning-speed-scale/>`_
-provided by `Fairscale <https://github.com/facebookresearch/fairscale/tree/master/fairscale>`_.
+provided by `Fairscale <https://github.com/facebookresearch/fairscale>`_.
 
 When training on multiple GPUs sharded DDP can assist to increase memory efficiency substantially, and in some cases performance on multi-node is better than traditional DDP.
 This is due to efficient communication and parallelization under the hood.
