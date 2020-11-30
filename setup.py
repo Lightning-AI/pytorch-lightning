@@ -15,12 +15,6 @@
 
 import os
 from io import open
-import re
-
-from urllib.error import URLError
-from urllib.error import HTTPError
-from urllib.request import Request, urlopen
-import warnings
 
 # Always prefer setuptools over distutils
 from setuptools import find_packages, setup
@@ -36,118 +30,7 @@ PATH_ROOT = os.path.dirname(__file__)
 builtins.__LIGHTNING_SETUP__ = True
 
 import pytorch_lightning  # noqa: E402
-
-
-def load_requirements(path_dir=PATH_ROOT, file_name='requirements.txt', comment_char='#'):
-    with open(os.path.join(path_dir, file_name), 'r') as file:
-        lines = [ln.strip() for ln in file.readlines()]
-    reqs = []
-    for ln in lines:
-        # filer all comments
-        if comment_char in ln:
-            ln = ln[:ln.index(comment_char)].strip()
-        # skip directly installed dependencies
-        if ln.startswith('http'):
-            continue
-        if ln:  # if requirement is not empty
-            reqs.append(ln)
-    return reqs
-
-
-def _parse_README_for_badge(text):
-
-    # badge to download
-    valid_badge_names = [
-        'PyPI - Python Version',
-        'PyPI Status',
-        'PyPI Status',
-        'Conda',
-        'DockerHub',
-        'codecov',
-        'ReadTheDocs',
-        'Slack',
-        'Discourse status',
-        'license',
-        'Next Release'
-    ]
-
-    for line in text.split('\n'):
-        badge_name = re.search(r'^\[!\[(.*?)]', line)
-
-        # check for the badge name
-        if badge_name is not None:
-            badge_name = badge_name.group(1)
-
-            # check if valid name
-            if badge_name in valid_badge_names:
-
-                search_string = fr'\[\!\[{badge_name}]\((.*?)\)]'
-                badge_url = re.search(search_string, line)
-                # check for badge url
-                if badge_url is not None:
-                    badge_url = badge_url.group(1)
-
-                # download badge
-                saved_badge_name = _download_badges(badge_url, badge_name)
-
-                # replace url with local file path
-                replace_string = f'[![{badge_name}]({saved_badge_name})]'
-                text = re.sub(search_string, replace_string, text)
-
-    return text
-
-
-def _download_badges(url_badge, badge_name):
-
-    base_path = 'docs/source/_images/badges'
-    os.makedirs(base_path, exist_ok=True)
-
-    headers = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:81.0) Gecko/20100101 Firefox/81.0',
-               'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/svg,*/*;q=0.8', }
-
-    # function for saving the badge either in `.png` or `.svg`
-    def _save_file(url, save, extension):
-
-        # because there are two badge with name `PyPI Status` the second one is download
-        if 'https://pepy.tech/badge/pytorch-lightning' in url_badge:
-            save += '_downloads'
-
-        try:
-            req = Request(url=url, headers=headers)
-            resp = urlopen(req)
-        except URLError as err:
-            warnings.warn("Error while downloading the badge", UserWarning)
-        else:
-            save += extension
-            with open(save, 'wb') as download_file:
-                download_file.write(resp.read())
-
-    save_path = badge_name.replace(' - ', ' ')
-    save_path = f"{base_path}/{save_path.replace(' ', '_')}_badge"
-
-    try:
-        # always try to download the png versions (some url have an already png version available)
-        _save_file(url_badge, save_path, extension='.png')
-        return save_path + '.png'
-    except HTTPError as err:
-        if err.code == 404:
-            # save the `.svg`
-            url_badge = url_badge.replace('.png', '.svg')
-            _save_file(url_badge, save_path, extension='.svg')
-            return save_path + '.svg'
-
-
-def load_long_description():
-    # https://github.com/PyTorchLightning/pytorch-lightning/raw/master/docs/source/_images/lightning_module/pt_to_pl.png
-    url = os.path.join(pytorch_lightning.__homepage__, 'raw', pytorch_lightning.__version__, 'docs')
-    text = open('README.md', encoding='utf-8').read()
-    # replace relative repository path to absolute link to the release
-    text = text.replace('](docs', f']({url}')
-    # SVG images are not readable on PyPI, so replace them  with PNG
-    text = text.replace('.svg', '.png')
-    # download badge and replace url with local file
-    text = _parse_README_for_badge(text)
-    return text
+from pytorch_lightning.utilities.setup_tools import _load_requirements, _load_long_description
 
 
 # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
@@ -156,10 +39,10 @@ def load_long_description():
 # From local copy of repo, use like `pip install ".[dev, docs]"`
 extras = {
     # 'docs': load_requirements(file_name='docs.txt'),
-    'examples': load_requirements(path_dir=os.path.join(PATH_ROOT, 'requirements'), file_name='examples.txt'),
-    'loggers': load_requirements(path_dir=os.path.join(PATH_ROOT, 'requirements'), file_name='loggers.txt'),
-    'extra': load_requirements(path_dir=os.path.join(PATH_ROOT, 'requirements'), file_name='extra.txt'),
-    'test': load_requirements(path_dir=os.path.join(PATH_ROOT, 'requirements'), file_name='test.txt')
+    'examples': _load_requirements(path_dir=os.path.join(PATH_ROOT, 'requirements'), file_name='examples.txt'),
+    'loggers': _load_requirements(path_dir=os.path.join(PATH_ROOT, 'requirements'), file_name='loggers.txt'),
+    'extra': _load_requirements(path_dir=os.path.join(PATH_ROOT, 'requirements'), file_name='extra.txt'),
+    'test': _load_requirements(path_dir=os.path.join(PATH_ROOT, 'requirements'), file_name='test.txt')
 }
 extras['dev'] = extras['extra'] + extras['loggers'] + extras['test']
 extras['all'] = extras['dev'] + extras['examples']  # + extras['docs']
@@ -190,7 +73,7 @@ setup(
     license=pytorch_lightning.__license__,
     packages=find_packages(exclude=['tests', 'tests/*', 'benchmarks']),
 
-    long_description=load_long_description(),
+    long_description=_load_long_description(PATH_ROOT),
     long_description_content_type='text/markdown',
     include_package_data=True,
     zip_safe=False,
@@ -198,7 +81,7 @@ setup(
     keywords=['deep learning', 'pytorch', 'AI'],
     python_requires='>=3.6',
     setup_requires=[],
-    install_requires=load_requirements(),
+    install_requires=_load_requirements(PATH_ROOT),
     extras_require=extras,
 
     project_urls={
