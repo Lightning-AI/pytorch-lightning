@@ -23,10 +23,9 @@ import torch
 import torch.distributed as torch_distrib
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning import Trainer
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
-from pytorch_lightning.cluster_environment import ClusterEnvironment
+from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
@@ -43,7 +42,7 @@ if HYDRA_AVAILABLE:
 class DDPAccelerator(Accelerator):
 
     def __init__(self,
-                 trainer: Optional[Trainer] = None,
+                 trainer: Optional['Trainer'] = None,
                  cluster_environment: Optional[ClusterEnvironment] = None,
                  ddp_plugin: Optional[DDPPlugin] = None):
         """
