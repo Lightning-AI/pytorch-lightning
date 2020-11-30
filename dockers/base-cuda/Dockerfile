@@ -100,8 +100,7 @@ RUN \
 
 RUN \
     # install DALI, needed for examples
-    # todo: temprarl fix till https://github.com/PyTorchLightning/pytorch-lightning/pull/4922 is resolved
-    pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda${CUDA_VERSION%%.*}0<0.28
+    pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda${CUDA_VERSION%%.*}0
 
 RUN \
     # install NVIDIA AMP
