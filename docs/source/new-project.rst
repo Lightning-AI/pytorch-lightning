@@ -339,7 +339,7 @@ You can also add a forward method to do predictions however you want.
             return image
 
     autoencoder = LitAutoencoder()
-    image_sample = autoencoder(()
+    image_sample = autoencoder()
 
 Option 3: Production
 --------------------
