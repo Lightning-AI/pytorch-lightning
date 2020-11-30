@@ -11,22 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.metrics.metric import Metric
 
-from pytorch_lightning.metrics.classification import (
-    Accuracy,
-    Precision,
-    Recall,
-    FBeta,
-    F1,
-    ConfusionMatrix
-)
+from pytorch_lightning.utilities import _module_available
 
-from pytorch_lightning.metrics.regression import (
-    MeanSquaredError,
-    MeanAbsoluteError,
-    MeanSquaredLogError,
-    ExplainedVariance,
-    PSNR,
-    SSIM,
-)
+
+def test_module_exists():
+    """Test if the some 3rd party libs are available"""
+    assert _module_available("torch")
+    assert _module_available("torch.nn.parallel")
+    assert not _module_available("torch.nn.asdf")
+    assert not _module_available("asdf")
+    assert not _module_available("asdf.bla.asdf")
