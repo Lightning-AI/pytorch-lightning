@@ -252,7 +252,7 @@ def run_pipe_correctness(
         gpus=gpus,
         precision=precision,
         accelerator=accelerator,
-        plugins=[PipePlugin()],
+        plugins='pipe',
         limit_train_batches=1,
         accumulate_grad_batches=1,
     )
