@@ -7,7 +7,7 @@ Second-Edition/blob/master/Chapter06/02_dqn_pong.py
 The template illustrates using Lightning for Reinforcement Learning. The example builds a basic DQN using the
 classic CartPole environment.
 
-To run the template just run:
+To run the template, just run:
 python reinforce_learn_Qnet.py
 
 After ~1500 steps, you will see the total_reward hitting the max score of 200. Open up TensorBoard to
