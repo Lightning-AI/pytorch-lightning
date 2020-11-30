@@ -34,6 +34,7 @@ from copy import deepcopy
 from typing import Iterable
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.trainer.train_loader_patch import MultiIterator
+from pytorch_lightning.trainer.supporters import CombinedLoaderIterator, CombinedLoader
 
 TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 from pytorch_lightning.trainer.train_loader_patch import MagicClass
@@ -146,6 +147,7 @@ class TrainerDataLoadingMixin(ABC):
             model: The current `LightningModule`
         """
         self.train_dataloader = self.request_dataloader(model.train_dataloader)
+
         if (self.overfit_batches > 0):
             if hasattr(self.train_dataloader, 'sampler') and isinstance(self.train_dataloader.sampler, RandomSampler):
                 rank_zero_warn('You requested to overfit but enabled training dataloader shuffling.'
@@ -156,14 +158,19 @@ class TrainerDataLoadingMixin(ABC):
         # debugging
         self.dev_debugger.track_load_dataloader_call('train_dataloader', dataloaders=[self.train_dataloader])
 
-        self.num_training_batches = 0
-
         # automatically add samplers
         self.train_dataloader = apply_to_collection(
-            self.train_dataloader, DataLoader, self.auto_add_sampler, train=True)
+            self.train_dataloader, DataLoader, self.auto_add_sampler, shuffle=True)
+
+        # check the workers recursively
+        apply_to_collection(self.train_dataloader, DataLoader, self._worker_check, 'train dataloader')
+
+        # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
+        self.train_dataloader = CombinedLoader(self.train_dataloader, self._multiple_trainloader_mode)
+
+        self.num_training_batches = 0
 
         self.num_training_batches = len(self.train_dataloader) if has_len(self.train_dataloader) else float('inf')
-        self._worker_check(self.train_dataloader, 'train dataloader')
 
         if isinstance(self.limit_train_batches, int) or self.limit_train_batches == 0.0:
             self.num_training_batches = min(self.num_training_batches, int(self.limit_train_batches))
@@ -317,9 +324,9 @@ class TrainerDataLoadingMixin(ABC):
         Returns:
             The dataloader
         """
-        dataloader = MultiIterator(dataloader_fx())
+        dataloader = dataloader_fx()
         dataloader = self._flatten_dl_only(dataloader)
-        
+
         if self.accelerator_backend is not None:
             self.accelerator_backend.barrier('get_dataloaders')
         return dataloader

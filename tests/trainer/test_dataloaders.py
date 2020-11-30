@@ -656,6 +656,62 @@ def test_warning_with_few_workers(mock, tmpdir, ckpt_path):
         trainer.test(**test_options)
 
 
+@pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
+@pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
+@patch('pytorch_lightning.trainer.data_loading.multiprocessing.cpu_count', return_value=4)
+def test_warning_with_few_workers_multi_loader(mock, tmpdir, ckpt_path):
+    """ Test that error is raised if dataloader with only a few workers is used """
+
+    model = EvalModelTemplate()
+    model.training_step = model.training_step__multiple_dataloaders
+    model.validation_step = model.validation_step__multiple_dataloaders
+    model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
+    model.test_step = model.test_step__multiple_dataloaders
+    model.test_epoch_end = model.test_epoch_end__multiple_dataloaders
+
+    # logger file to get meta
+    train_dl = model.dataloader(train=True)
+    train_dl.num_workers = 0
+
+    val_dl = model.dataloader(train=False)
+    val_dl.num_workers = 0
+
+    train_dl = model.dataloader(train=False)
+    train_dl.num_workers = 0
+
+    train_multi_dl = {'a': train_dl, 'b': train_dl}
+    val_multi_dl = [val_dl, val_dl]
+    test_multi_dl = [train_dl, train_dl]
+
+    fit_options = dict(train_dataloader=train_multi_dl,
+                       val_dataloaders=val_multi_dl)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_val_batches=0.1,
+        limit_train_batches=0.2,
+    )
+
+    # fit model
+    with pytest.warns(
+        UserWarning, match='The dataloader, train dataloader, does not have many workers which may be a bottleneck.'
+    ):
+        trainer.fit(model, **fit_options)
+
+    with pytest.warns(
+        UserWarning, match='The dataloader, val dataloader 0, does not have many workers which may be a bottleneck.'
+    ):
+        trainer.fit(model, **fit_options)
+
+    if ckpt_path == 'specific':
+        ckpt_path = trainer.checkpoint_callback.best_model_path
+    test_options = dict(test_dataloaders=test_multi_dl, ckpt_path=ckpt_path)
+    with pytest.warns(
+        UserWarning, match='The dataloader, test dataloader 0, does not have many workers which may be a bottleneck.'
+    ):
+        trainer.test(**test_options)
+
+
 @pytest.mark.xfail(
     LooseVersion(torch.__version__) < LooseVersion("1.4.0"),
     reason="IterableDataset with __len__ before 1.4 raises",
@@ -855,27 +911,24 @@ def test_batch_size_smaller_than_num_gpus(tmpdir):
     assert 1 == result
 
 
-def test_fit_multiple_train_loaders(tmpdir):
-    class MutipleLoaderModel(EvalModelTemplate):
-        def train_dataloader(self):
-            return {'a': super().train_dataloader(),
-                    'b': super().train_dataloader()}
+@pytest.mark.parametrize(['multiple_trainloader_mode', 'num_training_batches'], [
+    pytest.param("min_size", 5),
+    pytest.param("max_size_cycle", 10),
+])
+def test_fit_multiple_train_loaders(tmpdir, multiple_trainloader_mode, num_training_batches):
+    """Integration test for multple train loaders"""
+    model = EvalModelTemplate()
 
-        def training_step(self, batch, batch_idx, optimizer_idx=None):
-            assert isinstance(batch, dict)
-            assert len(batch) == 2
-            assert 'a' in batch and 'b' in batch
-            return super().training_step(batch=batch['a'], batch_idx=batch_idx,
-                                         optimizer_idx=optimizer_idx)
-
-    hparams = EvalModelTemplate.get_default_hparams()
-
-    model = MutipleLoaderModel(**hparams)
+    model.train_dataloader = model.train_dataloader__multiple
+    model.training_step = model.training_step__multiple_dataloaders
 
     trainer = Trainer(
-        fast_dev_run=True, default_root_dir=tmpdir
+        max_epochs=1, default_root_dir=tmpdir, multiple_trainloader_mode=multiple_trainloader_mode
     )
+
     assert 1 == trainer.fit(model)
+    # verify the num_training_batches according to the multiple_trainloader_mode
+    assert num_training_batches == trainer.num_training_batches
 
 
 @pytest.mark.parametrize('check_interval', [1.0])

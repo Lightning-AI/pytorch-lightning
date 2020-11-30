@@ -17,6 +17,7 @@ import torch
 from torch.utils.data import DataLoader, IterableDataset
 
 from pytorch_lightning.utilities import rank_zero_warn
+from typing import Union
 
 
 def has_iterable_dataset(dataloader: DataLoader):
@@ -45,3 +46,13 @@ def has_len(dataloader: DataLoader) -> bool:
             ' this can lead to unintended side effects since the samples will be duplicated.'
         )
     return has_len
+
+
+def get_len(dataloader: DataLoader) -> Union[int, float]:
+    """ Return the length of the given DataLoader. If __len__ method is not implemented,
+        return float('inf'). """
+
+    if has_len(dataloader):
+        return len(dataloader)
+
+    return float('inf')

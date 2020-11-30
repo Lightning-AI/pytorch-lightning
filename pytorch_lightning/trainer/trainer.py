@@ -283,6 +283,11 @@ class Trainer(
             enable_pl_optimizer: If True, each optimizer will be wrapped by
                 `pytorch_lightning.core.optimizer.LightningOptimizer`. It allows Lightning to
                 handle AMP, TPU, accumulated_gradients, etc..
+
+            multiple_trainloader_mode: How to loop over the datasets when there are multiple train loaders.
+                In 'max_size_cycle' mode, the trainer ends one epoch when the largest dataset is traversed,
+                and smaller datasets reload when running out of their data. In 'min_size' mode, all the datasets
+                reload when reaching the minimum length of datasets.
         """
         super().__init__()
         self._device_type = DeviceType.CPU
