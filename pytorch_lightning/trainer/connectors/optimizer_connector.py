@@ -19,7 +19,7 @@ class OptimizerConnector:
     def __init__(self, trainer):
         self.trainer = trainer
 
-    def on_trainer_init(self, enable_pl_optimizer):
+    def on_trainer_init(self, enable_pl_optimizer: bool):
         self.trainer.enable_pl_optimizer = enable_pl_optimizer
         self.trainer.lr_schedulers = []
         self.trainer.optimizers = []

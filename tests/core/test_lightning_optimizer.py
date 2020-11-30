@@ -34,6 +34,7 @@ def test_lightning_optimizer(tmpdir):
             # optimizer = LightningOptimizer(self.trainer, optimizer)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
             return [optimizer], [lr_scheduler]
+
     model = TestModel()
     trainer = Trainer(
         default_root_dir=os.getcwd(),
@@ -41,7 +42,8 @@ def test_lightning_optimizer(tmpdir):
         limit_val_batches=1,
         max_epochs=1,
         weights_summary=None,
-        enable_pl_optimizer=True)
+        enable_pl_optimizer=True,
+    )
     trainer.fit(model)
 
     groups = "{'dampening': 0, 'initial_lr': 0.1, 'lr': 0.01, 'momentum': 0, 'nesterov': False, 'weight_decay': 0}"
@@ -60,6 +62,7 @@ def test_lightning_optimizer_from_user(tmpdir):
             optimizer = LightningOptimizer(optimizer)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
             return [optimizer], [lr_scheduler]
+
     model = TestModel()
     trainer = Trainer(
         default_root_dir=os.getcwd(),
@@ -67,7 +70,8 @@ def test_lightning_optimizer_from_user(tmpdir):
         limit_val_batches=1,
         max_epochs=1,
         weights_summary=None,
-        enable_pl_optimizer=True)
+        enable_pl_optimizer=True,
+    )
     trainer.fit(model)
 
     groups = "{'amsgrad': False, 'betas': (0.9, 0.999), 'eps': 1e-08, 'initial_lr': 0.1, 'lr': 0.01, 'weight_decay': 0}"
@@ -167,7 +171,8 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(mock_
         weights_summary=None,
         automatic_optimization=False,
         accumulate_grad_batches=2,
-        enable_pl_optimizer=True)
+        enable_pl_optimizer=True,
+    )
     trainer.fit(model)
 
     assert len(mock_sgd_step.mock_calls) == 2

@@ -63,7 +63,7 @@ def test_model_properties_resume_from_checkpoint(enable_pl_optimizer, tmpdir):
         max_epochs=1,
         logger=False,
         enable_pl_optimizer=enable_pl_optimizer,
-        callbacks=[checkpoint_callback, ModelTrainerPropertyParity()]  # this performs the assertions
+        callbacks=[checkpoint_callback, ModelTrainerPropertyParity()],  # this performs the assertions
     )
     trainer = Trainer(**trainer_args)
     trainer.fit(model)

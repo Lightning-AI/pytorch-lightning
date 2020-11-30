@@ -67,8 +67,9 @@ class LightningOptimizer:
 
         assert accumulate_grad_batches is None or isinstance(accumulate_grad_batches, int)
         if isinstance(accumulate_grad_batches, int) and accumulate_grad_batches < 1:
-            raise MisconfigurationException(f"accumulate_grad_batches parameters "
-                                            f"{accumulate_grad_batches} should be >= 1")
+            raise MisconfigurationException(
+                f"accumulate_grad_batches parameters {accumulate_grad_batches} should be >= 1"
+            )
 
         self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k != 'step'}
 
@@ -197,13 +198,13 @@ class LightningOptimizer:
                     opt_dis.step(closure=optimizer_closure, make_optimizer_step=True)
         """
 
-        profiler_name = "optimizer_step_and_closure"
         if closure is None:
             closure = do_nothing_closure
             profile_name = "optimizer_step"
         else:
             if not isinstance(closure, types.FunctionType):
                 raise MisconfigurationException("When closure is provided, it should be a function")
+            profiler_name = "optimizer_step_and_closure"
 
         if make_optimizer_step is None:
             make_optimizer_step = not self._should_accumulate
