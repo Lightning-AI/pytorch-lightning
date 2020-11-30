@@ -116,10 +116,12 @@ However, know that 16-bit and multi-processing (any DDP) can have issues. Here a
 .. tip:: We also recommend using 16-bit native found in PyTorch 1.6. Just install this version and Lightning will automatically use it.
 
 
-Pipeline Parallelism with Checkpointing to reduce peak memory
--------------------------------------------------------------
+Pipeline Parallelism with Checkpointing to reduce peak memory (beta feature)
+----------------------------------------------------------------------------
 
-Pipe Pipeline is a lightning integration of Pipeline Parallelism provided by Fairscale.
+Pipe Pipeline is a lightning integration of Pipeline Parallelism provided by [Fairscale](https://github.com/facebookresearch/fairscale)
+
+It is one of the component of [DeepSpeed ZeRO](https://arxiv.org/abs/1910.02054) and [ZeRO-2](https://www.microsoft.com/en-us/research/blog/zero-2-deepspeed-shattering-barriers-of-deep-learning-speed-scale/)
 
 Pipe combines pipeline parallelism with checkpointing to reduce peak memory required to train while minimizing device under-utilization.
 
@@ -131,8 +133,9 @@ or
 pip install https://github.com/facebookresearch/fairscale/archive/master.zip
 ```
 
-We except the nn.Sequential model to be set as `.layers` attribute to your LightningModule.
+.. note:: This feature is supported only with `Trainer(automatic_optimzation=False)`
 
+We except the nn.Sequential model to be set as `.layers` attribute to your LightningModule.
 
 .. code-block:: bash
 
