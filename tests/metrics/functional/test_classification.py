@@ -2,6 +2,7 @@ from functools import partial
 
 import pytest
 import torch
+from distutils.version import LooseVersion
 from sklearn.metrics import (
     accuracy_score as sk_accuracy,
     jaccard_score as sk_jaccard_score,
