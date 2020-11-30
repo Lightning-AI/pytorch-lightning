@@ -224,15 +224,22 @@ def test_threshold():
         # #dims in preds = 1 + #dims in target, preds not float
         (randint(high=2, size=(7, 3, 3, 4)), randint(high=4, size=(7, 3, 3)), 0.5, None, None, None),
         # is_multiclass=False, with C dimension > 2
-        (rand(size=(7, 3, 5)), randint(high=2, size=(7, 5)), 0.5, None, False, None),
+        (_mc_prob.preds[0], randint(high=2, size=(BATCH_SIZE,)), 0.5, None, False, None),
         # Probs of multiclass preds do not sum up to 1
         (rand(size=(7, 3, 5)), randint(high=2, size=(7, 5)), 0.5, None, None, None),
         # Max target larger or equal to C dimension
-        (rand(size=(7, 3)), randint(low=4, high=6, size=(7,)), 0.5, None, None, None),
+        (_mc_prob.preds[0], randint(low=NUM_CLASSES + 1, high=100, size=(BATCH_SIZE,)), 0.5, None, None, None),
         # C dimension not equal to num_classes
-        (rand(size=(7, 4, 3)), randint(high=4, size=(7, 3)), 0.5, 7, None, None),
+        (_mc_prob.preds[0], _mc_prob.target[0], 0.5, NUM_CLASSES + 1, None, None),
         # Max target larger than num_classes (with #dim preds = 1 + #dims target)
-        (rand(size=(7, 3, 4)), randint(low=5, high=7, size=(7, 3)), 0.5, 4, None, None),
+        (
+            _mc_prob.preds[0],
+            randint(low=NUM_CLASSES + 1, high=100, size=(BATCH_SIZE, NUM_CLASSES)),
+            0.5,
+            4,
+            None,
+            None,
+        ),
         # Max target larger than num_classes (with #dim preds = #dims target)
         (randint(high=4, size=(7, 3)), randint(low=5, high=7, size=(7, 3)), 0.5, 4, None, None),
         # Max preds larger than num_classes (with #dim preds = #dims target)
