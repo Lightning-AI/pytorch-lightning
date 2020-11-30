@@ -88,6 +88,12 @@ def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None)
     """
     if group is None:
         group = torch.distributed.group.WORLD
+    
+    if not result.is_contiguous():
+        rank_zero_warn('Syncing with `gather_all` requires input to be contiguous'
+                       ' memory allocated. Will convert to contiguous format.',
+                       UserWarning)
+        result = result.contiguous()
 
     world_size = torch.distributed.get_world_size(group)
 

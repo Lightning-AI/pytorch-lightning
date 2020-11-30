@@ -3,6 +3,7 @@ import sys
 import pytest
 import torch
 
+from pytorch_lightning.metrics import Metric
 from tests.metrics.test_metric import Dummy
 from tests.metrics.utils import setup_ddp
 
@@ -43,3 +44,34 @@ def _test_ddp_sum_cat(rank, worldsize):
 @pytest.mark.parametrize("process", [_test_ddp_cat, _test_ddp_sum, _test_ddp_sum_cat])
 def test_ddp(process):
     torch.multiprocessing.spawn(process, args=(2,), nprocs=2)
+
+
+def _test_memory_warning(rank, worldsize):
+    setup_ddp(rank, worldsize)
+
+    class DummyMetric(Metric):
+        def __init__(self):
+            super().__init__()
+            self.add_state("x", default=[], dist_reduce_fx=None)
+
+        def update(self, x):
+            self.x.append(x)
+
+        def compute(self):
+            x = torch.cat(self.x, dim=0)
+            return x.sum()
+
+    metric = DummyMetric()
+    metric.update(torch.randn(10, 5)[:, 0])
+
+    with pytest.warns(
+        UserWarning,
+        match="Syncing with `gather_all` requires input to be contiguous"
+        " memory allocated. Will convert to contiguous format.",
+    ):
+        val = metric.compute()
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
+def test_not_contiguous_memory_warning():
+    torch.multiprocessing.spawn(_test_memory_warning, args=(2,), nprocs=2)
