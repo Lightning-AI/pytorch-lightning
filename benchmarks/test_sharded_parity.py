@@ -127,7 +127,7 @@ def test_ddp_sharded_plugin_correctness_multi_gpu_multi_optim():
         gpus=2,
         accelerator='ddp_spawn',
         model_cls=SeedTrainLoaderMultipleOptimizersModel,
-        max_percent_speed_diff=0.2  # Increase speed diff since only 2 GPUs sharding 2 optimizers
+        max_percent_speed_diff=0.25  # Increase speed diff since only 2 GPUs sharding 2 optimizers
     )
 
 

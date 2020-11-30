@@ -14,7 +14,7 @@ local tputests = base.BaseTest {
   imageTag: std.extVar('image-tag'),
 
   tpuSettings+: {
-    softwareVersion: 'pytorch-nightly',
+    softwareVersion: 'pytorch-VERSION',
   },
   accelerator: tpus.v3_8,
 
