@@ -8,7 +8,7 @@ Train on ImageNet with default parameters:
 
 .. code-block: bash
 
-    python imagenet.py --data_root /path/to/imagenet
+    python imagenet.py --data-path /path/to/imagenet
 
 or show all options you can change:
 

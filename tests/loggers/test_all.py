@@ -21,13 +21,13 @@ from unittest.mock import ANY, call
 import pytest
 
 import tests.base.develop_utils as tutils
-from pytorch_lightning import Trainer, Callback
+from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers import (
-    TensorBoardLogger,
+    CometLogger,
     MLFlowLogger,
     NeptuneLogger,
+    TensorBoardLogger,
     TestTubeLogger,
-    CometLogger,
     WandbLogger,
 )
 from pytorch_lightning.loggers.base import DummyExperiment
@@ -124,7 +124,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
     if logger_class == TensorBoardLogger:
         expected = [
             (0, ['hp_metric']),
-            (0, ['epoch', 'train_some_val']),
+            (0, ['train_some_val']),
             (0, ['early_stop_on', 'epoch', 'val_acc']),
             (0, ['hp_metric']),
             (1, ['epoch', 'test_acc', 'test_loss'])
@@ -132,7 +132,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
         assert log_metric_names == expected
     else:
         expected = [
-            (0, ['epoch', 'train_some_val']),
+            (0, ['train_some_val']),
             (0, ['early_stop_on', 'epoch', 'val_acc']),
             (1, ['epoch', 'test_acc', 'test_loss'])
         ]
@@ -369,4 +369,4 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     with mock.patch('pytorch_lightning.loggers.wandb.wandb') as wandb:
         logger = _instantiate_logger(WandbLogger, save_idr=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
-        wandb.init().log.assert_called_once_with({'tmp-test': 1.0}, step=0)
+        logger.experiment.log.assert_called_once_with({'tmp-test': 1.0}, step=0)
