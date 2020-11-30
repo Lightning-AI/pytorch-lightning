@@ -94,12 +94,43 @@ def run_optimizer(ctx, model):
     )
 
 
+class PipeMode(Enum):
+    PIPE = "pipe"
+    PIPE_RPC = "pipe_rpc"
+
+
 class LightningPipeModule(nn.Module):
-    def __init__(self, module: nn.Sequential, balance: List[int],
-                 microbatches: int = 8, checkpoint='never', version: int = 1):
+    """
+        This class wraps Fairscale Pipe and PipeRCPWrapper class.
+
+        Args:
+            module: nn.Sequential
+                sequential model to be balanced among several gpus
+
+            balance: list of ints
+                list of number of layers in each partition.
+
+            checkpoint (str) = 'never'
+                when to enable checkpointing, one of ``'always'``,
+                ``'except_last'``, or ``'never'`` (default: ``'except_last'``)
+
+            balance_mode: str = "balance_by_size"
+                when balance is not provided, the model can be balanced either by size or time.
+                refer to balance description.
+
+            mode: PipeMode
+                the mode enables switching between Pipe and PipeRCPWrapper class
+    """
+    def __init__(self,
+                 module: nn.Sequential,
+                 balance: List[int],
+                 microbatches: int = 8,
+                 checkpoint='never',
+                 mode=PipeMode.PIPE_RPC):
         super().__init__()
-        assert version in [1, 2]
-        self._pipe_version = version
+
+        assert mode in list(PipeMode)
+        self.mode = mode
         self.module = module
         self.balance = balance
         self.microbatches = microbatches
@@ -108,7 +139,7 @@ class LightningPipeModule(nn.Module):
 
     def _init_pipe(self):
         device = torch.device("cuda", torch_distrib.get_rank())
-        pipe_cls = Pipe if self._pipe_version == 1 else PipeRPCWrapper
+        pipe_cls = Pipe if self.mode == PipeMode.PIPE else PipeRPCWrapper
         self.module = pipe_cls(
             module=self.module,
             balance=self.balance,
@@ -237,12 +268,13 @@ class PipePlugin(DDPPlugin):
     def _find_pipe_module(self, model):
         # try to wrap for the user
         if hasattr(model, "layers") and isinstance(model.layers, nn.Sequential):
+            mode = PipeMode.PIPE if self.version == PipeMode.PIPE else PipeMode.PIPE_RPC
             model.layers = LightningPipeModule(
                 model.layers,
                 balance=self.balance,
                 microbatches=self.microbatches,
                 checkpoint=self.checkpoint,
-                version=self.version,
+                mode=mode,
             )
             model.final_stage = model.layers.module.final_stage
             if self.version == 1:
