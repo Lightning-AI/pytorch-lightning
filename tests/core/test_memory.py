@@ -26,6 +26,29 @@ def almost_equals(a, b, rel_tol=0.0, abs_tol=0.0):
     return _almost_close(a, b)
 
 
+class KnownNet(LightningModule):
+    """ Pre calculated known model """
+
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
+        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
+        self.conv3 = nn.Conv2d(20, 30, kernel_size=3)
+        self.conv4 = nn.Conv2d(30, 30, kernel_size=3)
+        self.fc1 = nn.Linear(10, 50)
+        self.fc2 = nn.Linear(50, 10)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        x = self.conv4(x)
+        x = x.view(-1, 10)
+        x = self.fc1(x)
+        x = self.fc2(x)
+        return x
+
+
 class EmptyModule(LightningModule):
     """ A module that has no layers """
 
@@ -40,8 +63,6 @@ class EmptyModule(LightningModule):
 
 class UnorderedModel(LightningModule):
     """ A model in which the layers not defined in order of execution """
-
-    pre_calculated_model_size = 0.000870
 
     def __init__(self):
         super().__init__()
@@ -65,8 +86,6 @@ class UnorderedModel(LightningModule):
 
 class MixedDtypeModel(LightningModule):
     """ The parameters and inputs of this model have different dtypes. """
-
-    pre_calculated_model_size = 0.00182
 
     def __init__(self):
         super().__init__()
@@ -133,20 +152,10 @@ def test_linear_model_summary_shapes(device, mode):
     assert model.device == device
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="Test requires GPU.")
-def test_linear_model_summary_shapes(device, mode):
-    """ Test that the model size is correctly calculated."""
-    model = UnorderedModel().to(device)
-    model.train()
-    summary = model.summarize(mode=mode)
-    assert almost_equals(summary.model_size(), model.pre_calculated_model_size, rel_tol=1e-4, abs_tol=1e-4)
-
-
 def test_mixed_dtype_model_summary():
     """ Test that the model summary works with models that have mixed input- and parameter dtypes. """
     model = MixedDtypeModel()
     summary = model.summarize()
-    assert almost_equals(summary.model_size(), model.pre_calculated_model_size, rel_tol=1e-4, abs_tol=1e-4)
     assert summary.in_sizes == [
         [2, 3],         # embed
         [2, 3, 20],     # reduce
@@ -232,6 +241,7 @@ def test_summary_layer_types(mode):
     ]
 
 
+<<<<<<< HEAD
 @pytest.mark.parametrize(['mode'], [
     pytest.param(ModelSummary.MODE_FULL),
     pytest.param(ModelSummary.MODE_TOP),
@@ -245,6 +255,51 @@ def test_summary_layer_types(mode):
     pytest.param([torch.zeros(2, 3), torch.zeros(4, 5)], [[2, 3], [4, 5]]),
     pytest.param((torch.zeros(2, 3), torch.zeros(4, 5)), [[2, 3], [4, 5]]),
 ])
+=======
+@pytest.mark.parametrize(
+    ["mode"],
+    [
+        pytest.param(ModelSummary.MODE_FULL),
+        pytest.param(ModelSummary.MODE_TOP),
+    ],
+)
+@pytest.mark.parametrize(
+    ["example_input", "expected_model_size"],
+    [
+        pytest.param(torch.zeros(1, 1, 28, 28), 0.668),
+        pytest.param(torch.zeros(1, 1, 224, 224), 93.57),
+        pytest.param(torch.zeros(10, 1, 512, 512), 5176.78),
+    ],
+)
+def test_known_model_sizes(example_input, expected_model_size, mode):
+    """ Test the knownet model on example input arrays and corresponding known model size """
+
+    model = KnownNet()
+    model.example_input_array = example_input
+    summary = model.summarize(mode=mode)
+    assert almost_equals(summary.model_size(), expected_model_size, rel_tol=1e-3, abs_tol=1e-3)
+
+
+@pytest.mark.parametrize(
+    ["mode"],
+    [
+        pytest.param(ModelSummary.MODE_FULL),
+        pytest.param(ModelSummary.MODE_TOP),
+    ],
+)
+@pytest.mark.parametrize(
+    ["example_input", "expected_size"],
+    [
+        pytest.param([], UNKNOWN_SIZE),
+        pytest.param((1, 2, 3), [UNKNOWN_SIZE] * 3),
+        pytest.param(torch.tensor(0), UNKNOWN_SIZE),
+        pytest.param(dict(tensor=torch.zeros(1, 2, 3)), UNKNOWN_SIZE),
+        pytest.param(torch.zeros(2, 3, 4), [2, 3, 4]),
+        pytest.param([torch.zeros(2, 3), torch.zeros(4, 5)], [[2, 3], [4, 5]]),
+        pytest.param((torch.zeros(2, 3), torch.zeros(4, 5)), [[2, 3], [4, 5]]),
+    ],
+)
+>>>>>>> :hammer: Simplified tests
 def test_example_input_array_types(example_input, expected_size, mode):
     """ Test the types of example inputs supported for display in the summary. """
 
