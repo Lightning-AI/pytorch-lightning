@@ -18,12 +18,10 @@ class NewAccelerator(object):
 
     def __init__(
         self,
-        model_ref: LightningModule,
         precision_plugin: PrecisionPlugin,
         training_type_plugin: TrainingTypePlugin,
         gradient_clip_val,
     ):
-        self.model_ref = model_ref
         self.precision_plugin = precision_plugin
         self.training_type_plugin = training_type_plugin
         self.gradient_clip_val = gradient_clip_val
@@ -36,6 +34,18 @@ class NewAccelerator(object):
         self.connect_training_type_plugin()
         self.setup_optimizers(model)
         self.connect_precision_plugin()
+
+    @property
+    def model(self):
+        return self.training_type_plugin.model
+
+    @model.setter
+    def model(self, new_model):
+        self.training_type_plugin.model = new_model
+
+    @property
+    def lightning_module(self):
+        return self.training_type_plugin.lightning_module
 
     @property
     def root_device(self):
@@ -84,6 +94,8 @@ class NewAccelerator(object):
         return self.precision_plugin.backward(closure_loss, optimizer, opt_idx, *args, **kwargs)
 
     def optimizer_step(self, optimizer, current_epoch, batch_idx, opt_idx, lambda_closure):
+        # TODO: Check out if this can be simplified with new LightningOptimizer!
+
         model_ref = self.model_ref
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
         native_amp = self.trainer.amp_backend == AMPType.NATIVE
@@ -171,12 +183,15 @@ class NewAccelerator(object):
         self.lr_schedulers = lr_schedulers
         self.optimizer_frequencies = optimizer_frequencies
 
-    def connect_training_type_plugin(self, plugin: Plugin):
-        model, optimizers, schedulers = plugin.connect(
+    def connect_training_type_plugin(self, plugin: TrainingTypePlugin):
+        plugin.connect(
             self.model_ref
         )
 
-        self.model_ref = model
+    def connect_precision_plugin(self, plugin: PrecisionPlugin):
+        model, optimizers, schedulers = plugin.connect(self.model, self.optimizers, self.lr_schedulers)
+
+        self.model = model
         self.optimizers = optimizers
         self.schedulers = schedulers
 
