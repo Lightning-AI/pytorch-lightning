@@ -30,6 +30,11 @@ class NativeAMPPlugin(PrecisionPlugin):
     def connect(self, model, optimizers):
         return model, optimizers
 
+    def training_step(self, fx, args):
+        with torch.cuda.amp.autocast():
+            output = fx(*args)
+        return output
+
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         closure_loss = self.trainer.scaler.scale(closure_loss)
 

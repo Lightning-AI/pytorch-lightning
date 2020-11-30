@@ -19,8 +19,8 @@ from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.precision_plugin import PrecisionPlugin
+from pytorch_lightning.utilities import APEX_AVAILABLE, AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_warn
-from pytorch_lightning.utilities import AMPType, APEX_AVAILABLE
 
 if APEX_AVAILABLE:
     from apex import amp
@@ -35,6 +35,10 @@ class ApexPlugin(PrecisionPlugin):
         model, optimizers = self.configure_apex(amp, model, optimizers, self.trainer.amp_level)
         self.trainer.reinit_scheduler_properties(optimizers, self.trainer.lr_schedulers)
         return model, optimizers
+
+    def training_step(self, fx, args):
+        output = fx(args)
+        return output
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         closure_loss = amp.scale_loss(closure_loss, optimizer)
