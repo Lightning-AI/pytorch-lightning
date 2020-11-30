@@ -33,7 +33,7 @@ except Exception as e:
     print(e)
     HAS_FAIRSCALE = False
 
-from pytorch_lightning import LightningModule, seed_everything
+from pytorch_lightning import LightningModule
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
