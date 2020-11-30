@@ -903,3 +903,11 @@ class Trainer(
         if capture:
             self._cache_logged_metrics()
         return output
+
+    @staticmethod
+    def available_plugins():
+        """
+            List of all available plugins that can be string arguments to the trainer.
+            Returns: List of all available plugins that are supported as string arguments.
+        """
+        return PluginConnector.available_plugins()

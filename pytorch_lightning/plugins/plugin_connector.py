@@ -21,7 +21,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.apex import ApexPlugin
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities import AMPType, rank_zero_warn
 
 
 class PluginConnector:
@@ -153,13 +153,27 @@ class PluginConnector:
         for plugin in plugins:
             required_plugins = plugin.required_plugins(amp_backend=self.trainer.amp_backend)
             if required_plugins:
+                rank_zero_warn(
+                    f'plugin {type(plugin)} has added additional required plugins as default: '
+                    f'{[type(x) for x in required_plugins]}'
+                    f'Extend this plugin and override required_plugins if this conflicts with your additional plugins.')
                 additional_plugins += required_plugins
         return plugins + additional_plugins
+
+    @classmethod
+    def available_plugins(cls):
+        """
+            List of all available plugins that can be string arguments to the trainer.
+            Returns: List of all available plugins that are supported as string arguments.
+        """
+        return [e.name for e in LightningCustomPlugins]
 
 
 class LightningCustomPlugins(Enum):
     """
-    String support for custom lightning plugins.
-    Allows easier access to custom lightning plugins from the command line.
+        String support for custom lightning plugins.
+        Allows easier access to custom lightning plugins from the command line.
     """
     ddp_sharded = DDPShardedPlugin
+    native_amp = NativeAMPPlugin
+    apex_amp = ApexPlugin
