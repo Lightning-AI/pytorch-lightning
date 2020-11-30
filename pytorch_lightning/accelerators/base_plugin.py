@@ -4,7 +4,7 @@ import torch
 class Plugin(object):
 
     def connect(self, model: torch.nn.Module, *args, **kwargs):
-        return model
+        pass
 
     def pre_optimizer_step(self, optimizer, optimizer_idx):
         pass
