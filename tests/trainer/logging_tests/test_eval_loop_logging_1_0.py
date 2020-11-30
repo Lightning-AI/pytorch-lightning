@@ -895,7 +895,8 @@ def test_progress_bar_dict_contains_values_on_test_epoch_end(tmpdir):
 
         def test_epoch_end(self, *_):
             self.epoch_end_called = True
-            self.log('foo_2', torch.tensor(self.current_epoch), prog_bar=True, on_epoch=True, sync_dist=True, sync_dist_op='sum')
+            self.log('foo_2', torch.tensor(self.current_epoch), prog_bar=True,
+                     on_epoch=True, sync_dist=True, sync_dist_op='sum')
 
         def on_test_epoch_end(self, *_):
             self.on_test_epoch_end_called = True
