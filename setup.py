@@ -30,7 +30,7 @@ PATH_ROOT = os.path.dirname(__file__)
 builtins.__LIGHTNING_SETUP__ = True
 
 import pytorch_lightning  # noqa: E402
-from pytorch_lightning.utilities.setup_tools import _load_requirements, _load_long_description
+from pytorch_lightning.utilities.setup_tools import _load_requirements, _load_long_description  # noqa: E402
 
 
 # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
