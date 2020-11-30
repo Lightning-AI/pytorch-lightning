@@ -22,14 +22,20 @@ from tests.metrics.utils import NUM_BATCHES, BATCH_SIZE, NUM_CLASSES, EXTRA_DIM,
 torch.manual_seed(42)
 
 # Some additional inputs to test on
-_mc_prob_2cls = Input(rand(NUM_BATCHES, BATCH_SIZE, 2), randint(high=2, size=(NUM_BATCHES, BATCH_SIZE)))
+_mc_prob_2cls_preds = rand(NUM_BATCHES, BATCH_SIZE, 2)
+_mc_prob_2cls_preds /= _mc_prob_2cls_preds.sum(dim=2, keepdim=True)
+_mc_prob_2cls = Input(_mc_prob_2cls_preds, randint(high=2, size=(NUM_BATCHES, BATCH_SIZE)))
+
+_mdmc_prob_many_dims_preds = rand(NUM_BATCHES, BATCH_SIZE, NUM_CLASSES, EXTRA_DIM, EXTRA_DIM)
+_mdmc_prob_many_dims_preds /= _mdmc_prob_many_dims_preds.sum(dim=2, keepdim=True)
 _mdmc_prob_many_dims = Input(
-    rand(NUM_BATCHES, BATCH_SIZE, NUM_CLASSES, EXTRA_DIM, EXTRA_DIM),
+    _mdmc_prob_many_dims_preds,
     randint(high=2, size=(NUM_BATCHES, BATCH_SIZE, EXTRA_DIM, EXTRA_DIM)),
 )
-_mdmc_prob_2cls = Input(
-    rand(NUM_BATCHES, BATCH_SIZE, 2, EXTRA_DIM), randint(high=2, size=(NUM_BATCHES, BATCH_SIZE, EXTRA_DIM))
-)
+
+_mdmc_prob_2cls_preds = rand(NUM_BATCHES, BATCH_SIZE, 2, EXTRA_DIM)
+_mdmc_prob_2cls_preds /= _mdmc_prob_2cls_preds.sum(dim=2, keepdim=True)
+_mdmc_prob_2cls = Input(_mdmc_prob_2cls_preds, randint(high=2, size=(NUM_BATCHES, BATCH_SIZE, EXTRA_DIM)))
 
 # Some utils
 T = torch.Tensor
@@ -219,6 +225,8 @@ def test_threshold():
         (randint(high=2, size=(7, 3, 3, 4)), randint(high=4, size=(7, 3, 3)), 0.5, None, None, None),
         # is_multiclass=False, with C dimension > 2
         (rand(size=(7, 3, 5)), randint(high=2, size=(7, 5)), 0.5, None, False, None),
+        # Probs of multiclass preds do not sum up to 1
+        (rand(size=(7, 3, 5)), randint(high=2, size=(7, 5)), 0.5, None, None, None),
         # Max target larger or equal to C dimension
         (rand(size=(7, 3)), randint(low=4, high=6, size=(7,)), 0.5, None, None, None),
         # C dimension not equal to num_classes

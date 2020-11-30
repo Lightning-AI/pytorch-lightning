@@ -266,6 +266,11 @@ def _check_classification_inputs(
     # Check that shape/types fall into one of the cases
     case, implied_classes = _check_shape_and_type_consistency(preds, target)
 
+    # For (multi-dim) multi-class case with prob preds, check that preds sum up to 1
+    if "multi-class" in case and preds.is_floating_point():
+        if not torch.isclose(preds.sum(dim=1), torch.ones_like(preds.sum(dim=1))).all():
+            raise ValueError("Probabilities in `preds` must sum up to 1 accross the `C` dimension.")
+
     # Check consistency with the `C` dimension in case of multi-class data
     if preds.shape != target.shape:
         if is_multiclass is False and implied_classes != 2:
