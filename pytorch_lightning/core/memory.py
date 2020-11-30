@@ -180,6 +180,7 @@ class ModelSummary(object):
         self._model = model
         self._mode = mode
         self._layer_summary = self.summarize()
+        self._precision_bytes = self._model.precision / 8.0  # 1 byte -> 8 bits
 
     @property
     def named_modules(self) -> List[Tuple[str, nn.Module]]:
@@ -249,17 +250,16 @@ class ModelSummary(object):
             )
 
         elif isinstance(self._model.example_input_array, dict):
-            # TODO (kartik4949): write input_feature for dict input array.
-            in_features = (1,)
+            in_features = self._model.example_input_array["tensor"].numel()
         else:
             in_features = (self._model.example_input_array.numel(),)
         return self._get_total_size(in_features if not input_size else input_size)
 
     def _get_total_size(self, input_size: tuple) -> float:
-        _precision_bytes = self._model.precision / 8.0  # 1 byte -> 8 bits
-        total_input_dsize = abs(np.prod(np.array(input_size))) * _precision_bytes / (1024 ** 2.0)
-        total_output_dsize = abs(2.0 * self.total_out_params * _precision_bytes / (1024 ** 2.0))
-        total_params_dsize = abs(self.total_params * _precision_bytes / (1024 ** 2.0))
+        total_input_dsize = abs(np.prod(np.array(input_size))) * self._precision_bytes / (1024 ** 2.0)
+        # 2x  for gradients.
+        total_output_dsize = abs(2.0 * self.total_out_params * self._precision_bytes / (1024 ** 2.0))
+        total_params_dsize = abs(self.total_params * self._precision_bytes / (1024 ** 2.0))
         return total_params_dsize + total_output_dsize + total_input_dsize
 
     def summarize(self) -> Dict[str, LayerSummary]:
@@ -421,8 +421,10 @@ def get_gpu_memory_map() -> Dict[str, int]:
     gpu_memory_map = {f"gpu_id: {gpu_id}/memory.used (MB)": memory for gpu_id, memory in enumerate(gpu_memory)}
     return gpu_memory_map
 
+
 def get_formatted_model_size(total_model_size: float) -> float:
-    return "{:.4f}".format(total_model_size)
+    return "{:.3f}".format(total_model_size)
+
 
 def get_human_readable_count(number: int) -> str:
     """
