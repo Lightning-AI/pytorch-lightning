@@ -64,11 +64,7 @@ def _test_memory_warning(rank, worldsize):
     metric = DummyMetric()
     metric.update(torch.randn(10, 5)[:, 0])
 
-    with pytest.warns(
-        UserWarning,
-        match="Syncing with `gather_all` requires input to be contiguous"
-        " memory allocated. Will convert to contiguous format.",
-    ):
+    with pytest.warns(UserWarning, match="Syncing with `gather_all` requires input to be contiguous"):
         val = metric.compute()
 
 
