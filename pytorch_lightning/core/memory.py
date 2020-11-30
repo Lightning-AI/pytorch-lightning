@@ -311,7 +311,7 @@ class ModelSummary(object):
 
         trainable_parameters = sum(p.numel() for p in self._model.parameters() if p.requires_grad)
         total_parameters = sum(p.numel() for p in self._model.parameters())
-        total_model_size = self.model_size
+        total_model_size = self.model_size()
         return _format_summary_table(total_parameters, trainable_parameters, total_model_size, *arrays)
 
     def __repr__(self):

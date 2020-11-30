@@ -139,14 +139,14 @@ def test_linear_model_summary_shapes(device, mode):
     model = UnorderedModel().to(device)
     model.train()
     summary = model.summarize(mode=mode)
-    assert almost_equals(summary.model_size, model.pre_calculated_model_size, rel_tol=1e-4, abs_tol=1e-4)
+    assert almost_equals(summary.model_size(), model.pre_calculated_model_size, rel_tol=1e-4, abs_tol=1e-4)
 
 
 def test_mixed_dtype_model_summary():
     """ Test that the model summary works with models that have mixed input- and parameter dtypes. """
     model = MixedDtypeModel()
     summary = model.summarize()
-    assert almost_equals(summary.model_size, model.pre_calculated_model_size, rel_tol=1e-4, abs_tol=1e-4)
+    assert almost_equals(summary.model_size(), model.pre_calculated_model_size, rel_tol=1e-4, abs_tol=1e-4)
     assert summary.in_sizes == [
         [2, 3],         # embed
         [2, 3, 20],     # reduce
