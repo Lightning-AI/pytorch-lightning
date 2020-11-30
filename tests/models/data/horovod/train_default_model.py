@@ -54,7 +54,7 @@ def run_test_from_config(trainer_options):
     reset_seed()
 
     ckpt_path = trainer_options['weights_save_path']
-    trainer_options.update(checkpoint_callback=ModelCheckpoint(ckpt_path))
+    trainer_options.update(checkpoint_callback=ModelCheckpoint(dirpath=ckpt_path))
 
     model = EvalModelTemplate()
 
@@ -66,9 +66,6 @@ def run_test_from_config(trainer_options):
     assert hvd.size() == 2
 
     if trainer.global_rank > 0:
-        # on higher ranks the checkpoint location is unknown
-        # we want to test checkpointing on rank 0 only
-        assert not trainer.checkpoint_callback.best_model_path
         return
 
     # test model loading

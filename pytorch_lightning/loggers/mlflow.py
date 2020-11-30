@@ -13,9 +13,10 @@
 # limitations under the License.
 
 """
-MLflow
-------
+MLflow Logger
+-------------
 """
+import re
 from argparse import Namespace
 from time import time
 from typing import Any, Dict, Optional, Union
@@ -23,47 +24,50 @@ from typing import Any, Dict, Optional, Union
 try:
     import mlflow
     from mlflow.tracking import MlflowClient
-    _MLFLOW_AVAILABLE = True
 except ModuleNotFoundError:  # pragma: no-cover
     mlflow = None
     MlflowClient = None
-    _MLFLOW_AVAILABLE = False
 
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn
 
 LOCAL_FILE_URI_PREFIX = "file:"
 
 
 class MLFlowLogger(LightningLoggerBase):
     """
-    Log using `MLflow <https://mlflow.org>`_. Install it with pip:
+    Log using `MLflow <https://mlflow.org>`_.
+
+    Install it with pip:
 
     .. code-block:: bash
 
         pip install mlflow
 
-    Example:
-        >>> from pytorch_lightning import Trainer
-        >>> from pytorch_lightning.loggers import MLFlowLogger
-        >>> mlf_logger = MLFlowLogger(
-        ...     experiment_name="default",
-        ...     tracking_uri="file:./ml-runs"
-        ... )
-        >>> trainer = Trainer(logger=mlf_logger)
+    .. code-block:: python
 
-    Use the logger anywhere in you :class:`~pytorch_lightning.core.lightning.LightningModule` as follows:
+        from pytorch_lightning import Trainer
+        from pytorch_lightning.loggers import MLFlowLogger
+        mlf_logger = MLFlowLogger(
+            experiment_name="default",
+            tracking_uri="file:./ml-runs"
+        )
+        trainer = Trainer(logger=mlf_logger)
 
-    >>> from pytorch_lightning import LightningModule
-    >>> class LitModel(LightningModule):
-    ...     def training_step(self, batch, batch_idx):
-    ...         # example
-    ...         self.logger.experiment.whatever_ml_flow_supports(...)
-    ...
-    ...     def any_lightning_module_function_or_hook(self):
-    ...         self.logger.experiment.whatever_ml_flow_supports(...)
+    Use the logger anywhere in your :class:`~pytorch_lightning.core.lightning.LightningModule` as follows:
+
+    .. code-block:: python
+
+        from pytorch_lightning import LightningModule
+        class LitModel(LightningModule):
+            def training_step(self, batch, batch_idx):
+                # example
+                self.logger.experiment.whatever_ml_flow_supports(...)
+
+            def any_lightning_module_function_or_hook(self):
+                self.logger.experiment.whatever_ml_flow_supports(...)
 
     Args:
         experiment_name: The name of the experiment
@@ -73,17 +77,21 @@ class MLFlowLogger(LightningLoggerBase):
         save_dir: A path to a local directory where the MLflow runs get saved.
             Defaults to `./mlflow` if `tracking_uri` is not provided.
             Has no effect if `tracking_uri` is provided.
+        prefix: A string to put at the beginning of metric keys.
 
     """
+
+    LOGGER_JOIN_CHAR = '-'
 
     def __init__(
         self,
         experiment_name: str = 'default',
         tracking_uri: Optional[str] = None,
         tags: Optional[Dict[str, Any]] = None,
-        save_dir: Optional[str] = './mlruns'
+        save_dir: Optional[str] = './mlruns',
+        prefix: str = '',
     ):
-        if not _MLFLOW_AVAILABLE:
+        if mlflow is None:
             raise ImportError('You want to use `mlflow` logger which is not installed yet,'
                               ' install it with `pip install mlflow`.')
         super().__init__()
@@ -95,6 +103,7 @@ class MLFlowLogger(LightningLoggerBase):
         self._tracking_uri = tracking_uri
         self._run_id = None
         self.tags = tags
+        self._prefix = prefix
         self._mlflow_client = MlflowClient(tracking_uri)
 
     @property
@@ -145,11 +154,22 @@ class MLFlowLogger(LightningLoggerBase):
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
+        metrics = self._add_prefix(metrics)
+
         timestamp_ms = int(time() * 1000)
         for k, v in metrics.items():
             if isinstance(v, str):
                 log.warning(f'Discarding metric with string value {k}={v}.')
                 continue
+
+            new_k = re.sub("[^a-zA-Z0-9_/. -]+", "", k)
+            if k != new_k:
+                rank_zero_warn(
+                    "MLFlow only allows '_', '/', '.' and ' ' special characters in metric name."
+                    f" Replacing {k} with {new_k}.", RuntimeWarning
+                )
+                k = new_k
+
             self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
 
     @rank_zero_only

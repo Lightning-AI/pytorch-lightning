@@ -1,56 +1,70 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # Existing images:
-# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.7 --build-arg PYTORCH_CHANNEL=pytorch-nightly --build-arg CUDA_VERSION=10.1
-# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.6 --build-arg PYTORCH_CHANNEL=pytorch --build-arg CUDA_VERSION=10.1
-# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.5 --build-arg PYTORCH_CHANNEL=pytorch --build-arg CUDA_VERSION=10.1
-# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.4 --build-arg PYTORCH_CHANNEL=pytorch --build-arg CUDA_VERSION=10.1
-# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.3 --build-arg PYTORCH_CHANNEL=pytorch --build-arg CUDA_VERSION=10.1
+# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.7 --build-arg CUDA_VERSION=10.2
+# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.6 --build-arg CUDA_VERSION=10.2
+# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.5 --build-arg CUDA_VERSION=10.2
+# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.4 --build-arg CUDA_VERSION=10.1
+# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.3 --build-arg CUDA_VERSION=10.1
 
-ARG CUDNN_VERSION=7
-ARG CUDA_VERSION=10.1
+ARG CUDNN_VERSION=8
+ARG CUDA_VERSION=10.2
 
-FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel
-# FROM nvidia/cuda:${CUDA_VERSION}-devel
+# FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu20.04
+FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel-ubuntu18.04
+# FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
 
 ARG PYTHON_VERSION=3.7
 ARG PYTORCH_VERSION=1.6
-ARG PYTORCH_CHANNEL=pytorch
-ARG CONDA_VERSION=4.7.12
+ARG CMAKE_VERSION=3.18.4
 
 SHELL ["/bin/bash", "-c"]
+# https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Europe/Prague
 
 ENV PATH="$PATH:/root/.local/bin"
+ENV CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda"
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends \
         build-essential \
+        pkg-config \
         cmake \
         git \
-        curl \
+        wget \
         ca-certificates \
+        software-properties-common \
     && \
-    # Cleaning
+
+# Install python
+    add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get install -y \
+        python${PYTHON_VERSION} \
+        python${PYTHON_VERSION}-distutils \
+        python${PYTHON_VERSION}-dev \
+    && \
+
+    update-alternatives --install /usr/bin/python${PYTHON_VERSION%%.*} python${PYTHON_VERSION%%.*} /usr/bin/python${PYTHON_VERSION} 1 && \
+    update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1 && \
+
+# Cleaning
     apt-get autoremove -y && \
     apt-get clean && \
     rm -rf /root/.cache && \
     rm -rf /var/lib/apt/lists/*
-
-# add non-root user
-RUN useradd --create-home --shell /bin/bash flash
-
-USER flash
-ENV CONDA_ENV=lightning
-ENV WORKDIR=/home/flash
-WORKDIR $WORKDIR
-
-# install conda and python
-RUN curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-${CONDA_VERSION}-Linux-x86_64.sh  && \
-    chmod +x ~/miniconda.sh && \
-    ~/miniconda.sh -b -p ${WORKDIR}/miniconda && \
-    rm ~/miniconda.sh
-
-# add conda to path
-ENV PATH="${WORKDIR}/miniconda/bin:$PATH"
-ENV LD_LIBRARY_PATH="${WORKDIR}/miniconda/lib:$LD_LIBRARY_PATH"
-ENV CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda"
 
 ENV HOROVOD_GPU_OPERATIONS=NCCL
 ENV HOROVOD_WITH_PYTORCH=1
@@ -58,47 +72,46 @@ ENV HOROVOD_WITHOUT_TENSORFLOW=1
 ENV HOROVOD_WITHOUT_MXNET=1
 ENV HOROVOD_WITH_GLOO=1
 ENV HOROVOD_WITHOUT_MPI=1
+#ENV MAKEFLAGS="-j$(nproc)"
+ENV MAKEFLAGS="-j1"
+ENV TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5"
 
-COPY --chown=flash environment.yml environment.yml
+COPY ./requirements.txt requirements.txt
+COPY ./requirements/ ./requirements/
 
 # conda init
-RUN conda create -y --name $CONDA_ENV python=$PYTHON_VERSION pytorch=$PYTORCH_VERSION torchvision cudatoolkit=$CUDA_VERSION --channel=$PYTORCH_CHANNEL && \
-    conda init bash && \
-    # NOTE: this requires that the channel is presented in the yaml before packages
-    python -c "fname = 'environment.yml' ; req = open(fname).read().replace('pytorch', '${PYTORCH_CHANNEL}', 1) ; open(fname, 'w').write(req)" && \
-    python -c "fname = 'environment.yml' ; req = open(fname).readlines() ; open(fname, 'w').writelines([l for l in req if 'horovod' not in l])" && \
-    conda env update --file environment.yml && \
-    conda clean -ya && \
-    # conda config --set auto_activate_base true && \
-    rm environment.yml
+RUN \
+    wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
+    python${PYTHON_VERSION} get-pip.py && \
+    rm get-pip.py && \
 
-ENV PATH=${WORKDIR}/miniconda/envs/${CONDA_ENV}/bin:$PATH
-ENV LD_LIBRARY_PATH="${WORKDIR}/miniconda/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH"
-# if you want this environment to be the default one, uncomment the following line:
-#ENV CONDA_DEFAULT_ENV=${CONDA_ENV}
-#ENV CONDA_AUTO_ACTIVATE_BASE=true
+    # Disable cache
+    pip config set global.cache-dir false && \
+    # eventualy use pre-release
+    #pip install "torch==${PYTORCH_VERSION}.*" --pre && \
+    # set particular PyTorch version
+    python -c "import re ; fname = 'requirements.txt' ; req = re.sub(r'torch[>=]+[\d\.]+', 'torch==${PYTORCH_VERSION}.*', open(fname).read()) ; open(fname, 'w').write(req)" && \
 
-# set default init conda env, the cases above with ENV did not work...
-RUN echo ". ${WORKDIR}/miniconda/etc/profile.d/conda.sh" >> ~/.bashrc && \
-    echo "conda activate ${CONDA_ENV}" >> ~/.bashrc
-
-COPY --chown=flash ./requirements/extra.txt requirements-extra.txt
-COPY --chown=flash ./requirements/test.txt requirements-tests.txt
-COPY --chown=flash ./requirements/examples.txt requirements-examples.txt
+    # Install all requirements
+    # todo: find a way how to install nightly PT version
+    #  --pre --extra-index-url https://download.pytorch.org/whl/nightly/cu${cuda_ver[0]}${cuda_ver[1]}/torch_nightly.html
+    pip install -r requirements/devel.txt --upgrade-strategy only-if-needed --use-feature=2020-resolver && \
+    rm -rf requirements*
 
 RUN \
-    # filter only Horovod
-    python -c "fname = 'requirements-extra.txt' ; req = open(fname).readlines() ; open(fname, 'w').writelines([l for l in req if 'horovod' in l])" && \
-    #cat requirements-extra.txt && \
-    # Install all requirements
-    MAKEFLAGS="-j$(nproc)" ; pip install -r requirements-extra.txt && \
-    pip install -r requirements-tests.txt --upgrade-strategy only-if-needed --no-cache-dir && \
-    pip install -r requirements-examples.txt --upgrade-strategy only-if-needed --no-cache-dir && \
-    rm requirements* && \
+    # install DALI, needed for examples
+    pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda${CUDA_VERSION%%.*}0
+
+RUN \
+    # install NVIDIA AMP
+    git clone https://github.com/NVIDIA/apex && \
+    pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./apex && \
+    rm -rf apex
+
+RUN \
     # Show what we have
     pip --version && \
-    conda info && \
-    conda list && \
-    pip list
-
-CMD ["/bin/bash"]
+    pip list && \
+    python -c 'from nvidia.dali.pipeline import Pipeline' && \
+    python -c "import sys; assert sys.version[:3] == '$PYTHON_VERSION', sys.version" && \
+    python -c "import torch; assert torch.__version__[:3] == '$PYTORCH_VERSION', torch.__version__"

@@ -29,11 +29,12 @@ Organizing your code with PyTorch Lightning makes your code:
 
 ----------
 
-Here's a 2 minute conversion guide for PyTorch projects:
+Here's a 3 minute conversion guide for PyTorch projects:
 
 .. raw:: html
 
-    <video width="100%" controls autoplay muted playsinline src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_quick_start_full.m4v"></video>
+    <video width="100%" max-width="800px" controls autoplay muted playsinline
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_docs_animation_final.m4v"></video>
 
 ----------
 
@@ -104,19 +105,29 @@ Step 1: Define LightningModule
             return embedding
 
         def training_step(self, batch, batch_idx):
-            # training_step defined the train loop. It is independent of forward
+            # training_step defined the train loop.
+            # It is independent of forward
             x, y = batch
             x = x.view(x.size(0), -1)
             z = self.encoder(x)
             x_hat = self.decoder(z)
             loss = F.mse_loss(x_hat, x)
+            # Logging to TensorBoard by default
+            self.log('train_loss', loss)
             return loss
 
         def configure_optimizers(self):
             optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
             return optimizer
 
-A :class:`~pytorch_lightning.core.LightningModule` defines a *system* such as:
+**SYSTEM VS MODEL**
+
+A :ref:`lightning_module` defines a *system* not a model.
+
+.. figure:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/model_system.png
+    :width: 400
+
+Examples of systems are:
 
 - `Autoencoder <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_ae/basic_ae_module.py>`_
 - `BERT <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=yr7eaxkF-djf>`_
@@ -127,12 +138,12 @@ A :class:`~pytorch_lightning.core.LightningModule` defines a *system* such as:
 - `SimCLR <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/self_supervised/simclr/simclr_module.py>`_
 - `VAE <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_vae/basic_vae_module.py>`_
 
-It is a :class:`torch.nn.Module` that groups all research code into a single file to make it self-contained:
+Under the hood a LightningModule is still just a :class:`torch.nn.Module` that groups all research code into a single file to make it self-contained:
 
 - The Train loop
 - The Validation loop
 - The Test loop
-- The Model + system architecture
+- The Model or system of Models
 - The Optimizer
 
 You can customize any part of training (such as the backward pass) by overriding any
@@ -142,19 +153,35 @@ of the 20+ hooks found in :ref:`hooks`
 
     class LitAutoEncoder(pl.LightningModule):
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             loss.backward()
 
-In Lightning, training_step defines the train loop and is independent of forward. Use forward to define
-what happens during inference/predictions
+**FORWARD vs TRAINING_STEP**
+
+In Lightning we separate training from inference. The training_step defines
+the full training loop. We encourage users to use the forward to define inference
+actions.
+
+For example, in this case we could define the autoencoder to act as an embedding extractor:
 
 .. code-block:: python
 
-    def forward(...):
-        # how you want your model to do inference/predictions
+    def forward(self, x):
+        embeddings = self.encoder(x)
+        return embeddings
 
-    def training_step(...):
-        # the train loop INDEPENDENT of forward.
+Of course, nothing is stopping you from using forward from within the training_step
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        ...
+        z = self(x)
+
+It really comes down to your application. We do however, recommend that you keep both intents separate.
+
+* Use forward for inference (predicting).
+* Use training_step for training.
 
 More details in :ref:`lightning_module` docs.
 
@@ -171,7 +198,7 @@ First, define the data however you want. Lightning just needs a :class:`~torch.u
     dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
     train_loader = DataLoader(dataset)
     
-Next, init the :class:`~pytorch_lightning.core.LightningModule` and the PyTorch Lightning :class:`~pytorch_lightning.trainer.Trainer`,
+Next, init the :ref:`lightning_module` and the PyTorch Lightning :class:`~pytorch_lightning.trainer.Trainer`,
 then call fit with both the data and model.
 
 .. code-block:: python
@@ -195,15 +222,75 @@ The :class:`~pytorch_lightning.trainer.Trainer` automates:
 * :ref:`tpu`
 * :ref:`amp` support
 
+.. tip:: If you prefer to manually manage optimizers you can use the :ref:`manual_opt` mode  (ie: RL, GANs, etc...).
+
+
+---------
+
+**That's it!**
+
+These are the main 2 concepts you need to know in Lightning. All the other features of lightning are either
+features of the Trainer or LightningModule.
+
 -----------
 
-*****************
+**************
+Basic features
+**************
+
+Manual vs automatic optimization
+================================
+
+Automatic optimization
+----------------------
+With Lightning you don't need to worry about when to enable/disable grads, do a backward pass, or update optimizers
+as long as you return a loss with an attached graph from the `training_step`, Lightning will automate the optimization.
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        loss = self.encoder(batch[0])
+        return loss
+
+.. _manual_opt:
+
+Manual optimization
+-------------------
+However, for certain research like GANs, reinforcement learning or something with multiple optimizers
+or an inner loop, you can turn off automatic optimization and fully control the training loop yourself.
+
+First, turn off automatic optimization:
+
+.. code-block:: python
+
+    trainer = Trainer(automatic_optimization=False)
+
+Now you own the train loop!
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx, opt_idx):
+        (opt_a, opt_b, opt_c) = self.optimizers()
+
+        loss_a = self.generator(batch[0])
+
+        # use this instead of loss.backward so we can automate half precision, etc...
+        self.manual_backward(loss_a, opt_a, retain_graph=True)
+        self.manual_backward(loss_a, opt_a)
+        opt_a.step()
+        opt_a.zero_grad()
+
+        loss_b = self.discriminator(batch[0])
+        self.manual_backward(loss_b, opt_b)
+        ...
+
+
 Predict or Deploy
-*****************
+=================
 When you're done training, you have 3 options to use your LightningModule for predictions.
 
 Option 1: Sub-models
-====================
+--------------------
 Pull out any model inside your system for predictions.
 
 .. code-block:: python
@@ -222,7 +309,7 @@ Pull out any model inside your system for predictions.
     decoder_model.eval()
 
 Option 2: Forward
-=================
+-----------------
 You can also add a forward method to do predictions however you want.
 
 .. code-block:: python
@@ -255,7 +342,7 @@ You can also add a forward method to do predictions however you want.
     image_sample = autoencoder(()
 
 Option 3: Production
-====================
+--------------------
 For production systems onnx or torchscript are much faster. Make sure you have added
 a forward method or trace only the sub-models you need.
 
@@ -279,11 +366,11 @@ a forward method or trace only the sub-models you need.
          autoencoder.to_onnx(tmpfile.name, input_sample, export_params=True)
          os.path.isfile(tmpfile.name)
 
+--------------------
 
-********************
 Using CPUs/GPUs/TPUs
-********************
-It's trivial to use CPUs, GPUs or TPUs in Lightning. There's NO NEED to change your code, simply change the :class:`~pytorch_lightning.trainer.Trainer` options.
+====================
+It's trivial to use CPUs, GPUs or TPUs in Lightning. There's **NO NEED** to change your code, simply change the :class:`~pytorch_lightning.trainer.Trainer` options.
 
 .. code-block:: python
 
@@ -335,20 +422,19 @@ Without changing a SINGLE line of your code, you can now do the following with t
 
 .. code-block:: python
 
-    # train on TPUs using 16 bit precision with early stopping
+    # train on TPUs using 16 bit precision
     # using only half the training data and checking validation every quarter of a training epoch
     trainer = pl.Trainer(
         tpu_cores=8,
         precision=16,
-        early_stop_callback=True,
         limit_train_batches=0.5,
         val_check_interval=0.25
     )
     
+-----------
 
-***********
 Checkpoints
-***********
+===========
 Lightning automatically saves your model. Once you've trained, you can load the checkpoints as follows:
 
 .. code-block:: python
@@ -367,78 +453,132 @@ If you prefer to do it manually, here's the equivalent
     model = LitModel()
     model.load_state_dict(ckpt['state_dict'])
 
-*****************
-Optional features
-*****************
+---------
 
-TrainResult/EvalResult
-======================
-If you want to log to Tensorboard or your favorite logger, and/or the progress bar, use the
-:class:`~pytorch_lightning.core.step_result.TrainResult` object.
+Data flow
+=========
+Each loop (training, validation, test) has three hooks you can implement:
 
-.. code-block::
+- x_step
+- x_step_end
+- x_epoch_end
 
-    class LitModel(pl.LightningModule):
-
-        def training_step(self, batch, batch_idx):
-            ...
-            loss = F.mse_loss(x_hat, x)
-            return loss
-
-        # equivalent
-        def training_step(self, batch, batch_idx):
-            ...
-            loss = F.mse_loss(x_hat, x)
-            result = pl.TrainResult(minimize=loss)
-            return result
-
-To enable logging in the training loop:
-
-.. code-block::
-
-    class LitModel(pl.LightningModule):
-
-        def training_step(self, batch, batch_idx):
-            ...
-            loss = F.mse_loss(x_hat, x)
-            result = pl.TrainResult(minimize=loss)
-
-            # .log sends to tensorboard/logger, prog_bar also sends to the progress bar
-            result.log('my_train_loss', loss, prog_bar=True)
-            return result
-
-And for the validation loop use the :class:`~pytorch_lightning.core.step_result.EvalResult` object.
+To illustrate how data flows, we'll use the training loop (ie: x=training)
 
 .. code-block:: python
 
-    class LitModel(pl.LightningModule):
+    outs = []
+    for batch in data:
+        out = training_step(batch)
+        outs.append(out)
+    training_epoch_end(outs)
 
-        def validation_step(self, batch, batch_idx):
-            ...
-            loss = F.mse_loss(x_hat, x)
+The equivalent in Lightning is:
 
-            # lightning monitors 'checkpoint_on' to know when to checkpoint (this is a tensor)
-            result = pl.EvalResult(checkpoint_on=loss)
-            result.log('val_loss', loss)
-            return result
+.. code-block:: python
 
+    def training_step(self, batch, batch_idx):
+        prediction = ...
+        return prediction
 
-.. note:: A Result Object is just a dictionary (print it to verify for yourself!)
+    def training_epoch_end(self, training_step_outputs):
+        for prediction in predictions:
+            # do something with these
 
-The results objects:
+In the event that you use DP or DDP2 distributed modes (ie: split a batch across GPUs),
+use the x_step_end to manually aggregate (or don't implement it to let lightning auto-aggregate for you).
 
-* Automatically reduce epoch metrics.
-* Can log at each step or epoch.
-* Can log to a visual logger, progress bar, or both.
-* Detaches everything except the loss.
-* Handle syncing across GPUs.
-* Handle writing predictions across GPUs.
+.. code-block:: python
 
-Read more about result objects and :ref:`loggers`.
+    for batch in data:
+        model_copies = copy_model_per_gpu(model, num_gpus)
+        batch_split = split_batch_per_gpu(batch, num_gpus)
 
+        gpu_outs = []
+        for model, batch_part in zip(model_copies, batch_split):
+            # LightningModule hook
+            gpu_out = model.training_step(batch_part)
+            gpu_outs.append(gpu_out)
+
+        # LightningModule hook
+        out = training_step_end(gpu_outs)
+
+The lightning equivalent is:
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        loss = ...
+        return loss
+
+    def training_step_end(self, losses):
+        gpu_0_loss = losses[0]
+        gpu_1_loss = losses[1]
+        return (gpu_0_loss + gpu_1_loss) * 1/2
+
+.. tip:: The validation and test loops have the same structure.
+
+-----------------
+
+Logging
+=======
+To log to Tensorboard, your favorite logger, and/or the progress bar, use the
+:func:`~~pytorch_lightning.core.lightning.LightningModule.log` method which can be called from
+any method in the LightningModule.
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        self.log('my_metric', x)
+
+The :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method has a few options:
+
+- on_step (logs the metric at that step in training)
+- on_epoch (automatically accumulates and logs at the end of the epoch)
+- prog_bar (logs to the progress bar)
+- logger (logs to the logger like Tensorboard)
+
+Depending on where log is called from, Lightning auto-determines the correct mode for you. But of course
+you can override the default behavior by manually setting the flags
+
+.. note:: Setting on_epoch=True will accumulate your logged values over the full training epoch.
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        self.log('my_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+
+.. note::
+    The loss value shown in the progress bar is smoothed (averaged) over the last values,
+    so it differs from the actual loss returned in train/validation step.
+
+You can also use any method of your logger directly:
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        tensorboard = self.logger.experiment
+        tensorboard.any_summary_writer_method_you_want())
+
+Once your training starts, you can view the logs by using your favorite logger or booting up the Tensorboard logs:
+
+.. code-block:: bash
+
+    tensorboard --logdir ./lightning_logs
+
+.. note::
+    Lightning automatically shows the loss value returned from ``training_step`` in the progress bar.
+    So, no need to explicitly log like this ``self.log('loss', loss, prog_bar=True)``.
+
+Read more about :ref:`loggers`.
+
+----------------
+
+Optional extensions
+===================
 
 Callbacks
-=========
+---------
 A callback is an arbitrary self-contained program that can be executed at arbitrary parts of the training loop.
 
 Here's an example adding a not-so-fancy learning rate decay rule:
@@ -458,7 +598,7 @@ Here's an example adding a not-so-fancy learning rate decay rule:
                     group.append(param_group['lr'])
                 self.old_lrs.append(group)
 
-        def on_train_epoch_end(self, trainer, pl_module):
+        def on_train_epoch_end(self, trainer, pl_module, outputs):
             for opt_idx in optimizer in enumerate(trainer.optimizers):
                 old_lr_group = self.old_lrs[opt_idx]
                 new_lr_group = []
@@ -468,7 +608,13 @@ Here's an example adding a not-so-fancy learning rate decay rule:
                     new_lr_group.append(new_lr)
                     param_group['lr'] = new_lr
                  self.old_lrs[opt_idx] = new_lr_group
-                 
+
+And pass the callback to the Trainer
+
+.. code-block:: python
+
+    decay_callback = DecayLearningRate()
+    trainer = Trainer(callbacks=[decay_callback])
 
 Things you can do with a callback:
 
@@ -482,8 +628,8 @@ Things you can do with a callback:
 :ref:`Learn more about custom callbacks <callbacks>`.
 
 
-Datamodules
-===========
+LightningDataModules
+--------------------
 DataLoaders and data processing code tends to end up scattered around.
 Make your data code reusable by organizing it into a :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
 
@@ -556,9 +702,8 @@ DataModules are specifically useful for building models based on data. Read more
 
 ------
 
-*********
 Debugging
-*********
+=========
 Lightning has many tools for debugging. Here is an example of just a few of them:
 
 .. code-block:: python
@@ -580,12 +725,12 @@ Lightning has many tools for debugging. Here is an example of just a few of them
 .. code-block:: python
    
    # train only 20% of an epoch
-   trainer = pl. Trainer(limit_train_batches=0.2)
+   trainer = pl.Trainer(limit_train_batches=0.2)
 
 .. code-block:: python
 
-    # run validation every 20% of a training epoch
-    trainer = pl.Trainer(val_check_interval=0.2)
+    # run validation every 25% of a training epoch
+    trainer = pl.Trainer(val_check_interval=0.25)
 
 .. code-block:: python
     
@@ -594,9 +739,9 @@ Lightning has many tools for debugging. Here is an example of just a few of them
  
 ---------------
 
-***************************
-Advanced Lightning Features
-***************************
+********************
+Other coool features
+********************
 
 Once you define and train your first Lightning model, you might want to try other cool features like
 
@@ -613,22 +758,27 @@ Or read our :ref:`introduction_guide` to learn more!
 
 -------------
 
+Grid AI
+=======
+Grid AI is our native solution for large scale training and tuning on the cloud provider of your choice.
+
+`Click here to request early-access <https://www.grid.ai/>`_.
+
+------------
+
 **********
-Learn more
+Community
 **********
+Our community of core maintainers and thousands of expert researchers is active on our
+`Slack <https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A>`_
+and `Forum <https://forums.pytorchlightning.ai/>`_. Drop by to hang out, ask Lightning questions or even discuss research!
 
-That's it! Once you build your module, data, and call trainer.fit(), Lightning trainer calls each loop at the correct time as needed.
 
-You can then boot up your logger or tensorboard instance to view training logs
-
-.. code-block:: bash
-
-    tensorboard --logdir ./lightning_logs
+-------------
 
 Masterclass
 ===========
-
-Go pro by tunning in to our Masterclass! New episodes every week.
+We also offer a Masterclass to teach you the advanced uses of Lightning.
 
 .. image:: _images/general/PTL101_youtube_thumbnail.jpg
     :width: 500

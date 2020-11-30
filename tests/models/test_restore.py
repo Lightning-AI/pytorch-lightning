@@ -1,18 +1,139 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import glob
 import logging as log
 import os
 import pickle
-import functools
+from copy import deepcopy
 
 import cloudpickle
 import pytest
 import torch
+from torch.nn import functional as F
+from torch.utils.data import DataLoader
 
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, LightningModule, Callback, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
-from tests.base import EvalModelTemplate, GenericEvalModelTemplate
+from tests.base import EvalModelTemplate, GenericEvalModelTemplate, TrialMNIST
+
+
+class ModelTrainerPropertyParity(Callback):
+
+    def _check_properties(self, trainer, pl_module):
+        assert trainer.global_step == pl_module.global_step
+        assert trainer.current_epoch == pl_module.current_epoch
+
+    def on_train_start(self, trainer, pl_module):
+        self._check_properties(trainer, pl_module)
+
+    def on_train_batch_start(self, trainer, pl_module, *args, **kwargs):
+        self._check_properties(trainer, pl_module)
+
+    def on_train_batch_end(self, trainer, pl_module, *args, **kwargs):
+        self._check_properties(trainer, pl_module)
+
+    def on_epoch_end(self, trainer, pl_module):
+        self._check_properties(trainer, pl_module)
+
+    def on_train_end(self, trainer, pl_module):
+        self._check_properties(trainer, pl_module)
+
+
+def test_model_properties_resume_from_checkpoint(tmpdir):
+    """ Test that properties like `current_epoch` and `global_step`
+    in model and trainer are always the same. """
+    model = EvalModelTemplate()
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True)
+    trainer_args = dict(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        logger=False,
+        callbacks=[checkpoint_callback, ModelTrainerPropertyParity()]  # this performs the assertions
+    )
+    trainer = Trainer(**trainer_args)
+    trainer.fit(model)
+
+    trainer_args.update(max_epochs=2)
+    trainer = Trainer(**trainer_args, resume_from_checkpoint=str(tmpdir / "last.ckpt"))
+    trainer.fit(model)
+
+
+class CaptureCallbacksBeforeTraining(Callback):
+    callbacks = []
+
+    def on_train_start(self, trainer, pl_module):
+        self.callbacks = deepcopy(trainer.callbacks)
+
+
+def test_callbacks_state_resume_from_checkpoint(tmpdir):
+    """ Test that resuming from a checkpoint restores callbacks that persist state. """
+    model = EvalModelTemplate()
+    callback_capture = CaptureCallbacksBeforeTraining()
+
+    def get_trainer_args():
+        checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True)
+        trainer_args = dict(
+            default_root_dir=tmpdir,
+            max_steps=1,
+            logger=False,
+            callbacks=[
+                checkpoint,
+                callback_capture,
+            ]
+        )
+        assert checkpoint.best_model_path == ""
+        assert checkpoint.best_model_score is None
+        return trainer_args
+
+    # initial training
+    trainer = Trainer(**get_trainer_args())
+    trainer.fit(model)
+    callbacks_before_resume = deepcopy(trainer.callbacks)
+
+    # resumed training
+    trainer = Trainer(**get_trainer_args(), resume_from_checkpoint=str(tmpdir / "last.ckpt"))
+    trainer.fit(model)
+
+    assert len(callbacks_before_resume) == len(callback_capture.callbacks)
+
+    for before, after in zip(callbacks_before_resume, callback_capture.callbacks):
+        if isinstance(before, ModelCheckpoint):
+            assert before.best_model_path == after.best_model_path
+            assert before.best_model_score == after.best_model_score
+
+
+def test_callbacks_references_resume_from_checkpoint(tmpdir):
+    """ Test that resuming from a checkpoint sets references as expected. """
+    model = EvalModelTemplate()
+    args = {'default_root_dir': tmpdir, 'max_steps': 1, 'logger': False}
+
+    # initial training
+    checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True)
+    trainer = Trainer(**args, callbacks=[checkpoint])
+    assert checkpoint is trainer.callbacks[0] is trainer.checkpoint_callback
+    trainer.fit(model)
+
+    # resumed training
+    new_checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_last=True)
+    # pass in a new checkpoint object, which should take
+    # precedence over the one in the last.ckpt file
+    trainer = Trainer(**args, callbacks=[new_checkpoint], resume_from_checkpoint=str(tmpdir / "last.ckpt"))
+    assert checkpoint is not new_checkpoint
+    assert new_checkpoint is trainer.callbacks[0] is trainer.checkpoint_callback
+    trainer.fit(model)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -162,7 +283,7 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
         max_epochs=2,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        checkpoint_callback=ModelCheckpoint(tmpdir, monitor='val_loss', save_top_k=-1),
+        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_top_k=-1),
         default_root_dir=tmpdir,
     )
 
@@ -176,6 +297,12 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
 
     # load last checkpoint
     last_checkpoint = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, "*.ckpt")))[-1]
+
+    # Since `EvalModelTemplate` has `_save_hparams = True` by default, check that ckpt has hparams
+    ckpt = torch.load(last_checkpoint)
+    assert model_template.CHECKPOINT_HYPER_PARAMS_KEY in ckpt.keys(), 'hyper_parameters missing from checkpoints'
+
+    # Ensure that model can be correctly restored from checkpoint
     pretrained_model = model_template.load_from_checkpoint(last_checkpoint)
 
     # test that hparams loaded correctly
@@ -186,6 +313,7 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
     for (old_name, old_p), (new_name, new_p) in zip(model.named_parameters(), pretrained_model.named_parameters()):
         assert torch.all(torch.eq(old_p, new_p)), 'loaded weights are not the same as the saved weights'
 
+    # Check `test` on pretrained model:
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
 
@@ -232,7 +360,7 @@ def test_dp_resume(tmpdir):
     # init new trainer
     new_logger = tutils.get_default_logger(tmpdir, version=logger.version)
     trainer_options['logger'] = new_logger
-    trainer_options['checkpoint_callback'] = ModelCheckpoint(tmpdir)
+    trainer_options['checkpoint_callback'] = ModelCheckpoint(dirpath=tmpdir)
     trainer_options['limit_train_batches'] = 0.5
     trainer_options['limit_val_batches'] = 0.2
     trainer_options['max_epochs'] = 1
@@ -271,7 +399,8 @@ def test_model_saving_loading(tmpdir):
 
     # fit model
     trainer = Trainer(
-        max_epochs=1, logger=logger, checkpoint_callback=ModelCheckpoint(tmpdir), default_root_dir=tmpdir,
+        max_epochs=1, logger=logger,
+        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir), default_root_dir=tmpdir,
     )
     result = trainer.fit(model)
 
@@ -325,7 +454,8 @@ def test_strict_model_load_more_params(monkeypatch, tmpdir, tmpdir_server, url_c
 
     # fit model
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, logger=logger, checkpoint_callback=ModelCheckpoint(tmpdir),
+        default_root_dir=tmpdir, max_epochs=1, logger=logger,
+        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
     )
     result = trainer.fit(model)
 
@@ -364,7 +494,8 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
 
     # fit model
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, logger=logger, checkpoint_callback=ModelCheckpoint(tmpdir),
+        default_root_dir=tmpdir, max_epochs=1, logger=logger,
+        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
     )
     result = trainer.fit(model)
 

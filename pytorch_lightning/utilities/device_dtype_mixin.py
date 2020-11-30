@@ -19,7 +19,7 @@ from torch.nn import Module
 
 
 class DeviceDtypeModuleMixin(Module):
-    __ignored_properties__ = ['device', 'dtype']
+    __jit_unused_properties__ = ['device', 'dtype']
 
     def __init__(self):
         super().__init__()
@@ -37,7 +37,13 @@ class DeviceDtypeModuleMixin(Module):
 
     @property
     def device(self) -> Union[str, torch.device]:
-        return self._device
+        device = self._device
+
+        # make this more explicit to always include the index
+        if device.type == 'cuda' and device.index is None:
+            return torch.device(f'cuda:{torch.cuda.current_device()}')
+
+        return device
 
     @device.setter
     def device(self, new_device: Union[str, torch.device]):

@@ -13,17 +13,20 @@
 # limitations under the License.
 
 from argparse import ArgumentParser
+
 import torch
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
 from torch.utils.data import DataLoader
-import pytorch_lightning as pl
 from torch.utils.data import random_split
 
-try:
+import pytorch_lightning as pl
+from pl_examples import TORCHVISION_AVAILABLE
+
+if TORCHVISION_AVAILABLE:
     from torchvision.datasets.mnist import MNIST
     from torchvision import transforms
-except ModuleNotFoundError:
+else:
     from tests.base.datasets import MNIST
 
 
@@ -53,7 +56,7 @@ class LitAutoEncoder(pl.LightningModule):
         z = self.encoder(x)
         x_hat = self.decoder(z)
         loss = F.mse_loss(x_hat, x)
-        return pl.TrainResult(loss, checkpoint_on=loss)
+        return loss
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
@@ -97,7 +100,8 @@ def cli_main():
     # ------------
     # testing
     # ------------
-    trainer.test(test_dataloaders=test_loader)
+    result = trainer.test(test_dataloaders=test_loader)
+    print(result)
 
 
 if __name__ == '__main__':

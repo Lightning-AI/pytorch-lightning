@@ -14,34 +14,23 @@
 
 import multiprocessing
 import platform
-from abc import ABC, abstractmethod
-from typing import Union, List, Tuple, Callable, Optional
+from abc import ABC
+from copy import deepcopy
+from typing import Callable, Iterable, List, Optional, Tuple, Union
 
-import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.debugging import InternalDebugger
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_utils import is_overridden
 
-
-try:
-    from apex import amp
-except ImportError:
-    amp = None
-
-try:
-    import torch_xla
+if TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
 
 try:
     import horovod.torch as hvd
@@ -74,6 +63,7 @@ class TrainerDataLoadingMixin(ABC):
     limit_val_batches: Union[int, float]
     limit_test_batches: Union[int, float]
     replace_sampler_ddp: bool
+    accelerator_backend: Accelerator
     num_nodes: int
     num_processes: int
     distributed_backend: Optional[str]
@@ -84,7 +74,7 @@ class TrainerDataLoadingMixin(ABC):
 
         # ddp_spawn + num_workers > 0 don't mix! tell the user
         is_dataloader = isinstance(dataloader, DataLoader)
-        using_spawn = self.distributed_backend == 'ddp_spawn'
+        using_spawn = self.distributed_backend == "ddp_spawn"
         if is_dataloader and not on_windows:
             if dataloader.num_workers > 0 and using_spawn:
                 rank_zero_warn('Dataloader(num_workers>0) and ddp_spawn do not mix well!'
@@ -104,7 +94,7 @@ class TrainerDataLoadingMixin(ABC):
                                f' (try {num_cpus} which is the number of cpus on this machine)'
                                ' in the `DataLoader` init to improve performance.')
 
-    def auto_add_sampler(self, dataloader: DataLoader, train: bool) -> DataLoader:
+    def auto_add_sampler(self, dataloader: DataLoader, shuffle: bool) -> DataLoader:
 
         # don't do anything if it's not a dataloader
         is_dataloader = isinstance(dataloader, DataLoader)
@@ -113,8 +103,9 @@ class TrainerDataLoadingMixin(ABC):
 
         if not is_dataloader or is_iterable_ds:
             return dataloader
-        need_dist_sampler = (self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu)
 
+        is_in_dist = self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu
+        need_dist_sampler = is_in_dist and not isinstance(dataloader.sampler, DistributedSampler)
         if self.replace_sampler_ddp and need_dist_sampler:
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
                 raise MisconfigurationException(
@@ -124,7 +115,7 @@ class TrainerDataLoadingMixin(ABC):
                     ' `replace_sampler_ddp`=False if you want to use your custom sampler.')
 
             # replace with distributed sampler
-            sampler = self._get_distributed_sampler(dataloader, train)
+            sampler = self._get_distributed_sampler(dataloader, shuffle)
             dataloader = self.replace_sampler(dataloader, sampler)
 
         return dataloader
@@ -137,25 +128,28 @@ class TrainerDataLoadingMixin(ABC):
         }
 
         dl_args['sampler'] = sampler
+        dl_args['shuffle'] = False
+        multiprocessing_context = dataloader.multiprocessing_context
         dataloader = type(dataloader)(**dl_args)
+        dataloader.multiprocessing_context = multiprocessing_context
         return dataloader
 
-    def _get_distributed_sampler(self, dataloader, train):
+    def _get_distributed_sampler(self, dataloader, shuffle):
         if self.use_tpu:
             kwargs = dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
         elif self.use_horovod:
             kwargs = dict(num_replicas=hvd.size(), rank=hvd.rank())
         else:
             world_size = {
-                'ddp': self.num_nodes * self.num_processes,
-                'ddp_spawn': self.num_nodes * self.num_processes,
-                'ddp2': self.num_nodes,
-                'ddp_cpu': self.num_processes * self.num_nodes
+                "ddp": self.num_nodes * self.num_processes,
+                "ddp_spawn": self.num_nodes * self.num_processes,
+                "ddp2": self.num_nodes,
+                "ddp_cpu": self.num_processes * self.num_nodes
             }
             assert self.distributed_backend is not None
             kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.global_rank)
 
-        kwargs['shuffle'] = train and not self.overfit_batches
+        kwargs['shuffle'] = shuffle and not self.overfit_batches
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler
 
@@ -180,7 +174,7 @@ class TrainerDataLoadingMixin(ABC):
         self.num_training_batches = 0
 
         # automatically add samplers
-        self.train_dataloader = self.auto_add_sampler(self.train_dataloader, train=True)
+        self.train_dataloader = self.auto_add_sampler(self.train_dataloader, shuffle=True)
 
         self.num_training_batches = len(self.train_dataloader) if has_len(self.train_dataloader) else float('inf')
         self._worker_check(self.train_dataloader, 'train dataloader')
@@ -232,16 +226,19 @@ class TrainerDataLoadingMixin(ABC):
         Returns:
             Tuple (num_batches, dataloaders)
         """
-        # use the training loader as val and test when overfitting
+        # always get the loaders first so we can count how many there are
         loader_name = f'{mode}_dataloader'
-        if self.overfit_batches > 0:
-            loader_name = 'train_dataloader'
-
-        # load loaders
         dataloaders = self.request_dataloader(getattr(model, loader_name))
 
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]
+
+        # when overfitting use the training loader as val and test
+        # duplicate it the numb of times needed to match the train loaders
+        if self.overfit_batches > 0:
+            num_loaders = len(dataloaders)
+            train_dataloader = self.request_dataloader(getattr(model, 'train_dataloader'))
+            dataloaders = [deepcopy(train_dataloader) for _ in range(num_loaders)]
 
         self.dev_debugger.track_load_dataloader_call(loader_name, dataloaders=dataloaders)
 
@@ -265,7 +262,7 @@ class TrainerDataLoadingMixin(ABC):
             rank_zero_warn("One of given dataloaders is None and it will be skipped.")
 
         # add samplers
-        dataloaders = [self.auto_add_sampler(dl, train=False) for dl in dataloaders if dl is not None]
+        dataloaders = [self.auto_add_sampler(dl, shuffle=False) for dl in dataloaders if dl is not None]
 
         loader_num_batches = []
 
@@ -335,19 +332,19 @@ class TrainerDataLoadingMixin(ABC):
             The dataloader
         """
         dataloader = dataloader_fx()
+        dataloader = self._flatten_dl_only(dataloader)
 
-        # get the function we'll use to get data
-        if self.use_ddp or self.use_ddp2:
-            # all processes wait until data download has happened
-            torch_distrib.barrier()
-
-        # data download/load on TPU
-        elif self.use_tpu and XLA_AVAILABLE:
-            # all processes wait until data download has happened
-            torch_xla.core.xla_model.rendezvous('pl.TrainerDataLoadingMixin.get_dataloaders')
-
-        elif self.use_horovod:
-            # all processes wait until data download has happened
-            hvd.join()
-
+        if self.accelerator_backend is not None:
+            self.accelerator_backend.barrier('get_dataloaders')
         return dataloader
+
+    def _flatten_dl_only(self, dataloaders):
+        # handles user error when they return:
+        # return dl1, dl2  vs  return (dl1, dl2)
+        if isinstance(dataloaders, tuple):
+            all_dls = [isinstance(x, Iterable) for x in dataloaders]
+            all_dls = all(all_dls)
+            if all_dls:
+                dataloaders = list(dataloaders)
+
+        return dataloaders

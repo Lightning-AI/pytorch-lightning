@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from unittest.mock import patch, MagicMock
 
 import torch
@@ -19,6 +32,19 @@ def test_neptune_online(neptune):
     assert logger._experiment == created_experiment
     assert logger.name == created_experiment.name
     assert logger.version == created_experiment.id
+
+
+@patch('pytorch_lightning.loggers.neptune.neptune')
+def test_neptune_existing_experiment(neptune):
+    logger = NeptuneLogger(experiment_id='TEST-123')
+
+    neptune.Session.with_default_backend().get_project().get_experiments.assert_called_once_with(id='TEST-123')
+
+    experiment = logger.experiment
+    assert logger.experiment_name == experiment.get_system_properties()['name']
+    assert logger.params == experiment.get_parameters()
+    assert logger.properties == experiment.get_properties()
+    assert logger.tags == experiment.get_tags()
 
 
 @patch('pytorch_lightning.loggers.neptune.neptune')
@@ -73,7 +99,8 @@ def test_neptune_additional_methods(neptune):
     created_experiment.append_tags.assert_called_once_with('two', 'tags')
 
 
-def test_neptune_leave_open_experiment_after_fit(tmpdir):
+@patch('pytorch_lightning.loggers.neptune.neptune')
+def test_neptune_leave_open_experiment_after_fit(neptune, tmpdir):
     """Verify that neptune experiment was closed after training"""
     model = EvalModelTemplate()
 

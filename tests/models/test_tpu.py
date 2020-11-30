@@ -1,28 +1,37 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import os
+from unittest import mock
 
 import pytest
 from torch.utils.data import DataLoader
 
 import tests.base.develop_pipelines as tpipes
 from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning.accelerators import TPUAccelerator
+from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.utilities import TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.base.datasets import TrialMNIST
 from tests.base.develop_utils import pl_multi_process_test
 
-try:
+
+if TPU_AVAILABLE:
     import torch_xla
     import torch_xla.distributed.xla_multiprocessing as xmp
-
     SERIAL_EXEC = xmp.MpSerialExecutor()
-    # TODO: The tests are aborted if the following lines are uncommented. Must be resolved with XLA team
-    # device = torch_xla.core.xla_model.xla_device()
-    # device_type = torch_xla.core.xla_model.xla_device_hw(device)
-    # TPU_AVAILABLE = device_type == 'TPU'
-except ImportError:
-    TPU_AVAILABLE = False
-else:
-    TPU_AVAILABLE = True
 
 
 _LARGER_DATASET = TrialMNIST(download=True, num_samples=2000, digits=(0, 1, 2, 5, 8))
@@ -158,7 +167,7 @@ def test_model_tpu_early_stop(tmpdir):
     """Test if single TPU core training works"""
     model = EvalModelTemplate()
     trainer = Trainer(
-        early_stop_callback=True,
+        callbacks=[EarlyStopping()],
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=50,
@@ -218,7 +227,6 @@ def test_tpu_misconfiguration():
         Trainer(tpu_cores=[1, 8])
 
 
-# @patch('pytorch_lightning.trainer.trainer.XLA_AVAILABLE', False)
 @pytest.mark.skipif(TPU_AVAILABLE, reason="test requires missing TPU")
 def test_exception_when_no_tpu_found(tmpdir):
     """Test if exception is thrown when xla devices are not available"""
@@ -238,14 +246,14 @@ def test_exception_when_no_tpu_found(tmpdir):
 @pytest.mark.parametrize('tpu_cores', [1, 8, [1]])
 def test_distributed_backend_set_when_using_tpu(tmpdir, tpu_cores):
     """Test if distributed_backend is set to `tpu` when tpu_cores is not None"""
-    assert Trainer(tpu_cores=tpu_cores).distributed_backend == 'tpu'
+    assert Trainer(tpu_cores=tpu_cores).distributed_backend == "tpu"
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_result_obj_on_tpu(tmpdir):
     seed_everything(1234)
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     batches = 5
     epochs = 2
@@ -264,11 +272,25 @@ def test_result_obj_on_tpu(tmpdir):
     trainer_options = dict(
         default_root_dir=tmpdir,
         max_epochs=epochs,
-        early_stop_callback=True,
-        row_log_interval=2,
+        callbacks=[EarlyStopping()],
+        log_every_n_steps=2,
         limit_train_batches=batches,
         weights_summary=None,
         tpu_cores=8
     )
 
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+
+
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pl_multi_process_test
+def test_broadcast_on_tpu():
+    """ Checks if an object from the master process is broadcasted to other processes correctly"""
+    def test_broadcast(rank):
+        trainer = Trainer(tpu_cores=8)
+        backend = TPUAccelerator(trainer)
+        obj = ("ver_0.5", "logger_name", rank)
+        result = backend.broadcast(obj)
+        assert result == ("ver_0.5", "logger_name", 0)
+
+    xmp.spawn(test_broadcast, nprocs=8, start_method='fork')

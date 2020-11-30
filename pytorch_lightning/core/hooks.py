@@ -12,22 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, List, Union
+"""Various hooks to be used in the Lightning code."""
+
+from typing import Any, Dict, List, Union
 
 import torch
-from pytorch_lightning.utilities import AMPType, move_data_to_device, rank_zero_warn
-from torch import Tensor
+from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
 
-try:
-    from apex import amp
-except ImportError:
-    amp = None
-
-
 class ModelHooks:
+    """Hooks to be used in LightningModule."""
     def setup(self, stage: str):
         """
         Called at the beginning of fit and test.
@@ -127,91 +123,87 @@ class ModelHooks:
         """
         # do something when the batch starts
 
-    def on_train_batch_end(
-        self, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_train_batch_end(self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the training loop after the batch.
 
         Args:
+            outputs: The outputs of training_step_end(training_step(x))
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
         """
         # do something when the batch ends
 
-    def on_validation_batch_start(
-        self, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_validation_model_eval(self) -> None:
+        """
+        Sets the model to eval during the val loop
+        """
+        self.eval()
+
+    def on_validation_model_train(self) -> None:
+        """
+        Sets the model to train during the val loop
+        """
+        self.train()
+
+    def on_validation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the validation loop before anything happens for that batch.
 
         Args:
-            batch: The batched data as it is returned by the training DataLoader.
+            batch: The batched data as it is returned by the validation DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
         """
         # do something when the batch starts
 
-    def on_validation_batch_end(
-        self, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_validation_batch_end(self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the validation loop after the batch.
 
         Args:
-            batch: The batched data as it is returned by the training DataLoader.
+            outputs: The outputs of validation_step_end(validation_step(x))
+            batch: The batched data as it is returned by the validation DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
         """
         # do something when the batch ends
 
-    def on_test_batch_start(
-        self, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_test_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the test loop before anything happens for that batch.
 
         Args:
-            batch: The batched data as it is returned by the training DataLoader.
+            batch: The batched data as it is returned by the test DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
         """
         # do something when the batch starts
 
-    def on_test_batch_end(
-        self, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_test_batch_end(self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the test loop after the batch.
 
         Args:
-            batch: The batched data as it is returned by the training DataLoader.
+            outputs: The outputs of test_step_end(test_step(x))
+            batch: The batched data as it is returned by the test DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
         """
         # do something when the batch ends
 
-    def on_batch_start(self, batch: Any) -> None:
+    def on_test_model_eval(self) -> None:
         """
-        Called in the training loop before anything happens for that batch.
-
-        If you return -1 here, you will skip training for the rest of the current epoch.
-
-        Args:
-            batch: The batched data as it is returned by the training DataLoader.
-
-        .. warning:: Deprecated in 0.9.0 will remove 1.0.0 (use `on_train_batch_start` instead)
+        Sets the model to eval during the test loop
         """
-        # do something when the batch starts
+        self.eval()
 
-    def on_batch_end(self) -> None:
+    def on_test_model_train(self) -> None:
         """
-        Called in the training loop after the batch.
-
-        .. warning:: Deprecated in 0.9.0 will remove 1.0.0 (use `on_train_batch_end` instead)
+        Sets the model to train during the test loop
         """
-        # do something when the batch ends
+        self.train()
 
     def on_epoch_start(self) -> None:
         """
@@ -231,7 +223,7 @@ class ModelHooks:
         """
         # do something when the epoch starts
 
-    def on_train_epoch_end(self) -> None:
+    def on_train_epoch_end(self, outputs) -> None:
         """
         Called in the training loop at the very end of the epoch.
         """
@@ -299,47 +291,9 @@ class ModelHooks:
 
         """
 
-    def backward(
-        self, trainer, loss: Tensor, optimizer: Optimizer, optimizer_idx: int
-    ) -> None:
-        """
-        Override backward with your own implementation if you need to.
-
-        Args:
-            trainer: Pointer to the trainer
-            loss: Loss is already scaled by accumulated grads
-            optimizer: Current optimizer being used
-            optimizer_idx: Index of the current optimizer being used
-
-        Called to perform backward step.
-        Feel free to override as needed.
-
-        The loss passed in has already been scaled for accumulated gradients if requested.
-
-        Example::
-
-            def backward(self, trainer, loss, optimizer, optimizer_idx):
-                loss.backward()
-
-        """
-        loss.backward()
-
-    def amp_scale_loss(
-        self,
-        unscaled_loss: Tensor,
-        optimizer: Optimizer,
-        optimizer_idx: int,
-        amp_backend: AMPType,
-    ):
-        if amp_backend == AMPType.NATIVE:
-            scaled_loss = self.trainer.scaler.scale(unscaled_loss)
-        else:
-            scaled_loss = amp.scale_loss(unscaled_loss, optimizer)
-
-        return scaled_loss
-
 
 class DataHooks:
+    """Hooks to be used with LightningDataModule."""
     def prepare_data(self) -> None:
         """
         Use this to download and prepare data.
@@ -596,3 +550,49 @@ class DataHooks:
             - :func:`~pytorch_lightning.utilities.apply_func.apply_to_collection`
         """
         return move_data_to_device(batch, device)
+
+
+class CheckpointHooks:
+    """Hooks to be used with Checkpointing."""
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        r"""
+        Called by Lightning to restore your model.
+        If you saved something with :meth:`on_save_checkpoint` this is your chance to restore this.
+
+        Args:
+            checkpoint: Loaded checkpoint
+
+
+        Example:
+            .. code-block:: python
+
+                def on_load_checkpoint(self, checkpoint):
+                    # 99% of the time you don't need to implement this method
+                    self.something_cool_i_want_to_save = checkpoint['something_cool_i_want_to_save']
+
+        Note:
+            Lightning auto-restores global step, epoch, and train state including amp scaling.
+            There is no need for you to restore anything regarding training.
+        """
+
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        r"""
+        Called by Lightning when saving a checkpoint to give you a chance to store anything
+        else you might want to save.
+
+        Args:
+            checkpoint: Checkpoint to be saved
+
+        Example:
+            .. code-block:: python
+
+                def on_save_checkpoint(self, checkpoint):
+                    # 99% of use cases you don't need to implement this method
+                    checkpoint['something_cool_i_want_to_save'] = my_cool_pickable_object
+
+        Note:
+            Lightning saves all aspects of training (epoch, global step, etc...)
+            including amp scaling.
+            There is no need for you to store anything about training.
+
+        """

@@ -1,9 +1,26 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import os
+from unittest.mock import Mock, call
+
 import pytest
+from unittest import mock
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ProgressBarBase, ProgressBar, ModelCheckpoint
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
+from tests.base import EvalModelTemplate, BoringModel
 
 
 @pytest.mark.parametrize('callbacks,refresh_rate', [
@@ -33,7 +50,7 @@ def test_progress_bar_on(tmpdir, callbacks, refresh_rate):
 @pytest.mark.parametrize('callbacks,refresh_rate', [
     ([], 0),
     ([], False),
-    ([ModelCheckpoint('../trainer')], 0),
+    ([ModelCheckpoint(dirpath='../trainer')], 0),
 ])
 def test_progress_bar_off(tmpdir, callbacks, refresh_rate):
     """Test different ways the progress bar can be turned off."""
@@ -51,7 +68,7 @@ def test_progress_bar_off(tmpdir, callbacks, refresh_rate):
 
 def test_progress_bar_misconfiguration():
     """Test that Trainer doesn't accept multiple progress bars."""
-    callbacks = [ProgressBar(), ProgressBar(), ModelCheckpoint('../trainer')]
+    callbacks = [ProgressBar(), ProgressBar(), ModelCheckpoint(dirpath='../trainer')]
     with pytest.raises(MisconfigurationException, match=r'^You added multiple progress bar callbacks'):
         Trainer(callbacks=callbacks)
 
@@ -157,21 +174,21 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate):
             super().on_train_batch_start(trainer, pl_module, batch, batch_idx, dataloader_idx)
             assert self.train_batch_idx == trainer.batch_idx
 
-        def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-            super().on_train_batch_end(trainer, pl_module, batch, batch_idx, dataloader_idx)
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+            super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
             assert self.train_batch_idx == trainer.batch_idx + 1
             if not self.is_disabled and self.train_batch_idx % self.refresh_rate == 0:
                 assert self.main_progress_bar.n == self.train_batch_idx
             self.train_batches_seen += 1
 
-        def on_validation_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-            super().on_validation_batch_end(trainer, pl_module, batch, batch_idx, dataloader_idx)
+        def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+            super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
             if not self.is_disabled and self.val_batch_idx % self.refresh_rate == 0:
                 assert self.val_progress_bar.n == self.val_batch_idx
             self.val_batches_seen += 1
 
-        def on_test_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-            super().on_test_batch_end(trainer, pl_module, batch, batch_idx, dataloader_idx)
+        def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+            super().on_test_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
             if not self.is_disabled and self.test_batch_idx % self.refresh_rate == 0:
                 assert self.test_progress_bar.n == self.test_batch_idx
             self.test_batches_seen += 1
@@ -193,3 +210,121 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate):
 
     trainer.test(model)
     assert progress_bar.test_batches_seen == progress_bar.total_test_batches
+
+
+@pytest.mark.parametrize(['limit_val_batches', 'expected'], [
+    pytest.param(0, 0),
+    pytest.param(5, 7),
+])
+def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches, expected):
+    """
+    Test val_progress_bar total with 'num_sanity_val_steps' Trainer argument.
+    """
+    class CurrentProgressBar(ProgressBar):
+        def __init__(self):
+            super().__init__()
+            self.val_progress_bar_total = 0
+
+        def on_validation_epoch_end(self, trainer, pl_module):
+            self.val_progress_bar_total += trainer.progress_bar_callback.val_progress_bar.total
+
+    model = EvalModelTemplate()
+    progress_bar = CurrentProgressBar()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        num_sanity_val_steps=2,
+        limit_train_batches=1,
+        limit_val_batches=limit_val_batches,
+        callbacks=[progress_bar],
+        logger=False,
+        checkpoint_callback=False,
+    )
+    trainer.fit(model)
+    assert trainer.progress_bar_callback.val_progress_bar_total == expected
+
+
+@mock.patch.dict(os.environ, {'COLAB_GPU': '1'})
+def test_progress_bar_warning_on_colab(tmpdir):
+    with pytest.warns(UserWarning, match='on Google Colab. This may crash.'):
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            progress_bar_refresh_rate=19,
+        )
+
+    assert trainer.progress_bar_callback.refresh_rate == 19
+
+
+class MockedUpdateProgressBars(ProgressBar):
+    """ Mocks the update method once bars get initializied. """
+
+    def _mock_bar_update(self, bar):
+        bar.update = Mock(wraps=bar.update)
+        return bar
+
+    def init_train_tqdm(self):
+        bar = super().init_train_tqdm()
+        return self._mock_bar_update(bar)
+
+    def init_validation_tqdm(self):
+        bar = super().init_validation_tqdm()
+        return self._mock_bar_update(bar)
+
+    def init_test_tqdm(self):
+        bar = super().init_test_tqdm()
+        return self._mock_bar_update(bar)
+
+
+@pytest.mark.parametrize("train_batches,val_batches,refresh_rate,train_deltas,val_deltas", [
+    [2, 3, 1, [1, 1, 1, 1, 1], [1, 1, 1]],
+    [0, 0, 3, [], []],
+    [1, 0, 3, [1], []],
+    [1, 1, 3, [2], [1]],
+    [5, 0, 3, [3, 2], []],
+    [5, 2, 3, [3, 3, 1], [2]],
+    [5, 2, 6, [6, 1], [2]],
+])
+def test_main_progress_bar_update_amount(tmpdir, train_batches, val_batches, refresh_rate, train_deltas, val_deltas):
+    """
+    Test that the main progress updates with the correct amount together with the val progress. At the end of
+    the epoch, the progress must not overshoot if the number of steps is not divisible by the refresh rate.
+    """
+    model = BoringModel()
+    progress_bar = MockedUpdateProgressBars(refresh_rate=refresh_rate)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=train_batches,
+        limit_val_batches=val_batches,
+        callbacks=[progress_bar],
+        logger=False,
+        checkpoint_callback=False,
+    )
+    trainer.fit(model)
+    progress_bar.main_progress_bar.update.assert_has_calls([call(delta) for delta in train_deltas])
+    if val_batches > 0:
+        progress_bar.val_progress_bar.update.assert_has_calls([call(delta) for delta in val_deltas])
+
+
+@pytest.mark.parametrize("test_batches,refresh_rate,test_deltas", [
+    [1, 3, [1]],
+    [3, 1, [1, 1, 1]],
+    [5, 3, [3, 2]],
+])
+def test_test_progress_bar_update_amount(tmpdir, test_batches, refresh_rate, test_deltas):
+    """
+    Test that test progress updates with the correct amount.
+    """
+    model = BoringModel()
+    progress_bar = MockedUpdateProgressBars(refresh_rate=refresh_rate)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_test_batches=test_batches,
+        callbacks=[progress_bar],
+        logger=False,
+        checkpoint_callback=False,
+    )
+    trainer.test(model)
+    progress_bar.test_progress_bar.update.assert_has_calls([call(delta) for delta in test_deltas])

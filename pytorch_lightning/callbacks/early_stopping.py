@@ -19,27 +19,21 @@ Early Stopping
 Monitor a validation metric and stop training when it stops improving.
 
 """
+import os
+
 import numpy as np
 import torch
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_warn
-import os
+from pytorch_lightning.utilities import rank_zero_warn, TPU_AVAILABLE
 
 torch_inf = torch.tensor(np.Inf)
-
-try:
-    import torch_xla
-    import torch_xla.core.xla_model as xm
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
 
 
 class EarlyStopping(Callback):
     r"""
+    Monitor a validation metric and stop training when it stops improving.
 
     Args:
         monitor: quantity to be monitored. Default: ``'early_stop_on'``.
@@ -65,7 +59,7 @@ class EarlyStopping(Callback):
         >>> from pytorch_lightning import Trainer
         >>> from pytorch_lightning.callbacks import EarlyStopping
         >>> early_stopping = EarlyStopping('val_loss')
-        >>> trainer = Trainer(early_stop_callback=early_stopping)
+        >>> trainer = Trainer(callbacks=[early_stopping])
     """
     mode_dict = {
         'min': torch.lt,
@@ -88,7 +82,7 @@ class EarlyStopping(Callback):
         # It is set to False initially and overwritten, if eval results have been validated
         self.based_on_eval_results = False
 
-        if mode not in self.mode_dict:
+        if mode not in self.mode_dict and mode != 'auto':
             if self.verbose > 0:
                 log.info(f'EarlyStopping mode {mode} is unknown, fallback to auto mode.')
             self.mode = 'auto'
@@ -106,9 +100,9 @@ class EarlyStopping(Callback):
 
     def _validate_condition_metric(self, logs):
         monitor_val = logs.get(self.monitor)
+
         error_msg = (f'Early stopping conditioned on metric `{self.monitor}`'
-                     f' which is not available. Either add `{self.monitor}` to the return of'
-                     ' `validation_epoch_end` or modify your `EarlyStopping` callback to use any of the'
+                     f' which is not available. Pass in or modify your `EarlyStopping` callback to use any of the'
                      f' following: `{"`, `".join(list(logs.keys()))}`')
 
         if monitor_val is None:
@@ -153,7 +147,7 @@ class EarlyStopping(Callback):
             # turn off early stopping in on_train_epoch_end
             self.based_on_eval_results = True
 
-    def on_train_epoch_end(self, trainer, pl_module):
+    def on_train_epoch_end(self, trainer, pl_module, outputs):
         # disable early stopping in train loop when there's a val loop
         if self.based_on_eval_results:
             return
@@ -181,12 +175,12 @@ class EarlyStopping(Callback):
         current = logs.get(self.monitor)
 
         # when in dev debugging
-        trainer.dev_debugger.track_early_stopping_history(current)
+        trainer.dev_debugger.track_early_stopping_history(self, current)
 
         if not isinstance(current, torch.Tensor):
             current = torch.tensor(current, device=pl_module.device)
 
-        if trainer.use_tpu and XLA_AVAILABLE:
+        if trainer.use_tpu and TPU_AVAILABLE:
             current = current.cpu()
 
         if self.monitor_op(current - self.min_delta, self.best_score):
@@ -203,9 +197,3 @@ class EarlyStopping(Callback):
         # stop every ddp process if any world process decides to stop
         should_stop = trainer.accelerator_backend.early_stopping_should_stop(pl_module)
         trainer.should_stop = should_stop
-
-    def on_train_end(self, trainer, pl_module):
-        if self.stopped_epoch > 0 and self.verbose > 0:
-            rank_zero_warn('Displayed epoch numbers by `EarlyStopping` start from "1" until v0.6.x,'
-                           ' but will start from "0" in v0.8.0.', DeprecationWarning)
-            log.info(f'Epoch {self.stopped_epoch + 1:05d}: early stopping triggered.')

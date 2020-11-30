@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import os
 from copy import deepcopy
 import pytest
 import torch
@@ -5,6 +19,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+from tests.base.datamodules import TrialMNISTDataModule
 
 
 def test_error_on_more_than_1_optimizer(tmpdir):
@@ -44,6 +59,8 @@ def test_model_reset_correctly(tmpdir):
         assert torch.all(torch.eq(before_state_dict[key], after_state_dict[key])), \
             'Model was not reset correctly after learning rate finder'
 
+    assert not os.path.exists(tmpdir / 'lr_find_temp_model.ckpt')
+
 
 def test_trainer_reset_correctly(tmpdir):
     """ Check that all trainer parameters are reset correctly after lr_find() """
@@ -57,8 +74,7 @@ def test_trainer_reset_correctly(tmpdir):
     )
 
     changed_attributes = ['callbacks', 'logger', 'max_steps', 'auto_lr_find',
-                          'early_stop_callback', 'accumulate_grad_batches',
-                          'checkpoint_callback']
+                          'accumulate_grad_batches', 'checkpoint_callback']
     attributes_before = {}
     for ca in changed_attributes:
         attributes_before[ca] = getattr(trainer, ca)
@@ -130,11 +146,14 @@ def test_trainer_arg_str(tmpdir, use_hparams):
         'Learning rate was not altered after running learning rate finder'
 
 
-def test_call_to_trainer_method(tmpdir):
+@pytest.mark.parametrize('optimizer', ['Adam', 'Adagrad'])
+def test_call_to_trainer_method(tmpdir, optimizer):
     """ Test that directly calling the trainer method works """
 
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
+    if optimizer == 'adagrad':
+        model.configure_optimizers = model.configure_optimizers__adagrad
 
     before_lr = hparams.get('learning_rate')
     # logger file to get meta
@@ -147,6 +166,30 @@ def test_call_to_trainer_method(tmpdir):
     after_lr = lrfinder.suggestion()
     model.learning_rate = after_lr
     trainer.tune(model)
+
+    assert before_lr != after_lr, \
+        'Learning rate was not altered after running learning rate finder'
+
+
+def test_datamodule_parameter(tmpdir):
+    """ Test that the datamodule parameter works """
+
+    # trial datamodule
+    dm = TrialMNISTDataModule(tmpdir)
+
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = EvalModelTemplate(**hparams)
+
+    before_lr = hparams.get('learning_rate')
+    # logger file to get meta
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+    )
+
+    lrfinder = trainer.tuner.lr_find(model, datamodule=dm)
+    after_lr = lrfinder.suggestion()
+    model.learning_rate = after_lr
 
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
@@ -169,11 +212,14 @@ def test_accumulation_and_early_stopping(tmpdir):
     lrfinder = trainer.tuner.lr_find(model, early_stop_threshold=None)
     after_lr = lrfinder.suggestion()
 
+    expected_num_lrs = 100
+    expected_batch_idx = 200 - 1
+
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
-    assert len(lrfinder.results['lr']) == 99, \
+    assert len(lrfinder.results['lr']) == expected_num_lrs, \
         'Early stopping for learning rate finder did not work'
-    assert lrfinder._total_batch_idx == 99 * 2, \
+    assert lrfinder._total_batch_idx == expected_batch_idx, \
         'Accumulation parameter did not work'
 
 

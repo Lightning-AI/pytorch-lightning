@@ -1,12 +1,25 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import os
-from copy import deepcopy
 import pickle
+from unittest import mock
 
 import cloudpickle
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from tests.base import EvalModelTemplate
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -35,14 +48,14 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     https://github.com/PyTorchLightning/pytorch-lightning/issues/1464
     https://github.com/PyTorchLightning/pytorch-lightning/issues/1463
     """
-
+    seed_everything(42)
     model = EvalModelTemplate()
-    checkpoint_callback = ModelCheckpoint(monitor="val_loss", save_top_k=1)
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_top_k=1)
     early_stop_callback = EarlyStoppingTestRestore()
     trainer = Trainer(
         default_root_dir=tmpdir,
         checkpoint_callback=checkpoint_callback,
-        early_stop_callback=early_stop_callback,
+        callbacks=[early_stop_callback],
         num_sanity_val_steps=0,
         max_epochs=4,
     )
@@ -60,24 +73,23 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     early_stop_callback = EarlyStoppingTestRestore(early_stop_callback_state)
     new_trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=2,
+        max_epochs=1,
         resume_from_checkpoint=checkpoint_filepath,
-        early_stop_callback=early_stop_callback,
+        callbacks=[early_stop_callback],
     )
 
     with pytest.raises(MisconfigurationException, match=r'.*you restored a checkpoint with current_epoch*'):
         new_trainer.fit(model)
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_early_stopping_no_extraneous_invocations(tmpdir):
     """Test to ensure that callback methods aren't being invoked outside of the callback handler."""
-    os.environ['PL_DEV_DEBUG'] = '1'
-
     model = EvalModelTemplate()
     expected_count = 4
     trainer = Trainer(
         default_root_dir=tmpdir,
-        early_stop_callback=True,
+        callbacks=[EarlyStopping()],
         val_check_interval=1.0,
         max_epochs=expected_count,
     )
@@ -106,7 +118,7 @@ def test_early_stopping_patience(tmpdir, loss_values, patience, expected_stop_ep
     early_stop_callback = EarlyStopping(monitor="test_val_loss", patience=patience, verbose=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
-        early_stop_callback=early_stop_callback,
+        callbacks=[early_stop_callback],
         val_check_interval=1.0,
         num_sanity_val_steps=0,
         max_epochs=10,
@@ -143,7 +155,7 @@ def test_early_stopping_no_val_step(tmpdir):
     stopping = EarlyStopping(monitor='my_train_metric', min_delta=0.1, patience=0)
     trainer = Trainer(
         default_root_dir=tmpdir,
-        early_stop_callback=stopping,
+        callbacks=[stopping],
         overfit_batches=0.20,
         max_epochs=10,
     )
@@ -159,13 +171,13 @@ def test_early_stopping_functionality(tmpdir):
         def validation_epoch_end(self, outputs):
             losses = [8, 4, 2, 3, 4, 5, 8, 10]
             val_loss = losses[self.current_epoch]
-            return {'val_loss': torch.tensor(val_loss)}
+            self.log('abc', torch.tensor(val_loss))
 
     model = CurrentModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        early_stop_callback=True,
+        callbacks=[EarlyStopping(monitor='abc')],
         overfit_batches=0.20,
         max_epochs=20,
     )
@@ -186,7 +198,7 @@ def test_early_stopping_functionality_arbitrary_key(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        early_stop_callback=EarlyStopping(monitor='jiraffe'),
+        callbacks=[EarlyStopping(monitor='jiraffe')],
         overfit_batches=0.20,
         max_epochs=20,
     )

@@ -50,8 +50,8 @@ class ProgressBarBase(Callback):
             def disable(self):
                 self.enable = False
 
-            def on_train_batch_end(self, trainer, pl_module):
-                super().on_train_batch_end(trainer, pl_module)  # don't forget this :)
+            def on_train_batch_end(self, trainer, pl_module, outputs):
+                super().on_train_batch_end(trainer, pl_module, outputs)  # don't forget this :)
                 percent = (self.train_batch_idx / self.total_train_batches) * 100
                 sys.stdout.flush()
                 sys.stdout.write(f'{percent:.01f} percent complete \r')
@@ -152,19 +152,19 @@ class ProgressBarBase(Callback):
     def on_epoch_start(self, trainer, pl_module):
         self._train_batch_idx = 0
 
-    def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         self._train_batch_idx += 1
 
     def on_validation_start(self, trainer, pl_module):
         self._val_batch_idx = 0
 
-    def on_validation_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         self._val_batch_idx += 1
 
     def on_test_start(self, trainer, pl_module):
         self._test_batch_idx = 0
 
-    def on_test_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         self._test_batch_idx += 1
 
 
@@ -332,22 +332,24 @@ class ProgressBar(ProgressBarBase):
             self.main_progress_bar.reset(convert_inf(total_batches))
         self.main_progress_bar.set_description(f'Epoch {trainer.current_epoch}')
 
-    def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-        super().on_train_batch_end(trainer, pl_module, batch, batch_idx, dataloader_idx)
-        if self.is_enabled and self.train_batch_idx % self.refresh_rate == 0:
-            self.main_progress_bar.update(self.refresh_rate)
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
+        if self._should_update(self.train_batch_idx, self.total_train_batches + self.total_val_batches):
+            self._update_bar(self.main_progress_bar)
             self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
 
     def on_validation_start(self, trainer, pl_module):
         super().on_validation_start(trainer, pl_module)
-        self.val_progress_bar = self.init_validation_tqdm()
-        self.val_progress_bar.total = convert_inf(self.total_val_batches)
+        if not trainer.running_sanity_check:
+            self._update_bar(self.main_progress_bar)  # fill up remaining
+            self.val_progress_bar = self.init_validation_tqdm()
+            self.val_progress_bar.total = convert_inf(self.total_val_batches)
 
-    def on_validation_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-        super().on_validation_batch_end(trainer, pl_module, batch, batch_idx, dataloader_idx)
-        if self.is_enabled and self.val_batch_idx % self.refresh_rate == 0:
-            self.val_progress_bar.update(self.refresh_rate)
-            self.main_progress_bar.update(self.refresh_rate)
+    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
+        if self._should_update(self.val_batch_idx, self.total_val_batches):
+            self._update_bar(self.val_progress_bar)
+            self._update_bar(self.main_progress_bar)
 
     def on_validation_end(self, trainer, pl_module):
         super().on_validation_end(trainer, pl_module)
@@ -363,14 +365,27 @@ class ProgressBar(ProgressBarBase):
         self.test_progress_bar = self.init_test_tqdm()
         self.test_progress_bar.total = convert_inf(self.total_test_batches)
 
-    def on_test_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-        super().on_test_batch_end(trainer, pl_module, batch, batch_idx, dataloader_idx)
-        if self.is_enabled and self.test_batch_idx % self.refresh_rate == 0:
-            self.test_progress_bar.update(self.refresh_rate)
+    def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        super().on_test_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
+        if self._should_update(self.test_batch_idx, self.total_test_batches):
+            self._update_bar(self.test_progress_bar)
 
     def on_test_end(self, trainer, pl_module):
         super().on_test_end(trainer, pl_module)
         self.test_progress_bar.close()
+
+    def _should_update(self, current, total):
+        return self.is_enabled and (current % self.refresh_rate == 0 or current == total)
+
+    def _update_bar(self, bar):
+        """ Updates the bar by the refresh rate without overshooting. """
+        if bar.total is not None:
+            delta = min(self.refresh_rate, bar.total - bar.n)
+        else:
+            # infinite / unknown size
+            delta = self.refresh_rate
+        if delta > 0:
+            bar.update(delta)
 
 
 def convert_inf(x):

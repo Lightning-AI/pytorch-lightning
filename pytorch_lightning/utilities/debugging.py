@@ -15,7 +15,6 @@
 import os
 import time
 from collections import Counter
-from enum import Enum
 from functools import wraps
 from typing import Callable, Any, Optional
 
@@ -38,7 +37,6 @@ def enabled_only(fn: Callable):
 class InternalDebugger(object):
 
     def __init__(self, trainer):
-
         self.enabled = os.environ.get('PL_DEV_DEBUG', '0') == '1'
         self.trainer = trainer
         self.logged_metrics = []
@@ -155,15 +153,14 @@ class InternalDebugger(object):
         self.pbar_added_metrics.append(metrics)
 
     @enabled_only
-    def track_early_stopping_history(self, current):
-        es = self.trainer.early_stop_callback
+    def track_early_stopping_history(self, callback, current):
         debug_dict = {
             'epoch': self.trainer.current_epoch,
             'global_step': self.trainer.global_step,
             'rank': self.trainer.global_rank,
             'current': current,
-            'best': es.best_score,
-            'patience': es.wait_count
+            'best': callback.best_score,
+            'patience': callback.wait_count
         }
         self.early_stopping_history.append(debug_dict)
 

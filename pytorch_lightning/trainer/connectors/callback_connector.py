@@ -1,5 +1,21 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import os
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, ProgressBarBase, ProgressBar
+from typing import Optional, Union
+
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBar, ProgressBarBase
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -11,7 +27,6 @@ class CallbackConnector:
     def on_trainer_init(
             self,
             callbacks,
-            early_stop_callback,
             checkpoint_callback,
             progress_bar_refresh_rate,
             process_position,
@@ -28,54 +43,45 @@ class CallbackConnector:
         # init callbacks
         self.trainer.callbacks = callbacks or []
 
-        # configure early stop callback
-        # creates a default one if none passed in
-        early_stop_callback = self.configure_early_stopping(early_stop_callback)
-        if early_stop_callback:
-            self.trainer.callbacks.append(early_stop_callback)
-
         # configure checkpoint callback
         # it is important that this is the last callback to run
         # pass through the required args to figure out defaults
-        checkpoint_callback = self.init_default_checkpoint_callback(checkpoint_callback)
-        if checkpoint_callback:
-            self.trainer.callbacks.append(checkpoint_callback)
-
-        # TODO refactor codebase (tests) to not directly reach into these callbacks
-        self.trainer.checkpoint_callback = checkpoint_callback
-        self.trainer.early_stop_callback = early_stop_callback
+        self.configure_checkpoint_callbacks(checkpoint_callback)
 
         # init progress bar
         self.trainer._progress_bar_callback = self.configure_progress_bar(
             progress_bar_refresh_rate, process_position
         )
 
-    def init_default_checkpoint_callback(self, checkpoint_callback):
-        if checkpoint_callback is True:
-            checkpoint_callback = ModelCheckpoint(filepath=None)
-        elif checkpoint_callback is False:
-            checkpoint_callback = None
-        if checkpoint_callback:
-            checkpoint_callback.save_function = self.trainer.save_checkpoint
-
-        return checkpoint_callback
-
-    def configure_early_stopping(self, early_stop_callback):
-        if early_stop_callback is True or None:
-            early_stop_callback = EarlyStopping(
-                monitor='early_stop_on',
-                patience=3,
-                strict=True,
-                verbose=True,
-                mode='min'
+    def configure_checkpoint_callbacks(self, checkpoint_callback: Union[ModelCheckpoint, bool]):
+        if isinstance(checkpoint_callback, ModelCheckpoint):
+            # TODO: deprecated, remove this block in v1.3.0
+            rank_zero_warn(
+                "Passing a ModelCheckpoint instance to Trainer(checkpoint_callbacks=...)"
+                " is deprecated since v1.1 and will no longer be supported in v1.3."
+                " Use `callbacks` argument instead.",
+                DeprecationWarning
             )
-        elif not early_stop_callback:
-            early_stop_callback = None
-        else:
-            early_stop_callback = early_stop_callback
-        return early_stop_callback
+            self.trainer.callbacks.append(checkpoint_callback)
+
+        if self._trainer_has_checkpoint_callbacks() and checkpoint_callback is False:
+            raise MisconfigurationException(
+                "Trainer was configured with checkpoint_callback=False but found ModelCheckpoint"
+                " in callbacks list."
+            )
+
+        if not self._trainer_has_checkpoint_callbacks() and checkpoint_callback is True:
+            self.trainer.callbacks.append(ModelCheckpoint(dirpath=None, filename=None))
 
     def configure_progress_bar(self, refresh_rate=1, process_position=0):
+        # smaller refresh rate on colab causes crashes, warn user about this
+        if os.getenv('COLAB_GPU') and refresh_rate < 20:
+            rank_zero_warn(
+                "You have set progress_bar_refresh_rate < 20 on Google Colab. This"
+                " may crash. Consider using progress_bar_refresh_rate >= 20 in Trainer.",
+                UserWarning
+            )
+
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]
         if len(progress_bars) > 1:
             raise MisconfigurationException(
@@ -94,3 +100,6 @@ class CallbackConnector:
             progress_bar_callback = None
 
         return progress_bar_callback
+
+    def _trainer_has_checkpoint_callbacks(self):
+        return len(self.trainer.checkpoint_callbacks) > 0

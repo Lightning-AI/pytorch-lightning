@@ -11,20 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import importlib
 import os
+from typing import List, Optional, Sequence, Union, Callable
+from functools import wraps
+
+import numpy as np
 import torch
-from typing import Optional, Sequence, List, Union
+from torch.optim import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
+
+from pytorch_lightning import _logger as log
+from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from torch.optim.lr_scheduler import _LRScheduler
-import importlib
-from pytorch_lightning import _logger as log
-import numpy as np
-from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
-
+from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
@@ -37,6 +43,10 @@ else:
 def _run_lr_finder_internally(trainer, model: LightningModule):
     """ Call lr finder internally during Trainer.fit() """
     lr_finder = lr_find(trainer, model)
+
+    if lr_finder is None:
+        return
+
     lr = lr_finder.suggestion()
 
     # TODO: log lr.results to self.logger
@@ -71,17 +81,18 @@ def lr_find(
         num_training: int = 100,
         mode: str = 'exponential',
         early_stop_threshold: float = 4.0,
+        datamodule: Optional[LightningDataModule] = None,
 ):
     r"""
-    lr_find enables the user to do a range test of good initial learning rates,
+    `lr_find` enables the user to do a range test of good initial learning rates,
     to reduce the amount of guesswork in picking a good starting learning rate.
 
     Args:
         model: Model to do range testing for
 
         train_dataloader: A PyTorch
-            DataLoader with training samples. If the model has
-            a predefined train_dataloader method this will be skipped.
+            `DataLoader` with training samples. If the model has
+            a predefined train_dataloader method, this will be skipped.
 
         min_lr: minimum learning rate to investigate
 
@@ -98,6 +109,12 @@ def lr_find(
             loss at any point is larger than early_stop_threshold*best_loss
             then the search is stopped. To disable, set to None.
 
+        datamodule: An optional `LightningDataModule` which holds the training
+            and validation dataloader(s). Note that the `train_dataloader` and
+            `val_dataloaders` parameters cannot be used at the same time as
+            this parameter, or a `MisconfigurationException` will be raised.
+
+
     Example::
 
         # Setup model and trainer
@@ -105,7 +122,7 @@ def lr_find(
         trainer = pl.Trainer()
 
         # Run lr finder
-        lr_finder = trainer.lr_find(model, ...)
+        lr_finder = trainer.tuner.lr_find(model, ...)
 
         # Inspect results
         fig = lr_finder.plot(); fig.show()
@@ -119,7 +136,11 @@ def lr_find(
         trainer.fit(model)
 
     """
-    save_path = os.path.join(trainer.default_root_dir, 'lr_find_temp.ckpt')
+    if trainer.fast_dev_run:
+        rank_zero_warn('Skipping learning rate finder since `fast_dev_run=True`', UserWarning)
+        return
+
+    save_path = os.path.join(trainer.default_root_dir, 'lr_find_temp_model.ckpt')
 
     __lr_finder_dump_params(trainer, model)
 
@@ -144,10 +165,6 @@ def lr_find(
     if trainer.progress_bar_callback:
         trainer.progress_bar_callback.disable()
 
-    # Disable standard checkpoint & early stopping
-    trainer.checkpoint_callback = False
-    trainer.early_stop_callback = None
-
     # Required for saving the model
     trainer.optimizers, trainer.schedulers = [], [],
     trainer.model = model
@@ -156,18 +173,13 @@ def lr_find(
     trainer.save_checkpoint(str(save_path))
 
     # Configure optimizer and scheduler
-    optimizers, _, _ = trainer.init_optimizers(model)
-
-    if len(optimizers) != 1:
-        raise MisconfigurationException(
-            f'`model.configure_optimizers()` returned {len(optimizers)}, but'
-            ' learning rate finder only works with single optimizer')
-    model.configure_optimizers = lr_finder._get_new_optimizer(optimizers[0])
+    model.configure_optimizers = lr_finder._exchange_scheduler(model.configure_optimizers)
 
     # Fit, lr & loss logged in callback
     trainer.fit(model,
                 train_dataloader=train_dataloader,
-                val_dataloaders=val_dataloaders)
+                val_dataloaders=val_dataloaders,
+                datamodule=datamodule)
 
     # Prompt if we stopped early
     if trainer.global_step != num_training:
@@ -179,8 +191,11 @@ def lr_find(
     lr_finder._total_batch_idx = trainer.total_batch_idx  # for debug purpose
 
     # Reset model state
-    trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer.on_gpu)
-    os.remove(save_path)
+    if trainer.is_global_zero:
+        trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer.on_gpu)
+        fs = get_filesystem(str(save_path))
+        if fs.exists(save_path):
+            fs.rm(save_path)
 
     # Finish by resetting variables so trainer is ready to fit model
     __lr_finder_restore_params(trainer, model)
@@ -198,7 +213,6 @@ def __lr_finder_dump_params(trainer, model):
         'logger': trainer.logger,
         'max_steps': trainer.max_steps,
         'checkpoint_callback': trainer.checkpoint_callback,
-        'early_stop_callback': trainer.early_stop_callback,
         'configure_optimizers': model.configure_optimizers,
     }
 
@@ -208,8 +222,6 @@ def __lr_finder_restore_params(trainer, model):
     trainer.logger = trainer.__dumped_params['logger']
     trainer.callbacks = trainer.__dumped_params['callbacks']
     trainer.max_steps = trainer.__dumped_params['max_steps']
-    trainer.checkpoint_callback = trainer.__dumped_params['checkpoint_callback']
-    trainer.early_stop_callback = trainer.__dumped_params['early_stop_callback']
     model.configure_optimizers = trainer.__dumped_params['configure_optimizers']
     del trainer.__dumped_params
 
@@ -251,28 +263,47 @@ class _LRFinder(object):
         self.results = {}
         self._total_batch_idx = 0  # for debug purpose
 
-    def _get_new_optimizer(self, optimizer: torch.optim.Optimizer):
-        """ Construct a new `configure_optimizers()` method, that has a optimizer
-            with initial lr set to lr_min and a scheduler that will either
-            linearly or exponentially increase the lr to lr_max in num_training steps.
-
-        Args:
-            optimizer: instance of `torch.optim.Optimizer`
-
+    def _exchange_scheduler(self, configure_optimizers: Callable):
+        """ Decorate configure_optimizers methods such that it returns the users
+            originally specified optimizer together with a new scheduler that
+            that takes care of the learning rate search.
         """
-        new_lrs = [self.lr_min] * len(optimizer.param_groups)
-        for param_group, new_lr in zip(optimizer.param_groups, new_lrs):
-            param_group["lr"] = new_lr
-            param_group["initial_lr"] = new_lr
+        @wraps(configure_optimizers)
+        def func():
+            # Decide the structure of the output from configure_optimizers
+            # Same logic as method `init_optimizers` in trainer/optimizers.py
+            optim_conf = configure_optimizers()
+            if isinstance(optim_conf, Optimizer):
+                optimizers = [optim_conf]
+            elif isinstance(optim_conf, (list, tuple)) and len(optim_conf) == 2 \
+                    and isinstance(optim_conf[0], list):
+                optimizers, _ = optim_conf
+            elif isinstance(optim_conf, dict):
+                optimizers = [optim_conf["optimizer"]]
+            elif isinstance(optim_conf, (list, tuple)) and isinstance(optim_conf[0], dict):
+                optimizers = [opt_dict["optimizer"] for opt_dict in optim_conf]
+            elif isinstance(optim_conf, (list, tuple)):
+                optimizers = [optim_conf]
 
-        args = (optimizer, self.lr_max, self.num_training)
-        scheduler = _LinearLR(*args) if self.mode == 'linear' else _ExponentialLR(*args)
+            if len(optimizers) != 1:
+                raise MisconfigurationException(
+                    f'`model.configure_optimizers()` returned {len(optimizers)}, but'
+                    ' learning rate finder only works with single optimizer')
 
-        def configure_optimizers():
+            optimizer = optimizers[0]
+
+            new_lrs = [self.lr_min] * len(optimizer.param_groups)
+            for param_group, new_lr in zip(optimizer.param_groups, new_lrs):
+                param_group["lr"] = new_lr
+                param_group["initial_lr"] = new_lr
+
+            args = (optimizer, self.lr_max, self.num_training)
+            scheduler = _LinearLR(*args) if self.mode == 'linear' else _ExponentialLR(*args)
+
             return [optimizer], [{'scheduler': scheduler,
                                   'interval': 'step'}]
 
-        return configure_optimizers
+        return func
 
     def plot(self, suggest: bool = False, show: bool = False):
         """ Plot results from lr_find run
@@ -368,7 +399,7 @@ class _LRCallback(Callback):
 
         self.lrs.append(trainer.lr_schedulers[0]['scheduler'].lr[0])
 
-    def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         """ Called when the training batch ends, logs the calculated loss """
         if (trainer.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return

@@ -35,12 +35,8 @@ references:
       name: Build and push Docker image
       command: |
         gcloud --quiet auth configure-docker
-        cd dockers/tpu-tests
-        # TODO: How to find the GITHUB_REF in CircleCI?
-        # $CI_PULL_REQUEST seems to be of form: https://github.com/org/repo-name/pull/11.
-        # Grab the last bit, e.g. pull/11, convert to pull/11/head, and use it
-        # for the GITHUB_REF so Docker can pull the latest pending code in PR.
-        if [ -z "$CI_PULL_REQUEST" ]; then docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f Dockerfile --build-arg "TEST_IMAGE=1" .; else git_ref=$(echo "$CI_PULL_REQUEST" | sed "s/.*pytorch-lightning\///")/head && docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f Dockerfile --build-arg "TEST_IMAGE=1" --build-arg "GITHUB_REF=$git_ref" .; fi
+        #cd dockers/tpu-tests
+        docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f ./dockers/tpu-tests/Dockerfile --build-arg "PYTHON_VERSION=$PYTHON_VER" --build-arg "PYTORCH_VERSION=$XLA_VER" .
         docker push "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID"
 
   deploy_cluster: &deploy_cluster
@@ -49,6 +45,7 @@ references:
      command: |
        go get github.com/google/go-jsonnet/cmd/jsonnet
        export PATH=$PATH:$HOME/go/bin
+       python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; fff = open(fname).read().replace('pytorch-VERSION', 'pytorch-$XLA_VER') ; open(fname, 'w').write(fff)"
        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet --ext-str image=$GCR_IMAGE_PATH --ext-str image-tag=$CIRCLE_WORKFLOW_JOB_ID | kubectl create -f -)
        job_name=${job_name#job.batch/}
        job_name=${job_name% created}
@@ -99,9 +96,14 @@ references:
 jobs:
 
   TPU-tests:
+    parameters:
+      python:
+        type: string
     docker:
       - image: circleci/python:3.7
     environment:
+      - PYTHON_VER: << parameters.python >>
+      - XLA_VER: 1.7
       - MAX_CHECKS: 240
       - CHECK_SPEEP: 5
     steps:
@@ -148,19 +150,14 @@ jobs:
 
 workflows:
   version: 2
-  build:
+  tpu-tests:
     jobs:
       - build-Docs
       - TPU-tests:
-          filters:
-            branches:
-              # https://discuss.circleci.com/t/create-separate-steps-jobs-for-pr-forks-versus-branches/13419/4
-              #only:
-              #  # only from forks
-              #  - /^pull\/.\d+$/
-              ignore:
-                - master
-  cleanup:
+          matrix:
+            parameters:
+              python: ["3.6", "3.7"]
+  tpu-cleanup:
     triggers:
       - schedule:
           # The cron format is:

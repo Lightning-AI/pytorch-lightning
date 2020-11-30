@@ -13,37 +13,33 @@
 # limitations under the License.
 
 """
-TensorBoard
------------
+TensorBoard Logger
+------------------
 """
 
 import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
-from warnings import warn
 
 import torch
-from pkg_resources import parse_version
 from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard.summary import hparams
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn, OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 
-try:
+if OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
-except ImportError:
-    OMEGACONF_AVAILABLE = False
-else:
-    OMEGACONF_AVAILABLE = True
 
 
 class TensorBoardLogger(LightningLoggerBase):
     r"""
     Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
+
     Implemented using :class:`~torch.utils.tensorboard.SummaryWriter`. Logs are saved to
     ``os.path.join(save_dir, name, version)``. This is the default logger in Lightning, it comes
     preinstalled.
@@ -67,11 +63,13 @@ class TensorBoardLogger(LightningLoggerBase):
             model.
         default_hp_metric: Enables a placeholder metric with key `hp_metric` when `log_hyperparams` is
             called without a metric (otherwise calls to log_hyperparams without a metric are ignored).
+        prefix: A string to put at the beginning of metric keys.
         \**kwargs: Additional arguments like `comment`, `filename_suffix`, etc. used by
             :class:`SummaryWriter` can be passed as keyword arguments in this logger.
 
     """
     NAME_HPARAMS_FILE = 'hparams.yaml'
+    LOGGER_JOIN_CHAR = '-'
 
     def __init__(
         self,
@@ -80,6 +78,7 @@ class TensorBoardLogger(LightningLoggerBase):
         version: Optional[Union[int, str]] = None,
         log_graph: bool = False,
         default_hp_metric: bool = True,
+        prefix: str = '',
         **kwargs
     ):
         super().__init__()
@@ -88,6 +87,7 @@ class TensorBoardLogger(LightningLoggerBase):
         self._version = version
         self._log_graph = log_graph
         self._default_hp_metric = default_hp_metric
+        self._prefix = prefix
         self._fs = get_filesystem(save_dir)
 
         self._experiment = None
@@ -158,37 +158,38 @@ class TensorBoardLogger(LightningLoggerBase):
         params = self._flatten_dict(params)
         params = self._sanitize_params(params)
 
-        if parse_version(torch.__version__) < parse_version("1.3.0"):
-            warn(
-                f"Hyperparameter logging is not available for Torch version {torch.__version__}."
-                " Skipping log_hyperparams. Upgrade to Torch 1.3.0 or above to enable"
-                " hyperparameter logging."
-            )
-        else:
-            from torch.utils.tensorboard.summary import hparams
+        if metrics is None:
+            if self._default_hp_metric:
+                metrics = {"hp_metric": -1}
+        elif not isinstance(metrics, dict):
+            metrics = {"hp_metric": metrics}
 
-            if metrics is None:
-                if self._default_hp_metric:
-                    metrics = {"hp_metric": -1}
-            elif not isinstance(metrics, dict):
-                metrics = {"hp_metric": metrics}
-
-            if metrics:
-                self.log_metrics(metrics, 0)
-                exp, ssi, sei = hparams(params, metrics)
-                writer = self.experiment._get_file_writer()
-                writer.add_summary(exp)
-                writer.add_summary(ssi)
-                writer.add_summary(sei)
+        if metrics:
+            self.log_metrics(metrics, 0)
+            exp, ssi, sei = hparams(params, metrics)
+            writer = self.experiment._get_file_writer()
+            writer.add_summary(exp)
+            writer.add_summary(ssi)
+            writer.add_summary(sei)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
+        metrics = self._add_prefix(metrics)
+
         for k, v in metrics.items():
             if isinstance(v, torch.Tensor):
                 v = v.item()
-            self.experiment.add_scalar(k, v, step)
+
+            if isinstance(v, dict):
+                self.experiment.add_scalars(k, v, step)
+            else:
+                try:
+                    self.experiment.add_scalar(k, v, step)
+                except Exception as e:
+                    m = f'\n you tried to log {v} which is not currently supported. Try a dict or a scalar/tensor.'
+                    type(e)(e.message + m)
 
     @rank_zero_only
     def log_graph(self, model: LightningModule, input_array=None):
@@ -215,11 +216,13 @@ class TensorBoardLogger(LightningLoggerBase):
         # prepare the file path
         hparams_file = os.path.join(dir_path, self.NAME_HPARAMS_FILE)
 
-        # save the metatags file
-        save_hparams_to_yaml(hparams_file, self.hparams)
+        # save the metatags file if it doesn't exist
+        if not os.path.isfile(hparams_file):
+            save_hparams_to_yaml(hparams_file, self.hparams)
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
+        self.experiment.flush()
         self.save()
 
     @property
@@ -240,7 +243,8 @@ class TensorBoardLogger(LightningLoggerBase):
             return 0
 
         existing_versions = []
-        for d in self._fs.ls(root_dir):
+        for listing in self._fs.listdir(root_dir):
+            d = listing["name"]
             bn = os.path.basename(d)
             if self._fs.isdir(d) and bn.startswith("version_"):
                 dir_ver = bn.split("_")[1].replace('/', '')
