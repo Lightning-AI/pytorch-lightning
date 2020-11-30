@@ -655,12 +655,13 @@ def test_checkpoint_repeated_strategy(enable_pl_optimizer, tmpdir):
         # load from checkpoint
         chk = get_last_checkpoint()
         model = BoringModel.load_from_checkpoint(chk)
-        trainer = pl.Trainer(max_epochs=1,
-                             limit_train_batches=2,
-                             limit_val_batches=2,
-                             limit_test_batches=2,
-                             resume_from_checkpoint=chk,
-                             enable_pl_optimizer=enable_pl_optimizer)
+        trainer = pl.Trainer(
+            max_epochs=1,
+            limit_train_batches=2,
+            limit_val_batches=2,
+            limit_test_batches=2,
+            resume_from_checkpoint=chk,
+            enable_pl_optimizer=enable_pl_optimizer)
         trainer.fit(model)
         trainer.test(model)
 
@@ -711,13 +712,14 @@ def test_checkpoint_repeated_strategy_tmpdir(enable_pl_optimizer, tmpdir):
         # load from checkpoint
         chk = get_last_checkpoint()
         model = LogInTwoMethods.load_from_checkpoint(chk)
-        trainer = pl.Trainer(default_root_dir=tmpdir,
-                             max_epochs=1,
-                             limit_train_batches=2,
-                             limit_val_batches=2,
-                             limit_test_batches=2,
-                             resume_from_checkpoint=chk,
-                             enable_pl_optimizer=enable_pl_optimizer)
+        trainer = pl.Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            limit_train_batches=2,
+            limit_val_batches=2,
+            limit_test_batches=2,
+            resume_from_checkpoint=chk,
+            enable_pl_optimizer=enable_pl_optimizer)
 
         trainer.fit(model)
         trainer.test(model)

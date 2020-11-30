@@ -227,8 +227,8 @@ class LightningOptimizer:
             optimizer.zero_grad()
         else:
             # make sure to call optimizer_closure when accumulating
-            with trainer.train_loop.block_ddp_sync_behaviour():
-                with trainer.profiler.profile("closure"):
+            with trainer.profiler.profile("closure"):
+                with trainer.train_loop.block_ddp_sync_behaviour():
                     closure()
 
     def __repr__(self):
