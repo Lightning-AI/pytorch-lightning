@@ -21,6 +21,11 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.models import ParityModuleRNN
 
 
+def almost_equals(a, b, rel_tol=0.0, abs_tol=0.0):
+    _almost_close = lambda a, b: abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+    return _almost_close(a, b)
+
+
 class EmptyModule(LightningModule):
     """ A module that has no layers """
 
@@ -35,6 +40,8 @@ class EmptyModule(LightningModule):
 
 class UnorderedModel(LightningModule):
     """ A model in which the layers not defined in order of execution """
+
+    pre_calculated_model_size = 0.000870
 
     def __init__(self):
         super().__init__()
@@ -58,6 +65,8 @@ class UnorderedModel(LightningModule):
 
 class MixedDtypeModel(LightningModule):
     """ The parameters and inputs of this model have different dtypes. """
+
+    pre_calculated_model_size = 0.00182
 
     def __init__(self):
         super().__init__()
@@ -124,10 +133,20 @@ def test_linear_model_summary_shapes(device, mode):
     assert model.device == device
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Test requires GPU.")
+def test_linear_model_summary_shapes(device, mode):
+    """ Test that the model size is correctly calculated."""
+    model = UnorderedModel().to(device)
+    model.train()
+    summary = model.summarize(mode=mode)
+    assert almost_equals(summary.model_size, model.pre_calculated_model_size, rel_tol=1e-4, abs_tol=1e-4)
+
+
 def test_mixed_dtype_model_summary():
     """ Test that the model summary works with models that have mixed input- and parameter dtypes. """
     model = MixedDtypeModel()
     summary = model.summarize()
+    assert almost_equals(summary.model_size, model.pre_calculated_model_size, rel_tol=1e-4, abs_tol=1e-4)
     assert summary.in_sizes == [
         [2, 3],         # embed
         [2, 3, 20],     # reduce
