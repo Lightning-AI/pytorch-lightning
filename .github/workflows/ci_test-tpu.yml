@@ -90,7 +90,7 @@ jobs:
       env:
         XLA_VER: ${{ matrix.xla-version }}
       run: |-
-        python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; req = open(fname).read().replace('pytorch-VERSION', 'pytorch-$XLA_VER') ; open(fname, 'w').write(req)"
+        python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; ttt = open(fname).read().replace('pytorch-VERSION', 'pytorch-$XLA_VER') ; open(fname, 'w').write(ttt)"
         job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet --ext-str image=$IMAGE --ext-str image-tag=$IMAGETAG | kubectl create -f -) && \
         job_name=${job_name#job.batch/} && \
         job_name=${job_name% created} && \
