@@ -11,11 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Optional
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.plugins.apex import ApexPlugin
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
-from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVALAIBLE, AMPType, rank_zero_warn
+from pytorch_lightning.plugins.sharded_native_amp_plugin import ShardedNativeAMPPlugin
+from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
+from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVAILABLE, AMPType, rank_zero_warn
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class PrecisionConnector:
@@ -24,7 +28,7 @@ class PrecisionConnector:
         self.trainer = trainer
         self.backend = None
 
-    def on_trainer_init(self, precision, amp_level, amp_backend):
+    def on_trainer_init(self, precision, amp_level, amp_backend, plugins):
         # AMP init
         # These are the only lines needed after v0.8.0
         # we wrap the user's forward with autocast and give it back at the end of fit
@@ -33,35 +37,44 @@ class PrecisionConnector:
         self.trainer.scaler = None
 
         self.trainer.amp_level = amp_level
-        self.init_amp(amp_backend)
+        self.init_amp(amp_backend, plugins)
 
-    def init_amp(self, amp_type: str):
+    def init_amp(self, amp_type: str, plugins: Optional[list]):
         assert self.trainer.precision in (16, 32), 'only 32 or 16 bit precision supported'
         self.trainer.amp_backend = None
-        self._setup_amp_backend(amp_type)
+        self._setup_amp_backend(amp_type, plugins)
 
-    def _setup_amp_backend(self, amp_type: str):
+    def _setup_amp_backend(self, amp_type: str, plugins: Optional[list]):
         if self.trainer.precision != 16:
             # no AMP requested, so we can leave now
             return
 
+        using_sharded_plugin = self._check_using_sharded_plugin(plugins)
         amp_type = amp_type.lower()
         assert amp_type in ('native', 'apex'), f'Unsupported amp type {amp_type}'
         if amp_type == 'native':
-            if not NATIVE_AMP_AVALAIBLE:
+            if not NATIVE_AMP_AVAILABLE:
                 rank_zero_warn('You have asked for native AMP but your PyTorch version does not support it.'
                                ' Consider upgrading with `pip install torch>=1.6`.'
                                ' We will attempt to use NVIDIA Apex for this session.')
                 amp_type = 'apex'
             else:
-                log.info('Using native 16bit precision.')
                 self.trainer.amp_backend = AMPType.NATIVE
-                self.backend = NativeAMPPlugin(self.trainer)
+                if using_sharded_plugin:
+                    log.info('Using sharded 16bit precision.')
+                    self.backend = ShardedNativeAMPPlugin(self.trainer)
+                else:
+                    log.info('Using native 16bit precision.')
+                    self.backend = NativeAMPPlugin(self.trainer)
 
         if amp_type == 'apex':
             if not APEX_AVAILABLE:
                 rank_zero_warn('You have asked for Apex AMP but you have not installed it yet.'
                                ' Install apex first using this guide: https://github.com/NVIDIA/apex#linux')
+            elif using_sharded_plugin:
+                raise MisconfigurationException(
+                    'Sharded Plugin is not supported with Apex AMP, please using native AMP for 16-bit precision.'
+                )
             else:
                 log.info('Using APEX 16bit precision.')
                 self.trainer.amp_backend = AMPType.APEX
@@ -79,3 +92,10 @@ class PrecisionConnector:
             self.trainer.optimizers = optimizers
 
         return model
+
+    def _check_using_sharded_plugin(self, plugins: Optional[list]):
+        if plugins is not None:
+            for plugin in plugins:
+                if isinstance(plugin, DDPShardedPlugin):
+                    return True
+        return False

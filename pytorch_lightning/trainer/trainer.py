@@ -69,11 +69,6 @@ warnings.filterwarnings(
     'ignore', message='torch.distributed.reduce_op is deprecated, ' 'please use torch.distributed.ReduceOp instead'
 )
 
-try:
-    from apex import amp
-except ImportError:
-    amp = None
-
 
 class Trainer(
     TrainerProperties,
@@ -399,7 +394,7 @@ class Trainer(
         )
 
         # set precision
-        self.precision_connector.on_trainer_init(precision, amp_level, amp_backend)
+        self.precision_connector.on_trainer_init(precision, amp_level, amp_backend, plugins)
 
         # last thing are the plugins which override whatever the trainer used by default
         self.plugin_connector.on_trainer_init(plugins)
@@ -516,8 +511,9 @@ class Trainer(
                 # hook
                 self.train_loop.on_train_epoch_start(epoch)
 
-                # run train epoch
-                self.train_loop.run_training_epoch()
+                with self.profiler.profile("run_training_epoch"):
+                    # run train epoch
+                    self.train_loop.run_training_epoch()
 
                 if self.max_steps and self.max_steps <= self.global_step:
 
@@ -609,8 +605,9 @@ class Trainer(
                 self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
 
                 # lightning module methods
-                output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
-                output = self.evaluation_loop.evaluation_step_end(output)
+                with self.profiler.profile("evaluation_step_and_end"):
+                    output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
+                    output = self.evaluation_loop.evaluation_step_end(output)
 
                 # hook + store predictions
                 self.evaluation_loop.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
@@ -661,7 +658,8 @@ class Trainer(
     def run_test(self):
         # only load test dataloader for testing
         # self.reset_test_dataloader(ref_model)
-        eval_loop_results, _ = self.run_evaluation(test_mode=True)
+        with self.profiler.profile("run_test_evaluation"):
+            eval_loop_results, _ = self.run_evaluation(test_mode=True)
 
         if len(eval_loop_results) == 0:
             return 1
@@ -868,6 +866,7 @@ class Trainer(
             # used to track current hook name called
             model_ref._results = Result()
             model_ref._current_hook_fx_name = hook_name
+        return False
 
     def _cache_logged_metrics(self):
         model_ref = self.get_model()
@@ -875,9 +874,10 @@ class Trainer(
             # capture logging for this hook
             self.logger_connector.cache_logged_metrics()
 
-    def call_hook(self, hook_name, *args, **kwargs):
+    def call_hook(self, hook_name, *args, capture=False, **kwargs):
         # set hook_name to model + reset Result obj
-        self._reset_result_and_set_hook_fx_name(hook_name)
+        if capture:
+            self._reset_result_and_set_hook_fx_name(hook_name)
 
         # always profile hooks
         with self.profiler.profile(hook_name):
@@ -900,6 +900,6 @@ class Trainer(
                 accelerator_hook = getattr(self.accelerator_backend, hook_name)
                 output = accelerator_hook(*args, **kwargs)
 
-        # capture logging
-        self._cache_logged_metrics()
+        if capture:
+            self._cache_logged_metrics()
         return output
