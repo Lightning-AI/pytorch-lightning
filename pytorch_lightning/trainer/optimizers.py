@@ -42,7 +42,12 @@ class TrainerOptimizersMixin(ABC):
         if isinstance(optim_conf, Optimizer):
             optimizers = [optim_conf]
         # two lists, optimizer + lr schedulers
-        elif isinstance(optim_conf, (list, tuple)) and len(optim_conf) == 2 and isinstance(optim_conf[0], list):
+        elif (
+            isinstance(optim_conf, (list, tuple))
+            and len(optim_conf) == 2
+            and isinstance(optim_conf[0], list)
+            and all(isinstance(opt, Optimizer) for opt in optim_conf[0])
+        ):
             opt, sch = optim_conf
             optimizers = opt
             lr_schedulers = sch if isinstance(sch, list) else [sch]
@@ -72,7 +77,7 @@ class TrainerOptimizersMixin(ABC):
             if optimizer_frequencies and len(optimizer_frequencies) != len(optimizers):
                 raise ValueError("A frequency must be given to each optimizer.")
         # single list or tuple, multiple optimizer
-        elif isinstance(optim_conf, (list, tuple)):
+        elif isinstance(optim_conf, (list, tuple)) and all(isinstance(opt, Optimizer) for opt in optim_conf):
             optimizers = list(optim_conf)
         # unknown configuration
         else:

@@ -13,6 +13,7 @@
 # limitations under the License.
 import pytest
 import torch
+from torch import optim
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -356,20 +357,24 @@ def test_configure_optimizers_with_frequency_and_lr_schedulers(tmpdir):
     """
     Test that opt_idx is set for LR schedulers when corresponding frequency is set for multiple optimizers.
     """
-    model = EvalModelTemplate()
-    model.configure_optimizers = model.configure_optimizers__multiple_optimizers_frequency_with_step_lr_schedulers
+    model = BoringModel()
+    model.configure_optimizers = lambda: [
+        {'optimizer': optim.Adam(model.parameters(), lr=0.01), 'frequency': 5},
+        {
+            'optimizer': optim.Adam(model.parameters(), lr=0.01),
+            'frequency': 1,
+            'lr_scheduler': {
+                'scheduler': optim.lr_scheduler.OneCycleLR(
+                    optim.Adam(model.parameters(), lr=0.01), max_lr=0.01, total_steps=1
+                ),
+                'interval': 'step',
+            },
+        },
+    ]
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     _, lr_schedulers, _ = trainer.init_optimizers(model)
     assert lr_schedulers[0]['opt_idx'] == 1
-
-    model.configure_optimizers = model.configure_optimizers__multiple_optimizers_frequency_with_epoch_lr_schedulers
-    _, lr_schedulers, _ = trainer.init_optimizers(model)
-    assert lr_schedulers[0]['opt_idx'] == 1
-
-    model.configure_optimizers = model.configure_optimizers__multiple_schedulers
-    _, lr_schedulers, _ = trainer.init_optimizers(model)
-    assert lr_schedulers[0]['opt_idx'] is None
 
 
 def test_step_scheduling_for_multiple_optimizers_with_frequency(tmpdir):
@@ -377,9 +382,30 @@ def test_step_scheduling_for_multiple_optimizers_with_frequency(tmpdir):
     Test that step LR schedulers for multiple optimizers follow
     the optimizer frequencies when corresponding frequency is set.
     """
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
-    model.configure_optimizers = model.configure_optimizers__multiple_optimizers_frequency_with_step_lr_schedulers
+
+    class DummyStepModel(BoringModel):
+        def training_step(self, batch, batch_idx, optimizer_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            return {"loss": loss}
+
+        def configure_optimizers(self):
+            optimizer1 = optim.Adam(self.parameters(), lr=0.01)
+            optimizer2 = optim.Adam(self.parameters(), lr=0.01)
+
+            return [
+                {'optimizer': optimizer1, 'frequency': 5},
+                {
+                    'optimizer': optimizer2,
+                    'frequency': 1,
+                    'lr_scheduler': {
+                        'scheduler': optim.lr_scheduler.OneCycleLR(optimizer2, max_lr=0.01, total_steps=1),
+                        'interval': 'step',
+                    },
+                },
+            ]
+
+    model = DummyStepModel()
 
     trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=1, limit_train_batches=5, max_epochs=1)
     result = trainer.fit(model)
@@ -391,9 +417,31 @@ def test_epoch_scheduling_for_multiple_optimizers_with_frequency(tmpdir):
     Test that epoch LR schedulers for multiple optimizers follow
     the optimizer frequencies when corresponding frequency is set.
     """
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
-    model.configure_optimizers = model.configure_optimizers__multiple_optimizers_frequency_with_epoch_lr_schedulers
+
+    class DummyEpochModel(BoringModel):
+        def training_step(self, batch, batch_idx, optimizer_idx):
+            print(optimizer_idx)
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            return {"loss": loss}
+
+        def configure_optimizers(self):
+            optimizer1 = optim.Adam(self.parameters(), lr=0.008)
+            optimizer2 = optim.Adam(self.parameters(), lr=0.008)
+
+            return [
+                {'optimizer': optimizer1, 'frequency': 6},
+                {
+                    'optimizer': optimizer2,
+                    'frequency': 12,
+                    'lr_scheduler': {
+                        'scheduler': optim.lr_scheduler.CosineAnnealingLR(optimizer2, 2),
+                        'interval': 'epoch',
+                    },
+                },
+            ]
+
+    model = DummyEpochModel()
 
     trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=1, limit_train_batches=5, max_epochs=2)
     result = trainer.fit(model)
@@ -537,4 +585,15 @@ def test_lr_scheduler_with_no_actual_scheduler_raises(tmpdir):
     }
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.raises(MisconfigurationException, match='The lr scheduler dict must have the key "scheduler"'):
+        trainer.fit(model)
+
+
+def test_invalid_optimizer_dict_raises(tmpdir):
+    """
+    Test exception when lr_scheduler dict has no scheduler
+    """
+    model = BoringModel()
+    model.configure_optimizers = lambda: [{'optimizer': optim.Adam(model.parameters())}, optim.Adam(model.parameters())]
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    with pytest.raises(MisconfigurationException, match='Unknown configuration for model optimizers'):
         trainer.fit(model)
