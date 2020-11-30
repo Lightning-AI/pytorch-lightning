@@ -285,7 +285,8 @@ def test_auroc(pred, target, max_fpr, expected):
     assert score == expected
 
 
-@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion('1.6.0'))
+@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion('1.6.0'),
+                    reason='requires torch v1.6 or higher')
 @pytest.mark.parametrize(['max_fpr'], [
     pytest.param(None),
     pytest.param(1),
