@@ -237,7 +237,6 @@ class ModelSummary(object):
     def total_params(self) -> int:
         return sum(self.param_nums)
 
-    @property
     def model_size(self, input_size=None) -> float:
         if isinstance(self._model.example_input_array, (list, tuple)):
             in_features = (
