@@ -95,14 +95,8 @@ def run_optimizer(ctx, model):
 
 
 class LightningPipeModule(nn.Module):
-    def __init__(self,
-                 module: nn.Sequential,
-                 balance: Optional[List[int]],
-                 microbatches: int = 8,
-                 checkpoint='except_last',
-                 version: int = 1,
-                 pipelined_backward: bool = True,
-                 **kwargs):
+    def __init__(self, module: nn.Sequential, balance: List[int],
+                 microbatches: int = 8, checkpoint='never', version: int = 1):
         super().__init__()
         assert version in [1, 2]
         self._pipe_version = version
@@ -110,7 +104,6 @@ class LightningPipeModule(nn.Module):
         self.balance = balance
         self.microbatches = microbatches
         self.checkpoint = checkpoint
-        self.pipelined_backward = pipelined_backward
         self._init_pipe()
 
     def _init_pipe(self):
@@ -124,7 +117,6 @@ class LightningPipeModule(nn.Module):
             input_device=device,
             worker_map=get_worker_map(),
             checkpoint=self.checkpoint,
-            pipelined_backward=self.pipelined_backward
         )
 
     def forward(self, *args, **kwargs):
@@ -200,6 +192,11 @@ class PipePlugin(DDPPlugin):
                  **kwargs):
         super().__init__(**kwargs)
 
+        if version == 2 and checkpoint != 'never':
+            log.info("Pipe version 2 only support checkpoint=never")
+            checkpoint = "never"
+
+
         self.balance = balance
         self.num_partitions = num_partitions
         self.microbatches = microbatches
@@ -248,7 +245,6 @@ class PipePlugin(DDPPlugin):
                 balance=self.balance,
                 microbatches=self.microbatches,
                 checkpoint=self.checkpoint,
-                pipelined_backward=self.pipelined_backward,
                 version=self.version,
             )
             model.final_stage = model.layers.module.final_stage
