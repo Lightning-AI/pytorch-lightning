@@ -155,7 +155,7 @@ def test_cpu_model_with_amp(enable_pl_optimizer, tmpdir):
         limit_train_batches=0.4,
         limit_val_batches=0.4,
         precision=16,
-        enable_pl_optimizer=enable_pl_optimizer
+        enable_pl_optimizer=enable_pl_optimizer,
     )
 
     model = EvalModelTemplate()

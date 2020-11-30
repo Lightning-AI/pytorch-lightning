@@ -44,7 +44,7 @@ def test_cpu_slurm_save_load(enable_pl_optimizer, tmpdir):
         limit_train_batches=0.2,
         limit_val_batches=0.2,
         checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
-        enable_pl_optimizer=enable_pl_optimizer
+        enable_pl_optimizer=enable_pl_optimizer,
     )
     result = trainer.fit(model)
     real_global_step = trainer.global_step
@@ -81,7 +81,7 @@ def test_cpu_slurm_save_load(enable_pl_optimizer, tmpdir):
         max_epochs=1,
         logger=logger,
         checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
-        enable_pl_optimizer=enable_pl_optimizer
+        enable_pl_optimizer=enable_pl_optimizer,
     )
     model = EvalModelTemplate(**hparams)
 
@@ -114,7 +114,7 @@ def test_early_stopping_cpu_model(enable_pl_optimizer, tmpdir):
         track_grad_norm=2,
         limit_train_batches=0.1,
         limit_val_batches=0.1,
-        enable_pl_optimizer=enable_pl_optimizer
+        enable_pl_optimizer=enable_pl_optimizer,
     )
 
     model = EvalModelTemplate()
@@ -144,7 +144,7 @@ def test_multi_cpu_model_ddp(enable_pl_optimizer, tmpdir):
         gpus=None,
         num_processes=2,
         distributed_backend='ddp_cpu',
-        enable_pl_optimizer=enable_pl_optimizer
+        enable_pl_optimizer=enable_pl_optimizer,
     )
 
     model = EvalModelTemplate()
@@ -297,7 +297,7 @@ def test_all_features_cpu_model(enable_pl_optimizer, tmpdir):
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.4,
-        enable_pl_optimizer=enable_pl_optimizer
+        enable_pl_optimizer=enable_pl_optimizer,
     )
 
     model = EvalModelTemplate()

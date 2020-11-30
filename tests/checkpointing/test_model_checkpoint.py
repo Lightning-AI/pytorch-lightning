@@ -639,7 +639,7 @@ def test_checkpoint_repeated_strategy(enable_pl_optimizer, tmpdir):
         limit_val_batches=2,
         limit_test_batches=2,
         callbacks=[checkpoint_callback],
-        enable_pl_optimizer=enable_pl_optimizer
+        enable_pl_optimizer=enable_pl_optimizer,
     )
 
     trainer.fit(model)
@@ -694,7 +694,8 @@ def test_checkpoint_repeated_strategy_tmpdir(enable_pl_optimizer, tmpdir):
         limit_val_batches=2,
         limit_test_batches=2,
         callbacks=[checkpoint_callback],
-        enable_pl_optimizer=enable_pl_optimizer)
+        enable_pl_optimizer=enable_pl_optimizer,
+    )
 
     trainer.fit(model)
     assert sorted(os.listdir(tmpdir)) == sorted(['epoch=00.ckpt', 'lightning_logs'])
@@ -781,7 +782,7 @@ def test_checkpoint_repeated_strategy_extended(enable_pl_optimizer, tmpdir):
         limit_train_batches=limit_train_batches,
         limit_val_batches=3,
         limit_test_batches=4,
-        enable_pl_optimizer=enable_pl_optimizer
+        enable_pl_optimizer=enable_pl_optimizer,
     )
 
     trainer = pl.Trainer(
