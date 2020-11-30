@@ -55,6 +55,7 @@ class PipeBoringModel(LightningModule):
     def __init__(self):
         super().__init__()
         self.layers = nn.Sequential(torch.nn.Linear(32, 4 * 2048, bias=False), nn.ReLU(), nn.Linear(4 * 2048, 2, bias=False))
+        self._example_input_array = torch.randn((1, 32))
 
     def forward(self, x):
         return self.layers(x)
@@ -251,7 +252,7 @@ def run_pipe_correctness(
         gpus=gpus,
         precision=precision,
         accelerator=accelerator,
-        plugins=[PipePlugin(balance=[2, 1], version=1)],
+        plugins=[PipePlugin()],
         limit_train_batches=1,
         accumulate_grad_batches=1,
     )
@@ -262,7 +263,7 @@ def run_pipe_correctness(
         gpus=gpus
     )
 
-    print(trainer.get_model())
+    print(torch_distrib.get_rank(), trainer.get_model())
 
     for ddp_param, shard_param in zip(pipe_model_clone.parameters(), pipe_model.parameters()):
         assert not torch.equal(ddp_param, shard_param), (ddp_param.shape, shard_param.shape)

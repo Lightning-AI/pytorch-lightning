@@ -173,6 +173,7 @@ class PipePlugin(DDPPlugin):
 
         balance_mode: str = "balance_by_size"
             when balance is not provided, the model can be balanced either by size or time.
+            refer to balance description.
 
         pipelined_backward (bool, optional):
             if True, call torch.autograd.backward once per microbatch on the
