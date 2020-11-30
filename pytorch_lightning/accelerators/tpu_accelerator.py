@@ -14,16 +14,18 @@
 import io
 import os
 import re
-from typing import Optional, Union, Any
+from typing import Any, Optional, Union
 
 import torch
 import torch.multiprocessing as mp
 from torch.optim import Optimizer
 
+from pytorch_lightning import Trainer
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
+from pytorch_lightning.cluster_environment import ClusterEnvironment
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn, TPU_AVAILABLE
+from pytorch_lightning.utilities import TPU_AVAILABLE, rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -36,7 +38,7 @@ if TPU_AVAILABLE:
 
 class TPUAccelerator(Accelerator):
 
-    def __init__(self, trainer, cluster_environment=None):
+    def __init__(self, trainer: Trainer, cluster_environment: Optional[ClusterEnvironment] = None):
         """
         Runs training using TPUs (colab, single machine or pod)
 

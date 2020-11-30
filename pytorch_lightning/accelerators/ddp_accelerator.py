@@ -12,37 +12,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 import os
-import torch
-import torch.distributed as torch_distrib
 import subprocess
 import sys
 from os.path import abspath
 from time import sleep
-from typing import Any, Optional, List, Union
+from typing import Any, List, Optional, Union
 
 import numpy as np
-
-from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
-from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.distributed.dist import LightningDistributed
-from pytorch_lightning.utilities import AMPType, HYDRA_AVAILABLE
-from pytorch_lightning.utilities.distributed import find_free_network_port
-from pytorch_lightning.utilities.distributed import rank_zero_only
-from pytorch_lightning.utilities.distributed import sync_ddp_if_available
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.seed import seed_everything
+import torch
+import torch.distributed as torch_distrib
 from torch.nn.parallel import DistributedDataParallel
 
+from pytorch_lightning import Trainer
+from pytorch_lightning import _logger as log
+from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
+from pytorch_lightning.cluster_environment import ClusterEnvironment
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
+from pytorch_lightning.utilities import HYDRA_AVAILABLE, AMPType
+from pytorch_lightning.utilities.distributed import find_free_network_port, rank_zero_only, sync_ddp_if_available
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.seed import seed_everything
 
 if HYDRA_AVAILABLE:
-    from hydra.utils import to_absolute_path, get_original_cwd
     from hydra.core.hydra_config import HydraConfig
+    from hydra.utils import get_original_cwd, to_absolute_path
 
 
 class DDPAccelerator(Accelerator):
 
-    def __init__(self, trainer=None, cluster_environment=None, ddp_plugin=None):
+    def __init__(self,
+                 trainer: Optional[Trainer] = None,
+                 cluster_environment: Optional[ClusterEnvironment] = None,
+                 ddp_plugin: Optional[DDPPlugin] = None):
         """
         Runs training using DDP strategy on a single machine (manually, not via cluster start)
 

@@ -11,19 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Union, Optional, Any
+from typing import Any, Optional, Union
 
 import torch
 
+from pytorch_lightning import Trainer
+from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.cluster_environment import ClusterEnvironment
 from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.utilities import AMPType
 
 
 class GPUAccelerator(Accelerator):
     amp_backend: AMPType
 
-    def __init__(self, trainer, cluster_environment=None):
+    def __init__(self, trainer: Trainer, cluster_environment: Optional[ClusterEnvironment] = None):
         """
         Runs training using a single GPU
 

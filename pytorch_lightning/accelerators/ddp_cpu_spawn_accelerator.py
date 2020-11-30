@@ -20,13 +20,20 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 from torch.nn.parallel import DistributedDataParallel
 
+from pytorch_lightning import Trainer
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
+from pytorch_lightning.cluster_environment import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import AMPType, HYDRA_AVAILABLE
-from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
-from pytorch_lightning.utilities.distributed import find_free_network_port, sync_ddp_if_available
 from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
+from pytorch_lightning.utilities import HYDRA_AVAILABLE, AMPType
+from pytorch_lightning.utilities.distributed import (
+    find_free_network_port,
+    rank_zero_only,
+    rank_zero_warn,
+    sync_ddp_if_available,
+)
 
 if HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig
@@ -35,7 +42,11 @@ if HYDRA_AVAILABLE:
 
 class DDPCPUSpawnAccelerator(Accelerator):
 
-    def __init__(self, trainer, nprocs, cluster_environment=None, ddp_plugin=None):
+    def __init__(self,
+                 trainer: Trainer,
+                 nprocs: int,
+                 cluster_environment: Optional[ClusterEnvironment] = None,
+                 ddp_plugin: Optional[DDPPlugin] = None):
         """
         Runs training using DDP (on a single machine or manually on multiple machines), using mp.spawn
 

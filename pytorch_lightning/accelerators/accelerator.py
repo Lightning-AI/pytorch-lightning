@@ -16,14 +16,17 @@ from enum import Enum
 from typing import Any, Optional, Union
 
 import torch
+import torch.distributed as torch_distrib
 from torch.optim import Optimizer
 
+from pytorch_lightning import Trainer
+from pytorch_lightning.cluster_environment import ClusterEnvironment
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
-from pytorch_lightning.core.lightning import LightningModule
-import torch.distributed as torch_distrib
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
@@ -34,7 +37,10 @@ else:
 
 class Accelerator(object):
 
-    def __init__(self, trainer=None, cluster_environment=None, ddp_plugin=None):
+    def __init__(self,
+                 trainer: Optional[Trainer] = None,
+                 cluster_environment: Optional[ClusterEnvironment] = None,
+                 ddp_plugin: Optional[DDPPlugin] = None):
         self.trainer = trainer
         self.nickname = None
         self.cluster_environment = cluster_environment
