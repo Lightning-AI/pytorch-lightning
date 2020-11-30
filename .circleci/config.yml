@@ -45,7 +45,7 @@ references:
      command: |
        go get github.com/google/go-jsonnet/cmd/jsonnet
        export PATH=$PATH:$HOME/go/bin
-       python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; req = open(fname).read().replace('pytorch-VERSION', 'pytorch-$XLA_VER') ; open(fname, 'w').write(req)"
+       python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; fff = open(fname).read().replace('pytorch-VERSION', 'pytorch-$XLA_VER') ; open(fname, 'w').write(fff)"
        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet --ext-str image=$GCR_IMAGE_PATH --ext-str image-tag=$CIRCLE_WORKFLOW_JOB_ID | kubectl create -f -)
        job_name=${job_name#job.batch/}
        job_name=${job_name% created}
