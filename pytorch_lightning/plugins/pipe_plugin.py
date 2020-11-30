@@ -94,11 +94,6 @@ def run_optimizer(ctx, model):
     )
 
 
-class PipeMode(Enum):
-    PIPE = "pipe"
-    PIPE_RPC = "pipe_rpc"
-
-
 class LightningPipeModule(nn.Module):
     """
         This class wraps Fairscale Pipe and PipeRCPWrapper class.
@@ -121,16 +116,11 @@ class LightningPipeModule(nn.Module):
             mode: PipeMode
                 the mode enables switching between Pipe and PipeRCPWrapper class
     """
-    def __init__(self,
-                 module: nn.Sequential,
-                 balance: List[int],
-                 microbatches: int = 8,
-                 checkpoint='never',
-                 mode=PipeMode.PIPE_RPC):
+    def __init__(self, module: nn.Sequential, balance: List[int],
+                 microbatches: int = 8, checkpoint='never', version: int = 1):
         super().__init__()
-
-        assert mode in list(PipeMode)
-        self.mode = mode
+        assert version in [1, 2]
+        self._pipe_version = version
         self.module = module
         self.balance = balance
         self.microbatches = microbatches
@@ -139,7 +129,7 @@ class LightningPipeModule(nn.Module):
 
     def _init_pipe(self):
         device = torch.device("cuda", torch_distrib.get_rank())
-        pipe_cls = Pipe if self.mode == PipeMode.PIPE else PipeRPCWrapper
+        pipe_cls = Pipe if self._pipe_version == 1 else PipeRPCWrapper
         self.module = pipe_cls(
             module=self.module,
             balance=self.balance,
@@ -161,6 +151,8 @@ class PipePlugin(DDPPlugin):
     If the module requires lots of memory, Pipe will be very efficient.
 
     .. _Pipe: https://arxiv.org/abs/1811.06965
+
+
 
     Pipe combines pipeline parallelism with checkpointing to reduce peak
     memory required to train while minimizing device under-utilization.
@@ -217,7 +209,7 @@ class PipePlugin(DDPPlugin):
                  checkpoint: str = 'except_last',
                  balance_mode: str = "balance_by_size",
                  pipelined_backward: Optional[bool] = None,
-                 version: int = 2,
+                 version: int = 1,
                  **kwargs):
         super().__init__(**kwargs)
 
@@ -268,13 +260,12 @@ class PipePlugin(DDPPlugin):
     def _find_pipe_module(self, model):
         # try to wrap for the user
         if hasattr(model, "layers") and isinstance(model.layers, nn.Sequential):
-            mode = PipeMode.PIPE if self.version == PipeMode.PIPE else PipeMode.PIPE_RPC
             model.layers = LightningPipeModule(
                 model.layers,
                 balance=self.balance,
                 microbatches=self.microbatches,
                 checkpoint=self.checkpoint,
-                mode=mode,
+                version=self.version,
             )
             model.final_stage = model.layers.module.final_stage
             if self.version == 1:
