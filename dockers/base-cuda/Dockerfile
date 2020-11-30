@@ -100,7 +100,7 @@ RUN \
 
 RUN \
     # install DALI, needed for examples
-    pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda${CUDA_VERSION%%.*}0
+    pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda${CUDA_VERSION%%.*}0<0.28
 
 RUN \
     # install NVIDIA AMP
