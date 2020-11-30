@@ -11,6 +11,7 @@ import torch.distributed as torch_distrib
 from torch import nn, optim
 from torch.nn.parallel import DistributedDataParallel
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import AMPType
 
 try:
@@ -19,6 +20,7 @@ try:
         import fairscale.nn.model_parallel as mpu
         from fairscale.nn import Pipe, PipeRPCWrapper
         from fairscale.nn.model_parallel.utils import ensure_divisibility
+        from fairscale.nn.pipe import balance as pipe_balance
         from fairscale.nn.pipe import rpc as rpc_pipe
         from fairscale.nn.pipe.pipeline import PipelineStyle
         from torch.distributed import rpc
@@ -93,8 +95,14 @@ def run_optimizer(ctx, model):
 
 
 class LightningPipeModule(nn.Module):
-    def __init__(self, module: nn.Sequential, balance: List[int],
-                 microbatches: int = 8, checkpoint='never', version: int = 1, **kwargs):
+    def __init__(self,
+                 module: nn.Sequential,
+                 balance: Optional[List[int]],
+                 microbatches: int = 8,
+                 checkpoint='except_last',
+                 version: int = 1,
+                 pipelined_backward: bool = True,
+                 **kwargs):
         super().__init__()
         assert version in [1, 2]
         self._pipe_version = version
@@ -102,8 +110,8 @@ class LightningPipeModule(nn.Module):
         self.balance = balance
         self.microbatches = microbatches
         self.checkpoint = checkpoint
+        self.pipelined_backward = pipelined_backward
         self._init_pipe()
-        self._kwargs = kwargs
 
     def _init_pipe(self):
         device = torch.device("cuda", torch_distrib.get_rank())
@@ -116,7 +124,7 @@ class LightningPipeModule(nn.Module):
             input_device=device,
             worker_map=get_worker_map(),
             checkpoint=self.checkpoint,
-            **self._kwargs
+            pipelined_backward=self.pipelined_backward
         )
 
     def forward(self, *args, **kwargs):
@@ -151,8 +159,10 @@ class PipePlugin(DDPPlugin):
             self.layers = nn.Sequential(...)
 
     Args:
-        balance (ints):
-            list of number of layers in each partition
+        balance Optional (ints):
+            list of number of layers in each partition. When not provided,
+            it will use `example_input_array`, it will make an inference
+            while recording
 
         microbatches: int = 8:
             batches bigger than microbatches will be splitted to keep memory constrained
@@ -161,18 +171,45 @@ class PipePlugin(DDPPlugin):
             when to enable checkpointing, one of ``'always'``,
             ``'except_last'``, or ``'never'`` (default: ``'except_last'``)
 
+        balance_mode: str = "balance_by_size"
+            when balance is not provided, the model can be balanced either by size or time.
+
+        pipelined_backward (bool, optional):
+            if True, call torch.autograd.backward once per microbatch on the
+            backward pass (instead of once for the whole batch). This works
+            around a potential deadlock in pytorch when using tensor parallelism
+            at the same time. Defaults to `True` if
+            `get_model_parallel_world_size() > 1`
+            (default: `None`)
+
         version: int = 2
             Lightning supports both Fairscale Pipe (v1) and PipeRPCWrapper (v2) implementations
 
         kwarg: Any
 
     """
-    def __init__(self, balance: List[int], microbatches: int = 8, checkpoint='never', version: int = 1, **kwargs):
+    def __init__(self,
+                 balance: Optional[List[int]] = None,
+                 num_partitions: Optional[int] = None,
+                 microbatches: int = 8,
+                 checkpoint: str = 'except_last',
+                 balance_mode: str = "balance_by_size",
+                 pipelined_backward: Optional[bool] = None,
+                 version: int = 1,
+                 **kwargs):
         super().__init__(**kwargs)
-        assert isinstance(balance, list) and len(balance) > 0
+
         self.balance = balance
+        self.num_partitions = num_partitions
         self.microbatches = microbatches
         self.checkpoint = checkpoint
+        self.balance_mode = balance_mode
+        self.pipelined_backward = pipelined_backward
+
+        if self.balance_mode not in ["balance_by_time", "balance_by_size"]:
+            raise MisconfigurationException(
+                'balance_mode can either be balance_by_time or balance_by_size')
+
         self.version = version
         self._use_barrier_and_broadcast = None
         self._kwargs = kwargs
@@ -185,6 +222,23 @@ class PipePlugin(DDPPlugin):
     def use_optimizer_step(self):
         return self.version != 1
 
+    def _infering_balance_from_example_input_array(self, trainer):
+        model = trainer.get_model()
+        if not hasattr(model, "layers") or not isinstance(model.layers, nn.Sequential):
+            raise MisconfigurationException(
+                'Could not find a PipeLightningModule within the model. '
+                'Did you defined set your sequential model as an `layers` attribute of your model ?')
+
+        if self.balance is None:
+            partitions = torch.cuda.device_count() if self.num_partitions is None else self.num_partitions
+            if model.example_input_array is not None:
+                balance_func = getattr(pipe_balance, self.balance_mode)
+                self.balance = balance_func(partitions, model.layers, model.example_input_array)
+                log.info(f'The following balance {self.balance} was inferended using {self.balance_mode} mode')
+            else:
+                raise MisconfigurationException(
+                    'Please, set example_input_array to your model, so we can infer the right balance for you')
+
     def _find_pipe_module(self, model):
         # try to wrap for the user
         if hasattr(model, "layers") and isinstance(model.layers, nn.Sequential):
@@ -193,8 +247,8 @@ class PipePlugin(DDPPlugin):
                 balance=self.balance,
                 microbatches=self.microbatches,
                 checkpoint=self.checkpoint,
+                pipelined_backward=self.pipelined_backward,
                 version=self.version,
-                **self._kwargs
             )
             model.final_stage = model.layers.module.final_stage
             if self.version == 1:
@@ -229,6 +283,8 @@ class PipePlugin(DDPPlugin):
         )
         os.environ["MASTER_PORT"] = "15000"
         rpc.init_rpc(f"worker{global_rank}", rank=global_rank, world_size=world_size)
+
+        self._infering_balance_from_example_input_array(trainer)
 
         num_gpus_per_model = len(self.balance)
         ensure_divisibility(world_size, num_gpus_per_model)
