@@ -123,3 +123,68 @@ The algorithm in short works by:
    :members: scale_batch_size
 
 .. warning:: Batch size finder is not supported for DDP yet, it is coming soon.
+
+
+Pipeline Parallelism with Checkpointing to reduce peak memory
+-------------------------------------------------------------
+
+Pipe Pipeline is a lightning integration of Pipeline Parallelism provided by Fairscale.
+
+Pipe combines pipeline parallelism with checkpointing to reduce peak memory required to train while minimizing device under-utilization.
+
+Before running, install Fairscale using the command below or install all extras using pip install pytorch-lightning["extra"].
+
+or
+
+```
+pip install https://github.com/facebookresearch/fairscale/archive/master.zip
+```
+
+We except the nn.Sequential model to be set as `.layers` attribute to your LightningModule.
+
+
+.. code-block:: bash
+
+    from pytorch_lightning.plugins.pipe_plugin import PipePlugin
+
+    class MyModel(LightningModule):
+
+        def __init__(...):
+
+            self.layers = nn.Sequential(torch.nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2)) # 3 layers
+
+        ....
+
+    model = MyModel()
+
+    # train by balancing your 2 first layers on gpu 0 and last layer gpu 1
+    trainer = Trainer(accelerator='ddp', plugins=PipePlugin(balance=[2, 1]))
+
+    trainer.fit(model)
+
+
+With auto-balancing.
+
+By `example_input_array`, we can infer automatically the right balance for your model.
+
+.. code-block:: bash
+
+    from pytorch_lightning.plugins.pipe_plugin import PipePlugin
+
+    class MyModel(LightningModule):
+
+        def __init__(...):
+
+            self.layers = nn.Sequential(torch.nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2)) # 3 layers
+
+            # used to make an inference and find best balancing for your model
+            self._example_input_array = torch.randn((1, 32))
+
+        ....
+
+    model = MyModel()
+
+    # train by balancing your 2 first layers on gpu 0 and last layer gpu 1
+    trainer = Trainer(accelerator='ddp', plugins='pipe')
+
+    trainer.fit(model)
