@@ -10,7 +10,6 @@ import pytest
 import torch
 import torch.distributed as torch_distrib
 from torch import nn
-from torch.distributed import rpc
 from torch.utils.data import Dataset
 from torch.utils.data.distributed import DistributedSampler
 
