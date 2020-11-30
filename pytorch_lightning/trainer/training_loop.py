@@ -25,7 +25,7 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
-from pytorch_lightning.utilities import AMPType, parsing
+from pytorch_lightning.utilities import PYSYFT_AVAILABLE, AMPType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
@@ -431,7 +431,13 @@ class TrainLoop:
         result.hiddens = hiddens
 
         # track batch for manual reduction with result
-        result.track_batch_size(len(split_batch))
+        if PYSYFT_AVAILABLE:
+            # TODO: skip for now !
+            split_batch_size = 1
+        else:
+            split_batch_size = len(split_batch)
+
+        result.track_batch_size(split_batch_size)
 
         # track metrics without grads for epoch reduction
         training_step_output_for_epoch_end = copy(result)

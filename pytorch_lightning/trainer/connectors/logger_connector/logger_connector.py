@@ -53,6 +53,10 @@ class LoggerConnector:
 
     def set_stage(self, stage_or_testing: str, reset:bool = False) -> None:
         self._current_stage = self._determine_stage(stage_or_testing)
+        if self._current_stage == "train":
+            self.trainer.training = True
+        else:
+            self.trainer.training = False
         if reset:
             self.cached_results.reset()
 
