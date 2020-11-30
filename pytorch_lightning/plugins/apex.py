@@ -132,7 +132,7 @@ class ApexPlugin(PrecisionPlugin):
     def norm_clipping_epsilon(self):
         return 1e-5
 
-    def step(self, trainer, optimizer, closure):
+    def optimizer_step(self, trainer, optimizer, closure):
         # apex amp does not yet support closures.
         # TODO: pass the closure to the step ASAP
         with trainer.profiler.profile("closure"):

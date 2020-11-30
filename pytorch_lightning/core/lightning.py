@@ -1243,7 +1243,8 @@ class LightningModule(
             xm.optimizer_step(optimizer, optimizer_args={'closure': optimizer_closure, **kwargs})
 
         elif self.trainer.amp_backend is not None:
-            self.trainer.precision_connector.backend.step(self.trainer, optimizer, optimizer_closure)
+            self.trainer.precision_connector.backend.optimizer_step(
+                self.trainer, optimizer, optimizer_closure)
 
         else:
             optimizer.step(closure=optimizer_closure, *args, **kwargs)
