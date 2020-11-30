@@ -365,7 +365,7 @@ def _format_summary_table(total_parameters: int, trainable_parameters: int, tota
     summary += "Non-trainable params"
     summary += "\n" + s.format(get_human_readable_count(total_parameters), 10)
     summary += "Total params"
-    summary += "\n" + s.format(total_model_size, 10)
+    summary += "\n" + s.format(get_formatted_model_size(total_model_size), 10)
     summary += "Total Estimated Model Size (MB)"
 
     return summary
@@ -421,6 +421,8 @@ def get_gpu_memory_map() -> Dict[str, int]:
     gpu_memory_map = {f"gpu_id: {gpu_id}/memory.used (MB)": memory for gpu_id, memory in enumerate(gpu_memory)}
     return gpu_memory_map
 
+def get_formatted_model_size(total_model_size: float) -> float:
+    return "{:.4f}".format(total_model_size)
 
 def get_human_readable_count(number: int) -> str:
     """
