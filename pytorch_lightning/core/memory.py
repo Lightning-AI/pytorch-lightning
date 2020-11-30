@@ -215,22 +215,52 @@ class ModelSummary(object):
 
     @property
     def total_out_params(self) -> int:
-        _map_out_size_prod = map(lambda out_size: np.prod(out_size), self.out_sizes)
-        return sum(list(_map_out_size_prod))
+        _total_out_params = 0
+
+        def _get_out_size_params(out_sizes):
+            nonlocal _total_out_params
+            if not any(isinstance(i, list) for i in out_sizes):
+                try:
+                    # try to find prod, i.e check for unknown sizes.
+                    _total_out_params += np.prod(out_sizes)
+                except:
+                    # do nothing if could not find product.
+                    pass
+            else:
+                _ = [_get_out_size_params(out_size) for out_size in out_sizes if isinstance(out_size, list)]
+
+        _get_out_size_params(self.out_sizes)
+
+        return _total_out_params
 
     @property
     def total_params(self) -> int:
         return sum(self.param_nums)
 
-    def model_size(self, input_size: tuple) -> float:
-        return self._get_total_size(input_size)
+    @property
+    def model_size(self, input_size=None) -> float:
+        if isinstance(self._model.example_input_array, (list, tuple)):
+            in_features = (
+                sum(
+                    [
+                        input_array.numel() if isinstance(input_array, torch.Tensor) else torch.tensor(input_array)
+                        for input_array in self._model.example_input_array
+                    ]
+                ),
+            )
+
+        elif isinstance(self._model.example_input_array, dict):
+            # TODO (kartik4949): write input_feature for dict input array.
+            in_features = (1,)
+        else:
+            in_features = (self._model.example_input_array.numel(),)
+        return self._get_total_size(in_features if not input_size else input_size)
 
     def _get_total_size(self, input_size: tuple) -> float:
-        # TODO(kartik4949) : get precision.
-        _precision = 32.0 / 8.0  # 1 byte -> 8 bits
-        total_input_dsize = abs(np.prod(np.array(input_size))) * _precision / (1024 ** 2.0)
-        total_output_dsize = abs(2.0 * self.total_out_params * _precision / (1024 ** 2.0))
-        total_params_dsize = abs(self.total_params * _precision / (1024 ** 2.0))
+        _precision_bytes = self._model.precision / 8.0  # 1 byte -> 8 bits
+        total_input_dsize = abs(np.prod(np.array(input_size))) * _precision_bytes / (1024 ** 2.0)
+        total_output_dsize = abs(2.0 * self.total_out_params * _precision_bytes / (1024 ** 2.0))
+        total_params_dsize = abs(self.total_params * _precision_bytes / (1024 ** 2.0))
         return total_params_dsize + total_output_dsize + total_input_dsize
 
     def summarize(self) -> Dict[str, LayerSummary]:
@@ -282,8 +312,8 @@ class ModelSummary(object):
 
         trainable_parameters = sum(p.numel() for p in self._model.parameters() if p.requires_grad)
         total_parameters = sum(p.numel() for p in self._model.parameters())
-
-        return _format_summary_table(total_parameters, trainable_parameters, *arrays)
+        total_model_size = self.model_size
+        return _format_summary_table(total_parameters, trainable_parameters, total_model_size, *arrays)
 
     def __repr__(self):
         return str(self)
@@ -300,7 +330,7 @@ def parse_batch_shape(batch: Any) -> Union[str, List]:
     return UNKNOWN_SIZE
 
 
-def _format_summary_table(total_parameters: int, trainable_parameters: int, *cols) -> str:
+def _format_summary_table(total_parameters: int, trainable_parameters: int, total_model_size: float, *cols) -> str:
     """
     Takes in a number of arrays, each specifying a column in
     the summary table, and combines them all into one big
@@ -336,6 +366,8 @@ def _format_summary_table(total_parameters: int, trainable_parameters: int, *col
     summary += "Non-trainable params"
     summary += "\n" + s.format(get_human_readable_count(total_parameters), 10)
     summary += "Total params"
+    summary += "\n" + s.format(total_model_size, 10)
+    summary += "Total Estimated Model Size (MB)"
 
     return summary
 
