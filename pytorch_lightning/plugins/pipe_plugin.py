@@ -196,7 +196,6 @@ class PipePlugin(DDPPlugin):
             log.info("Pipe version 2 only support checkpoint=never")
             checkpoint = "never"
 
-
         self.balance = balance
         self.num_partitions = num_partitions
         self.microbatches = microbatches
