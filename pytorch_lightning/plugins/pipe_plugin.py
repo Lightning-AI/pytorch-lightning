@@ -131,8 +131,6 @@ class PipePlugin(DDPPlugin):
 
     .. _Pipe: https://arxiv.org/abs/1811.06965
 
-
-
     Pipe combines pipeline parallelism with checkpointing to reduce peak
     memory required to train while minimizing device under-utilization.
 
@@ -188,7 +186,7 @@ class PipePlugin(DDPPlugin):
                  checkpoint: str = 'except_last',
                  balance_mode: str = "balance_by_size",
                  pipelined_backward: Optional[bool] = None,
-                 version: int = 1,
+                 version: int = 2,
                  **kwargs):
         super().__init__(**kwargs)
 

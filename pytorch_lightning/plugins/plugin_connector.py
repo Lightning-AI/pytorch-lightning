@@ -12,16 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from enum import Enum
-from typing import Union, Optional, List
+from typing import List, Optional, Union
 
 from pytorch_lightning.cluster_environments import ClusterEnvironment
+from pytorch_lightning.plugins.apex import ApexPlugin
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
+from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
+from pytorch_lightning.plugins.pipe_plugin import PipePlugin
 from pytorch_lightning.plugins.precision_plugin import PrecisionPlugin
 from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
-from pytorch_lightning.plugins.apex import ApexPlugin
-from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class PluginConnector:
@@ -177,3 +178,4 @@ class LightningCustomPlugins(Enum):
     ddp_sharded = DDPShardedPlugin
     native_amp = NativeAMPPlugin
     apex_amp = ApexPlugin
+    pipe = PipePlugin
