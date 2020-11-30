@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import os
-from typing import Type
+from typing import Type, List, Optional
 from jsonargparse import ArgumentParser, ActionConfigFile
 from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.core.lightning import LightningModule
@@ -104,6 +104,7 @@ class LightningCLI:
         save_config_callback: Type[Callback] = SaveConfigCallback,
         trainer_class: Type[Trainer] = Trainer,
         description: str = 'pytorch-lightning trainer command line tool',
+        default_config_files: List[str] = None,
         parse_env: bool = False,
         **kwargs
     ):
@@ -131,6 +132,7 @@ class LightningCLI:
             save_config_callback: A callback class to save the training config.
             trainer_class: An optional extension of the Trainer class.
             description: Description of the tool shown when running --help.
+            default_config_files: Default config file locations, e.g. :code:`['~/.config/myapp/*.yaml']`.
             parse_env: Whether environment variables are also parsed.
             **kwargs: Additional arguments to instantiate Trainer.
         """
@@ -143,7 +145,7 @@ class LightningCLI:
         self.trainer_class = trainer_class
         self.trainer_kwargs = kwargs
 
-        self.init_parser(description, parse_env)
+        self.init_parser(description, default_config_files, parse_env)
         self.add_arguments_to_parser(self.parser)
         self.add_core_arguments_to_parser()
         self.parse_arguments()
@@ -153,17 +155,20 @@ class LightningCLI:
     def init_parser(
         self,
         description: str,
+        default_config_files: Optional[List[str]],
         parse_env: bool
     ):
         """Method that instantiates the argument parser
 
         Args:
             description: Description of the tool shown when running --help.
+            default_config_files: Default config file locations, e.g. :code:`['~/.config/myapp/*.yaml']`.
             parse_env: Whether environment variables are also parsed.
         """
         self.parser = LightningArgumentParser(
             description=description,
             print_config='--print_config',
+            default_config_files=default_config_files,
             default_env=parse_env,
             env_prefix='PL'
         )
@@ -187,21 +192,31 @@ class LightningCLI:
             self.parser.add_datamodule_args(self.datamodule_class, 'data')
 
     def parse_arguments(self):
-        """Parses command line arguments and stores it in self.config"""
-        self.config = self.parser.parse_args()
+        """Parses command line arguments and stores it in self.config_save and self.config_init"""
+        self.config_save = self.parser.parse_args()
+        self.config_init = self.parser.instantiate_subclasses(self.config_save)
 
     def instantiate_classes(self):
         """Instantiates the classes using settings from self.config and prepares fit_kwargs"""
-        # Instantiate model
-        self.model = self.model_class(**self.config.get('model', {}))
-        # Instantiate datamodule
+        self.instantiate_model()
+        self.instantiate_datamodule()
+        self.instantiate_trainer()
+
+    def instantiate_model(self):
+        """Instantiates the model using self.config_init['model']"""
+        self.model = self.model_class(**self.config_init.get('model', {}))
+
+    def instantiate_datamodule(self):
+        """Instantiates the datamodule using self.config_init['data']"""
         self.fit_kwargs = {'model': self.model}
         if self.datamodule_class is not None:
-            self.fit_kwargs['datamodule'] = self.datamodule_class(**self.config.get('data', {}))
-        # Instantiate trainer
-        self.trainer_kwargs.update(self.config['trainer'])
+            self.fit_kwargs['datamodule'] = self.datamodule_class(**self.config_init.get('data', {}))
+
+    def instantiate_trainer(self):
+        """Instantiates the trainer using self.config_init['trainer']"""
+        self.trainer_kwargs.update(self.config_init['trainer'])
         if self.save_config_callback is not None:
-            self.trainer_kwargs['callbacks'].append(self.save_config_callback(self.parser, self.config))
+            self.trainer_kwargs['callbacks'].append(self.save_config_callback(self.parser, self.config_save))
         self.trainer = self.trainer_class(**self.trainer_kwargs)
 
     def before_fit(self):

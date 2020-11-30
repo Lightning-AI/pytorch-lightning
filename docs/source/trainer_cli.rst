@@ -237,8 +237,8 @@ code would be something like:
 
     class MyLightningCLI(LightningCLI):
 
-        def add_arguments_to_parser(self):
-            self.parser.add_argument('--notification_email', default='will@email.com')
+        def add_arguments_to_parser(self, parser):
+            parser.add_argument('--notification_email', default='will@email.com')
 
         def before_fit(self):
             send_email(
