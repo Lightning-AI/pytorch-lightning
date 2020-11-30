@@ -601,7 +601,6 @@ def test_log_works_in_train_callback(tmpdir):
             self.make_logging(pl_module, 'on_train_epoch_end', 9, on_steps=[False],
                               on_epochs=self.choices, prob_bars=self.choices)
 
-
     class TestModel(BoringModel):
 
         manual_loss = []
