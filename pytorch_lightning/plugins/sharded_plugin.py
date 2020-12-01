@@ -93,3 +93,4 @@ class DDPShardedPlugin(DDPPlugin):
             )
         if amp_backend == AMPType.NATIVE:
             return [ShardedNativeAMPPlugin()]
+        return []
