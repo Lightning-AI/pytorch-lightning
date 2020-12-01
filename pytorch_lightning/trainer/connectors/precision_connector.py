@@ -79,6 +79,8 @@ class PrecisionConnector:
                 log.info('Using APEX 16bit precision.')
                 self.trainer.amp_backend = AMPType.APEX
                 self.backend = ApexPlugin(self.trainer)
+                log.warn("LightningOptimizer doesn't support Apex")
+                self.trainer._enable_pl_optimizer = False
 
         if not self.trainer.amp_backend:
             raise ModuleNotFoundError(
