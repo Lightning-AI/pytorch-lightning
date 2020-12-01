@@ -35,7 +35,7 @@ A LightningModule can define both a system and a model.
 
 Here's a LightningModule that defines a model:
 
-.. code-block:: python
+.. testcode::
 
     class LitModel(pl.LightningModule):
         def __init__(self, num_layers: int = 3)
@@ -74,7 +74,7 @@ sensible defaults in the init so that the user doesn't have to guess.
 
 Here's an example where a user will have to go hunt through files to figure out how to init this LightningModule.
 
-.. code-block:: python
+.. testcode::
 
     class LitModel(pl.LightningModule):
         def __init__(self, params):
@@ -85,10 +85,10 @@ Models defined as such leave you with many questions; what is coef_x? is it a st
 
 Instead, be explicit in your init
 
-.. code-block:: python
+.. testcode::
 
     class LitModel(pl.LightningModule):
-        def __init__(self, encoder: nn.Module, coef_x: float = 0.2, lr: float = 1e-3)
+        def __init__(self, encoder: nn.Module, coef_x: float = 0.2, lr: float = 1e-3):
 
 Now the user doesn't have to guess. Instead they know the value type and the model has a sensible default where the
 user can see the value immediately.
