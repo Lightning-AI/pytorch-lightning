@@ -25,7 +25,7 @@ class RandomDictDataset(Dataset):
     def __getitem__(self, index):
         a = self.data[index]
         b = a + 2
-        return {"a": a, "b": b}
+        return {'a': a, 'b': b}
 
     def __len__(self):
         return self.len

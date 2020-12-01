@@ -63,7 +63,6 @@ def _run_horovod(trainer_options, on_gpu=False):
     ]
     if on_gpu:
         cmdline += ['--on-gpu']
-
     exit_code = subprocess.call(' '.join(cmdline), shell=True, env=os.environ.copy())
     assert exit_code == 0
 

@@ -48,7 +48,7 @@ def test_cpu_slurm_save_load(enable_pl_optimizer, tmpdir):
     real_global_step = trainer.global_step
 
     # traning complete
-    assert result == 1, "cpu model failed to complete"
+    assert result == 1, 'cpu model failed to complete'
 
     # predict with trained model before saving
     # make a prediction
@@ -225,7 +225,7 @@ def test_running_test_after_fitting(tmpdir):
     )
     result = trainer.fit(model)
 
-    assert result == 1, "training failed to complete"
+    assert result == 1, 'training failed to complete'
 
     trainer.test()
 
@@ -267,7 +267,7 @@ def test_running_test_no_val(tmpdir):
     )
     result = trainer.fit(model)
 
-    assert result == 1, "training failed to complete"
+    assert result == 1, 'training failed to complete'
 
     trainer.test()
 
@@ -289,7 +289,7 @@ def test_simple_cpu(tmpdir):
     result = trainer.fit(model)
 
     # traning complete
-    assert result == 1, "amp + ddp model failed to complete"
+    assert result == 1, 'amp + ddp model failed to complete'
 
 
 def test_cpu_model(tmpdir):
@@ -374,4 +374,4 @@ def test_tbptt_cpu_model(tmpdir):
     )
     result = trainer.fit(model)
 
-    assert result == 1, "training failed to complete"
+    assert result == 1, 'training failed to complete'

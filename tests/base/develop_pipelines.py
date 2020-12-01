@@ -27,7 +27,7 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
     result = trainer.fit(model)
 
     # correct result and ok accuracy
-    assert result == 1, "amp + ddp model failed to complete"
+    assert result == 1, 'amp + ddp model failed to complete'
 
     pretrained_model = load_model_from_checkpoint(
         trainer.logger,
@@ -53,7 +53,7 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None,
                    with_hpc: bool = True, min_acc: float = 0.25):
 
     reset_seed()
-    save_dir = trainer_options["default_root_dir"]
+    save_dir = trainer_options['default_root_dir']
 
     # logger file to get meta
     logger = get_default_logger(save_dir, version=version)
@@ -68,7 +68,7 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None,
     result = trainer.fit(model)
     post_train_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
 
-    assert result == 1, "trainer failed"
+    assert result == 1, 'trainer failed'
     # Check that the model is actually changed post-training
     change_ratio = torch.norm(initial_values - post_train_values)
     assert change_ratio > 0.1, f"the model is changed of {change_ratio}"
@@ -109,7 +109,7 @@ def run_prediction(trained_model, dataloader, dp=False, min_acc=0.50):
     if dp:
         with torch.no_grad():
             output = trained_model(batch, 0)
-        acc = output["val_acc"]
+        acc = output['val_acc']
         acc = torch.mean(acc).item()
 
     else:
