@@ -646,7 +646,7 @@ Model Parallelism tackles training large models on distributed systems, by modif
 Unlike data parallelism, the model is partitioned in various ways across the GPUs, in most cases to reduce the memory overhead.
 This is useful when dealing with large Transformer based models, or in environments where GPU memory is limited.
 
-Lightning currently offers these methods to leverage model parallelism.
+Lightning currently offers the following methods to leverage model parallelism:
 
 - Optimizer Sharded Training (partitioning your gradients and optimizer state across multiple GPUs, for reduced memory overhead)
 
