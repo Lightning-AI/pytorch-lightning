@@ -33,6 +33,7 @@ from pytorch_lightning.metrics.utils import (
 )
 from pytorch_lightning.utilities import rank_zero_warn
 
+
 def to_onehot(
         tensor: torch.Tensor,
         num_classes: Optional[int] = None,
@@ -711,7 +712,7 @@ def object_detection_iou(pred_bbox, target_bbox):
     pred_area = (pred_bbox[:, 2] - pred_bbox[:, 0]) * (pred_bbox[:, 3] - pred_bbox[:, 1])
     target_area = (target_bbox[:, 2] - target_bbox[:, 0]) * (target_bbox[:, 3] - target_bbox[:, 1])
     union = pred_area + target_area - intersection
-    return intersection / union
+    return torch.true_divide(intersection, union)
 
 
 def dice_score(
