@@ -504,8 +504,24 @@ class ModelCheckpoint(Callback):
     ) -> str:
         filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics)
 
-        version_cnt = 0
-        while self._fs.exists(filepath) and filepath != del_filepath:
+        version_cnt = 1
+        old_ckpt_ver_0 = self.format_checkpoint_name(epoch, step, ckpt_name_metrics, ver=0)
+        while (
+            self._fs.exists(filepath)
+            or (self._fs.exists(old_ckpt_ver_0) and version_cnt == 1)
+        ):
+            if del_filepath == filepath:
+                return filepath
+
+            if del_filepath == old_ckpt_ver_0:
+                return old_ckpt_ver_0
+
+            if self._fs.exists(filepath):
+                self._fs.rename(filepath, old_ckpt_ver_0)
+                old_ckpt_score = self.best_k_models[filepath]
+                self.best_k_models.pop(filepath)
+                self.best_k_models[old_ckpt_ver_0] = old_ckpt_score
+
             filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics, ver=version_cnt)
             version_cnt += 1
 
@@ -523,10 +539,6 @@ class ModelCheckpoint(Callback):
         if not should_save_last:
             return
 
-        last_filepath = self._get_metric_interpolated_filepath_name(
-            ckpt_name_metrics, trainer.current_epoch, trainer.global_step
-        )
-
         # when user ALSO asked for the 'last.ckpt' change the name
         if self.save_last:
             last_filepath = self._format_checkpoint_name(
@@ -537,6 +549,10 @@ class ModelCheckpoint(Callback):
                 prefix=self.prefix
             )
             last_filepath = os.path.join(self.dirpath, f"{last_filepath}.ckpt")
+        else:
+            last_filepath = self._get_metric_interpolated_filepath_name(
+                ckpt_name_metrics, trainer.current_epoch, trainer.global_step
+            )
 
         self._save_model(last_filepath, trainer, pl_module)
         if (
