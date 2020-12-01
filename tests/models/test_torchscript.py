@@ -29,6 +29,10 @@ from tests.base.models import ParityModuleRNN, BasicGAN
 def test_torchscript_input_output(modelclass):
     """ Test that scripted LightningModule forward works. """
     model = modelclass()
+
+    if isinstance(model, BoringModel):
+        model.example_input_array = torch.randn(5, 32)
+
     script = model.to_torchscript()
     assert isinstance(script, torch.jit.ScriptModule)
 
@@ -48,6 +52,10 @@ def test_torchscript_input_output(modelclass):
 def test_torchscript_example_input_output_trace(modelclass):
     """ Test that traced LightningModule forward works with example_input_array """
     model = modelclass()
+
+    if isinstance(model, BoringModel):
+        model.example_input_array = torch.randn(5, 32)
+
     script = model.to_torchscript(method='trace')
     assert isinstance(script, torch.jit.ScriptModule)
 

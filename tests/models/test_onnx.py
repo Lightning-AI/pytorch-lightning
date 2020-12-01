@@ -68,6 +68,8 @@ def test_model_saves_with_example_output(tmpdir):
 def test_model_saves_with_example_input_array(tmpdir):
     """Test that ONNX model saves with_example_input_array and size is greater than 3 MB"""
     model = BoringModel()
+    model.example_input_array = torch.randn(5, 32)
+
     file_path = os.path.join(tmpdir, "model.onnx")
     model.to_onnx(file_path)
     assert os.path.exists(file_path) is True
@@ -101,6 +103,8 @@ def test_model_saves_on_multi_gpu(tmpdir):
 def test_verbose_param(tmpdir, capsys):
     """Test that output is present when verbose parameter is set"""
     model = BoringModel()
+    model.example_input_array = torch.randn(5, 32)
+
     file_path = os.path.join(tmpdir, "model.onnx")
     model.to_onnx(file_path, verbose=True)
     captured = capsys.readouterr()
@@ -120,6 +124,8 @@ def test_error_if_no_input(tmpdir):
 def test_if_inference_output_is_valid(tmpdir):
     """Test that the output inferred from ONNX model is same as from PyTorch"""
     model = BoringModel()
+    model.example_input_array = torch.randn(5, 32)
+
     trainer = Trainer(max_epochs=2)
     trainer.fit(model)
 
