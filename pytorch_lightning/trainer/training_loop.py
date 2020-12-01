@@ -22,6 +22,7 @@ import torch.distributed as torch_distrib
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
@@ -217,7 +218,7 @@ class TrainLoop:
             if is_last and any(c.save_last for c in checkpoint_callbacks):
                 rank_zero_info("Saving latest checkpoint...")
             model = self.trainer.get_model()
-            [c.on_validation_end(self.trainer, model) for c in checkpoint_callbacks]
+            [cb.on_validation_end(self.trainer, model) for cb in checkpoint_callbacks]
 
     def on_train_epoch_start(self, epoch):
 
@@ -474,11 +475,14 @@ class TrainLoop:
         return training_step_output_for_epoch_end
 
     def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure, *args, **kwargs):
-        with self.trainer.profiler.profile("optimizer_step"):
-            # optimizer step lightningModule hook
-            self.trainer.accelerator_backend.optimizer_step(
-                optimizer, batch_idx, opt_idx, train_step_and_backward_closure, *args, **kwargs
-            )
+        # optimizer step lightningModule hook
+        if isinstance(optimizer, LightningOptimizer):
+            optimizer.step(closure=train_step_and_backward_closure)
+        else:
+            with self.trainer.profiler.profile("optimizer_step"):
+                self.trainer.accelerator_backend.optimizer_step(
+                    optimizer, batch_idx, opt_idx, train_step_and_backward_closure, *args, **kwargs
+                )
 
     def on_before_zero_grad(self, optimizer):
         self.trainer.call_hook('on_before_zero_grad', optimizer)
@@ -948,7 +952,6 @@ class TrainLoop:
             self.on_before_zero_grad(optimizer)
             optimizers = enumerate([optimizer])
         else:
-            # should be called handled in `manual_optimizer_step`
             optimizers = []
 
         for idx, optimizer in optimizers:

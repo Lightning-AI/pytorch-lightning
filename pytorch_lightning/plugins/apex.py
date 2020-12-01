@@ -19,8 +19,8 @@ from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.precision_plugin import PrecisionPlugin
+from pytorch_lightning.utilities import APEX_AVAILABLE, AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_warn
-from pytorch_lightning.utilities import AMPType, APEX_AVAILABLE
 
 if APEX_AVAILABLE:
     from apex import amp
@@ -131,3 +131,11 @@ class ApexPlugin(PrecisionPlugin):
     @property
     def norm_clipping_epsilon(self):
         return 1e-5
+
+    def optimizer_step(self, trainer, optimizer, closure):
+        # apex amp does not yet support closures.
+        # TODO: pass the closure to the step ASAP
+        with trainer.profiler.profile("closure"):
+            closure()
+        with trainer.profiler.profile("optimizer_step"):
+            optimizer.step()

@@ -15,10 +15,14 @@ import inspect
 import os
 from abc import ABC
 from argparse import ArgumentParser, Namespace
-from typing import List, Optional, Union, Type, TypeVar, cast
+from typing import List, Optional, Type, TypeVar, Union, cast
 
-from pytorch_lightning.callbacks import Callback, ProgressBarBase, ModelCheckpoint
+from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.optimizer import is_lightning_optimizer
+from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
@@ -26,9 +30,6 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import argparse_utils
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.model_utils import is_overridden
-from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.loggers.base import LightningLoggerBase
-from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 
 
 class TrainerProperties(ABC):
@@ -231,6 +232,16 @@ class TrainerProperties(ABC):
 
     def get_model(self):
         return self.model_connector.get_model()
+
+    def __getstate__(self):
+        # unwrap optimizer
+        self.optimizers = [opt._optimizer if is_lightning_optimizer(opt) else opt for opt in self.optimizers]
+        return self.__dict__
+
+    def __setstate__(self, d):
+        self.__dict__ = d
+        # wrap optimizers in enable_pl_optimzer is True
+        self.convert_to_lightning_optimizers()
 
 
 # Used to represent the concrete type TrainerProperties class methods are called on.

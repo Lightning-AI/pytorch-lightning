@@ -30,6 +30,11 @@ class NativeAMPPlugin(PrecisionPlugin):
     def connect(self, model, optimizers):
         return model, optimizers
 
+    def training_step(self, fx, args):
+        with torch.cuda.amp.autocast():
+            output = fx(*args)
+        return output
+
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         closure_loss = self.trainer.scaler.scale(closure_loss)
 
@@ -51,11 +56,6 @@ class NativeAMPPlugin(PrecisionPlugin):
 
         return closure_loss
 
-    def training_step(self, fx, args):
-        with torch.cuda.amp.autocast():
-            output = fx(*args)
-        return output
-
     def clip_gradients(self, grad_clip_val: Union[int, float], optimizer: Optimizer, norm_type: float):
         model = self.trainer.get_model()
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=grad_clip_val, norm_type=norm_type)
@@ -63,3 +63,12 @@ class NativeAMPPlugin(PrecisionPlugin):
     @property
     def scaler(self):
         return torch.cuda.amp.GradScaler()
+
+    def optimizer_step(self, trainer, optimizer, closure):
+        # native amp does not yet support closures.
+        # TODO: pass the closure to the step ASAP
+        with trainer.profiler.profile("closure"):
+            closure()
+        with trainer.profiler.profile("optimizer_step"):
+            trainer.scaler.step(optimizer)
+            trainer.scaler.update()
