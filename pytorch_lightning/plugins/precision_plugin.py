@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import abc
-from typing import Union, Optional
+from typing import Optional, Union
 
 from torch.optim import Optimizer
 
@@ -39,7 +39,7 @@ class PrecisionPlugin(abc.ABC):
     def clip_gradients(self, grad_clip_val: Union[int, float], optimizer: Optimizer, norm_type: float):
         raise NotImplementedError
 
-    def required_plugins(self, amp_backend: AMPType) -> Optional[list]:
+    def required_plugins(self, trainer, amp_backend: AMPType) -> Optional[list]:
         """
             Override to define additional required plugins. This is useful for when custom plugins
             need to enforce override of other plugins.

@@ -54,7 +54,7 @@ def test_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processes):
         """
 
     class CustomPlugin(DDPPlugin):
-        def required_plugins(self, amp_backend: AMPType) -> Optional[list]:
+        def required_plugins(self, trainer, amp_backend: AMPType) -> Optional[list]:
             return [RequiredPlugin()]
 
     class CB(Callback):
@@ -111,7 +111,7 @@ def test_invalid_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processe
         """
 
     class CustomPlugin(DDPPlugin):
-        def required_plugins(self, amp_backend: AMPType) -> Optional[list]:
+        def required_plugins(self, trainer, amp_backend: AMPType) -> Optional[list]:
             return [RequiredPlugin()]
 
     with pytest.warns(UserWarning, match=f'plugin {type(CustomPlugin())} has added additional '

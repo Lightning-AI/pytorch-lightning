@@ -154,7 +154,7 @@ class DDPPlugin(object):
             return model.module
         return model
 
-    def required_plugins(self, amp_backend: AMPType) -> Optional[list]:
+    def required_plugins(self, trainer, amp_backend: AMPType) -> Optional[list]:
         """
             Override to define additional required plugins. This is useful for when custom plugins
             need to enforce override of other plugins.

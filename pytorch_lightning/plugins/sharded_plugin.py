@@ -17,7 +17,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import is_lightning_optimizer
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.sharded_native_amp_plugin import ShardedNativeAMPPlugin
-from pytorch_lightning.utilities import rank_zero_only, FAIRSCALE_AVAILABLE, AMPType
+from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE, AMPType, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if FAIRSCALE_AVAILABLE:
@@ -35,6 +35,7 @@ class DDPShardedPlugin(DDPPlugin):
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
     ):
+        self.trainer = model.trainer
         self._wrap_optimizers(model)
         return LightningShardedDataParallel(model, sharded_optimizer=model.trainer.optimizers)
 
@@ -86,10 +87,10 @@ class DDPShardedPlugin(DDPPlugin):
             return model.module
         return model
 
-    def required_plugins(self, amp_backend: AMPType) -> Optional[list]:
+    def required_plugins(self, trainer, amp_backend: AMPType) -> Optional[list]:
         if amp_backend == AMPType.APEX:
             raise MisconfigurationException(
                 'Sharded Plugin is not supported with Apex AMP, please using native AMP for 16-bit precision.'
             )
         if amp_backend == AMPType.NATIVE:
-            return [ShardedNativeAMPPlugin()]
+            return [ShardedNativeAMPPlugin(trainer=trainer)]

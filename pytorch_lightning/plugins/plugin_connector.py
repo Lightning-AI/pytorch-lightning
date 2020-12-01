@@ -152,7 +152,7 @@ class PluginConnector:
         """
         additional_plugins = []
         for plugin in plugins:
-            required_plugins = plugin.required_plugins(amp_backend=self.trainer.amp_backend)
+            required_plugins = plugin.required_plugins(self.trainer, amp_backend=self.trainer.amp_backend)
             if required_plugins:
                 rank_zero_warn(
                     f'plugin {type(plugin)} has added additional required plugins as default: '
