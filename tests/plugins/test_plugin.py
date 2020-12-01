@@ -42,14 +42,14 @@ from tests.base.boring_model import BoringModel
 )
 def test_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processes):
     """
-        Test to ensure that if a plugin requires certain plugin to be added, these are added automatically
+    Test to ensure that if a plugin requires certain plugin to be added, these are added automatically
     """
 
     class RequiredPlugin(NativeAMPPlugin):
         """
-            My custom amp plugin that's required with my DDP plugin as default.
-            This allows us to ensure this plugin is added when using CustomPlugin rather than ensuring
-            the user passes it manually into the list.
+        My custom amp plugin that's required with my DDP plugin as default.
+        This allows us to ensure this plugin is added when using CustomPlugin rather than ensuring
+        the user passes it manually into the list.
         """
 
     class CustomPlugin(DDPPlugin):
@@ -97,16 +97,16 @@ def test_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processes):
 )
 def test_invalid_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processes):
     """
-        Test to ensure if the user passes a plugin that conflicts with the required defaults of another plugin,
-        we throw a warning and error.
-        The user has to override the required defaults plugin.
+    Test to ensure if the user passes a plugin that conflicts with the required defaults of another plugin,
+    we throw a warning and error.
+    The user has to override the required defaults plugin.
     """
 
     class RequiredPlugin(NativeAMPPlugin):
         """
-            My custom amp plugin that's required with my DDP plugin as default.
-            This allows us to ensure this plugin is added when using CustomPlugin rather than ensuring
-            the user passes it manually into the list.
+        My custom amp plugin that's required with my DDP plugin as default.
+        This allows us to ensure this plugin is added when using CustomPlugin rather than ensuring
+        the user passes it manually into the list.
         """
 
     class CustomPlugin(DDPPlugin):
