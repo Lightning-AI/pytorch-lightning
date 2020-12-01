@@ -30,10 +30,9 @@ try:
     IS_TORCH_1_6 = torch.__version__ == "1.6.0"
     if IS_TORCH_1_6:
         import fairscale.nn.model_parallel as mpu
-        from fairscale.nn import Pipe, PipeRPCWrapper
+        from fairscale.nn import Pipe
         from fairscale.nn.model_parallel.utils import ensure_divisibility
         from fairscale.nn.pipe import balance as pipe_balance
-        from fairscale.nn.pipe import rpc as rpc_pipe
         from fairscale.nn.pipe.pipeline import PipelineStyle
         from torch.distributed import rpc
 
@@ -129,10 +128,8 @@ class LightningPipeModule(nn.Module):
                 the mode enables switching between Pipe and PipeRCPWrapper class
     """
     def __init__(self, module: nn.Sequential, balance: List[int],
-                 microbatches: int = 8, checkpoint='never', version: int = 1):
+                 microbatches: int = 8, checkpoint='never'):
         super().__init__()
-        assert version in [1, 2]
-        self._pipe_version = version
         self.module = module
         self.balance = balance
         self.microbatches = microbatches
@@ -141,8 +138,7 @@ class LightningPipeModule(nn.Module):
 
     def _init_pipe(self):
         device = torch.device("cuda", torch_distrib.get_rank())
-        pipe_cls = Pipe if self._pipe_version == 1 else PipeRPCWrapper
-        self.module = pipe_cls(
+        self.module = Pipe(
             module=self.module,
             balance=self.balance,
             chunks=self.microbatches,
@@ -163,8 +159,6 @@ class PipePlugin(DDPPlugin):
     If the module requires lots of memory, Pipe will be very efficient.
 
     .. _Pipe: https://arxiv.org/abs/1811.06965
-
-
 
     Pipe combines pipeline parallelism with checkpointing to reduce peak
     memory required to train while minimizing device under-utilization.
@@ -208,9 +202,6 @@ class PipePlugin(DDPPlugin):
             `get_model_parallel_world_size() > 1`
             (default: `None`)
 
-        version: int = 2
-            Lightning supports both Fairscale Pipe (v1) and PipeRPCWrapper (v2) implementations
-
         kwarg: Any
 
     """
@@ -221,13 +212,8 @@ class PipePlugin(DDPPlugin):
                  checkpoint: str = 'except_last',
                  balance_mode: str = "balance_by_size",
                  pipelined_backward: Optional[bool] = None,
-                 version: int = 1,
                  **kwargs):
         super().__init__(**kwargs)
-
-        if version == 2 and checkpoint != 'never':
-            log.info("Pipe version 2 only support checkpoint=never")
-            checkpoint = "never"
 
         self.balance = balance
         self.num_partitions = num_partitions
@@ -240,17 +226,15 @@ class PipePlugin(DDPPlugin):
             raise MisconfigurationException(
                 'balance_mode can either be balance_by_time or balance_by_size')
 
-        self.version = version
-        self._use_barrier_and_broadcast = None
         self._kwargs = kwargs
 
     @property
-    def use_barrier_and_broadcast(self):
-        return self._use_barrier_and_broadcast
+    def broadcast_and_barrier_supported(self):
+        return True
 
     @property
     def use_optimizer_step(self):
-        return self.version != 1
+        return False
 
     def _infering_balance_from_example_input_array(self, trainer):
         model = trainer.get_model()
@@ -277,15 +261,9 @@ class PipePlugin(DDPPlugin):
                 balance=self.balance,
                 microbatches=self.microbatches,
                 checkpoint=self.checkpoint,
-                version=self.version,
             )
             model.final_stage = model.layers.module.final_stage
-            if self.version == 1:
-                model.back_helper = model.layers.module.back_helper
-            else:
-                model.foreach_worker = model.layers.module.foreach_worker
-                model.layers.module.model.trainer = model.trainer
-                model.layers.module.model.configure_optimizers = model.configure_optimizers
+            model.back_helper = model.layers.module.back_helper
             pipe_module = model
             found_module = True
 
@@ -319,7 +297,6 @@ class PipePlugin(DDPPlugin):
         ensure_divisibility(world_size, num_gpus_per_model)
         num_model_parallel = num_gpus_per_model / world_size
         mpu.initialize_model_parallel(num_model_parallel, world_size)
-        self._use_barrier_and_broadcast = (self.version == 1 or num_model_parallel > 1)
 
         automatic_optimization = trainer.train_loop.automatic_optimization
         if automatic_optimization:
@@ -333,21 +310,9 @@ class PipePlugin(DDPPlugin):
         self.trainer = trainer
         model = trainer.get_model()
 
-        if self.version == 2:
-            if global_rank != 0:
-                # For RPC, all ranks other than 0 just need to call rpc.shutdown()
-                torch_distrib.barrier()
-                rpc_pipe.PipeModel.trainer = model.trainer
-                rpc_pipe.PipeModel.configure_optimizers = model.configure_optimizers
-                torch.distributed.rpc.shutdown()
-                return
-
         # Create pipe_module
         model = trainer.get_model()
         self._find_pipe_module(model)
-        if self.version == 2:
-            torch_distrib.barrier()
-            model.foreach_worker(register_optimizers, include_self=True)
 
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
@@ -355,14 +320,3 @@ class PipePlugin(DDPPlugin):
 
         model.trainer.init_optimizers(model)
         return DDPPlugin(process_group=mpu.get_data_parallel_group()).configure_ddp(model, device_ids)
-
-    def optimizer_step(self, optimizer, batch_idx, opt_idx, optimizer_closure, on_tpu, *args, **kwargs):
-        # Create pipe_module
-        automatic_optimization = self.trainer.train_loop.automatic_optimization
-        model = self.trainer.get_model()
-        ctx = {"batch_idx":batch_idx, "opt_idx": opt_idx, "on_tpu": on_tpu, "args": args, "kwargs":kwargs, "optimizer_closure": optimizer_closure}
-        if not automatic_optimization:
-            run_optimizer(ctx, model)
-            model.foreach_worker(run_optimizer, ctx, include_self=False)
-        else:
-            raise NotImplementedError
