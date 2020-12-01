@@ -117,11 +117,10 @@ class PluginConnector:
         if isinstance(plugin, str):
             if plugin not in LightningCustomPlugins.__members__:
                 raise MisconfigurationException(
-                    f"{plugin} is not a supported lightning custom plugin. "
-                    f"If you're trying to pass a custom plugin, please pass this as an object to "
-                    f"Trainer(plugins=[MyPlugin()]."
-                    f"Supported plugins as string input: "
-                    f"{(e.name for e in LightningCustomPlugins)}."
+                    f"{plugin} is not a supported lightning custom plugin."
+                    " If you're trying to pass a custom plugin, please pass this as an object to"
+                    " `Trainer(plugins=[MyPlugin()]`."
+                    f"Supported plugins as string input: {(e.name for e in LightningCustomPlugins)}."
                 )
             plugin_cls = LightningCustomPlugins[plugin].value
             return plugin_cls()
@@ -154,25 +153,26 @@ class PluginConnector:
             required_plugins = plugin.required_plugins(self.trainer, amp_backend=self.trainer.amp_backend)
             if required_plugins:
                 rank_zero_warn(
-                    f'plugin {type(plugin)} has added additional required plugins as default: '
-                    f'{[type(x) for x in required_plugins]}'
-                    f'Extend this plugin and override required_plugins if this conflicts with your additional plugins.')
+                    f'plugin {type(plugin)} has added additional required plugins as default:'
+                    f' {[type(x) for x in required_plugins]}'
+                    ' Extend this plugin and override required_plugins if this conflicts with your additional plugins.'
+                )
                 additional_plugins += required_plugins
         return plugins + additional_plugins
 
     @classmethod
     def available_plugins(cls):
         """
-            List of all available plugins that can be string arguments to the trainer.
-            Returns: List of all available plugins that are supported as string arguments.
+        List of all available plugins that can be string arguments to the trainer.
+        Returns: List of all available plugins that are supported as string arguments.
         """
         return [e.name for e in LightningCustomPlugins]
 
 
 class LightningCustomPlugins(Enum):
     """
-        String support for custom lightning plugins.
-        Allows easier access to custom lightning plugins from the command line.
+    String support for custom lightning plugins.
+    Allows easier access to custom lightning plugins from the command line.
     """
     ddp_sharded = DDPShardedPlugin
     native_amp = NativeAMPPlugin

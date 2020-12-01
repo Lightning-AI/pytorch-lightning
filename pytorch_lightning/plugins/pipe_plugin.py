@@ -12,19 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import sys
-import weakref
-from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
-import numpy as np
 import torch
 import torch.distributed as torch_distrib
-from torch import nn, optim
+from torch import nn
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import AMPType
 
 try:
     IS_TORCH_1_6 = torch.__version__ == "1.6.0"
