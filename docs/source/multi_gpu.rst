@@ -618,7 +618,7 @@ The technique can be found within `DeepSpeed ZeRO <https://arxiv.org/abs/1910.02
 `ZeRO-2 <https://www.microsoft.com/en-us/research/blog/zero-2-deepspeed-shattering-barriers-of-deep-learning-speed-scale/>`_,
 however the implementation is built from the ground up to be pytorch compatible and standalone.
 
-Optimizer Sharded Training still utilizes Data Parallel Training under the hood, except optimizer state and gradients are sharded across GPUs.
+Optimizer Sharded Training still utilizes Data Parallel Training under the hood, except the optimizer state and gradients which are sharded across GPUs.
 This means the memory overhead per GPU is lower, as each GPU only has to maintain a section of your optimizer state and gradients.
 
 The benefits are variable by model, but we've recorded up to a 63% memory reduction per GPU allowing us to double our model sizes. Because of extremely efficient communication,
