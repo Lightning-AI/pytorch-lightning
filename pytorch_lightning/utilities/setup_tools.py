@@ -135,16 +135,20 @@ def _download_badge(url_badge, badge_name, target_dir):
     save_path = badge_name.replace(' - ', ' ')
     save_path = os.path.join(target_dir, f"{save_path.replace(' ', '_')}_badge")
 
-    try:
-        # always try to download the png versions (some url have an already png version available)
-        _save_file(url_badge, save_path, extension='.png')
-        return save_path + '.png'
-    except HTTPError as err:
-        if err.code == 404:
-            # save the `.svg`
-            url_badge = url_badge.replace('.png', '.svg')
-            _save_file(url_badge, save_path, extension='.svg')
-            return save_path + '.svg'
+    if "?" in url_badge and ".png" not in url_badge:
+        _save_file(url_badge, save_path, extension='.svg')
+        return save_path + '.svg'
+    else:
+        try:
+            # always try to download the png versions (some url have an already png version available)
+            _save_file(url_badge, save_path, extension='.png')
+            return save_path + '.png'
+        except HTTPError as err:
+            if err.code == 404:
+                # save the `.svg`
+                url_badge = url_badge.replace('.png', '.svg')
+                _save_file(url_badge, save_path, extension='.svg')
+                return save_path + '.svg'
 
 
 def _load_long_description(path_dir):
