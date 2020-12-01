@@ -1727,7 +1727,8 @@ class LightningModule(
             colliding_keys += [key for key in hparams.keys() if key in self.hparams_initial]
             colliding_keys = set(colliding_keys)
             if colliding_keys:
-                raise ValueError(f'Error while adding datamodule hparams: '
-                                 f'the keys {colliding_keys} are already present in the model hparams.')
+                raise ValueError(
+                    f'Error while adding datamodule hparams: the keys {colliding_keys} are already present in the model hparams.'
+                )
             self.hparams.update(hparams)
             self._hparams_initial.update(hparams)
