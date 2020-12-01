@@ -94,7 +94,6 @@ class DDPAccelerator(Accelerator):
 
         command[0] = full_path
         # use the same python interpreter and actually running
-
         command = [sys.executable] + command
 
         # the visible devices tell us how many GPUs we want to use.
@@ -163,7 +162,7 @@ class DDPAccelerator(Accelerator):
         return output
 
     def barrier(self, name: Optional[str] = None):
-        if torch_distrib.is_initialized() and self.ddp_plugin.use_barrier_and_broadcast:
+        if torch_distrib.is_initialized() and self.ddp_plugin.broadcast_and_barrier_supported:
             torch_distrib.barrier()
 
     def _check_can_spawn_children(self):
@@ -198,7 +197,7 @@ class DDPAccelerator(Accelerator):
         return should_stop
 
     def broadcast(self, obj, src=0):
-        if self.ddp_plugin.use_barrier_and_broadcast:
+        if self.ddp_plugin.broadcast_and_barrier_supported:
             return self.dist.broadcast(obj)
         return obj
 

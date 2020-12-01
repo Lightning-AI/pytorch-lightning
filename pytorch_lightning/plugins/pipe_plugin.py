@@ -1,7 +1,19 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import os
 import sys
 import weakref
-from distutils.version import LooseVersion
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -15,8 +27,8 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import AMPType
 
 try:
-    IS_TORCH_AT_LEAST_1_6 = LooseVersion(torch.__version__) >= LooseVersion("1.6.0")
-    if IS_TORCH_AT_LEAST_1_6:
+    IS_TORCH_1_6 = torch.__version__ == "1.6.0"
+    if IS_TORCH_1_6:
         import fairscale.nn.model_parallel as mpu
         from fairscale.nn import Pipe, PipeRPCWrapper
         from fairscale.nn.model_parallel.utils import ensure_divisibility
@@ -26,7 +38,7 @@ try:
         from torch.distributed import rpc
 
         # todo: seems to work only for 1.6.0
-        HAS_FAIRSCALE = LooseVersion(torch.__version__) == LooseVersion("1.6.0")
+        HAS_FAIRSCALE = True
     else:
         HAS_FAIRSCALE = False
 except Exception as e:
