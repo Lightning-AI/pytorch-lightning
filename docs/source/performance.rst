@@ -127,7 +127,7 @@ provided by `Fairscale <https://github.com/facebookresearch/fairscale>`_.
 When training on multiple GPUs sharded DDP can assist to increase memory efficiency substantially, and in some cases performance on multi-node is better than traditional DDP.
 This is due to efficient communication and parallelization under the hood.
 
-Before running, install Fairscale using the command below or install all extras using ``pip install pytorch-lightning["extra"]``.
+To use Optimizer Sharded Training, you need to first install Fairscale using the command below or install all extras using ``pip install pytorch-lightning["extra"]``.
 
 .. code-block:: bash
 

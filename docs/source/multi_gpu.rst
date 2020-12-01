@@ -429,6 +429,7 @@ You can then call your scripts anywhere
     cd /project/src
     python some_file.py --accelerator 'ddp' --gpus 8
 
+
 Horovod
 ^^^^^^^
 `Horovod <http://horovod.ai>`_ allows the same training script to be used for single-GPU,
@@ -597,46 +598,6 @@ If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lig
 If you also need to use your own DDP implementation, override:  :meth:`pytorch_lightning.core.LightningModule.configure_ddp`.
 
 
-Batch size
-----------
-When using distributed training make sure to modify your learning rate according to your effective
-batch size.
-
-Let's say you have a batch size of 7 in your dataloader.
-
-.. testcode::
-
-    class LitModel(LightningModule):
-
-        def train_dataloader(self):
-            return Dataset(..., batch_size=7)
-
-In (DDP, Horovod) your effective batch size will be 7 * gpus * num_nodes.
-
-.. code-block:: python
-
-    # effective batch size = 7 * 8
-    Trainer(gpus=8, accelerator='ddp|horovod')
-
-    # effective batch size = 7 * 8 * 10
-    Trainer(gpus=8, num_nodes=10, accelerator='ddp|horovod')
-
-
-In DDP2, your effective batch size will be 7 * num_nodes.
-The reason is that the full batch is visible to all GPUs on the node when using DDP2.
-
-.. code-block:: python
-
-    # effective batch size = 7
-    Trainer(gpus=8, accelerator='ddp2')
-
-    # effective batch size = 7 * 10
-    Trainer(gpus=8, num_nodes=10, accelerator='ddp2')
-
-
-.. note:: Huge batch sizes are actually really bad for convergence. Check out:
-        `Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour <https://arxiv.org/abs/1706.02677>`_
-
 ----------
 
 Model Parallelism [BETA]
@@ -681,6 +642,48 @@ Optimizer Sharded Training can work across all DDP variants by adding the additi
 
 Internally we re-initialize optimizers, sharding the optimizers across your machines and processes. We handle all communication using PyTorch distributed, so no code changes are required.
 
+
+Batch size
+----------
+When using distributed training make sure to modify your learning rate according to your effective
+batch size.
+
+Let's say you have a batch size of 7 in your dataloader.
+
+.. testcode::
+
+    class LitModel(LightningModule):
+
+        def train_dataloader(self):
+            return Dataset(..., batch_size=7)
+
+In (DDP, Horovod) your effective batch size will be 7 * gpus * num_nodes.
+
+.. code-block:: python
+
+    # effective batch size = 7 * 8
+    Trainer(gpus=8, accelerator='ddp|horovod')
+
+    # effective batch size = 7 * 8 * 10
+    Trainer(gpus=8, num_nodes=10, accelerator='ddp|horovod')
+
+
+In DDP2, your effective batch size will be 7 * num_nodes.
+The reason is that the full batch is visible to all GPUs on the node when using DDP2.
+
+.. code-block:: python
+
+    # effective batch size = 7
+    Trainer(gpus=8, accelerator='ddp2')
+
+    # effective batch size = 7 * 10
+    Trainer(gpus=8, num_nodes=10, accelerator='ddp2')
+
+
+.. note:: Huge batch sizes are actually really bad for convergence. Check out:
+        `Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour <https://arxiv.org/abs/1706.02677>`_
+
+----------
 
 TorchElastic
 --------------
