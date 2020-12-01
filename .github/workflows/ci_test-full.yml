@@ -64,6 +64,8 @@ jobs:
         python -c "fname = 'requirements/extra.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
         python -c "fname = 'requirements/test.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
         python -c "fname = 'requirements/examples.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
+        # remove Fairscale from requirements
+        python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)"
 
     # Note: This uses an internal pip API and may not always work
     # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow

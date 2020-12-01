@@ -85,7 +85,14 @@ The :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method has a 
 * `logger`: Logs to the logger like Tensorboard, or any other custom logger passed to the :class:`~pytorch_lightning.trainer.trainer.Trainer`.
 
 
-.. note:: Setting `on_epoch=True` will accumulate your logged values over the full training epoch.
+.. note::
+
+    -   Setting ``on_epoch=True`` will cache all your logged values during the full training epoch and perform a
+        reduction `on_epoch_end`. We recommend using the :ref:`metrics` API when working with custom reduction.
+
+    -   Setting both ``on_step=True`` and ``on_epoch=True`` will create two keys per metric you log with
+        suffix ``_step`` and ``_epoch``, respectively. You can refer to these keys e.g. in the `monitor`
+        argument of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` or in the graphs plotted to the logger of your choice.
 
 
 Manual logging
