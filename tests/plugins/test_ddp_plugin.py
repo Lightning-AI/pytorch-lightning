@@ -32,7 +32,7 @@ def test_ddp_choice_default_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator_backend.ddp_plugin, DDPPlugin)
-            raise SystemExit()
+            raise RuntimeError('finished plugin check')
 
     model = BoringModel()
     trainer = Trainer(
@@ -43,7 +43,7 @@ def test_ddp_choice_default_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
         callbacks=[CB()],
     )
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(RuntimeError, match='finished plugin check'):
         trainer.fit(model)
 
 
@@ -70,7 +70,7 @@ def test_ddp_choice_custom_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator_backend.ddp_plugin, MyDDP)
-            raise SystemExit()
+            raise RuntimeError('finished plugin check')
 
     model = BoringModel()
     trainer = Trainer(
@@ -82,7 +82,7 @@ def test_ddp_choice_custom_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
         callbacks=[CB()],
     )
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(RuntimeError, match='finished plugin check'):
         trainer.fit(model)
 
 
@@ -107,7 +107,7 @@ def test_ddp_choice_string_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator_backend.ddp_plugin, DDPShardedPlugin)
-            raise SystemExit()
+            raise RuntimeError('finished plugin check')
 
     model = BoringModel()
     trainer = Trainer(
@@ -119,7 +119,7 @@ def test_ddp_choice_string_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
         callbacks=[CB()],
     )
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(RuntimeError, match='finished plugin check'):
         trainer.fit(model)
 
 
@@ -210,7 +210,7 @@ def test_ddp_choice_custom_ddp_cpu_custom_args(
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator_backend.ddp_plugin, MyDDP)
-            raise SystemExit()
+            raise RuntimeError('finished plugin check')
 
     model = BoringModel()
     trainer = Trainer(
@@ -222,5 +222,5 @@ def test_ddp_choice_custom_ddp_cpu_custom_args(
         callbacks=[CB()],
     )
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(RuntimeError, match='finished plugin check'):
         trainer.fit(model)

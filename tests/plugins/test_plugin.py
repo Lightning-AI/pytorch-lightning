@@ -60,8 +60,7 @@ def test_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processes):
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator_backend.ddp_plugin, CustomPlugin)
             assert isinstance(trainer.precision_connector.backend, RequiredPlugin)
-
-            raise SystemExit()
+            raise RuntimeError('finished plugin check')
 
     model = BoringModel()
     with pytest.warns(UserWarning,
@@ -75,7 +74,7 @@ def test_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processes):
             plugins=[CustomPlugin()],
             callbacks=[CB()],
         )
-    with pytest.raises(SystemExit):
+    with pytest.raises(RuntimeError, match='finished plugin check'):
         trainer.fit(model)
 
 
