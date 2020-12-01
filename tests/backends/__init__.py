@@ -6,9 +6,5 @@ except ImportError:
     class DDPLauncher:
         def run(cmd_line, **kwargs):
             def inner(func):
-                @wraps(func)
-                def func_wrapper(*args, **kwargs):
-                    pass
-
-                return func_wrapper
+                pass
             return inner
