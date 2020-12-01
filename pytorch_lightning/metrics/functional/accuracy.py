@@ -11,14 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Tuple, Union, Optional
+from typing import Tuple, Optional
 
 import torch
 from pytorch_lightning.metrics.classification.utils import _input_format_classification
-
-################################
-# Accuracy
-################################
 
 
 def _accuracy_update(
@@ -109,51 +105,3 @@ def accuracy(
 
     correct, total = _accuracy_update(preds, target, threshold, top_k, mdmc_accuracy)
     return _accuracy_compute(correct, total)
-
-
-################################
-# Hamming loss
-################################
-
-
-def _hamming_loss_update(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5) -> Tuple[torch.Tensor, int]:
-    preds, target, _ = _input_format_classification(preds, target, threshold=threshold)
-
-    correct = (preds == target).sum()
-    total = preds.numel()
-
-    return correct, total
-
-
-def _hamming_loss_compute(correct: torch.Tensor, total: Union[int, torch.Tensor]) -> torch.Tensor:
-    return 1 - correct.float() / total
-
-
-def hamming_loss(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5) -> torch.Tensor:
-    """
-    Computes the share of wrongly predicted labels.
-
-    This is the same as ``1-accuracy`` for binary data, while for all other types of inputs it
-    treats each possible label separately - meaning that, for example, multi-class data is
-    treated as if it were multi-label. If this is not what you want, consider using
-    :class:`~pytorch_lightning.metrics.classification.Accuracy`.
-
-    Accepts all input types listed in :ref:`metrics:Input types`.
-
-    Args:
-        threshold:
-            Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
-
-    Example:
-
-        >>> from pytorch_lightning.metrics.functional import hamming_loss
-        >>> target = torch.tensor([[0, 1], [1, 1]])
-        >>> preds = torch.tensor([[0, 1], [0, 1]])
-        >>> hamming_loss(preds, target)
-        tensor(0.2500)
-
-    """
-
-    correct, total = _hamming_loss_update(preds, target, threshold)
-    return _hamming_loss_compute(correct, total)
