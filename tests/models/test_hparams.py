@@ -595,13 +595,7 @@ class RuntimeParamChangeModelSaving(BoringModel):
         self.save_hyperparameters()
 
 
-class RuntimeParamChangeModelAssign(BoringModel):
-    def __init__(self, **kwargs):
-        super().__init__()
-        self.hparams = kwargs
-
-
-@pytest.mark.parametrize("cls", [RuntimeParamChangeModelSaving, RuntimeParamChangeModelAssign])
+@pytest.mark.parametrize("cls", [RuntimeParamChangeModelSaving])
 def test_init_arg_with_runtime_change(tmpdir, cls):
     """Test that we save/export only the initial hparams, no other runtime change allowed"""
     model = cls(running_arg=123)
