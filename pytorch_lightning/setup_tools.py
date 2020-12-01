@@ -73,7 +73,7 @@ def _parse_for_badge(text: str, path_badges: str = _PATH_BADGES, badge_names: li
     >>> shutil.rmtree(_PATH_BADGES)
     """
     for line in text.split(os.linesep):
-        search_string = fr'\[\!\[(.*?)]\((.*?)\)]'
+        search_string = r'\[\!\[(.*?)]\((.*?)\)]'
         match = re.search(search_string, line)
         if match is None:
             continue
