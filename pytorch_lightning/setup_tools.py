@@ -22,7 +22,7 @@ import warnings
 
 from pytorch_lightning import __homepage__, __version__, PROJECT_ROOT
 
-_PATH_BADGES = os.path.join('utilities', 'docs', 'source', '_images', 'badges')
+_PATH_BADGES = os.path.join('.', 'docs', 'source', '_images', 'badges')
 # badge to download
 _DEFAULT_BADGES = [
     'PyPI - Python Version',
@@ -73,28 +73,22 @@ def _parse_for_badge(text: str, path_badges: str = _PATH_BADGES, badge_names: li
     >>> shutil.rmtree(_PATH_BADGES)
     """
     for line in text.split(os.linesep):
-        badge_name = re.search(r'\[!\[(.*?)]', line)
+        search_string = fr'\[\!\[(.*?)]\((.*?)\)]'
+        match = re.search(search_string, line)
+        if match is None:
+            continue
 
-        # check for the badge name
-        if badge_name is not None:
-            badge_name = badge_name.group(1)
+        badge_name, badge_url = match.groups()
+        # check if valid name
+        if badge_name not in badge_names:
+            continue
 
-            # check if valid name
-            if badge_name not in badge_names:
-                continue
+        # download badge
+        saved_badge_name = _download_badge(badge_url, badge_name, path_badges)
 
-            search_string = fr'\[\!\[{badge_name}]\((.*?)\)]'
-            badge_url = re.search(search_string, line)
-            # check for badge url
-            if badge_url is not None:
-                badge_url = badge_url.group(1)
-
-            # download badge
-            saved_badge_name = _download_badge(badge_url, badge_name, path_badges)
-
-            # replace url with local file path
-            replace_string = f'[![{badge_name}]({saved_badge_name})]'
-            text = re.sub(search_string, replace_string, text)
+        # replace url with local file path
+        replace_string = f'[![{badge_name}]({saved_badge_name})]'
+        text = re.sub(search_string, replace_string, text)
 
     return text
 
