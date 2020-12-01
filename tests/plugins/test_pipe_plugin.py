@@ -57,11 +57,10 @@ class SequentialModel(LightningModule):
             loss = self.loss(output)
             self.manual_backward(loss, opt)
             assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() > 0
-            self.manual_optimizer_step(opt)
-            assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() == 0
         else:
             self.back_helper(output)
-
+        opt.step()
+        assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() == 0
         self.log("train_loss", loss, sync_dist=True, on_step=True,
                  on_epoch=True, reduce_fx=torch.sum, prog_bar=True)
 
@@ -151,7 +150,6 @@ class SequentialModelRPC(LightningModule):
             self.log("train_loss", loss, on_epoch=True, prog_bar=True)
             self.manual_backward(loss, opt)
             assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() > 0
-            self.manual_optimizer_step(opt)
         else:
             opt = self.optimizers()
 
@@ -162,7 +160,7 @@ class SequentialModelRPC(LightningModule):
                 self.log("train_loss", loss, on_epoch=True, prog_bar=True)
                 self.manual_backward(loss, opt)
                 assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() > 0
-            self.manual_optimizer_step(opt, optimizer_closure=optimizer_closure)
+        opt.step()
         self._called += 1
         assert self._called == self._count
         assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() == 0
