@@ -55,38 +55,6 @@ class ConfigureOptimizersPool(ABC):
         optimizer2 = optim.Adam(self.parameters(), lr=self.learning_rate)
         return [{'optimizer': optimizer1, 'frequency': 1}, {'optimizer': optimizer2, 'frequency': 5}]
 
-    def configure_optimizers__multiple_optimizers_frequency_with_step_lr_schedulers(self):
-        optimizer1 = optim.Adam(self.parameters(), lr=self.learning_rate)
-        optimizer2 = optim.Adam(self.parameters(), lr=self.learning_rate)
-
-        return [
-            {'optimizer': optimizer1, 'frequency': 5},
-            {
-                'optimizer': optimizer2,
-                'frequency': 1,
-                'lr_scheduler': {
-                    'scheduler': optim.lr_scheduler.OneCycleLR(optimizer2, max_lr=self.learning_rate, total_steps=1),
-                    'interval': 'step',
-                },
-            },
-        ]
-
-    def configure_optimizers__multiple_optimizers_frequency_with_epoch_lr_schedulers(self):
-        optimizer1 = optim.Adam(self.parameters(), lr=self.learning_rate)
-        optimizer2 = optim.Adam(self.parameters(), lr=self.learning_rate)
-
-        return [
-            {'optimizer': optimizer1, 'frequency': 6},
-            {
-                'optimizer': optimizer2,
-                'frequency': 12,
-                'lr_scheduler': {
-                    'scheduler': optim.lr_scheduler.CosineAnnealingLR(optimizer2, 2),
-                    'interval': 'epoch',
-                },
-            },
-        ]
-
     def configure_optimizers__single_scheduler(self):
         optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
         lr_scheduler = optim.lr_scheduler.StepLR(optimizer, 1, gamma=0.1)
