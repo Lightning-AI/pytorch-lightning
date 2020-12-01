@@ -291,7 +291,7 @@ def test_auc(x, y, expected):
     ]
 )
 def test_object_detection_mean_average_precision(pred, target, iou_threshold, num_classes, expected):
-    assert object_detection_mean_average_precision(pred, target, iou_threshold, num_classes) == expected
+    assert torch.allclose(object_detection_mean_average_precision(pred, target, iou_threshold, num_classes), expected)
 
 
 @pytest.mark.parametrize(
