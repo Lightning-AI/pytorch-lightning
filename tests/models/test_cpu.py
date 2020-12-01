@@ -247,11 +247,6 @@ def test_running_test_no_val(tmpdir):
         def val_loader(self):
             pass
 
-        def test_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            return {"y": loss}
-
         def test_epoch_end(self, outputs) -> None:
             test_loss = torch.stack([x["y"] for x in outputs]).mean()
             self.log('test_loss', test_loss)
