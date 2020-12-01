@@ -143,7 +143,6 @@ class HyperparametersMixin:
             self._hparams_initial = copy.deepcopy(self._hparams)
 
     def __get_hparams_assignment_variable(self):
-        """"""
         """
         looks at the code of the class to figure out what the user named self.hparams
         this only happens when the user explicitly sets self.hparams
