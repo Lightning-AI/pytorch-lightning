@@ -12,23 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 import os
+from typing import Any, List, Optional, Union
 
 import torch
 import torch.distributed as torch_distrib
+from torch.nn.parallel import DistributedDataParallel
 
+from pytorch_lightning import _logger as log
+from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.distributed.dist import LightningDistributed
-from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
-from pytorch_lightning.utilities import AMPType, HYDRA_AVAILABLE
+from pytorch_lightning.utilities import HYDRA_AVAILABLE, AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only, sync_ddp_if_available
-from torch.nn.parallel import DistributedDataParallel
-from typing import List, Optional, Union, Any
 
 if HYDRA_AVAILABLE:
-    from hydra.utils import to_absolute_path, get_original_cwd
     from hydra.core.hydra_config import HydraConfig
+    from hydra.utils import get_original_cwd, to_absolute_path
 
 
 class DDP2Accelerator(Accelerator):
@@ -169,6 +169,8 @@ class DDP2Accelerator(Accelerator):
 
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
+
+        self.trainer.convert_to_lightning_optimizers()
 
         # device ids change depending on the DDP setup
         device_ids = self.get_device_ids()
