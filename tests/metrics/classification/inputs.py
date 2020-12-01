@@ -53,8 +53,11 @@ _multilabel_inputs_no_match = Input(
     target=__temp_target
 )
 
+__mc_prob_preds = torch.rand(NUM_BATCHES, BATCH_SIZE, NUM_CLASSES)
+__mc_prob_preds = __mc_prob_preds / __mc_prob_preds.sum(dim=2, keepdim=True)
+
 _multiclass_prob_inputs = Input(
-    preds=torch.rand(NUM_BATCHES, BATCH_SIZE, NUM_CLASSES),
+    preds=__mc_prob_preds,
     target=torch.randint(high=NUM_CLASSES, size=(NUM_BATCHES, BATCH_SIZE))
 )
 
@@ -64,9 +67,11 @@ _multiclass_inputs = Input(
     target=torch.randint(high=NUM_CLASSES, size=(NUM_BATCHES, BATCH_SIZE))
 )
 
+__mdmc_prob_preds = torch.rand(NUM_BATCHES, BATCH_SIZE, NUM_CLASSES, EXTRA_DIM)
+__mdmc_prob_preds = __mdmc_prob_preds / __mdmc_prob_preds.sum(dim=2, keepdim=True)
 
 _multidim_multiclass_prob_inputs = Input(
-    preds=torch.rand(NUM_BATCHES, BATCH_SIZE, NUM_CLASSES, EXTRA_DIM),
+    preds=__mdmc_prob_preds,
     target=torch.randint(high=NUM_CLASSES, size=(NUM_BATCHES, BATCH_SIZE, EXTRA_DIM))
 )
 

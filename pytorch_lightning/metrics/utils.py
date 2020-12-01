@@ -121,7 +121,7 @@ def _input_format_classification(
         # multi class probabilites
         preds = torch.argmax(preds, dim=1)
 
-    if preds.ndim == target.ndim and preds.dtype == torch.float:
+    if preds.ndim == target.ndim and preds.is_floating_point():
         # binary or multilabel probablities
         preds = (preds >= threshold).long()
     return preds, target
@@ -151,12 +151,12 @@ def _input_format_classification_one_hot(
         # multi class probabilites
         preds = torch.argmax(preds, dim=1)
 
-    if preds.ndim == target.ndim and preds.dtype == torch.long and num_classes > 1 and not multilabel:
+    if preds.ndim == target.ndim and preds.dtype in (torch.long, torch.int) and num_classes > 1 and not multilabel:
         # multi-class
         preds = to_onehot(preds, num_classes=num_classes)
         target = to_onehot(target, num_classes=num_classes)
 
-    elif preds.ndim == target.ndim and preds.dtype == torch.float:
+    elif preds.ndim == target.ndim and preds.is_floating_point():
         # binary or multilabel probablities
         preds = (preds >= threshold).long()
 
