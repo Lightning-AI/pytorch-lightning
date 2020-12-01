@@ -44,4 +44,4 @@ def test_result_returns_within_20_seconds():
     end = time.time()
     elapsed_time = int(end - start)
     assert elapsed_time <= 20
-    assert result is None
+    assert result is False
