@@ -335,7 +335,8 @@ optimizer behavior
 Example::
 
     def training_step(self, batch, batch_idx):
-        opt = self.optimizers()
+        # access your optimizers with use_pl_optimizer=False. Default is True
+        opt = self.optimizers(use_pl_optimizer=True)
 
         loss = ...
         self.manual_backward(loss, opt)
@@ -350,7 +351,8 @@ In the multi-optimizer case, ignore the optimizer_idx flag and use the optimizer
 Example::
 
     def training_step(self, batch, batch_idx, optimizer_idx):
-        (opt_a, opt_b) = self.optimizers()
+        # access your optimizers with use_pl_optimizer=False. Default is True
+        (opt_a, opt_b) = self.optimizers(use_pl_optimizer=True)
 
         gen_loss = ...
         self.manual_backward(gen_loss, opt_a)

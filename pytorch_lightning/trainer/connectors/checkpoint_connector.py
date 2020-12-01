@@ -14,15 +14,15 @@
 
 import os
 import re
-from pathlib import Path
 from typing import Optional, Union
 
 import torch
 
 import pytorch_lightning
+from pytorch_lightning import _logger as log
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import (
-    _APEX_AVAILABLE, AMPType, _OMEGACONF_AVAILABLE, rank_zero_info, rank_zero_warn, DeviceType)
+from pytorch_lightning.utilities import AMPType, APEX_AVAILABLE, OMEGACONF_AVAILABLE, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -64,7 +64,7 @@ class CheckpointConnector:
 
         # 2. Attempt to restore states from `resume_from_checkpoint` file
         elif self.trainer.resume_from_checkpoint is not None and not self.trainer.testing:
-            self.restore(self.trainer.resume_from_checkpoint, on_gpu=self.trainer._device_type == DeviceType.GPU)
+            self.restore(self.trainer.resume_from_checkpoint, on_gpu=self.trainer.on_gpu)
 
         # wait for all to catch up
         self.trainer.accelerator_backend.barrier('TrainerIOMixin.restore_weights')

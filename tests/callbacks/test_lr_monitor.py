@@ -45,7 +45,7 @@ def test_lr_monitor_single_lr(tmpdir):
         'Momentum should not be logged by default'
     assert len(lr_monitor.lrs) == len(trainer.lr_schedulers), \
         'Number of learning rates logged does not match number of lr schedulers'
-    assert all([k in ['lr-SGD'] for k in lr_monitor.lrs.keys()]), \
+    assert lr_monitor.lr_sch_names == list(lr_monitor.lrs.keys()) == ['lr-SGD'], \
         'Names of learning rates not set correctly'
 
 
@@ -59,19 +59,15 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt):
             super().__init__()
             self.opt = opt
 
-    class SingleLRSchedulerModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.learning_rate = 0.01
-
         def configure_optimizers(self):
-            optimizer = optim.SGD(self.parameters(), lr=self.learning_rate, momentum=0.9)
-            lr_scheduler = optim.lr_scheduler.OneCycleLR(optimizer,
-                                                         max_lr=self.learning_rate,
-                                                         total_steps=10_000)
-            return [optimizer], [lr_scheduler]
+            if self.opt == 'SGD':
+                opt_kwargs = {'momentum': 0.9}
+            elif self.opt == 'Adam':
+                opt_kwargs = {'betas': (0.9, 0.999)}
 
-    model = SingleLRSchedulerModel()
+            optimizer = getattr(optim, self.opt)(self.parameters(), lr=1e-2, **opt_kwargs)
+            lr_scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr=1e-2, total_steps=10_000)
+            return [optimizer], [lr_scheduler]
 
     model = LogMomentumModel(opt=opt)
     lr_monitor = LearningRateMonitor(log_momentum=True)
@@ -115,8 +111,8 @@ def test_log_momentum_no_momentum_optimizer(tmpdir):
         callbacks=[lr_monitor],
     )
     with pytest.warns(RuntimeWarning, match="optimizers do not have momentum."):
-        trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+        result = trainer.fit(model)
+        assert result
 
     assert all(v == 0 for v in lr_monitor.last_momentum_values.values()), \
         'Expected momentum to be logged'

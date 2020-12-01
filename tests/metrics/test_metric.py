@@ -39,6 +39,20 @@ class DummyList(Metric):
         pass
 
 
+class DummyList(Metric):
+    name = "DummyList"
+
+    def __init__(self):
+        super().__init__()
+        self.add_state("x", list(), dist_reduce_fx=None)
+
+    def update(self):
+        pass
+
+    def compute(self):
+        pass
+
+
 def test_inherit():
     Dummy()
 

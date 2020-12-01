@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import ANY, MagicMock, call, patch
+from unittest import mock
+from unittest.mock import ANY, call, MagicMock
 
 from pytorch_lightning import Callback, LightningModule, Trainer
 from tests.base import BoringModel
@@ -31,17 +32,19 @@ def test_callback_hooks(torch_save):
     """
 
     model = BoringModel()
-    # pretend to be a callback, record all calls
-    callback = MagicMock()
-    trainer = Trainer(callbacks=[callback], max_epochs=1, num_sanity_val_steps=1,
-                      limit_train_batches=1, limit_val_batches=1, limit_test_batches=1)
-    trainer.fit(model)
+    limit_train_batches = 3
+    limit_val_batches = 1
+    limit_test_batches = 2
+    callback_mock = MagicMock()
 
-    # check how many times a method was called
-    assert callback.on_init_start.call_count == 1
-    assert callback.on_init_end.call_count == 1
-
-    assert callback.setup.call_count == 1
+    trainer_options = dict(
+        callbacks=[callback_mock],
+        max_epochs=1,
+        limit_val_batches=limit_val_batches,
+        limit_train_batches=limit_train_batches,
+        limit_test_batches=limit_test_batches,
+        progress_bar_refresh_rate=0,
+    )
 
     assert callback.on_fit_start.call_count == 1
     assert callback.on_pretrain_routine_start.call_count == 1
@@ -138,41 +141,47 @@ def test_callback_hooks(torch_save):
     callback.on_pretrain_routine_start.assert_called_with(trainer, model)
     callback.on_pretrain_routine_end.assert_called_with(trainer, model)
 
-    callback.on_sanity_check_start.assert_called_with(trainer, model)
-    callback.on_validation_start.assert_called_with(trainer, model),
-    callback.on_validation_epoch_start.assert_called_with(trainer, model),
-    callback.on_validation_batch_start.assert_called_with(trainer, model, ANY, 0, 0),
-    callback.on_validation_batch_end.assert_called_with(trainer, model, ANY, ANY, 0, 0),
-    callback.on_validation_epoch_end.assert_called_with(trainer, model),
-    callback.on_validation_end.assert_called_with(trainer, model),
-    callback.on_sanity_check_end.assert_called_with(trainer, model)
+    # check how many times a method was called
+    assert callback_mock.on_init_start.call_count == 1
+    assert callback_mock.on_init_end.call_count == 1
+    assert callback_mock.setup.call_count == 1
+    assert callback_mock.on_fit_start.call_count == 1
+    assert callback_mock.on_pretrain_routine_start.call_count == 1
+    assert callback_mock.on_pretrain_routine_end.call_count == 1
+    assert callback_mock.on_sanity_check_start.call_count == 1
+    assert callback_mock.on_validation_start.call_count == limit_val_batches * 2
+    assert callback_mock.on_validation_epoch_start.call_count == limit_val_batches * 2
+    assert callback_mock.on_validation_batch_start.call_count == limit_val_batches * 2
+    assert callback_mock.on_validation_batch_end.call_count == limit_val_batches * 2
+    assert callback_mock.on_validation_epoch_end.call_count == limit_val_batches * 2
+    assert callback_mock.on_validation_end.call_count == limit_val_batches * 2
+    assert callback_mock.on_sanity_check_end.call_count == 1
+    assert callback_mock.on_train_start.call_count == 1
+    assert callback_mock.on_epoch_start.call_count == 1
+    assert callback_mock.on_train_epoch_start.call_count == 1
+    assert callback_mock.on_batch_start.call_count == limit_train_batches
+    assert callback_mock.on_train_batch_start.call_count == limit_train_batches
+    assert callback_mock.on_after_backward.call_count == limit_train_batches
+    assert callback_mock.on_before_zero_grad.call_count == limit_train_batches
+    assert callback_mock.on_batch_end.call_count == limit_train_batches
+    assert callback_mock.on_train_batch_end.call_count == limit_train_batches
+    assert callback_mock.on_save_checkpoint.call_count == 1
+    assert callback_mock.on_epoch_end.call_count == 1
+    assert callback_mock.on_train_epoch_end.call_count == 1
+    assert callback_mock.on_train_end.call_count == 1
+    assert callback_mock.on_fit_end.call_count == 1
+    assert callback_mock.teardown.call_count == 1
 
-    callback.on_train_start.assert_called_with(trainer, model)
+    # check that a method was NEVER called
+    callback_mock.on_keyboard_interrupt.assert_not_called()
+    callback_mock.on_test_start.assert_not_called()
+    callback_mock.on_test_epoch_start.assert_not_called()
+    callback_mock.on_test_batch_start.assert_not_called()
+    callback_mock.on_test_batch_end.assert_not_called()
+    callback_mock.on_test_epoch_end.assert_not_called()
+    callback_mock.on_test_end.assert_not_called()
 
-    callback.on_epoch_start.assert_called_with(trainer, model)
-    callback.on_train_epoch_start.assert_called_with(trainer, model)
-
-    callback.on_batch_start.assert_called_with(trainer, model)
-    callback.on_train_batch_start.assert_called_with(trainer, model, ANY, 0, 0)
-
-    callback.on_after_backward.assert_called_with(trainer, model)
-    callback.on_before_zero_grad.assert_called_with(trainer, model, ANY)
-
-    callback.on_batch_end.assert_called_with(trainer, model)
-    callback.on_train_batch_end.assert_called_with(trainer, model, ANY, ANY, 0, 0)
-
-    callback.on_save_checkpoint.assert_called_with(trainer, model)
-
-    callback.on_epoch_end.assert_called_with(trainer, model)
-    callback.on_train_epoch_end.assert_called_with(trainer, model, ANY)
-
-    callback.on_train_end.assert_called_with(trainer, model)
-
-    callback.on_fit_end.assert_called_with(trainer, model)
-    callback.teardown.assert_called_with(trainer, model, 'fit')
-
-    # check exact call order
-    callback.assert_has_calls([
+    assert callback_mock.method_calls == [
         call.on_init_start(trainer),
         call.on_init_end(trainer),
         call.setup(trainer, model, "fit"),
@@ -234,72 +243,40 @@ def test_callback_hooks(torch_save):
     trainer.test(model)
 
     # check how many times a method was called
-    assert test_callback.on_init_start.call_count == 1
-    assert test_callback.on_init_end.call_count == 1
-    assert test_callback.setup.call_count == 1
-    assert test_callback.on_fit_start.call_count == 1
-    assert test_callback.on_pretrain_routine_start.call_count == 1
-    assert test_callback.on_pretrain_routine_end.call_count == 1
-    assert test_callback.on_test_start.call_count == 1
-    assert test_callback.on_test_epoch_start.call_count == 1
-    assert test_callback.on_test_batch_start.call_count == 1
-    assert test_callback.on_test_batch_end.call_count == 1
-    assert test_callback.on_test_epoch_end.call_count == 1
-    assert test_callback.on_test_end.call_count == 1
-    assert test_callback.on_fit_end.call_count == 1
-    assert test_callback.teardown.call_count == 2
-
-    # check methods are called exactly once
-    test_callback.on_init_start.assert_called_once()
-    test_callback.on_init_end.assert_called_once()
-    test_callback.setup.assert_called_once()
-    test_callback.on_fit_start.assert_called_once()
-    test_callback.on_pretrain_routine_start.assert_called_once()
-    test_callback.on_pretrain_routine_end.assert_called_once()
-    test_callback.on_test_start.assert_called_once()
-    test_callback.on_test_epoch_start.assert_called_once()
-    test_callback.on_test_batch_start.assert_called_once()
-    test_callback.on_test_batch_end.assert_called_once()
-    test_callback.on_test_epoch_end.assert_called_once()
-    test_callback.on_test_end.assert_called_once()
-    test_callback.on_fit_end.assert_called_once()
+    assert callback_mock.on_init_start.call_count == 1
+    assert callback_mock.on_init_end.call_count == 1
+    assert callback_mock.setup.call_count == 1
+    assert callback_mock.on_fit_start.call_count == 1
+    assert callback_mock.on_pretrain_routine_start.call_count == 1
+    assert callback_mock.on_pretrain_routine_end.call_count == 1
+    assert callback_mock.on_test_start.call_count == 1
+    assert callback_mock.on_test_epoch_start.call_count == 1
+    assert callback_mock.on_test_batch_start.call_count == limit_test_batches
+    assert callback_mock.on_test_batch_end.call_count == limit_test_batches
+    assert callback_mock.on_test_epoch_end.call_count == 1
+    assert callback_mock.on_test_end.call_count == 1
+    assert callback_mock.on_fit_end.call_count == 1
+    assert callback_mock.teardown.call_count == 2
 
     # check that a method was NEVER called
-    test_callback.on_keyboard_interrupt.assert_not_called()
-    test_callback.on_sanity_check_start.assert_not_called()
-    test_callback.on_sanity_check_end.assert_not_called()
-    test_callback.on_train_start.assert_not_called()
-    test_callback.on_epoch_start.assert_not_called()
-    test_callback.on_train_epoch_start.assert_not_called()
-    test_callback.on_batch_start.assert_not_called()
-    test_callback.on_train_batch_start.assert_not_called()
-    test_callback.on_after_backward.assert_not_called()
-    test_callback.on_before_zero_grad.assert_not_called()
-    test_callback.on_batch_end.assert_not_called()
-    test_callback.on_train_batch_end.assert_not_called()
-    test_callback.on_save_checkpoint.assert_not_called()
-    test_callback.on_epoch_end.assert_not_called()
-    test_callback.on_train_epoch_end.assert_not_called()
-    test_callback.on_train_end.assert_not_called()
+    callback_mock.on_keyboard_interrupt.assert_not_called()
+    callback_mock.on_sanity_check_start.assert_not_called()
+    callback_mock.on_sanity_check_end.assert_not_called()
+    callback_mock.on_train_start.assert_not_called()
+    callback_mock.on_epoch_start.assert_not_called()
+    callback_mock.on_train_epoch_start.assert_not_called()
+    callback_mock.on_batch_start.assert_not_called()
+    callback_mock.on_train_batch_start.assert_not_called()
+    callback_mock.on_after_backward.assert_not_called()
+    callback_mock.on_before_zero_grad.assert_not_called()
+    callback_mock.on_batch_end.assert_not_called()
+    callback_mock.on_train_batch_end.assert_not_called()
+    callback_mock.on_save_checkpoint.assert_not_called()
+    callback_mock.on_epoch_end.assert_not_called()
+    callback_mock.on_train_epoch_end.assert_not_called()
+    callback_mock.on_train_end.assert_not_called()
 
-    # check with what a method was called
-    test_callback.on_init_start.assert_called_with(trainer)
-    test_callback.on_init_end.assert_called_with(trainer)
-    test_callback.setup.assert_called_with(trainer, model, 'test')
-    test_callback.on_fit_start.assert_called_with(trainer, model)
-    test_callback.on_pretrain_routine_start.assert_called_with(trainer, model)
-    test_callback.on_pretrain_routine_end.assert_called_with(trainer, model)
-
-    test_callback.on_test_start.assert_called_with(trainer, model)
-    test_callback.on_test_epoch_start.assert_called_with(trainer, model)
-    test_callback.on_test_batch_start.assert_called_with(trainer, model, ANY, 0, 0)
-    test_callback.on_test_batch_end.assert_called_with(trainer, model, ANY, ANY, 0, 0)
-    test_callback.on_test_epoch_end.assert_called_with(trainer, model)
-    test_callback.on_test_end.assert_called_with(trainer, model)
-    test_callback.on_fit_end.assert_called_with(trainer, model)
-    test_callback.teardown.assert_called_with(trainer, model, 'test')
-
-    test_callback.assert_has_calls([
+    assert callback_mock.method_calls == [
         call.on_init_start(trainer),
         call.on_init_end(trainer),
         call.setup(trainer, model, 'test'),

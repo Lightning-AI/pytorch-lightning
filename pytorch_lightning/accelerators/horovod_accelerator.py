@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import ExitStack
-from typing import Any, Optional, Union, Callable
+from typing import Any, Callable, Optional, Union
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
-from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, AMPType, DeviceType
+from pytorch_lightning.utilities import AMPType, HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
 if _HOROVOD_AVAILABLE:
@@ -89,8 +89,6 @@ class HorovodAccelerator(Accelerator):
 
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
-
-        self.trainer.convert_to_lightning_optimizers()
 
         # Update logger rank info from Horovod to avoid race conditions from  different ranks
         # creating directories / writing files in the same locations.

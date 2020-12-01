@@ -142,17 +142,17 @@ def _test_loggers_fit_test(tmpdir, logger_class):
     if logger_class == TensorBoardLogger:
         expected = [
             (0, ['hp_metric']),
-            (0, ['train_some_val']),
-            (0, ['early_stop_on', 'epoch', 'val_loss']),
+            (0, ['epoch', 'train_some_val']),
+            (0, ['early_stop_on', 'epoch', 'val_acc']),
             (0, ['hp_metric']),
             (1, ['epoch', 'test_loss'])
         ]
         assert log_metric_names == expected
     else:
         expected = [
-            (0, ['train_some_val']),
-            (0, ['early_stop_on', 'epoch', 'val_loss']),
-            (1, ['epoch', 'test_loss'])
+            (0, ['epoch', 'train_some_val']),
+            (0, ['early_stop_on', 'epoch', 'val_acc']),
+            (1, ['epoch', 'test_acc', 'test_loss'])
         ]
         assert log_metric_names == expected
 

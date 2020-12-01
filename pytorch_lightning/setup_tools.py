@@ -19,7 +19,7 @@ from typing import Iterable, List
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-from pytorch_lightning import __homepage__, __version__, _PROJECT_ROOT
+from pytorch_lightning import __homepage__, __version__, PROJECT_ROOT
 
 _PATH_BADGES = os.path.join('.', 'docs', 'source', '_images', 'badges')
 # badge to download

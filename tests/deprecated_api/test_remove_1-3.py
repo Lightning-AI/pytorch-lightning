@@ -134,3 +134,8 @@ def test_v1_3_0_trainer_cli_profiler(cli_args, expected_parsed_arg, expected_pro
     assert getattr(args, "profiler") == expected_parsed_arg
     trainer = Trainer.from_argparse_args(args)
     assert isinstance(trainer.profiler, expected_profiler)
+
+
+def test_trainer_enable_pl_optimizer(tmpdir):
+    with pytest.deprecated_call(match='will be removed in v1.3'):
+        Trainer(enable_pl_optimizer=True)

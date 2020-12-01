@@ -19,13 +19,15 @@ Early Stopping
 Monitor a metric and stop training when it stops improving.
 
 """
+import numbers
+import os
 
 import numpy as np
 import torch
 
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.metrics.metric import Metric
+from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn, TPU_AVAILABLE
 
 
 class EarlyStopping(Callback):
@@ -106,7 +108,7 @@ class EarlyStopping(Callback):
         if self.mode == 'auto':
             rank_zero_warn(
                 "mode='auto' is deprecated in v1.1 and will be removed in v1.3."
-                " Default value for mode with be 'min' in v1.3.",
+                " Default value for mode will be 'min' in v1.3.",
                 DeprecationWarning
             )
 
@@ -191,6 +193,15 @@ class EarlyStopping(Callback):
 
         # when in dev debugging
         trainer.dev_debugger.track_early_stopping_history(self, current)
+
+        if current is not None:
+            if isinstance(current, Metric):
+                current = current.compute()
+            elif isinstance(current, numbers.Number):
+                current = torch.tensor(current, device=pl_module.device, dtype=torch.float)
+
+        if trainer.use_tpu and TPU_AVAILABLE:
+            current = current.cpu()
 
         if self.monitor_op(current - self.min_delta, self.best_score):
             self.best_score = current

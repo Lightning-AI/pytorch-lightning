@@ -15,39 +15,27 @@
 
 import numpy
 
-from pytorch_lightning.utilities.apply_func import move_data_to_device  # noqa: F401
-from pytorch_lightning.utilities.distributed import (  # noqa: F401
-    AllGatherGrad,
-    rank_zero_info,
-    rank_zero_only,
-    rank_zero_warn,
-)
-from pytorch_lightning.utilities.enums import (  # noqa: F401
-    LightningEnum,
-    AMPType,
-    DistributedType,
-    DeviceType,
-)
-from pytorch_lightning.utilities.imports import (  # noqa: F401
-    _APEX_AVAILABLE,
-    _NATIVE_AMP_AVAILABLE,
-    _XLA_AVAILABLE,
-    _OMEGACONF_AVAILABLE,
-    _HYDRA_AVAILABLE,
-    _HOROVOD_AVAILABLE,
-    _TORCHTEXT_AVAILABLE,
-    _FAIRSCALE_AVAILABLE,
-    _RPC_AVAILABLE,
-    _GROUP_AVAILABLE,
-    _FAIRSCALE_PIPE_AVAILABLE,
-    _BOLTS_AVAILABLE,
-    _module_available,
-)
-from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable  # noqa: F401
-from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: F401
+from pytorch_lightning.utilities.apply_func import move_data_to_device
+from pytorch_lightning.utilities.distributed import AllGatherGrad, rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.package_utils import _module_available
+from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable
+from pytorch_lightning.utilities.xla_device_utils import XLA_AVAILABLE, XLADeviceUtils
 
+OMEGACONF_AVAILABLE = _module_available("omegaconf")
+APEX_AVAILABLE = _module_available("apex.amp")
+NATIVE_AMP_AVAILABLE = _module_available("torch.cuda.amp") and hasattr(torch.cuda.amp, "autocast")
+OMEGACONF_AVAILABLE = _module_available("omegaconf")
+HYDRA_AVAILABLE = _module_available("hydra")
+HYDRA_EXPERIMENTAL_AVAILABLE = _module_available("hydra.experimental")
+HOROVOD_AVAILABLE = _module_available("horovod.torch")
+BOLTS_AVAILABLE = _module_available("pl_bolts")
 
-_TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
+TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
+FAIRSCALE_AVAILABLE = platform.system() != 'Windows' and _module_available('fairscale.nn.data_parallel')
+RPC_AVAILABLE = platform.system() != 'Windows' and _module_available('torch.distributed.rpc')
+GROUP_AVAILABLE = platform.system() != 'Windows' and _module_available('torch.distributed.group')
+FAIRSCALE_PIPE_AVAILABLE = FAIRSCALE_AVAILABLE and LooseVersion(torch.__version__) == LooseVersion("1.6.0")
+BOLTS_AVAILABLE = _module_available('pl_bolts')
 
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
 FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps

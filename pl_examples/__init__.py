@@ -6,8 +6,8 @@ _EXAMPLES_ROOT = os.path.dirname(__file__)
 _PACKAGE_ROOT = os.path.dirname(_EXAMPLES_ROOT)
 _DATASETS_PATH = os.path.join(_PACKAGE_ROOT, 'Datasets')
 
-_TORCHVISION_AVAILABLE = _module_available("torchvision")
-_DALI_AVAILABLE = _module_available("nvidia.dali")
+TORCHVISION_AVAILABLE = _module_available("torchvision")
+DALI_AVAILABLE = _module_available("nvidia.dali")
 
 
 LIGHTNING_LOGO = """

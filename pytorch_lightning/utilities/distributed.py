@@ -22,7 +22,7 @@ import torch
 from pytorch_lightning import _logger as log
 
 if torch.distributed.is_available():
-    from torch.distributed import group, ReduceOp
+    from torch.distributed import ReduceOp, group
 else:
     class ReduceOp:
         SUM = None

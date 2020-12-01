@@ -19,7 +19,7 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import _MLFLOW_AVAILABLE, MLFlowLogger
-from tests.base import BoringModel
+from tests.base import EvalModelTemplate
 
 
 def mock_mlflow_run_creation(logger, experiment_name=None, experiment_id=None, run_id=None):
@@ -134,19 +134,12 @@ def test_mlflow_logger_dirs_creation(tmpdir):
         assert set(os.listdir(tmpdir)) == {'.trash', exp_id}
         assert set(os.listdir(tmpdir / exp_id)) == {run_id, 'meta.yaml'}
 
-    class CustomModel(BoringModel):
-        def training_epoch_end(self, *args, **kwargs):
-            super().training_epoch_end(*args, **kwargs)
-            self.log('epoch', self.current_epoch)
-
-    model = CustomModel()
-    limit_batches = 5
+    model = EvalModelTemplate()
     trainer = Trainer(
         default_root_dir=tmpdir,
         logger=logger,
         max_epochs=1,
-        limit_train_batches=limit_batches,
-        limit_val_batches=limit_batches,
+        limit_val_batches=3,
         log_gpu_memory=True,
     )
     trainer.fit(model)

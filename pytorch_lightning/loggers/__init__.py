@@ -24,11 +24,11 @@ __all__ = [
     'CSVLogger',
 ]
 
-from pytorch_lightning.loggers.comet import _COMET_AVAILABLE, CometLogger  # noqa: F401
-from pytorch_lightning.loggers.mlflow import _MLFLOW_AVAILABLE, MLFlowLogger  # noqa: F401
-from pytorch_lightning.loggers.neptune import _NEPTUNE_AVAILABLE, NeptuneLogger  # noqa: F401
-from pytorch_lightning.loggers.test_tube import _TESTTUBE_AVAILABLE, TestTubeLogger  # noqa: F401
-from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE, WandbLogger  # noqa: F401
+from pytorch_lightning.loggers.comet import _COMET_AVAILABLE, CometLogger
+from pytorch_lightning.loggers.mlflow import _MLFLOW_AVAILABLE, MLFlowLogger
+from pytorch_lightning.loggers.neptune import _NEPTUNE_AVAILABLE, NeptuneLogger
+from pytorch_lightning.loggers.test_tube import _TESTTUBE_AVAILABLE, TestTubeLogger
+from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE, WandbLogger
 
 if _COMET_AVAILABLE:
     __all__.append('CometLogger')

@@ -15,7 +15,7 @@
 from typing import Union
 
 from pytorch_lightning.loggers.base import DummyLogger
-from pytorch_lightning.utilities import rank_zero_info
+from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
