@@ -44,7 +44,7 @@ Here's a LightningModule that defines a model:
             self.layer_2 = nn.Linear(...)
             self.layer_3 = nn.Linear(...)
 
-Here's a lightningModule that defines a system:
+Here's a LightningModule that defines a system:
 
 .. code-block:: python
 
@@ -88,7 +88,7 @@ Instead, be explicit in your init
 .. code-block:: python
 
     class LitModel(pl.LightningModule):
-        def __init__(self, encoder: nn.Module, coeff_x: float = 0.2, lr: float = 1e-3)
+        def __init__(self, encoder: nn.Module, coef_x: float = 0.2, lr: float = 1e-3)
 
 Now the user doesn't have to guess. Instead they know the value type and the model has a sensible default where the
 user can see the value immediately.

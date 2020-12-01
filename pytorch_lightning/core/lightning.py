@@ -1442,7 +1442,7 @@ class LightningModule(
 
         Args:
             args: single object of `dict`, `NameSpace` or `OmegaConf`
-             or string names or argumenst from class `__init__`
+             or string names or arguments from class `__init__`
 
         >>> from collections import OrderedDict
         >>> class ManuallyArgsModel(LightningModule):
