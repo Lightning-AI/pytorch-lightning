@@ -123,7 +123,7 @@ class PluginConnector:
                     f" Supported plugins as string input: {(e.name for e in LightningCustomPlugins)}."
                 )
             plugin_cls = LightningCustomPlugins[plugin].value
-            return plugin_cls()
+            return plugin_cls(trainer=self.trainer)
         return plugin
 
     def _append_required_plugins(self, plugins: List[LightningPlugin]):
@@ -149,7 +149,7 @@ class PluginConnector:
 
         """
         for plugin in plugins:
-            required_plugins = plugin.required_plugins(amp_backend=self.trainer.amp_backend)
+            required_plugins = plugin.required_plugins(amp_backend=self.trainer.amp_backend, trainer=self.trainer)
             if required_plugins:
                 rank_zero_warn(
                     f'plugin {type(plugin)} has added additional required plugins as default:'
