@@ -266,9 +266,10 @@ def test_summary_layer_types(mode):
 @pytest.mark.parametrize(
     ["example_input", "expected_model_size"],
     [
-        pytest.param(torch.zeros(1, 1, 28, 28), 0.668),
-        pytest.param(torch.zeros(1, 1, 224, 224), 93.57),
-        pytest.param(torch.zeros(10, 1, 512, 512), 5176.78),
+        pytest.param(torch.zeros(1, 1, 28, 28), 0.318),
+        pytest.param(torch.zeros(1, 1, 224, 224), 31.84),
+        pytest.param(torch.zeros(10, 1, 512, 512), 183.425),
+        pytest.param(None, 0.075),
     ],
 )
 def test_known_model_sizes(example_input, expected_model_size, mode):
