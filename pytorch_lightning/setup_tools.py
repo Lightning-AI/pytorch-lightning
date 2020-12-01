@@ -65,7 +65,7 @@ def _parse_for_badge(text: str, path_badges: str = _PATH_BADGES, badge_names: li
     ...     '[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pytorch-lightning)]'
     ...     '(https://pypi.org/project/pytorch-lightning/) and another text later')
     'Some text here...
-     [![PyPI - Python Version](./docs/source/_images/badges/PyPI_Python_Version_badge.png)](https://pypi.org/project/pytorch-lightning/)
+     [![PyPI - Python Version](...docs...source..._images...badges...PyPI_Python_Version_badge.png)](https://pypi.org/project/pytorch-lightning/)
      and another text later'
     >>> import shutil
     >>> shutil.rmtree(_PATH_BADGES)
