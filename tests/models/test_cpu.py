@@ -75,7 +75,7 @@ def test_cpu_slurm_save_load(enable_pl_optimizer, tmpdir):
 
     class _StartCallback(Callback):
         # set the epoch start hook so we can predict before the model does the full training
-        def on_epoch_start(self, trainer, model):
+        def on_train_epoch_start(self, trainer, model):
             assert trainer.global_step == real_global_step and trainer.global_step > 0
             # predict with loaded model to make sure answers are the same
             mode = model.training
