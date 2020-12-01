@@ -224,8 +224,8 @@ class ModelSummary(object):
                 try:
                     # try to find prod, i.e check for unknown sizes.
                     _total_out_params += np.prod(out_sizes)
-                except:
-                    # do nothing if could not find product.
+                except TypeError:
+                    # do nothing if tried to find prod on unknown type.
                     pass
             else:
                 _ = [_get_out_size_params(out_size) for out_size in out_sizes if isinstance(out_size, list)]
