@@ -159,9 +159,6 @@ class ModelSummary(object):
         132 K     Trainable params
         0         Non-trainable params
         132 K     Total params
-        0.506     Total Estimated Params Size (MB)
-        0.004     Total Estimated Forward/Backward Size (MB)
-        0.520     Total Estimated Model Size (MB)
         >>> ModelSummary(model, mode='full')  # doctest: +NORMALIZE_WHITESPACE
           | Name  | Type        | Params | In sizes  | Out sizes
         --------------------------------------------------------------
@@ -173,8 +170,8 @@ class ModelSummary(object):
         0         Non-trainable params
         132 K     Total params
         0.506     Total Estimated Params Size (MB)
-        0.004     Total Estimated Forward/Backward Size (MB)
-        0.520     Total Estimated Model Size (MB)
+        0.012     Total Estimated Forward/Backward Size (MB)
+        0.527     Total Estimated Model Size (MB)
     """
 
     MODE_TOP = "top"
@@ -223,9 +220,20 @@ class ModelSummary(object):
     def param_nums(self) -> List[int]:
         return [layer.num_parameters for layer in self._layer_summary.values()]
 
+    @property
+    def total_params(self) -> int:
+        _total_params = sum(p.numel() for p in self._model.parameters())
+        return _total_params
+
     def total_out_params(self, batch_size_dim: int) -> int:
         """ finds total output parameters to calculate forward/backward pass size. """
         _total_out_params = 0
+
+        _out_sizes = [
+            l_size
+            for l_type, l_size in zip(self.layer_types, self.out_sizes)
+            if not isinstance(l_type, torch.nn.Sequential)
+        ]
 
         # recursive traversal to calculate output size.
         # recursive is used to handle nested output sizes i.e [[[1,2,3],[[12,2,3], [1,3,4]]], [2,3,4]].
@@ -243,16 +251,9 @@ class ModelSummary(object):
             else:
                 _ = [_get_out_size_params(out_size) for out_size in out_sizes if isinstance(out_size, list)]
 
-        import copy
-
-        _out_sizes = copy.deepcopy(self.out_sizes)
         _get_out_size_params(_out_sizes)
 
         return _total_out_params
-
-    @property
-    def total_params(self) -> int:
-        return sum(self.param_nums)
 
     def model_size(self, batch_size_dim: Optional[int] = 0) -> float:
         """
@@ -260,11 +261,14 @@ class ModelSummary(object):
         total params size gives model size in accounting total model params.
         forward/backward model size accounts model size acounting output shape of individual layers.
         input size gives the total input size in MBs including multiple inputs, batch size, etc.
+
+        NOTE: Currently only Supported in Full Mode.
+
         ::
 
         Example:
             >> model = LitModel()
-            >> summary = ModelSummary(model, mode='top')  # doctest: +NORMALIZE_WHITESPACE
+            >> summary = ModelSummary(model, mode='full')  # doctest: +NORMALIZE_WHITESPACE
             >> summary.model_size()
 
         Returns:
@@ -359,12 +363,13 @@ class ModelSummary(object):
 
         trainable_parameters = sum(p.numel() for p in self._model.parameters() if p.requires_grad)
         total_parameters = self.total_params
-        total_model_dsize = self.model_size()
-        total_params_dsize = self.total_params_dsize
-        total_output_dsize = self.total_output_dsize
-        return _format_summary_table(
-            total_parameters, trainable_parameters, total_model_dsize, total_output_dsize, total_params_dsize, *arrays
-        )
+        model_size = None
+        if self._mode == self.MODE_FULL:
+            total_model_dsize = self.model_size()
+            total_params_dsize = self.total_params_dsize
+            total_output_dsize = self.total_output_dsize
+            model_size = (total_params_dsize, total_output_dsize, total_model_dsize)
+        return _format_summary_table(total_parameters, trainable_parameters, model_size, *arrays)
 
     def __repr__(self):
         return str(self)
@@ -384,9 +389,7 @@ def parse_batch_shape(batch: Any) -> Union[str, List]:
 def _format_summary_table(
     total_parameters: int,
     trainable_parameters: int,
-    total_model_dsize: float,
-    total_output_dsize: float,
-    total_params_dsize: float,
+    model_size: tuple,
     *cols,
 ) -> str:
     """
@@ -424,12 +427,13 @@ def _format_summary_table(
     summary += "Non-trainable params"
     summary += "\n" + s.format(get_human_readable_count(total_parameters), 10)
     summary += "Total params"
-    summary += "\n" + s.format(get_formatted_model_size(total_params_dsize), 10)
-    summary += "Total Estimated Params Size (MB)"
-    summary += "\n" + s.format(get_formatted_model_size(total_output_dsize), 10)
-    summary += "Total Estimated Forward/Backward Size (MB)"
-    summary += "\n" + s.format(get_formatted_model_size(total_model_dsize), 10)
-    summary += "Total Estimated Model Size (MB)"
+    if model_size:
+        summary += "\n" + s.format(get_formatted_model_size(model_size[0]), 10)
+        summary += "Total Estimated Params Size (MB)"
+        summary += "\n" + s.format(get_formatted_model_size(model_size[1]), 10)
+        summary += "Total Estimated Forward/Backward Size (MB)"
+        summary += "\n" + s.format(get_formatted_model_size(model_size[2]), 10)
+        summary += "Total Estimated Model Size (MB)"
 
     return summary
 

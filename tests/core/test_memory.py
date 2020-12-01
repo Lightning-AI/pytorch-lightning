@@ -26,6 +26,15 @@ def almost_equals(a, b, rel_tol=0.0, abs_tol=0.0):
     return _almost_close(a, b)
 
 
+class LitModel(LightningModule):
+    def __init__(self):
+        super().__init__()
+        self.net = nn.Sequential(nn.Linear(256, 512), nn.BatchNorm1d(512))
+
+    def forward(self, x):
+        return self.net(x)
+
+
 class KnownNet(LightningModule):
     """ Pre calculated known model """
 
@@ -276,6 +285,28 @@ def test_known_model_sizes(example_input, expected_model_size, mode):
     """ Test the knownet model on example input arrays and corresponding known model size """
 
     model = KnownNet()
+    model.example_input_array = example_input
+    summary = model.summarize(mode=mode)
+    assert almost_equals(summary.model_size(), expected_model_size, rel_tol=1e-3, abs_tol=1e-3)
+
+
+@pytest.mark.parametrize(
+    ["mode"],
+    [
+        pytest.param(ModelSummary.MODE_FULL),
+    ],
+)
+@pytest.mark.parametrize(
+    ["example_input", "expected_model_size"],
+    [
+        pytest.param(torch.zeros(10, 256), 0.527),
+        pytest.param(None, 0.505),
+    ],
+)
+def test_nested_seq_model_sizes(example_input, expected_model_size, mode):
+    """ Test the knownet model on example input arrays and corresponding known model size """
+
+    model = LitModel()
     model.example_input_array = example_input
     summary = model.summarize(mode=mode)
     assert almost_equals(summary.model_size(), expected_model_size, rel_tol=1e-3, abs_tol=1e-3)
