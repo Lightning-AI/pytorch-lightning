@@ -16,18 +16,14 @@ from pytorch_lightning.plugins.plugin_connector import LightningCustomPlugins, P
 
 
 def test_available_plugins_trainer():
-    """
-        Test that available plugins return the correct list in the trainer.
-    """
+    """ Test that available plugins return the correct list in the trainer. """
     plugins = Trainer.available_plugins()
     expected_plugins = [e.name for e in LightningCustomPlugins]
     assert plugins == expected_plugins
 
 
 def test_available_plugins_connector():
-    """
-        Test that available plugins return the correct list in the connector.
-    """
+    """ Test that available plugins return the correct list in the connector. """
     plugins = PluginConnector.available_plugins()
     expected_plugins = [e.name for e in LightningCustomPlugins]
     assert plugins == expected_plugins
