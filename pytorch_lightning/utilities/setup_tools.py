@@ -22,6 +22,7 @@ import warnings
 
 from pytorch_lightning import __homepage__, __version__, PROJECT_ROOT
 
+_PATH_BADGES = os.path.join(PROJECT_ROOT, 'docs', 'source', '_images', 'badges')
 # badge to download
 _DEFAULT_BADGES = [
     'PyPI - Python Version',
@@ -59,18 +60,18 @@ def _load_requirements(path_dir, file_name='requirements.txt', comment_char='#')
     return reqs
 
 
-def _parse_for_badge(text, badge_names: list = _DEFAULT_BADGES):
+def _parse_for_badge(text: str, path_badges: str = _PATH_BADGES, badge_names: list = _DEFAULT_BADGES):
     """
     Returns the new parsed text with url change with local downloaded files
 
     >>> _parse_for_badge('Some text here... '  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     ... '[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pytorch-lightning)]'
-    ... '(https://pypi.org/project/pytorch-lightning/)')
+    ... '(https://pypi.org/project/pytorch-lightning/) and another text later')
     'Some text here...
-     [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pytorch-lightning)]
-       (https://pypi.org/project/pytorch-lightning/)'
+     [![PyPI - Python Version](here relative path)](https://pypi.org/project/pytorch-lightning/)
+     and another text later'
     """
-    for line in text.split('\n'):
+    for line in text.split(os.linesep):
         badge_name = re.search(r'^\[!\[(.*?)]', line)
 
         # check for the badge name
@@ -88,7 +89,7 @@ def _parse_for_badge(text, badge_names: list = _DEFAULT_BADGES):
                 badge_url = badge_url.group(1)
 
             # download badge
-            saved_badge_name = _download_badges(badge_url, badge_name)
+            saved_badge_name = _download_badge(badge_url, badge_name, path_badges)
 
             # replace url with local file path
             replace_string = f'[![{badge_name}]({saved_badge_name})]'
@@ -97,14 +98,18 @@ def _parse_for_badge(text, badge_names: list = _DEFAULT_BADGES):
     return text
 
 
-def _download_badges(url_badge, badge_name):
-    """
-    >>> _download_badges('https://img.shields.io/pypi/pyversions/pytorch-lightning', 'PyPI - Python Version')
-    'docs/source/_images/badges/PyPI_Python_Version_badge.png'
-    """
+def _download_badge(url_badge, badge_name, target_dir):
+    """Download badge from url
 
-    base_path = 'docs/source/_images/badges'
-    os.makedirs(base_path, exist_ok=True)
+    >>> path_img = _download_badge('https://img.shields.io/pypi/pyversions/pytorch-lightning',
+    ...                             'PyPI - Python Version', '.')
+    >>> os.path.isfile(path_img)
+    True
+    >>> path_img
+    './PyPI_Python_Version_badge.png'
+    >>> os.remove(path_img)
+    """
+    os.makedirs(target_dir, exist_ok=True)
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:81.0) Gecko/20100101 Firefox/81.0',
@@ -121,7 +126,7 @@ def _download_badges(url_badge, badge_name):
         try:
             req = Request(url=url, headers=headers)
             resp = urlopen(req)
-        except URLError as err:
+        except URLError:
             warnings.warn("Error while downloading the badge", UserWarning)
         else:
             save += extension
@@ -129,7 +134,7 @@ def _download_badges(url_badge, badge_name):
                 download_file.write(resp.read())
 
     save_path = badge_name.replace(' - ', ' ')
-    save_path = f"{base_path}/{save_path.replace(' ', '_')}_badge"
+    save_path = os.path.join(target_dir, f"{save_path.replace(' ', '_')}_badge")
 
     try:
         # always try to download the png versions (some url have an already png version available)
