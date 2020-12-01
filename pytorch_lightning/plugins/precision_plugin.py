@@ -11,15 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import abc
-from typing import Union, Optional
+from typing import Union
 
 from torch.optim import Optimizer
 
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.plugins.plugin import Plugin
 
 
-class PrecisionPlugin(abc.ABC):
+class PrecisionPlugin(Plugin):
     """
     Abstract class to extend for precision support (32/16 etc).
 
@@ -38,24 +37,3 @@ class PrecisionPlugin(abc.ABC):
 
     def clip_gradients(self, grad_clip_val: Union[int, float], optimizer: Optimizer, norm_type: float):
         raise NotImplementedError
-
-    def required_plugins(self, amp_backend: AMPType) -> list:
-        """
-            Override to define additional required plugins. This is useful for when custom plugins
-            need to enforce override of other plugins.
-
-        Returns: Optional list of plugins containing additional plugins.
-
-        Example::
-            class MyPlugin(DDPPlugin):
-                def required_plugins(self):
-                    return [MyCustomAMPPlugin()]
-
-            # Will automatically add the necessary AMP plugin
-            trainer = Trainer(plugins=[MyPlugin()])
-
-            # Crash as MyPlugin enforces custom AMP plugin
-            trainer = Trainer(plugins=[MyPlugin(), NativeAMPPlugin()])
-
-        """
-        return []

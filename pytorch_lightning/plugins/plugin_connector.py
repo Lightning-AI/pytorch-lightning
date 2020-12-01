@@ -15,13 +15,13 @@ from enum import Enum
 from typing import Union, Optional, List
 
 from pytorch_lightning.cluster_environments import ClusterEnvironment
-from pytorch_lightning.plugins.precision_plugin import PrecisionPlugin
-from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.apex import ApexPlugin
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
+from pytorch_lightning.plugins.plugin import Plugin
+from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class PluginConnector:
@@ -39,7 +39,7 @@ class PluginConnector:
         if self.plugins is None:
             self.plugins = []
         self.plugins = self._convert_str_custom_plugins(self.plugins)
-        self.plugins = self._add_required_plugin_combinations(self.plugins)
+        self.plugins = self._append_required_plugins(self.plugins)
         self.__attach_ddp()
         self.__attach_cluster()
         self.__attach_amp()
@@ -126,8 +126,7 @@ class PluginConnector:
             return plugin_cls()
         return plugin
 
-    def _add_required_plugin_combinations(self,
-                                          plugins: List[Union[DDPPlugin, PrecisionPlugin, ClusterEnvironment]]):
+    def _append_required_plugins(self, plugins: List[Plugin]):
         """
         Allows custom plugins to define additional plugins. This is useful for when custom plugins
         need to enforce override of native amp/apex when they are enabled.
@@ -149,16 +148,15 @@ class PluginConnector:
             trainer = Trainer(plugins=[MyPlugin(), NativeAMPPlugin()])
 
         """
-        additional_plugins = []
         for plugin in plugins:
             required_plugins = plugin.required_plugins(amp_backend=self.trainer.amp_backend)
             if required_plugins:
                 rank_zero_warn(
-                    f'plugin {type(plugin)} has added additional required plugins as default: {[type(x) for x in required_plugins]}'
-                    ' Extend this plugin and override required_plugins if this conflicts with your additional plugins.'
-                )
-                additional_plugins += required_plugins
-        return plugins + additional_plugins
+                    f'plugin {type(plugin)} has added additional required plugins as default: '
+                    f'{[type(x) for x in required_plugins]}'
+                    f'Extend this plugin and override required_plugins if this conflicts with your additional plugins.')
+                plugins += required_plugins
+        return plugins
 
     @classmethod
     def available_plugins(cls):
