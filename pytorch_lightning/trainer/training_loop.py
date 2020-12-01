@@ -14,6 +14,7 @@
 
 from contextlib import contextmanager
 from copy import copy, deepcopy
+from typing import List
 
 import numpy as np
 import torch
@@ -732,7 +733,7 @@ class TrainLoop:
         else:
             yield
 
-    def _process_closure_result(self, batch_outputs: list, opt_idx: int) -> list:
+    def _process_closure_result(self, batch_outputs: list, opt_idx: int) -> List:
         opt_closure_result = self._curr_step_result
 
         if opt_closure_result is not None:

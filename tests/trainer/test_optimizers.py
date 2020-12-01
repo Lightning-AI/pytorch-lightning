@@ -77,7 +77,7 @@ def test_multi_optimizer_with_scheduling(tmpdir):
 
     assert (
         len(trainer.lr_schedulers) == 2
-    ), 'all lr scheduler not initialized properly, it has %i elements instread of 1' % len(trainer.lr_schedulers)
+    ), f'all lr scheduler not initialized properly, it has {len(trainer.lr_schedulers)} elements instread of 1'
 
     assert all(
         a == adjusted_lr1[0] for a in adjusted_lr1
@@ -91,7 +91,7 @@ def test_multi_optimizer_with_scheduling(tmpdir):
 
     assert (
         init_lr * 0.1 == adjusted_lr1 and init_lr * 0.1 == adjusted_lr2
-    ), 'Lr not adjusted correctly, expected %f but got %f' % (init_lr * 0.1, adjusted_lr1)
+    ), f'Lr not adjusted correctly, expected {init_lr * 0.1} but got {adjusted_lr1}'
 
 
 def test_multi_optimizer_with_scheduling_stepping(tmpdir):
