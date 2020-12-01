@@ -14,11 +14,10 @@
 # limitations under the License.
 import os
 import re
-
-from urllib.error import URLError
-from urllib.error import HTTPError
-from urllib.request import Request, urlopen
 import warnings
+from urllib.error import HTTPError
+from urllib.error import URLError
+from urllib.request import Request, urlopen
 
 from pytorch_lightning import __homepage__, __version__, PROJECT_ROOT
 
@@ -73,7 +72,7 @@ def _parse_for_badge(text: str, path_badges: str = _PATH_BADGES, badge_names: li
     >>> shutil.rmtree(_PATH_BADGES)
     """
     for line in text.split(os.linesep):
-        search_string = r'\[\!\[(.*?)]\((.*?)\)]'
+        search_string = r'\[\!\[(.*)]\((.*)\)]'
         match = re.search(search_string, line)
         if match is None:
             continue
@@ -97,7 +96,7 @@ def _download_badge(url_badge, badge_name, target_dir):
     """Download badge from url
 
     >>> path_img = _download_badge('https://img.shields.io/pypi/pyversions/pytorch-lightning',
-    ...                            'PyPI - Python Version', 'utilities')
+    ...                            'PyPI - Python Version', '.')
     >>> os.path.isfile(path_img)
     True
     >>> path_img
