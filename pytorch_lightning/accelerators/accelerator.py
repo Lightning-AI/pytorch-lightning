@@ -170,9 +170,8 @@ class Accelerator(object):
     def on_train_epoch_end(self, outputs):
         pass
 
-    @abstractmethod
     def on_train_end(self):
-        raise NotImplementedError()
+        pass
 
     def early_stopping_should_stop(self, pl_module):
         return self.trainer.should_stop
