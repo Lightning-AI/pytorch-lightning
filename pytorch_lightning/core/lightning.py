@@ -959,9 +959,7 @@ class LightningModule(
                     self.log('final_metric', final_value)
         """
 
-    def configure_optimizers(
-        self,
-    ):
+    def configure_optimizers(self):
         r"""
         Choose what optimizers and learning-rate schedulers to use in your optimization.
         Normally you'd need one. But in the case of GANs or similar you might have multiple.
