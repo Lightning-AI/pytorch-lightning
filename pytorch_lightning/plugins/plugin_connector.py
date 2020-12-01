@@ -154,7 +154,8 @@ class PluginConnector:
                 rank_zero_warn(
                     f'plugin {type(plugin)} has added additional required plugins as default:'
                     f' {[type(x) for x in required_plugins]}'
-                    ' Extend this plugin and override `required_plugins` if this conflicts with your additional plugins.'
+                    'Extend this plugin and override `required_plugins`'
+                    'if this conflicts with your additional plugins.'
                 )
                 plugins += required_plugins
         return plugins
