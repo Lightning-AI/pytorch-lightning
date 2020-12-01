@@ -264,8 +264,34 @@ def test_auc(x, y, expected):
     assert auc(torch.tensor(x), torch.tensor(y)) == expected
 
 
-def test_object_detection_mean_average_precision(pred, target, iou_threshold, num_classes):
-    assert True
+@pytest.mark.parametrize(
+    ['pred', 'target', 'iou_threshold', 'num_classes', 'expected'],
+    [
+        pytest.param(
+            torch.tensor([
+                [0, 0, 0.6, 62, 83, 225, 195],
+                [0, 0, 0.1, 79, 93, 118, 131],
+                [0, 0, 0.9, 117, 192, 127, 244],
+                [0, 0, 0.2, 15, 201, 26, 254],
+                [0, 0, 0.65, 35, 45, 210, 170],
+                [0, 0, 0.7, 210, 80, 295, 90]
+            ]),
+            torch.tensor([
+                [0, 0, 100., 50., 205., 200.],
+                [0, 0, 85., 83., 225., 195.],
+                [0, 0, 117., 192., 127., 244.],
+                [0, 0, 10., 200., 15., 254.],
+                [0, 0, 30., 40., 234., 150.],
+                [0, 0, 210., 80., 295., 90.],
+            ]),
+            0.5,
+            1,
+            2/3
+        ),
+    ]
+)
+def test_object_detection_mean_average_precision(pred, target, iou_threshold, num_classes, expected):
+    assert object_detection_mean_average_precision(pred, target, iou_threshold, num_classes) == expected
 
 
 @pytest.mark.parametrize(

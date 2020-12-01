@@ -698,6 +698,7 @@ def mean_average_precision(
 def object_detection_iou(pred_bbox, target_bbox):
     """
     Computes the Intersection of Union.
+
     Args:
         pred_bbox: an Nx4 Tensor where each row is a bounding box [x_min, y_min, x_max, y_max]
         target_bbox: an Nx4 Tensor where each row is a bounding box [x_min, y_min, x_max, y_max]
