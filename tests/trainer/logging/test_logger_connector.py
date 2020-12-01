@@ -15,15 +15,18 @@
 Tests to ensure that the training loop works with a dict (1.0)
 """
 import os
-import torch
-import pytest
 from copy import deepcopy
-from pytorch_lightning.trainer import Trainer
-from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore
-from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
+from unittest import mock
+
+import pytest
+import torch
+
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.trainer import Trainer
+from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
+from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
+from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel, RandomDataset
 
@@ -47,13 +50,12 @@ class Helper:
         return decorator
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__logger_connector__epoch_result_store__train(tmpdir):
     """
     Tests that LoggerConnector will properly capture logged information
     and reduce them
     """
-
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(BoringModel):
 
@@ -67,13 +69,14 @@ def test__logger_connector__epoch_result_store__train(tmpdir):
             self.train_losses.append(loss)
 
             self.log("train_loss", loss, on_step=True, on_epoch=True)
+
             return {"loss": loss}
 
-        def on_train_epoch_end(self, outputs):
-            # save objects as it will be reset at the end of epoch.
+        def training_step_end(self, *_):
             self.train_results = deepcopy(self.trainer.logger_connector.cached_results)
 
     model = TestModel()
+    model.training_epoch_end = None
     model.val_dataloader = None
 
     trainer = Trainer(
@@ -143,11 +146,6 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
 
         @Helper.decorator_with_arguments(fx_name="training_step")
         def training_step(self, batch, batch_idx, hiddens):
-            try:
-                assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
-            except Exception as e:
-                print(e)
-
             self.test_hidden = torch.rand(1)
 
             x_tensor, y_list = batch
@@ -177,8 +175,7 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
                 sampler=None,
             )
 
-        def on_train_epoch_end(self, outputs):
-            # save objects as it will be reset at the end of epoch.
+        def training_step_end(self, *_):
             self.train_results = deepcopy(self.trainer.logger_connector.cached_results)
 
     model = TestModel()
@@ -214,13 +211,12 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
     assert generated == torch.stack(model.train_losses).mean().item()
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize('num_dataloaders', [1, 2])
 def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, num_dataloaders):
     """
     Tests that LoggerConnector will properly capture logged information in multi_dataloaders scenario
     """
-
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     class TestModel(BoringModel):
 
@@ -239,6 +235,14 @@ def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, n
 
             self.log("test_loss", loss, on_step=True, on_epoch=True)
             return {"test_loss": loss}
+
+        def on_test_batch_end(self, *args, **kwargs):
+            # save objects as it will be reset at the end of epoch.
+            self.batch_results = deepcopy(self.trainer.logger_connector.cached_results)
+
+        def on_test_epoch_end(self):
+            # save objects as it will be reset at the end of epoch.
+            self.reduce_results = deepcopy(self.trainer.logger_connector.cached_results)
 
         def test_dataloader(self):
             return [torch.utils.data.DataLoader(RandomDataset(32, 64)) for _ in range(num_dataloaders)]
@@ -260,7 +264,7 @@ def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, n
     )
     trainer.test(model)
 
-    test_results = trainer.logger_connector._cached_results["test"]
+    test_results = model.batch_results
 
     generated = test_results(fx_name="test_step")
     assert len(generated) == num_dataloaders
@@ -269,7 +273,7 @@ def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, n
         generated = len(test_results(fx_name="test_step", dl_idx=str(dl_idx)))
         assert generated == limit_test_batches
 
-    test_results.has_batch_loop_finished = True
+    test_results = model.reduce_results
 
     for dl_idx in range(num_dataloaders):
         expected = torch.stack(model.test_losses[str(dl_idx)]).mean()

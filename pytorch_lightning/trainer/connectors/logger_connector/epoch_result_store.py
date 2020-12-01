@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from collections import defaultdict, ChainMap
+from collections import ChainMap, defaultdict
+from copy import deepcopy
 from enum import Enum
-from typing import Union, Tuple, Any, Dict, Optional, List
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 # used to map boolean to right LoggerStage values
@@ -370,17 +372,22 @@ class EpochResultStore:
         This function is called after every hook
         and store the result object
         """
-        model_ref = self.trainer.get_model()
+        with self.trainer.profiler.profile("cache_result"):
+            model_ref = self.trainer.get_model()
 
-        # extract hook results
-        hook_result = model_ref._results
+            # extract hook results
+            hook_result = model_ref._results
 
-        # extract model information
-        fx_name, dataloader_idx = self.current_model_info()
+            if len(hook_result) == 1:
+                model_ref._current_hook_fx_name = None
+                model_ref._current_fx_name = ''
+                return
 
-        # add only if anything as been logged
-        # default len is 1 due to _internals
-        if len(hook_result) > 1:
+            # extract model information
+            fx_name, dataloader_idx = self.current_model_info()
+
+            # add only if anything as been logged
+            # default len is 1 due to _internals
 
             if fx_name not in self._internals:
                 self._internals[fx_name] = HookResultStore(fx_name)
@@ -392,6 +399,10 @@ class EpochResultStore:
             # attach capture batch_size
             Result.attach_batch_size(self._batch_size, hook_result)
 
+            hook_result.detach()
+            if self.trainer.move_metrics_to_cpu:
+                hook_result.cpu()
+
             self._internals[fx_name].append(
                 hook_result,
                 dataloader_idx=dataloader_idx,
@@ -400,8 +411,7 @@ class EpochResultStore:
             # update logged_metrics, progress_bar_metrics, callback_metrics
             self.update_logger_connector(fx_name)
 
-        # reset _results, fx_name
-        self.reset_model()
+            self.reset_model()
 
     def update_logger_connector(self, fx_name: str = None) -> None:
         """
@@ -415,13 +425,14 @@ class EpochResultStore:
         logger_connector = self.trainer.logger_connector
 
         callback_metrics = {}
+        is_train = self._stage in LoggerStages.TRAIN.value
 
         if not self._has_batch_loop_finished:
             # get pbar
             batch_pbar_metrics = self.get_latest_batch_pbar_metrics()
             logger_connector.add_progress_bar_metrics(batch_pbar_metrics)
 
-            if self._stage in LoggerStages.TRAIN.value:
+            if is_train:
                 # Only log and add to callback epoch step during evaluation, test.
                 batch_log_metrics = self.get_latest_batch_log_metrics()
                 logger_connector.logged_metrics.update(batch_log_metrics)
@@ -446,6 +457,9 @@ class EpochResultStore:
             callback_metrics.update(epoch_pbar_metrics)
             callback_metrics.update(epoch_log_metrics)
             callback_metrics.update(forked_metrics)
+
+        if not is_train:
+            logger_connector.evaluation_callback_metrics.update(callback_metrics)
 
         # update callback_metrics
         logger_connector.callback_metrics.update(callback_metrics)

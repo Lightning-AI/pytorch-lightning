@@ -69,6 +69,10 @@ def scale_batch_size(trainer,
         **fit_kwargs: remaining arguments to be passed to .fit(), e.g., dataloader
             or datamodule.
     """
+    if trainer.fast_dev_run:
+        rank_zero_warn('Skipping batch size scaler since `fast_dev_run=True`', UserWarning)
+        return
+
     if not lightning_hasattr(model, batch_arg_name):
         raise MisconfigurationException(
             f'Field {batch_arg_name} not found in both `model` and `model.hparams`')
@@ -98,7 +102,7 @@ def scale_batch_size(trainer,
         trainer.progress_bar_callback.disable()
 
     # Initially we just double in size until an OOM is encountered
-    new_size = _adjust_batch_size(trainer, value=init_val)  # initially set to init_val
+    new_size = _adjust_batch_size(trainer, batch_arg_name, value=init_val)  # initially set to init_val
     if mode == 'power':
         new_size = _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials, **fit_kwargs)
     elif mode == 'binsearch':
@@ -227,7 +231,7 @@ def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials,
                 garbage_collection_cuda()
                 high = new_size
                 midval = (high + low) // 2
-                new_size, _ = _adjust_batch_size(trainer, value=midval, desc='failed')
+                new_size, _ = _adjust_batch_size(trainer, batch_arg_name, value=midval, desc='failed')
                 if high - low <= 1:
                     break
             else:

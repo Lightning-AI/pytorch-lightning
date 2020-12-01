@@ -12,18 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from pytorch_lightning import Trainer, seed_everything, callbacks
-from tests.base import EvalModelTemplate, BoringModel
 from unittest import mock
+
 import pytest
 import torch
 
+from pytorch_lightning import Trainer, callbacks, seed_everything
+from tests.base import BoringModel
 
+
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_mc_called_on_fastdevrun(tmpdir):
     seed_everything(1234)
-    os.environ['PL_DEV_DEBUG'] = '1'
 
-    train_val_step_model = EvalModelTemplate()
+    train_val_step_model = BoringModel()
 
     # fast dev run = called once
     # train loop only, dict, eval result
@@ -36,7 +38,18 @@ def test_mc_called_on_fastdevrun(tmpdir):
     # -----------------------
     # also called once with no val step
     # -----------------------
-    train_step_only_model = EvalModelTemplate()
+    class TrainingStepCalled(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.training_step_called = False
+            self.validation_step_called = False
+            self.test_step_called = False
+
+        def training_step(self, batch, batch_idx):
+            self.training_step_called = True
+            return super().training_step(batch, batch_idx)
+
+    train_step_only_model = TrainingStepCalled()
     train_step_only_model.validation_step = None
 
     # fast dev run = called once
@@ -53,14 +66,14 @@ def test_mc_called_on_fastdevrun(tmpdir):
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 1
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_mc_called(tmpdir):
     seed_everything(1234)
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     # -----------------
     # TRAIN LOOP ONLY
     # -----------------
-    train_step_only_model = EvalModelTemplate()
+    train_step_only_model = BoringModel()
     train_step_only_model.validation_step = None
 
     # no callback
@@ -71,7 +84,7 @@ def test_mc_called(tmpdir):
     # -----------------
     # TRAIN + VAL LOOP ONLY
     # -----------------
-    val_train_model = EvalModelTemplate()
+    val_train_model = BoringModel()
     # no callback
     trainer = Trainer(max_epochs=3, checkpoint_callback=False)
     trainer.fit(val_train_model)

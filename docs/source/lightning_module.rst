@@ -273,8 +273,8 @@ In this case, implement the `training_step_end` method
          return {'loss': loss, 'pred': pred}
 
      def training_step_end(self, batch_parts):
-         gpu_0_prediction = batch_parts.pred[0]['pred']
-         gpu_1_prediction = batch_parts.pred[1]['pred']
+         gpu_0_prediction = batch_parts[0]['pred']
+         gpu_1_prediction = batch_parts[1]['pred']
 
          # do something with both outputs
          return (batch_parts[0]['loss'] + batch_parts[1]['loss']) / 2
@@ -1008,6 +1008,7 @@ manual_backward
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.manual_backward
     :noindex:
+
 
 on_after_backward
 ~~~~~~~~~~~~~~~~~

@@ -20,7 +20,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
-from tests.base.datasets import TrialMNIST, AverageDataset, MNIST
+from tests.base.datasets import MNIST, AverageDataset, TrialMNIST
 
 
 class Generator(nn.Module):
@@ -217,5 +217,4 @@ class ParityModuleMNIST(LightningModule):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
     def train_dataloader(self):
-        return DataLoader(MNIST(train=True, download=True,),
-                          batch_size=128)
+        return DataLoader(MNIST(train=True, download=True,), batch_size=128, num_workers=1)
