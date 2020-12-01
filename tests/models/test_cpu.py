@@ -200,11 +200,6 @@ def test_running_test_after_fitting(tmpdir):
             val_loss = torch.stack([x["x"] for x in outputs]).mean()
             self.log('val_loss', val_loss)
 
-        def test_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            return {"y": loss}
-
         def test_epoch_end(self, outputs) -> None:
             test_loss = torch.stack([x["y"] for x in outputs]).mean()
             self.log('test_loss', test_loss)
