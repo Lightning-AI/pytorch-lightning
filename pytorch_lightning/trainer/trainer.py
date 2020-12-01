@@ -133,6 +133,7 @@ class Trainer(
         distributed_backend: Optional[str] = None,
         automatic_optimization: Optional[bool] = None,
         move_metrics_to_cpu: bool = False,
+        enable_pl_optimizer: bool = True,
     ):
         r"""
         Customize every aspect of training via flags
@@ -275,8 +276,12 @@ class Trainer(
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
                 Defaults to `default_root_dir`.
 
-            move_metrics_to_cpu: Whether to force internal logged metrics to be moved to CPU.
-                This can save some GPU memory but can make training slower. Use with attention.
+            move_metrics_to_cpu: Whether to force internal logged metrics to be moved to cpu.
+                This can save some gpu memory, but can make training slower. Use with attention.
+
+            enable_pl_optimizer: If True, each optimizer will be wrapped by
+                `pytorch_lightning.core.optimizer.LightningOptimizer`. It allows Lightning to
+                handle AMP, TPU, accumulated_gradients, etc..
         """
         super().__init__()
 
@@ -322,7 +327,7 @@ class Trainer(
         self.on_init_start()
 
         # init optimizer + lr scheduler related flags
-        self.optimizer_connector.on_trainer_init()
+        self.optimizer_connector.on_trainer_init(enable_pl_optimizer)
 
         # init data flags
         self.data_connector.on_trainer_init(
@@ -532,12 +537,11 @@ class Trainer(
                     if met_min_epochs and met_min_steps:
                         self.train_loop.on_train_end()
                         return
-                    else:
-                        log.info(
-                            'Trainer was signaled to stop but required minimum epochs'
-                            f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
-                            ' not been met. Training will continue...'
-                        )
+                    log.info(
+                        'Trainer was signaled to stop but required minimum epochs'
+                        f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
+                        ' not been met. Training will continue...'
+                    )
 
             # hook
             self.train_loop.on_train_end()
