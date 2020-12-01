@@ -600,6 +600,8 @@ If you also need to use your own DDP implementation, override:  :meth:`pytorch_l
 
 ----------
 
+.. _model-parallelism:
+
 Model Parallelism [BETA]
 ------------------------
 
@@ -621,10 +623,10 @@ however the implementation is built from the ground up to be pytorch compatible 
 Optimizer Sharded Training still utilizes Data Parallel Training under the hood, except the optimizer state and gradients which are sharded across GPUs.
 This means the memory overhead per GPU is lower, as each GPU only has to maintain a partition of your optimizer state and gradients.
 
-The benefits are variable by model, but we've recorded up to a 63% memory reduction per GPU allowing us to double our model sizes. Because of extremely efficient communication,
+The benefits vary by model and parameter sizes, but we've recorded up to a 63% memory reduction per GPU allowing us to double our model sizes. Because of extremely efficient communication,
 these benefits in multi-GPU setups are almost free and throughput scales well with multi-node setups.
 
-It is highly recommended to use Optimizer Sharded Training in multi-GPU environments where memory is limited, or where training larger models are beneficial.
+It is highly recommended to use Optimizer Sharded Training in multi-GPU environments where memory is limited, or where training larger models are beneficial (rough minimum of 500+ million parameter models).
 Optimizer Sharded Training is typically not suited for smaller models, or where large batch sizes are important.
 This is primarily because with larger batch sizes, storing activations for the backwards pass becomes the bottleneck in training. Sharding optimizer state as a result becomes less impactful.
 
