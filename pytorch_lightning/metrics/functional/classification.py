@@ -33,7 +33,6 @@ from pytorch_lightning.metrics.utils import (
 )
 from pytorch_lightning.utilities import rank_zero_warn
 
-
 def to_onehot(
         tensor: torch.Tensor,
         num_classes: Optional[int] = None,
@@ -637,7 +636,8 @@ def mean_average_precision(
     pred: torch.Tensor, target: torch.Tensor, iou_threshold: float, num_classes: int
 ) -> torch.Tensor:
     """
-    Compute mean average precision for object detection task
+    Compute mean average precision for object detection task. Calculates average precision
+    using AUC.
 
     Args:
         pred: Tensor containing predictions, where each row is of the following format:
@@ -671,7 +671,7 @@ def mean_average_precision(
             best_iou = 0
             best_target_idx = 0
             for j, t in enumerate(ground_truths):
-                curr_iou = IOU(p[3:], t[2:])
+                curr_iou = object_detection_iou(p[None, 3:], t[None, 2:])
                 if curr_iou > best_iou:
                     best_iou = curr_iou
                     best_target_idx = j
@@ -694,24 +694,22 @@ def mean_average_precision(
     return torch.mean(average_precisions)
 
 
-def IoU(pred_bbox, target_bbox):
+def object_detection_iou(pred_bbox, target_bbox):
     """
     Computes the Intersection of Union.
-
     Args:
         pred_bbox: an Nx4 Tensor where each row is a bounding box [x_min, y_min, x_max, y_max]
         target_bbox: an Nx4 Tensor where each row is a bounding box [x_min, y_min, x_max, y_max]
-
     Returns:
         the IoU metric
     """
-    x_min = torch.max(pred_bbox[0], target_bbox[0])
-    y_min = torch.max(pred_bbox[1], target_bbox[1])
-    x_max = torch.min(pred_bbox[2], target_bbox[2])
-    y_max = torch.min(pred_bbox[3], target_bbox[3])
-    intersection = (x_max - x_min) * (y_max - y_min)
-    pred_area = (pred_bbox[2] - pred_bbox[0]) * (pred_bbox[3] - pred_bbox[1])
-    target_area = (target_bbox[2] - target_bbox[0]) * (target_bbox[3] - target_bbox[1])
+    x_min = torch.max(pred_bbox[:, 0], target_bbox[:, 0])
+    y_min = torch.max(pred_bbox[:, 1], target_bbox[:, 1])
+    x_max = torch.min(pred_bbox[:, 2], target_bbox[:, 2])
+    y_max = torch.min(pred_bbox[:, 3], target_bbox[:, 3])
+    intersection = (x_max - x_min).clamp(min=0) * (y_max - y_min).clamp(min=0)
+    pred_area = (pred_bbox[:, 2] - pred_bbox[:, 0]) * (pred_bbox[:, 3] - pred_bbox[:, 1])
+    target_area = (target_bbox[:, 2] - target_bbox[:, 0]) * (target_bbox[:, 3] - target_bbox[:, 1])
     union = pred_area + target_area - intersection
     return intersection / union
 
