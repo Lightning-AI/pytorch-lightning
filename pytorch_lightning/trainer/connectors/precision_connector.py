@@ -24,7 +24,7 @@ class PrecisionConnector:
         self.trainer = trainer
         self.backend = None
 
-    def on_trainer_init(self, precision, amp_level, amp_backend):
+    def on_trainer_init(self, precision: int, amp_level: str, amp_backend: str):
         # AMP init
         # These are the only lines needed after v0.8.0
         # we wrap the user's forward with autocast and give it back at the end of fit

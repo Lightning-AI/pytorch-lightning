@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Optional
 from unittest import mock
 
 import pytest
@@ -43,26 +42,25 @@ from tests.base.boring_model import BoringModel
 )
 def test_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processes):
     """
-        Test to ensure that if a plugin requires certain plugin to be added, these are added automatically
+    Test to ensure that if a plugin requires certain plugin to be added, these are added automatically
     """
 
     class RequiredPlugin(NativeAMPPlugin):
         """
-            My custom amp plugin that's required with my DDP plugin as default.
-            This allows us to ensure this plugin is added when using CustomPlugin rather than ensuring
-            the user passes it manually into the list.
+        My custom amp plugin that's required with my DDP plugin as default.
+        This allows us to ensure this plugin is added when using CustomPlugin rather than ensuring
+        the user passes it manually into the list.
         """
 
     class CustomPlugin(DDPPlugin):
-        def required_plugins(self, trainer, amp_backend: AMPType) -> Optional[list]:
-            return [RequiredPlugin()]
+        def required_plugins(self, amp_backend: AMPType, trainer: Trainer) -> list:
+            return [RequiredPlugin(trainer=trainer)]
 
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator_backend.ddp_plugin, CustomPlugin)
             assert isinstance(trainer.precision_connector.backend, RequiredPlugin)
-
-            raise SystemExit()
+            raise RuntimeError('finished plugin check')
 
     model = BoringModel()
     with pytest.warns(UserWarning,
@@ -76,7 +74,7 @@ def test_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processes):
             plugins=[CustomPlugin()],
             callbacks=[CB()],
         )
-    with pytest.raises(SystemExit):
+    with pytest.raises(RuntimeError, match='finished plugin check'):
         trainer.fit(model)
 
 
@@ -98,21 +96,21 @@ def test_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processes):
 )
 def test_invalid_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processes):
     """
-        Test to ensure if the user passes a different plugin that conflicts with the defeault,
-        we throw an warning and error.
-        The user has to override the required plugins to pass their own required plugin in this conflict.
+    Test to ensure if the user passes a plugin that conflicts with the required defaults of another plugin,
+    we throw a warning and error.
+    The user has to override the required defaults plugin.
     """
 
     class RequiredPlugin(NativeAMPPlugin):
         """
-            My custom amp plugin that's required with my DDP plugin as default.
-            This allows us to ensure this plugin is added when using CustomPlugin rather than ensuring
-            the user passes it manually into the list.
+        My custom amp plugin that's required with my DDP plugin as default.
+        This allows us to ensure this plugin is added when using CustomPlugin rather than ensuring
+        the user passes it manually into the list.
         """
 
     class CustomPlugin(DDPPlugin):
-        def required_plugins(self, trainer, amp_backend: AMPType) -> Optional[list]:
-            return [RequiredPlugin()]
+        def required_plugins(self, amp_backend: AMPType, trainer: Trainer) -> list:
+            return [RequiredPlugin(trainer=trainer)]
 
     with pytest.warns(UserWarning, match=f'plugin {type(CustomPlugin())} has added additional '
                                          f'required plugins as default: {[type(RequiredPlugin())]}*'), \

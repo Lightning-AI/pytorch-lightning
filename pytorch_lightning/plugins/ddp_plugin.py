@@ -20,10 +20,10 @@ from torch.optim import Optimizer
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.plugins.plugin import LightningPlugin
 
 
-class DDPPlugin(object):
+class DDPPlugin(LightningPlugin):
     """
     Plugin to link a custom ddp implementation to any arbitrary accelerator.
 
@@ -54,7 +54,7 @@ class DDPPlugin(object):
         return False
 
     def configure_ddp(
-        self, model: LightningModule, device_ids: List[int]
+            self, model: LightningModule, device_ids: List[int]
     ) -> LightningDistributedDataParallel:
         """
         Pass through all customizations from constructor to `LightningDistributedDataParallel`.
@@ -91,12 +91,12 @@ class DDPPlugin(object):
         return model
 
     def init_ddp_connection(
-        self,
-        trainer,
-        cluster_environment,
-        global_rank: int,
-        world_size: int,
-        is_slurm_managing_tasks: bool = True,
+            self,
+            trainer,
+            cluster_environment,
+            global_rank: int,
+            world_size: int,
+            is_slurm_managing_tasks: bool = True,
     ) -> None:
         os.environ["MASTER_ADDR"] = str(cluster_environment.master_address())
         os.environ["MASTER_PORT"] = str(cluster_environment.master_port())
@@ -153,23 +153,3 @@ class DDPPlugin(object):
         if isinstance(model, LightningDistributedDataParallel):
             return model.module
         return model
-
-    def required_plugins(self, trainer, amp_backend: AMPType) -> Optional[list]:
-        """
-        Override to define additional required plugins. This is useful for when custom plugins
-        need to enforce override of other plugins.
-
-        Returns: Optional list of plugins containing additional plugins.
-
-        Example::
-            class MyPlugin(DDPPlugin):
-                def required_plugins(self):
-                    return [MyCustomAMPPlugin()]
-
-            # Will automatically add the necessary AMP plugin
-            trainer = Trainer(plugins=[MyPlugin()])
-
-            # Crash as MyPlugin enforces custom AMP plugin
-            trainer = Trainer(plugins=[MyPlugin(), NativeAMPPlugin()])
-
-        """

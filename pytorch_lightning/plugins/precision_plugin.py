@@ -11,15 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import abc
 from typing import Optional, Union
 
 from torch.optim import Optimizer
 
+from pytorch_lightning.plugins.plugin import LightningPlugin
 from pytorch_lightning.utilities import AMPType
 
 
-class PrecisionPlugin(abc.ABC):
+class PrecisionPlugin(LightningPlugin):
     """
     Abstract class to extend for precision support (32/16 etc).
 
@@ -42,19 +42,4 @@ class PrecisionPlugin(abc.ABC):
     def required_plugins(self, trainer, amp_backend: AMPType) -> Optional[list]:
         """
         Override to define additional required plugins. This is useful for when custom plugins
-        need to enforce override of other plugins.
-
-        Returns: Optional list of plugins containing additional plugins.
-
-        Example::
-            class MyPlugin(DDPPlugin):
-                def required_plugins(self):
-                    return [MyCustomAMPPlugin()]
-
-            # Will automatically add the necessary AMP plugin
-            trainer = Trainer(plugins=[MyPlugin()])
-
-            # Crash as MyPlugin enforces custom AMP plugin
-            trainer = Trainer(plugins=[MyPlugin(), NativeAMPPlugin()])
-
         """

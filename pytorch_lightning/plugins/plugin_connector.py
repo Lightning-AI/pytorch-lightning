@@ -18,7 +18,7 @@ from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.plugins.apex import ApexPlugin
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
-from pytorch_lightning.plugins.precision_plugin import PrecisionPlugin
+from pytorch_lightning.plugins.plugin import LightningPlugin
 from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -38,8 +38,8 @@ class PluginConnector:
         self.plugins = plugins
         if self.plugins is None:
             self.plugins = []
-        self.plugins = self._str_to_lightning_custom_plugins(self.plugins)
-        self.plugins = self._add_required_plugin_combinations(self.plugins)
+        self.plugins = self._convert_str_custom_plugins(self.plugins)
+        self.plugins = self._append_required_plugins(self.plugins)
         self.__attach_ddp()
         self.__attach_cluster()
         self.__attach_amp()
@@ -101,7 +101,7 @@ class PluginConnector:
                 # set the cluster
                 self.cloud_environment = plugin
 
-    def _str_to_lightning_custom_plugins(self, plugins: Union[str, list]):
+    def _convert_str_custom_plugins(self, plugins: Union[str, list]):
         """
         Converts string inputs to corresponding supported lightning plugins.
         Args:
@@ -117,20 +117,20 @@ class PluginConnector:
         if isinstance(plugin, str):
             if plugin not in LightningCustomPlugins.__members__:
                 raise MisconfigurationException(
-                    f"{plugin} is not a supported lightning custom plugin."
+                    f" {plugin} is not a supported lightning custom plugin."
                     " If you're trying to pass a custom plugin, please pass this as an object to"
-                    " `Trainer(plugins=[MyPlugin()]`."
-                    f"Supported plugins as string input: {(e.name for e in LightningCustomPlugins)}."
+                    " Trainer(plugins=[MyPlugin()]."
+                    f" Supported plugins as string input: {(e.name for e in LightningCustomPlugins)}."
                 )
             plugin_cls = LightningCustomPlugins[plugin].value
-            return plugin_cls()
+            return plugin_cls(trainer=self.trainer)
         return plugin
 
-    def _add_required_plugin_combinations(self,
-                                          plugins: List[Union[DDPPlugin, PrecisionPlugin, ClusterEnvironment]]):
+    def _append_required_plugins(self, plugins: List[LightningPlugin]):
         """
-            Allows custom plugins to define additional plugins. This is useful for when custom plugins
-            need to enforce override of native amp/apex when they are enabled.
+        Allows custom plugins to define additional plugins. This is useful for when custom plugins
+        need to enforce override of native amp/apex when they are enabled.
+
         Args:
             plugins: List of plugins
 
@@ -148,17 +148,17 @@ class PluginConnector:
             trainer = Trainer(plugins=[MyPlugin(), NativeAMPPlugin()])
 
         """
-        additional_plugins = []
         for plugin in plugins:
-            required_plugins = plugin.required_plugins(self.trainer, amp_backend=self.trainer.amp_backend)
+            required_plugins = plugin.required_plugins(amp_backend=self.trainer.amp_backend, trainer=self.trainer)
             if required_plugins:
                 rank_zero_warn(
                     f'plugin {type(plugin)} has added additional required plugins as default:'
                     f' {[type(x) for x in required_plugins]}'
-                    ' Extend this plugin and override required_plugins if this conflicts with your additional plugins.'
+                    'Extend this plugin and override `required_plugins`'
+                    'if this conflicts with your additional plugins.'
                 )
-                additional_plugins += required_plugins
-        return plugins + additional_plugins
+                plugins += required_plugins
+        return plugins
 
     @classmethod
     def available_plugins(cls):

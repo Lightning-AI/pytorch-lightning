@@ -32,7 +32,7 @@ def test_ddp_choice_default_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator_backend.ddp_plugin, DDPPlugin)
-            raise SystemExit()
+            raise RuntimeError('finished plugin check')
 
     model = BoringModel()
     trainer = Trainer(
@@ -43,7 +43,7 @@ def test_ddp_choice_default_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
         callbacks=[CB()],
     )
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(RuntimeError, match='finished plugin check'):
         trainer.fit(model)
 
 
@@ -70,7 +70,7 @@ def test_ddp_choice_custom_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator_backend.ddp_plugin, MyDDP)
-            raise SystemExit()
+            raise RuntimeError('finished plugin check')
 
     model = BoringModel()
     trainer = Trainer(
@@ -82,7 +82,7 @@ def test_ddp_choice_custom_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
         callbacks=[CB()],
     )
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(RuntimeError, match='finished plugin check'):
         trainer.fit(model)
 
 
@@ -107,7 +107,7 @@ def test_ddp_choice_string_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator_backend.ddp_plugin, DDPShardedPlugin)
-            raise SystemExit()
+            raise RuntimeError('finished plugin check')
 
     model = BoringModel()
     trainer = Trainer(
@@ -119,7 +119,7 @@ def test_ddp_choice_string_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
         callbacks=[CB()],
     )
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(RuntimeError, match='finished plugin check'):
         trainer.fit(model)
 
 
@@ -140,18 +140,14 @@ def test_ddp_choice_string_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
     [("ddp_cpu", None, None), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
 )
 def test_ddp_invalid_choice_string_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
-    model = BoringModel()
-
     with pytest.raises(MisconfigurationException, match='not a supported lightning custom plugin'):
-        trainer = Trainer(
+        Trainer(
             fast_dev_run=True,
             gpus=gpus,
             num_processes=num_processes,
             distributed_backend=ddp_backend,
-            plugins='invalid'
+            plugins='invalid',
         )
-
-        trainer.fit(model)
 
 
 @mock.patch.dict(
@@ -173,23 +169,20 @@ def test_ddp_invalid_choice_string_ddp_cpu(tmpdir, ddp_backend, gpus, num_proces
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed sharded plugin is not supported on Windows")
 def test_ddp_invalid_choice_string_and_custom_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
     """
-        Test passing a lightning custom ddp plugin and a default ddp plugin throws an error.
+    Test passing a lightning custom ddp plugin and a default ddp plugin throws an error.
     """
-    model = BoringModel()
 
     class MyDDP(DDPPlugin):
         pass
 
     with pytest.raises(MisconfigurationException, match='you can only use one DDP plugin in plugins'):
-        trainer = Trainer(
+        Trainer(
             fast_dev_run=True,
             gpus=gpus,
             num_processes=num_processes,
             distributed_backend=ddp_backend,
-            plugins=['ddp_sharded', MyDDP()]
+            plugins=['ddp_sharded', MyDDP()],
         )
-
-        trainer.fit(model)
 
 
 @mock.patch.dict(
@@ -217,7 +210,7 @@ def test_ddp_choice_custom_ddp_cpu_custom_args(
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer.accelerator_backend.ddp_plugin, MyDDP)
-            raise SystemExit()
+            raise RuntimeError('finished plugin check')
 
     model = BoringModel()
     trainer = Trainer(
@@ -229,5 +222,5 @@ def test_ddp_choice_custom_ddp_cpu_custom_args(
         callbacks=[CB()],
     )
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(RuntimeError, match='finished plugin check'):
         trainer.fit(model)

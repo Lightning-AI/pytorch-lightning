@@ -23,9 +23,7 @@ def test_available_plugins_trainer():
 
 
 def test_available_plugins_connector():
-    """
-        Test that available plugins return the correct list in the connector.
-    """
+    """ Test that available plugins return the correct list in the connector. """
     plugins = PluginConnector.available_plugins()
     expected_plugins = [e.name for e in LightningCustomPlugins]
     assert plugins == expected_plugins
