@@ -159,6 +159,9 @@ class ModelSummary(object):
         132 K     Trainable params
         0         Non-trainable params
         132 K     Total params
+        0.506     Total Estimated Params Size (MB)
+        0.004     Total Estimated Forward/Backward Size (MB)
+        0.520     Total Estimated Model Size (MB)
         >>> ModelSummary(model, mode='full')  # doctest: +NORMALIZE_WHITESPACE
           | Name  | Type        | Params | In sizes  | Out sizes
         --------------------------------------------------------------
@@ -169,6 +172,9 @@ class ModelSummary(object):
         132 K     Trainable params
         0         Non-trainable params
         132 K     Total params
+        0.506     Total Estimated Params Size (MB)
+        0.004     Total Estimated Forward/Backward Size (MB)
+        0.520     Total Estimated Model Size (MB)
     """
 
     MODE_TOP = "top"
