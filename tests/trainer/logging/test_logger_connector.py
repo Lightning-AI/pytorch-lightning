@@ -65,13 +65,14 @@ def test__logger_connector__epoch_result_store__train(tmpdir, monkeypatch):
             self.train_losses.append(loss)
 
             self.log("train_loss", loss, on_step=True, on_epoch=True)
+
             return {"loss": loss}
 
-        def on_train_epoch_end(self, outputs):
-            # save objects as it will be reset at the end of epoch.
+        def training_step_end(self, *_):
             self.train_results = deepcopy(self.trainer.logger_connector.cached_results)
 
     model = TestModel()
+    model.training_epoch_end = None
     model.val_dataloader = None
 
     trainer = Trainer(
@@ -133,11 +134,6 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
 
         @decorator_with_arguments(fx_name="training_step")
         def training_step(self, batch, batch_idx, hiddens):
-            try:
-                assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
-            except Exception as e:
-                print(e)
-
             self.test_hidden = torch.rand(1)
 
             x_tensor, y_list = batch
@@ -166,8 +162,7 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
                 sampler=None,
             )
 
-        def on_train_epoch_end(self, outputs):
-            # save objects as it will be reset at the end of epoch.
+        def training_step_end(self, *_):
             self.train_results = deepcopy(self.trainer.logger_connector.cached_results)
 
     model = TestModel()
