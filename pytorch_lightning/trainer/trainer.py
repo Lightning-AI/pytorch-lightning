@@ -547,9 +547,6 @@ class Trainer(
                 self.interrupted = True
                 self._state = TrainerState.INTERRUPTED
                 self.on_keyboard_interrupt()
-
-                # hook
-                self.train_loop.on_train_end()
         finally:
             # hook
             self.train_loop.on_train_end()
