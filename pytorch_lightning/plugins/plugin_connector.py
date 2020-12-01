@@ -117,11 +117,10 @@ class PluginConnector:
         if isinstance(plugin, str):
             if plugin not in LightningCustomPlugins.__members__:
                 raise MisconfigurationException(
-                    f"{plugin} is not a supported lightning custom plugin. "
-                    f"If you're trying to pass a custom plugin, please pass this as an object to "
-                    f"Trainer(plugins=[MyPlugin()]."
-                    f"Supported plugins as string input: "
-                    f"{(e.name for e in LightningCustomPlugins)}."
+                    f" {plugin} is not a supported lightning custom plugin."
+                    " If you're trying to pass a custom plugin, please pass this as an object to"
+                    " Trainer(plugins=[MyPlugin()]."
+                    f" Supported plugins as string input: {(e.name for e in LightningCustomPlugins)}."
                 )
             plugin_cls = LightningCustomPlugins[plugin].value
             return plugin_cls()
