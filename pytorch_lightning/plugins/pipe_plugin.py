@@ -54,57 +54,6 @@ def get_worker_map():
     return {rank: f"worker{rank}" for rank in range(torch_distrib.get_world_size())}
 
 
-def register_optimizers(ctx, model):
-    optimizers, lr_schedulers, optimizer_frequencies = model.trainer.init_optimizers(model)
-    model.trainer.optimizers = optimizers
-    model.trainer.lr_schedulers = lr_schedulers
-    model.trainer.optimizer_frequencies = optimizer_frequencies
-
-
-def do_nothing_optimizer_closure():
-    return
-
-
-def cleanup(ctx, model):
-    del model
-
-
-def run_optimizer(ctx, model):
-    trainer = model.trainer
-    model_ref = trainer.get_model()
-    opt_idx = ctx["opt_idx"]
-    args = ctx["args"]
-    kwargs = ctx["kwargs"]
-    batch_idx = ctx["batch_idx"]
-    on_tpu = ctx["on_tpu"]
-    optimizer_closure = ctx.pop("optimizer_closure", do_nothing_optimizer_closure)
-    optimizer = trainer.optimizers[opt_idx]
-
-    is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-    using_native_amp = trainer.amp_backend == AMPType.NATIVE
-    automatic_optimization = trainer.train_loop.automatic_optimization
-
-    # native amp + lbfgs is a no go right now
-    if using_native_amp and is_lbfgs:
-        raise MisconfigurationException(
-            'native PyTorch amp and lbfgs are not compatible.'
-            ' To request, please file a Github issue in PyTorch and tag @mcarilli')
-
-    # model hook
-    model_ref.optimizer_step(
-        epoch=trainer.current_epoch,
-        batch_idx=batch_idx,
-        optimizer=optimizer,
-        optimizer_idx=opt_idx,
-        optimizer_closure=optimizer_closure,
-        on_tpu=on_tpu,  # TPUAccelerator class sets this as True
-        using_native_amp=using_native_amp,
-        using_lbfgs=is_lbfgs,
-        *args,
-        **kwargs,
-    )
-
-
 class LightningPipeModule(nn.Module):
     """
         This class wraps Fairscale Pipe and PipeRCPWrapper class.
