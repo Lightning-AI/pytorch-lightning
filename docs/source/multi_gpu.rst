@@ -640,7 +640,7 @@ The reason is that the full batch is visible to all GPUs on the node when using 
 ----------
 
 Model Parallelism [BETA]
---------------
+------------------------
 
 Model Parallelism tackles training large models on distributed systems, by modifying distributed communications and memory management of the model.
 Unlike data parallelism, the model is partitioned in various ways across the GPUs, in most cases to reduce the memory overhead.
