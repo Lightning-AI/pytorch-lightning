@@ -978,14 +978,14 @@ class LightningModule(
             - None - Fit will run without any optimizer.
 
         Note:
-            The 'frequency' value specified in a dict along with the 'optimizer' key is an int corresponding
+            The ``frequency`` value specified in a dict along with the ``optimizer`` key is an int corresponding
             to the number of sequential batches optimized with the specific optimizer.
             It should be given to none or to all of the optimizers.
             There is a difference between passing multiple optimizers in a list,
             and passing multiple optimizers in dictionaries with a frequency of 1:
             In the former case, all optimizers will operate on the given batch in each optimization step.
             In the latter, only one optimizer will operate on the given batch at every step.
-            This is different from the 'frequency' value specified in the lr_dict mentioned below.
+            This is different from the ``frequency`` value specified in the lr_dict mentioned below.
 
             .. code-block:: python
 
@@ -1004,7 +1004,7 @@ class LightningModule(
 
             In this example, the first optimizer will be used for the first 5 steps,
             the second optimizer for the next 10 steps and that cycle will continue.
-            If an LR scheduler is specified for an optimizer using the `lr_scheduler` key in the above dict,
+            If an LR scheduler is specified for an optimizer using the ``lr_scheduler`` key in the above dict,
             the scheduler will only be updated when its optimizer is being used.
 
         Note:
