@@ -39,7 +39,7 @@ class PrecisionPlugin(abc.ABC):
     def clip_gradients(self, grad_clip_val: Union[int, float], optimizer: Optimizer, norm_type: float):
         raise NotImplementedError
 
-    def required_plugins(self, amp_backend: AMPType) -> Optional[list]:
+    def required_plugins(self, amp_backend: AMPType) -> list:
         """
             Override to define additional required plugins. This is useful for when custom plugins
             need to enforce override of other plugins.
@@ -58,3 +58,4 @@ class PrecisionPlugin(abc.ABC):
             trainer = Trainer(plugins=[MyPlugin(), NativeAMPPlugin()])
 
         """
+        return []

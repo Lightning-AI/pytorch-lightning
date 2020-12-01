@@ -38,7 +38,7 @@ class PluginConnector:
         self.plugins = plugins
         if self.plugins is None:
             self.plugins = []
-        self.plugins = self._str_to_lightning_custom_plugins(self.plugins)
+        self.plugins = self._convert_str_custom_plugins(self.plugins)
         self.plugins = self._add_required_plugin_combinations(self.plugins)
         self.__attach_ddp()
         self.__attach_cluster()
@@ -101,7 +101,7 @@ class PluginConnector:
                 # set the cluster
                 self.cloud_environment = plugin
 
-    def _str_to_lightning_custom_plugins(self, plugins: Union[str, list]):
+    def _convert_str_custom_plugins(self, plugins: Union[str, list]):
         """
         Converts string inputs to corresponding supported lightning plugins.
         Args:

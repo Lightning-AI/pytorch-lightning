@@ -33,7 +33,7 @@ class ClusterEnvironment:
     def local_rank(self):
         pass
 
-    def required_plugins(self, amp_backend: AMPType) -> Optional[list]:
+    def required_plugins(self, amp_backend: AMPType) -> list:
         """
         Override to define additional required plugins. This is useful for when custom plugins
         need to enforce override of other plugins.
@@ -52,3 +52,4 @@ class ClusterEnvironment:
             trainer = Trainer(plugins=[MyPlugin(), NativeAMPPlugin()])
 
         """
+        return []

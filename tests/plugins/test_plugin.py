@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Optional
 from unittest import mock
 
 import pytest
@@ -54,7 +53,7 @@ def test_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processes):
         """
 
     class CustomPlugin(DDPPlugin):
-        def required_plugins(self, amp_backend: AMPType) -> Optional[list]:
+        def required_plugins(self, amp_backend: AMPType) -> list:
             return [RequiredPlugin()]
 
     class CB(Callback):
@@ -98,9 +97,9 @@ def test_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processes):
 )
 def test_invalid_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processes):
     """
-        Test to ensure if the user passes a different plugin that conflicts with the defeault,
-        we throw an warning and error.
-        The user has to override the required plugins to pass their own required plugin in this conflict.
+        Test to ensure if the user passes a plugin that conflicts with the required defaults of another plugin,
+        we throw a warning and error.
+        The user has to override the required defaults plugin.
     """
 
     class RequiredPlugin(NativeAMPPlugin):
@@ -111,7 +110,7 @@ def test_invalid_custom_required_plugins(tmpdir, ddp_backend, gpus, num_processe
         """
 
     class CustomPlugin(DDPPlugin):
-        def required_plugins(self, amp_backend: AMPType) -> Optional[list]:
+        def required_plugins(self, amp_backend: AMPType) -> list:
             return [RequiredPlugin()]
 
     with pytest.warns(UserWarning, match=f'plugin {type(CustomPlugin())} has added additional '

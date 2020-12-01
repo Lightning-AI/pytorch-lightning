@@ -140,18 +140,14 @@ def test_ddp_choice_string_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
     [("ddp_cpu", None, None), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
 )
 def test_ddp_invalid_choice_string_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
-    model = BoringModel()
-
     with pytest.raises(MisconfigurationException, match='not a supported lightning custom plugin'):
-        trainer = Trainer(
+        Trainer(
             fast_dev_run=True,
             gpus=gpus,
             num_processes=num_processes,
             distributed_backend=ddp_backend,
             plugins='invalid'
         )
-
-        trainer.fit(model)
 
 
 @mock.patch.dict(
@@ -175,21 +171,18 @@ def test_ddp_invalid_choice_string_and_custom_ddp_cpu(tmpdir, ddp_backend, gpus,
     """
         Test passing a lightning custom ddp plugin and a default ddp plugin throws an error.
     """
-    model = BoringModel()
 
     class MyDDP(DDPPlugin):
         pass
 
     with pytest.raises(MisconfigurationException, match='you can only use one DDP plugin in plugins'):
-        trainer = Trainer(
+        Trainer(
             fast_dev_run=True,
             gpus=gpus,
             num_processes=num_processes,
             distributed_backend=ddp_backend,
             plugins=['ddp_sharded', MyDDP()]
         )
-
-        trainer.fit(model)
 
 
 @mock.patch.dict(

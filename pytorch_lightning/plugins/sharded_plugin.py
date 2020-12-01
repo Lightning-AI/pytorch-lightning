@@ -81,7 +81,7 @@ class DDPShardedPlugin(DDPPlugin):
             return model.module
         return model
 
-    def required_plugins(self, amp_backend: AMPType) -> Optional[list]:
+    def required_plugins(self, amp_backend: AMPType) -> list:
         if amp_backend == AMPType.APEX:
             raise MisconfigurationException(
                 'Sharded Plugin is not supported with Apex AMP, please using native AMP for 16-bit precision.'
