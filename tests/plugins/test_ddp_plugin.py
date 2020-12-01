@@ -146,7 +146,7 @@ def test_ddp_invalid_choice_string_ddp_cpu(tmpdir, ddp_backend, gpus, num_proces
             gpus=gpus,
             num_processes=num_processes,
             distributed_backend=ddp_backend,
-            plugins='invalid'
+            plugins='invalid',
         )
 
 
@@ -181,7 +181,7 @@ def test_ddp_invalid_choice_string_and_custom_ddp_cpu(tmpdir, ddp_backend, gpus,
             gpus=gpus,
             num_processes=num_processes,
             distributed_backend=ddp_backend,
-            plugins=['ddp_sharded', MyDDP()]
+            plugins=['ddp_sharded', MyDDP()],
         )
 
 
