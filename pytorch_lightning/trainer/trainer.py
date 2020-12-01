@@ -521,9 +521,6 @@ class Trainer(
                     self.train_loop.run_training_epoch()
 
                 if self.max_steps and self.max_steps <= self.global_step:
-
-                    # hook
-                    self.train_loop.on_train_end()
                     return
 
                 # update LR schedulers
@@ -535,7 +532,6 @@ class Trainer(
 
                 if self.should_stop:
                     if met_min_epochs and met_min_steps:
-                        self.train_loop.on_train_end()
                         return
                     log.info(
                         'Trainer was signaled to stop but required minimum epochs'
@@ -554,7 +550,7 @@ class Trainer(
 
                 # hook
                 self.train_loop.on_train_end()
-        else:
+        finally:
             # hook
             self.train_loop.on_train_end()
 
