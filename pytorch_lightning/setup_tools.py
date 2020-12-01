@@ -22,7 +22,7 @@ import warnings
 
 from pytorch_lightning import __homepage__, __version__, PROJECT_ROOT
 
-_PATH_BADGES = os.path.join('.', 'docs', 'source', '_images', 'badges')
+_PATH_BADGES = os.path.join('utilities', 'docs', 'source', '_images', 'badges')
 # badge to download
 _DEFAULT_BADGES = [
     'PyPI - Python Version',
@@ -70,7 +70,7 @@ def _parse_for_badge(text: str, path_badges: str = _PATH_BADGES, badge_names: li
      [![PyPI - Python Version](./docs/source/_images/badges/PyPI_Python_Version_badge.png)](https://pypi.org/project/pytorch-lightning/)
      and another text later'
     >>> import shutil
-    >>> shutil.rmtree('./docs')
+    >>> shutil.rmtree(_PATH_BADGES)
     """
     for line in text.split(os.linesep):
         badge_name = re.search(r'\[!\[(.*?)]', line)
@@ -103,7 +103,7 @@ def _download_badge(url_badge, badge_name, target_dir):
     """Download badge from url
 
     >>> path_img = _download_badge('https://img.shields.io/pypi/pyversions/pytorch-lightning',
-    ...                            'PyPI - Python Version', '.')
+    ...                            'PyPI - Python Version', 'utilities')
     >>> os.path.isfile(path_img)
     True
     >>> path_img
@@ -159,7 +159,7 @@ def _load_long_description(path_dir):
     >>> _load_long_description(PROJECT_ROOT)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     '<div align="center">...'
     >>> import shutil
-    >>> shutil.rmtree('./docs')
+    >>> shutil.rmtree(_PATH_BADGES)
     """
     # https://github.com/PyTorchLightning/pytorch-lightning/raw/master/docs/source/_images/lightning_module/pt_to_pl.png
     url = os.path.join(__homepage__, 'raw', __version__, 'docs')
