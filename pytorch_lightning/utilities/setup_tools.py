@@ -20,7 +20,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 import warnings
 
-from pytorch_lightning import __homepage__, __version__
+from pytorch_lightning import __homepage__, __version__, PROJECT_ROOT
 
 # badge to download
 _DEFAULT_BADGES = [
@@ -39,6 +39,11 @@ _DEFAULT_BADGES = [
 
 
 def _load_requirements(path_dir, file_name='requirements.txt', comment_char='#'):
+    """Load requirements from a file
+
+    >>> _load_requirements(PROJECT_ROOT)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    ['numpy>=...', 'torch>=...', ...]
+    """
     with open(os.path.join(path_dir, file_name), 'r') as file:
         lines = [ln.strip() for ln in file.readlines()]
     reqs = []

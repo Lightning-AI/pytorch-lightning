@@ -34,10 +34,14 @@ Documentation
 """
 
 import logging as python_logging
+import os
 
 _logger = python_logging.getLogger("lightning")
 _logger.addHandler(python_logging.StreamHandler())
 _logger.setLevel(python_logging.INFO)
+
+PACKAGE_ROOT = os.path.dirname(__file__)
+PROJECT_ROOT = os.path.dirname(PACKAGE_ROOT)
 
 try:
     # This variable is injected in the __builtins__ by the build
