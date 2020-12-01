@@ -251,8 +251,12 @@ class ModelSummary(object):
 
         elif isinstance(self._model.example_input_array, dict):
             in_features = self._model.example_input_array["tensor"].numel()
-        else:
+        elif isinstance(self._model.example_input_array, torch.Tensor):
             in_features = (self._model.example_input_array.numel(),)
+        else:
+            # if example_input_array is NoneType
+            in_features = (1,)
+
         return self._get_total_size(in_features if not input_size else input_size)
 
     def _get_total_size(self, input_size: tuple) -> float:
