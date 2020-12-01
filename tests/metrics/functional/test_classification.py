@@ -286,7 +286,7 @@ def test_auc(x, y, expected):
             ]),
             0.5,
             1,
-            2/3
+            torch.tensor([2 / 3])
         ),
     ]
 )
