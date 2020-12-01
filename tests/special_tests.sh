@@ -15,5 +15,3 @@
 export PL_RUNNING_SPECIAL_TESTS=1
 # Running special tests
 PL_RUNNING_SPECIAL_TESTS=1 pytest tests/plugins/test_pipe_plugin.py::test_pipe_plugin_ddp --verbose --capture=no
-PL_RUNNING_SPECIAL_TESTS=1 python -m coverage run --source pytorch_lightning -a -m pytest tests/plugins/test_sharded_plugin.py::test_ddp_sharded_plugin_checkpoint_multi_gpu --verbose --capture=no
-PL_RUNNING_SPECIAL_TESTS=1 python -m coverage run --source pytorch_lightning -a -m pytest tests/plugins/test_sharded_plugin.py::test_ddp_sharded_plugin_finetune --verbose --capture=no

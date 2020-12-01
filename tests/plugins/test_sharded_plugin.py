@@ -4,7 +4,6 @@ from unittest import mock
 
 import pytest
 import torch
-import torch.distributed as torch_distrib
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
@@ -149,7 +148,6 @@ def test_ddp_sharded_plugin_checkpoint_cpu(tmpdir):
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
 def test_ddp_sharded_plugin_checkpoint_multi_gpu(tmpdir):
     """
         Test to ensure that checkpoint is saved correctly when using multiple GPUs
@@ -157,29 +155,26 @@ def test_ddp_sharded_plugin_checkpoint_multi_gpu(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         gpus=2,
-        accelerator='ddp',
+        accelerator='ddp_spawn',
         plugins=[DDPShardedPlugin()],
         fast_dev_run=True,
     )
 
     trainer.fit(model)
 
-    if torch_distrib.get_rank() == 1:
-        print("Loading checkpoint")
-        checkpoint_path = os.path.join(tmpdir, 'model.pt')
-        trainer.save_checkpoint(checkpoint_path)
-        saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
+    checkpoint_path = os.path.join(tmpdir, 'model.pt')
+    trainer.save_checkpoint(checkpoint_path)
+    saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
 
-        # Assert model parameters are identical after loading
-        for ddp_param, shard_param in zip(model.parameters(), saved_model.parameters()):
-            assert torch.equal(ddp_param, shard_param)
+    # Assert model parameters are identical after loading
+    for ddp_param, shard_param in zip(model.parameters(), saved_model.parameters()):
+        assert torch.equal(ddp_param, shard_param)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
 def test_ddp_sharded_plugin_finetune(tmpdir):
     """
         Test to ensure that we can save and restart training (simulate fine-tuning)
@@ -187,21 +182,20 @@ def test_ddp_sharded_plugin_finetune(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         gpus=2,
-        accelerator='ddp',
+        accelerator='ddp_spawn',
         plugins=[DDPShardedPlugin()],
         fast_dev_run=True,
     )
     trainer.fit(model)
 
-    if torch_distrib.get_rank() == 1:
-        print("Loading checkpoint")
-        checkpoint_path = os.path.join(tmpdir, 'model.pt')
-        trainer.save_checkpoint(checkpoint_path)
-        saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
+    checkpoint_path = os.path.join(tmpdir, 'model.pt')
+    trainer.save_checkpoint(checkpoint_path)
+    saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
 
-        # Assert model parameters are identical after loading
-        for ddp_param, shard_param in zip(model.parameters(), saved_model.parameters()):
-            assert torch.equal(ddp_param, shard_param)
+    trainer = Trainer(
+        fast_dev_run=True,
+    )
+    trainer.fit(saved_model)
 
 
 @pytest.mark.skipif(platform.system() == "Windows",
