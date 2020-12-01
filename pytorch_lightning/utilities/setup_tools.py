@@ -64,8 +64,8 @@ def _parse_for_badge(text: str, path_badges: str = _PATH_BADGES, badge_names: li
     """ Returns the new parsed text with url change with local downloaded files
 
     >>> _parse_for_badge('Some text here... '  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-    ... '[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pytorch-lightning)]'
-    ... '(https://pypi.org/project/pytorch-lightning/) and another text later')
+    ...     '[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pytorch-lightning)]'
+    ...     '(https://pypi.org/project/pytorch-lightning/) and another text later')
     'Some text here...
      [![PyPI - Python Version](.../docs/source/_images/badges/PyPI_Python_Version_badge.png)](https://pypi.org/project/pytorch-lightning/)
      and another text later'
@@ -101,7 +101,7 @@ def _download_badge(url_badge, badge_name, target_dir):
     """Download badge from url
 
     >>> path_img = _download_badge('https://img.shields.io/pypi/pyversions/pytorch-lightning',
-    ...                             'PyPI - Python Version', '.')
+    ...                            'PyPI - Python Version', '.')
     >>> os.path.isfile(path_img)
     True
     >>> path_img
