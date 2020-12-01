@@ -63,8 +63,12 @@ def _parse_for_badge(text, badge_names: list = _DEFAULT_BADGES):
     """
     Returns the new parsed text with url change with local downloaded files
 
-    >>> _parse_for_badge('[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pytorch-lightning)](https://pypi.org/project/pytorch-lightning/)')
-    '[![PyPI - Python Version](docs/source/_images/badges/PyPI_Python_Version_badge.png)](https://pypi.org/project/pytorch-lightning/)'
+    >>> _parse_for_badge('Some text here... '  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    ... '[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pytorch-lightning)]'
+    ... '(https://pypi.org/project/pytorch-lightning/)')
+    'Some text here...
+     [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pytorch-lightning)]
+       (https://pypi.org/project/pytorch-lightning/)'
     """
     for line in text.split('\n'):
         badge_name = re.search(r'^\[!\[(.*?)]', line)
@@ -74,20 +78,21 @@ def _parse_for_badge(text, badge_names: list = _DEFAULT_BADGES):
             badge_name = badge_name.group(1)
 
             # check if valid name
-            if badge_name in badge_names:
+            if badge_name not in badge_names:
+                continue
 
-                search_string = fr'\[\!\[{badge_name}]\((.*?)\)]'
-                badge_url = re.search(search_string, line)
-                # check for badge url
-                if badge_url is not None:
-                    badge_url = badge_url.group(1)
+            search_string = fr'\[\!\[{badge_name}]\((.*?)\)]'
+            badge_url = re.search(search_string, line)
+            # check for badge url
+            if badge_url is not None:
+                badge_url = badge_url.group(1)
 
-                # download badge
-                saved_badge_name = _download_badges(badge_url, badge_name)
+            # download badge
+            saved_badge_name = _download_badges(badge_url, badge_name)
 
-                # replace url with local file path
-                replace_string = f'[![{badge_name}]({saved_badge_name})]'
-                text = re.sub(search_string, replace_string, text)
+            # replace url with local file path
+            replace_string = f'[![{badge_name}]({saved_badge_name})]'
+            text = re.sub(search_string, replace_string, text)
 
     return text
 
@@ -139,6 +144,11 @@ def _download_badges(url_badge, badge_name):
 
 
 def _load_long_description(path_dir):
+    """Load readme as decribtion
+
+    >>> _load_long_description(PROJECT_ROOT)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    '<div align="center">...'
+    """
     # https://github.com/PyTorchLightning/pytorch-lightning/raw/master/docs/source/_images/lightning_module/pt_to_pl.png
     url = os.path.join(__homepage__, 'raw', __version__, 'docs')
     path_readme = os.path.join(path_dir, 'README.md')
