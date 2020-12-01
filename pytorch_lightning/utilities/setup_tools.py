@@ -60,6 +60,12 @@ def _load_requirements(path_dir, file_name='requirements.txt', comment_char='#')
 
 
 def _parse_for_badge(text, badge_names: list = _DEFAULT_BADGES):
+    """
+    Returns the new parsed text with url change with local downloaded files
+
+    >>> _parse_for_badge('[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pytorch-lightning)](https://pypi.org/project/pytorch-lightning/)')
+    '[![PyPI - Python Version](docs/source/_images/badges/PyPI_Python_Version_badge.png)](https://pypi.org/project/pytorch-lightning/)'
+    """
     for line in text.split('\n'):
         badge_name = re.search(r'^\[!\[(.*?)]', line)
 
@@ -87,6 +93,10 @@ def _parse_for_badge(text, badge_names: list = _DEFAULT_BADGES):
 
 
 def _download_badges(url_badge, badge_name):
+    """
+    >>> _download_badges('https://img.shields.io/pypi/pyversions/pytorch-lightning', 'PyPI - Python Version')
+    'docs/source/_images/badges/PyPI_Python_Version_badge.png'
+    """
 
     base_path = 'docs/source/_images/badges'
     os.makedirs(base_path, exist_ok=True)
@@ -135,7 +145,7 @@ def _load_long_description(path_dir):
     text = open(path_readme, encoding='utf-8').read()
     # replace relative repository path to absolute link to the release
     text = text.replace('](docs', f']({url}')
-    # SVG images are not readable on PyPI, so replace them  with PNG
+    # SVG images are not readable on PyPI, so replace them with PNG
     text = text.replace('.svg', '.png')
     # download badge and replace url with local file
     text = _parse_for_badge(text)
