@@ -123,8 +123,8 @@ class Accelerator(object):
         # native amp + lbfgs is a no go right now
         if using_native_amp and is_lbfgs:
             raise MisconfigurationException(
-                "native PyTorch amp and lbfgs are not compatible."
-                " To request, please file a Github issue in PyTorch and tag @mcarilli"
+                'native PyTorch amp and lbfgs are not compatible.'
+                ' To request, please file a Github issue in PyTorch and tag @mcarilli'
             )
 
         # model hook
@@ -241,30 +241,30 @@ class Accelerator(object):
 
     def __getstate__(self):
         return {
-            "trainer": self.trainer,
-            "nickname": self.nickname,
-            "cluster_environment": self.cluster_environment,
-            "dist": self.dist,
-            "ddp_plugin": self.ddp_plugin,
+            'trainer': self.trainer,
+            'nickname': self.nickname,
+            'cluster_environment': self.cluster_environment,
+            'dist': self.dist,
+            'ddp_plugin': self.ddp_plugin
         }
 
     def __setstate__(self, d):
         assert isinstance(d, dict), f"Dict should be passed instead got {type(d)}"
-        self.trainer = d["trainer"]
-        self.nickname = d["nickname"]
-        self.cluster_environment = d["cluster_environment"]
-        self.dist = d["dist"]
-        self.ddp_plugin = d["ddp_plugin"]
+        self.trainer = d['trainer']
+        self.nickname = d['nickname']
+        self.cluster_environment = d['cluster_environment']
+        self.dist = d['dist']
+        self.ddp_plugin = d['ddp_plugin']
 
 
 # TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...
 class BackendType(Enum):
-    DP = "dp"
-    DDP = "ddp"
-    DDP2 = "ddp2"
-    DDP_SPAWN = "ddp_spawn"
+    DP = 'dp'
+    DDP = 'ddp'
+    DDP2 = 'ddp2'
+    DDP_SPAWN = 'ddp_spawn'
     # decuple distrib and device
-    DDP_CPU = "ddp_cpu"
-    HOROVOD = "horovod"
+    DDP_CPU = 'ddp_cpu'
+    HOROVOD = 'horovod'
     # this is rather device
-    TPU = "tpu"
+    TPU = 'tpu'
