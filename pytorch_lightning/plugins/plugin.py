@@ -1,7 +1,7 @@
 from pytorch_lightning.utilities import AMPType
 
 
-class Plugin:
+class LightningPlugin:
     """
     Defines base class for Plugins. Plugins represent functionality that can be injected into the lightning codebase.
     """

@@ -15,10 +15,10 @@ from typing import Union
 
 from torch.optim import Optimizer
 
-from pytorch_lightning.plugins.plugin import Plugin
+from pytorch_lightning.plugins.plugin import LightningPlugin
 
 
-class PrecisionPlugin(Plugin):
+class PrecisionPlugin(LightningPlugin):
     """
     Abstract class to extend for precision support (32/16 etc).
 

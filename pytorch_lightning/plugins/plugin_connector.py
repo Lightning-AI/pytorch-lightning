@@ -18,7 +18,7 @@ from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.plugins.apex import ApexPlugin
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
-from pytorch_lightning.plugins.plugin import Plugin
+from pytorch_lightning.plugins.plugin import LightningPlugin
 from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -126,7 +126,7 @@ class PluginConnector:
             return plugin_cls()
         return plugin
 
-    def _append_required_plugins(self, plugins: List[Plugin]):
+    def _append_required_plugins(self, plugins: List[LightningPlugin]):
         """
         Allows custom plugins to define additional plugins. This is useful for when custom plugins
         need to enforce override of native amp/apex when they are enabled.

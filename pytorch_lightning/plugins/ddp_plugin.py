@@ -6,10 +6,10 @@ from pytorch_lightning import _logger as log
 from torch.optim import Optimizer
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
-from pytorch_lightning.plugins.plugin import Plugin
+from pytorch_lightning.plugins.plugin import LightningPlugin
 
 
-class DDPPlugin(Plugin):
+class DDPPlugin(LightningPlugin):
     """
     Plugin to link a custom ddp implementation to any arbitrary accelerator.
 
