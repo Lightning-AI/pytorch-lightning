@@ -24,7 +24,6 @@ include *.md
 include LICENSE
 
 exclude *.sh
-exclude *.toml
 exclude *.svg
 recursive-include pytorch_lightning *.py
 
@@ -32,7 +31,7 @@ recursive-include pytorch_lightning *.py
 include pytorch_lightning/py.typed
 
 # include examples
-recursive-include pl_examples *.py *.md *.sh *.txt
+recursive-include pl_examples *.py *.md *.sh *.txt *.toml
 
 # exclude tests from package
 recursive-exclude tests *
@@ -49,6 +48,7 @@ recursive-include docs/source/_images/general/ pl_overview* tf_* tutorial_* PTL1
 recursive-include requirements *.txt
 recursive-exclude requirements *.sh
 include requirements.txt
+include pyproject.toml
 
 # Exclude build configs
 exclude *.yml
@@ -56,6 +56,9 @@ exclude *.yaml
 
 # Exclude pyright config
 exclude .pyrightconfig.json
+
+# Exclude Makefile
+exclude Makefile
 
 prune .git
 prune .github

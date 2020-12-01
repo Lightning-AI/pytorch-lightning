@@ -35,7 +35,8 @@ SHELL ["/bin/bash", "-c"]
 
 ENV PATH="$PATH:/root/.local/bin"
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
         git \
@@ -98,13 +99,18 @@ COPY ./requirements/test.txt requirements-test.txt
 RUN \
     # Disable cache
     pip config set global.cache-dir false && \
-    #echo ". ${WORKDIR}/miniconda/etc/profile.d/conda.sh" >> ~/.bashrc && \
-    #echo "conda activate ${CONDA_ENV}" >> ~/.bashrc && \
-    #source ~/.bashrc && \
+    # Drop fairscale for PT <= 1.4
+    if [[ $PYTORCH_VERSION < 1.4 ]] ; then \
+        python -c "fname = 'requirements-extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)" ; \
+    fi && \
     # Install remaining requirements
     pip install -r requirements-extra.txt --upgrade-strategy only-if-needed && \
     pip install -r requirements-test.txt --upgrade-strategy only-if-needed && \
     rm requirements*
+
+RUN \
+    # install DALI, needed for examples
+    pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda${CUDA_VERSION%%.*}0
 
 RUN \
     # install NVIDIA AMP

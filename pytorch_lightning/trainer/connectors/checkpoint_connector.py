@@ -12,36 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import io
 import os
 import re
-import signal
-from abc import ABC
-from subprocess import call
 
 import torch
-import torch.distributed as torch_distrib
 
 import pytorch_lightning
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import AMPType, rank_zero_warn
+from pytorch_lightning.utilities import APEX_AVAILABLE, AMPType, OMEGACONF_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-try:
+if APEX_AVAILABLE:
     from apex import amp
-except ImportError:
-    amp = None
 
-try:
+if OMEGACONF_AVAILABLE:
     from omegaconf import Container
-except ImportError:
-    OMEGACONF_AVAILABLE = False
-else:
-    OMEGACONF_AVAILABLE = True
 
 
 class CheckpointConnector:
@@ -103,6 +92,20 @@ class CheckpointConnector:
         # load model state
         model = self.trainer.get_model()
 
+        # restore model and datamodule state
+        self.restore_model_state(model, checkpoint)
+
+        if on_gpu:
+            model.cuda(self.trainer.root_gpu)
+
+        # restore training state
+        self.restore_training_state(checkpoint)
+
+    def restore_model_state(self, model: LightningModule, checkpoint) -> None:
+        """
+        Restore model states from a 'PyTorch-Lightning checkpoint' dictionary object
+        """
+
         # give the datamodule a chance to load something
         if self.trainer.datamodule is not None:
             self.trainer.datamodule.on_load_checkpoint(checkpoint)
@@ -112,18 +115,6 @@ class CheckpointConnector:
 
         # restore the state_dict on the model
         model.load_state_dict(checkpoint['state_dict'])
-
-        if on_gpu:
-            model.cuda(self.trainer.root_gpu)
-
-        # restore amp scaling
-        if self.trainer.amp_backend == AMPType.NATIVE and 'native_amp_scaling_state' in checkpoint:
-            self.trainer.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
-        elif self.trainer.amp_backend == AMPType.APEX and 'amp_scaling_state' in checkpoint:
-            amp.load_state_dict(checkpoint['amp_scaling_state'])
-
-        # load training state (affects trainer only)
-        self.restore_training_state(checkpoint)
 
     def restore_training_state(self, checkpoint):
         """
@@ -146,6 +137,12 @@ class CheckpointConnector:
                 " `python -m pytorch_lightning.utilities.upgrade_checkpoint --file model.ckpt`"
                 " where `model.ckpt` is your checkpoint file."
             )
+
+        # restore amp scaling
+        if self.trainer.amp_backend == AMPType.NATIVE and 'native_amp_scaling_state' in checkpoint:
+            self.trainer.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
+        elif self.trainer.amp_backend == AMPType.APEX and 'amp_scaling_state' in checkpoint:
+            amp.load_state_dict(checkpoint['amp_scaling_state'])
 
         # restore callback states
         self.trainer.on_load_checkpoint(checkpoint)
@@ -290,10 +287,12 @@ class CheckpointConnector:
             callback_states = self.trainer.on_save_checkpoint()
             checkpoint['callbacks'] = callback_states
 
-            # dump optimizers
             optimizer_states = []
             for i, optimizer in enumerate(self.trainer.optimizers):
-                optimizer_states.append(optimizer.state_dict())
+                # Rely on accelerator to dump optimizer state
+                optimizer_state = self.trainer.accelerator_backend.optimizer_state(optimizer)
+                optimizer_states.append(optimizer_state)
+
             checkpoint['optimizer_states'] = optimizer_states
 
             # dump lr schedulers
@@ -318,10 +317,9 @@ class CheckpointConnector:
             if hasattr(model, '_hparams_name'):
                 checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_NAME] = model._hparams_name
             # dump arguments
-            if OMEGACONF_AVAILABLE:
+            if OMEGACONF_AVAILABLE and isinstance(model.hparams, Container):
                 checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = model.hparams
-                if isinstance(model.hparams, Container):
-                    checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_TYPE] = type(model.hparams)
+                checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_TYPE] = type(model.hparams)
             else:
                 checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = dict(model.hparams)
 
@@ -336,19 +334,13 @@ class CheckpointConnector:
         filepath = '{}/hpc_ckpt_{}.ckpt'.format(folderpath, self.max_ckpt_in_folder(folderpath))
 
         # load on CPU first
-        checkpoint = torch.load(filepath, map_location=lambda storage, loc: storage)
+        checkpoint = pl_load(filepath, map_location=lambda storage, loc: storage)
 
         # load model state
         model = self.trainer.get_model()
 
-        # load the state_dict on the model automatically
-        model.load_state_dict(checkpoint['state_dict'])
-
-        # restore amp scaling
-        if self.trainer.amp_backend == AMPType.NATIVE and 'native_amp_scaling_state' in checkpoint:
-            self.trainer.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
-        elif self.trainer.amp_backend == AMPType.APEX and 'amp_scaling_state' in checkpoint:
-            amp.load_state_dict(checkpoint['amp_scaling_state'])
+        # restore states from 'PyTorch-Lightning checkpoint' dictionary object
+        self.restore_model_state(model, checkpoint)
 
         if self.trainer.root_gpu is not None:
             model.cuda(self.trainer.root_gpu)

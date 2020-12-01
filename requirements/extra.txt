@@ -1,11 +1,12 @@
 # extended list of package dependencies to reach full functionality
 
 matplotlib>=3.1.1
-# no need to install with [pytorch] as pytorch is already installed and torchvision is required only for Horovod examples
-horovod>=0.20.1  # v0.20.0 has problem with building the wheel/installation
+horovod>=0.20.2  # no need to install with [pytorch] as pytorch is already installed
 omegaconf>=2.0.0
 # scipy>=0.13.3
 scikit-learn>=0.22.2
 torchtext>=0.3.1, <0.7  # TODO: temporary fix fix for compatibility
 onnx>=1.7.0
 onnxruntime>=1.3.0
+hydra-core>=1.0
+https://github.com/facebookresearch/fairscale/archive/8e85ce8c93569017521d92ceb78dba2c57c955a0.zip # TODO temporary fix till release version

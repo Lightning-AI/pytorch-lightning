@@ -12,27 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from multiprocessing import Process, Queue
+from unittest import mock
 
 import pytest
 from torch.utils.data import DataLoader
 
 import tests.base.develop_pipelines as tpipes
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.accelerators.accelerator import BackendType
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.utilities import TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 from tests.base import EvalModelTemplate
 from tests.base.datasets import TrialMNIST
 from tests.base.develop_utils import pl_multi_process_test
 
-TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 
 if TPU_AVAILABLE:
     import torch_xla
-    import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp
     SERIAL_EXEC = xmp.MpSerialExecutor()
 
@@ -252,11 +249,11 @@ def test_distributed_backend_set_when_using_tpu(tmpdir, tpu_cores):
     assert Trainer(tpu_cores=tpu_cores).distributed_backend == "tpu"
 
 
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_result_obj_on_tpu(tmpdir):
     seed_everything(1234)
-    os.environ['PL_DEV_DEBUG'] = '1'
 
     batches = 5
     epochs = 2
