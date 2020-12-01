@@ -85,10 +85,27 @@ def _parse_for_badge(text: str, path_badges: str = _PATH_BADGES, badge_names: li
         saved_badge_name = _download_badge(badge_url, badge_name, path_badges)
 
         # replace url with local file path
-        replace_string = f'[![{badge_name}]({saved_badge_name})]'
-        text = re.sub(search_string, replace_string, text)
+        text = text.replace(f'[![{badge_name}]({badge_url})]', f'[![{badge_name}]({saved_badge_name})]')
 
     return text
+
+
+def _save_file(url_badge, save, extension, headers):
+    """function for saving the badge either in `.png` or `.svg`"""
+
+    # because there are two badge with name `PyPI Status` the second one is download
+    if 'https://pepy.tech/badge/pytorch-lightning' in url_badge:
+        save += '_downloads'
+
+    try:
+        req = Request(url=url_badge, headers=headers)
+        resp = urlopen(req)
+    except URLError:
+        warnings.warn("Error while downloading the badge", UserWarning)
+    else:
+        save += extension
+        with open(save, 'wb') as download_file:
+            download_file.write(resp.read())
 
 
 def _download_badge(url_badge, badge_name, target_dir):
@@ -98,8 +115,8 @@ def _download_badge(url_badge, badge_name, target_dir):
     ...                            'PyPI - Python Version', '.')
     >>> os.path.isfile(path_img)
     True
-    >>> path_img
-    './PyPI_Python_Version_badge.png'
+    >>> path_img  # doctest: +ELLIPSIS
+    '...PyPI_Python_Version_badge.png'
     >>> os.remove(path_img)
     """
     os.makedirs(target_dir, exist_ok=True)
@@ -109,39 +126,22 @@ def _download_badge(url_badge, badge_name, target_dir):
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/svg,*/*;q=0.8',
     }
 
-    # function for saving the badge either in `.png` or `.svg`
-    def _save_file(url, save, extension):
-
-        # because there are two badge with name `PyPI Status` the second one is download
-        if 'https://pepy.tech/badge/pytorch-lightning' in url_badge:
-            save += '_downloads'
-
-        try:
-            req = Request(url=url, headers=headers)
-            resp = urlopen(req)
-        except URLError:
-            warnings.warn("Error while downloading the badge", UserWarning)
-        else:
-            save += extension
-            with open(save, 'wb') as download_file:
-                download_file.write(resp.read())
-
     save_path = badge_name.replace(' - ', ' ')
     save_path = os.path.join(target_dir, f"{save_path.replace(' ', '_')}_badge")
 
     if "?" in url_badge and ".png" not in url_badge:
-        _save_file(url_badge, save_path, extension='.svg')
+        _save_file(url_badge, save_path, extension='.svg', headers=headers)
         return save_path + '.svg'
     else:
         try:
             # always try to download the png versions (some url have an already png version available)
-            _save_file(url_badge, save_path, extension='.png')
+            _save_file(url_badge, save_path, extension='.png', headers=headers)
             return save_path + '.png'
         except HTTPError as err:
             if err.code == 404:
                 # save the `.svg`
                 url_badge = url_badge.replace('.png', '.svg')
-                _save_file(url_badge, save_path, extension='.svg')
+                _save_file(url_badge, save_path, extension='.svg', headers=headers)
                 return save_path + '.svg'
 
 
