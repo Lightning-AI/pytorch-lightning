@@ -15,7 +15,7 @@ Open up TensorBoard to see the metrics:
 References
 ----------
 
-[1] This example is based on https://github.com/PacktPublishing/Deep-Reinforcement-Learning-Hands-On-
+[1] https://github.com/PacktPublishing/Deep-Reinforcement-Learning-Hands-On-
 Second-Edition/blob/master/Chapter06/02_dqn_pong.py
 """
 
