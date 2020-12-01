@@ -429,34 +429,6 @@ You can then call your scripts anywhere
     cd /project/src
     python some_file.py --accelerator 'ddp' --gpus 8
 
-Sharded DDP
-^^^^^^^^^^^
-Lightning integration of `DeepSpeed ZeRO <https://arxiv.org/abs/1910.02054>`_ and
-`ZeRO-2 <https://www.microsoft.com/en-us/research/blog/zero-2-deepspeed-shattering-barriers-of-deep-learning-speed-scale/>`_
-provided by `Fairscale <https://github.com/facebookresearch/fairscale>`_. Sharded DDP is similar to normal DDP, except optimizer state and gradients are sharded across your GPUs.
-This means the memory overhead per GPU is less, as each GPU only has to maintain a section of your optimizer state and gradients.
-
-The benefits are variable by model, but we've recorded up to a 25% memory reduction per GPU. Because of extremely efficient communication,
-these benefits in multi-GPU setups are almost free and throughput scales well with multi-node setups.
-
-It is highly recommended to use Sharded DDP in multi-GPU environments where memory is limited or where training larger models are beneficial.
-
-Before running, install Fairscale using the command below or install all extras using ``pip install pytorch-lightning["extra"]``.
-
-.. code-block:: bash
-
-    pip install https://github.com/facebookresearch/fairscale/archive/master.zip
-
-
-.. code-block:: python
-
-    # train using Sharded DDP
-    trainer = Trainer(accelerator='ddp', plugins='ddp_sharded')
-
-Sharded DDP can work across all DDP variants by adding the additional ``--plugins ddp_sharded`` flag.
-
-Internally we re-initialize optimizers, sharding the optimizers across your machines and processes. We handle all communication using standard DDP, so no code changes are required.
-
 Horovod
 ^^^^^^^
 `Horovod <http://horovod.ai>`_ allows the same training script to be used for single-GPU,
@@ -666,6 +638,49 @@ The reason is that the full batch is visible to all GPUs on the node when using 
         `Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour <https://arxiv.org/abs/1706.02677>`_
 
 ----------
+
+Model Parallelism [BETA]
+--------------
+
+Model Parallelism tackles training large models on distributed systems, by modifying distributed communications and memory management of the model.
+Unlike data parallelism, the model is partitioned in various ways across the GPUs, in most cases to reduce the memory overhead.
+This is useful when dealing with large Transformer based models, or in environments where GPU memory is limited.
+
+Lightning currently offers these methods to leverage model parallelism.
+
+- Optimizer Sharded Training (partitioning your gradients and optimizer state across multiple GPUs, for reduced memory overhead)
+
+Optimizer Sharded Training
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+Lightning integration of optimizer sharded training provided by `Fairscale <https://github.com/facebookresearch/fairscale>`_.
+The technique can be found within `DeepSpeed ZeRO <https://arxiv.org/abs/1910.02054>`_ and
+`ZeRO-2 <https://www.microsoft.com/en-us/research/blog/zero-2-deepspeed-shattering-barriers-of-deep-learning-speed-scale/>`_,
+however the implementation is built from the ground up to be pytorch compatible and standalone.
+
+Optimizer Sharded Training still utilizes Data Parallel Training under the hood, except optimizer state and gradients are sharded across GPUs.
+This means the memory overhead per GPU is less, as each GPU only has to maintain a section of your optimizer state and gradients.
+
+The benefits are variable by model, but we've recorded up to a 25% memory reduction per GPU. Because of extremely efficient communication,
+these benefits in multi-GPU setups are almost free and throughput scales well with multi-node setups.
+
+It is highly recommended to use Optimizer Sharded Training in multi-GPU environments where memory is limited or where training larger models are beneficial.
+
+Before running, install Fairscale using the command below or install all extras using ``pip install pytorch-lightning["extra"]``.
+
+.. code-block:: bash
+
+    pip install https://github.com/facebookresearch/fairscale/archive/master.zip
+
+
+.. code-block:: python
+
+    # train using Sharded DDP
+    trainer = Trainer(accelerator='ddp', plugins='ddp_sharded')
+
+Optimizer Sharded Training can work across all DDP variants by adding the additional ``--plugins ddp_sharded`` flag.
+
+Internally we re-initialize optimizers, sharding the optimizers across your machines and processes. We handle all communication using PyTorch distributed, so no code changes are required.
+
 
 TorchElastic
 --------------
