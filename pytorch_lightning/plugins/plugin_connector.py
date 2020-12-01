@@ -154,9 +154,9 @@ class PluginConnector:
             required_plugins = plugin.required_plugins(amp_backend=self.trainer.amp_backend)
             if required_plugins:
                 rank_zero_warn(
-                    f'plugin {type(plugin)} has added additional required plugins as default: '
-                    f'{[type(x) for x in required_plugins]}'
-                    f'Extend this plugin and override required_plugins if this conflicts with your additional plugins.')
+                    f'plugin {type(plugin)} has added additional required plugins as default: {[type(x) for x in required_plugins]}'
+                    ' Extend this plugin and override required_plugins if this conflicts with your additional plugins.'
+                )
                 additional_plugins += required_plugins
         return plugins + additional_plugins
 
