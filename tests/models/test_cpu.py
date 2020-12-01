@@ -157,13 +157,6 @@ def test_multi_cpu_model_ddp(enable_pl_optimizer, tmpdir):
 
 def test_lbfgs_cpu_model(tmpdir):
     """Test each of the trainer options. Testing LBFGS optimizer"""
-    class ModelSpecifiedOptimizer(BoringModel):
-        def __init__(self, optimizer_name, learning_rate):
-            super().__init__()
-            self.optimizer_name = optimizer_name
-            self.learning_rate = learning_rate
-            self.save_hyperparameters()
-
     trainer_options = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -173,7 +166,7 @@ def test_lbfgs_cpu_model(tmpdir):
         limit_val_batches=0.2,
     )
 
-    model = ModelSpecifiedOptimizer(optimizer_name="LBFGS", learning_rate=0.004)
+    model = BoringModel(optimizer_name="LBFGS", learning_rate=0.004)
     tpipes.run_model_test_without_loggers(trainer_options, model, min_acc=0.25)
 
 

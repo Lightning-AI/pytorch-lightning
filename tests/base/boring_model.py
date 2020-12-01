@@ -56,7 +56,9 @@ class RandomDataset(Dataset):
 
 
 class BoringModel(LightningModule):
-    def __init__(self, in_features: int = 32, out_features: int = 2):
+    def __init__(self, in_features: int = 32, out_features: int = 2,
+                 optimizer_name: str = 'SGD', learning_rate: float = 0.1,
+                 batch_size:int = 1):
         """
         Testing PL Module
 
@@ -76,9 +78,9 @@ class BoringModel(LightningModule):
         """
         super().__init__()
 
-        self.batch_size = 1
-        self.learning_rate = 0.1
-        self.optimizer_name = "SGD"
+        self.batch_size = batch_size
+        self.learning_rate = learning_rate
+        self.optimizer_name = optimizer_name
         self.layer = torch.nn.Linear(in_features, out_features)
         self.save_hyperparameters()
 
