@@ -16,20 +16,25 @@ import re
 from typing import Any, List, Optional, Union
 
 import torch
-import torch.multiprocessing as mp
 import torch.distributed as torch_distrib
 import torch.distributed as dist
+import torch.multiprocessing as mp
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import AMPType, HYDRA_AVAILABLE
-from pytorch_lightning.utilities.cloud_io import atomic_save, load as pl_load
-from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, find_free_network_port
-from pytorch_lightning.utilities.distributed import sync_ddp_if_available
+from pytorch_lightning.distributed import LightningDistributed
+from pytorch_lightning.utilities import HYDRA_AVAILABLE, AMPType
+from pytorch_lightning.utilities.cloud_io import atomic_save
+from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities.distributed import (
+    find_free_network_port,
+    rank_zero_only,
+    rank_zero_warn,
+    sync_ddp_if_available,
+)
 from pytorch_lightning.utilities.seed import seed_everything
-from pytorch_lightning.distributed.dist import LightningDistributed
 
 if HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig
@@ -140,6 +145,8 @@ class DDPSpawnAccelerator(Accelerator):
 
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
+
+        self.trainer.convert_to_lightning_optimizers()
 
         # device ids change depending on the DDP setup
         device_ids = self.get_device_ids()

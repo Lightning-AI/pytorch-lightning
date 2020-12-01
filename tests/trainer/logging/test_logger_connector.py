@@ -15,17 +15,18 @@
 Tests to ensure that the training loop works with a dict (1.0)
 """
 import os
+from copy import deepcopy
 from unittest import mock
 
-import torch
 import pytest
-from copy import deepcopy
-from pytorch_lightning.trainer import Trainer
-from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore
-from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
+import torch
+
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.trainer import Trainer
+from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
+from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
+from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel, RandomDataset
 
@@ -68,13 +69,14 @@ def test__logger_connector__epoch_result_store__train(tmpdir):
             self.train_losses.append(loss)
 
             self.log("train_loss", loss, on_step=True, on_epoch=True)
+
             return {"loss": loss}
 
-        def on_train_epoch_end(self, outputs):
-            # save objects as it will be reset at the end of epoch.
+        def training_step_end(self, *_):
             self.train_results = deepcopy(self.trainer.logger_connector.cached_results)
 
     model = TestModel()
+    model.training_epoch_end = None
     model.val_dataloader = None
 
     trainer = Trainer(
@@ -144,11 +146,6 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
 
         @Helper.decorator_with_arguments(fx_name="training_step")
         def training_step(self, batch, batch_idx, hiddens):
-            try:
-                assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
-            except Exception as e:
-                print(e)
-
             self.test_hidden = torch.rand(1)
 
             x_tensor, y_list = batch
@@ -178,8 +175,7 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
                 sampler=None,
             )
 
-        def on_train_epoch_end(self, outputs):
-            # save objects as it will be reset at the end of epoch.
+        def training_step_end(self, *_):
             self.train_results = deepcopy(self.trainer.logger_connector.cached_results)
 
     model = TestModel()

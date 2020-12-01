@@ -14,7 +14,7 @@
 import io
 import os
 import re
-from typing import Optional, Union, Any
+from typing import Any, Optional, Union
 
 import torch
 import torch.multiprocessing as mp
@@ -23,7 +23,7 @@ from torch.optim import Optimizer
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn, TPU_AVAILABLE
+from pytorch_lightning.utilities import TPU_AVAILABLE, rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -229,6 +229,8 @@ class TPUAccelerator(Accelerator):
         log.info(f'INIT TPU local core: {trainer.tpu_local_core_rank},'
                  f' global rank: {trainer.tpu_global_core_rank}'
                  f' with XLA_USE_BF16={os.environ.get("XLA_USE_BF16")}')
+
+        self.trainer.convert_to_lightning_optimizers()
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         # do backward pass
