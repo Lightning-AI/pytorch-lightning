@@ -61,18 +61,17 @@ def _load_requirements(path_dir, file_name='requirements.txt', comment_char='#')
 
 
 def _parse_for_badge(text: str, path_badges: str = _PATH_BADGES, badge_names: list = _DEFAULT_BADGES):
-    """
-    Returns the new parsed text with url change with local downloaded files
+    """ Returns the new parsed text with url change with local downloaded files
 
     >>> _parse_for_badge('Some text here... '  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     ... '[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pytorch-lightning)]'
     ... '(https://pypi.org/project/pytorch-lightning/) and another text later')
     'Some text here...
-     [![PyPI - Python Version](here relative path)](https://pypi.org/project/pytorch-lightning/)
+     [![PyPI - Python Version](.../docs/source/_images/badges/PyPI_Python_Version_badge.png)](https://pypi.org/project/pytorch-lightning/)
      and another text later'
     """
     for line in text.split(os.linesep):
-        badge_name = re.search(r'^\[!\[(.*?)]', line)
+        badge_name = re.search(r'\[!\[(.*?)]', line)
 
         # check for the badge name
         if badge_name is not None:
