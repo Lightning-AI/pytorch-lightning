@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from enum import Enum
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 from typing import Any, Optional, Union
 
 import torch
@@ -29,6 +29,7 @@ import torch.distributed as torch_distrib
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
 else:
+
     class ReduceOp:
         SUM = None
 
@@ -122,8 +123,9 @@ class Accelerator(object):
         # native amp + lbfgs is a no go right now
         if using_native_amp and is_lbfgs:
             raise MisconfigurationException(
-                'native PyTorch amp and lbfgs are not compatible.'
-                ' To request, please file a Github issue in PyTorch and tag @mcarilli')
+                "native PyTorch amp and lbfgs are not compatible."
+                " To request, please file a Github issue in PyTorch and tag @mcarilli"
+            )
 
         # model hook
         model_ref.optimizer_step(
@@ -168,8 +170,9 @@ class Accelerator(object):
     def on_train_epoch_end(self, outputs):
         pass
 
+    @abstractmethod
     def on_train_end(self):
-        pass
+        raise NotImplementedError()
 
     def early_stopping_should_stop(self, pl_module):
         return self.trainer.should_stop
@@ -183,9 +186,7 @@ class Accelerator(object):
         self.trainer.lr_schedulers = lr_schedulers
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
-    def init_ddp_connection(
-            self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
-    ) -> None:
+    def init_ddp_connection(self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True) -> None:
         self.ddp_plugin.init_ddp_connection(
             self.trainer,
             self.cluster_environment,
@@ -194,10 +195,9 @@ class Accelerator(object):
             is_slurm_managing_tasks,
         )
 
-    def sync_tensor(self,
-                    tensor: Union[torch.Tensor],
-                    group: Optional[Any] = None,
-                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
+    def sync_tensor(
+        self, tensor: Union[torch.Tensor], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
+    ) -> torch.Tensor:
         """
         Function to reduce a tensor from several distributed processes to one aggregated tensor.
 
@@ -242,30 +242,30 @@ class Accelerator(object):
 
     def __getstate__(self):
         return {
-            'trainer': self.trainer,
-            'nickname': self.nickname,
-            'cluster_environment': self.cluster_environment,
-            'dist': self.dist,
-            'ddp_plugin': self.ddp_plugin
+            "trainer": self.trainer,
+            "nickname": self.nickname,
+            "cluster_environment": self.cluster_environment,
+            "dist": self.dist,
+            "ddp_plugin": self.ddp_plugin,
         }
 
     def __setstate__(self, d):
         assert isinstance(d, dict), f"Dict should be passed instead got {type(d)}"
-        self.trainer = d['trainer']
-        self.nickname = d['nickname']
-        self.cluster_environment = d['cluster_environment']
-        self.dist = d['dist']
-        self.ddp_plugin = d['ddp_plugin']
+        self.trainer = d["trainer"]
+        self.nickname = d["nickname"]
+        self.cluster_environment = d["cluster_environment"]
+        self.dist = d["dist"]
+        self.ddp_plugin = d["ddp_plugin"]
 
 
 # TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...
 class BackendType(Enum):
-    DP = 'dp'
-    DDP = 'ddp'
-    DDP2 = 'ddp2'
-    DDP_SPAWN = 'ddp_spawn'
+    DP = "dp"
+    DDP = "ddp"
+    DDP2 = "ddp2"
+    DDP_SPAWN = "ddp_spawn"
     # decuple distrib and device
-    DDP_CPU = 'ddp_cpu'
-    HOROVOD = 'horovod'
+    DDP_CPU = "ddp_cpu"
+    HOROVOD = "horovod"
     # this is rather device
-    TPU = 'tpu'
+    TPU = "tpu"
