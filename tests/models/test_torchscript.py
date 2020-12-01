@@ -90,6 +90,8 @@ def test_torchscript_input_output_trace():
 def test_torchscript_device(device):
     """ Test that scripted module is on the correct device. """
     model = BoringModel().to(device)
+    model.example_input_array = torch.randn(5, 32)
+
     script = model.to_torchscript()
     assert next(script.parameters()).device == device
     script_output = script(model.example_input_array.to(device))
