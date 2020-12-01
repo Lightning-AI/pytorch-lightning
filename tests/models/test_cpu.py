@@ -21,13 +21,13 @@ import torch
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.step_result import TrainResult
 from tests.base import EvalModelTemplate
 
 
-def test_cpu_slurm_save_load(tmpdir):
+@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
+def test_cpu_slurm_save_load(enable_pl_optimizer, tmpdir):
     """Verify model save/load/checkpoint on CPU."""
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
@@ -44,6 +44,7 @@ def test_cpu_slurm_save_load(tmpdir):
         limit_train_batches=0.2,
         limit_val_batches=0.2,
         checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
+        enable_pl_optimizer=enable_pl_optimizer,
     )
     result = trainer.fit(model)
     real_global_step = trainer.global_step
@@ -80,6 +81,7 @@ def test_cpu_slurm_save_load(tmpdir):
         max_epochs=1,
         logger=logger,
         checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
+        enable_pl_optimizer=enable_pl_optimizer,
     )
     model = EvalModelTemplate(**hparams)
 
@@ -99,7 +101,8 @@ def test_cpu_slurm_save_load(tmpdir):
     trainer.fit(model)
 
 
-def test_early_stopping_cpu_model(tmpdir):
+@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
+def test_early_stopping_cpu_model(enable_pl_optimizer, tmpdir):
     """Test each of the trainer options."""
     stopping = EarlyStopping(monitor='early_stop_on', min_delta=0.1)
     trainer_options = dict(
@@ -111,6 +114,7 @@ def test_early_stopping_cpu_model(tmpdir):
         track_grad_norm=2,
         limit_train_batches=0.1,
         limit_val_batches=0.1,
+        enable_pl_optimizer=enable_pl_optimizer,
     )
 
     model = EvalModelTemplate()
@@ -126,7 +130,8 @@ def test_early_stopping_cpu_model(tmpdir):
 @pytest.mark.skipif((platform.system() == "Darwin" and
                      LooseVersion(torch.__version__) < LooseVersion("1.3.0")),
                     reason="Distributed training is not supported on MacOS before Torch 1.3.0")
-def test_multi_cpu_model_ddp(tmpdir):
+@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
+def test_multi_cpu_model_ddp(enable_pl_optimizer, tmpdir):
     """Make sure DDP works."""
     tutils.set_random_master_port()
 
@@ -139,6 +144,7 @@ def test_multi_cpu_model_ddp(tmpdir):
         gpus=None,
         num_processes=2,
         distributed_backend='ddp_cpu',
+        enable_pl_optimizer=enable_pl_optimizer,
     )
 
     model = EvalModelTemplate()
@@ -278,7 +284,8 @@ def test_cpu_model(tmpdir):
     tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
-def test_all_features_cpu_model(tmpdir):
+@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
+def test_all_features_cpu_model(enable_pl_optimizer, tmpdir):
     """Test each of the trainer options."""
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -289,7 +296,8 @@ def test_all_features_cpu_model(tmpdir):
         accumulate_grad_batches=2,
         max_epochs=1,
         limit_train_batches=0.4,
-        limit_val_batches=0.4
+        limit_val_batches=0.4,
+        enable_pl_optimizer=enable_pl_optimizer,
     )
 
     model = EvalModelTemplate()
