@@ -69,6 +69,8 @@ def _parse_for_badge(text: str, path_badges: str = _PATH_BADGES, badge_names: li
     'Some text here...
      [![PyPI - Python Version](./docs/source/_images/badges/PyPI_Python_Version_badge.png)](https://pypi.org/project/pytorch-lightning/)
      and another text later'
+    >>> import shutil
+    >>> shutil.rmtree('./docs')
     """
     for line in text.split(os.linesep):
         badge_name = re.search(r'\[!\[(.*?)]', line)
@@ -157,7 +159,7 @@ def _load_long_description(path_dir):
     >>> _load_long_description(PROJECT_ROOT)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     '<div align="center">...'
     >>> import shutil
-    >>> shutil.rmtree(_PATH_BADGES)
+    >>> shutil.rmtree('./docs')
     """
     # https://github.com/PyTorchLightning/pytorch-lightning/raw/master/docs/source/_images/lightning_module/pt_to_pl.png
     url = os.path.join(__homepage__, 'raw', __version__, 'docs')
