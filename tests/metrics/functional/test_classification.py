@@ -20,6 +20,8 @@ from pytorch_lightning.metrics.functional.classification import (
     multiclass_auroc,
     auc,
     iou,
+    object_detection_mean_average_precision,
+    object_detection_iou
 )
 from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve
 from pytorch_lightning.metrics.utils import to_onehot, get_num_classes, to_categorical
@@ -260,6 +262,21 @@ def test_multiclass_auroc_against_sklearn(n_cls):
 def test_auc(x, y, expected):
     # Test Area Under Curve (AUC) computation
     assert auc(torch.tensor(x), torch.tensor(y)) == expected
+
+
+def test_object_detection_mean_average_precision(pred, target, iou_threshold, num_classes):
+    assert True
+
+
+@pytest.mark.parametrize(
+    ['pred_bbox', 'target_bbox', 'expected'],
+    [
+        pytest.param(torch.tensor([[100, 100, 200, 200]]), torch.tensor([[100, 100, 200, 200]]), 1.),
+        pytest.param(torch.tensor([[100, 100, 150, 150]]), torch.tensor([[100, 100, 200, 200]]), 0.25),
+    ]
+)
+def test_object_detection_iou(pred_bbox, target_bbox, expected):
+    assert object_detection_iou(pred_bbox, target_bbox) == expected
 
 
 @pytest.mark.parametrize(['pred', 'target', 'expected'], [
