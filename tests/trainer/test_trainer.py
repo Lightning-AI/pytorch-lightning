@@ -958,6 +958,7 @@ def test_gradient_clipping(tmpdir):
     """
     Test gradient clipping
     """
+    tutils.reset_seed()
 
     model = EvalModelTemplate()
 
@@ -995,6 +996,7 @@ def test_gradient_clipping_fp16(tmpdir):
     """
     Test gradient clipping with fp16
     """
+    tutils.reset_seed()
 
     model = EvalModelTemplate()
 
