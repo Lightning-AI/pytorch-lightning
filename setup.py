@@ -31,7 +31,6 @@ builtins.__LIGHTNING_SETUP__ = True
 import pytorch_lightning  # noqa: E402
 from pytorch_lightning.setup_tools import _load_long_description, _load_requirements  # noqa: E402
 
-
 # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
 # Define package extras. These are only installed if you specify them.
 # From remote, use like `pip install pytorch-lightning[dev, docs]`
