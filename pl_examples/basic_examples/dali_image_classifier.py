@@ -180,13 +180,16 @@ def cli_main():
     eii_test = ExternalMNISTInputIterator(mnist_test, args.batch_size)
 
     pipe_train = ExternalSourcePipeline(batch_size=args.batch_size, eii=eii_train, num_threads=2, device_id=0)
-    train_loader = DALIClassificationLoader(pipe_train, size=len(mnist_train), auto_reset=True, last_batch_policy=LastBatchPolicy.FILL)
+    train_loader = DALIClassificationLoader(pipe_train, size=len(mnist_train), auto_reset=True,
+                                            last_batch_policy=LastBatchPolicy.FILL)
 
     pipe_val = ExternalSourcePipeline(batch_size=args.batch_size, eii=eii_val, num_threads=2, device_id=0)
-    val_loader = DALIClassificationLoader(pipe_val, size=len(mnist_val), auto_reset=True, last_batch_policy=LastBatchPolicy.DROP)
+    val_loader = DALIClassificationLoader(pipe_val, size=len(mnist_val), auto_reset=True,
+                                          last_batch_policy=LastBatchPolicy.DROP)
 
     pipe_test = ExternalSourcePipeline(batch_size=args.batch_size, eii=eii_test, num_threads=2, device_id=0)
-    test_loader = DALIClassificationLoader(pipe_test, size=len(mnist_test), auto_reset=True, last_batch_policy=LastBatchPolicy.DROP)
+    test_loader = DALIClassificationLoader(pipe_test, size=len(mnist_test), auto_reset=True,
+                                           last_batch_policy=LastBatchPolicy.DROP)
 
     # ------------
     # model
