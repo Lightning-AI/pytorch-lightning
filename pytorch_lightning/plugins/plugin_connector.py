@@ -129,8 +129,9 @@ class PluginConnector:
     def _add_required_plugin_combinations(self,
                                           plugins: List[Union[DDPPlugin, PrecisionPlugin, ClusterEnvironment]]):
         """
-            Allows custom plugins to define additional plugins. This is useful for when custom plugins
-            need to enforce override of native amp/apex when they are enabled.
+        Allows custom plugins to define additional plugins. This is useful for when custom plugins
+        need to enforce override of native amp/apex when they are enabled.
+
         Args:
             plugins: List of plugins
 
