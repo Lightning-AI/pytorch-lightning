@@ -36,7 +36,8 @@ jobs:
 
     - name: Update Pip
       run: |
-        pip install --quiet "pip>=20.1" --upgrade --user  # needed for get pip cacher folder
+        # todo: unfreeze PIP after resolving minimal dependencies
+        pip install --quiet "pip==20.1" --upgrade --user  # needed for get pip cacher folder
 
     # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
     - name: Setup macOS
@@ -56,14 +57,19 @@ jobs:
       if: runner.os == 'macOS' && matrix.requires == 'minimal'
       run : |
         python -c "fname = 'requirements.txt' ; req = open(fname).read().replace('torch>=1.3', 'torch>=1.4') ; open(fname, 'w').write(req)"
+        python -c "fname = 'requirements/examples.txt' ; req = open(fname).read().replace('torchvision>=0.4.1', 'torchvision>=0.5.0') ; open(fname, 'w').write(req)"
+        python -c "fname = 'requirements/extra.txt' ; req = open(fname).read().replace('torchtext>=0.3.1', 'torchtext>=0.5.0') ; open(fname, 'w').write(req)"
 
     - name: Set min. dependencies
       if: matrix.requires == 'minimal'
       run: |
         python -c "fname = 'requirements.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
         python -c "fname = 'requirements/extra.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
+        python -c "fname = 'requirements/loggers.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
         python -c "fname = 'requirements/test.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
         python -c "fname = 'requirements/examples.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
+        # remove Fairscale from requirements
+        python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)"
 
     # Note: This uses an internal pip API and may not always work
     # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
