@@ -1,6 +1,6 @@
 # the default package dependencies
 
-numpy>=1.16.4
+numpy>=1.16.6
 torch>=1.3
 future>=0.17.1  # required for builtins in setup.py
 # pyyaml>=3.13
