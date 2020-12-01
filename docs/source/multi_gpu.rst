@@ -658,14 +658,14 @@ The technique can be found within `DeepSpeed ZeRO <https://arxiv.org/abs/1910.02
 however the implementation is built from the ground up to be pytorch compatible and standalone.
 
 Optimizer Sharded Training still utilizes Data Parallel Training under the hood, except optimizer state and gradients are sharded across GPUs.
-This means the memory overhead per GPU is less, as each GPU only has to maintain a section of your optimizer state and gradients.
+This means the memory overhead per GPU is lower, as each GPU only has to maintain a section of your optimizer state and gradients.
 
 The benefits are variable by model, but we've recorded up to a 25% memory reduction per GPU. Because of extremely efficient communication,
 these benefits in multi-GPU setups are almost free and throughput scales well with multi-node setups.
 
 It is highly recommended to use Optimizer Sharded Training in multi-GPU environments where memory is limited or where training larger models are beneficial.
 
-Before running, install Fairscale using the command below or install all extras using ``pip install pytorch-lightning["extra"]``.
+To use Optimizer Sharded Training, you need to first install Fairscale using the command below or install all extras using ``pip install pytorch-lightning["extra"]``.
 
 .. code-block:: bash
 
