@@ -658,8 +658,12 @@ class Trainer(
     def run_test(self):
         # only load test dataloader for testing
         # self.reset_test_dataloader(ref_model)
-        with self.profiler.profile("run_test_evaluation"):
-            eval_loop_results, _ = self.run_evaluation(test_mode=True)
+        if self.evaluating == 'test':
+            with self.profiler.profile("run_test_evaluation"):
+                eval_loop_results, _ = self.run_evaluation(test_mode=True)
+        else:
+            with self.profiler.profile("run_validate_evaluation"):
+                eval_loop_results, _ = self.run_evaluation(test_mode=False)
 
         if len(eval_loop_results) == 0:
             return 1
@@ -706,6 +710,56 @@ class Trainer(
 
             self.on_sanity_check_end()
             self.running_sanity_check = False
+
+    def validate(
+        self,
+        model: Optional[LightningModule] = None,
+        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        ckpt_path: Optional[str] = 'best',
+        verbose: bool = True,
+        datamodule: Optional[LightningDataModule] = None,
+    ):
+        r"""
+        Perform one evaluation epoch over the validation set.
+
+        Args:
+            ckpt_path: Either ``best`` or path to the checkpoint you wish to validate.
+                If ``None``, use the current weights of the model. Default to ``best``.
+            datamodule: A instance of :class:`LightningDataModule`.
+            model: The model to evaluate.
+            val_dataloaders: Either a single PyTorch DataLoader or a list of them,
+                specifying validation samples.
+            verbose: If True, prints the validation results.
+
+        Returns:
+            The dictionary with final validation results returned by validation_epoch_end.
+            If validation_epoch_end is not defined, the output is a list of the dictionaries
+            returned by validation_step.
+        """
+        # --------------------
+        # SETUP HOOK
+        # --------------------
+        self.verbose_evaluate = verbose
+
+        self.logger_connector.set_stage("validation")
+
+        # If you supply a datamodule you can't supply val_dataloaders
+        if val_dataloaders and datamodule:
+            raise MisconfigurationException(
+                'You cannot pass val_dataloaders to trainer.validate if you supply a datamodule'
+            )
+
+        # Attach datamodule to get setup/prepare_data added to model before the call to it below
+        self.data_connector.attach_datamodule(model or self.get_model(), datamodule, 'validation')
+
+        if model is not None:
+            results = self.__evaluate_given_model(model, val_dataloaders, 'validation')
+        else:
+            results = self.__evaluate_using_best_weights(ckpt_path, val_dataloaders, 'validation')
+
+        self.teardown('validation')
+
+        return results
 
     def test(
         self,
@@ -758,7 +812,7 @@ class Trainer(
 
         return results
 
-    def __evaluate_using_best_weights(self, ckpt_path, test_dataloaders, stage: str):
+    def __evaluate_using_best_weights(self, ckpt_path, dataloaders, stage: str):
         model = self.get_model()
 
         # if user requests the best checkpoint but we don't have it, error
@@ -786,8 +840,9 @@ class Trainer(
             model.load_state_dict(ckpt['state_dict'])
 
         # attach dataloaders
-        if test_dataloaders is not None:
-            self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
+        if dataloaders is not None:
+            kwargs = {'test_dataloaders' if stage == 'test' else 'val_dataloaders': dataloaders}
+            self.data_connector.attach_dataloaders(model, **kwargs)
 
         # run tests
         self.evaluating = stage
@@ -803,11 +858,12 @@ class Trainer(
 
         return results
 
-    def __evaluate_given_model(self, model, test_dataloaders, stage: str):
+    def __evaluate_given_model(self, model, dataloaders, stage: str):
 
         # attach data
-        if test_dataloaders is not None:
-            self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
+        if dataloaders is not None:
+            kwargs = {'test_dataloaders' if stage == 'test' else 'val_dataloaders': dataloaders}
+            self.data_connector.attach_dataloaders(model, **kwargs)
 
         # run test
         # sets up testing so we short circuit to eval
@@ -871,6 +927,7 @@ class Trainer(
         if self.datamodule is not None:
             called = {
                 None: self.datamodule.has_setup_fit,
+                'validation': self.datamodule.has_setup_validation,
                 'test': self.datamodule.has_setup_test,
             }[self.evaluating]
 

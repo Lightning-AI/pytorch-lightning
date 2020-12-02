@@ -33,7 +33,7 @@ class TrialMNISTDataModule(LightningDataModule):
 
     def setup(self, stage: Optional[str] = None):
 
-        if stage == "fit" or stage is None:
+        if stage != 'test':
             mnist_full = TrialMNIST(
                 root=self.data_dir, train=True, num_samples=64, download=True
             )
@@ -88,7 +88,7 @@ class MNISTDataModule(LightningDataModule):
 
         # Assign train/val datasets for use in dataloaders
         # TODO: need to split using random_split once updated to torch >= 1.6
-        if stage == "fit" or stage is None:
+        if stage != 'test':
             self.mnist_train = MNIST(
                 self.data_dir, train=True, normalize=(0.1307, 0.3081)
             )

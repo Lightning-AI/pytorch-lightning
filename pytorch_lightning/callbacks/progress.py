@@ -282,9 +282,13 @@ class ProgressBar(ProgressBarBase):
 
     def init_validation_tqdm(self) -> tqdm:
         """ Override this to customize the tqdm bar for validation. """
+
+        # The main progress bar doesn't exist in trainer.validate(...)
+        has_main_bar = int(self.main_progress_bar is not None)
+
         bar = tqdm(
             desc='Validating',
-            position=(2 * self.process_position + 1),
+            position=(2 * self.process_position + has_main_bar),
             disable=self.is_disabled,
             leave=False,
             dynamic_ncols=True,
@@ -341,7 +345,10 @@ class ProgressBar(ProgressBarBase):
     def on_validation_start(self, trainer, pl_module):
         super().on_validation_start(trainer, pl_module)
         if not trainer.running_sanity_check:
-            self._update_bar(self.main_progress_bar)  # fill up remaining
+            # The main progress bar doesn't exist in trainer.validate(...)
+            if self.main_progress_bar is not None:
+                self._update_bar(self.main_progress_bar)  # fill up remaining
+
             self.val_progress_bar = self.init_validation_tqdm()
             self.val_progress_bar.total = convert_inf(self.total_val_batches)
 
@@ -349,11 +356,18 @@ class ProgressBar(ProgressBarBase):
         super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         if self._should_update(self.val_batch_idx, self.total_val_batches):
             self._update_bar(self.val_progress_bar)
-            self._update_bar(self.main_progress_bar)
+
+            # The main progress bar doesn't exist in trainer.validate(...)
+            if self.main_progress_bar is not None:
+                self._update_bar(self.main_progress_bar)
 
     def on_validation_end(self, trainer, pl_module):
         super().on_validation_end(trainer, pl_module)
-        self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
+
+        # The main progress bar doesn't exist in trainer.validate(...)
+        if self.main_progress_bar is not None:
+            self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
+
         self.val_progress_bar.close()
 
     def on_train_end(self, trainer, pl_module):
