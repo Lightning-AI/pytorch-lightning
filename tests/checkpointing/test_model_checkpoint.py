@@ -1004,7 +1004,7 @@ def test_hparams_type(tmpdir, hparams_type):
     'save_top_k, expected',
     [
         (1, ['curr_epoch.ckpt']),
-        (2, ['curr_epoch-v0.ckpt', 'curr_epoch-v1.ckpt']),
+        (2, ['curr_epoch.ckpt', 'curr_epoch-v0.ckpt']),
     ]
 )
 def test_model_checkpoint_file_already_exists(tmpdir, max_epochs, save_top_k, expected):
@@ -1037,6 +1037,3 @@ def test_model_checkpoint_file_already_exists(tmpdir, max_epochs, save_top_k, ex
     trainer.fit(model)
     ckpt_files = os.listdir(tmpdir)
     assert set(ckpt_files) == set(expected)
-
-    expected_epoch_in_files = sorted([pl_load(os.path.join(tmpdir, f))['epoch'] - 1 for f in ckpt_files])
-    assert expected_epoch_in_files == sorted(list(range(max_epochs))[-save_top_k:])
