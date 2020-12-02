@@ -3,10 +3,10 @@ import time
 from pathlib import Path
 
 import numpy as np
-import torch
 import pytest
+import torch
 
-from pytorch_lightning.profiler import AdvancedProfiler, SimpleProfiler, AutogradProfiler
+from pytorch_lightning.profiler import AdvancedProfiler, AutogradProfiler, SimpleProfiler
 
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
 

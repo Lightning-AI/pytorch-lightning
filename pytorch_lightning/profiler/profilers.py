@@ -295,26 +295,26 @@ class AutogradProfiler(BaseProfiler):
     the forward and backward pass of your neural network.
     """
 
-    def __init__(self,
-                 output_filename: str = None,
-                 profile_memory: bool = True,
-                 use_cuda: bool = False,
-                 row_limit: int = 0,
-                 group_by_input_shapes: bool = False
-                 ):
+    def __init__(
+        self,
+        output_filename: str = None,
+        profile_memory: bool = True,
+        use_cuda: bool = False,
+        row_limit: int = 50,
+        group_by_input_shapes: bool = False
+    ):
         """
         Args:
             output_filename: optionally save profile results to file instead of printing
                 to std out when training is finished.
             profile_memory: Record memory usage.
             use_cuda: Measure execution time of CUDA kernels.
-            row_limit: Optional limit to number of rows in table.
+            row_limit: Limit the number of rows in a table, `0` is a special value that
+                removes the limit completely.
             group_by_input_shapes: Include operator input shapes and group calls by shape.
         """
         self.profile_memory = profile_memory
         self.group_by_input_shapes = group_by_input_shapes
-        self.use_cuda = use_cuda
-        self.row_limit = row_limit
         self.use_cuda = use_cuda
         self.row_limit = row_limit
         self.profiled_actions = {}
@@ -342,10 +342,10 @@ class AutogradProfiler(BaseProfiler):
                 f"Attempting to stop recording an action ({action_name}) which was never started."
             )
         prof.__exit__(
-                exc_type=None,
-                exc_val=None,
-                exc_tb=None
-            )
+            exc_type=None,
+            exc_val=None,
+            exc_tb=None
+        )
         del self.profilers[action_name]
 
         events = prof.function_events
