@@ -173,10 +173,6 @@ class PipePlugin(DDPPlugin):
     def broadcast_and_barrier_supported(self):
         return True
 
-    @property
-    def use_optimizer_step(self):
-        return False
-
     def _infering_balance_from_example_input_array(self, trainer):
         model = trainer.get_model()
         if not hasattr(model, "layers") or not isinstance(model.layers, nn.Sequential):

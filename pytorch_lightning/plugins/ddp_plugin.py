@@ -50,7 +50,7 @@ class DDPPlugin(LightningPlugin):
         return True
 
     @property
-    def use_optimizer_step(self):
+    def using_rpc(self):
         return False
 
     def configure_ddp(

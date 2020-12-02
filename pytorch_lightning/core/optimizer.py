@@ -224,7 +224,7 @@ class LightningOptimizer:
                         break
 
             ddp_plugin = trainer.accelerator_backend.ddp_plugin
-            if ddp_plugin is not None and ddp_plugin.use_optimizer_step:
+            if ddp_plugin is not None and ddp_plugin.using_rpc:
                 if not self._in_foreach_worker and trainer.is_master:
                     self._in_foreach_worker = True
                     self._closure = closure

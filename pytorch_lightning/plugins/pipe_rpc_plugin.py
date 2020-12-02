@@ -62,6 +62,23 @@ def run_optimizer(ctx, model):
     optimizer.step(closure=closure)
 
 
+def save(ctx, model):
+    rank = torch_distrib.get_rank()
+    seq = list(model.children())[0]
+    torch.save(seq, f"seq_{rank}.pt")
+
+
+def reload_sequential():
+    partial_seqs = [torch.load(f"seq_{rank}.pt") for rank in range(2)]
+    seq = nn.Sequential()
+    for p_seq in partial_seqs:
+        for name, child in p_seq.named_children():
+            seq.add_module(name, child)
+    # delete tmp files
+    [os.remove(f"seq_{rank}.pt") for rank in range(2)]
+    return seq
+
+
 class PipeRpcPlugin(DDPPlugin):
     def __init__(self,
                  balance: Optional[List[int]] = None,
@@ -86,7 +103,7 @@ class PipeRpcPlugin(DDPPlugin):
         return self._broadcast_and_barrier_supported
 
     @property
-    def use_optimizer_step(self):
+    def using_rpc(self):
         return True
 
     def _infering_balance_from_example_input_array(self, trainer):
@@ -135,6 +152,9 @@ class PipeRpcPlugin(DDPPlugin):
             world_size: int,
             is_slurm_managing_tasks: bool = True,
     ) -> None:
+
+        if torch_distrib.is_initialized():
+            return
 
         self._infering_balance_from_example_input_array(trainer)
 
@@ -194,5 +214,19 @@ class PipeRpcPlugin(DDPPlugin):
         model = self.trainer.get_model()
         if not automatic_optimization:
             model.foreach_worker(run_optimizer, {"opt_idx": opt_idx}, include_self=True)
+        else:
+            raise NotImplementedError
+
+    def _save_model(self, checkpoint_save_model, last_filepath, trainer, pl_module):
+        automatic_optimization = self.trainer.train_loop.automatic_optimization
+        model = self.trainer.get_model()
+        if not automatic_optimization:
+            if hasattr(model, "foreach_worker"):
+                model.foreach_worker(save, None, include_self=True)
+                device = pl_module.device
+                current_layers = pl_module.layers.cpu()
+                pl_module.layers = reload_sequential()
+                checkpoint_save_model(last_filepath, trainer, pl_module)
+                pl_module.layers = current_layers.to(device)
         else:
             raise NotImplementedError

@@ -15,6 +15,7 @@ import math
 from argparse import ArgumentParser
 
 import torch
+import torch.distributed as torch_distrib
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
@@ -22,7 +23,7 @@ from torch import optim
 
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import LearningRateMonitor
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.metrics.functional import accuracy
 from pytorch_lightning.plugins.pipe_plugin import FAIRSCALE_AVAILABLE, PipePlugin
 from pytorch_lightning.plugins.pipe_rpc_plugin import PipeRpcPlugin
@@ -217,13 +218,20 @@ def run(args):
         max_epochs=2,
         gpus=gpus,
         logger=pl.loggers.TensorBoardLogger('lightning_logs/', name='resnet'),
-        callbacks=[LearningRateMonitor(logging_interval='step')],
+        callbacks=[LearningRateMonitor(logging_interval='step'),
+                   ModelCheckpoint(filename='{epoch:03d}', save_last=True)],
         accelerator=accelerator,
         plugins=plugins,
+        limit_train_batches=2,
+        limit_val_batches=2,
         automatic_optimization=not args.use_pipe,
     )
     trainer.fit(model, cifar10_dm)
     trainer.test(model, datamodule=cifar10_dm)
+
+    if args.use_pipe:
+        if torch_distrib.get_rank() == 0:
+            torch.distributed.rpc.shutdown()
 
 
 if __name__ == "__main__":

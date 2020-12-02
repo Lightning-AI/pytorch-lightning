@@ -104,7 +104,7 @@ class Accelerator(object):
         automatic_optimization = self.trainer.train_loop.automatic_optimization
         using_native_amp = self.trainer.amp_backend == AMPType.NATIVE
 
-        if self.ddp_plugin is not None and self.ddp_plugin.use_optimizer_step:
+        if self.ddp_plugin is not None and self.ddp_plugin.using_rpc:
             on_tpu = False
             self.ddp_plugin.optimizer_step(optimizer, batch_idx, opt_idx, lambda_closure, on_tpu, *args, **kwargs)
         else:
