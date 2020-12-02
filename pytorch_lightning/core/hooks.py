@@ -26,12 +26,12 @@ class ModelHooks:
     """Hooks to be used in LightningModule."""
     def setup(self, stage: str):
         """
-        Called at the beginning of fit and test.
+        Called at the beginning of fit (training + validation), validation, and test.
         This is a good hook when you need to build models dynamically or adjust something about them.
         This hook is called on every process when using DDP.
 
         Args:
-            stage: either 'fit' or 'test'
+            stage: either 'fit', 'validation', or 'test'
 
         Example::
 
@@ -54,10 +54,10 @@ class ModelHooks:
 
     def teardown(self, stage: str):
         """
-        Called at the end of fit and test.
+        Called at the end of fit (training + validation), validation, and test.
 
         Args:
-            stage: either 'fit' or 'test'
+            stage: either 'fit', 'validation', or 'test'
         """
 
     def on_fit_start(self):

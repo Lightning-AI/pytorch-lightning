@@ -148,6 +148,19 @@ So you can run it like so:
 
 ------------
 
+Validation
+----------
+You can perform an evaluation epoch over the validation set, outside of the training loop,
+using :meth:`pytorch_lightning.trainer.trainer.Trainer.validate`. This might be
+useful if you want to collect new metrics from a model right at its initialization
+or that has already been trained.
+
+.. code-block:: python
+
+    trainer.validate(val_dataloaders=val_dataloaders)
+
+------------
+
 Testing
 -------
 Once you're done training, feel free to run the test set!
@@ -155,7 +168,7 @@ Once you're done training, feel free to run the test set!
 
 .. code-block:: python
 
-    trainer.test(test_dataloader=test_dataloader)
+    trainer.test(test_dataloaders=test_dataloaders)
 
 ------------
 
