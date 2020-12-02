@@ -31,6 +31,8 @@ pytorch_lightning/accelerators/*              @williamfalcon @tchaton @SeanNaren
 .github/CODEOWNERS   @williamfalcon
 # main
 README.md            @williamfalcon
+# installation
+setup.py             @borda @williamfalcon
 
 # CI/CD
 .github/*.yml        @borda @tchaton
@@ -43,4 +45,3 @@ dockers/*            @borda @tchaton
 docs/*               @edenlightning @tchaton @borda @awaelchli
 .github/*.md         @edenlightning @borda @tchaton
 docs/source/conf.py  @borda @awaelchli
-
