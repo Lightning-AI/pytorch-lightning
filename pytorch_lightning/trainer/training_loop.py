@@ -564,7 +564,7 @@ class TrainLoop:
             # -----------------------------------------
             # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
             # -----------------------------------------
-            should_check_val = self.should_check_val_fx(batch_idx, is_last_batch)
+            should_check_val = self.should_check_val_fx(self.trainer.total_batch_idx, is_last_batch)
             if should_check_val:
                 self.trainer.run_evaluation(test_mode=False)
                 # reset stage to train
@@ -841,9 +841,9 @@ class TrainLoop:
         is_final_batch = self._num_training_batches_reached()
         return not (accumulation_done or is_final_batch)
 
-    def should_check_val_fx(self, batch_idx, is_last_batch):
+    def should_check_val_fx(self, total_batch_idx, is_last_batch):
         # decide if we should run validation
-        is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
+        is_val_check_batch = (total_batch_idx + 1) % self.trainer.val_check_batch == 0
         is_val_check_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
         can_check_val = self.trainer.enable_validation and is_val_check_epoch
         should_check_val = is_val_check_batch or self.trainer.should_stop

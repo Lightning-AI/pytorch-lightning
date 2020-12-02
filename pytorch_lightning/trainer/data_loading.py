@@ -194,11 +194,6 @@ class TrainerDataLoadingMixin(ABC):
         # otherwise, it checks in [0, 1.0] % range of a training epoch
         if isinstance(self.val_check_interval, int):
             self.val_check_batch = self.val_check_interval
-            if self.val_check_batch > self.num_training_batches:
-                raise ValueError(
-                    f'`val_check_interval` ({self.val_check_interval}) must be less than or equal '
-                    f'to the number of the training batches ({self.num_training_batches}). '
-                    'If you want to disable validation set `limit_val_batches` to 0.0 instead.')
         else:
             if not has_len(self.train_dataloader):
                 if self.val_check_interval == 1.0:
