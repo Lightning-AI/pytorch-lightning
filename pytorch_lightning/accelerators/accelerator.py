@@ -241,6 +241,9 @@ class Accelerator(object):
         self.dist = d['dist']
         self.ddp_plugin = d['ddp_plugin']
 
+    def on_save(self, checkpoint):
+        return checkpoint
+
 
 # TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...
 class BackendType(Enum):
