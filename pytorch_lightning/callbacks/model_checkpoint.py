@@ -523,10 +523,6 @@ class ModelCheckpoint(Callback):
         if not should_save_last:
             return
 
-        last_filepath = self._get_metric_interpolated_filepath_name(
-            ckpt_name_metrics, trainer.current_epoch, trainer.global_step
-        )
-
         # when user ALSO asked for the 'last.ckpt' change the name
         if self.save_last:
             last_filepath = self._format_checkpoint_name(
@@ -537,6 +533,10 @@ class ModelCheckpoint(Callback):
                 prefix=self.prefix
             )
             last_filepath = os.path.join(self.dirpath, f"{last_filepath}.ckpt")
+        else:
+            last_filepath = self._get_metric_interpolated_filepath_name(
+                ckpt_name_metrics, trainer.current_epoch, trainer.global_step
+            )
 
         self._save_model(last_filepath, trainer, pl_module)
         if (

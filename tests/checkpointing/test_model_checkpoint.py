@@ -1037,3 +1037,6 @@ def test_model_checkpoint_file_already_exists(tmpdir, max_epochs, save_top_k, ex
     trainer.fit(model)
     ckpt_files = os.listdir(tmpdir)
     assert set(ckpt_files) == set(expected)
+
+    epochs_in_ckpt_files = [pl_load(os.path.join(tmpdir, f))['epoch'] - 1 for f in ckpt_files]
+    assert sorted(epochs_in_ckpt_files) == list(range(max_epochs - save_top_k, max_epochs))
