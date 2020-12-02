@@ -1,4 +1,4 @@
-coverage>=5.0
+coverage>5.0
 codecov>=2.1
 pytest>=5.0
 # pytest-cov
