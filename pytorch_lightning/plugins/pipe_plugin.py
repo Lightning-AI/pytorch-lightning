@@ -30,7 +30,7 @@ FAIRSCALE_AVAILABLE &= LooseVersion(torch.__version__) == LooseVersion("1.6.0")
 
 if FAIRSCALE_AVAILABLE:
     import fairscale.nn.model_parallel as mpu
-    from fairscale.nn import Pipe
+    from fairscale.nn import LazyModule, Pipe
     from fairscale.nn.model_parallel.utils import ensure_divisibility
     from fairscale.nn.pipe import balance as pipe_balance
     from fairscale.nn.pipe.pipeline import PipelineStyle
@@ -40,6 +40,10 @@ if FAIRSCALE_AVAILABLE:
 def get_worker_map():
     # TODO, is this correct with multinodes?
     return {rank: f"worker{rank}" for rank in range(torch_distrib.get_world_size())}
+
+
+def to_lazy(layer):
+    return LazyModule(lambda: layer)
 
 
 class LightningPipeModule(nn.Module):
@@ -69,16 +73,19 @@ class LightningPipeModule(nn.Module):
                  balance: List[int],
                  microbatches: int = 8,
                  checkpoint='never',
+                 enable_lazy_module=True,
                  pipe_cls=None):
         super().__init__()
         self.module = module
         self.balance = balance
         self.microbatches = microbatches
         self.checkpoint = checkpoint
+        self.enable_lazy_module = enable_lazy_module
         self._init_pipe(pipe_cls)
 
     def _init_pipe(self, pipe_cls):
         device = torch.device("cuda", torch_distrib.get_rank())
+
         self.module = pipe_cls(
             module=self.module,
             balance=self.balance,
@@ -88,6 +95,9 @@ class LightningPipeModule(nn.Module):
             worker_map=get_worker_map(),
             checkpoint=self.checkpoint,
         )
+
+        # del self.module.model.mp_partitions
+        # torch.cuda.empty_cache()
 
     def forward(self, *args, **kwargs):
         x = self.module(*args, **kwargs)

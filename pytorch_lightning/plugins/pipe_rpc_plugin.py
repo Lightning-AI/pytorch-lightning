@@ -24,7 +24,7 @@ FAIRSCALE_AVAILABLE &= LooseVersion(torch.__version__) == LooseVersion("1.6.0")
 
 if FAIRSCALE_AVAILABLE:
     import fairscale.nn.model_parallel as mpu
-    from fairscale.nn import PipeRPCWrapper
+    from fairscale.nn import LazyModule, PipeRPCWrapper
     from fairscale.nn.model_parallel.utils import ensure_divisibility
     from fairscale.nn.pipe import balance as pipe_balance
     from fairscale.nn.pipe import rpc as rpc_pipe
@@ -79,6 +79,17 @@ def reload_sequential():
     return seq
 
 
+def to_lazy(layer):
+    return LazyModule(lambda: layer)
+
+
+def convert_to_lazy_module(ctx, model):
+    enable_lazy_module = ctx['enable_lazy_module']
+    if False:
+        for idx, (name, module) in enumerate(model._modules.items()):
+            model._modules[idx] = to_lazy(module)
+
+
 class PipeRpcPlugin(DDPPlugin):
     def __init__(self,
                  balance: Optional[List[int]] = None,
@@ -87,6 +98,7 @@ class PipeRpcPlugin(DDPPlugin):
                  checkpoint: str = 'except_last',
                  balance_mode: str = "balance_by_size",
                  pipelined_backward: Optional[bool] = True,
+                 enable_lazy_module: bool = True,
                  **kwargs):
         super().__init__(**kwargs)
 
@@ -96,6 +108,7 @@ class PipeRpcPlugin(DDPPlugin):
         self.checkpoint = checkpoint
         self.balance_mode = balance_mode
         self.pipelined_backward = pipelined_backward
+        self.enable_lazy_module = enable_lazy_module
 
     @property
     def broadcast_and_barrier_supported(self):
@@ -199,6 +212,7 @@ class PipeRpcPlugin(DDPPlugin):
         self._find_pipe_module(model)
         torch_distrib.barrier()
         model.foreach_worker(register_optimizers, include_self=True)
+        model.foreach_worker(convert_to_lazy_module, {"enable_lazy_module": self.enable_lazy_module}, include_self=True)
         trainer.is_master = True
 
     def configure_ddp(
@@ -222,9 +236,9 @@ class PipeRpcPlugin(DDPPlugin):
         model = self.trainer.get_model()
         if not automatic_optimization:
             if hasattr(model, "foreach_worker"):
-                model.foreach_worker(save, None, include_self=True)
                 device = pl_module.device
                 current_layers = pl_module.layers.cpu()
+                model.foreach_worker(save, None, include_self=True)
                 pl_module.layers = reload_sequential()
                 checkpoint_save_model(last_filepath, trainer, pl_module)
                 pl_module.layers = current_layers.to(device)

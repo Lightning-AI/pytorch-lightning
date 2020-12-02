@@ -532,7 +532,9 @@ class ModelCheckpoint(Callback):
             )
             last_filepath = os.path.join(self.dirpath, f"{last_filepath}.ckpt")
 
-        ddp_plugin = trainer.accelerator_backend.ddp_plugin
+        accelerator_backend = trainer.accelerator_backend
+
+        ddp_plugin = accelerator_backend.ddp_plugin if accelerator_backend is not None else None
         if ddp_plugin is not None and ddp_plugin.using_rpc:
             ddp_plugin._save_model(self._save_model, last_filepath, trainer, pl_module)
         else:
