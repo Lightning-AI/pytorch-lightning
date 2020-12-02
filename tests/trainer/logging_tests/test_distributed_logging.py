@@ -33,7 +33,6 @@ class TestModel(BoringModel):
             assert logged_times == expected, msg
 
 
-# Todo: fix hanging test
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 def test_global_zero_only_logging_ddp_cpu(tmpdir):
     """
