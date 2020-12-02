@@ -23,12 +23,16 @@ class StateSnapshotCallback(Callback):
 
     def __init__(self, snapshot_method: str):
         super().__init__()
-        assert snapshot_method in ['on_batch_start', 'on_test_batch_start']
+        assert snapshot_method in ['on_batch_start', 'on_validation_batch_start', 'on_test_batch_start']
         self.snapshot_method = snapshot_method
         self.trainer_state = None
 
     def on_batch_start(self, trainer, pl_module):
         if self.snapshot_method == 'on_batch_start':
+            self.trainer_state = trainer.state
+
+    def on_validation_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+        if self.snapshot_method == 'on_validation_batch_start':
             self.trainer_state = trainer.state
 
     def on_test_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
@@ -187,6 +191,40 @@ def test_finished_state_after_test(tmpdir):
     )
 
     trainer.test(model)
+
+    assert trainer.state == TrainerState.FINISHED
+
+
+def test_running_state_during_validation(tmpdir):
+    """ Tests that state is set to RUNNING during test """
+
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = EvalModelTemplate(**hparams)
+
+    snapshot_callback = StateSnapshotCallback(snapshot_method='on_validation_batch_start')
+
+    trainer = Trainer(
+        callbacks=[snapshot_callback],
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+    )
+
+    trainer.validate(model)
+
+    assert snapshot_callback.trainer_state == TrainerState.RUNNING
+
+
+def test_finished_state_after_validation(tmpdir):
+    """ Tests that state is FINISHED after fit """
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = EvalModelTemplate(**hparams)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+    )
+
+    trainer.validate(model)
 
     assert trainer.state == TrainerState.FINISHED
 

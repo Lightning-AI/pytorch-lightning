@@ -111,6 +111,7 @@ def test_base_datamodule_with_verbose_setup(tmpdir):
     dm = TrialMNISTDataModule()
     dm.prepare_data()
     dm.setup('fit')
+    dm.setup('validation')
     dm.setup('test')
 
 
@@ -118,16 +119,19 @@ def test_data_hooks_called(tmpdir):
     dm = TrialMNISTDataModule()
     assert dm.has_prepared_data is False
     assert dm.has_setup_fit is False
+    assert dm.has_setup_validation is False
     assert dm.has_setup_test is False
 
     dm.prepare_data()
     assert dm.has_prepared_data is True
     assert dm.has_setup_fit is False
+    assert dm.has_setup_validation is False
     assert dm.has_setup_test is False
 
     dm.setup()
     assert dm.has_prepared_data is True
     assert dm.has_setup_fit is True
+    assert dm.has_setup_validation is True
     assert dm.has_setup_test is True
 
 
@@ -135,21 +139,31 @@ def test_data_hooks_called_verbose(tmpdir):
     dm = TrialMNISTDataModule()
     assert dm.has_prepared_data is False
     assert dm.has_setup_fit is False
+    assert dm.has_setup_validation is False
     assert dm.has_setup_test is False
 
     dm.prepare_data()
     assert dm.has_prepared_data is True
     assert dm.has_setup_fit is False
+    assert dm.has_setup_validation is False
     assert dm.has_setup_test is False
 
     dm.setup('fit')
     assert dm.has_prepared_data is True
     assert dm.has_setup_fit is True
+    assert dm.has_setup_validation is False
+    assert dm.has_setup_test is False
+
+    dm.setup('validation')
+    assert dm.has_prepared_data is True
+    assert dm.has_setup_fit is True
+    assert dm.has_setup_validation is True
     assert dm.has_setup_test is False
 
     dm.setup('test')
     assert dm.has_prepared_data is True
     assert dm.has_setup_fit is True
+    assert dm.has_setup_validation is True
     assert dm.has_setup_test is True
 
 
@@ -160,10 +174,17 @@ def test_data_hooks_called_with_stage_kwarg(tmpdir):
 
     dm.setup(stage='fit')
     assert dm.has_setup_fit is True
+    assert dm.has_setup_validation is False
+    assert dm.has_setup_test is False
+
+    dm.setup(stage='validation')
+    assert dm.has_setup_fit is True
+    assert dm.has_setup_validation is True
     assert dm.has_setup_test is False
 
     dm.setup(stage='test')
     assert dm.has_setup_fit is True
+    assert dm.has_setup_validation is True
     assert dm.has_setup_test is True
 
 
@@ -254,6 +275,21 @@ def test_dm_checkpoint_save(tmpdir):
     assert checkpoint[dm.__class__.__name__] == dm.__class__.__name__
 
 
+def test_validate_loop_only(tmpdir):
+    reset_seed()
+
+    dm = TrialMNISTDataModule(tmpdir)
+
+    model = EvalModelTemplate()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        weights_summary=None,
+    )
+    trainer.validate(model, datamodule=dm)
+
+
 def test_test_loop_only(tmpdir):
     reset_seed()
 
@@ -287,6 +323,11 @@ def test_full_loop(tmpdir):
     result = trainer.fit(model, dm)
     assert result == 1
 
+    # validate
+    result = trainer.validate(datamodule=dm)
+    result = result[0]
+    assert result['val_acc'] > 0.8
+
     # test
     result = trainer.test(datamodule=dm)
     result = result[0]
@@ -310,6 +351,11 @@ def test_trainer_attached_to_dm(tmpdir):
     # fit model
     result = trainer.fit(model, dm)
     assert result == 1
+    assert dm.trainer is not None
+
+    # validate
+    result = trainer.validate(datamodule=dm)
+    result = result[0]
     assert dm.trainer is not None
 
     # test
@@ -338,6 +384,11 @@ def test_full_loop_single_gpu(tmpdir):
     result = trainer.fit(model, dm)
     assert result == 1
 
+    # validate
+    result = trainer.validate(datamodule=dm)
+    result = result[0]
+    assert result['val_acc'] > 0.8
+
     # test
     result = trainer.test(datamodule=dm)
     result = result[0]
@@ -364,6 +415,11 @@ def test_full_loop_dp(tmpdir):
     # fit model
     result = trainer.fit(model, dm)
     assert result == 1
+
+    # validate
+    result = trainer.validate(datamodule=dm)
+    result = result[0]
+    assert result['val_acc'] > 0.8
 
     # test
     result = trainer.test(datamodule=dm)

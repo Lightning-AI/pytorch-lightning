@@ -172,6 +172,48 @@ def test_multiple_test_dataloader(tmpdir, ckpt_path):
     trainer.test(ckpt_path=ckpt_path)
 
 
+@pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
+def test_multiple_validate_dataloader(tmpdir, ckpt_path):
+    """Verify multiple val_dataloaders."""
+
+    model_template = EvalModelTemplate()
+
+    class MultipleValDataloaderModel(EvalModelTemplate):
+        def val_dataloader(self):
+            return model_template.val_dataloader__multiple()
+
+        def validation_step(self, batch, batch_idx, *args, **kwargs):
+            return model_template.validation_step__multiple_dataloaders(batch, batch_idx, *args, **kwargs)
+
+        def validation_epoch_end(self, outputs):
+            return model_template.validation_epoch_end__multiple_dataloaders(outputs)
+
+    model = MultipleValDataloaderModel()
+
+    # fit model
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_val_batches=0.1,
+        limit_train_batches=0.2,
+    )
+    trainer.fit(model)
+    if ckpt_path == 'specific':
+        ckpt_path = trainer.checkpoint_callback.best_model_path
+    trainer.validate(ckpt_path=ckpt_path)
+
+    # verify there are 2 test loaders
+    assert len(trainer.val_dataloaders) == 2, \
+        'Multiple val_dataloaders not initiated properly'
+
+    # make sure predictions are good for each test set
+    for dataloader in trainer.val_dataloaders:
+        tpipes.run_prediction(dataloader, trainer.model)
+
+    # run the validate method
+    trainer.validate(ckpt_path=ckpt_path)
+
+
 def test_train_dataloader_passed_to_fit(tmpdir):
     """Verify that train dataloader can be passed to fit """
 

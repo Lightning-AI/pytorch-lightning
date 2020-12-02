@@ -797,6 +797,9 @@ def test_checkpoint_repeated_strategy_extended(enable_pl_optimizer, tmpdir):
     assert trainer.current_epoch == epochs - 1
     assert_checkpoint_log_dir(0)
 
+    trainer.validate(model)
+    assert trainer.current_epoch == epochs - 1
+
     trainer.test(model)
     assert trainer.current_epoch == epochs - 1
 
@@ -816,6 +819,11 @@ def test_checkpoint_repeated_strategy_extended(enable_pl_optimizer, tmpdir):
             callbacks=[checkpoint_cb],
         )
         assert_trainer_init(trainer)
+
+        trainer.validate(model)
+        assert not trainer.checkpoint_connector.has_trained
+        assert trainer.global_step == epochs * limit_train_batches
+        assert trainer.current_epoch == epochs
 
         trainer.test(model)
         assert not trainer.checkpoint_connector.has_trained

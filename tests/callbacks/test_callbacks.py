@@ -103,6 +103,28 @@ def test_trainer_callback_system(torch_save):
 
     callback_mock.reset_mock()
     trainer = Trainer(**trainer_options)
+    trainer.validate(model)
+
+    assert callback_mock.method_calls == [
+        call.on_init_start(trainer),
+        call.on_init_end(trainer),
+        call.setup(trainer, model, 'validation'),
+        call.on_fit_start(trainer, model),
+        call.on_pretrain_routine_start(trainer, model),
+        call.on_pretrain_routine_end(trainer, model),
+        call.on_validation_start(trainer, model),
+        call.on_validation_epoch_start(trainer, model),
+        call.on_validation_batch_start(trainer, model, ANY, 0, 0),
+        call.on_validation_batch_end(trainer, model, ANY, ANY, 0, 0),
+        call.on_validation_epoch_end(trainer, model),
+        call.on_validation_end(trainer, model),
+        call.on_fit_end(trainer, model),
+        call.teardown(trainer, model, 'fit'),
+        call.teardown(trainer, model, 'validation'),
+    ]
+
+    callback_mock.reset_mock()
+    trainer = Trainer(**trainer_options)
     trainer.test(model)
 
     assert callback_mock.method_calls == [
