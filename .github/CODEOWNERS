@@ -8,40 +8,41 @@
 * @williamfalcon @borda @tchaton @SeanNaren @awaelchli @justusschock
 
 # Metrics
-pytorch_lightning/metrics/*  @teddykoker @ananyahjha93 @justusschock
-tests/metrics/*              @teddykoker @ananyahjha93 @justusschock
-docs/source/metrics.rst      @teddykoker @ananyahjha93 @justusschock
+/pytorch_lightning/metrics/   @teddykoker @ananyahjha93 @justusschock
+/tests/metrics/               @teddykoker @ananyahjha93 @justusschock
+/docs/source/metrics.rst      @teddykoker @ananyahjha93 @justusschock
 
 # API
-pytorch_lightning/callbacks/base.py           @williamfalcon
-pytorch_lightning/core/datamodule.py          @williamfalcon
-pytorch_lightning/trainer/trainer.py          @williamfalcon @tchaton
-pytorch_lightning/core/hooks.py               @williamfalcon
-pytorch_lightning/core/lightning.py           @williamfalcon @tchaton
-pytorch_lightning/trainer/training_loop.py    @tchaton @SeanNaren
-pytorch_lightning/trainer/evaluation_loop.py  @tchaton @SeanNaren
+/pytorch_lightning/callbacks/base.py           @williamfalcon
+/pytorch_lightning/core/datamodule.py          @williamfalcon
+/pytorch_lightning/trainer/trainer.py          @williamfalcon @tchaton
+/pytorch_lightning/core/hooks.py               @williamfalcon
+/pytorch_lightning/core/lightning.py           @williamfalcon @tchaton
+/pytorch_lightning/trainer/training_loop.py    @tchaton @SeanNaren
+/pytorch_lightning/trainer/evaluation_loop.py  @tchaton @SeanNaren
 
 # Connectors
-pytorch_lightning/trainer/connectors/logger_connector/*      @tchaton @SeanNaren
+/pytorch_lightning/trainer/connectors/         @tchaton @SeanNaren
 
 # accelerators
-pytorch_lightning/accelerators/*              @williamfalcon @tchaton @SeanNaren @awaelchli @justusschock
+/pytorch_lightning/accelerators/               @williamfalcon @tchaton @SeanNaren @awaelchli @justusschock
 
 # owners
-.github/CODEOWNERS   @williamfalcon
+/.github/CODEOWNERS   @williamfalcon
 # main
-README.md            @williamfalcon @edenlightning
+/README.md            @williamfalcon @edenlightning
 # installation
-setup.py             @borda @williamfalcon
+/setup.py             @borda @williamfalcon
 
 # CI/CD
-.github/*.yml        @borda @tchaton
-.github/*.py         @borda @tchaton
-dockers/*            @borda @tchaton
+/.github/workflows/   @borda @tchaton
+/.github/*.py         @borda @tchaton
+/dockers/             @borda @tchaton
 # configs in root
-/*.yml               @borda @tchaton
+/*.yml                @borda @tchaton
 
 # Docs
-docs/*               @edenlightning @tchaton @borda @awaelchli
-.github/*.md         @edenlightning @borda @tchaton
-docs/source/conf.py  @borda @awaelchli
+/docs/                          @edenlightning @tchaton @borda @awaelchli
+/.github/*.md                   @edenlightning @williamfalcon @borda
+/.github/ISSUE_TEMPLATE/*.md    @edenlightning @borda @tchaton
+/docs/source/conf.py            @borda @awaelchli
