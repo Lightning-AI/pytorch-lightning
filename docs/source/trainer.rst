@@ -632,14 +632,6 @@ fast_dev_run
 
 |
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/fast_dev_run.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/fast_dev_run.mp4"></video>
-
-|
-
 Runs 1 batch of train, test  and val to find any bugs (ie: a sort of unit test).
 
 Under the hood the pseudocode looks like this:
@@ -1100,7 +1092,7 @@ Your effective batch size is batch_size * total tpu cores.
 
 This parameter can be either 1 or 8.
 
-.. testcode::
+Example::
 
     # your_trainer_file.py
 

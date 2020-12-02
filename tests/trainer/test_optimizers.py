@@ -14,7 +14,8 @@
 import pytest
 import torch
 
-from pytorch_lightning import Trainer, Callback
+from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.base.boring_model import BoringModel
@@ -179,8 +180,9 @@ def test_reducelronplateau_scheduling(tmpdir):
     ), 'lr scheduler was not correctly converted to dict'
 
 
-def test_optimizer_return_options():
-    trainer = Trainer()
+@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
+def test_optimizer_return_options(enable_pl_optimizer):
+    trainer = Trainer(enable_pl_optimizer=enable_pl_optimizer)
     model = EvalModelTemplate()
 
     # single optimizer
