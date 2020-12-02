@@ -48,7 +48,7 @@ class TrainerProperties(ABC):
     limit_val_batches: int
     _default_root_dir: str
     _weights_save_path: str
-    default_root_path: str
+    default_root_dir: str
     accelerator_backend: Accelerator
     logger: LightningLoggerBase
     model_connector: ModelConnector

@@ -615,7 +615,7 @@ will need to be set up to use remote filepaths.
 Example::
 
     # default used by the Trainer
-    trainer = Trainer(default_root_path=os.getcwd())
+    trainer = Trainer(default_root_dir=os.getcwd())
 
 distributed_backend
 ^^^^^^^^^^^^^^^^^^^
