@@ -3,7 +3,7 @@
     from typing import List
     from pytorch_lightning.core.lightning import LightningModule
     from pytorch_lightning.core.datamodule import LightningDataModule
-    from pytorch_lightning.utilities.trainer_cli import LightningCLI
+    from pytorch_lightning.utilities.cli import LightningCLI
 
     original_fit = LightningCLI.fit
     LightningCLI.fit = lambda self: None
@@ -64,7 +64,7 @@ simple as:
 
 .. testcode::
 
-    from pytorch_lightning.utilities.trainer_cli import LightningCLI
+    from pytorch_lightning.utilities.cli import LightningCLI
 
     LightningCLI(MyModel)
 
@@ -83,9 +83,9 @@ to do this would be:
     # Run training using created configuration
     python trainer.py --config config.yaml
 
-The call to the :class:`~pytorch_lightning.utilities.trainer_cli.LightningCLI`
-class takes care of parsing command line and config file options, instantiating
-the classes, setting up a callback to save the config in the log directory and
+The call to the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class
+takes care of parsing command line and config file options, instantiating the
+classes, setting up a callback to save the config in the log directory and
 finally running :func:`trainer.fit`.
 
 After multiple trainings with different configurations, a previous run can be
@@ -100,7 +100,7 @@ class is required, the trainer tool just needs a small modification as follows:
 
 .. testcode::
 
-    from pytorch_lightning.utilities.trainer_cli import LightningCLI
+    from pytorch_lightning.utilities.cli import LightningCLI
 
     LightningCLI(MyModel, MyDataModule)
 
@@ -178,22 +178,22 @@ format and for the example above would look as follows:
       amp_level: O2
       ...
 
-Note that for each class, model and trainer, there is a section each with the
-init parameters of the class. This grouping is also used in the formatting of
-the help shown previously.
+Note that there is a section for each class (model and trainer) including all
+the init parameters of the class. This grouping is also used in the formatting
+of the help shown previously.
 
 
 Customizing LightningCLI
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 The init parameters of the
-:class:`~pytorch_lightning.utilities.trainer_cli.LightningCLI` class can be used
-to customize some things.
+:class:`~pytorch_lightning.utilities.cli.LightningCLI` class can be used to
+customize some things.
 
 - :code:`save_config_callback`: By default is
-  :class:`~pytorch_lightning.utilities.trainer_cli.SaveConfigCallback` which is
-  the callback that saves the config to the log directory. It could be extended
-  for example to log the config as an artifact.
+  :class:`~pytorch_lightning.utilities.cli.SaveConfigCallback` which is the
+  callback that saves the config to the log directory. It could be extended for
+  example to log the config as an artifact.
 
 - :code:`description`: The command line tool description shown in the help.
 
@@ -207,33 +207,33 @@ to customize some things.
 - :code:`**kwargs`: All other keyword arguments are used to initialize the
   trainer class. Thus, this can be used for instance to set callbacks.
 
-Even though :class:`~pytorch_lightning.utilities.trainer_cli.LightningCLI` and its
-init parameters can reduce boilerplate code to a minimum, clearly there are
-cases in which it is not enough. The class is designed so that can be extended
-to customize different parts of the command line tool. The argument parser class
-used by :class:`~pytorch_lightning.utilities.trainer_cli.LightningCLI` is
-:class:`~pytorch_lightning.utilities.trainer_cli.LightningArgumentParser` which
-is an extension of python's argparse, thus adding arguments can be done using
-the :func:`add_argument` method. In contrast to argparse it has additional
-methods to add arguments, for example :func:`add_class_arguments` adds all
-arguments from the init of a class, though requiring parameters to have type
-hints. For more details about this please refer to the `respective documentation
+Even though :class:`~pytorch_lightning.utilities.cli.LightningCLI` and its init
+parameters can reduce boilerplate code to a minimum, clearly there are cases in
+which it is not enough. The class is designed so that can be extended to
+customize different parts of the command line tool. The argument parser class
+used by :class:`~pytorch_lightning.utilities.cli.LightningCLI` is
+:class:`~pytorch_lightning.utilities.cli.LightningArgumentParser` which is an
+extension of python's argparse, thus adding arguments can be done using the
+:func:`add_argument` method. In contrast to argparse it has additional methods
+to add arguments, for example :func:`add_class_arguments` adds all arguments
+from the init of a class, though requiring parameters to have type hints. For
+more details about this please refer to the `respective documentation
 <https://omni-us.github.io/jsonargparse/#classes-methods-and-functions>`_.
 
-The :class:`~pytorch_lightning.utilities.trainer_cli.LightningCLI` class has the
-:meth:`~pytorch_lightning.utilities.trainer_cli.LightningCLI.add_arguments_to_parser`
+The :class:`~pytorch_lightning.utilities.cli.LightningCLI` class has the
+:meth:`~pytorch_lightning.utilities.cli.LightningCLI.add_arguments_to_parser`
 method which can be implemented to include more arguments. After parsing, the
 configuration is stored in the :code:`config` attribute of the class instance.
-The :class:`~pytorch_lightning.utilities.trainer_cli.LightningCLI` class also has
-two methods that can be used to run code before and after :code:`trainer.fit` is
-executed: :meth:`~pytorch_lightning.utilities.trainer_cli.LightningCLI.before_fit`
-and :meth:`~pytorch_lightning.utilities.trainer_cli.LightningCLI.after_fit`. A
-simple example for these would be to send an email before and after fit. The
-code would be something like:
+The :class:`~pytorch_lightning.utilities.cli.LightningCLI` class also has two
+methods that can be used to run code before and after :code:`trainer.fit` is
+executed: :meth:`~pytorch_lightning.utilities.cli.LightningCLI.before_fit` and
+:meth:`~pytorch_lightning.utilities.cli.LightningCLI.after_fit`. A simple
+example for these would be to send an email before and after fit. The code would
+be something like:
 
 .. testcode::
 
-    from pytorch_lightning.utilities.trainer_cli import LightningCLI
+    from pytorch_lightning.utilities.cli import LightningCLI
 
     class MyLightningCLI(LightningCLI):
 
@@ -261,15 +261,19 @@ for instantiating the trainer class can be found in
 :code:`self.config['trainer']`.
 
 For more advanced use cases, other methods of the
-:class:`~pytorch_lightning.utilities.trainer_cli.LightningCLI` class could be
-extended. The complete list of methods is:
+:class:`~pytorch_lightning.utilities.cli.LightningCLI` class could be extended.
+The complete list of methods is:
 
-- :meth:`~pytorch_lightning.utilities.trainer_cli.LightningCLI.init_parser`
-- :meth:`~pytorch_lightning.utilities.trainer_cli.LightningCLI.add_arguments_to_parser`
-- :meth:`~pytorch_lightning.utilities.trainer_cli.LightningCLI.add_core_arguments_to_parser`
-- :meth:`~pytorch_lightning.utilities.trainer_cli.LightningCLI.parse_arguments`
-- :meth:`~pytorch_lightning.utilities.trainer_cli.LightningCLI.instantiate_classes`
-- :meth:`~pytorch_lightning.utilities.trainer_cli.LightningCLI.before_fit`
-- :meth:`~pytorch_lightning.utilities.trainer_cli.LightningCLI.after_fit`
-- :meth:`~pytorch_lightning.utilities.trainer_cli.LightningCLI.fit`
-- :meth:`~pytorch_lightning.utilities.trainer_cli.LightningCLI.run`
+- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.init_parser`
+- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.add_arguments_to_parser`
+- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.add_core_arguments_to_parser`
+- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.before_parse_arguments`
+- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.parse_arguments`
+- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.before_instantiate_classes`
+- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.instantiate_classes`
+- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.instantiate_model`
+- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.prepare_fit_kwargs`
+- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.instantiate_trainer`
+- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.before_fit`
+- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.fit`
+- :meth:`~pytorch_lightning.utilities.cli.LightningCLI.after_fit`

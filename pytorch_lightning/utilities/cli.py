@@ -51,7 +51,7 @@ class LightningArgumentParser(ArgumentParser):
             nested_key: Name of the nested namespace to store arguments.
         """
         assert issubclass(trainer_class, Trainer)
-        self.add_class_arguments(trainer_class, nested_key)
+        return self.add_class_arguments(trainer_class, nested_key)
 
     def add_module_args(
         self,
@@ -66,7 +66,7 @@ class LightningArgumentParser(ArgumentParser):
             nested_key: Name of the nested namespace to store arguments.
         """
         assert issubclass(module_class, LightningModule)
-        self.add_class_arguments(module_class, nested_key)
+        return self.add_class_arguments(module_class, nested_key)
 
     def add_datamodule_args(
         self,
@@ -81,19 +81,19 @@ class LightningArgumentParser(ArgumentParser):
             nested_key: Name of the nested namespace to store arguments.
         """
         assert issubclass(datamodule_class, LightningDataModule)
-        self.add_class_arguments(datamodule_class, nested_key)
+        return self.add_class_arguments(datamodule_class, nested_key)
 
 
 class SaveConfigCallback(Callback):
     """Saves a LightningCLI config to the log_dir when training starts"""
 
     def __init__(self, parser, config):
-        self.config_dump = parser.dump(config, skip_none=False)
+        self.parser = parser
+        self.config = config
 
     def on_train_start(self, trainer, pl_module):
         config_path = os.path.join(trainer.logger.log_dir, 'config.yaml')
-        with open(config_path, 'w') as outstream:
-            outstream.write(self.config_dump)
+        self.parser.save(self.config, config_path, skip_none=False)
 
 
 class LightningCLI:
@@ -109,7 +109,7 @@ class LightningCLI:
         **kwargs
     ):
         """
-        Implementation of a simple configurable Trainer command line tool
+        Implementation of a configurable command line tool for pytorch-lightning
 
         Receives as input pytorch-lightning classes, which are instantiated using a
         parsed configuration file or command line args and then runs trainer.fit.
@@ -117,12 +117,12 @@ class LightningCLI:
         Example, first implement the trainer.py tool as::
 
             from mymodels import MyModel
-            from pytorch_lightning.utilities.jsonargparse_utils import LightningCLI
+            from pytorch_lightning.utilities.cli import LightningCLI
             LightningCLI(MyModel)
 
         Then in a shell, run the tool with the desired configuration::
 
-            $ python trainer.py --print-config > config.yaml
+            $ python trainer.py --print_config > config.yaml
             $ nano config.yaml  # modify the config as desired
             $ python trainer.py --cfg config.yaml
 
@@ -136,9 +136,6 @@ class LightningCLI:
             parse_env: Whether environment variables are also parsed.
             **kwargs: Additional arguments to instantiate Trainer.
         """
-        if 'callbacks' not in kwargs:
-            kwargs['callbacks'] = []
-
         self.model_class = model_class
         self.datamodule_class = datamodule_class
         self.save_config_callback = save_config_callback
@@ -148,9 +145,13 @@ class LightningCLI:
         self.init_parser(description, default_config_files, parse_env)
         self.add_arguments_to_parser(self.parser)
         self.add_core_arguments_to_parser()
+        self.before_parse_arguments(self.parser)
         self.parse_arguments()
+        self.before_instantiate_classes()
         self.instantiate_classes()
-        self.run()
+        self.before_fit()
+        self.fit()
+        self.after_fit()
 
     def init_parser(
         self,
@@ -167,16 +168,12 @@ class LightningCLI:
         """
         self.parser = LightningArgumentParser(
             description=description,
-            print_config='--print_config',
             default_config_files=default_config_files,
             default_env=parse_env,
             env_prefix='PL'
         )
 
-    def add_arguments_to_parser(
-        self,
-        parser: LightningArgumentParser
-    ):
+    def add_arguments_to_parser(self, parser: LightningArgumentParser):
         """Implement to add extra arguments to parser
 
         Args:
@@ -191,23 +188,35 @@ class LightningCLI:
         if self.datamodule_class is not None:
             self.parser.add_datamodule_args(self.datamodule_class, 'data')
 
+    def before_parse_arguments(self, parser: LightningArgumentParser):
+        """Implement to run some code before parsing arguments
+
+        Args:
+            parser: The argument parser object that will be used to parse
+        """
+        pass
+
     def parse_arguments(self):
-        """Parses command line arguments and stores it in self.config_save and self.config_init"""
-        self.config_save = self.parser.parse_args()
-        self.config_init = self.parser.instantiate_subclasses(self.config_save)
+        """Parses command line arguments and stores it in self.config"""
+        self.config = self.parser.parse_args()
+
+    def before_instantiate_classes(self):
+        """Implement to run some code before instantiating the classes"""
+        pass
 
     def instantiate_classes(self):
-        """Instantiates the classes using settings from self.config and prepares fit_kwargs"""
+        """Instantiates the classes using settings from self.config"""
+        self.config_init = self.parser.instantiate_subclasses(self.config)
         self.instantiate_model()
-        self.instantiate_datamodule()
+        self.prepare_fit_kwargs()
         self.instantiate_trainer()
 
     def instantiate_model(self):
         """Instantiates the model using self.config_init['model']"""
         self.model = self.model_class(**self.config_init.get('model', {}))
 
-    def instantiate_datamodule(self):
-        """Instantiates the datamodule using self.config_init['data']"""
+    def prepare_fit_kwargs(self):
+        """Prepares fit_kwargs including datamodule using self.config_init['data'] if given"""
         self.fit_kwargs = {'model': self.model}
         if self.datamodule_class is not None:
             self.fit_kwargs['datamodule'] = self.datamodule_class(**self.config_init.get('data', {}))
@@ -215,24 +224,20 @@ class LightningCLI:
     def instantiate_trainer(self):
         """Instantiates the trainer using self.config_init['trainer']"""
         self.trainer_kwargs.update(self.config_init['trainer'])
+        if self.trainer_kwargs.get('callbacks') is None:
+            self.trainer_kwargs['callbacks'] = []
         if self.save_config_callback is not None:
-            self.trainer_kwargs['callbacks'].append(self.save_config_callback(self.parser, self.config_save))
+            self.trainer_kwargs['callbacks'].append(self.save_config_callback(self.parser, self.config))
         self.trainer = self.trainer_class(**self.trainer_kwargs)
 
     def before_fit(self):
         """Implement to run some code before fit is started"""
         pass
 
+    def fit(self):
+        """Runs fit of the instantiated trainer class and prepared fit keyword arguments"""
+        self.fit_result = self.trainer.fit(**self.fit_kwargs)
+
     def after_fit(self):
         """Implement to run some code after fit has finished"""
         pass
-
-    def fit(self):
-        """Runs fit of the instantiated trainer class and prepared fit keyword arguments"""
-        self.trainer.fit(**self.fit_kwargs)
-
-    def run(self):
-        """Runs self.before_fit, then self.fit and finally self.after_fit"""
-        self.before_fit()
-        self.fit()
-        self.after_fit()

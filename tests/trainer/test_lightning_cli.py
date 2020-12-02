@@ -13,8 +13,10 @@
 # limitations under the License.
 
 import inspect
+import os
 import pickle
 import sys
+import yaml
 from argparse import Namespace
 from unittest import mock
 
@@ -22,8 +24,11 @@ import pytest
 import torch
 
 import tests.base.develop_utils as tutils
+from tests.base import EvalModelTemplate
+from tests.base.datamodules import TrialMNISTDataModule
+from tests.base.develop_utils import reset_seed
 from pytorch_lightning import Trainer, LightningModule
-from pytorch_lightning.utilities.trainer_cli import (
+from pytorch_lightning.utilities.cli import (
     LightningArgumentParser,
     SaveConfigCallback,
     LightningCLI
@@ -217,8 +222,8 @@ def test_init_from_argparse_args(cli_args, extra_args):
                  {'model_param': 7},
                  {'limit_train_batches': 100}),
 ])
-def test_trainer_cli(cli_args, expected_model, expected_trainer, monkeypatch):
-    """Test that trainer_cli correctly instantiates model, trainer and calls fit."""
+def test_lightning_cli(cli_args, expected_model, expected_trainer, monkeypatch):
+    """Test that LightningCLI correctly instantiates model, trainer and calls fit."""
 
     def fit(trainer, model):
         for k, v in model.expected_model.items():
@@ -230,10 +235,12 @@ def test_trainer_cli(cli_args, expected_model, expected_trainer, monkeypatch):
         save_callback[0].on_train_start(trainer, model)
 
     def on_train_start(callback, trainer, model):
+        config_dump = callback.parser.dump(callback.config, skip_none=False)
         for k, v in model.expected_model.items():
-            assert f'  {k}: {v}' in callback.config_dump
+            assert f'  {k}: {v}' in config_dump
         for k, v in model.expected_trainer.items():
-            assert f'  {k}: {v}' in callback.config_dump
+            assert f'  {k}: {v}' in config_dump
+        trainer.ran_asserts = True
 
     monkeypatch.setattr(Trainer, 'fit', fit)
     monkeypatch.setattr(SaveConfigCallback, 'on_train_start', on_train_start)
@@ -247,4 +254,34 @@ def test_trainer_cli(cli_args, expected_model, expected_trainer, monkeypatch):
     TestModel.expected_trainer = expected_trainer
 
     with mock.patch('sys.argv', ['any.py'] + cli_args):
-        LightningCLI(TestModel, trainer_class=Trainer, save_config_callback=SaveConfigCallback)
+        cli = LightningCLI(TestModel, trainer_class=Trainer, save_config_callback=SaveConfigCallback)
+        assert hasattr(cli.trainer, 'ran_asserts') and cli.trainer.ran_asserts
+
+
+def test_lightning_cli_with_trial_mnist_datamodule(tmpdir):
+    reset_seed()
+
+    class TestModel(EvalModelTemplate):
+        pass
+
+    TestModel.validation_step = None
+    TestModel.validation_step_end = None
+    TestModel.validation_epoch_end = None
+
+    cli_args = [
+        '--data.data_dir='+str(tmpdir),
+        '--trainer.default_root_dir='+str(tmpdir),
+        '--trainer.max_epochs=1',
+        '--trainer.weights_summary=null',
+    ]
+
+    with mock.patch('sys.argv', ['trial.py'] + cli_args):
+        cli = LightningCLI(TestModel, TrialMNISTDataModule)
+        assert cli.fit_result == 1
+        config_path = os.path.join(str(tmpdir), 'lightning_logs', 'version_0', 'config.yaml')
+        assert os.path.isfile(config_path)
+        with open(config_path) as f:
+            config = yaml.safe_load(f.read())
+        assert config['model'] == cli.config['model']
+        assert config['data'] == cli.config['data']
+        assert config['trainer'] == cli.config['trainer']
