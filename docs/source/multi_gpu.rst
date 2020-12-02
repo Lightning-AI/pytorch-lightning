@@ -634,7 +634,7 @@ To use Optimizer Sharded Training, you need to first install Fairscale using the
 
 .. code-block:: bash
 
-    pip install fairscale
+    pip install https://github.com/facebookresearch/fairscale/archive/master.zip
 
 
 .. code-block:: python
