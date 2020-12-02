@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Union, Optional, Any
+from typing import Any, Optional, Union
 
 import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
-from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.utilities import AMPType
 
 
 class GPUAccelerator(Accelerator):
@@ -51,6 +51,8 @@ class GPUAccelerator(Accelerator):
 
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
+
+        self.trainer.convert_to_lightning_optimizers()
 
         self.trainer.model = model
 
