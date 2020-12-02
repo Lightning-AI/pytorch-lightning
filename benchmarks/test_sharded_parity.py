@@ -1,6 +1,7 @@
 import os
 import platform
 import time
+from typing import Union
 
 import pytest
 import torch
@@ -9,7 +10,7 @@ from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
 from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE, NATIVE_AMP_AVAILABLE
-from tests.backends.launcher import DDPLauncher
+from tests.backends import DDPLauncher
 from tests.base.boring_model import BoringModel, RandomDataset
 
 
@@ -84,6 +85,22 @@ def test_ddp_sharded_plugin_correctness_amp_multi_gpu():
     )
 
 
+@pytest.mark.skipif(not NATIVE_AMP_AVAILABLE, reason="Requires native AMP")
+@pytest.mark.skipif(platform.system() == "Windows",
+                    reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+def test_ddp_string_sharded_plugin_correctness_amp_multi_gpu():
+    plugin_parity_test(
+        gpus=2,
+        precision=16,
+        accelerator='ddp_spawn',
+        plugin='ddp_sharded',
+        model_cls=SeedTrainLoaderModel,
+        max_percent_speed_diff=0.25
+    )
+
+
 @pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
@@ -127,7 +144,7 @@ def test_ddp_sharded_plugin_correctness_multi_gpu_multi_optim():
         gpus=2,
         accelerator='ddp_spawn',
         model_cls=SeedTrainLoaderMultipleOptimizersModel,
-        max_percent_speed_diff=0.2  # Increase speed diff since only 2 GPUs sharding 2 optimizers
+        max_percent_speed_diff=0.25  # Increase speed diff since only 2 GPUs sharding 2 optimizers
     )
 
 
@@ -240,7 +257,7 @@ def record_ddp_fit_model_stats(trainer, model, use_cuda):
 
 def plugin_parity_test(
         model_cls: SeedTrainLoaderModel,
-        plugin: DDPPlugin,
+        plugin: Union[str, DDPPlugin],
         seed: int = 42,
         accelerator: str = 'ddp_spawn',
         gpus: int = 0,

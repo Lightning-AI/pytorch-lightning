@@ -91,7 +91,10 @@ RUN \
     #pip install "torch==${PYTORCH_VERSION}.*" --pre && \
     # set particular PyTorch version
     python -c "import re ; fname = 'requirements.txt' ; req = re.sub(r'torch[>=]+[\d\.]+', 'torch==${PYTORCH_VERSION}.*', open(fname).read()) ; open(fname, 'w').write(req)" && \
-
+    # Drop fairscale for PT <= 1.4
+    if [[ $PYTORCH_VERSION < 1.4 ]] ; then \
+        python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)" ; \
+    fi && \
     # Install all requirements
     # todo: find a way how to install nightly PT version
     #  --pre --extra-index-url https://download.pytorch.org/whl/nightly/cu${cuda_ver[0]}${cuda_ver[1]}/torch_nightly.html
