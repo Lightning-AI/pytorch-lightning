@@ -13,8 +13,9 @@
 # limitations under the License.
 import torch
 from typing import Union, Any, List, Optional, MutableSequence
+
+from pytorch_lightning.utilities import TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 
 
 def determine_root_gpu_device(gpus: List[int]) -> Optional[int]:
@@ -105,7 +106,7 @@ def parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[List[int
     if not _tpu_cores_valid(tpu_cores):
         raise MisconfigurationException("`tpu_cores` can only be 1, 8 or [<1-8>]")
 
-    if tpu_cores is not None and not XLADeviceUtils.tpu_device_exists():
+    if tpu_cores is not None and not TPU_AVAILABLE:
         raise MisconfigurationException('No TPU devices were found.')
 
     return tpu_cores
