@@ -17,10 +17,6 @@ jobs:
         os: [ubuntu-18.04, windows-2019, macOS-10.15]
         python-version: [3.6, 3.7, 3.8]
         requires: ['minimal', 'latest']
-        exclude:
-          # TODO: temporary fix till hanging jobs on Ubuntu & macOS for py38 is resolved
-          - python-version: 3.8
-            requires: 'latest'
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 35  # TODO: the macOS is taking too long, probably caching did not work...
