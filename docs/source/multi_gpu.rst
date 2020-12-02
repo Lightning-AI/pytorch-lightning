@@ -644,7 +644,7 @@ To use Optimizer Sharded Training, you need to first install Fairscale using the
 
 Optimizer Sharded Training can work across all DDP variants by adding the additional ``--plugins ddp_sharded`` flag.
 
-Internally we re-initialize optimizers, sharding the optimizers across your machines and processes. We handle all communication using PyTorch distributed, so no code changes are required.
+Internally we re-initialize your optimizers and shard them across your machines and processes. We handle all communication using PyTorch distributed, so no code changes are required.
 
 
 Batch size
