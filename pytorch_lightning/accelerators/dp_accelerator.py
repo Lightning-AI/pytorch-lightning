@@ -16,10 +16,10 @@ from typing import Union
 import torch
 from torch import optim
 
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.distributed import LightningDistributed
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides.data_parallel import LightningDataParallel
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -62,6 +62,8 @@ class DataParallelAccelerator(Accelerator):
         # init half precision
         if self.trainer.amp_backend:
             model = self.__init_half_precision(model)
+
+        self.trainer.convert_to_lightning_optimizers()
 
         self.trainer.model = model
 

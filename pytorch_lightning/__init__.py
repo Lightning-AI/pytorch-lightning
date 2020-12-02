@@ -34,10 +34,14 @@ Documentation
 """
 
 import logging as python_logging
+import os
 
 _logger = python_logging.getLogger("lightning")
 _logger.addHandler(python_logging.StreamHandler())
 _logger.setLevel(python_logging.INFO)
+
+PACKAGE_ROOT = os.path.dirname(__file__)
+PROJECT_ROOT = os.path.dirname(PACKAGE_ROOT)
 
 try:
     # This variable is injected in the __builtins__ by the build
@@ -67,13 +71,6 @@ else:
         'seed_everything',
         'metrics',
     ]
-
-    # necessary for regular bolts imports. Skip exception since bolts is not always installed
-    try:
-        from pytorch_lightning import bolts
-    except ImportError:
-        pass
-    # __call__ = __all__
 
 # for compatibility with namespace packages
 __import__('pkg_resources').declare_namespace(__name__)
