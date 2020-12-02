@@ -35,7 +35,6 @@ class TestModel(BoringModel):
 
 # Todo: fix hanging test
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(LooseVersion(sys.version) >= LooseVersion("3.8"), reason="Hanging test, need to be fixed")
 def test_global_zero_only_logging_ddp_cpu(tmpdir):
     """
     Makes sure logging only happens from root zero
