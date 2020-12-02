@@ -23,7 +23,8 @@ if XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
 
 
-@pytest.mark.skipif(TPU_AVAILABLE, reason="test requires torch_xla to be absent")
+# lets hope that in or env we have installed XLA only for TPU devices, otherwise, it is testing in the cycle "if I am true test that I am true :D"
+@pytest.mark.skipif(XLA_AVAILABLE, reason="test requires torch_xla to be absent")
 def test_tpu_device_absence():
     """Check tpu_device_exists returns None when torch_xla is not available"""
     assert xla_utils.XLADeviceUtils.tpu_device_exists() is None
