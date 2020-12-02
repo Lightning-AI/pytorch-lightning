@@ -321,6 +321,7 @@ class AutogradProfiler(BaseProfiler):
         self.use_cuda = use_cuda
         self.row_limit = row_limit
         self.profiled_actions = {}
+        self.context_names = {}
         self.profiler = None
         # stack of currently running profilers
         self.running_stack = []
@@ -344,6 +345,8 @@ class AutogradProfiler(BaseProfiler):
         if len(self.running_stack) > 0:
             self._stop(self.running_stack[-1])
         self.running_stack.append(action_name)
+
+        self.context_names[action_name] = "/".join(self.running_stack)
 
         self._start(action_name)
 
@@ -385,7 +388,7 @@ class AutogradProfiler(BaseProfiler):
                 sort_by=("cuda_time_total" if self.use_cuda else "cpu_time_total"),
                 row_limit=self.row_limit
             )
-            output_string += f"{os.linesep}Profile stats for: {name}{os.linesep}{report}"
+            output_string += f"{os.linesep}Profile stats for {self.context_names[name]}{os.linesep}{report}"
 
         return output_string
 
