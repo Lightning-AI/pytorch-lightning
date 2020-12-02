@@ -36,7 +36,7 @@ python benchmarks/cnn_cifar_pipe.py --use_pipe 1
 
 To run without Pipe
 python benchmarks/cnn_cifar_pipe.py --use_pipe 0
-""""
+"""
 
 
 #####################
