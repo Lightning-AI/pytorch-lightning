@@ -10,7 +10,7 @@ from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
 from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE, NATIVE_AMP_AVAILABLE
-from tests.backends.launcher import DDPLauncher
+from tests.backends import DDPLauncher
 from tests.base.boring_model import BoringModel, RandomDataset
 
 
