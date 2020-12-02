@@ -25,7 +25,7 @@ pytorch_lightning/trainer/evaluation_loop.py  @tchaton @SeanNaren
 pytorch_lightning/trainer/connectors/logger_connector/*      @tchaton @SeanNaren
 
 # accelerators
-pytorch_lightning/accelerators/*              @williamfalcon @tchaton @SeanNaren
+pytorch_lightning/accelerators/*              @williamfalcon @tchaton @SeanNaren @awaelchli @justusschock
 
 # owners
 .github/CODEOWNERS   @williamfalcon
