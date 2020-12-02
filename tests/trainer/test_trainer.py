@@ -728,12 +728,12 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
                 trainer.test(ckpt_path=ckpt_path)
         else:
             trainer.test(ckpt_path=ckpt_path)
-            assert trainer.tested_ckpt_path == trainer.checkpoint_callback.best_model_path
+            assert trainer.evaluated_ckpt_path == trainer.checkpoint_callback.best_model_path
     elif ckpt_path is None:
         # ckpt_path is None, meaning we don't load any checkpoints and
         # use the weights from the end of training
         trainer.test(ckpt_path=ckpt_path)
-        assert trainer.tested_ckpt_path is None
+        assert trainer.evaluated_ckpt_path is None
     else:
         # specific checkpoint, pick one from saved ones
         if save_top_k == 0:
@@ -746,7 +746,7 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
                 ].absolute()
             )
             trainer.test(ckpt_path=ckpt_path)
-            assert trainer.tested_ckpt_path == ckpt_path
+            assert trainer.evaluated_ckpt_path == ckpt_path
 
 
 def test_disabled_training(tmpdir):

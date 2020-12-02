@@ -13,6 +13,7 @@
 # limitations under the License.
 import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.distributed import rank_zero_warn
@@ -22,7 +23,7 @@ from pytorch_lightning.utilities.warning_utils import WarningCache
 
 
 class EvaluationLoop(object):
-    def __init__(self, trainer):
+    def __init__(self, trainer: 'pl.Trainer'):
         self.trainer = trainer
         self.testing = False
         self.outputs = []
@@ -39,13 +40,15 @@ class EvaluationLoop(object):
         self.trainer.test_dataloaders = None
         self.trainer.val_dataloaders = None
         self.trainer.running_sanity_check = False
-        self.trainer.testing = False
 
-        # when .test() is called, it sets this
-        self.trainer.tested_ckpt_path = None
+        # .validate() sets this to 'validation' and .test() sets this to 'test'
+        self.trainer.evaluating = None
 
-        # when true, prints test results
-        self.trainer.verbose_test = True
+        # .validate() and .test() set this when they load a checkpoint
+        self.trainer.evaluated_ckpt_path = None
+
+        # when true, print evaluation results in .validate() and .test()
+        self.trainer.verbose_evaluate = True
 
     def get_evaluation_dataloaders(self, max_batches):
         # select dataloaders
@@ -216,7 +219,7 @@ class EvaluationLoop(object):
 
     def log_epoch_metrics_on_evaluation_end(self):
         # get the final loop results
-        eval_loop_results = self.trainer.logger_connector.get_evaluate_epoch_results(self.testing)
+        eval_loop_results = self.trainer.logger_connector.get_evaluate_epoch_results()
         return eval_loop_results
 
     def __run_eval_epoch_end(self, num_dataloaders, using_eval_result):

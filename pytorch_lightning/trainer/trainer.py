@@ -441,10 +441,6 @@ class Trainer(
         # hook
         self.data_connector.prepare_data(model)
 
-        # bookkeeping
-        # we reuse fit in .test() but change its behavior using this flag
-        self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
-
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
@@ -720,33 +716,31 @@ class Trainer(
         datamodule: Optional[LightningDataModule] = None,
     ):
         r"""
-
-        Separates from fit to make sure you never run on your test set until you want to.
+        Perform one evaluation epoch over the test set. It's separated from
+        fit to make sure you never run on your test set until you want to.
 
         Args:
             ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
-                If ``None``, use the weights from the last epoch to test. Default to ``best``.
-
+                If ``None``, use the current weights of the model. Default to ``best``.
             datamodule: A instance of :class:`LightningDataModule`.
-
-            model: The model to test.
-
-            test_dataloaders: Either a single
-                Pytorch Dataloader or a list of them, specifying validation samples.
-
-            verbose: If True, prints the test results
+            model: The model to evaluate.
+            test_dataloaders: Either a single PyTorch DataLoader or a list of them,
+                specifying test samples.
+            verbose: If True, prints the test results.
 
         Returns:
-            The final test result dictionary. If no test_epoch_end is defined returns a list of dictionaries
+            The dictionary with final test results returned by test_epoch_end.
+            If test_epoch_end is not defined, the output is a list of the dictionaries
+            returned by test_step.
         """
         # --------------------
         # SETUP HOOK
         # --------------------
-        self.verbose_test = verbose
+        self.verbose_evaluate = verbose
 
         self.logger_connector.set_stage("test")
 
-        # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
+        # If you supply a datamodule you can't supply test_dataloaders
         if test_dataloaders and datamodule:
             raise MisconfigurationException(
                 'You cannot pass test_dataloaders to trainer.test if you supply a datamodule'
@@ -756,15 +750,15 @@ class Trainer(
         self.data_connector.attach_datamodule(model or self.get_model(), datamodule, 'test')
 
         if model is not None:
-            results = self.__test_given_model(model, test_dataloaders)
+            results = self.__evaluate_given_model(model, test_dataloaders, 'test')
         else:
-            results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
+            results = self.__evaluate_using_best_weights(ckpt_path, test_dataloaders, 'test')
 
         self.teardown('test')
 
         return results
 
-    def __test_using_best_weights(self, ckpt_path, test_dataloaders):
+    def __evaluate_using_best_weights(self, ckpt_path, test_dataloaders, stage: str):
         model = self.get_model()
 
         # if user requests the best checkpoint but we don't have it, error
@@ -796,22 +790,20 @@ class Trainer(
             self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
 
         # run tests
-        self.tested_ckpt_path = ckpt_path
-        self.testing = True
-        os.environ['PL_TESTING_MODE'] = '1'
+        self.evaluating = stage
+        self.evaluated_ckpt_path = ckpt_path
         self.model = model
         results = self.fit(model)
-        self.testing = False
-        del os.environ['PL_TESTING_MODE']
+        self.evaluating = None
 
         # teardown
         if self.is_function_implemented('teardown'):
             model_ref = self.get_model()
-            model_ref.teardown('test')
+            model_ref.teardown(stage)
 
         return results
 
-    def __test_given_model(self, model, test_dataloaders):
+    def __evaluate_given_model(self, model, test_dataloaders, stage: str):
 
         # attach data
         if test_dataloaders is not None:
@@ -819,16 +811,34 @@ class Trainer(
 
         # run test
         # sets up testing so we short circuit to eval
-        self.testing = True
+        self.evaluating = stage
         self.model = model
         results = self.fit(model)
-        self.testing = False
+        self.evaluating = None
 
         # teardown
         if self.is_function_implemented('teardown'):
-            model.teardown('test')
+            model.teardown(stage)
 
         return results
+
+    @property
+    def testing(self):
+        warnings.warn(
+            'Trainer.testing has been deprecated in v1.1 and will be removed '
+            'in v1.3, use Trainer.evaluating instead.',
+            DeprecationWarning, stacklevel=2
+        )
+        return bool(self.evaluating)
+
+    @property
+    def tested_ckpt_path(self):
+        warnings.warn(
+            'Trainer.tested_ckpt_path has been renamed Trainer.evaluated_ckpt_path '
+            'in v1.1 and will be removed in v1.3.',
+            DeprecationWarning, stacklevel=2
+        )
+        return self.evaluated_ckpt_path
 
     def tune(
         self,
@@ -856,11 +866,17 @@ class Trainer(
 
     def call_setup_hook(self, model):
         # call setup after the ddp process has connected
-        stage_name = 'test' if self.testing else 'fit'
+        stage_name = self.evaluating or 'fit'
+
         if self.datamodule is not None:
-            called = self.datamodule.has_setup_test if self.testing else self.datamodule.has_setup_fit
+            called = {
+                None: self.datamodule.has_setup_fit,
+                'test': self.datamodule.has_setup_test,
+            }[self.evaluating]
+
             if not called:
                 self.datamodule.setup(stage_name)
+
         self.setup(model, stage_name)
         model.setup(stage_name)
 

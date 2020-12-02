@@ -36,7 +36,11 @@ class ModelConnector:
             m.use_ddp2 = self.trainer.use_ddp2
             m.use_ddp = self.trainer.use_ddp
             m.use_amp = self.trainer.amp_backend is not None
-            m.testing = self.trainer.testing
+            # Currently, the only users of m.testing appear to be DP and DDP,
+            # which use it to determine whether the model is currently inside
+            # the validation or test loop. For this reason it must check if
+            # trainer.evaluating is equal to "test" specifically.
+            m.testing = self.trainer.evaluating == 'test'
             m.use_single_gpu = self.trainer.use_single_gpu
             m.use_tpu = self.trainer.use_tpu
             m.tpu_local_core_rank = self.trainer.tpu_local_core_rank

@@ -31,12 +31,12 @@ class ConfigValidator(object):
             model: The model to check the configuration.
 
         """
-        if not self.trainer.testing:
+        if not self.trainer.evaluating:
             self.__verify_train_loop_configuration(model)
             self.__verify_eval_loop_configuration(model, 'validation')
         else:
-            # check test loop configuration
-            self.__verify_eval_loop_configuration(model, 'test')
+            # check evaluation loop configurations
+            self.__verify_eval_loop_configuration(model, self.trainer.evaluating)
 
     def __verify_train_loop_configuration(self, model):
         # -----------------------------------
