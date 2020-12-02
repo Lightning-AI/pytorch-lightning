@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [unreleased.Features] - YYYY-MM-DD
+## [1.1.0rc1] - 2020-12-02
 
 ### Added
 
