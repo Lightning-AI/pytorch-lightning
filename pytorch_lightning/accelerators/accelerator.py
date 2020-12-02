@@ -59,9 +59,9 @@ class Accelerator(object):
     def broadcast(self, obj, src=0):
         return obj
 
-    def train_or_test(self):
+    def train_or_evaluate(self):
         if self.trainer.evaluating:
-            results = self.trainer.run_test()
+            results = self.trainer.run_test_or_validate()
         else:
             results = self.trainer.train()
         return results

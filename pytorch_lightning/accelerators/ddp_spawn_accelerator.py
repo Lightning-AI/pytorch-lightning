@@ -157,8 +157,8 @@ class DDPSpawnAccelerator(Accelerator):
         # set up training routine
         self.trainer.train_loop.setup_training(model)
 
-        # train or test
-        results = self.train_or_test()
+        # train or evaluate
+        results = self.train_or_evaluate()
 
         # get original model
         model = self.trainer.get_model()

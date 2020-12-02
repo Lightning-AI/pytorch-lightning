@@ -174,8 +174,8 @@ class DDPHPCAccelerator(Accelerator):
         # set up training routine
         self.trainer.train_loop.setup_training(model)
 
-        # train or test
-        results = self.train_or_test()
+        # train or evaluate
+        results = self.train_or_evaluate()
 
         # clean up memory
         torch.cuda.empty_cache()

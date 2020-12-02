@@ -655,7 +655,7 @@ class Trainer(
             outputs.append(output)
         return outputs
 
-    def run_test(self):
+    def run_test_or_validate(self):
         # only load test dataloader for testing
         # self.reset_test_dataloader(ref_model)
         if self.evaluating == 'test':
