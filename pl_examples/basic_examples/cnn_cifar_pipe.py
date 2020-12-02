@@ -19,7 +19,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 from torch import optim
-from torch.optim.swa_utils import AveragedModel, update_bn
 
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
