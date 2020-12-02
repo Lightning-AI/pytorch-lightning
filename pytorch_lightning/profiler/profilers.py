@@ -339,7 +339,6 @@ class AutogradProfiler(BaseProfiler):
         )
         self.profiler.__enter__()
 
-
     def start(self, action_name: str) -> None:
         # stop the running profiler if any
         if len(self.running_stack) > 0:
@@ -372,7 +371,6 @@ class AutogradProfiler(BaseProfiler):
         # restore running profiler
         if len(self.running_stack) > 0:
             self._start(self.running_stack[-1])
-
 
     def summary(self) -> str:
         output_string = f"{os.linesep}Profiler Report{os.linesep}"
