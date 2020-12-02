@@ -1100,7 +1100,7 @@ Your effective batch size is batch_size * total tpu cores.
 
 This parameter can be either 1 or 8.
 
-.. testcode::
+Example::
 
     # your_trainer_file.py
 
