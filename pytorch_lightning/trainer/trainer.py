@@ -127,7 +127,7 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
-        plugins: Optional[list] = None,
+        plugins: Optional[Union[str, list]] = None,
         amp_backend: str = 'native',
         amp_level: str = 'O2',
         distributed_backend: Optional[str] = None,
@@ -224,7 +224,7 @@ class Trainer(
 
             overfit_batches: Overfit a percent of training data (float) or a set number of batches (int). Default: 0.0
 
-            plugins: Plugins allow modification of core behavior like ddp and amp.
+            plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
 
             precision: Full precision (32), half precision (16). Can be used on CPU, GPU or TPUs.
 
@@ -399,7 +399,7 @@ class Trainer(
         )
 
         # set precision
-        self.precision_connector.on_trainer_init(precision, amp_level, amp_backend, plugins)
+        self.precision_connector.on_trainer_init(precision, amp_level, amp_backend)
 
         # last thing are the plugins which override whatever the trainer used by default
         self.plugin_connector.on_trainer_init(plugins)
@@ -907,3 +907,11 @@ class Trainer(
         if capture:
             self._cache_logged_metrics()
         return output
+
+    @staticmethod
+    def available_plugins():
+        """
+            List of all available plugins that can be string arguments to the trainer.
+            Returns: List of all available plugins that are supported as string arguments.
+        """
+        return PluginConnector.available_plugins()
