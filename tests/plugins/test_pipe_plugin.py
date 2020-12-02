@@ -143,7 +143,7 @@ class SequentialModelRPC(LightningModule):
         return out
 
     def training_step(self, batch, batch_idx):
-        if batch_idx % 2 == 0:
+        if True:
             self._count += 1
             opt = self.optimizers()
             output = self.layers(batch)
@@ -151,7 +151,7 @@ class SequentialModelRPC(LightningModule):
             self.log("train_loss", loss, on_epoch=True, prog_bar=True)
             self.manual_backward(loss, opt)
             assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() > 0
-            self.manual_optimizer_step(opt)
+            opt.step()
         else:
             opt = self.optimizers()
 
@@ -162,7 +162,7 @@ class SequentialModelRPC(LightningModule):
                 self.log("train_loss", loss, on_epoch=True, prog_bar=True)
                 self.manual_backward(loss, opt)
                 assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() > 0
-            self.manual_optimizer_step(opt, optimizer_closure=optimizer_closure)
+            opt.step(closure=optimizer_closure)
         self._called += 1
         assert self._called == self._count
         assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() == 0
@@ -208,7 +208,7 @@ def test_pipe_plugin_ddp_rpc_manual(tmpdir, args=None):
         limit_test_batches=2,
         gpus=2,
         distributed_backend="ddp",
-        plugins=[PipeRpcPlugin(balance=[2, 1], version=2)],
+        plugins=[PipeRpcPlugin(balance=[2, 1])],
         automatic_optimization=False,
     )
     trainer.fit(model)
@@ -235,7 +235,7 @@ def test_pipe_plugin_ddp_rpc_manual_amp(tmpdir, args=None):
         precision=16,
         amp_backend="native",
         distributed_backend="ddp",
-        plugins=[PipeRpcPlugin(balance=[2, 1], version=2)],
+        plugins=[PipeRpcPlugin(balance=[2, 1])],
         automatic_optimization=False,
     )
     try:
@@ -310,7 +310,7 @@ def test_pipe_plugin_ddp_rpc_automatic(tmpdir, args=None):
         limit_test_batches=2,
         gpus=2,
         distributed_backend="ddp",
-        plugins=[PipeRpcPlugin(balance=[2, 1], version=2)],
+        plugins=[PipeRpcPlugin(balance=[2, 1])],
         automatic_optimization=True,
     )
 

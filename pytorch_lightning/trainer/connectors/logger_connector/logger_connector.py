@@ -623,6 +623,8 @@ class LoggerConnector:
             # logs user requested information to logger
             metrics = self.cached_results.get_latest_batch_log_metrics()
             grad_norm_dic = batch_output.grad_norm_dic
+            if grad_norm_dic is None:
+                grad_norm_dic = {}
             if len(metrics) > 0 or len(grad_norm_dic) > 0:
                 self.log_metrics(metrics, grad_norm_dic, log_train_step_metrics=True)
                 self.callback_metrics.update(metrics)

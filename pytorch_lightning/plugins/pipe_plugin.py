@@ -71,18 +71,22 @@ class LightningPipeModule(nn.Module):
             mode: PipeMode
                 the mode enables switching between Pipe and PipeRCPWrapper class
     """
-    def __init__(self, module: nn.Sequential, balance: List[int],
-                 microbatches: int = 8, checkpoint='never'):
+    def __init__(self,
+                 module: nn.Sequential,
+                 balance: List[int],
+                 microbatches: int = 8,
+                 checkpoint='never',
+                 pipe_cls=None):
         super().__init__()
         self.module = module
         self.balance = balance
         self.microbatches = microbatches
         self.checkpoint = checkpoint
-        self._init_pipe()
+        self._init_pipe(pipe_cls)
 
-    def _init_pipe(self):
+    def _init_pipe(self, pipe_cls):
         device = torch.device("cuda", torch_distrib.get_rank())
-        self.module = Pipe(
+        self.module = pipe_cls(
             module=self.module,
             balance=self.balance,
             chunks=self.microbatches,
@@ -205,6 +209,7 @@ class PipePlugin(DDPPlugin):
                 balance=self.balance,
                 microbatches=self.microbatches,
                 checkpoint=self.checkpoint,
+                pipe_cls=Pipe
             )
             model.final_stage = model.layers.module.final_stage
             model.back_helper = model.layers.module.back_helper
