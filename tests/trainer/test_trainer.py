@@ -20,7 +20,7 @@ import types
 from argparse import Namespace
 from copy import deepcopy
 from pathlib import Path
-from unittest.mock import patch, call, ANY
+from unittest.mock import ANY, call, patch
 
 import cloudpickle
 import pytest
@@ -34,10 +34,10 @@ from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hpara
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.profiler.profilers import AdvancedProfiler, PassThroughProfiler, SimpleProfiler
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
+from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
-from tests.base import EvalModelTemplate, BoringModel
+from tests.base import BoringModel, EvalModelTemplate
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -500,8 +500,9 @@ def test_model_freeze_unfreeze():
     model.unfreeze()
 
 
+@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
 @pytest.mark.parametrize("url_ckpt", [True, False])
-def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
+def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt, enable_pl_optimizer):
     """Verify resuming from checkpoint runs the right number of epochs"""
     # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
     monkeypatch.setenv("TORCH_HOME", tmpdir)
@@ -541,6 +542,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         checkpoint_callback=ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_top_k=-1),
         default_root_dir=tmpdir,
         val_check_interval=1.0,
+        enable_pl_optimizer=enable_pl_optimizer,
     )
 
     trainer = Trainer(**trainer_options)
@@ -650,18 +652,6 @@ def test_trainer_min_steps_and_epochs(tmpdir):
 
     # define less epochs than min_steps
     trainer_options["min_steps"] = math.floor(num_train_samples * 1.5)
-
-    # fit model
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-    assert result == 1, "Training did not complete"
-
-    # check model ran for at least num_train_samples*1.5
-    assert trainer.global_step >= math.floor(num_train_samples * 1.5) and \
-        trainer.current_epoch > 0, "Model did not train for at least min_steps"
-    # define only min_steps less than 1 epoch
-    trainer_options["min_epochs"] = None
-    trainer_options.update(min_epochs=None, min_steps=math.floor(num_train_samples / 2))
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -1000,7 +990,7 @@ def test_gradient_clipping(tmpdir):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@pytest.mark.skipif(not NATIVE_AMP_AVALAIBLE, reason="test requires native AMP.")
+@pytest.mark.skipif(not NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
 def test_gradient_clipping_fp16(tmpdir):
     """
     Test gradient clipping with fp16
