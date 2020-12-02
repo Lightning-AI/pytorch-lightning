@@ -228,9 +228,7 @@ def run(args):
 
 
 if __name__ == "__main__":
-    if not FAIRSCALE_AVAILABLE and BOLT_AVAILABLE:
-        pass
-    else:
+    if FAIRSCALE_AVAILABLE and BOLT_AVAILABLE:
         parser = ArgumentParser(description="Pipe Example")
         parser.add_argument("--use_pipe", type=int, default=1)
         parser.add_argument("--batch_size", type=int, default=32)
