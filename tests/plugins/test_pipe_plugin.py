@@ -23,7 +23,7 @@ from torch import nn
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
-from pytorch_lightning.plugins.pipe_plugin import HAS_FAIRSCALE, PipePlugin
+from pytorch_lightning.plugins.pipe_plugin import FAIRSCALE_AVAILABLE, PipePlugin
 from pytorch_lightning.plugins.pipe_rpc_plugin import PipeRpcPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.backends.launcher import DDPLauncher
@@ -93,7 +93,7 @@ class SequentialModel(LightningModule):
         return torch.utils.data.DataLoader(RandomDataset(32, 64))
 
 
-@pytest.mark.skipif(not HAS_FAIRSCALE, reason="test requires fairscale to be installed")
+@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="test requires fairscale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
@@ -195,7 +195,7 @@ def cleanup(ctx, model):
     del model
 
 
-@pytest.mark.skipif(not HAS_FAIRSCALE, reason="test requires fairscale to be installed")
+@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="test requires fairscale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
@@ -220,7 +220,7 @@ def test_pipe_plugin_ddp_rpc_manual(tmpdir, args=None):
     del model
 
 
-@pytest.mark.skipif(not HAS_FAIRSCALE, reason="test requires fairscale to be installed")
+@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="test requires fairscale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
@@ -297,7 +297,7 @@ class SequentialModelRPCAutomatic(LightningModule):
         return torch.utils.data.DataLoader(RandomDataset(32, 64))
 
 
-@pytest.mark.skipif(not HAS_FAIRSCALE, reason="test requires fairscale to be installed")
+@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="test requires fairscale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")

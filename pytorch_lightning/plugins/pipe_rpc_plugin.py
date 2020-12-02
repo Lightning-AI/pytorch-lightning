@@ -11,34 +11,25 @@ import torch.distributed as torch_distrib
 from torch import nn, optim
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning import _logger as log
+from pytorch_lightning import seed_everything
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.utilities import AMPType
-
-try:
-    IS_TORCH_AT_LEAST_1_6 = LooseVersion(torch.__version__) >= LooseVersion("1.6.0")
-    if IS_TORCH_AT_LEAST_1_6:
-        import fairscale.nn.model_parallel as mpu
-        from fairscale.nn import PipeRPCWrapper
-        from fairscale.nn.model_parallel.utils import ensure_divisibility
-        from fairscale.nn.pipe import balance as pipe_balance
-        from fairscale.nn.pipe import rpc as rpc_pipe
-        from fairscale.nn.pipe.pipeline import PipelineStyle
-        from torch.distributed import rpc
-
-        # todo: seems to work only for 1.6.0
-        HAS_FAIRSCALE = LooseVersion(torch.__version__) == LooseVersion("1.6.0")
-    else:
-        HAS_FAIRSCALE = False
-except Exception as e:
-    print(e)
-    HAS_FAIRSCALE = False
-
-from pytorch_lightning import LightningModule, seed_everything
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.pipe_plugin import LightningPipeModule
+from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+FAIRSCALE_AVAILABLE &= LooseVersion(torch.__version__) == LooseVersion("1.6.0")
+
+if FAIRSCALE_AVAILABLE:
+    import fairscale.nn.model_parallel as mpu
+    from fairscale.nn import PipeRPCWrapper
+    from fairscale.nn.model_parallel.utils import ensure_divisibility
+    from fairscale.nn.pipe import balance as pipe_balance
+    from fairscale.nn.pipe import rpc as rpc_pipe
+    from fairscale.nn.pipe.pipeline import PipelineStyle
+    from torch.distributed import rpc
 
 
 def get_worker_map():

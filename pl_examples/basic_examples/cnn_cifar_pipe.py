@@ -14,12 +14,10 @@
 import math
 from argparse import ArgumentParser
 
-import pl_bolts
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
-from pl_bolts.transforms.dataset_normalizations import cifar10_normalization
 from torch import optim
 from torch.optim.swa_utils import AveragedModel, update_bn
 
@@ -27,8 +25,14 @@ import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.metrics.functional import accuracy
-from pytorch_lightning.plugins.pipe_plugin import HAS_FAIRSCALE, PipePlugin
+from pytorch_lightning.plugins.pipe_plugin import FAIRSCALE_AVAILABLE, PipePlugin
 from pytorch_lightning.plugins.pipe_rpc_plugin import PipeRpcPlugin
+from pytorch_lightning.utilities import BOLT_AVAILABLE
+
+if BOLT_AVAILABLE:
+    import pl_bolts
+    from pl_bolts.transforms.dataset_normalizations import cifar10_normalization
+
 
 """
 To run with Pipe
@@ -224,8 +228,8 @@ def run(args):
 
 
 if __name__ == "__main__":
-    if not HAS_FAIRSCALE:
-        print("Skip training. Pytorch Geometric isn't installed. Please, check README.md !")
+    if not FAIRSCALE_AVAILABLE and BOLT_AVAILABLE:
+        pass
     else:
         parser = ArgumentParser(description="Pipe Example")
         parser.add_argument("--use_pipe", type=int, default=1)

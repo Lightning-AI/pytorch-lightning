@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from distutils.version import LooseVersion
 from typing import List, Optional
 
 import torch
@@ -19,29 +20,21 @@ import torch.distributed as torch_distrib
 from torch import nn
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning import _logger as log
-
-try:
-    IS_TORCH_1_6 = torch.__version__ == "1.6.0"
-    if IS_TORCH_1_6:
-        import fairscale.nn.model_parallel as mpu
-        from fairscale.nn import Pipe
-        from fairscale.nn.model_parallel.utils import ensure_divisibility
-        from fairscale.nn.pipe import balance as pipe_balance
-        from fairscale.nn.pipe.pipeline import PipelineStyle
-        from torch.distributed import rpc
-
-        # todo: seems to work only for 1.6.0
-        HAS_FAIRSCALE = True
-    else:
-        HAS_FAIRSCALE = False
-except Exception as e:
-    print(e)
-    HAS_FAIRSCALE = False
-
 from pytorch_lightning import LightningModule
+from pytorch_lightning import _logger as log
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
+from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+FAIRSCALE_AVAILABLE &= LooseVersion(torch.__version__) == LooseVersion("1.6.0")
+
+if FAIRSCALE_AVAILABLE:
+    import fairscale.nn.model_parallel as mpu
+    from fairscale.nn import Pipe
+    from fairscale.nn.model_parallel.utils import ensure_divisibility
+    from fairscale.nn.pipe import balance as pipe_balance
+    from fairscale.nn.pipe.pipeline import PipelineStyle
+    from torch.distributed import rpc
 
 
 def get_worker_map():

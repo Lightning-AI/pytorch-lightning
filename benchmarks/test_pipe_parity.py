@@ -15,7 +15,7 @@ from torch.utils.data import Dataset
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning import LightningModule, Trainer, seed_everything
-from pytorch_lightning.plugins.pipe_plugin import HAS_FAIRSCALE, PipePlugin
+from pytorch_lightning.plugins.pipe_plugin import FAIRSCALE_AVAILABLE, PipePlugin
 
 ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
 sys.path.insert(0, ROOT)
@@ -28,7 +28,7 @@ from tests.base.boring_model import RandomDataset  # noqa E402
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(not HAS_FAIRSCALE, reason="Fairscale is not available")
+@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 @DDPLauncher.run("--accelerator ddp --gpus 2")
 def test_ddp_pipe_plugin_correctness_multi_gpu(tmpdir, args=None):
     run_pipe_correctness(gpus=args.gpus, accelerator=args.accelerator)
