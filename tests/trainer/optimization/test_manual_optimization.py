@@ -14,11 +14,11 @@
 import collections
 import os
 from unittest import mock
+from unittest.mock import ANY, call, patch
 
 import pytest
 import torch
 import torch.nn.functional as F
-from unittest.mock import patch, call, ANY
 
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.utilities import APEX_AVAILABLE
@@ -383,7 +383,7 @@ class ManualOptimizationExtendedModel(BoringModel):
         if self.should_update:
 
             self.manual_backward(loss, opt)
-            self.manual_optimizer_step(opt)
+            opt.step()
 
         return loss.detach() if self.detach else loss
 
@@ -434,6 +434,7 @@ def test_manual_optimization_and_return_tensor(tmpdir):
         amp_backend='native',
         accelerator="ddp_spawn",
         gpus=2,
+        enable_pl_optimizer=True
     )
     trainer.fit(model)
 
@@ -473,7 +474,7 @@ def test_manual_optimization_and_return_detached_tensor(tmpdir):
 def test_manual_optimization_and_accumulated_gradient(tmpdir):
     """
     This test verify that in `automatic_optimization=False`,
-    manual_optimizer_step is being called only when we shouldn't accumulate.
+    step is being called only when we shouldn't accumulate.
     """
     seed_everything(234)
 
@@ -511,7 +512,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
             if self.should_update:
 
                 self.manual_backward(loss, opt)
-                self.manual_optimizer_step(opt)
+                opt.step()
 
             return loss.detach() if self.detach else loss
 
@@ -550,15 +551,16 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
         amp_backend='native',
         accumulate_grad_batches=4,
         gpus=1,
+        enable_pl_optimizer=True,
     )
     trainer.fit(model)
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-def test_multiple_optimizers_manual_optimizer_step(tmpdir):
+def test_multiple_optimizers_step(tmpdir):
     """
-    Tests that `manual_optimizer_step` works with several optimizers
+    Tests that `step` works with several optimizers
     """
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
@@ -574,7 +576,7 @@ def test_multiple_optimizers_manual_optimizer_step(tmpdir):
                 assert torch.all(self.layer.weight.grad == 0)
 
             self.manual_backward(loss_1, opt_a)
-            self.manual_optimizer_step(opt_a)
+            opt_a.step()
 
             # fake discriminator
             loss_2 = self(x)
@@ -586,7 +588,7 @@ def test_multiple_optimizers_manual_optimizer_step(tmpdir):
             self.manual_backward(loss_2, opt_a, retain_graph=True)
 
             assert self.layer.weight.grad is not None
-            self.manual_optimizer_step(opt_b)
+            opt_b.step()
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
@@ -611,7 +613,8 @@ def test_multiple_optimizers_manual_optimizer_step(tmpdir):
         weights_summary=None,
         precision=16,
         amp_backend='native',
-        gpus=1
+        gpus=1,
+        enable_pl_optimizer=True,
     )
 
     trainer.fit(model)
@@ -620,9 +623,9 @@ def test_multiple_optimizers_manual_optimizer_step(tmpdir):
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * num_manual_backward_calls
 
 
-def test_manual_optimizer_step_with_optimizer_closure(tmpdir):
+def test_step_with_optimizer_closure(tmpdir):
     """
-    Tests that `manual_optimizer_step` works with optimizer_closure
+    Tests that `step` works with optimizer_closure
     """
     os.environ['PL_DEV_DEBUG'] = '1'
 
@@ -664,7 +667,7 @@ def test_manual_optimizer_step_with_optimizer_closure(tmpdir):
 
             weight_before = self.layer.weight.clone()
 
-            self.manual_optimizer_step(opt, optimizer_closure=optimizer_closure)
+            opt.step(closure=optimizer_closure)
 
             weight_after = self.layer.weight.clone()
             assert not torch.equal(weight_before, weight_after)
@@ -689,6 +692,7 @@ def test_manual_optimizer_step_with_optimizer_closure(tmpdir):
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
+        enable_pl_optimizer=True,
     )
 
     trainer.fit(model)
@@ -697,9 +701,9 @@ def test_manual_optimizer_step_with_optimizer_closure(tmpdir):
     assert trainer.logger_connector.progress_bar_metrics["train_loss_epoch"] == torch.stack(model._losses).mean()
 
 
-def test_manual_optimizer_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
+def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
     """
-    Tests that `manual_optimizer_step` works with optimizer_closure and accumulated_grad
+    Tests that `step` works with optimizer_closure and accumulated_grad
     """
     os.environ['PL_DEV_DEBUG'] = '1'
 
@@ -721,7 +725,7 @@ def test_manual_optimizer_step_with_optimizer_closure_and_accumulated_grad(tmpdi
 
             weight_before = self.layer.weight.clone()
 
-            self.manual_optimizer_step(opt, optimizer_closure=optimizer_closure)
+            opt.step(closure=optimizer_closure)
 
             weight_after = self.layer.weight.clone()
             if not self.trainer.train_loop.should_accumulate():
@@ -750,6 +754,7 @@ def test_manual_optimizer_step_with_optimizer_closure_and_accumulated_grad(tmpdi
         max_epochs=1,
         log_every_n_steps=1,
         accumulate_grad_batches=2,
+        enable_pl_optimizer=True,
     )
 
     trainer.fit(model)
@@ -757,9 +762,9 @@ def test_manual_optimizer_step_with_optimizer_closure_and_accumulated_grad(tmpdi
 
 
 @patch("torch.optim.SGD.step")
-def test_manual_optimizer_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
+def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
     """
-    Tests that `manual_optimizer_step` works with optimizer_closure and extra arguments
+    Tests that `step` works with optimizer_closure and extra arguments
     """
     os.environ['PL_DEV_DEBUG'] = '1'
 
@@ -779,7 +784,7 @@ def test_manual_optimizer_step_with_optimizer_closure_and_extra_arguments(step_m
                     retain_graph = num_backward != backward_idx # noqa E225
                     self.manual_backward(loss_1, opt, retain_graph=retain_graph)
 
-            self.manual_optimizer_step(opt, 1, optimizer_closure=optimizer_closure, something="new")
+            opt.step(1, closure=optimizer_closure, something="new")
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
@@ -802,6 +807,7 @@ def test_manual_optimizer_step_with_optimizer_closure_and_extra_arguments(step_m
         max_epochs=1,
         log_every_n_steps=1,
         accumulate_grad_batches=2,
+        enable_pl_optimizer=True,
     )
 
     trainer.fit(model)
@@ -811,9 +817,9 @@ def test_manual_optimizer_step_with_optimizer_closure_and_extra_arguments(step_m
 
 @patch("torch.optim.Adam.step")
 @patch("torch.optim.SGD.step")
-def test_manual_optimizer_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, mock_adam_step, tmpdir):
+def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, mock_adam_step, tmpdir):
     """
-    Tests that `manual_optimizer_step` works with optimizer_closure and different accumulated_gradient frequency
+    Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
     """
     os.environ['PL_DEV_DEBUG'] = '1'
 
@@ -845,22 +851,14 @@ def test_manual_optimizer_step_with_optimizer_closure_with_different_frequencies
                 self.manual_backward(loss_dis, opt_dis)
 
             # this will accumulate gradients for 2 batches and then call opt_gen.step()
-            self.manual_optimizer_step(
-                opt_gen,
-                optimizer_closure=gen_closure,
-                make_optimizer_step=batch_idx % 2 == 0,
-                optim='sgd')
+            opt_gen.step(closure=gen_closure, make_optimizer_step=batch_idx % 2 == 0, optim='sgd')
 
             # update discriminator every 4 baches
             # therefore, no gradient accumulation for discriminator
             if batch_idx % 4 == 0 :
                 # Note: Set make_optimizer_step to True or it will use by default
                 # Trainer(accumulate_grad_batches=x)
-                self.manual_optimizer_step(
-                    opt_dis,
-                    optimizer_closure=dis_closure,
-                    make_optimizer_step=True,
-                    optim='adam')
+                opt_dis.step(closure=dis_closure, make_optimizer_step=True, optim='adam')
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
@@ -884,6 +882,7 @@ def test_manual_optimizer_step_with_optimizer_closure_with_different_frequencies
         max_epochs=1,
         log_every_n_steps=1,
         accumulate_grad_batches=2,
+        enable_pl_optimizer=True,
     )
 
     trainer.fit(model)
