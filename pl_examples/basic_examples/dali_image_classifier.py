@@ -32,8 +32,10 @@ else:
 
 if DALI_AVAILABLE:
     import nvidia.dali.ops as ops
+    from nvidia.dali import __version__ as DALI_VERSION
+    if DALI_VERSION >= '0.28.0':
+        from nvidia.dali.plugin.base_iterator import LastBatchPolicy
     from nvidia.dali.pipeline import Pipeline
-    from nvidia.dali.plugin.base_iterator import LastBatchPolicy
     from nvidia.dali.plugin.pytorch import DALIClassificationIterator
 else:
     warn('NVIDIA DALI is not available')
@@ -94,16 +96,22 @@ class DALIClassificationLoader(DALIClassificationIterator):
             size=-1,
             reader_name=None,
             auto_reset=False,
-            last_batch_policy=LastBatchPolicy.FILL,
+            fill_last_batch=True,
             dynamic_shape=False,
             last_batch_padded=False,
     ):
-        super().__init__(pipelines, size, reader_name, auto_reset, dynamic_shape,
-                         last_batch_policy=last_batch_policy, last_batch_padded=last_batch_padded)
+        if DALI_VERSION >= '0.28.0':
+            last_batch_policy = LastBatchPolicy.FILL if fill_last_batch else LastBatchPolicy.DROP
+            super().__init__(pipelines, size, reader_name, auto_reset, dynamic_shape,
+                             last_batch_policy=last_batch_policy, last_batch_padded=last_batch_padded)
+        else:
+            super().__init__(pipelines, size, reader_name, auto_reset, fill_last_batch,
+                             dynamic_shape, last_batch_padded)
+        self._fill_last_batch = fill_last_batch
 
     def __len__(self):
         batch_count = self._size // (self._num_gpus * self.batch_size)
-        last_batch = 0 if self._last_batch_policy == LastBatchPolicy.DROP else 1
+        last_batch = 1 if self._fill_last_batch else 1
         return batch_count + last_batch
 
 
@@ -180,16 +188,13 @@ def cli_main():
     eii_test = ExternalMNISTInputIterator(mnist_test, args.batch_size)
 
     pipe_train = ExternalSourcePipeline(batch_size=args.batch_size, eii=eii_train, num_threads=2, device_id=0)
-    train_loader = DALIClassificationLoader(pipe_train, size=len(mnist_train), auto_reset=True,
-                                            last_batch_policy=LastBatchPolicy.FILL)
+    train_loader = DALIClassificationLoader(pipe_train, size=len(mnist_train), auto_reset=True, fill_last_batch=True)
 
     pipe_val = ExternalSourcePipeline(batch_size=args.batch_size, eii=eii_val, num_threads=2, device_id=0)
-    val_loader = DALIClassificationLoader(pipe_val, size=len(mnist_val), auto_reset=True,
-                                          last_batch_policy=LastBatchPolicy.DROP)
+    val_loader = DALIClassificationLoader(pipe_val, size=len(mnist_val), auto_reset=True, fill_last_batch=False)
 
     pipe_test = ExternalSourcePipeline(batch_size=args.batch_size, eii=eii_test, num_threads=2, device_id=0)
-    test_loader = DALIClassificationLoader(pipe_test, size=len(mnist_test), auto_reset=True,
-                                           last_batch_policy=LastBatchPolicy.DROP)
+    test_loader = DALIClassificationLoader(pipe_test, size=len(mnist_test), auto_reset=True, fill_last_batch=False)
 
     # ------------
     # model
