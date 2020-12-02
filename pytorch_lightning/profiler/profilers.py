@@ -293,6 +293,9 @@ class AutogradProfiler(BaseProfiler):
     can record PyTorch operations on both CPU and GPU, recording the events of functions
     being executed under the hood in C++. This profiler is most useful when trying to optimize
     the forward and backward pass of your neural network.
+
+    Caution! The `AutogradProfiler` doesn't currently work with dataloaders with workers
+    enabled (`num_workers > 0`). Please disable workers when using this profiler.
     """
 
     def __init__(
@@ -300,7 +303,7 @@ class AutogradProfiler(BaseProfiler):
         output_filename: str = None,
         profile_memory: bool = True,
         use_cuda: bool = False,
-        row_limit: int = 50,
+        row_limit: int = 20,
         group_by_input_shapes: bool = False
     ):
         """
@@ -318,7 +321,9 @@ class AutogradProfiler(BaseProfiler):
         self.use_cuda = use_cuda
         self.row_limit = row_limit
         self.profiled_actions = {}
-        self.profilers = {}
+        self.profiler = None
+        # stack of currently running profilers
+        self.running_stack = []
 
         self.output_fname = output_filename
         self.output_file = open(self.output_fname, 'w') if self.output_fname else None
@@ -326,38 +331,58 @@ class AutogradProfiler(BaseProfiler):
         streaming_out = [self.output_file.write] if self.output_file else [log.info]
         super().__init__(output_streams=streaming_out)
 
-    def start(self, action_name: str) -> None:
-        prof = torch.autograd.profiler.profile(
+    def _start(self, action_name: str) -> None:
+        self.profiler = torch.autograd.profiler.profile(
             profile_memory=self.profile_memory,
             use_cuda=self.use_cuda,
             record_shapes=self.group_by_input_shapes
         )
-        prof.__enter__()
-        self.profilers[action_name] = prof
+        self.profiler.__enter__()
 
-    def stop(self, action_name: str) -> None:
-        prof = self.profilers.get(action_name)
-        if prof is None:
-            raise ValueError(  # pragma: no-cover
-                f"Attempting to stop recording an action ({action_name}) which was never started."
-            )
-        prof.__exit__(
+
+    def start(self, action_name: str) -> None:
+        # stop the running profiler if any
+        if len(self.running_stack) > 0:
+            self._stop(self.running_stack[-1])
+        self.running_stack.append(action_name)
+
+        self._start(action_name)
+
+    def _stop(self, action_name: str) -> None:
+        self.profiler.__exit__(
             exc_type=None,
             exc_val=None,
             exc_tb=None
         )
-        del self.profilers[action_name]
+        events = self.profiler.function_events
+        self.profiler = None
+        for name in self.running_stack:
+            if name not in self.profiled_actions:
+                self.profiled_actions[name] = events
+            else:
+                self.profiled_actions[name] += events
 
-        events = prof.function_events
-        if action_name not in self.profiled_actions:
-            self.profiled_actions[action_name] = events
-        else:
-            self.profiled_actions[action_name] += events
+    def stop(self, action_name: str) -> None:
+        if len(self.running_stack) == 0 or self.running_stack[-1] != action_name:
+            raise ValueError(  # pragma: no-cover
+                f"Attempting to stop recording an action ({action_name}) which was never started."
+            )
+        self._stop(action_name)
+        self.running_stack.pop()
+        # restore running profiler
+        if len(self.running_stack) > 0:
+            self._start(self.running_stack[-1])
+
 
     def summary(self) -> str:
         output_string = f"{os.linesep}Profiler Report{os.linesep}"
 
         for name, events in self.profiled_actions.items():
+            # next line is a workaround for a pytorch issue (fixed on master, still present
+            # on 1.7). Without it the code fails with `AssertionError: There is already a CPU
+            # parent event for detach`
+            events.populate_cpu_children = lambda: None
+
             report = events.key_averages(group_by_input_shapes=self.group_by_input_shapes).table(
                 sort_by=("cuda_time_total" if self.use_cuda else "cpu_time_total"),
                 row_limit=self.row_limit
