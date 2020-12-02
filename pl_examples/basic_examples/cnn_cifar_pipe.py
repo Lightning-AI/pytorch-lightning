@@ -91,10 +91,8 @@ class ConvNN(nn.Module):
             nn.Linear(512, 10)
         )
 
-
     def forward(self, x):
         return self.layers(x)
-
 
 ###############################
 #       LightningModule       #
@@ -102,15 +100,13 @@ class ConvNN(nn.Module):
 
 
 class LitResnet(pl.LightningModule):
-    def __init__(self, lr = 0.05, batch_size = 32, use_pipe = False):
+    def __init__(self, lr=0.05, batch_size=32, use_pipe=False):
         super().__init__()
 
         self.save_hyperparameters()
-
         model = ConvNN()
         self.layers = model.layers
         self._example_input_array = torch.randn((1, 3, 32, 32))
-
         if use_pipe:
             self.training_step = self.training_step_pipe
 
@@ -160,7 +156,11 @@ class LitResnet(pl.LightningModule):
         return {
             'optimizer': optimizer,
             'lr_scheduler': {
-                'scheduler': torch.optim.lr_scheduler.OneCycleLR(optimizer, 0.1, epochs=self.trainer.max_epochs, steps_per_epoch=math.ceil(45000/self.hparams.batch_size)),
+                'scheduler': torch.optim.lr_scheduler.OneCycleLR(
+                    optimizer,
+                    0.1,
+                    epochs=self.trainer.max_epochs,
+                    steps_per_epoch=math.ceil(45000 / self.hparams.batch_size)),
                 'interval': 'step',
             }
         }
@@ -171,9 +171,6 @@ class LitResnet(pl.LightningModule):
 #################################
 
 def instantiate_datamodule(args):
-
-
-    batch_size = args.batch_size
 
     train_transforms = torchvision.transforms.Compose([
         torchvision.transforms.RandomCrop(32, padding=4),
@@ -188,7 +185,7 @@ def instantiate_datamodule(args):
     ])
 
     cifar10_dm = pl_bolts.datamodules.CIFAR10DataModule(
-        batch_size=batch_size,
+        batch_size=args.batch_size,
         train_transforms=train_transforms,
         test_transforms=test_transforms,
         val_transforms=test_transforms,
@@ -203,13 +200,12 @@ def run(args):
 
     plugins = None
     if args.use_pipe:
-        plugins=[PipeRpcPlugin()]
+        plugins = [PipeRpcPlugin()]
         gpus = 2
         accelerator = "ddp"
     else:
         gpus = 1
         accelerator = None
-
 
     model = LitResnet(batch_size=args.batch_size, use_pipe=args.use_pipe)
 
