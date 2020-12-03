@@ -33,14 +33,17 @@ def _module_available(module_path: str) -> bool:
     >>> _module_available('bla.bla')
     False
     """
-    mods = module_path.split('.')
-    assert mods, 'nothing given to test'
-    # it has to be tested as per partets
-    for i in range(len(mods)):
-        module_path = '.'.join(mods[:i + 1])
-        if importlib.util.find_spec(module_path) is None:
-            return False
-    return True
+    try:
+        mods = module_path.split('.')
+        assert mods, 'nothing given to test'
+        # it has to be tested as per partets
+        for i in range(len(mods)):
+            module_path = '.'.join(mods[:i + 1])
+            if importlib.util.find_spec(module_path) is None:
+                return False
+        return True
+    except Exception:
+        return False
 
 
 APEX_AVAILABLE = _module_available("apex.amp")
