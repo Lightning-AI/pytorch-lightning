@@ -306,13 +306,10 @@ class PipeRpcPlugin(RPCPlugin):
             raise NotImplementedError
 
     def optimizer_step(self, is_master, optimizer, closure, *args, **kwargs):
-        opt_idx = optimizer._optimizer_idx
         if not is_master:
             return
-        if not self._optimizers_map[opt_idx]:
-            self._optimizers_map[opt_idx] = True
+        opt_idx = optimizer._optimizer_idx
+        self._optimizers_map[opt_idx] = not self._optimizers_map[opt_idx]
+        if self._optimizers_map[opt_idx]:
             optimizer.step(closure=closure, *args, **kwargs)
-            self._optimizer_step(optimizer._optimizer_idx, *args, **kwargs)
-            return
-        else:
-            self._optimizers_map[opt_idx] = False
+            self._optimizer_step(opt_idx, *args, **kwargs)
