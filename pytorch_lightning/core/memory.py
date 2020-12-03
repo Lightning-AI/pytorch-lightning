@@ -432,5 +432,5 @@ def get_human_readable_count(number: int) -> str:
     index = num_groups - 1
     if index < 1 or number >= 100:
         return f"{int(number):,d} {labels[index]}"
-    else:
-        return f"{number:,.1f} {labels[index]}"
+
+    return f"{number:,.1f} {labels[index]}"
