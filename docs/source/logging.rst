@@ -124,24 +124,28 @@ Once your training starts, you can view the logs by using your favorite logger o
 Make a custom logger
 ********************
 
-You can implement your own logger by writing a class that inherits from
-:class:`LightningLoggerBase`. Use the :func:`~pytorch_lightning.loggers.base.rank_zero_only`
-decorator to make sure that only the first process in DDP training logs data.
+You can implement your own logger by writing a class that inherits from :class:`~pytorch_lightning.loggers.base.LightningLoggerBase`.
+Use the :func:`~pytorch_lightning.loggers.base.rank_zero_experiment` and :func:`~pytorch_lightning.utilities.distributed.rank_zero_only` decorators to make sure that only the first process in DDP training creates the experiment and logs the data respectively.
 
 .. testcode::
 
     from pytorch_lightning.utilities import rank_zero_only
     from pytorch_lightning.loggers import LightningLoggerBase
+    from pytorch_lightning.loggers.base import rank_zero_experiment
 
     class MyLogger(LightningLoggerBase):
 
+        @property
         def name(self):
             return 'MyLogger'
 
+        @property
+        @rank_zero_experiment
         def experiment(self):
             # Return the experiment object associated with this logger.
             pass
-          
+         
+        @property 
         def version(self):
             # Return the experiment version, int or str.
             return '0.1'
@@ -158,6 +162,7 @@ decorator to make sure that only the first process in DDP training logs data.
             # your code to record metrics goes here
             pass
 
+        @rank_zero_only
         def save(self):
             # Optional. Any code necessary to save logger data goes here
             # If you implement this, remember to call `super().save()`
