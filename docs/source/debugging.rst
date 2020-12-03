@@ -102,7 +102,7 @@ You can also display the intermediate input- and output sizes of all your layers
     --------------------------------------------------------------
     0 | net   | Sequential  | 132 K  | [10, 256] | [10, 512]
     1 | net.0 | Linear      | 131 K  | [10, 256] | [10, 512]
-    2 | net.1 | BatchNorm1d | 1 K    | [10, 512] | [10, 512]
+    2 | net.1 | BatchNorm1d | 1.0 K    | [10, 512] | [10, 512]
 
 when you call ``.fit()`` on the Trainer. This can help you find bugs in the composition of your layers.
 
