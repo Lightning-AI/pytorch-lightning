@@ -199,7 +199,7 @@ class LightningOptimizer:
                         break
 
             ddp_plugin = trainer.accelerator_backend.ddp_plugin
-            if isinstance(ddp_plugin, PipeRpcPlugin):
+            if ddp_plugin.using_rpc_async:
                 ddp_plugin.optimizer_step(trainer.is_master, self, closure, *args, **kwargs)
 
             if trainer.on_tpu:
