@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Any, Optional, Union
+
 import torch
 
-from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -21,6 +23,15 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 class CPUAccelerator(Accelerator):
 
     def __init__(self, trainer, cluster_environment=None):
+        """
+        Runs training on CPU
+
+        Example::
+
+            # default
+            trainer = Trainer(accelerator=CPUAccelerator())
+
+        """
         super().__init__(trainer, cluster_environment)
         self.nickname = None
 
@@ -35,6 +46,8 @@ class CPUAccelerator(Accelerator):
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
         self.setup_optimizers(model)
+
+        self.trainer.convert_to_lightning_optimizers()
 
         self.trainer.model = model
 
@@ -71,3 +84,9 @@ class CPUAccelerator(Accelerator):
         else:
             output = self.trainer.model.test_step(*args)
         return output
+
+    def sync_tensor(self,
+                    tensor: Union[torch.Tensor],
+                    group: Optional[Any] = None,
+                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
+        return tensor

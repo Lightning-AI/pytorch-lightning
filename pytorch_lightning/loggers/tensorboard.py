@@ -13,14 +13,13 @@
 # limitations under the License.
 
 """
-TensorBoard
------------
+TensorBoard Logger
+------------------
 """
 
 import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
-from warnings import warn
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
@@ -30,21 +29,17 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn, OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-try:
+if OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
-except ImportError:
-    OMEGACONF_AVAILABLE = False
-else:
-    OMEGACONF_AVAILABLE = True
 
 
 class TensorBoardLogger(LightningLoggerBase):
     r"""
     Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
+
     Implemented using :class:`~torch.utils.tensorboard.SummaryWriter`. Logs are saved to
     ``os.path.join(save_dir, name, version)``. This is the default logger in Lightning, it comes
     preinstalled.
@@ -68,11 +63,13 @@ class TensorBoardLogger(LightningLoggerBase):
             model.
         default_hp_metric: Enables a placeholder metric with key `hp_metric` when `log_hyperparams` is
             called without a metric (otherwise calls to log_hyperparams without a metric are ignored).
+        prefix: A string to put at the beginning of metric keys.
         \**kwargs: Additional arguments like `comment`, `filename_suffix`, etc. used by
             :class:`SummaryWriter` can be passed as keyword arguments in this logger.
 
     """
     NAME_HPARAMS_FILE = 'hparams.yaml'
+    LOGGER_JOIN_CHAR = '-'
 
     def __init__(
         self,
@@ -81,6 +78,7 @@ class TensorBoardLogger(LightningLoggerBase):
         version: Optional[Union[int, str]] = None,
         log_graph: bool = False,
         default_hp_metric: bool = True,
+        prefix: str = '',
         **kwargs
     ):
         super().__init__()
@@ -89,6 +87,7 @@ class TensorBoardLogger(LightningLoggerBase):
         self._version = version
         self._log_graph = log_graph
         self._default_hp_metric = default_hp_metric
+        self._prefix = prefix
         self._fs = get_filesystem(save_dir)
 
         self._experiment = None
@@ -176,6 +175,8 @@ class TensorBoardLogger(LightningLoggerBase):
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
+
+        metrics = self._add_prefix(metrics)
 
         for k, v in metrics.items():
             if isinstance(v, torch.Tensor):

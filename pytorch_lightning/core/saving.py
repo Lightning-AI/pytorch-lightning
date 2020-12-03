@@ -20,22 +20,20 @@ from argparse import Namespace
 from typing import Union, Dict, Any, Optional, Callable, MutableMapping, IO
 from warnings import warn
 
-import fsspec
 import torch
 import yaml
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import rank_zero_warn, AttributeDict
+from pytorch_lightning.utilities import rank_zero_warn, AttributeDict, OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-
+from pytorch_lightning.utilities.parsing import parse_class_init_keys
 
 PRIMITIVE_TYPES = (bool, int, float, str)
 ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
-try:
+
+if OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
-except ImportError:
-    OmegaConf = None
 
 # the older shall be on the top
 CHECKPOINT_PAST_HPARAMS_KEYS = (
@@ -60,9 +58,9 @@ class ModelIO(object):
     ):
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
-        it stores the arguments passed to `__init__`  in the checkpoint under `module_arguments`
+        it stores the arguments passed to `__init__`  in the checkpoint under `hyper_parameters`
 
-        Any arguments specified through \*args and \*\*kwargs will override args stored in `hparams`.
+        Any arguments specified through \*args and \*\*kwargs will override args stored in `hyper_parameters`.
 
         Args:
             checkpoint_path: Path to checkpoint. This can also be a URL, or file-like object
@@ -89,8 +87,8 @@ class ModelIO(object):
                 `hparams` as :class:`~dict`.
             strict: Whether to strictly enforce that the keys in :attr:`checkpoint_path` match the keys
                 returned by this module's state dict. Default: `True`.
-            hparam_overrides: A dictionary with keys to override in the hparams
-            kwargs: Any keyword args needed to init the model.
+            kwargs: Any extra keyword args needed to init the model. Can also be used to override saved
+                hyperparameter values.
 
         Return:
             :class:`LightningModule` with loaded weights and hyperparameters (if available).
@@ -159,8 +157,8 @@ class ModelIO(object):
         cls_spec = inspect.getfullargspec(cls.__init__)
         cls_init_args_name = inspect.signature(cls.__init__).parameters.keys()
 
-        self_name = cls_spec.args[0]
-        drop_names = (self_name, cls_spec.varargs, cls_spec.varkw)
+        self_var, args_var, kwargs_var = parse_class_init_keys(cls)
+        drop_names = [n for n in (self_var, args_var, kwargs_var) if n]
         cls_init_args_name = list(filter(lambda n: n not in drop_names, cls_init_args_name))
 
         cls_kwargs_loaded = {}
@@ -362,7 +360,7 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
         hparams = dict(hparams)
 
     # saving with OmegaConf objects
-    if OmegaConf is not None:
+    if OMEGACONF_AVAILABLE:
         if OmegaConf.is_config(hparams):
             with fs.open(config_yaml, "w", encoding="utf-8") as fp:
                 OmegaConf.save(hparams, fp, resolve=True)

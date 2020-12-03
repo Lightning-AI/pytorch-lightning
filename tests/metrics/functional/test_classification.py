@@ -9,7 +9,6 @@ from sklearn.metrics import (
     recall_score as sk_recall,
     f1_score as sk_f1_score,
     fbeta_score as sk_fbeta_score,
-    confusion_matrix as sk_confusion_matrix,
     roc_curve as sk_roc_curve,
     roc_auc_score as sk_roc_auc_score,
     precision_recall_curve as sk_precision_recall_curve
@@ -23,15 +22,13 @@ from pytorch_lightning.metrics.functional.classification import (
     stat_scores,
     stat_scores_multiple_classes,
     accuracy,
-    confusion_matrix,
     precision,
     recall,
-    fbeta_score,
-    f1_score,
     _binary_clf_curve,
     dice_score,
     average_precision,
     auroc,
+    multiclass_auroc,
     precision_recall_curve,
     roc,
     auc,
@@ -44,10 +41,6 @@ from pytorch_lightning.metrics.functional.classification import (
     pytest.param(partial(sk_jaccard_score, average='macro'), iou, False, id='iou'),
     pytest.param(partial(sk_precision, average='micro'), precision, False, id='precision'),
     pytest.param(partial(sk_recall, average='micro'), recall, False, id='recall'),
-    pytest.param(partial(sk_f1_score, average='micro'), f1_score, False, id='f1_score'),
-    pytest.param(partial(sk_fbeta_score, average='micro', beta=2),
-                 partial(fbeta_score, beta=2), False, id='fbeta_score'),
-    pytest.param(sk_confusion_matrix, confusion_matrix, False, id='confusion_matrix'),
     pytest.param(sk_roc_curve, roc, True, id='roc'),
     pytest.param(sk_precision_recall_curve, precision_recall_curve, True, id='precision_recall_curve'),
     pytest.param(sk_roc_auc_score, auroc, True, id='auroc')
@@ -83,8 +76,6 @@ def test_against_sklearn(sklearn_metric, torch_metric, only_binary):
 @pytest.mark.parametrize(['sklearn_metric', 'torch_metric'], [
     pytest.param(sk_precision, precision, id='precision'),
     pytest.param(sk_recall, recall, id='recall'),
-    pytest.param(sk_f1_score, f1_score, id='f1_score'),
-    pytest.param(partial(sk_fbeta_score, beta=2), partial(fbeta_score, beta=2), id='fbeta_score')
 ])
 def test_different_reduction_against_sklearn(class_reduction, sklearn_metric, torch_metric):
     """ Test metrics where the class_reduction parameter have a correponding
@@ -216,33 +207,6 @@ def test_accuracy():
     assert acc.item() == 0.50
 
 
-def test_confusion_matrix():
-    target = (torch.arange(120) % 3).view(-1, 1)
-    pred = target.clone()
-    cm = confusion_matrix(pred, target, normalize=True)
-
-    assert torch.allclose(cm, torch.tensor([[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]]))
-
-    pred = torch.zeros_like(pred)
-    cm = confusion_matrix(pred, target, normalize=True)
-    assert torch.allclose(cm, torch.tensor([[1., 0., 0.], [1., 0., 0.], [1., 0., 0.]]))
-
-    target = torch.LongTensor([0, 0, 0, 0, 0])
-    pred = target.clone()
-    cm = confusion_matrix(pred, target, normalize=False, num_classes=3)
-    assert torch.allclose(cm, torch.tensor([[5., 0., 0.], [0., 0., 0.], [0., 0., 0.]]))
-
-    # Example taken from https://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html
-    target = torch.LongTensor([0] * 13 + [1] * 16 + [2] * 9)
-    pred = torch.LongTensor([0] * 13 + [1] * 10 + [2] * 15)
-    cm = confusion_matrix(pred, target, normalize=False, num_classes=3)
-    assert torch.allclose(cm, torch.tensor([[13., 0., 0.], [0., 10., 6.], [0., 0., 9.]]))
-    to_compare = cm / torch.tensor([[13.], [16.], [9.]])
-
-    cm = confusion_matrix(pred, target, normalize=True, num_classes=3)
-    assert torch.allclose(cm, to_compare)
-
-
 @pytest.mark.parametrize(['pred', 'target', 'expected_prec', 'expected_rec'], [
     pytest.param(torch.tensor([1., 0., 1., 0.]), torch.tensor([0., 1., 1., 0.]), [0.5, 0.5], [0.5, 0.5]),
     pytest.param(to_onehot(torch.tensor([1., 0., 1., 0.])), torch.tensor([0., 1., 1., 0.]), [0.5, 0.5], [0.5, 0.5])
@@ -253,32 +217,6 @@ def test_precision_recall(pred, target, expected_prec, expected_rec):
 
     assert torch.allclose(torch.tensor(expected_prec).to(prec), prec)
     assert torch.allclose(torch.tensor(expected_rec).to(rec), rec)
-
-
-@pytest.mark.parametrize(['pred', 'target', 'beta', 'exp_score'], [
-    pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], 0.5, [0.5, 0.5]),
-    pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], 1, [0.5, 0.5]),
-    pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], 2, [0.5, 0.5]),
-])
-def test_fbeta_score(pred, target, beta, exp_score):
-    score = fbeta_score(torch.tensor(pred), torch.tensor(target), beta, class_reduction='none')
-    assert torch.allclose(score, torch.tensor(exp_score))
-
-    score = fbeta_score(to_onehot(torch.tensor(pred)), torch.tensor(target), beta, class_reduction='none')
-    assert torch.allclose(score, torch.tensor(exp_score))
-
-
-@pytest.mark.parametrize(['pred', 'target', 'exp_score'], [
-    pytest.param([0., 0., 0., 0.], [1., 1., 1., 1.], [0.0, 0.0]),
-    pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], [0.5, 0.5]),
-    pytest.param([1., 0., 1., 0.], [1., 0., 1., 0.], [1.0, 1.0]),
-])
-def test_f1_score(pred, target, exp_score):
-    score = f1_score(torch.tensor(pred), torch.tensor(target), class_reduction='none')
-    assert torch.allclose(score, torch.tensor(exp_score))
-
-    score = f1_score(to_onehot(torch.tensor(pred)), torch.tensor(target), class_reduction='none')
-    assert torch.allclose(score, torch.tensor(exp_score))
 
 
 @pytest.mark.parametrize(['sample_weight', 'pos_label', "exp_shape"], [
@@ -344,6 +282,47 @@ def test_roc_curve(pred, target, expected_tpr, expected_fpr):
 def test_auroc(pred, target, expected):
     score = auroc(torch.tensor(pred), torch.tensor(target)).item()
     assert score == expected
+
+
+def test_multiclass_auroc():
+    with pytest.raises(ValueError,
+                       match=r".*probabilities, i.e. they should sum up to 1.0 over classes"):
+        _ = multiclass_auroc(pred=torch.tensor([[0.9, 0.9],
+                                                [1.0, 0]]),
+                             target=torch.tensor([0, 1]))
+
+    with pytest.raises(ValueError,
+                       match=r".*not defined when all of the classes do not occur in the target.*"):
+        _ = multiclass_auroc(pred=torch.rand((4, 3)).softmax(dim=1),
+                             target=torch.tensor([1, 0, 1, 0]))
+
+    with pytest.raises(ValueError,
+                       match=r".*does not equal the number of classes passed in 'num_classes'.*"):
+        _ = multiclass_auroc(pred=torch.rand((5, 4)).softmax(dim=1),
+                             target=torch.tensor([0, 1, 2, 2, 3]),
+                             num_classes=6)
+
+
+@pytest.mark.parametrize('n_cls', [2, 5, 10, 50])
+def test_multiclass_auroc_against_sklearn(n_cls):
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    n_samples = 300
+    pred = torch.rand(n_samples, n_cls, device=device).softmax(dim=1)
+    target = torch.randint(n_cls, (n_samples,), device=device)
+    # Make sure target includes all class labels so that multiclass AUROC is defined
+    target[10:10 + n_cls] = torch.arange(n_cls)
+
+    pl_score = multiclass_auroc(pred, target)
+    # For the binary case, sklearn expects an (n_samples,) array of probabilities of
+    # the positive class
+    pred = pred[:, 1] if n_cls == 2 else pred
+    sk_score = sk_roc_auc_score(target.cpu().detach().numpy(),
+                                pred.cpu().detach().numpy(),
+                                multi_class="ovr")
+
+    sk_score = torch.tensor(sk_score, dtype=torch.float, device=device)
+    assert torch.allclose(sk_score, pl_score)
 
 
 @pytest.mark.parametrize(['x', 'y', 'expected'], [

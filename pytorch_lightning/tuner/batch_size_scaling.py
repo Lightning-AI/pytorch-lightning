@@ -22,6 +22,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import is_oom_error, garbage_collection_cuda
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning import _logger as log
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 
 def scale_batch_size(trainer,
@@ -68,6 +69,10 @@ def scale_batch_size(trainer,
         **fit_kwargs: remaining arguments to be passed to .fit(), e.g., dataloader
             or datamodule.
     """
+    if trainer.fast_dev_run:
+        rank_zero_warn('Skipping batch size scaler since `fast_dev_run=True`', UserWarning)
+        return
+
     if not lightning_hasattr(model, batch_arg_name):
         raise MisconfigurationException(
             f'Field {batch_arg_name} not found in both `model` and `model.hparams`')
@@ -90,14 +95,14 @@ def scale_batch_size(trainer,
     __scale_batch_reset_params(trainer, model, steps_per_trial)
 
     # Save initial model, that is loaded after batch size is found
-    save_path = os.path.join(trainer.default_root_dir, 'temp_model.ckpt')
+    save_path = os.path.join(trainer.default_root_dir, 'scale_batch_size_temp_model.ckpt')
     trainer.save_checkpoint(str(save_path))
 
     if trainer.progress_bar_callback:
         trainer.progress_bar_callback.disable()
 
     # Initially we just double in size until an OOM is encountered
-    new_size = _adjust_batch_size(trainer, value=init_val)  # initially set to init_val
+    new_size = _adjust_batch_size(trainer, batch_arg_name, value=init_val)  # initially set to init_val
     if mode == 'power':
         new_size = _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials, **fit_kwargs)
     elif mode == 'binsearch':
@@ -109,8 +114,11 @@ def scale_batch_size(trainer,
     log.info(f'Finished batch size finder, will continue with full run using batch size {new_size}')
 
     # Restore initial state of model
-    trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer.on_gpu)
-    os.remove(save_path)
+    if trainer.is_global_zero:
+        trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer.on_gpu)
+        fs = get_filesystem(str(save_path))
+        if fs.exists(save_path):
+            fs.rm(save_path)
 
     # Finish by resetting variables so trainer is ready to fit model
     __scale_batch_restore_params(trainer)
@@ -144,7 +152,6 @@ def __scale_batch_reset_params(trainer, model, steps_per_trial):
     trainer.weights_summary = None  # not needed before full run
     trainer.logger = DummyLogger()
     trainer.callbacks = []  # not needed before full run
-    trainer.checkpoint_callback = False  # required for saving
     trainer.limit_train_batches = 1.0
     trainer.optimizers, trainer.schedulers = [], []  # required for saving
     trainer.model = model  # required for saving
@@ -157,7 +164,6 @@ def __scale_batch_restore_params(trainer):
     trainer.weights_summary = trainer.__dumped_params['weights_summary']
     trainer.logger = trainer.__dumped_params['logger']
     trainer.callbacks = trainer.__dumped_params['callbacks']
-    trainer.checkpoint_callback = trainer.__dumped_params['checkpoint_callback']
     trainer.auto_scale_batch_size = trainer.__dumped_params['auto_scale_batch_size']
     trainer.limit_train_batches = trainer.__dumped_params['limit_train_batches']
     trainer.model = trainer.__dumped_params['model']
@@ -225,7 +231,7 @@ def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials,
                 garbage_collection_cuda()
                 high = new_size
                 midval = (high + low) // 2
-                new_size, _ = _adjust_batch_size(trainer, value=midval, desc='failed')
+                new_size, _ = _adjust_batch_size(trainer, batch_arg_name, value=midval, desc='failed')
                 if high - low <= 1:
                     break
             else:

@@ -3,12 +3,12 @@ name: "Docs check"
 
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches: [master]
+    branches: [master, "release/*"]  # include release branches like release/1.0.x
   pull_request:
-    branches: [master]
+    branches: [master, "release/*"]
 
 jobs:
-  check-docs:
+  sphinx-check:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
@@ -48,6 +48,7 @@ jobs:
           # python -m pip install --upgrade --user pip
           pip install --requirement requirements.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
           pip install --requirement requirements/extra.txt
+          pip install --requirement requirements/loggers.txt
           pip install --requirement requirements/docs.txt
           python --version
           pip --version
@@ -68,7 +69,7 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7

@@ -78,6 +78,25 @@ If ``on_epoch`` is True, the logger automatically logs the end of epoch metric v
         self.valid_acc(logits, y)
         self.log('valid_acc', self.valid_acc, on_step=True, on_epoch=True)
 
+.. note::
+    If using metrics in data parallel mode (dp), the metric update/logging should be done
+    in the ``<mode>_step_end`` method (where ``<mode>`` is either ``training``, ``validation``
+    or ``test``). This is due to metric states else being destroyed after each forward pass,
+    leading to wrong accumulation. In practice do the following:
+
+    .. code-block:: python
+
+        def training_step(self, batch, batch_idx):
+            data, target = batch
+            pred = self(data)
+            ...
+            return {'loss' : loss, 'preds' : preds, 'target' : target}
+
+        def training_step_end(self, outputs):
+            #update and log
+            self.metric(outputs['preds'], outputs['target'])
+            self.log('metric', self.metric)
+
 
 This metrics API is independent of PyTorch Lightning. Metrics can directly be used in PyTorch as shown in the example:
 
@@ -104,6 +123,19 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
 
     # total accuracy over all validation batches
     total_valid_accuracy = valid_accuracy.compute()
+
+.. note::
+
+    Metrics contain internal states that keep track of the data seen so far.
+    Do not mix metric states across training, validation and testing.
+    It is highly recommended to re-initialize the metric per mode as
+    shown in the examples above.
+
+.. note::
+
+    Metric states are **not** added to the models ``state_dict`` by default.
+    To change this, after initializing the metric, the method ``.persistent(mode)`` can
+    be used to enable (``mode=True``) or disable (``mode=False``) this behaviour.
 
 *********************
 Implementing a Metric
@@ -144,6 +176,19 @@ Example implementation:
         def compute(self):
             return self.correct.float() / self.total
 
+Metrics support backpropagation, if all computations involved in the metric calculation
+are differentiable. However, note that the cached state is detached from the computational
+graph and cannot be backpropagated. Not doing this would mean storing the computational
+graph for each update call, which can lead to out-of-memory errors.
+In practise this means that:
+
+.. code-block:: python
+
+    metric = MyMetric()
+    val = metric(pred, target) # this value can be backpropagated
+    val = metric.compute() # this value cannot be backpropagated
+
+
 **********
 Metric API
 **********
@@ -176,10 +221,22 @@ Recall
 .. autoclass:: pytorch_lightning.metrics.classification.Recall
     :noindex:
 
-Fbeta
+FBeta
 ~~~~~
 
-.. autoclass:: pytorch_lightning.metrics.classification.Fbeta
+.. autoclass:: pytorch_lightning.metrics.classification.FBeta
+    :noindex:
+
+F1
+~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.F1
+    :noindex:
+
+ConfusionMatrix
+~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.ConfusionMatrix
     :noindex:
 
 Regression Metrics
@@ -259,6 +316,13 @@ auroc [func]
     :noindex:
 
 
+multiclass_auroc [func]
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.metrics.functional.classification.multiclass_auroc
+    :noindex:
+
+
 average_precision [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -269,7 +333,7 @@ average_precision [func]
 confusion_matrix [func]
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.confusion_matrix
+.. autofunction:: pytorch_lightning.metrics.functional.confusion_matrix
     :noindex:
 
 
@@ -280,17 +344,17 @@ dice_score [func]
     :noindex:
 
 
-f1_score [func]
+f1 [func]
 ~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.f1_score
+.. autofunction:: pytorch_lightning.metrics.functional.f1
     :noindex:
 
 
-fbeta_score [func]
+fbeta [func]
 ~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.fbeta_score
+.. autofunction:: pytorch_lightning.metrics.functional.fbeta
     :noindex:
 
 
@@ -434,4 +498,3 @@ embedding_similarity [func]
 
 .. autofunction:: pytorch_lightning.metrics.functional.self_supervised.embedding_similarity
     :noindex:
-

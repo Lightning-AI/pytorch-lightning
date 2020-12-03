@@ -2,7 +2,7 @@ name: TPU tests
 
 on:
   push:
-    branches: [master]
+    branches: [master, "release/*"]  # include release branches like release/1.0.x
 # TODO: temporal disable TPU testing until we find way how to pass credentials to forked PRs
 #  pull_request:
 #    branches:
@@ -24,6 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [3.6, 3.7]
+        xla-version: [1.6, 1.7]
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 50
 
@@ -66,9 +67,12 @@ jobs:
         gcloud --quiet auth configure-docker
       shell: bash
     - name: Build and Push Docker Image
+      env:
+        PYTHON_VER: ${{ matrix.python-version }}
+        XLA_VER: ${{ matrix.xla-version }}
       run: |
         #cd dockers/tpu-tests
-        docker build --tag "$IMAGE:$IMAGETAG" -f ./dockers/tpu-tests/Dockerfile --build-arg "PYTHON_VERSION=${{ matrix.python-version }}" .
+        docker build --tag "$IMAGE:$IMAGETAG" -f ./dockers/tpu-tests/Dockerfile --build-arg "PYTHON_VERSION=$PYTHON_VER" --build-arg "PYTORCH_VERSION=$XLA_VER" .
         docker push "$IMAGE:$IMAGETAG"
       shell: bash
 
@@ -83,7 +87,10 @@ jobs:
       shell: bash
 
     - name: Deploy the job on the kubernetes cluster
+      env:
+        XLA_VER: ${{ matrix.xla-version }}
       run: |-
+        python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; ttt = open(fname).read().replace('pytorch-VERSION', 'pytorch-$XLA_VER') ; open(fname, 'w').write(ttt)"
         job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet --ext-str image=$IMAGE --ext-str image-tag=$IMAGETAG | kubectl create -f -) && \
         job_name=${job_name#job.batch/} && \
         job_name=${job_name% created} && \
@@ -119,7 +126,7 @@ jobs:
         #  pycobertura show coverage.xml
 
     - name: Upload coverage results
-      uses: actions/upload-artifact@master
+      uses: actions/upload-artifact@v2
       with:
         name: coverage-TPU
         path: coverage

@@ -12,22 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Various hooks to be used in the Lightning code."""
+
 from typing import Any, Dict, List, Union
 
 import torch
-from pytorch_lightning.utilities import AMPType, move_data_to_device, rank_zero_warn
-from torch import Tensor
+from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
 
-try:
-    from apex import amp
-except ImportError:
-    amp = None
-
-
 class ModelHooks:
+    """Hooks to be used in LightningModule."""
     def setup(self, stage: str):
         """
         Called at the beginning of fit and test.
@@ -132,7 +128,7 @@ class ModelHooks:
         Called in the training loop after the batch.
 
         Args:
-            outputs: The outputs of validation_step_end(validation_step(x))
+            outputs: The outputs of training_step_end(training_step(x))
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
@@ -156,7 +152,7 @@ class ModelHooks:
         Called in the validation loop before anything happens for that batch.
 
         Args:
-            batch: The batched data as it is returned by the training DataLoader.
+            batch: The batched data as it is returned by the validation DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
         """
@@ -168,7 +164,7 @@ class ModelHooks:
 
         Args:
             outputs: The outputs of validation_step_end(validation_step(x))
-            batch: The batched data as it is returned by the training DataLoader.
+            batch: The batched data as it is returned by the validation DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
         """
@@ -179,7 +175,7 @@ class ModelHooks:
         Called in the test loop before anything happens for that batch.
 
         Args:
-            batch: The batched data as it is returned by the training DataLoader.
+            batch: The batched data as it is returned by the test DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
         """
@@ -191,7 +187,7 @@ class ModelHooks:
 
         Args:
             outputs: The outputs of test_step_end(test_step(x))
-            batch: The batched data as it is returned by the training DataLoader.
+            batch: The batched data as it is returned by the test DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
         """
@@ -297,6 +293,7 @@ class ModelHooks:
 
 
 class DataHooks:
+    """Hooks to be used with LightningDataModule."""
     def prepare_data(self) -> None:
         """
         Use this to download and prepare data.
@@ -556,6 +553,7 @@ class DataHooks:
 
 
 class CheckpointHooks:
+    """Hooks to be used with Checkpointing."""
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         r"""
         Called by Lightning to restore your model.

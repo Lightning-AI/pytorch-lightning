@@ -14,6 +14,7 @@
 import os
 from argparse import Namespace
 from distutils.version import LooseVersion
+from unittest import mock
 
 import pytest
 import torch
@@ -21,9 +22,9 @@ import yaml
 from omegaconf import OmegaConf
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.loggers import TensorBoardLogger
-from tests.base import EvalModelTemplate
+from tests.base import BoringModel, EvalModelTemplate
 
 
 @pytest.mark.skipif(
@@ -201,3 +202,63 @@ def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
             ' attribute is not set or `input_array` was not given'
     ):
         logger.log_graph(model)
+
+
+@mock.patch('pytorch_lightning.loggers.TensorBoardLogger.log_metrics')
+@pytest.mark.parametrize('expected', [
+    ([5, 11, 17]),
+])
+def test_tensorboard_with_accummulated_gradients(mock_log_metrics, expected, tmpdir):
+    """
+    Tests to ensure that tensorboard log properly when accumulated_gradients > 1
+    """
+    class TestModel(BoringModel):
+        _count = 0
+        _indexes = []
+
+        def training_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log('count', self._count, on_step=True, on_epoch=True)
+            self.log('loss', loss, on_step=True, on_epoch=True)
+
+            if self.trainer.logger_connector.should_update_logs:
+                self._indexes.append(self._count)
+
+            self._count += 1
+            return loss
+
+        def validation_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log('val_loss', loss, on_step=True, on_epoch=True)
+            return loss
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=.001)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+            return [optimizer], [lr_scheduler]
+
+    model = TestModel()
+    model.training_epoch_end = None
+    model.validation_epoch_end = None
+
+    logger_0 = TensorBoardLogger(tmpdir, default_hp_metric=False)
+
+    accumulate_grad_batches = 2
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=12,
+        limit_val_batches=12,
+        max_epochs=3,
+        gpus=0,
+        accumulate_grad_batches=accumulate_grad_batches,
+        logger=[logger_0],
+        log_every_n_steps=3,
+    )
+    trainer.fit(model)
+
+    mock_count_epochs = [m[2]["step"] for m in mock_log_metrics.mock_calls if "count_epoch" in m[2]["metrics"]]
+    assert mock_count_epochs == expected
+    mock_count_steps = [m[2]["step"] for m in mock_log_metrics.mock_calls if "count_step" in m[2]["metrics"]]
+    assert model._indexes == mock_count_steps

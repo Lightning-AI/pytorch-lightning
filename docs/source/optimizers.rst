@@ -37,7 +37,7 @@ to manually manage the optimization process. To do so, do the following:
         # use self.backward which will also handle scaling the loss when using amp
         self.manual_backward(loss_a, opt_g)
         opt_g.step()
-        opt_g.zero_grad()
+
 
         # do anything you want
         loss_b = ...
@@ -46,7 +46,10 @@ to manually manage the optimization process. To do so, do the following:
         self.manual_backward(loss_b, opt_d, retain_graph=True)
         self.manual_backward(loss_b, opt_d)
         opt_d.step()
-        opt_d.zero_grad()
+
+        # log losses
+        self.log('loss_a', loss_a)
+        self.log('loss_b', loss_b)
 
 .. note:: This is only recommended for experts who need ultimate flexibility
 
@@ -108,7 +111,7 @@ Every optimizer you use can be paired with any `LearningRateScheduler <https://p
    def configure_optimizers(self):
       return {
           'optimizer': Adam(...),
-          'scheduler': ReduceLROnPlateau(optimizer, ...),
+          'lr_scheduler': ReduceLROnPlateau(optimizer, ...),
           'monitor': 'metric_to_track'
       }
 
