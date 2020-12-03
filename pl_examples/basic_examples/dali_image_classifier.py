@@ -22,11 +22,11 @@ from torch.nn import functional as F
 from torch.utils.data import random_split
 
 import pytorch_lightning as pl
-from pl_examples import TORCHVISION_AVAILABLE, DALI_AVAILABLE
+from pl_examples import DALI_AVAILABLE, TORCHVISION_AVAILABLE
 
 if TORCHVISION_AVAILABLE:
-    from torchvision.datasets.mnist import MNIST
     from torchvision import transforms
+    from torchvision.datasets.mnist import MNIST
 else:
     from tests.base.datasets import MNIST
 
@@ -204,4 +204,5 @@ def cli_main():
 
 
 if __name__ == "__main__":
-    cli_main()
+    if DALI_AVAILABLE:
+        cli_main()

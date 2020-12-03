@@ -35,15 +35,6 @@ if BOLT_AVAILABLE:
     from pl_bolts.transforms.dataset_normalizations import cifar10_normalization
 
 
-"""
-To run with Pipe
-python benchmarks/cnn_cifar_pipe.py --use_pipe 1
-
-To run without Pipe
-python benchmarks/cnn_cifar_pipe.py --use_pipe 0
-"""
-
-
 def record_model_stats(run, args):
     """
     Helper to calculate wall clock time for fit + max allocated memory.

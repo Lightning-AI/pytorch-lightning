@@ -198,8 +198,9 @@ class LightningOptimizer:
                         self._optimizer_idx = opt_idx
                         break
 
-            ddp_plugin = trainer.accelerator_backend.ddp_plugin
-            if ddp_plugin.using_rpc_async:
+            accelerator_backend = trainer.accelerator_backend
+            ddp_plugin = accelerator_backend.ddp_plugin if accelerator_backend is not None else None
+            if ddp_plugin is not None and ddp_plugin.using_rpc_async:
                 ddp_plugin.optimizer_step(trainer.is_master, self, closure, *args, **kwargs)
 
             if trainer.on_tpu:

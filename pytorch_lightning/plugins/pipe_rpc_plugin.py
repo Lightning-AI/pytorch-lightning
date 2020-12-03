@@ -15,6 +15,7 @@ from pytorch_lightning import LightningModule
 from pytorch_lightning import _logger as log
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE, AMPType
+from pytorch_lightning.utilities.distributed import find_free_network_port
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 FAIRSCALE_AVAILABLE &= LooseVersion(torch.__version__) == LooseVersion("1.6.0")
@@ -124,9 +125,6 @@ class LightningPipeModule(nn.Module):
             checkpoint=self.checkpoint,
         )
 
-        # del self.module.model.mp_partitions
-        # torch.cuda.empty_cache()
-
     def forward(self, *args, **kwargs):
         x = self.module(*args, **kwargs)
         return x
@@ -213,7 +211,7 @@ class PipeRpcPlugin(RPCPlugin):
         return False
 
     def init_rpc_connection_and_pipe(self, trainer, global_rank, world_size):
-        os.environ["MASTER_PORT"] = "15000"
+        os.environ['MASTER_PORT'] = os.environ.get('MASTER_PORT', str(find_free_network_port()))
         rpc.init_rpc(f"worker{global_rank}", rank=global_rank, world_size=world_size)
 
         self.num_gpus_per_model = len(self.balance)
