@@ -23,7 +23,6 @@ from torch import Tensor
 import os
 
 from pytorch_lightning.utilities.distributed import sync_ddp_if_available
-from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.metrics import Metric
 
 
@@ -401,11 +400,15 @@ class Result(Dict):
             if isinstance(v, torch.Tensor):
                 self.__setitem__(k, v.detach())
 
-    def cpu(self):
-        """Move all self attributes to CPU."""
+    def to(self, *args, **kwargs):
+        """Move all self attributes to the given device."""
         for k, v in self.items():
             if isinstance(v, torch.Tensor):
-                self.__setitem__(k, v.cpu())
+                self.__setitem__(k, v.to(*args, **kwargs))
+
+    def cpu(self):
+        """Move all self attributes to CPU."""
+        self.to(torch.device("cpu"))
 
     def __repr__(self):
         self_copy = self.copy()
@@ -494,7 +497,7 @@ class Result(Dict):
         return result
 
     @classmethod
-    def reduce_on_epoch_end(cls, outputs, device: Optional[Union[str, torch.device]] = None):
+    def reduce_on_epoch_end(cls, outputs):
         # get the batch sizes for all outputs
         batch_sizes = []
         meta = {}
@@ -506,8 +509,7 @@ class Result(Dict):
 
         result = cls()
         result = recursive_gather(outputs, result)
-
-        recursive_stack(result, device=device)
+        recursive_stack(result)
 
         for k, option in meta.items():
             if k == '_internal' or isinstance(result[k], Metric):
@@ -643,12 +645,12 @@ def recursive_gather(outputs: Sequence[dict], result: Optional[MutableMapping] =
     return result
 
 
-def recursive_stack(result: MutableMapping, device: Optional[Union[str, torch.device]] = None):
+def recursive_stack(result: MutableMapping):
     for k, v in result.items():
         if isinstance(v, dict):
             recursive_stack(v)
 
-        result[k] = collate_tensors(v, device=device)
+        result[k] = collate_tensors(v)
 
 
 def _recursive_fx_apply(input: dict, fx):
@@ -663,14 +665,10 @@ def _recursive_fx_apply(input: dict, fx):
             _recursive_fx_apply(v, fx)
 
 
-def collate_tensors(items: Union[List, Tuple],
-                    device: Optional[Union[str, torch.device]] = None) -> Union[Tensor, List, Tuple]:
+def collate_tensors(items: Union[List, Tuple]) -> Union[Tensor, List, Tuple]:
     if not items or not isinstance(items, (list, tuple)) or any(not isinstance(item, Tensor) for item in items):
         # items is not a sequence, empty, or contains non-tensors
         return items
-
-    if device is not None:
-        items = move_data_to_device(items, device=device)
 
     if all(item.ndim == 0 for item in items):
         # all tensors are scalars, we need to stack
