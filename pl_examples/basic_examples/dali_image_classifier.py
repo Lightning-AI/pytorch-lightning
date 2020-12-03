@@ -15,6 +15,7 @@ from abc import ABC
 from argparse import ArgumentParser
 from random import shuffle
 from warnings import warn
+from distutils.version import LooseVersion
 
 import numpy as np
 import torch
@@ -33,7 +34,9 @@ else:
 if DALI_AVAILABLE:
     import nvidia.dali.ops as ops
     from nvidia.dali import __version__ as DALI_VERSION
-    if DALI_VERSION >= '0.28.0':
+    DALI_VERSION = LooseVersion(DALI_VERSION)
+    NEWER_DALI_VERSION = DALI_VERSION >= LooseVersion('0.28.0')
+    if NEWER_DALI_VERSION:
         from nvidia.dali.plugin.base_iterator import LastBatchPolicy
     from nvidia.dali.pipeline import Pipeline
     from nvidia.dali.plugin.pytorch import DALIClassificationIterator
@@ -100,7 +103,7 @@ class DALIClassificationLoader(DALIClassificationIterator):
             dynamic_shape=False,
             last_batch_padded=False,
     ):
-        if DALI_VERSION >= '0.28.0':
+        if NEWER_DALI_VERSION:
             last_batch_policy = LastBatchPolicy.FILL if fill_last_batch else LastBatchPolicy.DROP
             super().__init__(pipelines, size, reader_name, auto_reset, dynamic_shape,
                              last_batch_policy=last_batch_policy, last_batch_padded=last_batch_padded)
