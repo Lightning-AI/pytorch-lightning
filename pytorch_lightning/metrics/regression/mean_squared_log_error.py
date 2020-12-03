@@ -22,8 +22,14 @@ from pytorch_lightning.metrics.functional.mean_squared_log_error import (
 
 
 class MeanSquaredLogError(Metric):
-    """
-    Computes mean squared logarithmic error.
+    r"""
+    Computes `mean squared logarithmic error
+    <https://scikit-learn.org/stable/modules/model_evaluation.html#mean-squared-log-error>`_
+    (MSLE):
+
+    .. math:: \text{MSLE} = \frac{1}{N}\sum_i^N (\log_e(1 + y_i) - \log_e(1 + \hat{y_i}))^2
+
+    Where :math:`y` is a tensor of target values, and :math:`\hat{y}` is a tensor of predictions.
 
     Args:
         compute_on_step:

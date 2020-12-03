@@ -133,8 +133,8 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
 
 .. note::
 
-    Metric states will as default add their internal state to the models ``state_dict``.
-    To change this after initializing the metric the method ``.persistent(mode)`` can
+    Metric states are **not** added to the models ``state_dict`` by default.
+    To change this, after initializing the metric, the method ``.persistent(mode)`` can
     be used to enable (``mode=True``) or disable (``mode=False``) this behaviour.
 
 *********************
@@ -221,10 +221,16 @@ Recall
 .. autoclass:: pytorch_lightning.metrics.classification.Recall
     :noindex:
 
-Fbeta
+FBeta
 ~~~~~
 
-.. autoclass:: pytorch_lightning.metrics.classification.Fbeta
+.. autoclass:: pytorch_lightning.metrics.classification.FBeta
+    :noindex:
+
+F1
+~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.F1
     :noindex:
 
 ConfusionMatrix
@@ -338,17 +344,17 @@ dice_score [func]
     :noindex:
 
 
-f1_score [func]
+f1 [func]
 ~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.f1_score
+.. autofunction:: pytorch_lightning.metrics.functional.f1
     :noindex:
 
 
-fbeta_score [func]
+fbeta [func]
 ~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.fbeta_score
+.. autofunction:: pytorch_lightning.metrics.functional.fbeta
     :noindex:
 
 
