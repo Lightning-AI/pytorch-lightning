@@ -238,8 +238,6 @@ class DDPAccelerator(Accelerator):
             self.trainer.is_slurm_managing_tasks
         )
 
-        print("HERE", should_return)
-
         if should_return:
             return
 
