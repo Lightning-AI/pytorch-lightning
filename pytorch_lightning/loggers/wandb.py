@@ -170,6 +170,7 @@ class WandbLogger(LightningLoggerBase):
         # don't create an experiment if we don't have one
         return self._experiment.id if self._experiment else self._id
 
+    @rank_zero_only
     def finalize(self, status: str) -> None:
         # offset future training logged on same W&B run
         if self._experiment is not None:
