@@ -82,6 +82,7 @@ class BoringModel(LightningModule):
         self.learning_rate = learning_rate
         self.optimizer_name = optimizer_name
         self.layer = torch.nn.Linear(in_features, out_features)
+        self.in_features = in_features
         self.save_hyperparameters()
 
     def forward(self, x):
@@ -127,10 +128,10 @@ class BoringModel(LightningModule):
         return [optimizer], [lr_scheduler]
 
     def train_dataloader(self):
-        return torch.utils.data.DataLoader(RandomDataset(self.hparams.in_features, 64), batch_size=self.batch_size)
+        return torch.utils.data.DataLoader(RandomDataset(self.in_features, 64), batch_size=self.batch_size)
 
     def val_dataloader(self):
-        return torch.utils.data.DataLoader(RandomDataset(self.hparams.in_features, 64), batch_size=self.batch_size)
+        return torch.utils.data.DataLoader(RandomDataset(self.in_features, 64), batch_size=self.batch_size)
 
     def test_dataloader(self):
-        return torch.utils.data.DataLoader(RandomDataset(self.hparams.in_features, 64), batch_size=self.batch_size)
+        return torch.utils.data.DataLoader(RandomDataset(self.in_features, 64), batch_size=self.batch_size)
