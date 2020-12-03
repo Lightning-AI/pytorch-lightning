@@ -33,16 +33,15 @@ else:
 
 if DALI_AVAILABLE:
     import nvidia.dali.ops as ops
-    from nvidia.dali import __version__ as DALI_VERSION
-    DALI_VERSION = LooseVersion(DALI_VERSION)
-    NEWER_DALI_VERSION = DALI_VERSION >= LooseVersion('0.28.0')
-    if NEWER_DALI_VERSION:
-        from nvidia.dali.plugin.base_iterator import LastBatchPolicy
     from nvidia.dali.pipeline import Pipeline
     from nvidia.dali.plugin.pytorch import DALIClassificationIterator
+
+    NEW_DALI_API = LooseVersion(nvidia.dali.__version__) >= LooseVersion('0.28.0')
+    if NEW_DALI_API:
+        from nvidia.dali.plugin.base_iterator import LastBatchPolicy
 else:
     warn('NVIDIA DALI is not available')
-    ops, Pipeline, DALIClassificationIterator = ..., ABC, ABC
+    ops, Pipeline, DALIClassificationIterator, LastBatchPolicy = ..., ABC, ABC, ABC
 
 
 class ExternalMNISTInputIterator(object):
@@ -103,7 +102,7 @@ class DALIClassificationLoader(DALIClassificationIterator):
             dynamic_shape=False,
             last_batch_padded=False,
     ):
-        if NEWER_DALI_VERSION:
+        if NEW_DALI_API:
             last_batch_policy = LastBatchPolicy.FILL if fill_last_batch else LastBatchPolicy.DROP
             super().__init__(pipelines, size, reader_name, auto_reset, dynamic_shape,
                              last_batch_policy=last_batch_policy, last_batch_padded=last_batch_padded)
