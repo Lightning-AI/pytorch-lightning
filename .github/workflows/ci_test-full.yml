@@ -19,7 +19,7 @@ jobs:
         requires: ['minimal', 'latest']
         exclude:
           # # todo: segmentation fault for minimal and hanging for latest
-          - python_version: 3.8
+          - python-version: 3.8
             os: ubuntu-18.04
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
