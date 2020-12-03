@@ -120,12 +120,14 @@ class LitResnet(pl.LightningModule):
 
     def training_step_pipe(self, batch, batch_idx):
         opt = self.optimizers()
-        x, y = batch
-        logits = self.forward(x)
-        loss = F.nll_loss(logits, y)
-        self.manual_backward(loss, opt)
-        self.log('train_loss', loss, prog_bar=True)
-        opt.step()
+
+        def closure():
+            x, y = batch
+            logits = self.forward(x)
+            loss = F.nll_loss(logits, y)
+            self.manual_backward(loss, opt)
+            self.log('train_loss', loss, prog_bar=True)
+        opt.step(closure=closure)
 
     def training_step(self, batch, batch_idx):
         x, y = batch
@@ -204,10 +206,12 @@ def run(args):
 
     plugins = None
     if args.use_pipe:
-        plugins = [PipeRpcPlugin()]
+        plugins = [PipeRpcPlugin(balance=[17, 10])]
         gpus = 2
         accelerator = "ddp"
     else:
+        # gpus = 2
+        # accelerator = "ddp"
         gpus = 1
         accelerator = None
 
@@ -225,6 +229,7 @@ def run(args):
         limit_train_batches=2,
         limit_val_batches=2,
         automatic_optimization=not args.use_pipe,
+        profiler="simple",
     )
     trainer.fit(model, cifar10_dm)
     trainer.test(model, datamodule=cifar10_dm)

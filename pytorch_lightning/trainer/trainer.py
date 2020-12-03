@@ -15,10 +15,12 @@
 """Trainer to automate the training."""
 
 import os
+import subprocess
 import warnings
 from typing import Dict, Iterable, List, Optional, Union
 
 import torch
+import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
@@ -915,3 +917,33 @@ class Trainer(
         Returns: List of all available plugins that are supported as string arguments.
         """
         return PluginConnector.available_plugins()
+
+    @staticmethod
+    def get_gpu_memory_map(name=None):
+        """Get the current gpu usage.
+
+        Returns
+        -------
+        usage: dict
+            Keys are device ids as integers.
+            Values are memory usage as integers in MB.
+        """
+        torch.cuda.empty_cache()
+        result = subprocess.check_output(
+            [
+                'nvidia-smi', '--query-gpu=memory.used',
+                '--format=csv,nounits,noheader'
+            ], encoding='utf-8')
+        # Convert lines into a dictionary
+        gpu_memory = [int(x) for x in result.strip().split('\n')]
+        gpu_memory_map = dict(zip(range(len(gpu_memory)), gpu_memory))
+
+        if torch_distrib.is_initialized():
+            rank = torch_distrib.get_rank()
+        else:
+            rank = os.getenv('LOCAL_RANK', -1)
+
+        if name is not None:
+            log.info(f"{rank} {name} : {gpu_memory_map}")
+        else:
+            log.info(f"{rank} : {gpu_memory_map}")

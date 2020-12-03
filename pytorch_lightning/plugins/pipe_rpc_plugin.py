@@ -16,7 +16,6 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning import seed_everything
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
-from pytorch_lightning.plugins.pipe_plugin import LightningPipeModule
 from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -50,10 +49,6 @@ def do_nothing_optimizer_closure():
     return
 
 
-def cleanup(ctx, model):
-    del model
-
-
 def run_optimizer(ctx, model):
     trainer = model.trainer
     opt_idx = ctx["opt_idx"]
@@ -63,34 +58,84 @@ def run_optimizer(ctx, model):
 
 
 def save(ctx, model):
+    num_gpus_per_model = ctx["num_gpus_per_model"]
     rank = torch_distrib.get_rank()
-    seq = list(model.children())[0]
-    torch.save(seq, f"seq_{rank}.pt")
+    if rank in range(num_gpus_per_model):
+        seq = list(model.children())[0]
+        torch.save(seq, f"seq_{rank}.pt")
 
 
-def reload_sequential():
-    partial_seqs = [torch.load(f"seq_{rank}.pt") for rank in range(2)]
+def reload_sequential(num_gpus_per_model):
+    partial_seqs = [torch.load(f"seq_{rank}.pt", map_location='cpu') for rank in range(num_gpus_per_model)]
     seq = nn.Sequential()
     for p_seq in partial_seqs:
         for name, child in p_seq.named_children():
             seq.add_module(name, child)
     # delete tmp files
-    [os.remove(f"seq_{rank}.pt") for rank in range(2)]
+    [os.remove(f"seq_{rank}.pt") for rank in range(num_gpus_per_model)]
     return seq
 
 
-def to_lazy(layer):
-    return LazyModule(lambda: layer)
+class LightningPipeModule(nn.Module):
+    """
+        This class wraps Fairscale Pipe and PipeRCPWrapper class.
 
+        Args:
+            module: nn.Sequential
+                sequential model to be balanced among several gpus
 
-def convert_to_lazy_module(ctx, model):
-    enable_lazy_module = ctx['enable_lazy_module']
-    if False:
-        for idx, (name, module) in enumerate(model._modules.items()):
-            model._modules[idx] = to_lazy(module)
+            balance: list of ints
+                list of number of layers in each partition.
+
+            checkpoint (str) = 'never'
+                when to enable checkpointing, one of ``'always'``,
+                ``'except_last'``, or ``'never'`` (default: ``'except_last'``)
+
+            balance_mode: str = "balance_by_size"
+                when balance is not provided, the model can be balanced either by size or time.
+                refer to balance description.
+
+            mode: PipeMode
+                the mode enables switching between Pipe and PipeRCPWrapper class
+    """
+    def __init__(self,
+                 module: nn.Sequential,
+                 balance: List[int],
+                 microbatches: int = 8,
+                 checkpoint='never',
+                 enable_lazy_module=True,
+                 pipe_cls=None):
+        super().__init__()
+        self.module = module
+        self.balance = balance
+        self.microbatches = microbatches
+        self.checkpoint = checkpoint
+        self.enable_lazy_module = enable_lazy_module
+        self._init_pipe(pipe_cls)
+
+    def _init_pipe(self, pipe_cls):
+        device = torch.device("cuda", torch_distrib.get_rank())
+
+        self.module = pipe_cls(
+            module=self.module,
+            balance=self.balance,
+            chunks=self.microbatches,
+            style=PipelineStyle.MultiProcess,
+            input_device=device,
+            worker_map=get_worker_map(),
+            checkpoint=self.checkpoint,
+        )
+
+        # del self.module.model.mp_partitions
+        # torch.cuda.empty_cache()
+
+    def forward(self, *args, **kwargs):
+        x = self.module(*args, **kwargs)
+        return x
 
 
 class PipeRpcPlugin(DDPPlugin):
+
     def __init__(self,
                  balance: Optional[List[int]] = None,
                  num_partitions: Optional[int] = None,
@@ -103,6 +148,13 @@ class PipeRpcPlugin(DDPPlugin):
         super().__init__(**kwargs)
 
         self.balance = balance
+        if self.balance is None:
+            raise MisconfigurationException(
+                'Please, provide a balance for your model. '
+                'Example: nn.Sequential(torch.nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2)) contains 3 layers. '
+                'A possible balance between 2 gpus is [2, 1]'
+            )
+
         self.num_partitions = num_partitions
         self.microbatches = microbatches
         self.checkpoint = checkpoint
@@ -181,9 +233,9 @@ class PipeRpcPlugin(DDPPlugin):
         os.environ["MASTER_PORT"] = "15000"
         rpc.init_rpc(f"worker{global_rank}", rank=global_rank, world_size=world_size)
 
-        num_gpus_per_model = len(self.balance)
-        ensure_divisibility(world_size, num_gpus_per_model)
-        num_model_parallel = num_gpus_per_model / world_size
+        self.num_gpus_per_model = len(self.balance)
+        ensure_divisibility(world_size, self.num_gpus_per_model)
+        num_model_parallel = self.num_gpus_per_model / world_size
         mpu.initialize_model_parallel(num_model_parallel, world_size)
         self._broadcast_and_barrier_supported = num_model_parallel > 1
 
@@ -212,7 +264,6 @@ class PipeRpcPlugin(DDPPlugin):
         self._find_pipe_module(model)
         torch_distrib.barrier()
         model.foreach_worker(register_optimizers, include_self=True)
-        model.foreach_worker(convert_to_lazy_module, {"enable_lazy_module": self.enable_lazy_module}, include_self=True)
         trainer.is_master = True
 
     def configure_ddp(
@@ -227,7 +278,8 @@ class PipeRpcPlugin(DDPPlugin):
         automatic_optimization = self.trainer.train_loop.automatic_optimization
         model = self.trainer.get_model()
         if not automatic_optimization:
-            model.foreach_worker(run_optimizer, {"opt_idx": opt_idx}, include_self=True)
+            run_optimizer({"opt_idx": opt_idx}, model)
+            model.foreach_worker(run_optimizer, {"opt_idx": opt_idx}, include_self=False)
         else:
             raise NotImplementedError
 
@@ -236,11 +288,11 @@ class PipeRpcPlugin(DDPPlugin):
         model = self.trainer.get_model()
         if not automatic_optimization:
             if hasattr(model, "foreach_worker"):
-                device = pl_module.device
-                current_layers = pl_module.layers.cpu()
-                model.foreach_worker(save, None, include_self=True)
-                pl_module.layers = reload_sequential()
+                current_layers = pl_module.layers
+                model.foreach_worker(save, {"num_gpus_per_model": self.num_gpus_per_model}, include_self=True)
+                pl_module.layers = reload_sequential(self.num_gpus_per_model)
                 checkpoint_save_model(last_filepath, trainer, pl_module)
-                pl_module.layers = current_layers.to(device)
+                del pl_module.layers
+                pl_module.layers = current_layers
         else:
             raise NotImplementedError
