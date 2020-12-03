@@ -232,11 +232,16 @@ class DDPAccelerator(Accelerator):
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
         model.trainer = self.trainer
-        self.init_ddp_connection(
+        should_return = self.init_ddp_connection(
             self.trainer.global_rank,
             self.trainer.world_size,
             self.trainer.is_slurm_managing_tasks
         )
+
+        print("HERE", should_return)
+
+        if should_return:
+            return
 
         # call setup after the ddp process has connected
         self.trainer.call_setup_hook(model)

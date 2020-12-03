@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
+import os
+import time
 from argparse import ArgumentParser
 
 import torch
@@ -40,6 +42,34 @@ python benchmarks/cnn_cifar_pipe.py --use_pipe 1
 To run without Pipe
 python benchmarks/cnn_cifar_pipe.py --use_pipe 0
 """
+
+
+def record_model_stats(run, args):
+    """
+    Helper to calculate wall clock time for fit + max allocated memory.
+
+    Args:
+        trainer: The trainer object.
+        model: The model to fit.
+        use_cuda: Whether to sync CUDA kernels.
+
+    Returns:
+        Max Memory if using GPUs, and total wall clock time.
+    """
+    max_memory = None
+
+    time_start = time.perf_counter()
+    torch.cuda.reset_peak_memory_stats()
+    torch.cuda.synchronize()
+
+    run(args)
+
+    torch.cuda.synchronize()
+    max_memory = torch.cuda.max_memory_allocated() / 2 ** 20
+
+    total_time = time.perf_counter() - time_start
+
+    return max_memory, total_time
 
 
 #####################
@@ -228,10 +258,10 @@ def run(args):
         automatic_optimization=not args.use_pipe,
     )
     trainer.fit(model, cifar10_dm)
-    trainer.test(model, datamodule=cifar10_dm)
+    results = trainer.test(model, datamodule=cifar10_dm)
 
     if args.use_pipe:
-        if torch_distrib.get_rank() == 0:
+        if os.getenv("LOCAL_RANK") == 0:
             torch.distributed.rpc.shutdown()
 
 
@@ -241,4 +271,6 @@ if __name__ == "__main__":
         parser.add_argument("--use_pipe", type=int, default=1)
         parser.add_argument("--batch_size", type=int, default=32)
         parser = Trainer.add_argparse_args(parser)
-        run(parser.parse_args())
+
+        max_memory, total_time = record_model_stats(run, parser.parse_args())
+        print(max_memory, total_time)

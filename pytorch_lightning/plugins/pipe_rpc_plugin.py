@@ -11,7 +11,7 @@ import torch.distributed as torch_distrib
 from torch import nn, optim
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning import LightningModule
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning import _logger as log
 from pytorch_lightning import seed_everything
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -242,7 +242,7 @@ class PipeRpcPlugin(DDPPlugin):
             rpc_pipe.PipeModel.trainer = model.trainer
             rpc_pipe.PipeModel.configure_optimizers = model.configure_optimizers
             torch.distributed.rpc.shutdown()
-            return
+            return True
 
         # Create pipe_module
         model = trainer.get_model()
@@ -262,7 +262,7 @@ class PipeRpcPlugin(DDPPlugin):
 
         skip = self.pre_init_ddp_connection(trainer)
         if skip:
-            return
+            return os.getenv("LOCAL_RANK") != 0
 
         super().init_ddp_connection(
             trainer=trainer,
@@ -272,7 +272,7 @@ class PipeRpcPlugin(DDPPlugin):
             is_slurm_managing_tasks=is_slurm_managing_tasks
         )
 
-        self.init_rpc_connection_and_pipe(trainer, global_rank, world_size)
+        return self.init_rpc_connection_and_pipe(trainer, global_rank, world_size)
 
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
