@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from time import sleep
 
 import pytest
 import torch
 
 from tests.backends import ddp_model
-from tests.backends.launcher import DDPLauncher
-from tests.utilities.dist import call_training_script
+from tests.backends import DDPLauncher
+from tests.utilities.distributed import call_training_script
 
 
 @pytest.mark.parametrize('cli_args', [

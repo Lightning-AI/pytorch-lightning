@@ -11,13 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import abc
 from typing import Union
 
 from torch.optim import Optimizer
 
+from pytorch_lightning.plugins.plugin import LightningPlugin
 
-class PrecisionPlugin(abc.ABC):
+
+class PrecisionPlugin(LightningPlugin):
     """
     Abstract class to extend for precision support (32/16 etc).
 
