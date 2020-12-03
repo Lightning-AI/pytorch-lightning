@@ -15,7 +15,4 @@ from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 
 
 class RPCPlugin(DDPPlugin):
-
-    @property
-    def using_rpc_async(self):
-        return True
+    pass

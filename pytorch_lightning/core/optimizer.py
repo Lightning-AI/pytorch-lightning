@@ -17,6 +17,7 @@ from weakref import proxy
 
 from torch.optim.optimizer import Optimizer
 
+from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -200,7 +201,7 @@ class LightningOptimizer:
 
             accelerator_backend = trainer.accelerator_backend
             ddp_plugin = accelerator_backend.ddp_plugin if accelerator_backend is not None else None
-            if ddp_plugin is not None and ddp_plugin.using_rpc_async:
+            if ddp_plugin is not None and isinstance(ddp_plugin, RPCPlugin):
                 ddp_plugin.optimizer_step(trainer.is_master, self, closure, *args, **kwargs)
 
             if trainer.on_tpu:

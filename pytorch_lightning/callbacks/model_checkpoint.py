@@ -32,6 +32,7 @@ import yaml
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -535,7 +536,7 @@ class ModelCheckpoint(Callback):
         accelerator_backend = trainer.accelerator_backend
 
         ddp_plugin = accelerator_backend.ddp_plugin if accelerator_backend is not None else None
-        if ddp_plugin is not None and ddp_plugin.using_rpc_async:
+        if ddp_plugin is not None and isinstance(ddp_plugin, RPCPlugin):
             # PipeRpcPlugin needs to handle the logic for saving the model
             ddp_plugin._save_model(self._save_model, last_filepath, trainer, pl_module)
         else:

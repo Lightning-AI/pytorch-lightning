@@ -49,10 +49,6 @@ class DDPPlugin(LightningPlugin):
     def broadcast_and_barrier_supported(self):
         return True
 
-    @property
-    def using_rpc_async(self):
-        return False
-
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
     ) -> LightningDistributedDataParallel:
