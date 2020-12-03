@@ -13,7 +13,7 @@ from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning import _logger as log
-from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
+from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -132,7 +132,7 @@ class LightningPipeModule(nn.Module):
         return x
 
 
-class PipeRpcPlugin(DDPPlugin):
+class PipeRpcPlugin(RPCPlugin):
     def __init__(self,
                  balance: Optional[List[int]] = None,
                  num_partitions: Optional[int] = None,
@@ -279,7 +279,7 @@ class PipeRpcPlugin(DDPPlugin):
             self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
         self.create_optimizers_map()
-        ddp_plugin = DDPPlugin(process_group=mpu.get_data_parallel_group()).configure_ddp(model, device_ids)
+        ddp_plugin = RPCPlugin(process_group=mpu.get_data_parallel_group()).configure_ddp(model, device_ids)
         return ddp_plugin
 
     def _save_model(self, checkpoint_save_model, last_filepath, trainer, pl_module):
