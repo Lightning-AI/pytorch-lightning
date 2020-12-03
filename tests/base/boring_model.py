@@ -127,10 +127,10 @@ class BoringModel(LightningModule):
         return [optimizer], [lr_scheduler]
 
     def train_dataloader(self):
-        return torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)
+        return torch.utils.data.DataLoader(RandomDataset(self.hparams.in_features, 64), batch_size=self.batch_size)
 
     def val_dataloader(self):
-        return torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)
+        return torch.utils.data.DataLoader(RandomDataset(self.hparams.in_features, 64), batch_size=self.batch_size)
 
     def test_dataloader(self):
-        return torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=self.batch_size)
+        return torch.utils.data.DataLoader(RandomDataset(self.hparams.in_features, 64), batch_size=self.batch_size)

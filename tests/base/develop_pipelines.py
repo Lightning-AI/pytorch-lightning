@@ -109,7 +109,7 @@ def run_prediction(trained_model, dataloader, dp=False, min_acc=0.50):
     if dp:
         with torch.no_grad():
             output = trained_model(batch, 0)
-        acc = output['val_acc']
+            acc = output['val_acc']
         acc = torch.mean(acc).item()
 
     else:
