@@ -50,7 +50,7 @@ class DDPPlugin(LightningPlugin):
         return True
 
     @property
-    def using_rpc(self):
+    def using_rpc_async(self):
         return False
 
     def configure_ddp(

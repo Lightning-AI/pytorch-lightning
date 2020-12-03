@@ -11,10 +11,8 @@ import torch.distributed as torch_distrib
 from torch import nn, optim
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning import LightningModule
 from pytorch_lightning import _logger as log
-from pytorch_lightning import seed_everything
-from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -167,7 +165,7 @@ class PipeRpcPlugin(DDPPlugin):
         return self._broadcast_and_barrier_supported
 
     @property
-    def using_rpc(self):
+    def using_rpc_async(self):
         return True
 
     def _infering_balance_from_example_input_array(self, trainer):
@@ -274,22 +272,15 @@ class PipeRpcPlugin(DDPPlugin):
 
         return self.init_rpc_connection_and_pipe(trainer, global_rank, world_size)
 
+    def create_optimizers_map(self):
+        self._optimizers_map = {opt_idx: False for opt_idx, opt in enumerate(self.trainer.optimizers)}
+
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
-        model.trainer.init_optimizers(model)
+        self.create_optimizers_map()
         ddp_plugin = DDPPlugin(process_group=mpu.get_data_parallel_group()).configure_ddp(model, device_ids)
         return ddp_plugin
-
-    def optimizer_step(self, opt_idx, *args, **kwargs):
-        # Create pipe_module
-        automatic_optimization = self.trainer.train_loop.automatic_optimization
-        model = self.trainer.get_model()
-        if not automatic_optimization:
-            run_optimizer({"opt_idx": opt_idx}, model)
-            model.foreach_worker(run_optimizer, {"opt_idx": opt_idx}, include_self=False)
-        else:
-            raise NotImplementedError
 
     def _save_model(self, checkpoint_save_model, last_filepath, trainer, pl_module):
         automatic_optimization = self.trainer.train_loop.automatic_optimization
@@ -304,3 +295,24 @@ class PipeRpcPlugin(DDPPlugin):
                 pl_module.layers = current_layers
         else:
             raise NotImplementedError
+
+    def _optimizer_step(self, opt_idx, *args, **kwargs):
+        # Create pipe_module
+        automatic_optimization = self.trainer.train_loop.automatic_optimization
+        model = self.trainer.get_model()
+        if not automatic_optimization:
+            model.foreach_worker(run_optimizer, {"opt_idx": opt_idx}, include_self=False)
+        else:
+            raise NotImplementedError
+
+    def optimizer_step(self, is_master, optimizer, closure, *args, **kwargs):
+        opt_idx = optimizer._optimizer_idx
+        if not is_master:
+            return
+        if not self._optimizers_map[opt_idx]:
+            self._optimizers_map[opt_idx] = True
+            optimizer.step(closure=closure, *args, **kwargs)
+            self._optimizer_step(optimizer._optimizer_idx, *args, **kwargs)
+            return
+        else:
+            self._optimizers_map[opt_idx] = False

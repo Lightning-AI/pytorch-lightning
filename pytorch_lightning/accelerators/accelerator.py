@@ -104,34 +104,30 @@ class Accelerator(object):
         automatic_optimization = self.trainer.train_loop.automatic_optimization
         using_native_amp = self.trainer.amp_backend == AMPType.NATIVE
 
-        if self.ddp_plugin is not None and self.ddp_plugin.using_rpc:
-            on_tpu = False
-            self.ddp_plugin.optimizer_step(optimizer, batch_idx, opt_idx, lambda_closure, on_tpu, *args, **kwargs)
-        else:
-            model_ref = self.trainer.get_model()
-            is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-            using_native_amp = self.trainer.amp_backend == AMPType.NATIVE
-            automatic_optimization = self.trainer.train_loop.automatic_optimization
+        model_ref = self.trainer.get_model()
+        is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
+        using_native_amp = self.trainer.amp_backend == AMPType.NATIVE
+        automatic_optimization = self.trainer.train_loop.automatic_optimization
 
-            # native amp + lbfgs is a no go right now
-            if using_native_amp and is_lbfgs:
-                raise MisconfigurationException(
-                    'native PyTorch amp and lbfgs are not compatible.'
-                    ' To request, please file a Github issue in PyTorch and tag @mcarilli')
+        # native amp + lbfgs is a no go right now
+        if using_native_amp and is_lbfgs:
+            raise MisconfigurationException(
+                'native PyTorch amp and lbfgs are not compatible.'
+                ' To request, please file a Github issue in PyTorch and tag @mcarilli')
 
-            # model hook
-            model_ref.optimizer_step(
-                epoch=self.trainer.current_epoch,
-                batch_idx=batch_idx,
-                optimizer=optimizer,
-                optimizer_idx=opt_idx,
-                optimizer_closure=lambda_closure,
-                on_tpu=False,  # TPUAccelerator class sets this as True
-                using_native_amp=using_native_amp,
-                using_lbfgs=is_lbfgs,
-                *args,
-                **kwargs,
-            )
+        # model hook
+        model_ref.optimizer_step(
+            epoch=self.trainer.current_epoch,
+            batch_idx=batch_idx,
+            optimizer=optimizer,
+            optimizer_idx=opt_idx,
+            optimizer_closure=lambda_closure,
+            on_tpu=False,  # TPUAccelerator class sets this as True
+            using_native_amp=using_native_amp,
+            using_lbfgs=is_lbfgs,
+            *args,
+            **kwargs,
+        )
 
         # scale when native amp
         if automatic_optimization and using_native_amp:

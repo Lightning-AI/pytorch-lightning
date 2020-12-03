@@ -17,6 +17,7 @@ from weakref import proxy
 
 from torch.optim.optimizer import Optimizer
 
+from pytorch_lightning.plugins.pipe_rpc_plugin import PipeRpcPlugin
 from pytorch_lightning.utilities import TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -62,7 +63,6 @@ class LightningOptimizer:
         self._optimizer_idx = None
         self._accumulate_grad_batches = accumulate_grad_batches
         self._use_accumulate_grad_batches_from_trainer = accumulate_grad_batches is None
-        self._in_foreach_worker = False
 
     def _on_trainer_init(self, trainer):
         self._trainer = proxy(trainer)
@@ -200,14 +200,8 @@ class LightningOptimizer:
                         break
 
             ddp_plugin = trainer.accelerator_backend.ddp_plugin
-            if ddp_plugin is not None and ddp_plugin.using_rpc:
-                if not self._in_foreach_worker and trainer.is_master:
-                    self._in_foreach_worker = True
-                    self._closure = closure
-                    ddp_plugin.optimizer_step(self._optimizer_idx, *args, **kwargs)
-                    return
-                else:
-                    self._in_foreach_worker = False
+            if isinstance(ddp_plugin, PipeRpcPlugin):
+                ddp_plugin.optimizer_step(trainer.is_master, self, closure, *args, **kwargs)
 
             if trainer.on_tpu:
                 with trainer.profiler.profile(profiler_name):
