@@ -63,7 +63,6 @@ class SequentialModelRPC(LightningModule):
             opt = self.optimizers()
 
             def closure():
-                print("RUNNED CLOSURE")
                 self._count += 1
                 output = self.layers(batch)
                 loss = self.loss(output)
@@ -72,7 +71,6 @@ class SequentialModelRPC(LightningModule):
                 assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() > 0
             opt.step(closure=closure)
         self._called += 1
-        print(self._called, self._count)
         assert self._called == self._count
         assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() == 0
 
