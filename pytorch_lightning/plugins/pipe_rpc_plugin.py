@@ -161,10 +161,6 @@ class PipeRpcPlugin(RPCPlugin):
         assert self._broadcast_and_barrier_supported is not None
         return self._broadcast_and_barrier_supported
 
-    @property
-    def using_rpc_async(self):
-        return True
-
     def _infering_balance_from_example_input_array(self, trainer):
         model = trainer.get_model()
         if not hasattr(model, "layers") or not isinstance(model.layers, nn.Sequential):
