@@ -21,7 +21,7 @@ ARGS_GPU = ARGS_DEFAULT + """
 
 ARGS_DP = ARGS_DEFAULT + """
 --gpus 2 \
---distributed_backend dp \
+--accelerator dp \
 """
 
 ARGS_DP_AMP = ARGS_DP + """
@@ -30,7 +30,7 @@ ARGS_DP_AMP = ARGS_DP + """
 
 ARGS_DDP = ARGS_DEFAULT + """
 --gpus 2 \
---distributed_backend ddp \
+--accelerator ddp \
 --precision 16 \
 """
 
