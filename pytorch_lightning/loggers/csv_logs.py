@@ -29,7 +29,7 @@ import torch
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.saving import save_hparams_to_yaml
-from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
 
 
@@ -162,6 +162,7 @@ class CSVLogger(LightningLoggerBase):
         return self._save_dir
 
     @property
+    @rank_zero_experiment
     def experiment(self) -> ExperimentWriter:
         r"""
 

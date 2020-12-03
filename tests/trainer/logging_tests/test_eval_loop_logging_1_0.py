@@ -886,3 +886,34 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
 
     expected = torch.stack(model.val_losses[4:]).mean()
     assert get_metrics_at_idx(6)["valid_loss_1"] == expected
+
+
+def test_progress_bar_dict_contains_values_on_test_epoch_end(tmpdir):
+    class TestModel(BoringModel):
+        def test_step(self, *args):
+            self.log("foo", torch.tensor(self.current_epoch), on_step=False, on_epoch=True, prog_bar=True)
+
+        def test_epoch_end(self, *_):
+            self.epoch_end_called = True
+            self.log('foo_2', torch.tensor(self.current_epoch), prog_bar=True,
+                     on_epoch=True, sync_dist=True, sync_dist_op='sum')
+
+        def on_test_epoch_end(self, *_):
+            self.on_test_epoch_end_called = True
+            assert self.trainer.progress_bar_dict["foo"] == self.current_epoch
+            assert self.trainer.progress_bar_dict["foo_2"] == self.current_epoch
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=1,
+        num_sanity_val_steps=2,
+        checkpoint_callback=False,
+        logger=False,
+        weights_summary=None,
+        progress_bar_refresh_rate=0,
+    )
+    model = TestModel()
+    trainer.test(model)
+    assert model.epoch_end_called
+    assert model.on_test_epoch_end_called

@@ -20,7 +20,7 @@ import types
 from argparse import Namespace
 from copy import deepcopy
 from pathlib import Path
-from unittest.mock import patch, call, ANY
+from unittest.mock import ANY, call, patch
 
 import cloudpickle
 import pytest
@@ -34,10 +34,10 @@ from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hpara
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.profiler.profilers import AdvancedProfiler, PassThroughProfiler, SimpleProfiler
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
+from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE
-from tests.base import EvalModelTemplate, BoringModel
+from tests.base import BoringModel, EvalModelTemplate
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -500,8 +500,9 @@ def test_model_freeze_unfreeze():
     model.unfreeze()
 
 
+@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
 @pytest.mark.parametrize("url_ckpt", [True, False])
-def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
+def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt, enable_pl_optimizer):
     """Verify resuming from checkpoint runs the right number of epochs"""
     # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
     monkeypatch.setenv("TORCH_HOME", tmpdir)
@@ -541,6 +542,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         checkpoint_callback=ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_top_k=-1),
         default_root_dir=tmpdir,
         val_check_interval=1.0,
+        enable_pl_optimizer=enable_pl_optimizer,
     )
 
     trainer = Trainer(**trainer_options)
@@ -1038,31 +1040,6 @@ def test_gpu_choice(tmpdir):
 
     with pytest.raises(RuntimeError, match=r".*No GPUs available.*"):
         Trainer(**trainer_options, gpus=num_gpus + 1, auto_select_gpus=True)
-
-
-@pytest.mark.parametrize(
-    ["tpu_cores", "expected_tpu_id", "error_expected"],
-    [
-        pytest.param(1, None, False),
-        pytest.param(8, None, False),
-        pytest.param([1], 1, False),
-        pytest.param([8], 8, False),
-        pytest.param("1,", 1, False),
-        pytest.param("1", None, False),
-        pytest.param("9, ", 9, True),
-        pytest.param([9], 9, True),
-        pytest.param([0], 0, True),
-        pytest.param(2, None, True),
-        pytest.param(10, None, True),
-    ],
-)
-def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
-    if error_expected:
-        with pytest.raises(MisconfigurationException, match=r".*tpu_cores` can only be 1, 8 or [<1-8>]*"):
-            Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores, auto_select_gpus=True)
-    else:
-        trainer = Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores, auto_select_gpus=True)
-        assert trainer.tpu_id == expected_tpu_id
 
 
 @pytest.mark.parametrize(
