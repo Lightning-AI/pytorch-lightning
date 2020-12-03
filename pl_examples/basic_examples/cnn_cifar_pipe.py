@@ -210,8 +210,6 @@ def run(args):
         gpus = 2
         accelerator = "ddp"
     else:
-        # gpus = 2
-        # accelerator = "ddp"
         gpus = 1
         accelerator = None
 
@@ -229,7 +227,6 @@ def run(args):
         limit_train_batches=2,
         limit_val_batches=2,
         automatic_optimization=not args.use_pipe,
-        profiler="simple",
     )
     trainer.fit(model, cifar10_dm)
     trainer.test(model, datamodule=cifar10_dm)

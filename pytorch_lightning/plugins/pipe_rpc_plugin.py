@@ -135,7 +135,6 @@ class LightningPipeModule(nn.Module):
 
 
 class PipeRpcPlugin(DDPPlugin):
-
     def __init__(self,
                  balance: Optional[List[int]] = None,
                  num_partitions: Optional[int] = None,
@@ -209,27 +208,13 @@ class PipeRpcPlugin(DDPPlugin):
                 'Could not find a PipeLightningModule within the model. '
                 'Did you defined set your sequential model as an `layers` attribute of your model ?')
 
-    def init_ddp_connection(
-            self,
-            trainer,
-            cluster_environment,
-            global_rank: int,
-            world_size: int,
-            is_slurm_managing_tasks: bool = True,
-    ) -> None:
-
+    def pre_init_ddp_connection(self, trainer) -> bool:
         if torch_distrib.is_initialized():
-            return
-
+            return True
         self._infering_balance_from_example_input_array(trainer)
+        return False
 
-        super().init_ddp_connection(
-            trainer=trainer,
-            cluster_environment=cluster_environment,
-            global_rank=global_rank,
-            world_size=world_size,
-            is_slurm_managing_tasks=is_slurm_managing_tasks
-        )
+    def init_rpc_connection_and_pipe(self, trainer, global_rank, world_size):
         os.environ["MASTER_PORT"] = "15000"
         rpc.init_rpc(f"worker{global_rank}", rank=global_rank, world_size=world_size)
 
@@ -265,6 +250,29 @@ class PipeRpcPlugin(DDPPlugin):
         torch_distrib.barrier()
         model.foreach_worker(register_optimizers, include_self=True)
         trainer.is_master = True
+
+    def init_ddp_connection(
+            self,
+            trainer,
+            cluster_environment,
+            global_rank: int,
+            world_size: int,
+            is_slurm_managing_tasks: bool = True,
+    ) -> None:
+
+        skip = self.pre_init_ddp_connection(trainer)
+        if skip:
+            return
+
+        super().init_ddp_connection(
+            trainer=trainer,
+            cluster_environment=cluster_environment,
+            global_rank=global_rank,
+            world_size=world_size,
+            is_slurm_managing_tasks=is_slurm_managing_tasks
+        )
+
+        self.init_rpc_connection_and_pipe(trainer, global_rank, world_size)
 
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
