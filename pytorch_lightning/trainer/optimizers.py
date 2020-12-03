@@ -20,6 +20,7 @@ from torch import optim
 from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -77,6 +78,16 @@ class TrainerOptimizersMixin(ABC):
         lr_schedulers = self.configure_schedulers(lr_schedulers, monitor=monitor)
 
         return optimizers, lr_schedulers, optimizer_frequencies
+
+    def convert_to_lightning_optimizers(self):
+        def _convert_to_lightning_optimizer(trainer, optimizer):
+            if not isinstance(optimizer, LightningOptimizer):
+                optimizer = LightningOptimizer(optimizer)
+            optimizer._on_trainer_init(trainer)
+            return optimizer
+
+        if self._enable_pl_optimizer:
+            self.optimizers = [_convert_to_lightning_optimizer(self, opt) for opt in self.optimizers]
 
     def configure_schedulers(self, schedulers: list, monitor: Optional[str] = None):
         # Convert each scheduler into dict structure with relevant information

@@ -18,16 +18,19 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from tests.base import BoringModel
 
 
-def test_model_torch_save(tmpdir):
+@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
+def test_model_torch_save(tmpdir, enable_pl_optimizer):
     """Test to ensure torch save does not fail for model and trainer."""
     model = BoringModel()
     num_epochs = 1
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=num_epochs,
+        enable_pl_optimizer=enable_pl_optimizer,
     )
     temp_path = os.path.join(tmpdir, 'temp.pt')
     trainer.fit(model)
@@ -35,6 +38,9 @@ def test_model_torch_save(tmpdir):
     # Ensure these do not fail
     torch.save(trainer.model, temp_path)
     torch.save(trainer, temp_path)
+    trainer = torch.load(temp_path)
+    is_lightning_optimizer = isinstance(trainer.optimizers[0], LightningOptimizer)
+    assert is_lightning_optimizer if enable_pl_optimizer else not is_lightning_optimizer
 
 
 @pytest.mark.skipif(platform.system() == "Windows",
