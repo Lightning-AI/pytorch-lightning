@@ -20,6 +20,7 @@ from unittest import mock
 
 import pytest
 import torch
+from torch.utils.data import DataLoader
 
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.step_result import Result
@@ -387,3 +388,63 @@ def test_call_back_validator(tmpdir):
                                                       on_step=None,
                                                       on_epoch=None)
         assert result is None
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires two GPUs")
+def test_epoch_results_cache_dp(tmpdir):
+
+    root_device = torch.device("cuda", 0)
+
+    class TestModel(BoringModel):
+
+        def training_step(self, *args, **kwargs):
+            result = super().training_step(*args, **kwargs)
+            self.log("train_loss_epoch", result["loss"], on_step=False, on_epoch=True)
+            return result
+
+        def training_step_end(self, training_step_outputs):  # required for dp
+            loss = training_step_outputs["loss"].mean()
+            return loss
+
+        def training_epoch_end(self, outputs):
+            assert all(out["loss"].device == root_device for out in outputs)
+            assert self.trainer.callback_metrics["train_loss_epoch"].device == root_device
+
+        def validation_step(self, *args, **kwargs):
+            val_loss = torch.rand(1, device=torch.device("cuda", 1))
+            self.log("val_loss_epoch", val_loss, on_step=False, on_epoch=True)
+            return val_loss
+
+        def validation_epoch_end(self, outputs):
+            assert all(loss.device == root_device for loss in outputs)
+            assert self.trainer.callback_metrics["val_loss_epoch"].device == root_device
+
+        def test_step(self, *args, **kwargs):
+            test_loss = torch.rand(1, device=torch.device("cuda", 1))
+            self.log("test_loss_epoch", test_loss, on_step=False, on_epoch=True)
+            return test_loss
+
+        def test_epoch_end(self, outputs):
+            assert all(loss.device == root_device for loss in outputs)
+            assert self.trainer.callback_metrics["test_loss_epoch"].device == root_device
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(32, 64), batch_size=4)
+
+        def val_dataloader(self):
+            return DataLoader(RandomDataset(32, 64), batch_size=4)
+
+        def test_dataloader(self):
+            return DataLoader(RandomDataset(32, 64), batch_size=4)
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator="dp",
+        gpus=2,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
+    )
+    trainer.fit(model)
+    trainer.test(model, ckpt_path=None)
