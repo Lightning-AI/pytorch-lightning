@@ -1231,10 +1231,6 @@ class LightningModule(
                     optimizer.step(closure=optimizer_closure)
                     optimizer.zero_grad()
 
-        Note:
-            If you also override the :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_before_zero_grad`
-            model hook don't forget to add the call to it before ``optimizer.zero_grad()`` yourself.
-
         """
         if on_tpu and TPU_AVAILABLE:
             xm.optimizer_step(optimizer, optimizer_args={'closure': optimizer_closure, **kwargs})
