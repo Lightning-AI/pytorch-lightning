@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from collections import ChainMap, defaultdict
 from copy import deepcopy
-from collections import defaultdict, ChainMap
 from enum import Enum
-from typing import Union, Tuple, Any, Dict, Optional, List
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 # used to map boolean to right LoggerStage values
@@ -371,17 +372,22 @@ class EpochResultStore:
         This function is called after every hook
         and store the result object
         """
-        model_ref = self.trainer.get_model()
+        with self.trainer.profiler.profile("cache_result"):
+            model_ref = self.trainer.get_model()
 
-        # extract hook results
-        hook_result = model_ref._results
+            # extract hook results
+            hook_result = model_ref._results
 
-        # extract model information
-        fx_name, dataloader_idx = self.current_model_info()
+            if len(hook_result) == 1:
+                model_ref._current_hook_fx_name = None
+                model_ref._current_fx_name = ''
+                return
 
-        # add only if anything as been logged
-        # default len is 1 due to _internals
-        if len(hook_result) > 1:
+            # extract model information
+            fx_name, dataloader_idx = self.current_model_info()
+
+            # add only if anything as been logged
+            # default len is 1 due to _internals
 
             if fx_name not in self._internals:
                 self._internals[fx_name] = HookResultStore(fx_name)
@@ -405,8 +411,7 @@ class EpochResultStore:
             # update logged_metrics, progress_bar_metrics, callback_metrics
             self.update_logger_connector(fx_name)
 
-        # reset _results, fx_name
-        self.reset_model()
+            self.reset_model()
 
     def update_logger_connector(self, fx_name: str = None) -> None:
         """
@@ -445,9 +450,6 @@ class EpochResultStore:
             epoch_log_metrics = self.get_epoch_log_metrics()
             logger_connector.logged_metrics.update(epoch_log_metrics)
             logger_connector.logged_metrics.update(epoch_dict)
-            if not self.trainer.running_sanity_check and not is_train:
-                if len(epoch_log_metrics) > 0:
-                    self.trainer.dev_debugger.track_logged_metrics_history(deepcopy(epoch_log_metrics))
 
             # get forked_metrics
             forked_metrics = self.get_forked_metrics()
