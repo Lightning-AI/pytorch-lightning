@@ -17,7 +17,6 @@ from weakref import proxy
 
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.plugins.pipe_rpc_plugin import PipeRpcPlugin
 from pytorch_lightning.utilities import TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
