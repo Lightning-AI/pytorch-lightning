@@ -202,7 +202,9 @@ class LightningOptimizer:
             accelerator_backend = trainer.accelerator_backend
             ddp_plugin = accelerator_backend.ddp_plugin if accelerator_backend is not None else None
             if ddp_plugin is not None and isinstance(ddp_plugin, RPCPlugin):
-                ddp_plugin.optimizer_step(trainer.is_master, self, closure, *args, **kwargs)
+                should_return = ddp_plugin.optimizer_step(trainer.is_master, self, closure, *args, **kwargs)
+                if should_return:
+                    return
 
             if trainer.on_tpu:
                 with trainer.profiler.profile(profiler_name):
