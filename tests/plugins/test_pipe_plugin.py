@@ -25,7 +25,6 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
 from pytorch_lightning.plugins.pipe_rpc_plugin import FAIRSCALE_AVAILABLE, PipeRpcPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.backends.launcher import DDPLauncher
 from tests.base.boring_model import BoringModel, RandomDataset
 
 
