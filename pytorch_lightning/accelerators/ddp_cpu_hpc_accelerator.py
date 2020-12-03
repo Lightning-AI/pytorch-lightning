@@ -12,15 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 from pytorch_lightning.accelerators.ddp_hpc_accelerator import DDPHPCAccelerator
+from pytorch_lightning.utilities import HYDRA_AVAILABLE
 
-
-try:
+if HYDRA_AVAILABLE:
     from hydra.utils import to_absolute_path, get_original_cwd
     from hydra.core.hydra_config import HydraConfig
-except ImportError:
-    HYDRA_AVAILABLE = False
-else:
-    HYDRA_AVAILABLE = True
 
 
 class DDPCPUHPCAccelerator(DDPHPCAccelerator):

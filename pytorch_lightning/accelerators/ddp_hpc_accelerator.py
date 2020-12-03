@@ -23,17 +23,12 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities import HYDRA_AVAILABLE, AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only, sync_ddp_if_available
 
-
-try:
-    from hydra.utils import to_absolute_path, get_original_cwd
+if HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig
-except ImportError:
-    HYDRA_AVAILABLE = False
-else:
-    HYDRA_AVAILABLE = True
+    from hydra.utils import get_original_cwd, to_absolute_path
 
 
 class DDPHPCAccelerator(Accelerator):
@@ -168,6 +163,8 @@ class DDPHPCAccelerator(Accelerator):
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
 
+        self.trainer.convert_to_lightning_optimizers()
+
         # device ids change depending on the DDP setup
         device_ids = self.get_device_ids()
 
@@ -213,3 +210,6 @@ class DDPHPCAccelerator(Accelerator):
                     group: Optional[Any] = None,
                     reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
         return sync_ddp_if_available(tensor, group, reduce_op)
+
+    def get_reference_model(self, model) -> LightningModule:
+        return self.ddp_plugin.get_model_from_plugin(model)

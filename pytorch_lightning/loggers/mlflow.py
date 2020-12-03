@@ -17,7 +17,6 @@ MLflow Logger
 -------------
 """
 import re
-import warnings
 from argparse import Namespace
 from time import time
 from typing import Any, Dict, Optional, Union
@@ -32,7 +31,7 @@ except ModuleNotFoundError:  # pragma: no-cover
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn
 
 LOCAL_FILE_URI_PREFIX = "file:"
 
@@ -78,15 +77,19 @@ class MLFlowLogger(LightningLoggerBase):
         save_dir: A path to a local directory where the MLflow runs get saved.
             Defaults to `./mlflow` if `tracking_uri` is not provided.
             Has no effect if `tracking_uri` is provided.
+        prefix: A string to put at the beginning of metric keys.
 
     """
+
+    LOGGER_JOIN_CHAR = '-'
 
     def __init__(
         self,
         experiment_name: str = 'default',
         tracking_uri: Optional[str] = None,
         tags: Optional[Dict[str, Any]] = None,
-        save_dir: Optional[str] = './mlruns'
+        save_dir: Optional[str] = './mlruns',
+        prefix: str = '',
     ):
         if mlflow is None:
             raise ImportError('You want to use `mlflow` logger which is not installed yet,'
@@ -100,6 +103,7 @@ class MLFlowLogger(LightningLoggerBase):
         self._tracking_uri = tracking_uri
         self._run_id = None
         self.tags = tags
+        self._prefix = prefix
         self._mlflow_client = MlflowClient(tracking_uri)
 
     @property
@@ -150,6 +154,8 @@ class MLFlowLogger(LightningLoggerBase):
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
+        metrics = self._add_prefix(metrics)
+
         timestamp_ms = int(time() * 1000)
         for k, v in metrics.items():
             if isinstance(v, str):
@@ -158,9 +164,11 @@ class MLFlowLogger(LightningLoggerBase):
 
             new_k = re.sub("[^a-zA-Z0-9_/. -]+", "", k)
             if k != new_k:
-                warnings.warn(("MLFlow only allows '_', '/', '.' and ' ' special characters in metric name.\n",
-                               f"Replacing {k} with {new_k}."))
-            k = new_k
+                rank_zero_warn(
+                    "MLFlow only allows '_', '/', '.' and ' ' special characters in metric name."
+                    f" Replacing {k} with {new_k}.", RuntimeWarning
+                )
+                k = new_k
 
             self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
 

@@ -1,14 +1,15 @@
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union, Optional
 
 import torch.distributed as torch_distrib
 from pytorch_lightning import _logger as log
 from torch.optim import Optimizer
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
+from pytorch_lightning.plugins.plugin import LightningPlugin
 
 
-class DDPPlugin(object):
+class DDPPlugin(LightningPlugin):
     """
     Plugin to link a custom ddp implementation to any arbitrary accelerator.
 
@@ -31,7 +32,7 @@ class DDPPlugin(object):
         self._ddp_kwargs: Dict[str, Any] = kwargs
 
     def configure_ddp(
-        self, model: LightningModule, device_ids: List[int]
+            self, model: LightningModule, device_ids: List[int]
     ) -> LightningDistributedDataParallel:
         """
         Pass through all customizations from constructor to `LightningDistributedDataParallel`.
@@ -68,12 +69,12 @@ class DDPPlugin(object):
         return model
 
     def init_ddp_connection(
-        self,
-        trainer,
-        cluster_environment,
-        global_rank: int,
-        world_size: int,
-        is_slurm_managing_tasks: bool = True,
+            self,
+            trainer,
+            cluster_environment,
+            global_rank: int,
+            world_size: int,
+            is_slurm_managing_tasks: bool = True,
     ) -> None:
         os.environ["MASTER_ADDR"] = str(cluster_environment.master_address())
         os.environ["MASTER_PORT"] = str(cluster_environment.master_port())
@@ -108,3 +109,25 @@ class DDPPlugin(object):
 
     def optimizer_state(self, optimizer: Optimizer) -> dict:
         return optimizer.state_dict()
+
+    def get_model_from_plugin(
+            self,
+            model: Union[LightningDistributedDataParallel, LightningModule]
+    ) -> LightningModule:
+        """
+        Override to modify returning base :class:`LightningModule`
+        when accessing variable and functions outside of the parallel wrapper.
+
+        Example::
+            ref_model = ddp_plugin.get_model_from_plugin(model)
+            ref_model.training_step(...)
+
+        Args:
+            model: Model with parallel wrapper.
+
+        Returns: Reference :class:`LightningModule` within parallel wrapper.
+
+        """
+        if isinstance(model, LightningDistributedDataParallel):
+            return model.module
+        return model

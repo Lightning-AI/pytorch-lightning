@@ -29,6 +29,17 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_only
 
 
+def rank_zero_experiment(fn: Callable) -> Callable:
+    """ Returns the real experiment on rank 0 and otherwise the DummyExperiment. """
+    @wraps(fn)
+    def experiment(self):
+        @rank_zero_only
+        def get_experiment():
+            return fn(self)
+        return get_experiment() or DummyExperiment()
+    return experiment
+
+
 class LightningLoggerBase(ABC):
     """
     Base class for experiment loggers.
@@ -313,6 +324,12 @@ class LightningLoggerBase(ABC):
     def version(self) -> Union[int, str]:
         """Return the experiment version."""
 
+    def _add_prefix(self, metrics: Dict[str, float]):
+        if self._prefix:
+            metrics = {f'{self._prefix}{self.LOGGER_JOIN_CHAR}{k}': v for k, v in metrics.items()}
+
+        return metrics
+
 
 class LoggerCollection(LightningLoggerBase):
     """
@@ -404,9 +421,11 @@ class DummyLogger(LightningLoggerBase):
     def experiment(self):
         return self._experiment
 
+    @rank_zero_only
     def log_metrics(self, metrics, step):
         pass
 
+    @rank_zero_only
     def log_hyperparams(self, params):
         pass
 
@@ -471,14 +490,3 @@ def merge_dicts(
             d_out[k] = (fn or default_func)(values_to_agg)
 
     return d_out
-
-
-def rank_zero_experiment(fn: Callable) -> Callable:
-    """ Returns the real experiment on rank 0 and otherwise the DummyExperiment. """
-    @wraps(fn)
-    def experiment(self):
-        @rank_zero_only
-        def get_experiment():
-            return fn(self)
-        return get_experiment() or DummyExperiment()
-    return experiment
