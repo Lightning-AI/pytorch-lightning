@@ -50,7 +50,7 @@ class SequentialModelRPC(LightningModule):
         return out
 
     def training_step(self, batch, batch_idx):
-        if self.batch_idx % 2 == 0:
+        if self.trainer.batch_idx % 2 == 0:
             self._count += 1
             opt = self.optimizers()
             output = self.layers(batch)
@@ -62,15 +62,17 @@ class SequentialModelRPC(LightningModule):
         else:
             opt = self.optimizers()
 
-            def optimizer_closure():
+            def closure():
+                print("RUNNED CLOSURE")
                 self._count += 1
                 output = self.layers(batch)
                 loss = self.loss(output)
                 self.log("train_loss", loss, on_epoch=True, prog_bar=True)
                 self.manual_backward(loss, opt)
                 assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() > 0
-            opt.step(closure=optimizer_closure)
+            opt.step(closure=closure)
         self._called += 1
+        print(self._called, self._count)
         assert self._called == self._count
         assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() == 0
 
@@ -110,7 +112,7 @@ def test_pipe_plugin_ddp_rpc_manual(tmpdir, args=None):
     model = SequentialModelRPC()
     trainer = Trainer(
         max_epochs=2,
-        limit_train_batches=2,
+        limit_train_batches=6,
         limit_val_batches=2,
         limit_test_batches=2,
         gpus=2,

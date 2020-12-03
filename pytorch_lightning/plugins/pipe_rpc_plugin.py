@@ -101,14 +101,12 @@ class LightningPipeModule(nn.Module):
                  balance: List[int],
                  microbatches: int = 8,
                  checkpoint='never',
-                 enable_lazy_module=True,
                  pipe_cls=None):
         super().__init__()
         self.module = module
         self.balance = balance
         self.microbatches = microbatches
         self.checkpoint = checkpoint
-        self.enable_lazy_module = enable_lazy_module
         self._init_pipe(pipe_cls)
 
     def _init_pipe(self, pipe_cls):
@@ -137,7 +135,6 @@ class PipeRpcPlugin(RPCPlugin):
                  checkpoint: str = 'except_last',
                  balance_mode: str = "balance_by_size",
                  pipelined_backward: Optional[bool] = True,
-                 enable_lazy_module: bool = True,
                  **kwargs):
         super().__init__(**kwargs)
 
@@ -154,7 +151,6 @@ class PipeRpcPlugin(RPCPlugin):
         self.checkpoint = checkpoint
         self.balance_mode = balance_mode
         self.pipelined_backward = pipelined_backward
-        self.enable_lazy_module = enable_lazy_module
 
     @property
     def broadcast_and_barrier_supported(self):
@@ -277,33 +273,30 @@ class PipeRpcPlugin(RPCPlugin):
         return ddp_plugin
 
     def _save_model(self, checkpoint_save_model, last_filepath, trainer, pl_module):
-        automatic_optimization = self.trainer.train_loop.automatic_optimization
         model = self.trainer.get_model()
-        if not automatic_optimization:
-            if hasattr(model, "foreach_worker"):
-                current_layers = pl_module.layers
-                model.foreach_worker(save, {"num_gpus_per_model": self.num_gpus_per_model}, include_self=True)
-                pl_module.layers = reload_sequential(self.num_gpus_per_model)
-                checkpoint_save_model(last_filepath, trainer, pl_module)
-                del pl_module.layers
-                pl_module.layers = current_layers
-        else:
-            raise NotImplementedError
+        if hasattr(model, "foreach_worker"):
+            current_layers = pl_module.layers
+            model.foreach_worker(save, {"num_gpus_per_model": self.num_gpus_per_model}, include_self=True)
+            pl_module.layers = reload_sequential(self.num_gpus_per_model)
+            checkpoint_save_model(last_filepath, trainer, pl_module)
+            del pl_module.layers
+            pl_module.layers = current_layers
 
     def _optimizer_step(self, opt_idx, *args, **kwargs):
         # Create pipe_module
-        automatic_optimization = self.trainer.train_loop.automatic_optimization
         model = self.trainer.get_model()
-        if not automatic_optimization:
-            model.foreach_worker(run_optimizer, {"opt_idx": opt_idx}, include_self=False)
-        else:
-            raise NotImplementedError
+        model.foreach_worker(run_optimizer, {"opt_idx": opt_idx}, include_self=False)
 
     def optimizer_step(self, is_master, optimizer, closure, *args, **kwargs):
         if not is_master:
-            return
+            return False
+
         opt_idx = optimizer._optimizer_idx
         self._optimizers_map[opt_idx] = not self._optimizers_map[opt_idx]
+
         if self._optimizers_map[opt_idx]:
             optimizer.step(closure=closure, *args, **kwargs)
             self._optimizer_step(opt_idx, *args, **kwargs)
+            return True
+        else:
+            return False
