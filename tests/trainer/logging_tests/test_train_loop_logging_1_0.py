@@ -753,3 +753,35 @@ def test_logging_sync_dist_true_gpu(tmpdir):
 
     assert trainer.logged_metrics['foo'] == fake_result
     assert trainer.logged_metrics['bar'] == fake_result
+
+
+def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
+    class TestModel(BoringModel):
+        def training_step(self, *args):
+            self.log("foo", torch.tensor(self.current_epoch), on_step=False, on_epoch=True, prog_bar=True)
+            return super().training_step(*args)
+
+        def on_epoch_end(self):
+            self.epoch_end_called = True
+            self.log('foo_2', torch.tensor(self.current_epoch), prog_bar=True,
+                     on_epoch=True, sync_dist=True, sync_dist_op='sum')
+
+        def on_train_epoch_end(self, *_):
+            self.on_train_epoch_end_called = True
+            assert self.trainer.progress_bar_dict["foo"] == self.current_epoch
+            assert self.trainer.progress_bar_dict["foo_2"] == self.current_epoch
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        checkpoint_callback=False,
+        logger=False,
+        weights_summary=None,
+        progress_bar_refresh_rate=0,
+    )
+    model = TestModel()
+    trainer.fit(model)
+    assert model.epoch_end_called
+    assert model.on_train_epoch_end_called
