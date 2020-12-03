@@ -14,12 +14,15 @@
 from typing import List, Optional, Union
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.optimizer import is_lightning_optimizer
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
-from pytorch_lightning.utilities import rank_zero_only, FAIRSCALE_AVAILABLE
+from pytorch_lightning.plugins.sharded_native_amp_plugin import ShardedNativeAMPPlugin
+from pytorch_lightning.utilities import AMPType, FAIRSCALE_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
+
     from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel
 
 
@@ -62,6 +65,8 @@ class DDPShardedPlugin(DDPPlugin):
     def _reinit_with_fairscale_oss(self, trainer):
         optimizers = trainer.optimizers
         for x, optimizer in enumerate(optimizers):
+            if is_lightning_optimizer(optimizer):
+                optimizer = optimizer._optimizer
             if not isinstance(optimizer, OSS):
                 optim_class = type(optimizer)
                 zero_optimizer = OSS(
@@ -71,6 +76,7 @@ class DDPShardedPlugin(DDPPlugin):
                 )
                 optimizers[x] = zero_optimizer
                 del optimizer
+        trainer.convert_to_lightning_optimizers()
 
     def get_model_from_plugin(
             self,
@@ -79,3 +85,12 @@ class DDPShardedPlugin(DDPPlugin):
         if isinstance(model, LightningShardedDataParallel):
             return model.module
         return model
+
+    def required_plugins(self, amp_backend: AMPType, trainer) -> list:
+        if amp_backend == AMPType.APEX:
+            raise MisconfigurationException(
+                'Sharded Plugin is not supported with Apex AMP, please using native AMP for 16-bit precision.'
+            )
+        if amp_backend == AMPType.NATIVE:
+            return [ShardedNativeAMPPlugin(trainer=trainer)]
+        return []

@@ -598,6 +598,55 @@ If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lig
 If you also need to use your own DDP implementation, override:  :meth:`pytorch_lightning.core.LightningModule.configure_ddp`.
 
 
+----------
+
+.. _model-parallelism:
+
+Model Parallelism [BETA]
+------------------------
+
+Model Parallelism tackles training large models on distributed systems, by modifying distributed communications and memory management of the model.
+Unlike data parallelism, the model is partitioned in various ways across the GPUs, in most cases to reduce the memory overhead when training large models.
+This is useful when dealing with large Transformer based models, or in environments where GPU memory is limited.
+
+Lightning currently offers the following methods to leverage model parallelism:
+
+- Optimizer Sharded Training (partitioning your gradients and optimizer state across multiple GPUs, for reduced memory overhead)
+
+Optimizer Sharded Training
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+Lightning integration of optimizer sharded training provided by `Fairscale <https://github.com/facebookresearch/fairscale>`_.
+The technique can be found within `DeepSpeed ZeRO <https://arxiv.org/abs/1910.02054>`_ and
+`ZeRO-2 <https://www.microsoft.com/en-us/research/blog/zero-2-deepspeed-shattering-barriers-of-deep-learning-speed-scale/>`_,
+however the implementation is built from the ground up to be pytorch compatible and standalone.
+
+Optimizer Sharded Training still utilizes Data Parallel Training under the hood, except the optimizer state and gradients which are sharded across GPUs.
+This means the memory overhead per GPU is lower, as each GPU only has to maintain a partition of your optimizer state and gradients.
+
+The benefits vary by model and parameter sizes, but we've recorded up to a 63% memory reduction per GPU allowing us to double our model sizes. Because of extremely efficient communication,
+these benefits in multi-GPU setups are almost free and throughput scales well with multi-node setups.
+
+It is highly recommended to use Optimizer Sharded Training in multi-GPU environments where memory is limited, or where training larger models are beneficial (rough minimum of 500+ million parameter models).
+Optimizer Sharded Training is typically not suited for smaller models, or where large batch sizes are important.
+This is primarily because with larger batch sizes, storing activations for the backwards pass becomes the bottleneck in training. Sharding optimizer state as a result becomes less impactful.
+
+To use Optimizer Sharded Training, you need to first install Fairscale using the command below or install all extras using ``pip install pytorch-lightning["extra"]``.
+
+.. code-block:: bash
+
+    pip install fairscale
+
+
+.. code-block:: python
+
+    # train using Sharded DDP
+    trainer = Trainer(accelerator='ddp', plugins='ddp_sharded')
+
+Optimizer Sharded Training can work across all DDP variants by adding the additional ``--plugins ddp_sharded`` flag.
+
+Internally we re-initialize your optimizers and shard them across your machines and processes. We handle all communication using PyTorch distributed, so no code changes are required.
+
+
 Batch size
 ----------
 When using distributed training make sure to modify your learning rate according to your effective
@@ -640,16 +689,16 @@ The reason is that the full batch is visible to all GPUs on the node when using 
 
 ----------
 
-PytorchElastic
+TorchElastic
 --------------
-Lightning supports the use of PytorchElastic to enable fault-tolerent and elastic distributed job scheduling. To use it, specify the 'ddp' or 'ddp2' backend and the number of gpus you want to use in the trainer.
+Lightning supports the use of TorchElastic to enable fault-tolerant and elastic distributed job scheduling. To use it, specify the 'ddp' or 'ddp2' backend and the number of gpus you want to use in the trainer.
 
 .. code-block:: python
 
     Trainer(gpus=8, accelerator='ddp')
     
     
-Following the `PytorchElastic Quickstart documentation <https://pytorch.org/elastic/latest/quickstart.html>`_, you then need to start a single-node etcd server on one of the hosts:
+Following the `TorchElastic Quickstart documentation <https://pytorch.org/elastic/latest/quickstart.html>`_, you then need to start a single-node etcd server on one of the hosts:
 
 .. code-block:: bash
 
@@ -671,7 +720,7 @@ And then launch the elastic job with:
             YOUR_LIGHTNING_TRAINING_SCRIPT.py (--arg1 ... train script args...)
             
 
-See the official `PytorchElastic documentation <https://pytorch.org/elastic>`_ for details
+See the official `TorchElastic documentation <https://pytorch.org/elastic>`_ for details
 on installation and more use cases.
 
 ----------
