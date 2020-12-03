@@ -38,8 +38,3 @@ class PrecisionPlugin(LightningPlugin):
 
     def clip_gradients(self, grad_clip_val: Union[int, float], optimizer: Optimizer, norm_type: float):
         raise NotImplementedError
-
-    def required_plugins(self, trainer, amp_backend: AMPType) -> Optional[list]:
-        """
-        Override to define additional required plugins. This is useful for when custom plugins
-        """
