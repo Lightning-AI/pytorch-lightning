@@ -11,7 +11,7 @@ import torch.distributed as torch_distrib
 from torch import nn, optim
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning import LightningModule
 from pytorch_lightning import _logger as log
 from pytorch_lightning import seed_everything
 from pytorch_lightning.core.optimizer import LightningOptimizer
