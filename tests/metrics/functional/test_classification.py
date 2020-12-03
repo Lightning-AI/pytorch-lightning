@@ -288,6 +288,23 @@ def test_auc(x, y, expected):
             1,
             torch.tensor([2 / 3])
         ),
+        pytest.param(
+            torch.tensor([
+                [0, 1, 0.9, 100, 100, 200, 200],
+                [1, 0, 0.9, 100, 100, 200, 200],
+                [0, 2, 0.9, 100, 100, 200, 200],
+                [2, 1, 0.9, 100, 100, 200, 200],
+            ]),
+            torch.tensor([
+                [0, 1, 100., 100., 200., 200.],
+                [1, 0, 100., 100., 200., 200.],
+                [0, 2, 100., 100., 200., 200.],
+                [2, 1, 100., 100., 200., 200.],
+            ]),
+            0.5,
+            3,
+            torch.tensor([1.])
+        )
     ]
 )
 def test_object_detection_mean_average_precision(pred, target, iou_threshold, num_classes, expected):
