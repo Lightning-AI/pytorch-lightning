@@ -25,8 +25,7 @@ import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.metrics.functional import accuracy
-from pytorch_lightning.plugins.pipe_plugin import FAIRSCALE_AVAILABLE, PipePlugin
-from pytorch_lightning.plugins.pipe_rpc_plugin import PipeRpcPlugin
+from pytorch_lightning.plugins.pipe_rpc_plugin import FAIRSCALE_AVAILABLE, PipeRpcPlugin
 from pytorch_lightning.utilities import BOLT_AVAILABLE
 
 if BOLT_AVAILABLE:
