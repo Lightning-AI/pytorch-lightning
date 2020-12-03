@@ -14,7 +14,7 @@
 import io
 import os
 import re
-from typing import Optional, Union, Any
+from typing import Any, Optional, Union
 
 import torch
 import torch.multiprocessing as mp
@@ -23,7 +23,7 @@ from torch.optim import Optimizer
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn, TPU_AVAILABLE
+from pytorch_lightning.utilities import TPU_AVAILABLE, rank_zero_info, rank_zero_only, rank_zero_warn, move_data_to_device
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -230,6 +230,8 @@ class TPUAccelerator(Accelerator):
                  f' global rank: {trainer.tpu_global_core_rank}'
                  f' with XLA_USE_BF16={os.environ.get("XLA_USE_BF16")}')
 
+        self.trainer.convert_to_lightning_optimizers()
+
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         # do backward pass
         if self.trainer.train_loop.automatic_optimization:
@@ -342,7 +344,8 @@ class TPUAccelerator(Accelerator):
             last_path = None
             if not self.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
-                atomic_save(model.state_dict(), last_path)
+                state_dict = move_data_to_device(model.state_dict(), torch.device("cpu"))
+                atomic_save(state_dict, last_path)
             mp_queue.put(last_path)
 
     def broadcast(self, obj, src=0):
@@ -364,3 +367,11 @@ class TPUAccelerator(Accelerator):
     @property
     def norm_clipping_epsilon(self):
         return 1e-6
+
+    def on_save(self, checkpoint):
+        """
+        Move XLA tensors to CPU before saving
+        Recommended on XLA Guide:
+        https://github.com/pytorch/xla/blob/master/API_GUIDE.md#saving-and-loading-xla-tensors
+        """
+        return move_data_to_device(checkpoint, torch.device("cpu"))

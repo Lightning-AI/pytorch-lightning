@@ -1,6 +1,6 @@
 """Root package info."""
 
-__version__ = '1.1.0-dev'
+__version__ = '1.1.0rc1'
 __author__ = 'William Falcon et al.'
 __author_email__ = 'waf2107@columbia.edu'
 __license__ = 'Apache-2.0'
@@ -34,10 +34,14 @@ Documentation
 """
 
 import logging as python_logging
+import os
 
 _logger = python_logging.getLogger("lightning")
 _logger.addHandler(python_logging.StreamHandler())
 _logger.setLevel(python_logging.INFO)
+
+PACKAGE_ROOT = os.path.dirname(__file__)
+PROJECT_ROOT = os.path.dirname(PACKAGE_ROOT)
 
 try:
     # This variable is injected in the __builtins__ by the build
