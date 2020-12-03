@@ -1009,11 +1009,6 @@ manual_backward
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.manual_backward
     :noindex:
 
-manual_optimizer_step
-~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.manual_optimizer_step
-    :noindex:
 
 on_after_backward
 ~~~~~~~~~~~~~~~~~

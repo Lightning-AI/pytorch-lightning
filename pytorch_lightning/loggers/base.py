@@ -29,6 +29,17 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_only
 
 
+def rank_zero_experiment(fn: Callable) -> Callable:
+    """ Returns the real experiment on rank 0 and otherwise the DummyExperiment. """
+    @wraps(fn)
+    def experiment(self):
+        @rank_zero_only
+        def get_experiment():
+            return fn(self)
+        return get_experiment() or DummyExperiment()
+    return experiment
+
+
 class LightningLoggerBase(ABC):
     """
     Base class for experiment loggers.
@@ -251,7 +262,13 @@ class LightningLoggerBase(ABC):
          'namespace': 'Namespace(foo=3)',
          'string': 'abc'}
         """
-        return {k: v if type(v) in [bool, int, float, str, torch.Tensor] else str(v) for k, v in params.items()}
+        for k in params.keys():
+            # convert relevant np scalars to python types first (instead of str)
+            if isinstance(params[k], (np.bool_, np.integer, np.floating)):
+                params[k] = params[k].item()
+            elif type(params[k]) not in [bool, int, float, str, torch.Tensor]:
+                params[k] = str(params[k])
+        return params
 
     @abstractmethod
     def log_hyperparams(self, params: argparse.Namespace):
@@ -306,6 +323,12 @@ class LightningLoggerBase(ABC):
     @abstractmethod
     def version(self) -> Union[int, str]:
         """Return the experiment version."""
+
+    def _add_prefix(self, metrics: Dict[str, float]):
+        if self._prefix:
+            metrics = {f'{self._prefix}{self.LOGGER_JOIN_CHAR}{k}': v for k, v in metrics.items()}
+
+        return metrics
 
 
 class LoggerCollection(LightningLoggerBase):
@@ -403,9 +426,11 @@ class DummyLogger(LightningLoggerBase):
     def experiment(self):
         return self._experiment
 
+    @rank_zero_only
     def log_metrics(self, metrics, step):
         pass
 
+    @rank_zero_only
     def log_hyperparams(self, params):
         pass
 
@@ -473,14 +498,3 @@ def merge_dicts(
             d_out[k] = (fn or default_func)(values_to_agg)
 
     return d_out
-
-
-def rank_zero_experiment(fn: Callable) -> Callable:
-    """ Returns the real experiment on rank 0 and otherwise the DummyExperiment. """
-    @wraps(fn)
-    def experiment(self):
-        @rank_zero_only
-        def get_experiment():
-            return fn(self)
-        return get_experiment() or DummyExperiment()
-    return experiment

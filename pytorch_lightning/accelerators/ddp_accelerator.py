@@ -12,36 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 import os
-import torch
-import torch.distributed as torch_distrib
 import subprocess
 import sys
 from os.path import abspath
 from time import sleep
-from typing import Any, Optional, List, Union
+from typing import Any, List, Optional, Union
 
 import numpy as np
+import torch
+import torch.distributed as torch_distrib
+from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
-from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities.distributed import find_free_network_port
-from pytorch_lightning.utilities.distributed import rank_zero_only
-from pytorch_lightning.utilities.distributed import sync_ddp_if_available
+from pytorch_lightning.utilities import HYDRA_AVAILABLE, AMPType
+from pytorch_lightning.utilities.distributed import find_free_network_port, rank_zero_only, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
-from torch.nn.parallel import DistributedDataParallel
 
-
-try:
-    from hydra.utils import to_absolute_path, get_original_cwd
+if HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig
-except ImportError:
-    HYDRA_AVAILABLE = False
-else:
-    HYDRA_AVAILABLE = True
+    from hydra.utils import get_original_cwd, to_absolute_path
 
 
 class DDPAccelerator(Accelerator):
@@ -151,19 +144,21 @@ class DDPAccelerator(Accelerator):
         return results
 
     def training_step(self, args):
+        return self._step(args)
+
+    def validation_step(self, args):
+        return self._step(args)
+
+    def test_step(self, args):
+        return self._step(args)
+
+    def _step(self, args):
+        args = self.ddp_plugin.on_before_forward(self.trainer.get_model(), *args)
         if self.trainer.amp_backend == AMPType.NATIVE:
             with torch.cuda.amp.autocast():
                 output = self.trainer.model(*args)
         else:
             output = self.trainer.model(*args)
-        return output
-
-    def validation_step(self, args):
-        output = self.training_step(args)
-        return output
-
-    def test_step(self, args):
-        output = self.training_step(args)
         return output
 
     def barrier(self, name: Optional[str] = None):
@@ -268,6 +263,8 @@ class DDPAccelerator(Accelerator):
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
 
+        self.trainer.convert_to_lightning_optimizers()
+
         # device ids change depending on the DDP setup
         device_ids = self.get_device_ids()
 
@@ -317,3 +314,6 @@ class DDPAccelerator(Accelerator):
 
         """
         return sync_ddp_if_available(tensor, group, reduce_op)
+
+    def get_reference_model(self, model) -> LightningModule:
+        return self.ddp_plugin.get_model_from_plugin(model)
