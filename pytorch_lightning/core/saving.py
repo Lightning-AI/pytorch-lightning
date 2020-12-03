@@ -20,22 +20,20 @@ from argparse import Namespace
 from typing import Union, Dict, Any, Optional, Callable, MutableMapping, IO
 from warnings import warn
 
-import fsspec
 import torch
 import yaml
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import rank_zero_warn, AttributeDict
+from pytorch_lightning.utilities import rank_zero_warn, AttributeDict, OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.parsing import parse_class_init_keys
 
 PRIMITIVE_TYPES = (bool, int, float, str)
 ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
-try:
+
+if OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
-except ImportError:
-    OmegaConf = None
 
 # the older shall be on the top
 CHECKPOINT_PAST_HPARAMS_KEYS = (
@@ -362,7 +360,7 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
         hparams = dict(hparams)
 
     # saving with OmegaConf objects
-    if OmegaConf is not None:
+    if OMEGACONF_AVAILABLE:
         if OmegaConf.is_config(hparams):
             with fs.open(config_yaml, "w", encoding="utf-8") as fp:
                 OmegaConf.save(hparams, fp, resolve=True)
