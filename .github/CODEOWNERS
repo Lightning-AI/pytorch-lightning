@@ -18,6 +18,7 @@
 /pytorch_lightning/trainer/trainer.py          @williamfalcon @tchaton
 /pytorch_lightning/core/hooks.py               @williamfalcon
 /pytorch_lightning/core/lightning.py           @williamfalcon @tchaton
+/pytorch_lightning/core/optimizer.py           @tchaton
 /pytorch_lightning/trainer/training_loop.py    @tchaton @SeanNaren
 /pytorch_lightning/trainer/evaluation_loop.py  @tchaton @SeanNaren
 
