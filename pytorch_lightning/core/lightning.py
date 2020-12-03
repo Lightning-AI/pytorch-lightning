@@ -435,7 +435,6 @@ class LightningModule(
 
             - :class:`~torch.Tensor` - The loss tensor
             - `dict` - A dictionary. Can include any keys, but must include the key 'loss'
-            - `None` - Training will skip to the next batch
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
         You can also do fancier things like multiple forward passes or something model specific.
