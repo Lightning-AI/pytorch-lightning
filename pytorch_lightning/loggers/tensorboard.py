@@ -192,8 +192,9 @@ class TensorBoardLogger(LightningLoggerBase):
                     type(e)(e.message + m)
 
     @rank_zero_only
-    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, **kwargs) -> None:
-        self.experiment.add_figure(tag=name, figure=figure, global_step=step, **kwargs)
+    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True,
+                   **kwargs) -> None:
+        self.experiment.add_figure(tag=name, figure=figure, global_step=step, close=close, **kwargs)
 
     @rank_zero_only
     def log_graph(self, model: LightningModule, input_array=None):

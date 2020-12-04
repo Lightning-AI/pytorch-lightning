@@ -133,7 +133,7 @@ def test_tensorboard_log_metrics(tmpdir, step_idx):
 @pytest.mark.parametrize("step_idx", [10, None])
 def test_tensorboard_log_figure(tmpdir, step_idx):
     logger = TensorBoardLogger(tmpdir)
-    logger.log_figure('dummy', plotting.dummy_figure(), step_idx, )
+    logger.log_figure('dummy', plotting.dummy_figure(), step_idx)
 
 
 def test_tensorboard_log_hyperparams(tmpdir):

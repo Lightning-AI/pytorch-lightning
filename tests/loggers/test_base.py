@@ -16,11 +16,13 @@ from typing import Optional
 from unittest.mock import MagicMock
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection
 from pytorch_lightning.utilities import rank_zero_only
 from tests.base import EvalModelTemplate
+import tests.base.plotting
 
 
 def test_logger_collection():
@@ -55,6 +57,7 @@ class CustomLogger(LightningLoggerBase):
         super().__init__()
         self.hparams_logged = None
         self.metrics_logged = None
+        self.figure_logged = None
         self.finalized = False
 
     @property
@@ -68,6 +71,10 @@ class CustomLogger(LightningLoggerBase):
     @rank_zero_only
     def log_metrics(self, metrics, step):
         self.metrics_logged = metrics
+
+    @rank_zero_only
+    def log_figure(self, name, figure, step):
+        self.figure_logged = figure
 
     @rank_zero_only
     def finalize(self, status):
@@ -133,6 +140,17 @@ def test_multiple_loggers(tmpdir):
     assert logger2.metrics_logged != {}
     assert logger2.finalized_status == "success"
 
+
+def test_multiple_loggers_figure():
+
+    logger1 = MagicMock()
+    logger2 = MagicMock()
+
+    logger = LoggerCollection([logger1, logger2])
+    logger.log_figure('dummy_figure', tests.base.plotting.dummy_figure(), 0)
+
+    logger1.log_figure.assert_called_once()
+    logger2.log_figure.assert_called_once()
 
 def test_multiple_loggers_pickle(tmpdir):
     """Verify that pickling trainer with multiple loggers works."""
