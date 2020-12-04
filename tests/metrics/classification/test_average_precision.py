@@ -78,12 +78,13 @@ class TestAveragePrecision(MetricTester):
         )
 
     def test_average_precision_functional(self, preds, target, sk_metric, num_classes):
-        self.run_functional_metric_test(preds,
-                                        target,
-                                        metric_functional=average_precision,
-                                        sk_metric=partial(sk_metric, num_classes=num_classes),
-                                        metric_args={"num_classes": num_classes}
-                                        )
+        self.run_functional_metric_test(
+            preds,
+            target,
+            metric_functional=average_precision,
+            sk_metric=partial(sk_metric, num_classes=num_classes),
+            metric_args={"num_classes": num_classes},
+        )
 
 
 @pytest.mark.parametrize(['scores', 'target', 'expected_score'], [

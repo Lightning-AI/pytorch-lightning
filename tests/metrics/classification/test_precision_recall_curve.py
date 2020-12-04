@@ -82,12 +82,13 @@ class TestPrecisionRecallCurve(MetricTester):
         )
 
     def test_precision_recall_curve_functional(self, preds, target, sk_metric, num_classes):
-        self.run_functional_metric_test(preds,
-                                        target,
-                                        metric_functional=precision_recall_curve,
-                                        sk_metric=partial(sk_metric, num_classes=num_classes),
-                                        metric_args={"num_classes": num_classes}
-                                        )
+        self.run_functional_metric_test(
+            preds,
+            target,
+            metric_functional=precision_recall_curve,
+            sk_metric=partial(sk_metric, num_classes=num_classes),
+            metric_args={"num_classes": num_classes},
+        )
 
 
 @pytest.mark.parametrize(['pred', 'target', 'expected_p', 'expected_r', 'expected_t'], [
