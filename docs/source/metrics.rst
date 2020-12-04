@@ -239,6 +239,24 @@ ConfusionMatrix
 .. autoclass:: pytorch_lightning.metrics.classification.ConfusionMatrix
     :noindex:
 
+PrecisionRecallCurve
+~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.PrecisionRecallCurve
+    :noindex:
+
+AveragePrecision
+~~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.AveragePrecision
+    :noindex:
+
+ROC
+~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.ROC
+    :noindex:
+
 Regression Metrics
 ------------------
 
@@ -326,7 +344,7 @@ multiclass_auroc [func]
 average_precision [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.average_precision
+.. autofunction:: pytorch_lightning.metrics.functional.average_precision
     :noindex:
 
 
@@ -365,10 +383,10 @@ iou [func]
     :noindex:
 
 
-multiclass_roc [func]
+roc [func]
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.multiclass_roc
+.. autofunction:: pytorch_lightning.metrics.functional.roc
     :noindex:
 
 
@@ -389,7 +407,7 @@ precision_recall [func]
 precision_recall_curve [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.precision_recall_curve
+.. autofunction:: pytorch_lightning.metrics.functional.precision_recall_curve
     :noindex:
 
 
@@ -397,13 +415,6 @@ recall [func]
 ~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.recall
-    :noindex:
-
-
-roc [func]
-~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.metrics.functional.classification.roc
     :noindex:
 
 
@@ -424,14 +435,14 @@ stat_scores_multiple_classes [func]
 to_categorical [func]
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.to_categorical
+.. autofunction:: pytorch_lightning.metrics.utils.to_categorical
     :noindex:
 
 
 to_onehot [func]
 ~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.to_onehot
+.. autofunction:: pytorch_lightning.metrics.utils.to_onehot
     :noindex:
 
 
