@@ -558,7 +558,7 @@ def test_log_works_in_train_callback(tmpdir):
                         "prog_bar": prog_bar,
                         "forked": False,
                         "func_name": func_name}
-        """
+
         def on_train_start(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_train_start', 1, on_steps=self.choices,
                               on_epochs=self.choices, prob_bars=self.choices)
@@ -579,7 +579,6 @@ def test_log_works_in_train_callback(tmpdir):
             self.make_logging(pl_module, 'on_train_batch_start', 5, on_steps=self.choices,
                               on_epochs=self.choices, prob_bars=self.choices)
 
-
         def on_batch_end(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_batch_end', 6, on_steps=self.choices,
                               on_epochs=self.choices, prob_bars=self.choices)
@@ -592,7 +591,6 @@ def test_log_works_in_train_callback(tmpdir):
             # with func = np.mean if on_epoch else func = np.max
             self.count += 1
 
-        """
         def on_epoch_end(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_epoch_end', 8, on_steps=[False],
                               on_epochs=self.choices, prob_bars=self.choices)
@@ -629,7 +627,6 @@ def test_log_works_in_train_callback(tmpdir):
     )
     trainer.fit(model)
 
-    """
     assert test_callback.funcs_called_count["on_train_start"] == 1
     assert test_callback.funcs_called_count["on_epoch_start"] == 2
     assert test_callback.funcs_called_count["on_train_epoch_start"] == 2
@@ -638,8 +635,6 @@ def test_log_works_in_train_callback(tmpdir):
     assert test_callback.funcs_called_count["on_batch_end"] == 4
     assert test_callback.funcs_called_count["on_epoch_end"] == 2
     assert test_callback.funcs_called_count["on_train_batch_end"] == 4
-
-    """
     assert test_callback.funcs_called_count["on_epoch_end"] == 2
     assert test_callback.funcs_called_count["on_train_epoch_end"] == 2
 

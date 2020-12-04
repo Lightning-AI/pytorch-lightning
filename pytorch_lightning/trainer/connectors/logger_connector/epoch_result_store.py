@@ -409,11 +409,12 @@ class EpochResultStore:
                 extra_info=extra_info)
 
             # update logged_metrics, progress_bar_metrics, callback_metrics
-            self.update_logger_connector(fx_name)
+            if "epoch_end" in fx_name:
+                self.update_logger_connector()
 
             self.reset_model()
 
-    def update_logger_connector(self, fx_name: str = None) -> None:
+    def update_logger_connector(self) -> None:
         """
         This function is called every time we capture a hook
         It automatically updates the logger_connector followings:
@@ -432,13 +433,14 @@ class EpochResultStore:
             batch_pbar_metrics = self.get_latest_batch_pbar_metrics()
             logger_connector.add_progress_bar_metrics(batch_pbar_metrics)
 
+            batch_log_metrics = self.get_latest_batch_log_metrics()
+
             if is_train:
                 # Only log and add to callback epoch step during evaluation, test.
-                batch_log_metrics = self.get_latest_batch_log_metrics()
                 logger_connector.logged_metrics.update(batch_log_metrics)
-
                 callback_metrics.update(batch_pbar_metrics)
                 callback_metrics.update(batch_log_metrics)
+
         else:
             epoch_dict = {"epoch": self.trainer.current_epoch}
 
@@ -464,6 +466,10 @@ class EpochResultStore:
         # update callback_metrics
         logger_connector.callback_metrics.update(callback_metrics)
         logger_connector.callback_metrics.pop("epoch", None)
+
+        if not self._has_batch_loop_finished:
+            batch_pbar_metrics.pop("debug_epoch", None)
+            return batch_pbar_metrics, batch_log_metrics
 
     def run_batch_from_func_name(self, func_name) -> Dict:
         results = []

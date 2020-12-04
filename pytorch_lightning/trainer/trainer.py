@@ -878,10 +878,9 @@ class Trainer(
             # capture logging for this hook
             self.logger_connector.cache_logged_metrics()
 
-    def call_hook(self, hook_name, *args, capture=False, **kwargs):
+    def call_hook(self, hook_name, *args, **kwargs):
         # set hook_name to model + reset Result obj
-        if capture:
-            self._reset_result_and_set_hook_fx_name(hook_name)
+        self._reset_result_and_set_hook_fx_name(hook_name)
 
         # always profile hooks
         with self.profiler.profile(hook_name):
@@ -904,8 +903,7 @@ class Trainer(
                 accelerator_hook = getattr(self.accelerator_backend, hook_name)
                 output = accelerator_hook(*args, **kwargs)
 
-        if capture:
-            self._cache_logged_metrics()
+        self._cache_logged_metrics()
         return output
 
     @staticmethod
