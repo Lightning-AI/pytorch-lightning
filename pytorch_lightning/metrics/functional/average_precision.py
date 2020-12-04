@@ -91,6 +91,5 @@ def average_precision(
         [tensor(1.), tensor(1.), tensor(0.2500), tensor(0.2500), tensor(nan)]
 
     """
-    preds, target, num_classes, pos_label = _average_precision_update(
-        preds, target, num_classes, pos_label)
+    preds, target, num_classes, pos_label = _average_precision_update(preds, target, num_classes, pos_label)
     return _average_precision_compute(preds, target, num_classes, pos_label, sample_weights)
