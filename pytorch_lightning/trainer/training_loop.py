@@ -140,8 +140,9 @@ class TrainLoop:
         ref_model = self.trainer.get_model()
 
         # set the ranks and devices
-        self.trainer.accelerator_backend.dist.rank = self.trainer.global_rank
-        self.trainer.accelerator_backend.dist.device = ref_model.device
+        # TODO dist was a AttributeDict, should be moved to plugin?
+        # self.trainer.accelerator_backend.dist.rank = self.trainer.global_rank
+        # self.trainer.accelerator_backend.dist.device = ref_model.device
 
         # give model convenience properties
         ref_model.trainer = self.trainer
@@ -163,7 +164,7 @@ class TrainLoop:
             self.trainer.logger.save()
 
         # wait for all to join if on distributed
-        self.trainer.accelerator_backend.barrier("setup_training")
+        self.trainer.accelerator.training_type_plugin.barrier("setup_training")
 
         # register auto-resubmit when on SLURM
         self.trainer.slurm_connector.register_slurm_signal_handlers()

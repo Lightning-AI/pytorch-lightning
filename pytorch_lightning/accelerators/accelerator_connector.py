@@ -11,10 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Union
+
 from pytorch_lightning import accelerators
 import os
 import torch
 
+from pytorch_lightning.accelerators.accelerator import NewCPUAccelerator, NewAccelerator
+from pytorch_lightning.accelerators.data_parallel import SingleDevicePlugin
+from pytorch_lightning.accelerators.precision import PrecisionPlugin
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
@@ -22,7 +27,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning import _logger as log
 from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.cluster_environments.torchelastic_environment import TorchElasticEnvironment
-from pytorch_lightning.accelerators.accelerator import Accelerator
 
 try:
     import torch_xla
@@ -62,11 +66,11 @@ class BackendConnector(object):
         self.use_ddp2 = False
         self.use_horovod = False
         self.use_single_gpu = False
-        self.num_gpus = None
 
         self.num_processes = num_processes
         self.tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
-        self.accelerator = accelerator
+        # todo: select accelerator based on trainer flags
+        self.accelerator = self.select_accelerator(accelerator)
         self.distributed_backend = distributed_backend
         self.auto_select_gpus = auto_select_gpus
         self.gpus = gpus
@@ -105,13 +109,13 @@ class BackendConnector(object):
 
         # link up SLURM
         # TODO: this should be taken out of here... but depends too much on DDP
-        self.slurm_connector.on_trainer_init(self.num_nodes)
-        self.node_rank = self.determine_ddp_node_rank()
-        self.local_rank = self.determine_local_rank()
+        # self.slurm_connector.on_trainer_init(self.num_nodes)
+        # self.node_rank = self.determine_ddp_node_rank()
+        # self.local_rank = self.determine_local_rank()
         self.global_rank = 0
 
         # NVIDIA setup
-        self.set_nvidia_flags(self.trainer.is_slurm_managing_tasks, self.trainer.data_parallel_device_ids)
+        # self.set_nvidia_flags(self.trainer.is_slurm_managing_tasks, self.trainer.data_parallel_device_ids)
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
 
@@ -131,6 +135,20 @@ class BackendConnector(object):
     @property
     def on_gpu(self):
         return self.parallel_devices and torch.cuda.is_available()
+
+    @property
+    def num_gpus(self) -> int:
+        gpus = self.parallel_devices
+        if gpus is None:
+            return 0
+        return len(gpus)
+
+    def select_accelerator(self, accelerator: Union[str, NewAccelerator]):
+        return NewCPUAccelerator(
+            precision_plugin=PrecisionPlugin(),
+            training_type_plugin=SingleDevicePlugin(device=torch.device("cpu")),
+            gradient_clip_val=None
+        )
 
     def set_distributed_mode(self):
 

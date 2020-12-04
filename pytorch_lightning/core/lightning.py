@@ -126,6 +126,14 @@ class LightningModule(
         """Total training batches seen across all epochs"""
         return self.trainer.global_step if self.trainer else 0
 
+    @property
+    def global_rank(self):
+        return self.trainer.global_rank if self.trainer else 0
+
+    @property
+    def local_rank(self):
+        return self.trainer.local_rank if self.trainer else 0
+
     @example_input_array.setter
     def example_input_array(self, example: Any) -> None:
         self._example_input_array = example
@@ -253,6 +261,7 @@ class LightningModule(
                     f"Logged key: {name} should not contain information about dataloader_idx.")
 
             accelerator = self.trainer.accelerator_backend
+            training_type_plugin = self.trainer.training_type_plugin
 
             self._results.log(
                 name,
@@ -268,7 +277,7 @@ class LightningModule(
                 sync_dist,
                 sync_dist_op,
                 sync_dist_group,
-                accelerator.sync_tensor,
+                training_type_plugin.reduce,
                 self._current_dataloader_idx,
                 self.device,
             )

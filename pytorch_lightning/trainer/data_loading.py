@@ -21,7 +21,7 @@ from typing import Callable, Iterable, List, Optional, Tuple, Union
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
-from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import NewAccelerator
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import rank_zero_warn
@@ -51,7 +51,7 @@ class TrainerDataLoadingMixin(ABC):
     limit_val_batches: Union[int, float]
     limit_test_batches: Union[int, float]
     replace_sampler_ddp: bool
-    accelerator_backend: Accelerator
+    accelerator_backend: NewAccelerator
     num_nodes: int
     num_processes: int
     distributed_backend: Optional[str]
@@ -62,7 +62,7 @@ class TrainerDataLoadingMixin(ABC):
 
         # ddp_spawn + num_workers > 0 don't mix! tell the user
         is_dataloader = isinstance(dataloader, DataLoader)
-        using_spawn = self.distributed_backend == "ddp_spawn"
+        using_spawn = self.accelerator_connector.distributed_backend == "ddp_spawn"
         if is_dataloader and not on_windows:
             if dataloader.num_workers > 0 and using_spawn:
                 rank_zero_warn('Dataloader(num_workers>0) and ddp_spawn do not mix well!'
@@ -92,8 +92,9 @@ class TrainerDataLoadingMixin(ABC):
         if not is_dataloader or is_iterable_ds:
             return dataloader
 
-        need_dist_sampler = self.require_distributed_sampler and not isinstance(dataloader.sampler, DistributedSampler)
-        if self.replace_sampler_ddp and need_dist_sampler:
+        is_in_dist = self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu
+        need_dist_sampler = is_in_dist and not isinstance(dataloader.sampler, DistributedSampler)
+        if self.accelerator_connector.replace_sampler_ddp and need_dist_sampler:
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
                 raise MisconfigurationException(
                     'You seem to have configured a sampler in your DataLoader. This will be replaced '
@@ -314,7 +315,7 @@ class TrainerDataLoadingMixin(ABC):
         dataloader = self._flatten_dl_only(dataloader)
 
         if self.accelerator_backend is not None:
-            self.accelerator_backend.barrier('get_dataloaders')
+            self.training_type_plugin.barrier('get_dataloaders')
         return dataloader
 
     def _flatten_dl_only(self, dataloaders):

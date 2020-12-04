@@ -26,6 +26,8 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import EvalResult, Result
@@ -56,13 +58,25 @@ from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
+from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
+from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
+from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
+from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
+from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
+from pytorch_lightning.trainer.connectors.debugging_connector import DebuggingConnector
+from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
+from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
+from pytorch_lightning import _logger as log
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import DeviceType, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
-from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.trainer.properties import TrainerProperties
+from pytorch_lightning.plugins.plugin_connector import PluginConnector
+from pytorch_lightning.accelerators.accelerator import NewAccelerator
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -111,7 +125,7 @@ class Trainer(
         val_check_interval: Union[int, float] = 1.0,
         flush_logs_every_n_steps: int = 100,
         log_every_n_steps: int = 50,
-        accelerator: Optional[Union[str, Accelerator]] = None,
+        accelerator: Optional[Union[str, NewAccelerator]] = None,
         sync_batchnorm: bool = False,
         precision: int = 32,
         weights_summary: Optional[str] = 'top',
@@ -302,7 +316,20 @@ class Trainer(
         self.config_validator = ConfigValidator(self)
         self.data_connector = DataConnector(self)
         self.optimizer_connector = OptimizerConnector(self)
-        self.accelerator_connector = AcceleratorConnector(self)
+        self.accelerator_connector = BackendConnector(
+            num_processes,
+            tpu_cores,
+            accelerator,
+            distributed_backend,
+            auto_select_gpus,
+            gpus,
+            num_nodes,
+            log_gpu_memory,
+            sync_batchnorm,
+            benchmark,
+            replace_sampler_ddp,
+            deterministic,
+        )
         self.logger_connector = LoggerConnector(self)
         self.model_connector = ModelConnector(self)
         self.precision_connector = PrecisionConnector(self)
@@ -313,7 +340,6 @@ class Trainer(
         self.checkpoint_connector = CheckpointConnector(self)
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
-        self.accelerator_backend = None
         self.evaluation_loop = EvaluationLoop(self)
         self.train_loop = TrainLoop(self, multiple_trainloader_mode)
         self.plugin_connector = PluginConnector(self)
@@ -351,20 +377,20 @@ class Trainer(
         )
 
         # init accelerator related flags
-        self.accelerator_connector.on_trainer_init(
-            num_processes,
-            tpu_cores,
-            accelerator,
-            distributed_backend,
-            auto_select_gpus,
-            gpus,
-            num_nodes,
-            log_gpu_memory,
-            sync_batchnorm,
-            benchmark,
-            replace_sampler_ddp,
-            deterministic,
-        )
+        # self.accelerator_connector.on_trainer_init(
+        #     num_processes,
+        #     tpu_cores,
+        #     accelerator,
+        #     distributed_backend,
+        #     auto_select_gpus,
+        #     gpus,
+        #     num_nodes,
+        #     log_gpu_memory,
+        #     sync_batchnorm,
+        #     benchmark,
+        #     replace_sampler_ddp,
+        #     deterministic,
+        # )
 
         # init train loop related flags
         # TODO: remove in 1.3.0
@@ -460,17 +486,18 @@ class Trainer(
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
-        self.accelerator_backend = self.accelerator_connector.select_accelerator()
-        self.call_hook("on_before_accelerator_backend_setup", model)
-        self.accelerator_backend.setup(model)
+        # self.accelerator_backend = self.accelerator_connector.select_accelerator()
+        self.accelerator_backend.setup(self, model)
 
         # ----------------------------
         # INSPECT THESE FOR MAIN LOOPS
         # ----------------------------
         # assign training and eval functions... inspect these to see the train and eval loops :)
-        self.accelerator_backend.train_loop = self.train
-        self.accelerator_backend.validation_loop = self.run_evaluation
-        self.accelerator_backend.test_loop = self.run_evaluation
+        # self.accelerator_backend.train_loop = self.train
+        # self.accelerator_backend.validation_loop = self.run_evaluation
+        # self.accelerator_backend.test_loop = self.run_evaluation
+        self.train_loop.setup_training(model)
+        self.train()
 
         # ----------------------------
         # TRAIN

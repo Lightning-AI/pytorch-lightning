@@ -46,13 +46,13 @@ class TrainingTypePlugin(Plugin, ABC):
         self.global_rank = 0
         self.logger = logger
 
-    @abstractmethod
     @property
+    @abstractmethod
     def on_gpu(self):
         raise NotImplementedError
 
-    @abstractmethod
     @property
+    @abstractmethod
     def root_device(self):
         raise NotImplementedError
 
@@ -60,13 +60,17 @@ class TrainingTypePlugin(Plugin, ABC):
     def model_to_device(self):
         raise NotImplementedError
 
-    @abstractmethod
     @property
+    @abstractmethod
     def is_global_zero(self):
         raise NotImplementedError
 
     @abstractmethod
-    def barrier(self):
+    def barrier(self, name: Optional[str] = None):
+        raise NotImplementedError
+
+    @abstractmethod
+    def broadcast(self, obj: object, src: int = 0) -> object:
         raise NotImplementedError
 
     def set_nvidia_flags(self, is_slurm_managing_tasks, device_ids):
@@ -79,10 +83,8 @@ class TrainingTypePlugin(Plugin, ABC):
         devices = os.environ.get("CUDA_VISIBLE_DEVICES", all_gpu_ids)
         log.info(f'LOCAL_RANK: {self.trainer.local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]')
 
-
     def determine_local_rank(self):
         return int(os.environ.get('LOCAL_RANK', 0))
-        
 
     def determine_node_rank(self):
 
@@ -144,10 +146,12 @@ class SingleDevicePlugin(TrainingTypePlugin):
     def is_global_zero(self):
         return True
 
-    def barrier(self):
+    def barrier(self, *args, **kwargs):
         pass
 
-    
+    def broadcast(self, obj: object, src: int = 0) -> object:
+        return obj
+
 
 class ParallelPlugin(TrainingTypePlugin, ABC):
     def __init__(self, parallel_device_ids, logger=None, cluster_environment=None):
@@ -161,8 +165,8 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
     def reduce(self, output):
         raise NotImplementedError
 
-    @abstractmethod
     @property
+    @abstractmethod
     def root_device(self):
         raise NotImplementedError
 
@@ -205,8 +209,11 @@ class DataParallelPlugin(ParallelPlugin):
     def lightning_module(self):
         return self._model.module
 
-    def barrier(self):
+    def barrier(self, *args, **kwargs):
         pass
+
+    def broadcast(self, obj: object, src: int = 0) -> object:
+        return obj
 
 
 class DDPPlugin(ParallelPlugin):
@@ -432,9 +439,12 @@ class DDPPlugin(ParallelPlugin):
 
         return model
 
-    def barrier(self):
+    def barrier(self, *args, **kwargs):
         if torch_distrib.is_initialized():
             torch_distrib.barrier()
+
+    def broadcast(self, obj: object, src: int = 0) -> object:
+        return self.dist.broadcast(obj)
 
     def model_to_device(self):
         # TODO: Can we easily make this a property that falls back here?
