@@ -106,6 +106,30 @@ def cleanup(ctx, model):
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
+def test_pipe_plugin_ddp_rpc_manual(tmpdir, args=None):
+    model = SequentialModelRPC()
+    trainer = Trainer(
+        max_epochs=2,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        gpus=2,
+        distributed_backend="ddp",
+        plugins=[PipeRpcPlugin(balance=[2, 1])],
+        automatic_optimization=False,
+    )
+
+    trainer.fit(model)
+
+    assert len(trainer.dev_debugger.pbar_added_metrics) > 0
+
+    del model
+
+
+@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="test requires fairscale to be installed")
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
 def test_pipe_plugin_ddp_rpc_manual_amp(tmpdir, args=None):
     model = SequentialModelRPC()
     trainer = Trainer(
