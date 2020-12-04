@@ -1236,6 +1236,8 @@ class LightningModule(
             model hook don't forget to add the call to it before ``optimizer.zero_grad()`` yourself.
 
         """
+        support_closure = 'closure' in inspect.signature(optimizer.step).parameters.keys()
+
         if on_tpu and TPU_AVAILABLE:
             xm.optimizer_step(optimizer, optimizer_args={'closure': optimizer_closure, **kwargs})
 
@@ -1244,7 +1246,11 @@ class LightningModule(
                 self.trainer, optimizer, optimizer_closure)
 
         else:
-            optimizer.step(closure=optimizer_closure, *args, **kwargs)
+            if support_closure:
+                optimizer.step(closure=optimizer_closure, *args, **kwargs)
+            else:
+                optimizer_closure()
+                optimizer.step(*args, **kwargs)
 
     def optimizer_zero_grad(
         self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int

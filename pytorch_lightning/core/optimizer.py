@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 import types
 from typing import Any, Callable, Optional
 from weakref import proxy
@@ -61,6 +62,7 @@ class LightningOptimizer:
         self._optimizer = optimizer
         self._accumulate_grad_batches = accumulate_grad_batches
         self._use_accumulate_grad_batches_from_trainer = accumulate_grad_batches is None
+        self._support_closure = 'closure' in inspect.signature(optimizer.step).parameters.keys()
 
     def _on_trainer_init(self, trainer):
         self._trainer = proxy(trainer)
@@ -199,7 +201,11 @@ class LightningOptimizer:
 
             else:
                 with trainer.profiler.profile(profiler_name):
-                    optimizer.step(closure=closure, *args, **kwargs)
+                    if self._support_closure:
+                        optimizer.step(closure=closure, *args, **kwargs)
+                    else:
+                        closure()
+                        optimizer.step(*args, **kwargs)
 
             # perform zero grad
             optimizer.zero_grad()
