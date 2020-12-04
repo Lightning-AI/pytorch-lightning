@@ -47,3 +47,6 @@
 /.github/*.md                   @edenlightning @williamfalcon @borda
 /.github/ISSUE_TEMPLATE/*.md    @edenlightning @borda @tchaton
 /docs/source/conf.py            @borda @awaelchli
+
+# Testing
+/tests/base/boring_model.py @williamfalcon
