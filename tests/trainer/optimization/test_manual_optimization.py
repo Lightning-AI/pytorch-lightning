@@ -761,7 +761,7 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * 2
 
 
-@patch("torch.optim.SGD.step", autospec=True)
+@patch("torch.optim.SGD.step")
 def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
     """
     Tests that `step` works with optimizer_closure and extra arguments
@@ -811,12 +811,11 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
     )
 
     trainer.fit(model)
-    # patch(..., autospec=True) adds self
-    expected_calls = [call(ANY, closure=ANY) for s in range(2)]
+    expected_calls = [call() for s in range(2)]
     step_mock.assert_has_calls(expected_calls)
 
 
-@patch("torch.optim.Adam.step", autospec=True)
+@patch("torch.optim.Adam.step")
 @patch("torch.optim.SGD.step")
 def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, mock_adam_step, tmpdir):
     """
@@ -889,5 +888,5 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
     trainer.fit(model)
     expected_calls = [call(optim='sgd') for s in range(4)]
     mock_sgd_step.assert_has_calls(expected_calls)
-    expected_calls = [call(ANY, closure=ANY) for s in range(2)]
+    expected_calls = [call() for s in range(2)]
     mock_adam_step.assert_has_calls(expected_calls)
