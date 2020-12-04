@@ -15,7 +15,7 @@ import os
 from collections import ChainMap
 from copy import deepcopy
 from pprint import pprint
-from typing import Iterable, Union, cast
+from typing import Iterable, Union, Optional
 
 import torch
 
@@ -289,10 +289,7 @@ class LoggerConnector:
         return results
 
     def _track_callback_metrics(self, eval_results, using_eval_result):
-        if (
-                len(eval_results) > 0 and
-                (eval_results[0] is None or not isinstance(eval_results[0], Result))
-        ):
+        if len(eval_results) > 0 and (eval_results[0] is None or not isinstance(eval_results[0], Result)):
             return
 
         if using_eval_result:
@@ -388,11 +385,13 @@ class LoggerConnector:
         # inform cached logger connector epoch finished
         self.cached_results.has_batch_loop_finished = True
 
-    def log_train_epoch_end_metrics(self,
-                                    epoch_output,
-                                    checkpoint_accumulator,
-                                    early_stopping_accumulator,
-                                    num_optimizers):
+    def log_train_epoch_end_metrics(
+            self,
+            epoch_output,
+            checkpoint_accumulator,
+            early_stopping_accumulator,
+            num_optimizers,
+    ):
         # epoch output is a list. Each item in that list has all the outputs per optimizer
         # epoch_output[optimizer_idx][training_step_idx][tbptt_index]
         # remember that not using truncated backprop is equivalent with truncated back prop of len(1)
