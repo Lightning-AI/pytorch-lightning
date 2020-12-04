@@ -140,7 +140,7 @@ class ModelCheckpoint(Callback):
 
     CHECKPOINT_JOIN_CHAR = "-"
     CHECKPOINT_NAME_LAST = "last"
-    FILE_EXTENSION = "ckpt" 
+    FILE_EXTENSION = "ckpt"
 
     def __init__(
         self,
