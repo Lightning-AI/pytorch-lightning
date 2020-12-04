@@ -17,7 +17,7 @@ from typing import Callable, Optional, Sequence, Tuple
 import torch
 from torch.nn import functional as F
 
-from pytorch_lightning.metrics.functional.helpers import to_categorical, get_num_classes, reduce, class_reduce
+from pytorch_lightning.metrics.utils import to_categorical, get_num_classes, reduce, class_reduce
 from pytorch_lightning.utilities import rank_zero_warn
 
 

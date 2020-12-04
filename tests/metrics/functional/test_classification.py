@@ -12,9 +12,6 @@ from sklearn.metrics import (
 
 from pytorch_lightning import seed_everything
 from pytorch_lightning.metrics.functional.classification import (
-    to_onehot,
-    to_categorical,
-    get_num_classes,
     stat_scores,
     stat_scores_multiple_classes,
     accuracy,
@@ -27,6 +24,7 @@ from pytorch_lightning.metrics.functional.classification import (
     auc,
     iou,
 )
+from pytorch_lightning.metrics.utils import to_onehot, get_num_classes
 
 
 @pytest.mark.parametrize(['sklearn_metric', 'torch_metric', 'only_binary'], [
