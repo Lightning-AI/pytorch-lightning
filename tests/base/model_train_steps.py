@@ -146,7 +146,7 @@ class TrainingStepVariations(ABC):
         loss_val = y_hat.sum()
         result = EvalResult(checkpoint_on=loss_val, early_stop_on=loss_val)
 
-        eval_name = 'validation' if not self.trainer.testing else 'test'
+        eval_name = 'test' if self.trainer.evaluating == 'test' else 'validation'
         result.log(f'{eval_name}_step_metric', loss_val + 1, on_step=True)
 
         setattr(self, f'{eval_name}_step_called', True)
@@ -157,7 +157,7 @@ class TrainingStepVariations(ABC):
         """
         Full loop flow train step (result obj + dp)
         """
-        eval_name = 'validation' if not self.trainer.testing else 'test'
+        eval_name = 'test' if self.trainer.evaluating == 'test' else 'validation'
         reduced = getattr(result, f'{eval_name}_step_metric_step').mean()
         setattr(result, f'{eval_name}_step_metric_step', reduced)
 
@@ -178,7 +178,7 @@ class TrainingStepVariations(ABC):
         """
         Full loop flow train step (result obj + dp)
         """
-        eval_name = 'validation' if not self.trainer.testing else 'test'
+        eval_name = 'test' if self.trainer.evaluating == 'test' else 'validation'
         result.log(f'{eval_name}_epoch_end_metric', torch.tensor(1).type_as(result.checkpoint_on), on_epoch=True)
         result.checkpoint_on = result.checkpoint_on.mean()
         result.early_stop_on = result.early_stop_on.mean()
