@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Any, Dict, List, Optional
+
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -25,7 +27,9 @@ class OptimizerConnector:
         self.trainer.optimizers = []
         self.trainer.optimizer_frequencies = []
 
-    def update_learning_rates(self, interval: str, monitor_metrics: Optional[Dict[str, Any]]=None, opt_indices: List[int]=[]):
+    def update_learning_rates(
+        self, interval: str, monitor_metrics: Optional[Dict[str, Any]] = None, opt_indices: List[int] = []
+    ):
         """Update learning rates.
 
         Args:
