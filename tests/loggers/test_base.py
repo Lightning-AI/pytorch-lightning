@@ -152,6 +152,7 @@ def test_multiple_loggers_figure():
     logger1.log_figure.assert_called_once()
     logger2.log_figure.assert_called_once()
 
+
 def test_multiple_loggers_pickle(tmpdir):
     """Verify that pickling trainer with multiple loggers works."""
 

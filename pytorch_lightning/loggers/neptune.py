@@ -28,6 +28,7 @@ except ImportError:  # pragma: no-cover
 
 import torch
 from torch import is_tensor
+import matplotlib.pyplot as plt
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
@@ -242,6 +243,14 @@ class NeptuneLogger(LightningLoggerBase):
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
         for key, val in metrics.items():
             self.log_metric(key, val, step=step)
+
+    @rank_zero_only
+    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True,
+                   **kwargs) -> None:
+        self.experiment.log_image(name, figure)  # ToDo: Where to input the step?
+
+        if close:
+            plt.close(figure)
 
     @rank_zero_only
     def finalize(self, status: str) -> None:

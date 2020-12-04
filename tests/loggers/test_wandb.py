@@ -15,9 +15,13 @@ import os
 import pickle
 from unittest import mock
 
+import pytest
+import matplotlib.pyplot as plt
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from tests.base import EvalModelTemplate
+import tests.base.plotting
 
 
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
@@ -44,6 +48,22 @@ def test_wandb_logger(wandb):
 
     assert logger.name == wandb.init().project_name()
     assert logger.version == wandb.init().id
+
+
+@mock.patch('pytorch_lightning.loggers.wandb.wandb')
+@pytest.mark.parametrize("close", [True, False])
+def test_wandb_logger_log_figure(wandb, close):
+    logger = WandbLogger(anonymous=True, offline=True)
+    f = tests.base.plotting.dummy_figure()
+
+    with mock.patch('matplotlib.pyplot.close') as plt_close:
+        logger.log_figure("dummy", f, step=123, close=close)
+    logger.experiment.log.assert_called_once_with({"dummy": wandb.Image(f)}, step=123)
+
+    if close:
+        plt_close.assert_called_once_with(f)
+    else:
+        plt_close.assert_not_called()
 
 
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')

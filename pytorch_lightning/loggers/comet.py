@@ -43,6 +43,7 @@ else:
         from comet_ml.papi import API  # pragma: no-cover
 
 import torch
+import matplotlib.pyplot as plt
 from torch import is_tensor
 
 from pytorch_lightning import _logger as log
@@ -239,6 +240,14 @@ class CometLogger(LightningLoggerBase):
 
     def reset_experiment(self):
         self._experiment = None
+
+    @rank_zero_only
+    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True,
+                   **kwargs) -> None:
+        self.experiment.log_figure(figure_name=name, figure=figure, step=step, **kwargs)
+
+        if close:
+            plt.close(figure)
 
     @rank_zero_only
     def finalize(self, status: str) -> None:

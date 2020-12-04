@@ -12,12 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest.mock import patch, MagicMock
+import pytest
 
 import torch
+import matplotlib.pyplot as plt
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import NeptuneLogger
 from tests.base import EvalModelTemplate
+import tests.base.plotting
 
 
 @patch('pytorch_lightning.loggers.neptune.neptune')
@@ -84,6 +87,23 @@ def test_neptune_additional_methods(neptune):
 
     logger.append_tags(['two', 'tags'])
     created_experiment.append_tags.assert_called_once_with('two', 'tags')
+
+
+@patch('pytorch_lightning.loggers.neptune.neptune')
+@pytest.mark.parametrize("close", [True, False])
+def test_neptune_log_figure(neptune, close):
+    logger = NeptuneLogger(api_key='test', project_name='project')
+
+    created_experiment = neptune.Session.with_default_backend().get_project().create_experiment()
+
+    with patch('matplotlib.pyplot.close') as plt_close:
+        f = tests.base.plotting.dummy_figure()
+        logger.log_figure('dummy', f, step=42, close=close)
+
+    if close:
+        plt_close.assert_called_once_with(f)
+    else:
+        plt_close.assert_not_called()
 
 
 @patch('pytorch_lightning.loggers.neptune.neptune')

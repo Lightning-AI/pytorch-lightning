@@ -158,8 +158,18 @@ class LightningLoggerBase(ABC):
         """
         pass
 
-    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, **kwargs) -> None:
-        pass
+    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True, **kwargs) -> None:
+        """
+        Logs a matplotlib figure.
+
+        Args:
+            name: name of the figure
+            figure: plt figure handle
+            step: step number at which the figure should be recorded
+            close: close figure after logging
+            **kwargs: additional keyword arguments to the respective logger implementation
+        """
+        return  # silent
 
     @staticmethod
     def _convert_params(params: Union[Dict[str, Any], Namespace]) -> Dict[str, Any]:
@@ -238,6 +248,7 @@ class LightningLoggerBase(ABC):
         Args:
             params: :class:`~argparse.Namespace` containing the hyperparameters
         """
+        pass
 
     def log_graph(self, model: LightningModule, input_array=None) -> None:
         """
@@ -320,6 +331,23 @@ class LoggerCollection(LightningLoggerBase):
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         for logger in self._logger_iterable:
             logger.log_metrics(metrics, step)
+
+    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True, **kwargs) -> None:
+        
+        if len(kwargs) == 0:
+            for logger in self._logger_iterable:
+                logger.log_figure(name, figure, step=step, close=False)
+
+        else:
+            """
+            Here one should have a dictionary with specific arguments to the respective logger.
+            Example:
+                >>> kwargs = {'tb': {'walltime': 42.0}}
+            """
+            raise NotImplementedError
+
+        if close:  # don't close in the individual loggers, but once at the end
+            plt.close(figure)
 
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         for logger in self._logger_iterable:

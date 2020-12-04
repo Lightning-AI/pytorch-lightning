@@ -15,11 +15,13 @@ import os
 from unittest.mock import patch
 
 import pytest
+import matplotlib.pyplot as plt
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import CometLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+import tests.base.plotting
 
 
 def _patch_comet_atexit(monkeypatch):
@@ -201,3 +203,21 @@ def test_comet_epoch_logging(comet, comet_experiment, tmpdir, monkeypatch):
     logger = CometLogger(project_name="test", save_dir=tmpdir)
     logger.log_metrics({"test": 1, "epoch": 1}, step=123)
     logger.experiment.log_metrics.assert_called_once_with({"test": 1}, epoch=1, step=123)
+
+
+@patch("pytorch_lightning.loggers.comet.CometExperiment")
+@patch('pytorch_lightning.loggers.comet.comet_ml')
+@patch('matplotlib.pyplot.close')
+@pytest.mark.parametrize("close", [True, False])
+def test_comet_log_figure(comet, comet_experiment, tmpdir, monkeypatch, close):
+
+    _patch_comet_atexit(monkeypatch)
+    logger = CometLogger(project_name="test", save_dir=tmpdir)
+    f = tests.base.plotting.dummy_figure()
+    logger.log_figure("dummy", f, step=123, close=close)
+    logger.experiment.log_figure.assert_called_once_with(figure_name="dummy", figure=f, step=123)
+
+    if close:
+        plt.close.assert_called_once_with(f)
+    else:
+        plt.close.assert_not_called()

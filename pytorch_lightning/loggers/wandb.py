@@ -28,6 +28,7 @@ try:
 except ImportError:  # pragma: no-cover
     wandb = None
     Run = None
+import matplotlib.pyplot as plt
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only
@@ -142,6 +143,14 @@ class WandbLogger(LightningLoggerBase):
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
         self.experiment.log({'global_step': step, **metrics} if step is not None else metrics)
+
+    @rank_zero_only
+    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True,
+                   **kwargs) -> None:
+        self.experiment.log({name: wandb.Image(figure)}, step=step)
+
+        if close:
+            plt.close(figure)
 
     @property
     def save_dir(self) -> Optional[str]:
