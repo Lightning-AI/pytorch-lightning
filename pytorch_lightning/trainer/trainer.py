@@ -127,12 +127,13 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
-        plugins: Optional[list] = None,
+        plugins: Optional[Union[str, list]] = None,
         amp_backend: str = 'native',
         amp_level: str = 'O2',
         distributed_backend: Optional[str] = None,
         automatic_optimization: Optional[bool] = None,
         move_metrics_to_cpu: bool = False,
+        enable_pl_optimizer: bool = True,
     ):
         r"""
         Customize every aspect of training via flags
@@ -223,7 +224,7 @@ class Trainer(
 
             overfit_batches: Overfit a percent of training data (float) or a set number of batches (int). Default: 0.0
 
-            plugins: Plugins allow modification of core behavior like ddp and amp.
+            plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
 
             precision: Full precision (32), half precision (16). Can be used on CPU, GPU or TPUs.
 
@@ -275,8 +276,12 @@ class Trainer(
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
                 Defaults to `default_root_dir`.
 
-            move_metrics_to_cpu: Whether to force internal logged metrics to be moved to CPU.
-                This can save some GPU memory but can make training slower. Use with attention.
+            move_metrics_to_cpu: Whether to force internal logged metrics to be moved to cpu.
+                This can save some gpu memory, but can make training slower. Use with attention.
+
+            enable_pl_optimizer: If True, each optimizer will be wrapped by
+                `pytorch_lightning.core.optimizer.LightningOptimizer`. It allows Lightning to
+                handle AMP, TPU, accumulated_gradients, etc..
         """
         super().__init__()
 
@@ -322,7 +327,7 @@ class Trainer(
         self.on_init_start()
 
         # init optimizer + lr scheduler related flags
-        self.optimizer_connector.on_trainer_init()
+        self.optimizer_connector.on_trainer_init(enable_pl_optimizer)
 
         # init data flags
         self.data_connector.on_trainer_init(
@@ -394,7 +399,7 @@ class Trainer(
         )
 
         # set precision
-        self.precision_connector.on_trainer_init(precision, amp_level, amp_backend, plugins)
+        self.precision_connector.on_trainer_init(precision, amp_level, amp_backend)
 
         # last thing are the plugins which override whatever the trainer used by default
         self.plugin_connector.on_trainer_init(plugins)
@@ -500,11 +505,9 @@ class Trainer(
         # hook
         self.train_loop.on_train_start()
 
-        if self.train_loop.should_skip_training():
-            self.train_loop.on_train_end()
-            return
-
         try:
+            if self.train_loop.should_skip_training():
+                return
             # run all epochs
             for epoch in range(self.current_epoch, self.max_epochs):
 
@@ -516,9 +519,6 @@ class Trainer(
                     self.train_loop.run_training_epoch()
 
                 if self.max_steps and self.max_steps <= self.global_step:
-
-                    # hook
-                    self.train_loop.on_train_end()
                     return
 
                 # update LR schedulers
@@ -530,17 +530,12 @@ class Trainer(
 
                 if self.should_stop:
                     if met_min_epochs and met_min_steps:
-                        self.train_loop.on_train_end()
                         return
-                    else:
-                        log.info(
-                            'Trainer was signaled to stop but required minimum epochs'
-                            f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
-                            ' not been met. Training will continue...'
-                        )
-
-            # hook
-            self.train_loop.on_train_end()
+                    log.info(
+                        'Trainer was signaled to stop but required minimum epochs'
+                        f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
+                        ' not been met. Training will continue...'
+                    )
 
         except KeyboardInterrupt:
             rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
@@ -550,9 +545,9 @@ class Trainer(
                 self.interrupted = True
                 self._state = TrainerState.INTERRUPTED
                 self.on_keyboard_interrupt()
-
-                # hook
-                self.train_loop.on_train_end()
+        finally:
+            # hook
+            self.train_loop.on_train_end()
 
     def run_evaluation(self, test_mode: bool = False, max_batches=None):
 
@@ -781,7 +776,7 @@ class Trainer(
                     f'specify a path for a checkpoint .test(ckpt_path=PATH)'
                 )
                 return {}
-            if self.accelerator_backend is not None:
+            if self.accelerator_backend is not None and not self.use_tpu:
                 self.accelerator_backend.barrier()
 
             ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
@@ -903,3 +898,11 @@ class Trainer(
         if capture:
             self._cache_logged_metrics()
         return output
+
+    @staticmethod
+    def available_plugins():
+        """
+            List of all available plugins that can be string arguments to the trainer.
+            Returns: List of all available plugins that are supported as string arguments.
+        """
+        return PluginConnector.available_plugins()

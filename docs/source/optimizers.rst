@@ -36,7 +36,7 @@ to manually manage the optimization process. To do so, do the following:
 
         # use self.backward which will also handle scaling the loss when using amp
         self.manual_backward(loss_a, opt_g)
-        self.manual_optimizer_step(opt_g)
+        opt_g.step()
 
 
         # do anything you want
@@ -45,7 +45,7 @@ to manually manage the optimization process. To do so, do the following:
         # pass in any args that loss.backward() normally takes
         self.manual_backward(loss_b, opt_d, retain_graph=True)
         self.manual_backward(loss_b, opt_d)
-        self.manual_optimizer_step(opt_d)
+        opt_d.step()
 
         # log losses
         self.log('loss_a', loss_a)
