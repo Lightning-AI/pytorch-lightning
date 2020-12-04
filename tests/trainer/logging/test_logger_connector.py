@@ -15,17 +15,19 @@
 Tests to ensure that the training loop works with a dict (1.0)
 """
 import os
+from copy import deepcopy
 from unittest import mock
 
-import torch
 import pytest
-from copy import deepcopy
-from pytorch_lightning.trainer import Trainer
-from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore
-from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
+import torch
+from torch.utils.data import DataLoader
+
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.trainer import Trainer
+from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
+from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
+from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel, RandomDataset
 
@@ -68,13 +70,14 @@ def test__logger_connector__epoch_result_store__train(tmpdir):
             self.train_losses.append(loss)
 
             self.log("train_loss", loss, on_step=True, on_epoch=True)
+
             return {"loss": loss}
 
-        def on_train_epoch_end(self, outputs):
-            # save objects as it will be reset at the end of epoch.
+        def training_step_end(self, *_):
             self.train_results = deepcopy(self.trainer.logger_connector.cached_results)
 
     model = TestModel()
+    model.training_epoch_end = None
     model.val_dataloader = None
 
     trainer = Trainer(
@@ -144,11 +147,6 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
 
         @Helper.decorator_with_arguments(fx_name="training_step")
         def training_step(self, batch, batch_idx, hiddens):
-            try:
-                assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
-            except Exception as e:
-                print(e)
-
             self.test_hidden = torch.rand(1)
 
             x_tensor, y_list = batch
@@ -178,8 +176,7 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
                 sampler=None,
             )
 
-        def on_train_epoch_end(self, outputs):
-            # save objects as it will be reset at the end of epoch.
+        def training_step_end(self, *_):
             self.train_results = deepcopy(self.trainer.logger_connector.cached_results)
 
     model = TestModel()
@@ -391,3 +388,63 @@ def test_call_back_validator(tmpdir):
                                                       on_step=None,
                                                       on_epoch=None)
         assert result is None
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires two GPUs")
+def test_epoch_results_cache_dp(tmpdir):
+
+    root_device = torch.device("cuda", 0)
+
+    class TestModel(BoringModel):
+
+        def training_step(self, *args, **kwargs):
+            result = super().training_step(*args, **kwargs)
+            self.log("train_loss_epoch", result["loss"], on_step=False, on_epoch=True)
+            return result
+
+        def training_step_end(self, training_step_outputs):  # required for dp
+            loss = training_step_outputs["loss"].mean()
+            return loss
+
+        def training_epoch_end(self, outputs):
+            assert all(out["loss"].device == root_device for out in outputs)
+            assert self.trainer.callback_metrics["train_loss_epoch"].device == root_device
+
+        def validation_step(self, *args, **kwargs):
+            val_loss = torch.rand(1, device=torch.device("cuda", 1))
+            self.log("val_loss_epoch", val_loss, on_step=False, on_epoch=True)
+            return val_loss
+
+        def validation_epoch_end(self, outputs):
+            assert all(loss.device == root_device for loss in outputs)
+            assert self.trainer.callback_metrics["val_loss_epoch"].device == root_device
+
+        def test_step(self, *args, **kwargs):
+            test_loss = torch.rand(1, device=torch.device("cuda", 1))
+            self.log("test_loss_epoch", test_loss, on_step=False, on_epoch=True)
+            return test_loss
+
+        def test_epoch_end(self, outputs):
+            assert all(loss.device == root_device for loss in outputs)
+            assert self.trainer.callback_metrics["test_loss_epoch"].device == root_device
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(32, 64), batch_size=4)
+
+        def val_dataloader(self):
+            return DataLoader(RandomDataset(32, 64), batch_size=4)
+
+        def test_dataloader(self):
+            return DataLoader(RandomDataset(32, 64), batch_size=4)
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator="dp",
+        gpus=2,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
+    )
+    trainer.fit(model)
+    trainer.test(model, ckpt_path=None)
