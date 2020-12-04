@@ -524,7 +524,12 @@ class Trainer(
                 # update LR schedulers
                 self.optimizer_connector.update_learning_rates(
                     interval='epoch',
-                    opt_indices=[opt_idx for opt_idx, _ in self.train_loop.get_optimizers_iterable()],
+                    opt_indices=[
+                        opt_idx
+                        for opt_idx, _ in self.train_loop.get_optimizers_iterable(
+                            batch_idx=(self.total_batch_idx - 1)
+                        )  # Select the optimizers which were used in the last batch of the epoch
+                    ],
                 )
 
                 # early stopping
@@ -909,7 +914,9 @@ class Trainer(
     @staticmethod
     def available_plugins():
         """
-            List of all available plugins that can be string arguments to the trainer.
-            Returns: List of all available plugins that are supported as string arguments.
+        List of all available plugins that can be string arguments to the trainer.
+
+        Returns:
+            List of all available plugins that are supported as string arguments.
         """
         return PluginConnector.available_plugins()

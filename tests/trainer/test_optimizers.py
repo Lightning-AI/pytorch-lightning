@@ -353,36 +353,6 @@ def test_configure_optimizers_with_frequency(tmpdir):
     assert result
 
 
-def test_configure_optimizers_with_frequency_and_lr_schedulers(tmpdir):
-    """
-    Test that opt_idx is set for LR schedulers when corresponding frequency is set for multiple optimizers.
-    """
-
-    class DummyModel(BoringModel):
-        def configure_optimizers(self):
-            optimizer1 = optim.Adam(self.parameters(), lr=0.01)
-            optimizer2 = optim.Adam(self.parameters(), lr=0.01)
-
-            lr_dict = {
-                'scheduler': optim.lr_scheduler.OneCycleLR(optimizer2, max_lr=0.01, total_steps=1),
-                'interval': 'step',
-            }
-
-            return [
-                {'optimizer': optimizer1, 'frequency': 5},
-                {
-                    'optimizer': optimizer2,
-                    'frequency': 1,
-                    'lr_scheduler': lr_dict,
-                },
-            ]
-
-    model = DummyModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
-    _, lr_schedulers, _ = trainer.init_optimizers(model)
-    assert lr_schedulers[0]['opt_idx'] == 1
-
-
 def test_step_scheduling_for_multiple_optimizers_with_frequency(tmpdir):
     """
     Test that step LR schedulers for multiple optimizers follow
@@ -399,24 +369,32 @@ def test_step_scheduling_for_multiple_optimizers_with_frequency(tmpdir):
             optimizer1 = optim.Adam(self.parameters(), lr=0.01)
             optimizer2 = optim.Adam(self.parameters(), lr=0.01)
 
-            lr_dict = {
-                'scheduler': optim.lr_scheduler.OneCycleLR(optimizer2, max_lr=0.01, total_steps=1),
+            lr_dict_1 = {
+                'scheduler': optim.lr_scheduler.OneCycleLR(optimizer1, max_lr=0.01, total_steps=3),
+                'interval': 'step',
+            }
+            lr_dict_2 = {
+                'scheduler': optim.lr_scheduler.OneCycleLR(optimizer2, max_lr=0.01, total_steps=2),
                 'interval': 'step',
             }
 
             return [
-                {'optimizer': optimizer1, 'frequency': 5},
-                {
-                    'optimizer': optimizer2,
-                    'frequency': 1,
-                    'lr_scheduler': lr_dict,
-                },
+                {'optimizer': optimizer1, 'frequency': 3, 'lr_scheduler': lr_dict_1},
+                {'optimizer': optimizer2, 'frequency': 2, 'lr_scheduler': lr_dict_2},
             ]
 
     model = DummyStepModel()
 
     trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=1, limit_train_batches=5, max_epochs=1)
     result = trainer.fit(model)
+    assert trainer.lr_schedulers[0]['opt_idx'] == 0
+    assert trainer.lr_schedulers[1]['opt_idx'] == 1
+    assert (
+        trainer.lr_schedulers[0]['scheduler']._step_count == 4
+    )  # Step count is 1 greater than the expected value because scheduler.step() is called once during initialization.
+    assert (
+        trainer.lr_schedulers[1]['scheduler']._step_count == 3
+    )  # Step count is 1 greater than the expected value because scheduler.step() is called once during initialization.
     assert result
 
 
@@ -434,8 +412,8 @@ def test_epoch_scheduling_for_multiple_optimizers_with_frequency(tmpdir):
             return {"loss": loss}
 
         def configure_optimizers(self):
-            optimizer1 = optim.Adam(self.parameters(), lr=0.008)
-            optimizer2 = optim.Adam(self.parameters(), lr=0.008)
+            optimizer1 = optim.Adam(self.parameters(), lr=0.01)
+            optimizer2 = optim.Adam(self.parameters(), lr=0.01)
 
             lr_dict = {
                 'scheduler': optim.lr_scheduler.CosineAnnealingLR(optimizer2, 2),
@@ -443,10 +421,10 @@ def test_epoch_scheduling_for_multiple_optimizers_with_frequency(tmpdir):
             }
 
             return [
-                {'optimizer': optimizer1, 'frequency': 6},
+                {'optimizer': optimizer1, 'frequency': 5},
                 {
                     'optimizer': optimizer2,
-                    'frequency': 12,
+                    'frequency': 10,
                     'lr_scheduler': lr_dict,
                 },
             ]
@@ -456,6 +434,10 @@ def test_epoch_scheduling_for_multiple_optimizers_with_frequency(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=1, limit_train_batches=5, max_epochs=2)
     result = trainer.fit(model)
     assert result
+    assert trainer.lr_schedulers[0]['opt_idx'] == 1
+    assert (
+        trainer.lr_schedulers[0]['scheduler']._step_count == 2
+    )  # Step count is 1 greater than the expected value because scheduler.step() is called once during initialization.
     assert trainer.lr_schedulers[0]['scheduler'].get_lr()[0] > 0.0
 
 

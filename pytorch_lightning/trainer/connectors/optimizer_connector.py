@@ -40,7 +40,7 @@ class OptimizerConnector:
             return
 
         for scheduler_idx, lr_scheduler in enumerate(self.trainer.lr_schedulers):
-            if lr_scheduler['opt_idx'] and lr_scheduler['opt_idx'] not in opt_indices:
+            if isinstance(lr_scheduler['opt_idx'], int) and lr_scheduler['opt_idx'] not in opt_indices:
                 continue
 
             current_idx = self.trainer.batch_idx if interval == 'step' else self.trainer.current_epoch

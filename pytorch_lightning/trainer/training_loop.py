@@ -278,7 +278,7 @@ class TrainLoop:
                 opt_outputs = opt_outputs[0]
             epoch_output[opt_idx].append(opt_outputs)
 
-    def get_optimizers_iterable(self):
+    def get_optimizers_iterable(self, batch_idx=None):
         """
         Generates an iterable with (idx, optimizer) for each optimizer.
         """
@@ -286,9 +286,12 @@ class TrainLoop:
             # call training_step once per optimizer
             return list(enumerate(self.trainer.optimizers))
 
+        if batch_idx is None:
+            batch_idx = self.trainer.total_batch_idx
+
         optimizer_freq_cumsum = np.cumsum(self.trainer.optimizer_frequencies)
         optimizers_loop_length = optimizer_freq_cumsum[-1]
-        current_place_in_loop = self.trainer.total_batch_idx % optimizers_loop_length
+        current_place_in_loop = batch_idx % optimizers_loop_length
 
         # find optimzier index by looking for the first {item > current_place} in the cumsum list
         opt_idx = np.argmax(optimizer_freq_cumsum > current_place_in_loop)
