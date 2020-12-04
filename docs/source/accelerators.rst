@@ -180,3 +180,27 @@ TPU Accelerator
 
 .. autoclass:: pytorch_lightning.accelerators.tpu_accelerator.TPUAccelerator
     :noindex:
+
+------------
+
+*****************************
+Available ClusterEnvironments
+*****************************
+
+SLURM Environment
+=================
+
+.. autoclass:: pytorch_lightning.cluster_environments.slurm_environment.SLURMEnvironment
+    :noindex
+
+LSF Environment
+===============
+
+.. autoclass:: pytorch_lightning.cluster_environments.lsf_environment.LSFEnvironment
+    :noindex
+
+TorchElastic Environment
+========================
+
+.. autoclass:: pytorch_lightning.cluster_environments.torchelastic_environment.TorchElasticEnvironment
+    :noindex
