@@ -752,7 +752,15 @@ class TrainLoop:
 
     @contextmanager
     def block_ddp_sync_behaviour(self):
-        yield
+        """
+        Blocks ddp sync gradients behaviour on backwards pass.
+        This is useful for skipping sync when accumulating gradients, reducing communication overhead
+        Returns: context manager with sync behaviour off
+        """
+        if self.trainer.accelerator_backend is not None:
+            yield self.trainer.accelerator_backend.block_ddp_plugin_sync_behaviour()
+        else:
+            yield
 
     def _process_closure_result(
         self, batch_outputs: list, opt_idx: int

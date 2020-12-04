@@ -206,7 +206,8 @@ class LightningOptimizer:
         else:
             # make sure to call optimizer_closure when accumulating
             with trainer.profiler.profile("closure"):
-                closure()
+                with trainer.train_loop.block_ddp_sync_behaviour():
+                    closure()
 
     def __repr__(self):
         groups = [
