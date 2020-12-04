@@ -73,6 +73,10 @@ class ModelCheckpoint(Callback):
             this should be `max`, for `val_loss` this should
             be `min`, etc. In `auto` mode, the direction is
             automatically inferred from the name of the monitored quantity.
+
+            .. warning::
+               Setting ``mode='auto'`` has been deprecated in v1.1 and will be removed in v1.3.
+
         save_weights_only: if ``True``, then only the model's weights will be
             saved (``model.save_weights(filepath)``), else the full model
             is saved (``model.save(filepath)``).
@@ -313,17 +317,28 @@ class ModelCheckpoint(Callback):
         mode_dict = {
             "min": (torch_inf, "min"),
             "max": (-torch_inf, "max"),
-            "auto": (-torch_inf, "max")
-            if monitor is not None and ("acc" in monitor or monitor.startswith("fmeasure"))
-            else (torch_inf, "min"),
         }
 
-        if mode not in mode_dict:
+        # TODO: Update with MisconfigurationException when auto mode is removed in v1.3
+        if mode not in mode_dict and mode != 'auto':
             rank_zero_warn(
                 f"ModelCheckpoint mode {mode} is unknown, fallback to auto mode",
                 RuntimeWarning,
             )
             mode = "auto"
+
+        if mode == 'auto':
+            rank_zero_warn(
+                "mode='auto' is deprecated in v1.1 and will be removed in v1.3."
+                " Default value for mode with be 'min' in v1.3.",
+                DeprecationWarning
+            )
+
+            mode_dict['auto'] = (
+                (-torch_inf, "max")
+                if monitor is not None and ("acc" in monitor or monitor.startswith("fmeasure"))
+                else (torch_inf, "min")
+            )
 
         self.kth_value, self.mode = mode_dict[mode]
 
