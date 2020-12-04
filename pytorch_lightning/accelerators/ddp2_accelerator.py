@@ -79,7 +79,7 @@ class DDP2Accelerator(Accelerator):
 
         if not automatic_optimization:
             # Manually prepare for reduce as user calling backwards manually
-            self.ddp_plugin.prepare_for_backwards_reduce(self.trainer.model, closure_loss)
+            self.ddp_plugin.on_before_manual_backward(self.trainer.model, closure_loss)
 
         super().backward(
             closure_loss=closure_loss,
