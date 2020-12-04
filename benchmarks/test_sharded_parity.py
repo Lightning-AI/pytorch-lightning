@@ -7,6 +7,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning.overrides.data_parallel import _find_tensors
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
 from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE, NATIVE_AMP_AVAILABLE
@@ -148,7 +149,6 @@ def test_ddp_sharded_plugin_correctness_multi_gpu_multi_optim():
     )
 
 
-@pytest.mark.skip(reason="Currently DDP manual optimization is broken due to no reduce within training step.")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
@@ -182,7 +182,7 @@ class SeedTrainLoaderManualModel(SeedTrainLoaderModel):
         loss_1 = self.step(batch)
 
         self.manual_backward(loss_1, opt_a)
-        self.manual_optimizer_step(opt_a)
+        opt_a.step()
 
         # fake discriminator
         loss_2 = self.step(batch[0])
@@ -191,7 +191,7 @@ class SeedTrainLoaderManualModel(SeedTrainLoaderModel):
         # without retain_graph we can't do multiple backward passes
         self.manual_backward(loss_2, opt_b, retain_graph=True)
         self.manual_backward(loss_2, opt_a, retain_graph=True)
-        self.manual_optimizer_step(opt_b)
+        opt_b.step()
 
         assert self.layer.weight.grad is None or torch.all(self.layer.weight.grad == 0)
 
