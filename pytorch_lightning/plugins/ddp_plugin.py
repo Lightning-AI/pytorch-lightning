@@ -142,5 +142,8 @@ class DDPPlugin(LightningPlugin):
         """
         yield model.no_sync()
 
-    def prepare_for_backwards_reduce(self, model: LightningDistributedDataParallel, output: Any):
+    def on_before_manual_backward(self, model: LightningDistributedDataParallel, output: Any):
         model.reducer_prepare_for_backwards(output)
+
+    def on_after_manual_backward(self, model: LightningDistributedDataParallel):
+        model.reducer_reset_hooks()

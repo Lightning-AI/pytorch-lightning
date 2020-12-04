@@ -161,7 +161,7 @@ class LightningDistributedDataParallel(DistributedDataParallel):
 
     def forward(self, *inputs, **kwargs):  # pragma: no-cover
         self._sync_params()
-        self._reducer_prepared_for_backwards = False
+        self.reducer_reset_hooks()
         fx_called: str = ''
 
         if self.device_ids:
@@ -214,6 +214,9 @@ class LightningDistributedDataParallel(DistributedDataParallel):
                 self.reducer.prepare_for_backward(list(_find_tensors(output)))
             else:
                 self.reducer.prepare_for_backward([])
+
+    def reducer_reset_hooks(self):
+        self._reducer_prepared_for_backwards = False
 
 
 def warn_missing_output(fx_called):

@@ -103,6 +103,10 @@ class DDPHPCAccelerator(Accelerator):
             *args,
             **kwargs
         )
+
+        if not automatic_optimization:
+            # Manually prepare for reduce as user calling backwards manually
+            self.ddp_plugin.on_after_manual_backward(self.trainer.model)
         return closure_loss
 
     def barrier(self, name: Optional[str] = None):

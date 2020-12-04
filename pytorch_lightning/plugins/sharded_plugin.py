@@ -95,5 +95,8 @@ class DDPShardedPlugin(DDPPlugin):
             return [ShardedNativeAMPPlugin(trainer=trainer)]
         return []
 
-    def prepare_for_backwards_reduce(self, model: 'LightningShardedDataParallel', output: Any):
+    def on_before_manual_backward(self, model: 'LightningShardedDataParallel', output: Any):
+        pass
+
+    def on_after_manual_backward(self, model: 'LightningShardedDataParallel'):
         pass
