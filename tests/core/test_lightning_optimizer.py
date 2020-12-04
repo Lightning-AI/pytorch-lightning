@@ -86,8 +86,8 @@ def test_lightning_optimizer_from_user(tmpdir):
     assert trainer.optimizers[0].__repr__() == expected
 
 
-@patch("torch.optim.Adam.step")
-@patch("torch.optim.SGD.step")
+@patch("torch.optim.Adam.step", autospec=True)
+@patch("torch.optim.SGD.step", autospec=True)
 def test_lightning_optimizer_manual_optimization(mock_sgd_step, mock_adam_step, tmpdir):
     """
     Test that the user can use our LightningOptimizer. Not recommended for now.
@@ -102,13 +102,13 @@ def test_lightning_optimizer_manual_optimization(mock_sgd_step, mock_adam_step, 
             output = self.layer(batch)
             loss_1 = self.loss(batch, output)
             self.manual_backward(loss_1, opt_1)
-            opt_1.step(idx="1")
+            opt_1.step()
 
             def closure():
                 output = self.layer(batch)
                 loss_2 = self.loss(batch, output)
                 self.manual_backward(loss_2, opt_2)
-            opt_2.step(closure=closure, idx="2")
+            opt_2.step(closure=closure)
 
         def configure_optimizers(self):
             optimizer_1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -135,8 +135,8 @@ def test_lightning_optimizer_manual_optimization(mock_sgd_step, mock_adam_step, 
     assert len(mock_adam_step.mock_calls) == 8
 
 
-@patch("torch.optim.Adam.step")
-@patch("torch.optim.SGD.step")
+@patch("torch.optim.Adam.step", autospec=True)
+@patch("torch.optim.SGD.step", autospec=True)
 def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(mock_sgd_step, mock_adam_step, tmpdir):
     """
     Test that the user can use our LightningOptimizer. Not recommended.
@@ -151,13 +151,13 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(mock_
             output = self.layer(batch)
             loss_1 = self.loss(batch, output)
             self.manual_backward(loss_1, opt_1)
-            opt_1.step(idx="1")
+            opt_1.step()
 
             def closure():
                 output = self.layer(batch)
                 loss_2 = self.loss(batch, output)
                 self.manual_backward(loss_2, opt_2)
-            opt_2.step(closure=closure, idx="2")
+            opt_2.step(closure=closure)
 
         def configure_optimizers(self):
             optimizer_1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -195,7 +195,8 @@ def test_state(tmpdir):
     assert isinstance(lightning_optimizer, Optimizer)
     lightning_dict = {}
     special_attrs = ["_accumulate_grad_batches", "_optimizer", "_optimizer_idx",
-                     "_trainer", "_use_accumulate_grad_batches_from_trainer", "_lightning_step"]
+                     "_trainer", "_use_accumulate_grad_batches_from_trainer", "_lightning_step",
+                     "_support_closure"]
     for k, v in lightning_optimizer.__dict__.items():
         if k not in special_attrs:
             lightning_dict[k] = v
