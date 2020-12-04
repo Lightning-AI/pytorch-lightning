@@ -123,7 +123,7 @@ def _input_format_classification_one_hot(
 
 def to_onehot(
         tensor: torch.Tensor,
-        num_classes: int,
+        num_classes: Optional[int] = None,
 ) -> torch.Tensor:
     """
     Converts a dense label tensor to one-hot format
@@ -136,11 +136,13 @@ def to_onehot(
         A sparse label tensor with shape [N, C, d1, d2, ...]
 
     Example:
+
         >>> x = torch.tensor([1, 2, 3])
-        >>> to_onehot(x, num_classes=4)
+        >>> to_onehot(x)
         tensor([[0, 1, 0, 0],
                 [0, 0, 1, 0],
                 [0, 0, 0, 1]])
+
     """
     if num_classes is None:
         num_classes = int(tensor.max().detach().item() + 1)
