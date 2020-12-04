@@ -25,7 +25,7 @@ class OptimizerConnector:
         self.trainer.optimizers = []
         self.trainer.optimizer_frequencies = []
 
-    def update_learning_rates(self, interval: str, monitor_metrics=None, opt_indices=None):
+    def update_learning_rates(self, interval: str, monitor_metrics: Optional[Dict[str, Any]]=None, opt_indices: List[int]=[]):
         """Update learning rates.
 
         Args:
@@ -36,7 +36,7 @@ class OptimizerConnector:
             return
 
         for scheduler_idx, lr_scheduler in enumerate(self.trainer.lr_schedulers):
-            if opt_indices and lr_scheduler['opt_idx'] and lr_scheduler['opt_idx'] not in opt_indices:
+            if lr_scheduler['opt_idx'] and lr_scheduler['opt_idx'] not in opt_indices:
                 continue
 
             current_idx = self.trainer.batch_idx if interval == 'step' else self.trainer.current_epoch
