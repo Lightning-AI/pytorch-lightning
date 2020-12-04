@@ -414,7 +414,7 @@ class EpochResultStore:
 
             self.reset_model()
 
-    def update_logger_connector(self) -> None:
+    def update_logger_connector(self):
         """
         This function is called every time we capture a hook
         It automatically updates the logger_connector followings:
@@ -426,13 +426,14 @@ class EpochResultStore:
         logger_connector = self.trainer.logger_connector
 
         callback_metrics = {}
+        batch_pbar_metrics = {}
+        batch_log_metrics = {}
         is_train = self._stage in LoggerStages.TRAIN.value
 
         if not self._has_batch_loop_finished:
             # get pbar
             batch_pbar_metrics = self.get_latest_batch_pbar_metrics()
             logger_connector.add_progress_bar_metrics(batch_pbar_metrics)
-
             batch_log_metrics = self.get_latest_batch_log_metrics()
 
             if is_train:
@@ -440,7 +441,6 @@ class EpochResultStore:
                 logger_connector.logged_metrics.update(batch_log_metrics)
                 callback_metrics.update(batch_pbar_metrics)
                 callback_metrics.update(batch_log_metrics)
-
         else:
             epoch_dict = {"epoch": self.trainer.current_epoch}
 
@@ -467,9 +467,8 @@ class EpochResultStore:
         logger_connector.callback_metrics.update(callback_metrics)
         logger_connector.callback_metrics.pop("epoch", None)
 
-        if not self._has_batch_loop_finished:
-            batch_pbar_metrics.pop("debug_epoch", None)
-            return batch_pbar_metrics, batch_log_metrics
+        batch_pbar_metrics.pop("debug_epoch", None)
+        return batch_pbar_metrics, batch_log_metrics
 
     def run_batch_from_func_name(self, func_name) -> Dict:
         results = []

@@ -622,10 +622,9 @@ class LoggerConnector:
         # when metrics should be logged
         if self.should_update_logs or self.trainer.fast_dev_run:
             # logs user requested information to logger
-            metrics = batch_log_metrics
             grad_norm_dic = batch_output.grad_norm_dic
             if grad_norm_dic is None:
                 grad_norm_dic = {}
-            if len(metrics) > 0 or len(grad_norm_dic) > 0:
-                self.log_metrics(metrics, grad_norm_dic, log_train_step_metrics=True)
-                self.callback_metrics.update(metrics)
+            if len(batch_log_metrics) > 0 or len(grad_norm_dic) > 0:
+                self.log_metrics(batch_log_metrics, grad_norm_dic, log_train_step_metrics=True)
+                self.callback_metrics.update(batch_log_metrics)
