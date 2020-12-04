@@ -39,7 +39,6 @@ ARGS_DDP_AMP = ARGS_DEFAULT + """
 """
 
 
-# ToDo: fix this failing example
 @pytest.mark.parametrize('import_cli', [
     'pl_examples.basic_examples.simple_image_classifier',
     'pl_examples.basic_examples.backbone_image_classifier',
