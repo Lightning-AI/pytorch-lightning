@@ -889,7 +889,5 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
     trainer.fit(model)
     expected_calls = [call(optim='sgd') for s in range(4)]
     mock_sgd_step.assert_has_calls(expected_calls)
-
-    # ANY is added because autospec=True adds self
     expected_calls = [call(ANY, closure=ANY) for s in range(2)]
     mock_adam_step.assert_has_calls(expected_calls)
