@@ -435,7 +435,7 @@ stat_scores_multiple_classes [func]
 to_categorical [func]
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.helpers.to_categorical
+.. autofunction:: pytorch_lightning.metrics.utils.to_categorical
     :noindex:
 
 
