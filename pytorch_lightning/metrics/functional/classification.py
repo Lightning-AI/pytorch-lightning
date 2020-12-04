@@ -15,11 +15,10 @@ from functools import wraps
 from typing import Callable, Optional, Sequence, Tuple
 
 import torch
-
-from pytorch_lightning.metrics.functional.helpers import to_categorical, get_num_classes, reduce, class_reduce
 from torch.nn import functional as F
 
-from pytorch_lightning.metrics.functional.roc import multiclass_roc, roc
+from pytorch_lightning.metrics.functional.helpers import to_categorical, get_num_classes, reduce, class_reduce
+from pytorch_lightning.metrics.functional.roc import roc
 from pytorch_lightning.utilities import rank_zero_warn
 
 
@@ -541,7 +540,7 @@ def multiclass_auroc(
 
     @multiclass_auc_decorator(reorder=False)
     def _multiclass_auroc(pred, target, sample_weight, num_classes):
-        return multiclass_roc(pred, target, sample_weight, num_classes)
+        return roc(pred, target, sample_weight, num_classes)
 
     class_aurocs = _multiclass_auroc(pred=pred, target=target,
                                      sample_weight=sample_weight,

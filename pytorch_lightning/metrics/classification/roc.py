@@ -16,11 +16,11 @@ from typing import Optional, Any, Union, List, Tuple
 import torch
 
 from pytorch_lightning.metrics import Metric
-from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.metrics.functional.roc import (
     _roc_update,
     _roc_compute
 )
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 class ROC(Metric):

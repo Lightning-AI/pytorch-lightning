@@ -15,7 +15,6 @@ from typing import Optional, Sequence, Tuple, List, Union
 
 import torch
 
-from pytorch_lightning.metrics.functional.helpers import get_num_classes
 from pytorch_lightning.metrics.functional.precision_recall_curve import (
     _precision_recall_curve_update,
     _binary_clf_curve
@@ -146,49 +145,3 @@ def roc(
     preds, target, num_classes, pos_label = _roc_update(
         preds, target, num_classes, pos_label)
     return _roc_compute(preds, target, num_classes, pos_label, sample_weights)
-
-
-def multiclass_roc(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        sample_weight: Optional[Sequence] = None,
-        num_classes: Optional[int] = None,
-) -> Tuple[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
-    """
-    Computes the Receiver Operating Characteristic (ROC) for multiclass predictors.
-
-    Args:
-        pred: estimated probabilities
-        target: ground-truth labels
-        sample_weight: sample weights
-        num_classes: number of classes (default: None, computes automatically from data)
-
-    Return:
-        returns roc for each class.
-        Number of classes, false-positive rate (fpr), true-positive rate (tpr), thresholds
-
-    Example:
-
-        >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
-        ...                      [0.05, 0.85, 0.05, 0.05],
-        ...                      [0.05, 0.05, 0.85, 0.05],
-        ...                      [0.05, 0.05, 0.05, 0.85]])
-        >>> target = torch.tensor([0, 1, 3, 2])
-        >>> multiclass_roc(pred, target)   # doctest: +NORMALIZE_WHITESPACE
-        ((tensor([0., 0., 1.]), tensor([0., 1., 1.]), tensor([1.8500, 0.8500, 0.0500])),
-         (tensor([0., 0., 1.]), tensor([0., 1., 1.]), tensor([1.8500, 0.8500, 0.0500])),
-         (tensor([0.0000, 0.3333, 1.0000]), tensor([0., 0., 1.]), tensor([1.8500, 0.8500, 0.0500])),
-         (tensor([0.0000, 0.3333, 1.0000]), tensor([0., 0., 1.]), tensor([1.8500, 0.8500, 0.0500])))
-    """
-    num_classes = get_num_classes(pred, target, num_classes)
-
-    class_roc_vals = []
-    for c in range(num_classes):
-        pred_c = pred[:, c]
-
-        class_roc_vals.append(
-            roc(pred=pred_c, target=target, sample_weight=sample_weight, pos_label=c)
-        )
-
-    return tuple(class_roc_vals)
-

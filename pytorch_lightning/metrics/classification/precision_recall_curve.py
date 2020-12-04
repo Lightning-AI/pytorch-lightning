@@ -16,11 +16,11 @@ from typing import Optional, Any, Union, Tuple, List
 import torch
 
 from pytorch_lightning.metrics import Metric
-from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.metrics.functional.precision_recall_curve import (
     _precision_recall_curve_update,
     _precision_recall_curve_compute
 )
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 class PrecisionRecallCurve(Metric):
