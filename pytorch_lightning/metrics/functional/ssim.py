@@ -14,7 +14,7 @@
 from typing import Optional, Sequence, Tuple
 
 import torch
-from pytorch_lightning.metrics.functional.reduction import reduce
+from pytorch_lightning.metrics.functional.helpers import reduce
 from pytorch_lightning.metrics.utils import _check_same_shape
 from torch.nn import functional as F
 

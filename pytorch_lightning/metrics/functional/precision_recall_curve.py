@@ -202,18 +202,18 @@ def precision_recall_curve(
 
     Example (multiclass case):
 
-        >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
-        ...                      [0.05, 0.85, 0.05, 0.05],
-        ...                      [0.05, 0.05, 0.85, 0.05],
-        ...                      [0.05, 0.05, 0.05, 0.85]])
+        >>> pred = torch.tensor([[0.75, 0.05, 0.05, 0.05, 0.05],
+        ...                      [0.05, 0.75, 0.05, 0.05, 0.05],
+        ...                      [0.05, 0.05, 0.75, 0.05, 0.05],
+        ...                      [0.05, 0.05, 0.05, 0.75, 0.05]])
         >>> target = torch.tensor([0, 1, 3, 2])
-        >>> precision, recall, thresholds = precision_recall_curve(pred, target, num_classes=4)
+        >>> precision, recall, thresholds = precision_recall_curve(pred, target, num_classes=5)
         >>> precision
-        [tensor([1., 1.]), tensor([1., 1.]), tensor([0.2500, 0.0000, 1.0000]), tensor([0.2500, 0.0000, 1.0000])]
+        [tensor([1., 1.]), tensor([1., 1.]), tensor([0.2500, 0.0000, 1.0000]), tensor([0.2500, 0.0000, 1.0000]), tensor([0., 1.])]
         >>> recall
-        [tensor([1., 0.]), tensor([1., 0.]), tensor([1., 0., 0.]), tensor([1., 0., 0.])]
-        >>> thresholds   # doctest: +NORMALIZE_WHITESPACE
-        [tensor([0.8500]), tensor([0.8500]), tensor([0.0500, 0.8500]), tensor([0.0500, 0.8500])]
+        [tensor([1., 0.]), tensor([1., 0.]), tensor([1., 0., 0.]), tensor([1., 0., 0.]), tensor([nan, 0.])]
+        >>> thresholds
+        [tensor([0.7500]), tensor([0.7500]), tensor([0.0500, 0.7500]), tensor([0.0500, 0.7500]), tensor([0.0500])]
 
     """
     preds, target, num_classes, pos_label = _precision_recall_curve_update(preds, target,

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pytorch_lightning.metrics.functional.helpers import to_categorical, to_onehot
 from pytorch_lightning.metrics.functional.classification import (
     accuracy,
     auc,
@@ -22,14 +23,10 @@ from pytorch_lightning.metrics.functional.classification import (
     recall,
     stat_scores,
     stat_scores_multiple_classes,
-    to_categorical,
-    to_onehot,
     iou,
 )
 from pytorch_lightning.metrics.functional.nlp import bleu_score
-from pytorch_lightning.metrics.functional.self_supervised import (
-    embedding_similarity
-)
+from pytorch_lightning.metrics.functional.self_supervised import embedding_similarity
 # TODO: unify metrics between class and functional, add below
 from pytorch_lightning.metrics.functional.explained_variance import explained_variance
 from pytorch_lightning.metrics.functional.mean_absolute_error import mean_absolute_error

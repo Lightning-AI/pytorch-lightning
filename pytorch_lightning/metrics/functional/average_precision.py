@@ -81,15 +81,15 @@ def average_precision(
 
     Example (multiclass case):
 
-        >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
-        ...                      [0.05, 0.85, 0.05, 0.05],
-        ...                      [0.05, 0.05, 0.85, 0.05],
-        ...                      [0.05, 0.05, 0.05, 0.85]])
+        >>> pred = torch.tensor([[0.75, 0.05, 0.05, 0.05, 0.05],
+        ...                      [0.05, 0.75, 0.05, 0.05, 0.05],
+        ...                      [0.05, 0.05, 0.75, 0.05, 0.05],
+        ...                      [0.05, 0.05, 0.05, 0.75, 0.05]])
         >>> target = torch.tensor([0, 1, 3, 2])
-        >>> average_precision(pred, target, num_classes=4)
-        [tensor(1.), tensor(1.), tensor(0.2500), tensor(0.2500)]
+        >>> average_precision(pred, target, num_classes=5)
+        [tensor(1.), tensor(1.), tensor(0.2500), tensor(0.2500), tensor(nan)]
 
     """
-    preds, target, num_classes, pos_label = _average_precision_update(preds, target,
-                                                                      num_classes, pos_label)
+    preds, target, num_classes, pos_label = _average_precision_update(
+        preds, target, num_classes, pos_label)
     return _average_precision_compute(preds, target, num_classes, pos_label, sample_weights)

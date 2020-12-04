@@ -11,7 +11,98 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from typing import Optional
+
 import torch
+
+from pytorch_lightning.utilities import rank_zero_warn
+
+
+def to_onehot(
+        tensor: torch.Tensor,
+        num_classes: Optional[int] = None,
+) -> torch.Tensor:
+    """
+    Converts a dense label tensor to one-hot format
+
+    Args:
+        tensor: dense label tensor, with shape [N, d1, d2, ...]
+        num_classes: number of classes C
+
+    Output:
+        A sparse label tensor with shape [N, C, d1, d2, ...]
+
+    Example:
+
+        >>> x = torch.tensor([1, 2, 3])
+        >>> to_onehot(x)
+        tensor([[0, 1, 0, 0],
+                [0, 0, 1, 0],
+                [0, 0, 0, 1]])
+
+    """
+    if num_classes is None:
+        num_classes = int(tensor.max().detach().item() + 1)
+    dtype, device, shape = tensor.dtype, tensor.device, tensor.shape
+    tensor_onehot = torch.zeros(shape[0], num_classes, *shape[1:],
+                                dtype=dtype, device=device)
+    index = tensor.long().unsqueeze(1).expand_as(tensor_onehot)
+    return tensor_onehot.scatter_(1, index, 1.0)
+
+
+def to_categorical(
+        tensor: torch.Tensor,
+        argmax_dim: int = 1
+) -> torch.Tensor:
+    """
+    Converts a tensor of probabilities to a dense label tensor
+
+    Args:
+        tensor: probabilities to get the categorical label [N, d1, d2, ...]
+        argmax_dim: dimension to apply
+
+    Return:
+        A tensor with categorical labels [N, d2, ...]
+
+    Example:
+
+        >>> x = torch.tensor([[0.2, 0.5], [0.9, 0.1]])
+        >>> to_categorical(x)
+        tensor([1, 0])
+
+    """
+    return torch.argmax(tensor, dim=argmax_dim)
+
+
+def get_num_classes(
+        pred: torch.Tensor,
+        target: torch.Tensor,
+        num_classes: Optional[int] = None,
+) -> int:
+    """
+    Calculates the number of classes for a given prediction and target tensor.
+
+    Args:
+        pred: predicted values
+        target: true labels
+        num_classes: number of classes if known
+
+    Return:
+        An integer that represents the number of classes.
+    """
+    num_target_classes = int(target.max().detach().item() + 1)
+    num_pred_classes = int(pred.max().detach().item() + 1)
+    num_all_classes = max(num_target_classes, num_pred_classes)
+
+    if num_classes is None:
+        num_classes = num_all_classes
+    elif num_classes != num_all_classes:
+        rank_zero_warn(f'You have set {num_classes} number of classes which is'
+                       f' different from predicted ({num_pred_classes}) and'
+                       f' target ({num_target_classes}) number of classes',
+                       RuntimeWarning)
+    return num_classes
 
 
 def reduce(to_reduce: torch.Tensor, reduction: str) -> torch.Tensor:

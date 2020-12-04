@@ -66,10 +66,10 @@ class ROC(Metric):
 
     Example (multiclass case):
 
-        >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
-        ...                      [0.05, 0.85, 0.05, 0.05],
-        ...                      [0.05, 0.05, 0.85, 0.05],
-        ...                      [0.05, 0.05, 0.05, 0.85]])
+        >>> pred = torch.tensor([[0.75, 0.05, 0.05, 0.05],
+        ...                      [0.05, 0.75, 0.05, 0.05],
+        ...                      [0.05, 0.05, 0.75, 0.05],
+        ...                      [0.05, 0.05, 0.05, 0.75]])
         >>> target = torch.tensor([0, 1, 3, 2])
         >>> roc = ROC(num_classes=4)
         >>> fpr, tpr, thresholds = roc(pred, target)
@@ -78,8 +78,10 @@ class ROC(Metric):
         >>> tpr
         [tensor([0., 1., 1.]), tensor([0., 1., 1.]), tensor([0., 0., 1.]), tensor([0., 0., 1.])]
         >>> thresholds # doctest: +NORMALIZE_WHITESPACE
-        [tensor([1.8500, 0.8500, 0.0500]), tensor([1.8500, 0.8500, 0.0500]),
-         tensor([1.8500, 0.8500, 0.0500]), tensor([1.8500, 0.8500, 0.0500])]
+        [tensor([1.7500, 0.7500, 0.0500]),
+         tensor([1.7500, 0.7500, 0.0500]),
+         tensor([1.7500, 0.7500, 0.0500]),
+         tensor([1.7500, 0.7500, 0.0500])]
 
     """
     def __init__(
