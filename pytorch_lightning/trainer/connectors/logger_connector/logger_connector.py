@@ -541,7 +541,7 @@ class LoggerConnector:
 
         return epoch_log_metrics, epoch_progress_bar_metrics, epoch_callback_metrics
 
-    def __auto_reduce_results_on_epoch_end(self, epoch_output, device: Optional[Union[str, torch.device]] = None):
+    def __auto_reduce_results_on_epoch_end(self, epoch_output):
         epoch_log_metrics = {}
         epoch_progress_bar_metrics = {}
         for opt_outputs in epoch_output:
@@ -556,7 +556,7 @@ class LoggerConnector:
                 continue
 
             # reduce across training steps
-            opt_outputs = time_reduced_outputs[0].__class__.reduce_on_epoch_end(time_reduced_outputs, device=device)
+            opt_outputs = time_reduced_outputs[0].__class__.reduce_on_epoch_end(time_reduced_outputs)
 
             # with manual opt need 1 + metrics because meta is always there
             if opt_outputs.minimize is not None:
