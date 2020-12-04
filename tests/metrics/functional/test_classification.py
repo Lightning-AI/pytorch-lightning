@@ -24,7 +24,7 @@ from pytorch_lightning.metrics.functional.classification import (
     auc,
     iou,
 )
-from pytorch_lightning.metrics.utils import to_onehot, get_num_classes
+from pytorch_lightning.metrics.utils import to_onehot, get_num_classes, to_categorical
 
 
 @pytest.mark.parametrize(['sklearn_metric', 'torch_metric', 'only_binary'], [
