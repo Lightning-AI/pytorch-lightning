@@ -14,6 +14,7 @@ Lightning automates saving and loading checkpoints. Checkpoints capture the exac
 
 Checkpointing your training allows you to resume a training process in case it was interrupted, fine-tune a model or use a pre-trained model for inference without having to retrain the model.
 
+
 *****************
 Checkpoint saving
 *****************
@@ -68,7 +69,7 @@ You can customize the checkpointing behavior to monitor any quantity of your tra
     # 4. Add your callback to the callbacks list
     trainer = Trainer(callbacks=[checkpoint_callback])
 
-You can also control more advanced options, like `save_top_k`, to save the best k models and the mode of the monitored quantity (min/max/auto, where the mode is automatically inferred from the name of the monitored quantity), `save_weights_only` or `period` to set the interval of epochs between checkpoints, to avoid slowdowns.
+You can also control more advanced options, like `save_top_k`, to save the best k models and the `mode` of the monitored quantity (min/max), `save_weights_only` or `period` to set the interval of epochs between checkpoints, to avoid slowdowns.
 
 .. code-block:: python
 
@@ -84,10 +85,11 @@ You can also control more advanced options, like `save_top_k`, to save the best 
     # saves a file like: my/path/sample-mnist-epoch=02-val_loss=0.32.ckpt
     checkpoint_callback = ModelCheckpoint(
         monitor='val_loss',
-        dirpath='my/path/,
+        dirpath='my/path/',
         filename='sample-mnist-{epoch:02d}-{val_loss:.2f}',
         save_top_k=3,
-        mode='min')
+        mode='min',
+    )
 
     trainer = Trainer(callbacks=[checkpoint_callback])
     
@@ -136,6 +138,23 @@ You can manually save checkpoints and restore your model from the checkpointed s
     trainer.fit(model)
     trainer.save_checkpoint("example.ckpt")
     new_model = MyModel.load_from_checkpoint(checkpoint_path="example.ckpt")
+
+Manual saving with accelerators
+===============================
+
+Lightning also handles accelerators where multiple processes are running, such as DDP. For example, when using the DDP accelerator our training script is running across multiple devices at the same time.
+Lightning automatically ensures that the model is saved only on the main process, whilst other processes do not interfere with saving checkpoints. This requires no code changes as seen below.
+
+.. code-block:: python
+
+    trainer = Trainer(accelerator="ddp")
+    model = MyLightningModule(hparams)
+    trainer.fit(model)
+    # Saves only on the main process
+    trainer.save_checkpoint("example.ckpt")
+
+Not using `trainer.save_checkpoint` can lead to unexpected behaviour and potential deadlock. Using other saving functions will result in all devices attempting to save the checkpoint. As a result, we highly recommend using the trainer's save functionality.
+If using custom saving functions cannot be avoided, we recommend using :func:`~pytorch_lightning.loggers.base.rank_zero_only` to ensure saving occurs only on the main process.
 
 ******************
 Checkpoint loading
