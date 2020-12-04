@@ -204,6 +204,8 @@ def test_state(tmpdir):
     assert optimizer.state == lightning_optimizer.state
 
 
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not BOLT_AVAILABLE, reason="Bolt is required for this test")
 def test_lightning_optimizer_state(tmpdir):
     class CheckpointEveryNSteps(pl.Callback):
         """
@@ -271,7 +273,7 @@ def test_lightning_optimizer_state(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=10,
         weights_summary=None,
-        accelerator='ddp',
+        accelerator='ddp_spawn',
         log_every_n_steps=1,
         gpus=1,
         checkpoint_callback=checkpoint_callback,
