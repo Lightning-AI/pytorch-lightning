@@ -200,9 +200,6 @@ class LightningOptimizer:
             else:
                 with trainer.profiler.profile(profiler_name):
                     optimizer.step(closure=closure, *args, **kwargs)
-
-            # perform zero grad
-            optimizer.zero_grad()
         else:
             # make sure to call optimizer_closure when accumulating
             with trainer.profiler.profile("closure"):
