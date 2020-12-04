@@ -142,6 +142,5 @@ def roc(
          tensor([1.7500, 0.7500, 0.0500])]
 
     """
-    preds, target, num_classes, pos_label = _roc_update(
-        preds, target, num_classes, pos_label)
+    preds, target, num_classes, pos_label = _roc_update(preds, target, num_classes, pos_label)
     return _roc_compute(preds, target, num_classes, pos_label, sample_weights)
