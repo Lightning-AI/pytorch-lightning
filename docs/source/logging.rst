@@ -60,7 +60,8 @@ Lightning offers automatic log functionalities for logging scalars, or manual lo
 Automatic Logging
 =================
 Use the :func:`~~pytorch_lightning.core.lightning.LightningModule.log`
-method to log from anywhere in a :ref:`lightning_module` and :ref:`callbacks` except functions with `batch_start` inside.
+method to log from anywhere in a :ref:`lightning_module` and :ref:`callbacks`
+except functions with `batch_start` in their names.
 
 .. code-block:: python
 
@@ -94,6 +95,7 @@ The :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method has a 
     -   Setting both ``on_step=True`` and ``on_epoch=True`` will create two keys per metric you log with
         suffix ``_step`` and ``_epoch``, respectively. You can refer to these keys e.g. in the `monitor`
         argument of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` or in the graphs plotted to the logger of your choice.
+
 
 If your work requires to log in an unsupported function, please open an issue with a clear description of why it is blocking you.
 
