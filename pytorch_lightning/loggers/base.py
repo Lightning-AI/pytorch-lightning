@@ -344,7 +344,7 @@ class LoggerCollection(LightningLoggerBase):
             Example:
                 >>> kwargs = {'tb': {'walltime': 42.0}}
             """
-            raise NotImplementedError
+            raise NotImplementedError("Supplying keyword arguments for multiple loggers not yet supported.")
 
         if close:  # don't close in the individual loggers, but once at the end
             plt.close(figure)
