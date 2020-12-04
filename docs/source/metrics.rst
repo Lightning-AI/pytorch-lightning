@@ -446,13 +446,6 @@ to_onehot [func]
     :noindex:
 
 
-to_categorical [func]
-~~~~~~~~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.metrics.utils.to_categorical
-    :noindex:
-
-
 Regression
 ----------
 
