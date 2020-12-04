@@ -256,7 +256,6 @@ class TrainLoop:
         self.trainer.call_hook('on_batch_end')
         self.trainer.call_hook('on_train_batch_end', epoch_end_outputs, batch, batch_idx, dataloader_idx)
 
-        # figure out what to track for epoch end
         self.track_epoch_end_reduce_metrics(epoch_output, epoch_end_outputs)
 
         # reset batch logger internals
@@ -320,13 +319,7 @@ class TrainLoop:
         with self.trainer.profiler.profile("model_forward"):
             args = self.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
 
-            # manually capture logged metrics
-            model_ref._results = Result()
-            model_ref._current_fx_name = 'training_step'
-            model_ref._results = Result()
             training_step_output = self.trainer.accelerator_backend.training_step(args)
-            self.trainer.logger_connector.cache_logged_metrics()
-
             self._check_training_step_output(training_step_output)
 
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
@@ -825,8 +818,8 @@ class TrainLoop:
         # inform logger the batch loop has finished
         self.trainer.logger_connector.on_train_epoch_end()
 
-        self.trainer.call_hook('on_epoch_end', capture=True)
-        self.trainer.call_hook('on_train_epoch_end', epoch_output, capture=True)
+        self.trainer.call_hook('on_epoch_end')
+        self.trainer.call_hook('on_train_epoch_end', epoch_output)
 
     def increment_accumulated_grad_global_step(self):
         num_accumulated_batches_reached = self._accumulated_batches_reached()

@@ -106,9 +106,9 @@ class EvaluationLoop(object):
 
     def on_evaluation_end(self, *args, **kwargs):
         if self.testing:
-            self.trainer.call_hook('on_test_end', *args, capture=True, **kwargs)
+            self.trainer.call_hook('on_test_end', *args, **kwargs)
         else:
-            self.trainer.call_hook('on_validation_end', *args, capture=True, **kwargs)
+            self.trainer.call_hook('on_validation_end', *args, **kwargs)
 
     def reload_evaluation_dataloaders(self):
         model = self.trainer.get_model()
@@ -167,18 +167,12 @@ class EvaluationLoop(object):
         # configure args
         args = self.build_args(test_mode, batch, batch_idx, dataloader_idx)
 
-        model_ref = self.trainer.get_model()
-        model_ref._results = Result()
         # run actual test step
         if self.testing:
-            model_ref._current_fx_name = "test_step"
             output = self.trainer.accelerator_backend.test_step(args)
         else:
-            model_ref._current_fx_name = "validation_step"
             output = self.trainer.accelerator_backend.validation_step(args)
 
-        # capture any logged information
-        self.trainer.logger_connector.cache_logged_metrics()
         # track batch size for weighted average
         is_result_obj = isinstance(output, Result)
         if is_result_obj:
@@ -329,9 +323,9 @@ class EvaluationLoop(object):
     def on_evaluation_epoch_end(self, *args, **kwargs):
         # call the callback hook
         if self.testing:
-            self.trainer.call_hook('on_test_epoch_end', *args, capture=True, **kwargs)
+            self.trainer.call_hook('on_test_epoch_end', *args, **kwargs)
         else:
-            self.trainer.call_hook('on_validation_epoch_end', *args, capture=True, **kwargs)
+            self.trainer.call_hook('on_validation_epoch_end', *args, **kwargs)
 
     def log_evaluation_step_metrics(self, output, batch_idx):
         if self.trainer.running_sanity_check:

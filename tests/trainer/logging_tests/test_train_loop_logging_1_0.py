@@ -558,7 +558,6 @@ def test_log_works_in_train_callback(tmpdir):
                         "prog_bar": prog_bar,
                         "forked": False,
                         "func_name": func_name}
-        """
         def on_train_start(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_train_start', 1, on_steps=self.choices,
                               on_epochs=self.choices, prob_bars=self.choices)
@@ -592,7 +591,6 @@ def test_log_works_in_train_callback(tmpdir):
             # with func = np.mean if on_epoch else func = np.max
             self.count += 1
 
-        """
         def on_epoch_end(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_epoch_end', 8, on_steps=[False],
                               on_epochs=self.choices, prob_bars=self.choices)
@@ -629,7 +627,6 @@ def test_log_works_in_train_callback(tmpdir):
     )
     trainer.fit(model)
 
-    """
     assert test_callback.funcs_called_count["on_train_start"] == 1
     assert test_callback.funcs_called_count["on_epoch_start"] == 2
     assert test_callback.funcs_called_count["on_train_epoch_start"] == 2
@@ -638,8 +635,6 @@ def test_log_works_in_train_callback(tmpdir):
     assert test_callback.funcs_called_count["on_batch_end"] == 4
     assert test_callback.funcs_called_count["on_epoch_end"] == 2
     assert test_callback.funcs_called_count["on_train_batch_end"] == 4
-
-    """
     assert test_callback.funcs_called_count["on_epoch_end"] == 2
     assert test_callback.funcs_called_count["on_train_epoch_end"] == 2
 
@@ -664,9 +659,10 @@ def test_log_works_in_train_callback(tmpdir):
 
     # Make sure the func_name output equals the average from all logged values when on_epoch true
     # pop extra keys
+    _mean = torch.stack(model.manual_loss[-limit_train_batches:]).mean()
     trainer.callback_metrics.pop("debug_epoch")
-    assert trainer.logged_metrics["train_loss"] == model.manual_loss[-1]
-    assert trainer.callback_metrics["train_loss"] == model.manual_loss[-1]
+    assert trainer.logged_metrics["train_loss"] == _mean
+    assert trainer.callback_metrics["train_loss"] == _mean
     trainer.callback_metrics.pop("train_loss")
 
     for func_name, output_value in trainer.callback_metrics.items():
@@ -680,7 +676,7 @@ def test_log_works_in_train_callback(tmpdir):
 
         # compute expected output and compare to actual one
         expected_output = get_expected_output(func_attr, original_values)
-        assert float(output_value) == float(expected_output)
+        assert float(output_value) == float(expected_output), func_attr
 
     for func_name, func_attr in test_callback.funcs_attr.items():
         if func_attr["prog_bar"] and (func_attr["on_step"] or func_attr["on_epoch"]) and not func_attr["forked"]:

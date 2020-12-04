@@ -105,9 +105,12 @@ class HookResultStore:
         return len(_inter)
 
     def check_dataloader_idx(self, result: Result) -> bool:
-        random_key = [*result.keys()][-1]
-        add_dataloader_idx = result["meta"][random_key]["dataloader_idx"] is not None
-        return add_dataloader_idx
+        try:
+            random_key = [k for k in result.keys() if k not in ['meta', 'extra', 'hiddens']][0]
+            add_dataloader_idx = result["meta"][random_key]["dataloader_idx"] is not None
+            return add_dataloader_idx
+        except:
+            breakpoint()
 
     def get_lastest_from_func_name(self, latest_result, func_name: str, *args, **kwargs) -> Dict:
         results = {}
@@ -500,11 +503,9 @@ class EpochResultStore:
     def has_batch_loop_finished(self, has_batch_loop_finished):
         if has_batch_loop_finished:
             # If batch loop has finished, reduce metrics
+            print(self._stage, "HERE")
             self.auto_reduce_results_on_epoch_end()
-
-            # batch_size should be none as we finished batch loop
-            self._batch_size = None
-
+            self.reset_batch_info()
         self._has_batch_loop_finished = has_batch_loop_finished
         self.update_logger_connector()
 
@@ -525,6 +526,12 @@ class EpochResultStore:
 
     def get_forked_metrics(self) -> Dict:
         return self.run_epoch_by_func_name("get_forked_metrics")
+
+    def reset_batch_info(self):
+        # reset information
+        self._split_idx = None
+        self._opt_idx = None
+        self._batch_size = None
 
     def reset(self):
         self._internals = {}

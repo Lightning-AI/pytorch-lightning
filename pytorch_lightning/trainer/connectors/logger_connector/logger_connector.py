@@ -62,21 +62,30 @@ class LoggerConnector:
                                                                  on_epoch=on_epoch)
 
     def on_evaluation_batch_start(self, testing, batch, dataloader_idx, num_dataloaders):
+        # inform trainer we are currently in batch loop
+        self.trainer.is_in_batch_loop = True
         model = self.trainer.get_model()
+        # reset logging
+        model._results = Result()
+        model._current_fx_name = "evaluation_batch"
         # set dataloader_idx only if multiple ones
         model._current_dataloader_idx = dataloader_idx if num_dataloaders > 1 else None
         # track batch_size
         self.cached_results._batch_size = Result.extract_batch_size(batch)
 
     def on_train_split_start(self, split_idx: int, opt_idx: int, split_batch) -> None:
+        # reset Result object
+        model = self.trainer.get_model()
+        model._results = Result()
+        model._current_fx_name = "training_batch"
+        self.trainer.is_in_batch_loop = True
         self.cached_results._split_idx = split_idx
         self.cached_results._opt_idx = opt_idx
         self.cached_results._batch_size = Result.extract_batch_size(split_batch)
 
     def on_train_batch_end(self) -> None:
-        self.cached_results._split_idx = None
-        self.cached_results._opt_idx = None
-        self.cached_results._batch_size = None
+        # cache metrics
+        self.cache_logged_metrics()
 
     def _determine_stage(self, stage_or_testing: Union[str, bool]) -> str:
         stage_or_testing = str(stage_or_testing)
@@ -105,6 +114,7 @@ class LoggerConnector:
         self.trainer.log_every_n_steps = log_every_n_steps
         self.trainer.move_metrics_to_cpu = move_metrics_to_cpu
         self.trainer.split_idx = None
+        self.trainer.is_in_batch_loop = False
 
     @property
     def should_flush_logs(self):
@@ -240,9 +250,9 @@ class LoggerConnector:
 
     def evaluation_epoch_end(self, testing):
         # reset dataloader idx
+        self.trainer.is_in_batch_loop = False
         model_ref = self.trainer.get_model()
         model_ref._current_dataloader_idx = None
-
         # setting `has_batch_loop_finished` to True
         # will perform Results reduction accross entire epoch.
         self.cached_results.has_batch_loop_finished = True
@@ -386,6 +396,7 @@ class LoggerConnector:
 
     def on_train_epoch_end(self):
         # inform cached logger connector epoch finished
+        self.trainer.is_in_batch_loop = False
         self.cached_results.has_batch_loop_finished = True
 
     def log_train_epoch_end_metrics(self,
@@ -479,20 +490,19 @@ class LoggerConnector:
 
         # run training_epoch_end
         # refresh the result for custom logging at the epoch level
-        model._current_fx_name = 'training_epoch_end'
         epoch_output = self.__prepare_epoch_end_inputs(epoch_output)
 
         if num_optimizers == 1 or not self.trainer.train_loop.automatic_optimization:
             epoch_output = epoch_output[0]
 
         # lightningmodule hook
+        model._current_fx_name = 'training_epoch_end'
         epoch_output = model.training_epoch_end(epoch_output)
+        self.trainer.logger_connector.cache_logged_metrics()
 
         if epoch_output is not None:
             raise MisconfigurationException('training_epoch_end expects a return of None. '
                                             'HINT: remove the return statement in training_epoch_end')
-        # capture logging
-        self.trainer.logger_connector.cache_logged_metrics()
 
     def __run_legacy_training_epoch_end(
             self,

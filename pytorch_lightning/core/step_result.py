@@ -15,15 +15,15 @@
 """[Train, Eval]Result for easier logging, checkpointing, early stopping, epoch-wise reduction."""
 
 import numbers
+import os
 from copy import copy
-from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any, List, Tuple, Iterable
+from typing import Any, Callable, Dict, Iterable, List, MutableMapping, Optional, Sequence, Tuple, Union
 
 import torch
 from torch import Tensor
-import os
 
-from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 from pytorch_lightning.metrics import Metric
+from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 
 
 class Result(Dict):
@@ -548,24 +548,35 @@ class Result(Dict):
         result = recursive_gather(time_outputs, result)
         recursive_stack(result)
 
+        tbptt_reduce_fx = torch.mean
+
         for k, value in result.items():
-            if k in ['meta', 'extra'] or isinstance(value, Metric):
+            if k in ['meta', 'extra', 'hiddens'] or isinstance(value, Metric):
                 continue
+
+            if k == "train_loss":
+                print(k, value)
+                pass
+
+            if isinstance(value, list):
+                if len(value) == 1:
+                    result[k] = torch.tensor(value[0]).float()
+                    continue
+                else:
+                    value = torch.stack(value).float()
 
             # pick the reduce fx
             if k in ['checkpoint_on', 'early_stop_on', 'minimize']:
-                tbptt_reduce_fx = torch.mean
+                meta_tbptt_reduce_fx = tbptt_reduce_fx
             else:
-                tbptt_reduce_fx = meta[k]['tbptt_reduce_fx']
-
-            if isinstance(value, list):
-                value = torch.tensor(value)
+                meta_tbptt_reduce_fx = meta[k]['tbptt_reduce_fx']
+                meta_tbptt_reduce_fx = tbptt_reduce_fx if meta_tbptt_reduce_fx is None else meta_tbptt_reduce_fx
 
             if isinstance(value, dict):
                 # TODO: recursive reduce:
-                _recursive_fx_apply(value, tbptt_reduce_fx)
+                _recursive_fx_apply(value, meta_tbptt_reduce_fx)
             else:
-                result[k] = tbptt_reduce_fx(value.float())
+                result[k] = meta_tbptt_reduce_fx(value.float())
 
         result['meta'] = meta
         return result
