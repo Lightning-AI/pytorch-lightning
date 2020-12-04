@@ -70,7 +70,7 @@ def reload_sequential(num_gpus_per_model):
         for name, child in p_seq.named_children():
             seq.add_module(name, child)
     # delete tmp files
-    [os.remove(f"seq_{rank}.pt") for rank in range(num_gpus_per_model)]
+    _ = [os.remove(f"seq_{rank}.pt") for rank in range(num_gpus_per_model)]
     return seq
 
 
@@ -305,5 +305,4 @@ class PipeRpcPlugin(RPCPlugin):
             optimizer.step(closure=closure, *args, **kwargs)
             self._optimizer_step(opt_idx, *args, **kwargs)
             return True
-        else:
-            return False
+        return False

@@ -81,6 +81,39 @@ class LightningOptimizer:
         is_final_batch = self._trainer.train_loop._num_training_batches_reached()
         return not (accumulation_done or is_final_batch)
 
+    def _optimizer_step(self, closure, profiler_name, *args, **kwargs):
+        trainer = self._trainer
+        model = trainer.get_model()
+        optimizer = self._optimizer
+        if self._optimizer_idx is None:
+            for opt_idx, opt in enumerate(trainer.optimizers):
+                if self == opt:
+                    self._optimizer_idx = opt_idx
+                    break
+
+        accelerator_backend = trainer.accelerator_backend
+        ddp_plugin = accelerator_backend.ddp_plugin if accelerator_backend is not None else None
+        if ddp_plugin is not None and isinstance(ddp_plugin, RPCPlugin):
+            should_return = ddp_plugin.optimizer_step(trainer.is_master, self, closure, *args, **kwargs)
+            if should_return:
+                return
+
+        if trainer.on_tpu:
+            with trainer.profiler.profile(profiler_name):
+                xm.optimizer_step(optimizer, optimizer_args={'closure': closure, **kwargs})
+
+        elif trainer.amp_backend is not None:
+            with trainer.profiler.profile(profiler_name):
+                trainer.precision_connector.backend.optimizer_step(
+                    trainer, optimizer, closure)
+
+        else:
+            with trainer.profiler.profile(profiler_name):
+                optimizer.step(closure=closure, *args, **kwargs)
+
+        # perform zero grad
+        optimizer.zero_grad()
+
     def step(self, *args, closure: Optional[Callable] = None, make_optimizer_step: Optional[bool] = None, **kwargs):
         """
         Call this directly from your training_step when doing optimizations manually.
@@ -187,44 +220,12 @@ class LightningOptimizer:
         if make_optimizer_step is None:
             make_optimizer_step = not self._should_accumulate
 
-        trainer = self._trainer
-        model = trainer.get_model()
-        optimizer = self._optimizer
-
         if make_optimizer_step:
-
-            if self._optimizer_idx is None:
-                for opt_idx, opt in enumerate(trainer.optimizers):
-                    if self == opt:
-                        self._optimizer_idx = opt_idx
-                        break
-
-            accelerator_backend = trainer.accelerator_backend
-            ddp_plugin = accelerator_backend.ddp_plugin if accelerator_backend is not None else None
-            if ddp_plugin is not None and isinstance(ddp_plugin, RPCPlugin):
-                should_return = ddp_plugin.optimizer_step(trainer.is_master, self, closure, *args, **kwargs)
-                if should_return:
-                    return
-
-            if trainer.on_tpu:
-                with trainer.profiler.profile(profiler_name):
-                    xm.optimizer_step(optimizer, optimizer_args={'closure': closure, **kwargs})
-
-            elif trainer.amp_backend is not None:
-                with trainer.profiler.profile(profiler_name):
-                    trainer.precision_connector.backend.optimizer_step(
-                        trainer, optimizer, closure)
-
-            else:
-                with trainer.profiler.profile(profiler_name):
-                    optimizer.step(closure=closure, *args, **kwargs)
-
-            # perform zero grad
-            optimizer.zero_grad()
+            self._optimizer_step(closure, profiler_name, *args, **kwargs)
         else:
             # make sure to call optimizer_closure when accumulating
-            with trainer.profiler.profile("closure"):
-                with trainer.train_loop.block_ddp_sync_behaviour():
+            with self._trainer.profiler.profile("closure"):
+                with self._trainer.train_loop.block_ddp_sync_behaviour():
                     closure()
 
     def __repr__(self):
