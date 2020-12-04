@@ -196,10 +196,17 @@ class PipeRpcPlugin(RPCPlugin):
                 'Could not find a PipeLightningModule within the model. '
                 'Did you defined set your sequential model as an `layers` attribute of your model ?')
 
+    def _check_balance(self, trainer):
+        model = trainer.get_model()
+        if sum(self.balance) != len(model.layers):
+            raise MisconfigurationException(
+                f'The provided balance sum: {sum(self.balance)} doesn t match your Sequential length: {len(model.layers)}')
+
     def pre_init_ddp_connection(self, trainer) -> bool:
         if torch_distrib.is_initialized():
             return True
         self._infering_balance_from_example_input_array(trainer)
+        self._check_balance(trainer)
         return False
 
     def init_rpc_connection_and_pipe(self, trainer, global_rank, world_size):

@@ -106,31 +106,6 @@ def cleanup(ctx, model):
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
-def test_pipe_plugin_ddp_rpc_manual(tmpdir, args=None):
-    model = SequentialModelRPC()
-    trainer = Trainer(
-        max_epochs=2,
-        limit_train_batches=6,
-        limit_val_batches=2,
-        limit_test_batches=2,
-        gpus=2,
-        distributed_backend="ddp",
-        plugins=[PipeRpcPlugin(balance=[2, 1])],
-        automatic_optimization=False,
-    )
-    trainer.fit(model)
-
-    assert len(trainer.dev_debugger.pbar_added_metrics) > 0
-
-    model.foreach_worker(cleanup, include_self=True)
-
-    del model
-
-
-@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="test requires fairscale to be installed")
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
 def test_pipe_plugin_ddp_rpc_manual_amp(tmpdir, args=None):
     model = SequentialModelRPC()
     trainer = Trainer(
@@ -230,5 +205,35 @@ def test_pipe_plugin_ddp_rpc_automatic(tmpdir, args=None):
 
     except MisconfigurationException as e:
         assert str(e) == 'PipePlugin is currently not supported in automatic optimization'
+
+    del model
+
+
+@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="test requires fairscale to be installed")
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
+def test_pipe_plugin_ddp_rpc_with_wrong_balance(tmpdir, args=None):
+    model = SequentialModelRPCAutomatic()
+    trainer = Trainer(
+        max_epochs=2,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        gpus=2,
+        distributed_backend="ddp",
+        plugins=[PipeRpcPlugin(balance=[2, 2])],
+        automatic_optimization=False,
+    )
+
+    try:
+        trainer.fit(model)
+
+        assert len(trainer.dev_debugger.pbar_added_metrics) > 0
+
+        model.foreach_worker(cleanup, include_self=True)
+
+    except MisconfigurationException as e:
+        assert str(e) == 'The provided balance sum: 4 doesn t match your Sequential length: 3'
 
     del model
