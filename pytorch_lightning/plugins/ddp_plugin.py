@@ -141,3 +141,6 @@ class DDPPlugin(LightningPlugin):
         Returns: context manager with sync behaviour off
         """
         yield model.no_sync()
+
+    def prepare_for_backwards_reduce(self, model: LightningDistributedDataParallel, output: Any):
+        model.reducer_prepare_for_backwards(output)

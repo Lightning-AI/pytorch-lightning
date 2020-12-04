@@ -74,6 +74,22 @@ class DDP2Accelerator(Accelerator):
             output = self.trainer.model(*args)
         return output
 
+    def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
+        automatic_optimization = self.trainer.train_loop.automatic_optimization
+
+        if not automatic_optimization:
+            # Manually prepare for reduce as user calling backwards manually
+            self.ddp_plugin.prepare_for_backwards_reduce()
+
+        super().backward(
+            closure_loss=closure_loss,
+            optimizer=optimizer,
+            opt_idx=opt_idx,
+            *args,
+            **kwargs
+        )
+        return closure_loss
+
     def barrier(self, name: Optional[str] = None):
         if torch_distrib.is_initialized():
             torch_distrib.barrier()
