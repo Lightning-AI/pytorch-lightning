@@ -384,6 +384,7 @@ class ManualOptimizationExtendedModel(BoringModel):
 
             self.manual_backward(loss, opt)
             opt.step()
+            opt.zero_grad()
 
         return loss.detach() if self.detach else loss
 
@@ -513,6 +514,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
 
                 self.manual_backward(loss, opt)
                 opt.step()
+                opt.zero_grad()
 
             return loss.detach() if self.detach else loss
 
@@ -577,6 +579,7 @@ def test_multiple_optimizers_step(tmpdir):
 
             self.manual_backward(loss_1, opt_a)
             opt_a.step()
+            opt_a.zero_grad()
 
             # fake discriminator
             loss_2 = self(x)
@@ -589,6 +592,7 @@ def test_multiple_optimizers_step(tmpdir):
 
             assert self.layer.weight.grad is not None
             opt_b.step()
+            opt_b.zero_grad()
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
@@ -668,6 +672,7 @@ def test_step_with_optimizer_closure(tmpdir):
             weight_before = self.layer.weight.clone()
 
             opt.step(closure=optimizer_closure)
+            opt.zero_grad()
 
             weight_after = self.layer.weight.clone()
             assert not torch.equal(weight_before, weight_after)
@@ -726,6 +731,7 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
             weight_before = self.layer.weight.clone()
 
             opt.step(closure=optimizer_closure)
+            opt.zero_grad()
 
             weight_after = self.layer.weight.clone()
             if not self.trainer.train_loop.should_accumulate():
@@ -785,6 +791,7 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
                     self.manual_backward(loss_1, opt, retain_graph=retain_graph)
 
             opt.step(1, closure=optimizer_closure, something="new")
+            opt.zero_grad()
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
@@ -852,6 +859,7 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
 
             # this will accumulate gradients for 2 batches and then call opt_gen.step()
             opt_gen.step(closure=gen_closure, make_optimizer_step=batch_idx % 2 == 0, optim='sgd')
+            opt_gen.zero_grad()
 
             # update discriminator every 4 baches
             # therefore, no gradient accumulation for discriminator
@@ -859,6 +867,7 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
                 # Note: Set make_optimizer_step to True or it will use by default
                 # Trainer(accumulate_grad_batches=x)
                 opt_dis.step(closure=dis_closure, make_optimizer_step=True, optim='adam')
+                opt_dis.zero_grad()
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
