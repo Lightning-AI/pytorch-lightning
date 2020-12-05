@@ -171,7 +171,8 @@ class LightningLoggerBase(ABC):
         """
         pass
 
-    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True, **kwargs) -> None:
+    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True,
+                   **kwargs) -> None:
         """
         Logs a matplotlib figure.
 
@@ -382,7 +383,8 @@ class LoggerCollection(LightningLoggerBase):
         for logger in self._logger_iterable:
             logger.log_metrics(metrics, step)
 
-    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True, **kwargs) -> None:
+    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True,
+                   **kwargs) -> None:
         
         if len(kwargs) == 0:
             for logger in self._logger_iterable:
