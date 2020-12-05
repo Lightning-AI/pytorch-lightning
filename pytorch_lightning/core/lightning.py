@@ -1241,7 +1241,7 @@ class LightningModule(
             # wraps into LightingOptimizer only for running step
             optimizer = LightningOptimizer(optimizer)
             optimizer._on_trainer_init(self.trainer)
-        optimizer.step(closure=optimizer_closure)
+        optimizer.step(closure=optimizer_closure, *args, **kwargs)
 
     def optimizer_zero_grad(
         self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int
