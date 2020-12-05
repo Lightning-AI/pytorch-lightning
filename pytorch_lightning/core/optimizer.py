@@ -234,9 +234,6 @@ class LightningOptimizer:
                     'This option is enabled only with Trainer(automatic_optimization=False) '
                     'Currently, all optimizers follow the Trainer(accumulate_grad_batches=x) logic')
 
-        trainer = self._trainer
-        optimizer = self._optimizer
-
         if make_optimizer_step:
             self.__optimizer_step(*args, closure=closure, profiler_name=profiler_name, **kwargs)
         else:
