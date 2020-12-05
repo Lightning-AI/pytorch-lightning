@@ -265,17 +265,17 @@ def test_model_checkpoint_file_extension(tmpdir):
 
     # tests that files get saved with user-defined FILE_EXTENSION
     ModelCheckpoint.FILE_EXTENSION = '.tpkc'
-    model = LogInTwoMethods()   
+    model = LogInTwoMethods()
     model_checkpoint = ModelCheckpoint(monitor='early_stop_on', dirpath=tmpdir, save_top_k=1, save_last=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[model_checkpoint],
         max_epochs=2
-        )
+    )
     trainer.fit(model)
     expected = 'last.tpkc'
     assert expected in set(os.listdir(tmpdir))
-    
+
     # Reset model checkpoint file extension so it does not break other tests
     ModelCheckpoint.FILE_EXTENSION = '.ckpt'
 
