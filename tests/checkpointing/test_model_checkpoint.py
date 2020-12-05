@@ -290,7 +290,7 @@ def test_model_checkpoint_file_extension(tmpdir):
     )
     last_filename = last_filename + '.tpkc'
     assert str(tmpdir / last_filename) == model_checkpoint.last_model_path
-    
+
     # Reset model checkpoint file extension so it does not break other tests
     ModelCheckpoint.FILE_EXTENSION = '.ckpt'
 
