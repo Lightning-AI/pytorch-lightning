@@ -11,53 +11,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import math
-import functools
-from abc import ABC, abstractmethod
-from typing import Any, Callable, Optional, Union
-from collections.abc import Mapping, Sequence
-from collections import namedtuple
+from typing import Any, Optional
 
 import torch
-from torch import nn
+
 from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.metrics.utils import to_onehot, METRIC_EPS
-
-
-def _input_format(num_classes: int, preds: torch.Tensor, target: torch.Tensor, threshold=0.5, multilabel=False):
-    if not (len(preds.shape) == len(target.shape) or len(preds.shape) == len(target.shape) + 1):
-        raise ValueError(
-            "preds and target must have same number of dimensions, or one additional dimension for preds"
-        )
-
-    if len(preds.shape) == len(target.shape) + 1:
-        # multi class probabilites
-        preds = torch.argmax(preds, dim=1)
-
-    if len(preds.shape) == len(target.shape) and preds.dtype == torch.long and num_classes > 1 and not multilabel:
-        # multi-class
-        preds = to_onehot(preds, num_classes=num_classes)
-        target = to_onehot(target, num_classes=num_classes)
-
-    elif len(preds.shape) == len(target.shape) and preds.dtype == torch.float:
-        # binary or multilabel probablities
-        preds = (preds >= threshold).long()
-
-    # transpose class as first dim and reshape
-    if len(preds.shape) > 1:
-        preds = preds.transpose(1, 0)
-        target = target.transpose(1, 0)
-
-    return preds.reshape(num_classes, -1), target.reshape(num_classes, -1)
+from pytorch_lightning.metrics.utils import METRIC_EPS, _input_format_classification_one_hot
 
 
 class Precision(Metric):
-    """
-    Computes the precision metric.
+    r"""
+    Computes `Precision <https://en.wikipedia.org/wiki/Precision_and_recall>`_:
 
-    Works with binary, multiclass, and multilabel data.
-    Accepts logits from a model output or integer class values in prediction.
-    Works with multi-dimensional preds and target.
+    .. math:: \text{Precision} = \frac{\text{TP}}{\text{TP} + \text{FP}}
+
+    Where :math:`\text{TP}` and :math:`\text{FP}` represent the number of true positives and
+    false positives respecitively.  Works with binary, multiclass, and
+    multilabel data.  Accepts logits from a model output or integer class
+    values in prediction.  Works with multi-dimensional preds and target.
 
     Forward accepts
 
@@ -126,7 +97,9 @@ class Precision(Metric):
         self.add_state("predicted_positives", default=torch.zeros(num_classes), dist_reduce_fx="sum")
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
-        preds, target = _input_format(self.num_classes, preds, target, self.threshold, self.multilabel)
+        preds, target = _input_format_classification_one_hot(
+            self.num_classes, preds, target, self.threshold, self.multilabel
+        )
 
         # multiply because we are counting (1, 1) pair for true positives
         self.true_positives += torch.sum(preds * target, dim=1)
@@ -140,12 +113,15 @@ class Precision(Metric):
 
 
 class Recall(Metric):
-    """
-    Computes the recall metric.
+    r"""
+    Computes `Recall <https://en.wikipedia.org/wiki/Precision_and_recall>`_:
 
-    Works with binary, multiclass, and multilabel data.
-    Accepts logits from a model output or integer class values in prediction.
-    Works with multi-dimensional preds and target.
+    .. math:: \text{Recall} = \frac{\text{TP}}{\text{TP} + \text{FN}}
+
+    Where :math:`\text{TP}` and :math:`\text{FN}` represent the number of true positives and
+    false negatives respecitively. Works with binary, multiclass, and
+    multilabel data.  Accepts logits from a model output or integer class
+    values in prediction.  Works with multi-dimensional preds and target.
 
     Forward accepts
 
@@ -221,7 +197,9 @@ class Recall(Metric):
             preds: Predictions from model
             target: Ground truth values
         """
-        preds, target = _input_format(self.num_classes, preds, target, self.threshold, self.multilabel)
+        preds, target = _input_format_classification_one_hot(
+            self.num_classes, preds, target, self.threshold, self.multilabel
+        )
 
         # multiply because we are counting (1, 1) pair for true positives
         self.true_positives += torch.sum(preds * target, dim=1)

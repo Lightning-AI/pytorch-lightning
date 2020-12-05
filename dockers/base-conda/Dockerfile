@@ -99,6 +99,10 @@ COPY ./requirements/test.txt requirements-test.txt
 RUN \
     # Disable cache
     pip config set global.cache-dir false && \
+    # Drop fairscale for PT <= 1.4
+    if [[ $PYTORCH_VERSION < 1.4 ]] ; then \
+        python -c "fname = 'requirements-extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)" ; \
+    fi && \
     # Install remaining requirements
     pip install -r requirements-extra.txt --upgrade-strategy only-if-needed && \
     pip install -r requirements-test.txt --upgrade-strategy only-if-needed && \

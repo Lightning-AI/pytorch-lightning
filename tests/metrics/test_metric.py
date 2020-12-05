@@ -1,6 +1,7 @@
 import pickle
-
+from collections import OrderedDict
 from distutils.version import LooseVersion
+
 import cloudpickle
 import numpy as np
 import pytest
@@ -174,6 +175,16 @@ def test_pickle(tmpdir):
     metric_loaded = cloudpickle.loads(metric_pickled)
 
     assert metric_loaded.compute() == 1
+
+
+def test_state_dict(tmpdir):
+    """ test that metric states can be removed and added to state dict """
+    metric = Dummy()
+    assert metric.state_dict() == OrderedDict()
+    metric.persistent(True)
+    assert metric.state_dict() == OrderedDict(x=0)
+    metric.persistent(False)
+    assert metric.state_dict() == OrderedDict()
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Test requires GPU.")

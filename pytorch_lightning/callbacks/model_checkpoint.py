@@ -22,16 +22,17 @@ Automatically save model checkpoints during training.
 
 import os
 import re
-import yaml
 from copy import deepcopy
-from typing import Any, Dict, Optional, Union
 from pathlib import Path
+from typing import Any, Dict, Optional, Union
 
 import numpy as np
 import torch
+import yaml
+
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn, rank_zero_info
+from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -71,10 +72,18 @@ class ModelCheckpoint(Callback):
             this should be `max`, for `val_loss` this should
             be `min`, etc. In `auto` mode, the direction is
             automatically inferred from the name of the monitored quantity.
+
+            .. warning::
+               Setting ``mode='auto'`` has been deprecated in v1.1 and will be removed in v1.3.
+
         save_weights_only: if ``True``, then only the model's weights will be
             saved (``model.save_weights(filepath)``), else the full model
             is saved (``model.save(filepath)``).
         period: Interval (number of epochs) between checkpoints.
+        prefix: A string to put at the beginning of checkpoint filename.
+
+            .. warning::
+               This argument has been deprecated in v1.1 and will be removed in v1.3
 
         dirpath: directory to save the model file.
 
@@ -155,9 +164,10 @@ class ModelCheckpoint(Callback):
         self.period = period
         self.last_global_step_saved = -1
         self.prefix = prefix
+        self.current_score = None
         self.best_k_models = {}
         self.kth_best_model_path = ""
-        self.best_model_score = 0
+        self.best_model_score = None
         self.best_model_path = ""
         self.last_model_path = ""
         self.save_function = None
@@ -165,6 +175,12 @@ class ModelCheckpoint(Callback):
 
         if save_top_k is None and monitor is not None:
             self.save_top_k = 1
+
+        if prefix:
+            rank_zero_warn(
+                'Argument `prefix` is deprecated in v1.1 and will be removed in v1.3.'
+                ' Please prepend your prefix in `filename` instead.', DeprecationWarning
+            )
 
         self.__init_monitor_mode(monitor, mode)
         self.__init_ckpt_dir(filepath, dirpath, filename, save_top_k)
@@ -188,6 +204,7 @@ class ModelCheckpoint(Callback):
             "monitor": self.monitor,
             "best_model_score": self.best_model_score,
             "best_model_path": self.best_model_path,
+            "current_score": self.current_score,
         }
 
     def on_load_checkpoint(self, checkpointed_state: Dict[str, Any]):
@@ -299,17 +316,28 @@ class ModelCheckpoint(Callback):
         mode_dict = {
             "min": (torch_inf, "min"),
             "max": (-torch_inf, "max"),
-            "auto": (-torch_inf, "max")
-            if monitor is not None and ("acc" in monitor or monitor.startswith("fmeasure"))
-            else (torch_inf, "min"),
         }
 
-        if mode not in mode_dict:
+        # TODO: Update with MisconfigurationException when auto mode is removed in v1.3
+        if mode not in mode_dict and mode != 'auto':
             rank_zero_warn(
                 f"ModelCheckpoint mode {mode} is unknown, fallback to auto mode",
                 RuntimeWarning,
             )
             mode = "auto"
+
+        if mode == 'auto':
+            rank_zero_warn(
+                "mode='auto' is deprecated in v1.1 and will be removed in v1.3."
+                " Default value for mode with be 'min' in v1.3.",
+                DeprecationWarning
+            )
+
+            mode_dict['auto'] = (
+                (-torch_inf, "max")
+                if monitor is not None and ("acc" in monitor or monitor.startswith("fmeasure"))
+                else (torch_inf, "min")
+            )
 
         self.kth_value, self.mode = mode_dict[mode]
 
@@ -378,7 +406,11 @@ class ModelCheckpoint(Callback):
                 if name not in metrics:
                     metrics[name] = 0
             filename = filename.format(**metrics)
-        return cls.CHECKPOINT_JOIN_CHAR.join([txt for txt in (prefix, filename) if txt])
+
+        if prefix:
+            filename = cls.CHECKPOINT_JOIN_CHAR.join([prefix, filename])
+
+        return filename
 
     def format_checkpoint_name(
         self, epoch: int, step: int, metrics: Dict[str, Any], ver: Optional[int] = None
@@ -563,11 +595,14 @@ class ModelCheckpoint(Callback):
             self.best_k_models.pop(self.kth_best_model_path)
             del_list.append(delpath)
 
-        # do not save non, for replace then by +/- inf
+        # do not save nan, replace with +/- inf
         if torch.isnan(current):
-            current = {"min": torch.tensor(float('inf')), "max": torch.tensor(-float('inf'))}[self.mode]
+            current = torch.tensor(float('inf' if self.mode == "min" else '-inf'))
 
+        # save the current score
+        self.current_score = current
         self.best_k_models[filepath] = current
+
         if len(self.best_k_models) == k:
             # monitor dict has reached k elements
             _op = max if self.mode == "min" else min

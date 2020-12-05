@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""[Train, Eval]Result for easier logging, checkpointing, early stopping, epoch-wise reduction."""
+
 import numbers
 from copy import copy
 from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any, List, Tuple, Iterable
@@ -398,11 +400,15 @@ class Result(Dict):
             if isinstance(v, torch.Tensor):
                 self.__setitem__(k, v.detach())
 
-    def cpu(self):
-        """Move all self attributes to CPU."""
+    def to(self, *args, **kwargs):
+        """Move all self attributes to the given device."""
         for k, v in self.items():
             if isinstance(v, torch.Tensor):
-                self.__setitem__(k, v.cpu())
+                self.__setitem__(k, v.to(*args, **kwargs))
+
+    def cpu(self):
+        """Move all self attributes to CPU."""
+        self.to(torch.device("cpu"))
 
     def __repr__(self):
         self_copy = self.copy()

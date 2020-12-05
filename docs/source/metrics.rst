@@ -143,8 +143,8 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
 
 .. note::
 
-    Metric states will as default add their internal state to the models ``state_dict``.
-    To change this after initializing the metric the method ``.persistent(mode)`` can
+    Metric states are **not** added to the models ``state_dict`` by default.
+    To change this, after initializing the metric, the method ``.persistent(mode)`` can
     be used to enable (``mode=True``) or disable (``mode=False``) this behaviour.
 
 *********************
@@ -285,16 +285,40 @@ Recall
 .. autoclass:: pytorch_lightning.metrics.classification.Recall
     :noindex:
 
-Fbeta
+FBeta
 ~~~~~
 
-.. autoclass:: pytorch_lightning.metrics.classification.Fbeta
+.. autoclass:: pytorch_lightning.metrics.classification.FBeta
+    :noindex:
+
+F1
+~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.F1
     :noindex:
 
 ConfusionMatrix
 ~~~~~~~~~~~~~~~
 
 .. autoclass:: pytorch_lightning.metrics.classification.ConfusionMatrix
+    :noindex:
+
+PrecisionRecallCurve
+~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.PrecisionRecallCurve
+    :noindex:
+
+AveragePrecision
+~~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.AveragePrecision
+    :noindex:
+
+ROC
+~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.ROC
     :noindex:
 
 Regression Metrics
@@ -384,7 +408,7 @@ multiclass_auroc [func]
 average_precision [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.average_precision
+.. autofunction:: pytorch_lightning.metrics.functional.average_precision
     :noindex:
 
 
@@ -402,17 +426,17 @@ dice_score [func]
     :noindex:
 
 
-f1_score [func]
+f1 [func]
 ~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.f1_score
+.. autofunction:: pytorch_lightning.metrics.functional.f1
     :noindex:
 
 
-fbeta_score [func]
+fbeta [func]
 ~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.fbeta_score
+.. autofunction:: pytorch_lightning.metrics.functional.fbeta
     :noindex:
 
 
@@ -423,10 +447,10 @@ iou [func]
     :noindex:
 
 
-multiclass_roc [func]
+roc [func]
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.multiclass_roc
+.. autofunction:: pytorch_lightning.metrics.functional.roc
     :noindex:
 
 
@@ -447,7 +471,7 @@ precision_recall [func]
 precision_recall_curve [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.precision_recall_curve
+.. autofunction:: pytorch_lightning.metrics.functional.precision_recall_curve
     :noindex:
 
 
@@ -455,13 +479,6 @@ recall [func]
 ~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.classification.recall
-    :noindex:
-
-
-roc [func]
-~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.metrics.functional.classification.roc
     :noindex:
 
 
@@ -482,14 +499,14 @@ stat_scores_multiple_classes [func]
 to_categorical [func]
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.to_categorical
+.. autofunction:: pytorch_lightning.metrics.utils.to_categorical
     :noindex:
 
 
 to_onehot [func]
 ~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.to_onehot
+.. autofunction:: pytorch_lightning.metrics.utils.to_onehot
     :noindex:
 
 
