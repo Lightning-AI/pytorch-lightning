@@ -409,6 +409,11 @@ class DummyExperiment(object):
     def __getattr__(self, _):
         return self.nop
 
+    def __getitem__(self, idx):
+        # enables self.logger[0].experiment.add_image
+        # and self.logger.experiment[0].add_image(...)
+        return self
+
 
 class DummyLogger(LightningLoggerBase):
     """ Dummy logger for internal use. Is usefull if we want to disable users
@@ -436,6 +441,9 @@ class DummyLogger(LightningLoggerBase):
     @property
     def version(self):
         pass
+
+    def __getitem__(self, idx):
+        return self
 
 
 def merge_dicts(
