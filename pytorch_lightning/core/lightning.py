@@ -20,7 +20,6 @@ import inspect
 import os
 import re
 import tempfile
-import types
 from abc import ABC
 from argparse import Namespace
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
@@ -31,14 +30,12 @@ from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.utilities import TPU_AVAILABLE, AMPType, rank_zero_warn
+from pytorch_lightning.utilities import TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
@@ -1239,7 +1236,7 @@ class LightningModule(
             model hook don't forget to add the call to it before ``optimizer.zero_grad()`` yourself.
 
         """
-        if on_tpu:
+        if on_tpu and TPU_AVAILABLE:
             xm.optimizer_step(optimizer, optimizer_args={'closure': optimizer_closure, **kwargs})
 
         elif self.trainer.amp_backend is not None:
@@ -1654,6 +1651,13 @@ class LightningModule(
 
     @hparams.setter
     def hparams(self, hp: Union[dict, Namespace, Any]):
+        # TODO: remove this method in v1.3.0.
+        rank_zero_warn(
+            "The setter for self.hparams in LightningModule is deprecated since v1.1.0 and will be"
+            " removed in v1.3.0. Replace the assignment `self.hparams = hparams` with "
+            " `self.save_hyperparameters()`.",
+            DeprecationWarning
+        )
         hparams_assignment_name = self.__get_hparams_assignment_variable()
         self._hparams_name = hparams_assignment_name
         self._set_hparams(hp)
@@ -1673,7 +1677,7 @@ class LightningModule(
                 line = re.sub(r"\s+", "", line, flags=re.UNICODE)
                 if ".hparams=" in line:
                     return line.split("=")[1]
-        except Exception as e:
+        except Exception:
             return "hparams"
 
         return None

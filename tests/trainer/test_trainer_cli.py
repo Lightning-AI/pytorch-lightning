@@ -117,10 +117,6 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
                  {'auto_lr_find': True, 'auto_scale_batch_size': True}),
     pytest.param('--auto_lr_find 0 --auto_scale_batch_size n',
                  {'auto_lr_find': False, 'auto_scale_batch_size': False}),
-    pytest.param('--tpu_cores=8',
-                 {'tpu_cores': 8}),
-    pytest.param("--tpu_cores=1,",
-                 {'tpu_cores': '1,'}),
     pytest.param(
         "",
         {
