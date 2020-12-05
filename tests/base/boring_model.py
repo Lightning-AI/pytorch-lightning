@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
-from torch.utils.data import Dataset
-
 from pytorch_lightning import LightningModule
+from torch.utils.data import Dataset
 
 
 class RandomDictDataset(Dataset):
@@ -56,9 +55,8 @@ class RandomDataset(Dataset):
 
 
 class BoringModel(LightningModule):
-    def __init__(self, in_features: int = 32, out_features: int = 2,
-                 optimizer_name: str = 'SGD', learning_rate: float = 0.1,
-                 batch_size:int = 1):
+
+    def __init__(self):
         """
         Testing PL Module
 
@@ -77,13 +75,7 @@ class BoringModel(LightningModule):
 
         """
         super().__init__()
-
-        self.batch_size = batch_size
-        self.learning_rate = learning_rate
-        self.optimizer_name = optimizer_name
-        self.layer = torch.nn.Linear(in_features, out_features)
-        self.in_features = in_features
-        self.save_hyperparameters()
+        self.layer = torch.nn.Linear(32, 2)
 
     def forward(self, x):
         return self.layer(x)
@@ -101,6 +93,9 @@ class BoringModel(LightningModule):
         output = self.layer(batch)
         loss = self.loss(batch, output)
         return {"loss": loss}
+
+    def training_step_end(self, training_step_outputs):
+        return training_step_outputs
 
     def training_epoch_end(self, outputs) -> None:
         torch.stack([x["loss"] for x in outputs]).mean()
@@ -122,16 +117,15 @@ class BoringModel(LightningModule):
         torch.stack([x["y"] for x in outputs]).mean()
 
     def configure_optimizers(self):
-        optimizer_class = getattr(torch.optim, self.optimizer_name)
-        optimizer = optimizer_class(self.parameters(), lr=self.learning_rate)
+        optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
         return [optimizer], [lr_scheduler]
 
     def train_dataloader(self):
-        return torch.utils.data.DataLoader(RandomDataset(self.in_features, 64), batch_size=self.batch_size)
+        return torch.utils.data.DataLoader(RandomDataset(32, 64))
 
     def val_dataloader(self):
-        return torch.utils.data.DataLoader(RandomDataset(self.in_features, 64), batch_size=self.batch_size)
+        return torch.utils.data.DataLoader(RandomDataset(32, 64))
 
     def test_dataloader(self):
-        return torch.utils.data.DataLoader(RandomDataset(self.in_features, 64), batch_size=self.batch_size)
+        return torch.utils.data.DataLoader(RandomDataset(32, 64))
