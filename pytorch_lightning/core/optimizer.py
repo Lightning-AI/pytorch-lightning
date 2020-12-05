@@ -220,7 +220,7 @@ class LightningOptimizer:
                 with trainer.profiler.profile(profiler_name):
                     optimizer.step(closure=closure, *args, **kwargs)
 
-            self._trainer.train_loop.on_before_zero_grad(optimizer)
+            self._trainer.train_loop.on_before_zero_grad(self)
 
             self.zero_grad()
 
