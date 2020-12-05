@@ -385,7 +385,7 @@ class LoggerCollection(LightningLoggerBase):
 
     def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True,
                    **kwargs) -> None:
-        
+
         if len(kwargs) == 0:
             for logger in self._logger_iterable:
                 logger.log_figure(name, figure, step=step, close=False)
