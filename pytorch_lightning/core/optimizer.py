@@ -80,7 +80,7 @@ class LightningOptimizer:
         self._trainer = proxy(trainer)
         self._automatic_optimization = trainer.train_loop.automatic_optimization
         for opt_idx, opt in enumerate(trainer.optimizers):
-            if opt == self:
+            if opt == self._optimizer:
                 self._optimizer_idx = opt_idx
                 break
 
