@@ -112,10 +112,8 @@ def test_amp_gradient_unscale(tmpdir):
 
 class UnscaleAccumulateGradBatchesBoringModel(BoringModel):
 
-    called = False
 
     def on_after_backward(self):
-        self.called = True
         norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
         if not (torch.isinf(norm) or torch.isnan(norm)):
             assert norm.item() < 15.
@@ -141,5 +139,3 @@ def test_amp_gradient_unscale_accumulate_grad_batches(tmpdir):
         accumulate_grad_batches=2,
     )
     trainer.fit(model)
-
-    assert model.called
