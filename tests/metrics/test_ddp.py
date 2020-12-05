@@ -46,7 +46,7 @@ def test_ddp(process):
     torch.multiprocessing.spawn(process, args=(2,), nprocs=2)
 
 
-def _test_memory_warning(rank, worldsize):
+def _test_non_contiguous_tensors(rank, worldsize):
     setup_ddp(rank, worldsize)
 
     class DummyMetric(Metric):
@@ -64,10 +64,8 @@ def _test_memory_warning(rank, worldsize):
     metric = DummyMetric()
     metric.update(torch.randn(10, 5)[:, 0])
 
-    with pytest.warns(UserWarning, match="Syncing with `gather_all` requires input to be contiguous"):
-        val = metric.compute()
-
 
 @pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
-def test_not_contiguous_memory_warning():
-    torch.multiprocessing.spawn(_test_memory_warning, args=(2,), nprocs=2)
+def test_non_contiguous_tensors():
+    """ Test that gather_all operation works for non contiguous tensors """
+    torch.multiprocessing.spawn(_test_non_contiguous_tensors, args=(2,), nprocs=2)
