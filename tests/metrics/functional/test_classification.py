@@ -281,12 +281,15 @@ def test_roc_curve(pred, target, expected_tpr, expected_fpr):
     pytest.param([0.5, 0.5, 0.5, 0.5], [1, 1, 0, 0], 0.2, 0.5),
 ])
 def test_auroc(pred, target, max_fpr, expected):
+    if max_fpr is not None and LooseVersion(torch.__version__) < LooseVersion('1.6.0'):
+        pytest.skip('requires torch v1.6 or higher to test max_fpr argument')
+
     score = auroc(torch.tensor(pred), torch.tensor(target), max_fpr=max_fpr).item()
     assert score == expected
 
 
 @pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion('1.6.0'),
-                    reason='requires torch v1.6 or higher')
+                    reason='requires torch v1.6 or higher to test max_fpr argument')
 @pytest.mark.parametrize(['max_fpr'], [
     pytest.param(None),
     pytest.param(1),
