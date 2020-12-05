@@ -15,6 +15,8 @@ from collections import defaultdict
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
+import torch
+
 from pytorch_lightning.core.step_result import Result
 
 
@@ -331,6 +333,8 @@ class EpochResultStore:
             hook_result.detach()
             if self.trainer.move_metrics_to_cpu:
                 hook_result.cpu()
+            elif self.trainer.use_dp:
+                hook_result.to(torch.device("cuda", self.trainer.root_gpu))
 
             self._internals[fx_name].append(hook_result, dataloader_idx=dataloader_idx, extra_info=extra_info)
 
