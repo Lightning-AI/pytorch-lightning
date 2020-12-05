@@ -29,33 +29,25 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.horovod_accelerator import HorovodAccelerator
 from pytorch_lightning.core.step_result import EvalResult, Result, TrainResult
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
-from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVAILABLE
+from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVAILABLE, HOROVOD_AVAILABLE, _module_available
 from tests.base import EvalModelTemplate
+from tests.base.boring_model import BoringModel
 from tests.base.models import BasicGAN
 
-try:
+if HOROVOD_AVAILABLE:
     import horovod
-    from horovod.common.util import nccl_built
-except ImportError:
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
-
+    import horovod.torch as hvd
 
 # This script will run the actual test model training in parallel
 TEST_SCRIPT = os.path.join(os.path.dirname(__file__), 'data', 'horovod', 'train_default_model.py')
 
-
-def _nccl_available():
-    if not HOROVOD_AVAILABLE:
-        return False
-
-    try:
-        return nccl_built()
-    except AttributeError:
-        # Horovod 0.19.1 nccl_built() does not yet work with Python 3.8:
-        # See: https://github.com/horovod/horovod/issues/1891
-        return False
+try:
+    from horovod.common.util import nccl_built
+    nccl_built()
+except (ImportError, ModuleNotFoundError, AttributeError):
+    HOROVOD_NCCL_AVAILABLE = False
+finally:
+    HOROVOD_NCCL_AVAILABLE = True
 
 
 def _run_horovod(trainer_options, on_gpu=False):
@@ -114,7 +106,7 @@ def test_horovod_cpu_implicit(enable_pl_optimizer, tmpdir):
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
-@pytest.mark.skipif(not _nccl_available(), reason="test requires Horovod with NCCL support")
+@pytest.mark.skipif(not HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_horovod_multi_gpu(tmpdir):
     """Test Horovod with multi-GPU support."""
@@ -134,7 +126,7 @@ def test_horovod_multi_gpu(tmpdir):
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
-@pytest.mark.skipif(not _nccl_available(), reason="test requires Horovod with NCCL support")
+@pytest.mark.skipif(not HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not APEX_AVAILABLE, reason="test requires apex")
 def test_horovod_apex(tmpdir):
@@ -158,7 +150,7 @@ def test_horovod_apex(tmpdir):
 
 @pytest.mark.skip(reason="Skip till Horovod fixes integration with Native torch.cuda.amp")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
-@pytest.mark.skipif(not _nccl_available(), reason="test requires Horovod with NCCL support")
+@pytest.mark.skipif(not HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not NATIVE_AMP_AVAILABLE, reason="test requires torch.cuda.amp")
 def test_horovod_amp(tmpdir):
@@ -181,7 +173,7 @@ def test_horovod_amp(tmpdir):
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
-@pytest.mark.skipif(not _nccl_available(), reason="test requires Horovod with NCCL support")
+@pytest.mark.skipif(not HOROVOD_NCCL_AVAILABLE, reason="test requires Horovod with NCCL support")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_horovod_transfer_batch_to_gpu(tmpdir):
     class TestTrainingStepModel(EvalModelTemplate):
@@ -263,10 +255,6 @@ def test_result_reduce_horovod(enable_pl_optimizer, tmpdir):
         path_root = os.path.abspath(os.path.join(path_here, '..', '..'))
         sys.path.insert(0, os.path.abspath(path_root))
 
-        import horovod.torch as hvd
-
-        from tests.base.boring_model import BoringModel
-
         class TestModel(BoringModel):
             def training_step(self, batch, batch_idx):
                 self.training_step_called = True
@@ -318,8 +306,6 @@ def test_accuracy_metric_horovod():
     target = torch.randint(high=2, size=(num_batches, batch_size))
 
     def _compute_batch():
-        import horovod.torch as hvd
-
         trainer = Trainer(
             fast_dev_run=True,
             distributed_backend='horovod',
