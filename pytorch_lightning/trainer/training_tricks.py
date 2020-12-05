@@ -20,11 +20,6 @@ from torch import Tensor
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 
-try:
-    from apex import amp
-except ImportError:
-    amp = None
-
 EPSILON = 1e-6
 EPSILON_FP16 = 1e-5
 

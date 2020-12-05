@@ -17,7 +17,12 @@ from pytorch_lightning.metrics.classification import (
     Accuracy,
     Precision,
     Recall,
-    Fbeta
+    ConfusionMatrix,
+    PrecisionRecallCurve,
+    AveragePrecision,
+    ROC,
+    FBeta,
+    F1,
 )
 
 from pytorch_lightning.metrics.regression import (

@@ -5,7 +5,8 @@ import pytest
 import torch
 from sklearn.metrics import fbeta_score
 
-from pytorch_lightning.metrics import Fbeta
+from pytorch_lightning.metrics import FBeta
+from pytorch_lightning.metrics.functional import fbeta, f1
 from tests.metrics.classification.inputs import (
     _binary_inputs,
     _binary_prob_inputs,
@@ -78,9 +79,6 @@ def _sk_fbeta_multidim_multiclass(preds, target, average='micro', beta=1.0):
     return fbeta_score(y_true=sk_target, y_pred=sk_preds, average=average, beta=beta)
 
 
-@pytest.mark.parametrize("ddp", [True, False])
-@pytest.mark.parametrize("dist_sync_on_step", [True, False])
-@pytest.mark.parametrize("average", ['micro', 'macro'])
 @pytest.mark.parametrize(
     "preds, target, sk_metric, num_classes, multilabel",
     [
@@ -107,18 +105,19 @@ def _sk_fbeta_multidim_multiclass(preds, target, average='micro', beta=1.0):
         ),
     ],
 )
-@pytest.mark.parametrize(
-    "metric_class, beta", [(Fbeta, 0.5), (Fbeta, 1.0)],
-)
+@pytest.mark.parametrize("average", ['micro', 'macro', 'weighted', None])
+@pytest.mark.parametrize("beta", [0.5, 1.0])
 class TestFBeta(MetricTester):
+    @pytest.mark.parametrize("ddp", [True, False])
+    @pytest.mark.parametrize("dist_sync_on_step", [True, False])
     def test_fbeta(
-        self, ddp, dist_sync_on_step, preds, target, sk_metric, metric_class, beta, num_classes, multilabel, average
+        self, preds, target, sk_metric, num_classes, multilabel, average, beta, ddp, dist_sync_on_step
     ):
         self.run_class_metric_test(
             ddp=ddp,
             preds=preds,
             target=target,
-            metric_class=metric_class,
+            metric_class=FBeta,
             sk_metric=partial(sk_metric, average=average, beta=beta),
             dist_sync_on_step=dist_sync_on_step,
             metric_args={
@@ -131,3 +130,38 @@ class TestFBeta(MetricTester):
             check_dist_sync_on_step=False,
             check_batch=False,
         )
+
+    def test_fbeta_functional(
+        self, preds, target, sk_metric, num_classes, multilabel, average, beta
+    ):
+        self.run_functional_metric_test(preds=preds,
+                                        target=target,
+                                        metric_functional=fbeta,
+                                        sk_metric=partial(sk_metric, average=average, beta=beta),
+                                        metric_args={
+                                            "beta": beta,
+                                            "num_classes": num_classes,
+                                            "average": average,
+                                            "multilabel": multilabel,
+                                            "threshold": THRESHOLD}
+                                        )
+
+
+@pytest.mark.parametrize(['pred', 'target', 'beta', 'exp_score'], [
+    pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], 0.5, [0.5, 0.5]),
+    pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], 1, [0.5, 0.5]),
+    pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], 2, [0.5, 0.5]),
+])
+def test_fbeta_score(pred, target, beta, exp_score):
+    score = fbeta(torch.tensor(pred), torch.tensor(target), num_classes=1, beta=beta, average='none')
+    assert torch.allclose(score, torch.tensor(exp_score))
+
+
+@pytest.mark.parametrize(['pred', 'target', 'exp_score'], [
+    pytest.param([0., 0., 0., 0.], [1., 1., 1., 1.], [0.0, 0.0]),
+    pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], [0.5, 0.5]),
+    pytest.param([1., 0., 1., 0.], [1., 0., 1., 0.], [1.0, 1.0]),
+])
+def test_f1_score(pred, target, exp_score):
+    score = f1(torch.tensor(pred), torch.tensor(target), num_classes=1, average='none')
+    assert torch.allclose(score, torch.tensor(exp_score))

@@ -11,32 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning import accelerators
 import os
+
 import torch
 
-from pytorch_lightning.utilities import device_parser
-from pytorch_lightning.utilities import rank_zero_only
-from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities import HOROVOD_AVAILABLE
 from pytorch_lightning import _logger as log
+from pytorch_lightning import accelerators
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.cluster_environments.torchelastic_environment import TorchElasticEnvironment
-from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.utilities import device_parser, rank_zero_only, TPU_AVAILABLE
+from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-try:
-    import torch_xla
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
-
-try:
+if HOROVOD_AVAILABLE:
     import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
 
 
 class AcceleratorConnector:
@@ -206,7 +196,7 @@ class AcceleratorConnector:
 
         # ddp script mode uses the same flags as TE
         # TODO: decouple from TE
-        if os.environ.get('PL_DDP_PID', False):
+        if os.environ.get('PL_IN_DDP_SUBPROCESS', False):
             use_torchelastic_ddp = False
 
         cluster_env = self._select_environment()
@@ -220,28 +210,28 @@ class AcceleratorConnector:
             )
 
         elif use_ddp_cpu_slurm:
-            accelerator_backend = accelerators.DDPCPUSLURMAccelerator(
+            accelerator_backend = accelerators.DDPCPUHPCAccelerator(
                 self.trainer,
                 cluster_env,
                 self.trainer.plugin_connector.ddp_plugin
             )
 
         elif use_slurm_ddp:
-            accelerator_backend = accelerators.DDPSLURMAccelerator(
+            accelerator_backend = accelerators.DDPHPCAccelerator(
                 self.trainer,
                 cluster_env,
                 self.trainer.plugin_connector.ddp_plugin
             )
 
         elif use_ddp_cpu_torch_elastic:
-            accelerator_backend = accelerators.DDPCPUTorchElasticAccelerator(
+            accelerator_backend = accelerators.DDPCPUHPCAccelerator(
                 self.trainer,
                 cluster_env,
                 self.trainer.plugin_connector.ddp_plugin
             )
 
         elif use_torchelastic_ddp:
-            accelerator_backend = accelerators.DDPTorchElasticAccelerator(
+            accelerator_backend = accelerators.DDPHPCAccelerator(
                 self.trainer,
                 cluster_env,
                 self.trainer.plugin_connector.ddp_plugin
@@ -357,7 +347,7 @@ class AcceleratorConnector:
 
         rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self.trainer.on_gpu}')
         num_cores = self.trainer.tpu_cores if self.trainer.tpu_cores is not None else 0
-        rank_zero_info(f'TPU available: {XLA_AVAILABLE}, using: {num_cores} TPU cores')
+        rank_zero_info(f'TPU available: {TPU_AVAILABLE}, using: {num_cores} TPU cores')
 
         if torch.cuda.is_available() and not self.trainer.on_gpu:
             rank_zero_warn('GPU available but not used. Set the --gpus flag when calling the script.')
@@ -397,25 +387,14 @@ class AcceleratorConnector:
 
         # set the correct cuda visible devices (using pci order)
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-
-        # when slurm is managing the task it sets the visible devices
-        if not is_slurm_managing_tasks and 'CUDA_VISIBLE_DEVICES' not in os.environ:
-            if isinstance(data_parallel_device_ids, int):
-                id_str = ','.join(str(x) for x in list(range(data_parallel_device_ids)))
-                os.environ["CUDA_VISIBLE_DEVICES"] = id_str
-            else:
-                gpu_str = ','.join([str(x) for x in data_parallel_device_ids])
-                os.environ["CUDA_VISIBLE_DEVICES"] = gpu_str
-
-        # don't make this debug... this is good UX
-        devices = os.environ["CUDA_VISIBLE_DEVICES"]
+        all_gpu_ids = ",".join([str(x) for x in range(torch.cuda.device_count())])
+        devices = os.environ.get("CUDA_VISIBLE_DEVICES", all_gpu_ids)
         log.info(f'LOCAL_RANK: {self.trainer.local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]')
 
     def determine_local_rank(self):
         if self.trainer.is_slurm_managing_tasks:
             return int(os.environ['SLURM_LOCALID'])
-        else:
-            return int(os.environ.get('LOCAL_RANK', 0))
+        return int(os.environ.get('LOCAL_RANK', 0))
 
     def determine_ddp_node_rank(self):
         if self.trainer.is_slurm_managing_tasks:

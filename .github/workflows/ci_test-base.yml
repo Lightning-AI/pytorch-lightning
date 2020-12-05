@@ -3,9 +3,9 @@ name: CI base testing
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches: [master]
+    branches: [master, "release/*"]  # include release branches like release/1.0.x
   pull_request:
-    branches: [master]
+    branches: [master, "release/*"]
 
 jobs:
   doctest:
@@ -69,10 +69,10 @@ jobs:
     - name: Test Package [only]
       run: |
         # NOTE: run coverage on tests does not propagare faler status for Win, https://github.com/nedbat/coveragepy/issues/1003
-        coverage run --source pytorch_lightning -m pytest pytorch_lightning -v --color=yes --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+        coverage run --source pytorch_lightning -m pytest pytorch_lightning -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
 
     - name: Upload pytest test results
-      uses: actions/upload-artifact@master
+      uses: actions/upload-artifact@v2
       with:
         name: pytest-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}
         path: junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml

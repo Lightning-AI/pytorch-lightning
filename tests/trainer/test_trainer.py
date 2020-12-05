@@ -20,7 +20,7 @@ import types
 from argparse import Namespace
 from copy import deepcopy
 from pathlib import Path
-from unittest.mock import patch, call, ANY
+from unittest.mock import ANY, call, patch
 
 import cloudpickle
 import pytest
@@ -32,11 +32,12 @@ from pytorch_lightning import Callback, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.profiler.profilers import AdvancedProfiler, PassThroughProfiler, SimpleProfiler
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
+from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
-from tests.base import EvalModelTemplate
+from tests.base import BoringModel, EvalModelTemplate
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -67,7 +68,7 @@ def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
 
     # assert ckpt has hparams
     ckpt = torch.load(new_weights_path)
-    assert LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in ckpt.keys(), "module_arguments missing from checkpoints"
+    assert LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in ckpt.keys(), "hyper_parameters missing from checkpoints"
 
     # load new model
     hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
@@ -304,28 +305,27 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
 def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_batches, limit_train_batches):
     """ Verify optimizer.step() applied to last batch while grad accumulation """
 
-    class CurrentModel(EvalModelTemplate):
-        def on_after_backward(self):
-            self.loss_backward = deepcopy(self.state_dict())
+    class CurrentModel(BoringModel):
 
-        def on_before_zero_grad(self, optimizer):
-            self.opt_step = self.state_dict()
+        def on_batch_start(self, batch, batch_idx, dataloader_idx):
+            self.on_train_batch_start_state_dict = self.state_dict()
 
-        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
-            _exclude_keys = ["num_batches_tracked", "running_mean", "running_var"]
-
-            if (batch_idx + 1) == self.trainer.num_training_batches:
-                for key in self.loss_backward.keys():
-                    # exclude the check for batch_norm parameters
-                    if not any([k in key for k in _exclude_keys]):
-                        assert not torch.equal(self.loss_backward[key], self.opt_step[key])
+        def on_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+            self.on_train_batch_start_end_dict = self.state_dict()
+            for key in self.on_train_batch_start_end_dict.keys():
+                if (batch_idx + 1) == self.trainer.num_training_batches:
+                    assert torch.equal(self.on_train_batch_start_state_dict[key], self.on_train_batch_start_end_dict[key])
+                else:
+                    assert not torch.equal(self.on_train_batch_start_state_dict[key], self.on_train_batch_start_end_dict[key])
 
     model = CurrentModel()
 
     trainer = Trainer(
         accumulate_grad_batches=accumulate_grad_batches,
-        max_epochs=4,
+        max_epochs=2,
         limit_train_batches=limit_train_batches,
+        limit_val_batches=0,
+        limit_test_batches=0,
         default_root_dir=tmpdir,
     )
 
@@ -429,7 +429,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, ex
     losses = [10, 9, 2.8, 5, 2.5]
 
     checkpoint_callback = ModelCheckpoint(
-        dirpath=tmpdir, monitor='checkpoint_on', save_top_k=save_top_k,
+        dirpath=tmpdir, filename='{epoch}', monitor='checkpoint_on', save_top_k=save_top_k,
         save_last=save_last, prefix=file_prefix, verbose=1
     )
     checkpoint_callback.save_function = mock_save_function
@@ -500,8 +500,9 @@ def test_model_freeze_unfreeze():
     model.unfreeze()
 
 
+@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
 @pytest.mark.parametrize("url_ckpt", [True, False])
-def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
+def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt, enable_pl_optimizer):
     """Verify resuming from checkpoint runs the right number of epochs"""
     # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
     monkeypatch.setenv("TORCH_HOME", tmpdir)
@@ -541,6 +542,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         checkpoint_callback=ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_top_k=-1),
         default_root_dir=tmpdir,
         val_check_interval=1.0,
+        enable_pl_optimizer=enable_pl_optimizer,
     )
 
     trainer = Trainer(**trainer_options)
@@ -747,6 +749,68 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
             assert trainer.tested_ckpt_path == ckpt_path
 
 
+def test_disabled_training(tmpdir):
+    """Verify that `limit_train_batches=0` disables the training loop unless `fast_dev_run=True`."""
+
+    class CurrentModel(BoringModel):
+
+        training_step_invoked = False
+        training_epoch_end_invoked = False
+
+        def training_step(self, *args, **kwargs):
+            self.training_step_invoked = True
+            return super().training_step(*args, **kwargs)
+
+        def training_epoch_end(self, *args, **kwargs):
+            self.training_epoch_end_invoked = True
+            return super().training_epoch_end(*args, **kwargs)
+
+    model = CurrentModel()
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=2,
+        limit_train_batches=0.0,
+        limit_val_batches=0.2,
+        fast_dev_run=False,
+    )
+
+    before_state_dict = deepcopy(model.state_dict())
+
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    after_state_dict = model.state_dict()
+
+    for key in before_state_dict.keys():
+        assert torch.all(torch.eq(before_state_dict[key], after_state_dict[key]))
+
+    # check that limit_train_batches=0 turns off training
+    assert result == 1, "training failed to complete"
+    assert trainer.current_epoch == 0
+    assert not model.training_step_invoked, "`training_step` should not run when `limit_train_batches=0`"
+    assert not model.training_epoch_end_invoked, "`training_epoch_end` should not run when `limit_train_batches=0`"
+
+    # check that limit_train_batches has no influence when fast_dev_run is turned on
+    model = CurrentModel()
+    trainer_options.update(fast_dev_run=True)
+    before_state_dict = deepcopy(model.state_dict())
+
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    after_state_dict = model.state_dict()
+
+    for key in before_state_dict.keys():
+        assert not torch.all(torch.eq(before_state_dict[key], after_state_dict[key]))
+
+    assert result == 1, "training failed to complete"
+    assert trainer.current_epoch == 0
+    assert model.training_step_invoked, "did not run `training_step` with `fast_dev_run=True`"
+    assert model.training_epoch_end_invoked, "did not run `training_epoch_end` with `fast_dev_run=True`"
+
+
 def test_disabled_validation(tmpdir):
     """Verify that `limit_val_batches=0` disables the validation loop unless `fast_dev_run=True`."""
 
@@ -926,7 +990,7 @@ def test_gradient_clipping(tmpdir):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@pytest.mark.skipif(not NATIVE_AMP_AVALAIBLE, reason="test requires native AMP.")
+@pytest.mark.skipif(not NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
 def test_gradient_clipping_fp16(tmpdir):
     """
     Test gradient clipping with fp16
@@ -976,31 +1040,6 @@ def test_gpu_choice(tmpdir):
 
     with pytest.raises(RuntimeError, match=r".*No GPUs available.*"):
         Trainer(**trainer_options, gpus=num_gpus + 1, auto_select_gpus=True)
-
-
-@pytest.mark.parametrize(
-    ["tpu_cores", "expected_tpu_id", "error_expected"],
-    [
-        pytest.param(1, None, False),
-        pytest.param(8, None, False),
-        pytest.param([1], 1, False),
-        pytest.param([8], 8, False),
-        pytest.param("1,", 1, False),
-        pytest.param("1", None, False),
-        pytest.param("9, ", 9, True),
-        pytest.param([9], 9, True),
-        pytest.param([0], 0, True),
-        pytest.param(2, None, True),
-        pytest.param(10, None, True),
-    ],
-)
-def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
-    if error_expected:
-        with pytest.raises(MisconfigurationException, match=r".*tpu_cores` can only be 1, 8 or [<1-8>]*"):
-            Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores, auto_select_gpus=True)
-    else:
-        trainer = Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores, auto_select_gpus=True)
-        assert trainer.tpu_id == expected_tpu_id
 
 
 @pytest.mark.parametrize(
@@ -1369,7 +1408,8 @@ def test_trainer_setup_call(tmpdir):
             self.stage = stage
 
     class TrainerSubclass(Trainer):
-        def setup(self, stage):
+        def setup(self, model, stage):
+            assert model is not None
             self.stage = stage
 
     model = CurrentModel()
@@ -1408,3 +1448,32 @@ def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, l
     trainer.fit(model)
     expected_calls = [call(metrics=ANY, step=s) for s in range(log_interval - 1, max_steps, log_interval)]
     log_metrics_mock.assert_has_calls(expected_calls)
+
+
+@pytest.mark.parametrize(['profiler', 'expected'], [
+    (None, PassThroughProfiler),
+    (SimpleProfiler(), SimpleProfiler),
+    (AdvancedProfiler(), AdvancedProfiler),
+    ('simple', SimpleProfiler),
+    ('Simple', SimpleProfiler),
+    ('advanced', AdvancedProfiler),
+])
+def test_trainer_profiler_correct_args(profiler, expected):
+    kwargs = {'profiler': profiler} if profiler is not None else {}
+    trainer = Trainer(**kwargs)
+    assert isinstance(trainer.profiler, expected)
+
+
+def test_trainer_profiler_incorrect_str_arg():
+    with pytest.raises(ValueError, match=r".*can only be 'simple' or 'advanced'"):
+        Trainer(profiler="unknown_profiler")
+
+
+@pytest.mark.parametrize('profiler', (
+    42, [42], {"a": 42}, torch.tensor(42), Trainer(),
+))
+def test_trainer_profiler_incorrect_arg_type(profiler):
+    with pytest.raises(MisconfigurationException,
+                       match=r"Only None, bool, str and subclasses of `BaseProfiler` "
+                       r"are valid values for `Trainer`'s `profiler` parameter. *"):
+        Trainer(profiler=profiler)

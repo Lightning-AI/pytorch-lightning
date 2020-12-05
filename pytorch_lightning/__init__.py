@@ -1,6 +1,6 @@
 """Root package info."""
 
-__version__ = '1.0.4rc0'
+__version__ = '1.1.0rc1'
 __author__ = 'William Falcon et al.'
 __author_email__ = 'waf2107@columbia.edu'
 __license__ = 'Apache-2.0'
@@ -34,10 +34,14 @@ Documentation
 """
 
 import logging as python_logging
+import os
 
 _logger = python_logging.getLogger("lightning")
 _logger.addHandler(python_logging.StreamHandler())
 _logger.setLevel(python_logging.INFO)
+
+PACKAGE_ROOT = os.path.dirname(__file__)
+PROJECT_ROOT = os.path.dirname(PACKAGE_ROOT)
 
 try:
     # This variable is injected in the __builtins__ by the build
@@ -53,11 +57,11 @@ if __LIGHTNING_SETUP__:
     sys.stdout.write(f'Partial import of `{__name__}` during the build process.\n')  # pragma: no-cover
     # We are not importing the rest of the lightning during the build process, as it may not be compiled yet
 else:
-    from pytorch_lightning.core import LightningDataModule, LightningModule
+    from pytorch_lightning import metrics
     from pytorch_lightning.callbacks import Callback
+    from pytorch_lightning.core import LightningDataModule, LightningModule
     from pytorch_lightning.trainer import Trainer
     from pytorch_lightning.utilities.seed import seed_everything
-    from pytorch_lightning import metrics
 
     __all__ = [
         'Trainer',
@@ -67,13 +71,6 @@ else:
         'seed_everything',
         'metrics',
     ]
-
-    # necessary for regular bolts imports. Skip exception since bolts is not always installed
-    try:
-        from pytorch_lightning import bolts
-    except ImportError:
-        pass
-    # __call__ = __all__
 
 # for compatibility with namespace packages
 __import__('pkg_resources').declare_namespace(__name__)

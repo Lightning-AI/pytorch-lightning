@@ -13,35 +13,46 @@
 # limitations under the License
 import os
 import re
-from typing import List, Optional
+from typing import Any, List, Optional, Union
 
 import torch
-import torch.multiprocessing as mp
 import torch.distributed as torch_distrib
 import torch.distributed as dist
+import torch.multiprocessing as mp
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities.cloud_io import atomic_save, load as pl_load
-from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, find_free_network_port
+from pytorch_lightning.distributed import LightningDistributed
+from pytorch_lightning.utilities import HYDRA_AVAILABLE, AMPType
+from pytorch_lightning.utilities.cloud_io import atomic_save
+from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities.distributed import (
+    find_free_network_port,
+    rank_zero_only,
+    rank_zero_warn,
+    sync_ddp_if_available,
+)
 from pytorch_lightning.utilities.seed import seed_everything
-from pytorch_lightning.distributed.dist import LightningDistributed
 
-try:
+if HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig
     from hydra.utils import get_original_cwd, to_absolute_path
-except ImportError:
-    HYDRA_AVAILABLE = False
-else:
-    HYDRA_AVAILABLE = True
 
 
 class DDPSpawnAccelerator(Accelerator):
 
     def __init__(self, trainer, nprocs, cluster_environment=None, ddp_plugin=None):
+        """
+        Runs training using DDP using mp.spawn via manual launch (not cluster launch)
+
+        Example::
+
+            # default
+            trainer = Trainer(accelerator=DDPSpawnAccelerator())
+
+        """
         super().__init__(trainer, cluster_environment, ddp_plugin)
         self.mp_queue = None
         self.nprocs = nprocs
@@ -135,6 +146,8 @@ class DDPSpawnAccelerator(Accelerator):
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
 
+        self.trainer.convert_to_lightning_optimizers()
+
         # device ids change depending on the DDP setup
         device_ids = self.get_device_ids()
 
@@ -162,7 +175,7 @@ class DDPSpawnAccelerator(Accelerator):
         self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
     def model_to_device(self, model, process_idx, is_master):
-        gpu_idx = process_idx
+        gpu_idx = self.trainer.data_parallel_device_ids[self.trainer.local_rank]
         self.trainer.root_gpu = gpu_idx
         torch.cuda.set_device(self.trainer.root_gpu)
         model.cuda(self.trainer.root_gpu)
@@ -172,19 +185,21 @@ class DDPSpawnAccelerator(Accelerator):
         return device_ids
 
     def training_step(self, args):
+        return self._step(args)
+
+    def validation_step(self, args):
+        return self._step(args)
+
+    def test_step(self, args):
+        return self._step(args)
+
+    def _step(self, args):
+        args = self.ddp_plugin.on_before_forward(self.trainer.get_model(), *args)
         if self.trainer.amp_backend == AMPType.NATIVE:
             with torch.cuda.amp.autocast():
                 output = self.trainer.model(*args)
         else:
             output = self.trainer.model(*args)
-        return output
-
-    def validation_step(self, args):
-        output = self.training_step(args)
-        return output
-
-    def test_step(self, args):
-        output = self.training_step(args)
         return output
 
     def barrier(self, name: Optional[str] = None):
@@ -254,3 +269,12 @@ class DDPSpawnAccelerator(Accelerator):
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
 
         return model
+
+    def sync_tensor(self,
+                    tensor: Union[torch.Tensor],
+                    group: Optional[Any] = None,
+                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
+        return sync_ddp_if_available(tensor, group, reduce_op)
+
+    def get_reference_model(self, model) -> LightningModule:
+        return self.ddp_plugin.get_model_from_plugin(model)

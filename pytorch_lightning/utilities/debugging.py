@@ -37,7 +37,6 @@ def enabled_only(fn: Callable):
 class InternalDebugger(object):
 
     def __init__(self, trainer):
-
         self.enabled = os.environ.get('PL_DEV_DEBUG', '0') == '1'
         self.trainer = trainer
         self.logged_metrics = []
@@ -88,7 +87,7 @@ class InternalDebugger(object):
         for dl in dataloaders:
             try:
                 length = len(dl)
-            except Exception as e:
+            except Exception:
                 length = -1
             lengths.append(length)
 

@@ -26,10 +26,10 @@ class TrainerCallbackHookMixin(ABC):
     callbacks: List[Callback] = []
     get_model: Callable
 
-    def setup(self, stage: str):
+    def setup(self, model, stage: str):
         """Called in the beginning of fit and test"""
         for callback in self.callbacks:
-            callback.setup(self, self.get_model(), stage)
+            callback.setup(self, model, stage)
 
     def teardown(self, stage: str):
         """Called at the end of fit and test"""
@@ -209,3 +209,17 @@ class TrainerCallbackHookMixin(ABC):
             if state:
                 state = deepcopy(state)
                 callback.on_load_checkpoint(state)
+
+    def on_after_backward(self):
+        """
+        Called after loss.backward() and before optimizers do anything.
+        """
+        for callback in self.callbacks:
+            callback.on_after_backward(self, self.get_model())
+
+    def on_before_zero_grad(self, optimizer):
+        """
+        Called after optimizer.step() and before optimizer.zero_grad().
+        """
+        for callback in self.callbacks:
+            callback.on_before_zero_grad(self, self.get_model(), optimizer)

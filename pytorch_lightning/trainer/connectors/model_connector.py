@@ -17,10 +17,6 @@ Root module for all distributed operations in Lightning.
 Currently supports training on CPU, GPU (dp, ddp, ddp2, horovod) and TPU.
 
 """
-from pytorch_lightning.overrides.data_parallel import (
-    LightningDistributedDataParallel,
-    LightningDataParallel,
-)
 
 
 class ModelConnector:
@@ -28,12 +24,10 @@ class ModelConnector:
         self.trainer = trainer
 
     def copy_trainer_model_properties(self, model):
-        if isinstance(model, LightningDataParallel):
-            ref_model = model.module
-        elif isinstance(model, LightningDistributedDataParallel):
-            ref_model = model.module
-        else:
-            ref_model = model
+        ref_model = self._get_reference_model(model)
+
+        automatic_optimization = ref_model.automatic_optimization and self.trainer.train_loop.automatic_optimization
+        self.trainer.train_loop.automatic_optimization = automatic_optimization
 
         for m in [model, ref_model]:
             m.trainer = self.trainer
@@ -52,6 +46,9 @@ class ModelConnector:
             m.local_rank = self.trainer.local_rank
 
     def get_model(self):
-        is_dp_module = isinstance(self.trainer.model, (LightningDistributedDataParallel, LightningDataParallel))
-        model = self.trainer.model.module if is_dp_module else self.trainer.model
+        return self._get_reference_model(self.trainer.model)
+
+    def _get_reference_model(self, model):
+        if self.trainer.accelerator_backend:
+            return self.trainer.accelerator_backend.get_reference_model(model)
         return model

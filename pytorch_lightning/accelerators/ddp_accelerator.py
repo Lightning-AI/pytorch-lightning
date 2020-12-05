@@ -12,40 +12,43 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 import os
-import torch
-import torch.distributed as torch_distrib
 import subprocess
 import sys
 from os.path import abspath
 from time import sleep
-from typing import Optional, List
+from typing import Any, List, Optional, Union
 
 import numpy as np
-
-from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.distributed.dist import LightningDistributed
-from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities.distributed import find_free_network_port
-from pytorch_lightning.utilities.distributed import rank_zero_only
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.seed import seed_everything
+import torch
+import torch.distributed as torch_distrib
 from torch.nn.parallel import DistributedDataParallel
 
+from pytorch_lightning import _logger as log
+from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.utilities import HYDRA_AVAILABLE, AMPType
+from pytorch_lightning.utilities.distributed import find_free_network_port, rank_zero_only, sync_ddp_if_available
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.seed import seed_everything
 
-try:
-    from hydra.utils import to_absolute_path, get_original_cwd
+if HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig
-except ImportError:
-    HYDRA_AVAILABLE = False
-else:
-    HYDRA_AVAILABLE = True
+    from hydra.utils import get_original_cwd, to_absolute_path
 
 
 class DDPAccelerator(Accelerator):
 
     def __init__(self, trainer, cluster_environment=None, ddp_plugin=None):
+        """
+        Runs training using DDP strategy on a single machine (manually, not via cluster start)
+
+        Example::
+
+            # default
+            trainer = Trainer(accelerator=DDPAccelerator())
+
+        """
         super().__init__(trainer, cluster_environment, ddp_plugin)
         self.task_idx = None
         self._has_spawned_children = False
@@ -62,7 +65,7 @@ class DDPAccelerator(Accelerator):
             self._call_children_scripts()
 
         # set the task idx
-        self.task_idx = int(os.environ['PL_DDP_PID'])
+        self.task_idx = int(os.environ['LOCAL_RANK'])
 
     def _call_children_scripts(self):
         assert self.trainer.global_rank == 0
@@ -106,19 +109,14 @@ class DDPAccelerator(Accelerator):
         if self.trainer.logger is not None:
             os.environ['PL_EXP_VERSION'] = str(self.trainer.logger.version)
 
-        gpu_ids = os.environ.get('CUDA_VISIBLE_DEVICES', '')
-        if len(gpu_ids) == 1:
-            gpu_ids = f'{gpu_ids},'
-
-        num_gpus = max(1, len(gpu_ids.split(',')))
-
+        num_gpus = len(self.trainer.data_parallel_device_ids)
         os.environ['WORLD_SIZE'] = f'{num_gpus * self.trainer.num_nodes}'
 
         self.interactive_ddp_procs = []
         for local_rank in range(1, self.trainer.num_processes):
             env_copy = os.environ.copy()
             env_copy['LOCAL_RANK'] = f'{local_rank}'
-            env_copy['PL_DDP_PID'] = str(self.trainer.data_parallel_device_ids[local_rank])
+
             # remove env var if global seed not set
             if os.environ.get('PL_GLOBAL_SEED') is None and 'PL_GLOBAL_SEED' in env_copy:
                 del env_copy['PL_GLOBAL_SEED']
@@ -137,8 +135,6 @@ class DDPAccelerator(Accelerator):
             delay = np.random.uniform(1, 5, 1)[0]
             sleep(delay)
 
-        os.environ['PL_DDP_PID'] = str(0)
-
     def train(self):
         model = self.trainer.model
 
@@ -148,19 +144,21 @@ class DDPAccelerator(Accelerator):
         return results
 
     def training_step(self, args):
+        return self._step(args)
+
+    def validation_step(self, args):
+        return self._step(args)
+
+    def test_step(self, args):
+        return self._step(args)
+
+    def _step(self, args):
+        args = self.ddp_plugin.on_before_forward(self.trainer.get_model(), *args)
         if self.trainer.amp_backend == AMPType.NATIVE:
             with torch.cuda.amp.autocast():
                 output = self.trainer.model(*args)
         else:
             output = self.trainer.model(*args)
-        return output
-
-    def validation_step(self, args):
-        output = self.training_step(args)
-        return output
-
-    def test_step(self, args):
-        output = self.training_step(args)
         return output
 
     def barrier(self, name: Optional[str] = None):
@@ -180,7 +178,7 @@ class DDPAccelerator(Accelerator):
         self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
     def model_to_device(self, model, process_idx):
-        self.trainer.root_gpu = process_idx
+        self.trainer.root_gpu = self.trainer.data_parallel_device_ids[self.trainer.local_rank]
         torch.cuda.set_device(self.trainer.root_gpu)
         model.cuda(self.trainer.root_gpu)
 
@@ -265,6 +263,8 @@ class DDPAccelerator(Accelerator):
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
 
+        self.trainer.convert_to_lightning_optimizers()
+
         # device ids change depending on the DDP setup
         device_ids = self.get_device_ids()
 
@@ -305,3 +305,15 @@ class DDPAccelerator(Accelerator):
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
 
         return model
+
+    def sync_tensor(self,
+                    tensor: Union[torch.Tensor],
+                    group: Optional[Any] = None,
+                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
+        """
+
+        """
+        return sync_ddp_if_available(tensor, group, reduce_op)
+
+    def get_reference_model(self, model) -> LightningModule:
+        return self.ddp_plugin.get_model_from_plugin(model)

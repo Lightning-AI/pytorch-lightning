@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "lightning-geometric"
+version = "0.1.0"
+description = "TorchScripted Pytorch Geometric Examples with Pytorch Lightning"
+authors = ["Thomas Chaton <thomas.ai@grid.com>"]
+
+[tool.poetry.dependencies]
+python = "3.7.8"
+torch = "^1.6.0"
+torch-cluster = "^1.5.7"
+torch-sparse = "^0.6.7"
+torch-scatter = "^2.0.5"
+torch-geometric = "^1.6.1"
+pytorch-lightning = "^ 1.0.5"
+openmesh = "^1.1.4"
+torch-spline-conv = "^1.2.0"
+tqdm = "^4.50.0"
+pytest = "^6.1.0"
+
+[tool.poetry.dev-dependencies]
+black = {version = "^20.8b1", allow-prereleases = true}
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
