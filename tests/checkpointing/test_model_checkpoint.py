@@ -262,15 +262,15 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
 
 
 def test_model_checkpoint_file_extension(tmpdir):
-    
+
     # tests that format_checkpoint_name uses the user-defined FILE_EXTENSION
-    ckpt_name = ModelCheckpoint(monitor='early_stop_on', dirpath='.').format_checkpoint_name(0, 1, {}) 
+    ckpt_name = ModelCheckpoint(monitor='early_stop_on', dirpath='.').format_checkpoint_name(0, 1, {})
     ModelCheckpoint.FILE_EXTENSION = '.tpkc'
     tpkc_name = ModelCheckpoint(monitor='early_stop_on', dirpath='.').format_checkpoint_name(0, 1, {})
     assert ckpt_name == str(Path('.').resolve() / 'epoch=0-step=1.ckpt')
     assert tpkc_name == str(Path('.').resolve() / 'epoch=0-step=1.tpkc')
-    
-    #tests that _save_last_checkpoint uses the user-defined FILE_EXTENSION
+
+    # tests that _save_last_checkpoint uses the user-defined FILE_EXTENSION
     seed_everything()
     model = LogInTwoMethods()
     epochs = 1
@@ -291,9 +291,9 @@ def test_model_checkpoint_file_extension(tmpdir):
     last_filename = last_filename + '.tpkc'
     assert str(tmpdir / last_filename) == model_checkpoint.last_model_path
     
-    #Reset model checkpoint file extension so it does not break other tests
+    # Reset model checkpoint file extension so it does not break other tests
     ModelCheckpoint.FILE_EXTENSION = '.ckpt'
-     
+
 
 def test_model_checkpoint_save_last(tmpdir):
     """Tests that save_last produces only one last checkpoint."""
