@@ -79,9 +79,10 @@ class LightningOptimizer:
     def _on_trainer_init(self, trainer):
         self._trainer = proxy(trainer)
         self._automatic_optimization = trainer.train_loop.automatic_optimization
-        for opt_idx, opt in trainer.optimizers:
+        for opt_idx, opt in enumerate(trainer.optimizers):
             if opt == self:
                 self._optimizer_idx = opt_idx
+                break
 
     def _accumulated_batches_reached(self):
         if self._accumulate_grad_batches is None:
@@ -94,6 +95,32 @@ class LightningOptimizer:
         accumulation_done = self._accumulated_batches_reached()
         is_final_batch = self._trainer.train_loop._num_training_batches_reached()
         return not (accumulation_done or is_final_batch)
+
+    def __optimizer_step(self, *args, closure: Optional[Callable] = None, profiler_name: str = None, **kwargs):
+        trainer = self._trainer
+        optimizer = self._optimizer
+        model = trainer.get_model()
+
+        if trainer.on_tpu:
+            with trainer.profiler.profile(profiler_name):
+                xm.optimizer_step(optimizer, optimizer_args={'closure': closure, **kwargs})
+
+        elif trainer.amp_backend is not None:
+            trainer.precision_connector.backend.optimizer_step(
+                trainer, optimizer, closure)
+
+        else:
+            with trainer.profiler.profile(profiler_name):
+                optimizer.step(closure=closure, *args, **kwargs)
+
+        trainer.train_loop.on_before_zero_grad(self)
+
+        model.optimizer_zero_grad(
+            trainer.current_epoch,
+            trainer.batch_idx,
+            optimizer,
+            self._optimizer_idx
+        )
 
     def step(self, *args, closure: Optional[Callable] = None, make_optimizer_step: Optional[bool] = None, **kwargs):
         """
@@ -211,30 +238,11 @@ class LightningOptimizer:
         optimizer = self._optimizer
 
         if make_optimizer_step:
-
-            model = trainer.get_model()
-
-            if trainer.on_tpu:
-                with trainer.profiler.profile(profiler_name):
-                    xm.optimizer_step(optimizer, optimizer_args={'closure': closure, **kwargs})
-
-            elif trainer.amp_backend is not None:
-                trainer.precision_connector.backend.optimizer_step(
-                    trainer, optimizer, closure)
-
-            else:
-                with trainer.profiler.profile(profiler_name):
-                    optimizer.step(closure=closure, *args, **kwargs)
-
-            trainer.train_loop.on_before_zero_grad(self)
-
-            model.optimizer_zero_grad(trainer.batch_idx, optimizer, self._optimizer_idx)
-
+            self.__optimizer_step(*args, closure=closure, profiler_name=profiler_name, **kwargs)
         else:
             # make sure to call optimizer_closure when accumulating
-            with trainer.profiler.profile("closure"):
-                with trainer.train_loop.block_ddp_sync_behaviour():
-                    closure()
+            with self._trainer.profiler.profile("closure"), self._trainer.train_loop.block_ddp_sync_behaviour():
+                closure()
 
     def __repr__(self):
         groups = [
