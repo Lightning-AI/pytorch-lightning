@@ -503,9 +503,6 @@ class TrainLoop:
     def on_before_zero_grad(self, optimizer):
         self.trainer.call_hook('on_before_zero_grad', optimizer)
 
-    def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
-        self.trainer.accelerator_backend.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
-
     def track_and_norm_grad(self, optimizer):
         # track gradient norms
         grad_norm_dic = self._track_gradient_norm()
@@ -724,7 +721,6 @@ class TrainLoop:
                     if self._curr_step_result is None:
                         # user decided to skip optimization
                         # make sure to zero grad.
-                        self.zero_grad_handler(batch_idx, optimizer, opt_idx)
                         continue
 
                     batch_outputs = self._process_closure_result(
@@ -735,9 +731,6 @@ class TrainLoop:
                     # todo: Properly aggregate grad_norm accros opt_idx and split_idx
                     grad_norm_dic = self._cur_grad_norm_dict
                     self._cur_grad_norm_dict = None
-
-                    # hook + clear gradients
-                    self.zero_grad_handler(batch_idx, optimizer, opt_idx)
 
                     # update running loss + reset accumulated loss
                     self.update_running_loss()
@@ -963,13 +956,3 @@ class TrainLoop:
 
         # reset for next set of accumulated grads
         self.accumulated_loss.reset()
-
-    def zero_grad_handler(self, batch_idx, optimizer, opt_idx):
-        has_optimizer_step = is_overridden('optimizer_step', self.trainer.get_model())
-        if not has_optimizer_step and self.automatic_optimization and not self.trainer._enable_pl_optimizer:
-            # hook
-            self.on_before_zero_grad(optimizer)
-            optimizers = enumerate([optimizer])
-
-            for idx, optimizer in optimizers:
-                self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)

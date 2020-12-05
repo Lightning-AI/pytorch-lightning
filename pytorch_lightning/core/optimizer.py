@@ -61,6 +61,7 @@ class LightningOptimizer:
         self._optimizer = optimizer
         self._accumulate_grad_batches = accumulate_grad_batches
         self._automatic_optimization = None
+        self._optimizer_idx = None
 
     @property
     def accumulate_grad_batches(self):
@@ -78,6 +79,9 @@ class LightningOptimizer:
     def _on_trainer_init(self, trainer):
         self._trainer = proxy(trainer)
         self._automatic_optimization = trainer.train_loop.automatic_optimization
+        for opt_idx, opt in trainer.optimizers:
+            if opt == self:
+                self._optimizer_idx = opt_idx
 
     def _accumulated_batches_reached(self):
         if self._accumulate_grad_batches is None:
@@ -207,6 +211,9 @@ class LightningOptimizer:
         optimizer = self._optimizer
 
         if make_optimizer_step:
+
+            model = trainer.get_model()
+
             if trainer.on_tpu:
                 with trainer.profiler.profile(profiler_name):
                     xm.optimizer_step(optimizer, optimizer_args={'closure': closure, **kwargs})
@@ -219,9 +226,9 @@ class LightningOptimizer:
                 with trainer.profiler.profile(profiler_name):
                     optimizer.step(closure=closure, *args, **kwargs)
 
-            self._trainer.train_loop.on_before_zero_grad(self)
+            trainer.train_loop.on_before_zero_grad(self)
 
-            self.zero_grad()
+            model.optimizer_zero_grad(trainer.batch_idx, optimizer, self._optimizer_idx)
 
         else:
             # make sure to call optimizer_closure when accumulating

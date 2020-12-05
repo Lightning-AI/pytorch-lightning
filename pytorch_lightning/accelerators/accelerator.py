@@ -99,10 +99,6 @@ class Accelerator(object):
             closure_loss = closure_loss.detach()
         return closure_loss
 
-    def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
-        model_ref = self.trainer.get_model()
-        model_ref.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
-
     def clip_gradients(self, optimizer, clip_val=None):
         # use the trainer's clip val if none passed
         grad_clip_val = self.trainer.gradient_clip_val
