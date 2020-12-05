@@ -217,3 +217,29 @@ class AverageValueMeter:
         self.mean_old = 0.0
         self.m_s = 0.0
         self.std = np.nan
+
+
+class GradNormTracker:
+
+    def __init__(self):
+        self._grad_norm_dic = {}
+
+    def track_norm(self, grad_norm_dic):
+        for name, norm in grad_norm_dic.items():
+            if name not in self._grad_norm_dic:
+                self._grad_norm_dic[name] = AverageValueMeter()
+            self._grad_norm_dic[name].add(norm)
+
+    def _reduce(self):
+        reduced_norm = {}
+        for name, norm in self._grad_norm_dic.items():
+            mean, std = norm.value()
+            reduced_norm[f'{name}_mean'] = mean
+            reduced_norm[f'{name}_std'] = std
+        self._grad_norm_dic = reduced_norm
+
+    def get_and_reset(self):
+        self._reduce()
+        grad_norm_dic = self._grad_norm_dic
+        self._grad_norm_dic = {}
+        return grad_norm_dic

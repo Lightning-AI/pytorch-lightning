@@ -25,7 +25,7 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
+from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum, GradNormTracker
 from pytorch_lightning.utilities import AMPType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -654,6 +654,8 @@ class TrainLoop:
         # lightning module hook
         splits = self.tbptt_split_batch(batch)
 
+        grad_tracker = GradNormTracker()
+
         for split_idx, split_batch in enumerate(splits):
 
             # create an iterable for optimizers and loop over them
@@ -718,15 +720,18 @@ class TrainLoop:
                         opt_idx=opt_idx,
                     )
 
-                    # todo: Properly aggregate grad_norm accros opt_idx and split_idx
                     grad_norm_dic = self._cur_grad_norm_dict
                     self._cur_grad_norm_dict = None
+
+                    grad_tracker.track_norm(grad_norm_dic)
 
                     # hook + clear gradients
                     self.zero_grad_handler(batch_idx, optimizer, opt_idx)
 
                     # update running loss + reset accumulated loss
                     self.update_running_loss()
+
+        grad_norm_dic = grad_tracker.get_and_reset()
 
         result = AttributeDict(
             signal=0,
