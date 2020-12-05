@@ -56,9 +56,20 @@ def test_grad_norm_track():
 
     trainer.fit(model)
 
-    first_optimizer = ('grad_2.0_norm_first.weight', 'grad_2.0_norm_first.bias', 'grad_2.0_norm_total')
+    keys = list(trainer.logged_metrics.keys())
+    first_optimizer = ('grad_2.0_norm_first.weight_mean',
+                       'grad_2.0_norm_first.weight_std',
+                       'grad_2.0_norm_first.bias_mean',
+                       'grad_2.0_norm_first.bias_std',
+                       'grad_2.0_norm_total_mean',
+                       'grad_2.0_norm_total_std')
     assert all([trainer.logged_metrics[key] > 0.0 for key in first_optimizer]), f'Grad norm not logged for first optimizer'
 
-    second_optimizer = ('grad_2.0_norm_second.weight', 'grad_2.0_norm_second.bias', 'grad_2.0_norm_total')
+    second_optimizer = ('grad_2.0_norm_second.weight_mean',
+                        'grad_2.0_norm_second.weight_std',
+                        'grad_2.0_norm_second.bias_mean',
+                        'grad_2.0_norm_second.bias_std',
+                        'grad_2.0_norm_total_mean',
+                        'grad_2.0_norm_total_std')
     assert all([trainer.logged_metrics[key] > 0.0 for key in second_optimizer]), f'Grad norm not logged for second optimizer'
 
