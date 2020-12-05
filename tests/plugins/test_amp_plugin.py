@@ -112,7 +112,6 @@ def test_amp_gradient_unscale(tmpdir):
 
 class UnscaleAccumulateGradBatchesBoringModel(BoringModel):
 
-
     def on_after_backward(self):
         norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
         if not (torch.isinf(norm) or torch.isnan(norm)):
