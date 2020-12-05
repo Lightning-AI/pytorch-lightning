@@ -16,14 +16,15 @@ from enum import Enum
 from typing import Any, Optional, Union
 
 import torch
+import torch.distributed as torch_distrib
 from torch.optim import Optimizer
 
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
-from pytorch_lightning.core.lightning import LightningModule
-import torch.distributed as torch_distrib
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
@@ -100,7 +101,11 @@ class Accelerator(object):
 
     def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure, *args, **kwargs):
         model_ref = self.trainer.get_model()
-        is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
+
+        if isinstance(optimizer, LightningOptimizer):
+            is_lbfgs = isinstance(optimizer._optimizer, torch.optim.LBFGS)
+        else:
+            is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
         using_native_amp = self.trainer.amp_backend == AMPType.NATIVE
         automatic_optimization = self.trainer.train_loop.automatic_optimization
 

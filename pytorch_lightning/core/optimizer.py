@@ -35,7 +35,7 @@ def do_nothing_closure():
 class LightningOptimizer:
     """
     This class is used to wrap the user optimizers and handle properly
-    the backward and optimizer_step logic across accelerators, AMP, accumulated_grad_batches
+    the backward and optimizer_step logic across accelerators, AMP, accumulate_grad_batches
     """
     def __init__(self,
                  optimizer: Optimizer,
@@ -60,17 +60,30 @@ class LightningOptimizer:
         self._trainer = None
         self._optimizer = optimizer
         self._accumulate_grad_batches = accumulate_grad_batches
-        self._use_accumulate_grad_batches_from_trainer = accumulate_grad_batches is None
+        self._automatic_optimization = None
+
+    @property
+    def accumulate_grad_batches(self):
+        return self._accumulate_grad_batches
+
+    @accumulate_grad_batches.setter
+    def accumulate_grad_batches(self, accumulate_grad_batches):
+        if self._automatic_optimization is None or self._automatic_optimization:
+            raise MisconfigurationException(
+                'In automatic optimization, `make_optimizer_step` should be None. '
+                'This option is enabled only with Trainer(automatic_optimization=False) '
+                'Currently, all optimizers follow the Trainer(accumulate_grad_batches=x) logic')
+        self._accumulate_grad_batches = accumulate_grad_batches
 
     def _on_trainer_init(self, trainer):
         self._trainer = proxy(trainer)
+        self._automatic_optimization = trainer.train_loop.automatic_optimization
 
     def _accumulated_batches_reached(self):
-        if self._use_accumulate_grad_batches_from_trainer:
-            accumulate_grad_batches = self._trainer.accumulate_grad_batches
+        if self._accumulate_grad_batches is None:
+            return self._trainer.train_loop._accumulated_batches_reached()
         else:
-            accumulate_grad_batches = self._accumulate_grad_batches
-        return (self._trainer.batch_idx + 1) % accumulate_grad_batches == 0
+            return (self._trainer.batch_idx + 1) % self._accumulate_grad_batches == 0
 
     @property
     def _should_accumulate(self):
@@ -184,6 +197,12 @@ class LightningOptimizer:
 
         if make_optimizer_step is None:
             make_optimizer_step = not self._should_accumulate
+        else:
+            if self._automatic_optimization:
+                raise MisconfigurationException(
+                    'In automatic optimization, `make_optimizer_step` should be None. '
+                    'This option is enabled only with Trainer(automatic_optimization=False) '
+                    'Currently, all optimizers follow the Trainer(accumulate_grad_batches=x) logic')
 
         trainer = self._trainer
         optimizer = self._optimizer
@@ -201,8 +220,10 @@ class LightningOptimizer:
                 with trainer.profiler.profile(profiler_name):
                     optimizer.step(closure=closure, *args, **kwargs)
 
-            # perform zero grad
-            optimizer.zero_grad()
+            self._trainer.train_loop.on_before_zero_grad(optimizer)
+
+            self.zero_grad()
+
         else:
             # make sure to call optimizer_closure when accumulating
             with trainer.profiler.profile("closure"):

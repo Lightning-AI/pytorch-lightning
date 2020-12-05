@@ -23,7 +23,14 @@ from torch.optim import Optimizer
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.utilities import TPU_AVAILABLE, rank_zero_info, rank_zero_only, rank_zero_warn, move_data_to_device
+from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.utilities import (
+    TPU_AVAILABLE,
+    move_data_to_device,
+    rank_zero_info,
+    rank_zero_only,
+    rank_zero_warn,
+)
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -247,7 +254,10 @@ class TPUAccelerator(Accelerator):
 
     def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure, *args, **kwargs):
         model_ref = self.trainer.get_model()
-        is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
+        if isinstance(optimizer, LightningOptimizer):
+            is_lbfgs = isinstance(optimizer._optimizer, torch.optim.LBFGS)
+        else:
+            is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
 
         # model hook
         model_ref.optimizer_step(

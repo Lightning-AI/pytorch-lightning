@@ -476,13 +476,9 @@ class TrainLoop:
 
     def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure, *args, **kwargs):
         # optimizer step lightningModule hook
-        if isinstance(optimizer, LightningOptimizer):
-            optimizer.step(closure=train_step_and_backward_closure)
-        else:
-            with self.trainer.profiler.profile("optimizer_step"):
-                self.trainer.accelerator_backend.optimizer_step(
-                    optimizer, batch_idx, opt_idx, train_step_and_backward_closure, *args, **kwargs
-                )
+        self.trainer.accelerator_backend.optimizer_step(
+            optimizer, batch_idx, opt_idx, train_step_and_backward_closure, *args, **kwargs
+        )
 
     def on_before_zero_grad(self, optimizer):
         self.trainer.call_hook('on_before_zero_grad', optimizer)
@@ -949,12 +945,11 @@ class TrainLoop:
         self.accumulated_loss.reset()
 
     def zero_grad_handler(self, batch_idx, optimizer, opt_idx):
-        if self.automatic_optimization:
+        has_optimizer_step = is_overridden('optimizer_step', self.trainer.get_model())
+        if not has_optimizer_step and self.automatic_optimization and not self.trainer._enable_pl_optimizer:
             # hook
             self.on_before_zero_grad(optimizer)
             optimizers = enumerate([optimizer])
-        else:
-            optimizers = []
 
-        for idx, optimizer in optimizers:
-            self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
+            for idx, optimizer in optimizers:
+                self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
