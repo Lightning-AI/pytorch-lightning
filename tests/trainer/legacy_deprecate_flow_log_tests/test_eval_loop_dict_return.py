@@ -14,6 +14,7 @@
 """
 Tests to ensure that the training loop works with a dict
 """
+import os
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
@@ -43,7 +44,7 @@ def test_validation_step_no_return(tmpdir):
     # out are the results of the full loop
     # eval_results are output of _evaluate
     out, eval_results = trainer.run_evaluation(test_mode=False)
-    assert len(out) == 0
+    assert len(out) == 1
     assert len(eval_results) == 0
 
     # make sure correct steps were called
@@ -74,7 +75,7 @@ def test_validation_step_scalar_return(tmpdir):
     # out are the results of the full loop
     # eval_results are output of _evaluate
     out, eval_results = trainer.run_evaluation(test_mode=False)
-    assert len(out) == 0
+    assert len(out) == 1
     assert len(eval_results) == 2
     assert eval_results[0] == 171 and eval_results[1] == 171
 
@@ -106,7 +107,7 @@ def test_validation_step_arbitrary_dict_return(tmpdir):
     # out are the results of the full loop
     # eval_results are output of _evaluate
     callback_metrics, eval_results = trainer.run_evaluation(test_mode=False)
-    assert len(callback_metrics) == 2
+    assert len(callback_metrics) == 1
     assert len(eval_results) == 2
     assert eval_results[0]['some'] == 171
     assert eval_results[1]['some'] == 171
@@ -125,6 +126,7 @@ def test_validation_step_dict_return(tmpdir):
     Test that val step can return a dict with all the expected keys and they end up
     in the correct place
     """
+
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
     model.validation_step = model.validation_step_dict_return
@@ -143,7 +145,7 @@ def test_validation_step_dict_return(tmpdir):
     # out are the results of the full loop
     # eval_results are output of _evaluate
     callback_metrics, eval_results = trainer.run_evaluation(test_mode=False)
-    assert len(callback_metrics) == 2
+    assert len(callback_metrics) == 1
     assert len(callback_metrics[0]) == 5
     assert len(eval_results) == 2
     assert eval_results[0]['log']['log_acc1'] == 12
@@ -166,6 +168,7 @@ def test_val_step_step_end_no_return(tmpdir):
     """
     Test that val step + val step end work (with no return in val step end)
     """
+
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
     model.validation_step = model.validation_step_dict_return
@@ -184,7 +187,7 @@ def test_val_step_step_end_no_return(tmpdir):
     # out are the results of the full loop
     # eval_results are output of _evaluate
     callback_metrics, eval_results = trainer.run_evaluation(test_mode=False)
-    assert len(callback_metrics) == 0
+    assert len(callback_metrics) == 1
     assert len(eval_results) == 0
 
     # make sure correct steps were called
@@ -197,6 +200,7 @@ def test_val_step_step_end(tmpdir):
     """
     Test that val step + val step end work
     """
+
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
     model.validation_step = model.validation_step_dict_return
@@ -215,7 +219,7 @@ def test_val_step_step_end(tmpdir):
     # out are the results of the full loop
     # eval_results are output of _evaluate
     callback_metrics, eval_results = trainer.run_evaluation(test_mode=False)
-    assert len(callback_metrics) == 2
+    assert len(callback_metrics) == 1
     assert len(callback_metrics[0]) == 6
 
     callback_metrics = callback_metrics[0]
@@ -241,6 +245,7 @@ def test_no_val_step_end(tmpdir):
     """
     Test that val step + val epoch end
     """
+
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
     model.validation_step = model.validation_step_dict_return
@@ -284,6 +289,7 @@ def test_full_val_loop(tmpdir):
     """
     Test that val step + val step end + val epoch end
     """
+
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
     model.validation_step = model.validation_step_dict_return

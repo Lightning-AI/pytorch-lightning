@@ -1,24 +1,41 @@
 """Test deprecated functionality which will be removed in vX.Y.Z"""
-from argparse import ArgumentParser
-import pytest
 import sys
+from argparse import ArgumentParser
 from unittest import mock
 
+import pytest
 import torch
 
-from tests.base import EvalModelTemplate
+from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.metrics.functional.classification import auc
-
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.profiler.profilers import PassThroughProfiler, SimpleProfiler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.base import EvalModelTemplate
 
 
 def test_tbd_remove_in_v1_3_0(tmpdir):
     with pytest.deprecated_call(match='will no longer be supported in v1.3'):
         callback = ModelCheckpoint()
         Trainer(checkpoint_callback=callback, callbacks=[], default_root_dir=tmpdir)
+
+    # Deprecate prefix
+    with pytest.deprecated_call(match='will be removed in v1.3'):
+        ModelCheckpoint(prefix='temp')
+
+    # Deprecate auto mode
+    with pytest.deprecated_call(match='will be removed in v1.3'):
+        ModelCheckpoint(mode='auto')
+
+    with pytest.deprecated_call(match='will be removed in v1.3'):
+        EarlyStopping(mode='auto')
+
+    with pytest.deprecated_call(match="The setter for self.hparams in LightningModule is deprecated"):
+        class DeprecatedHparamsModel(LightningModule):
+            def __init__(self, hparams):
+                super().__init__()
+                self.hparams = hparams
+        DeprecatedHparamsModel({})
 
 
 def test_tbd_remove_in_v1_2_0():
@@ -107,6 +124,6 @@ class ModelVer0_7(EvalModelTemplate):
         return {'test_loss': torch.tensor(0.7)}
 
 
-def test_auc_reorder_remove_in_v1_1_0():
+def test_reorder_remove_in_v1_1():
     with pytest.deprecated_call(match='The `reorder` parameter to `auc` has been deprecated'):
         _ = auc(torch.tensor([0, 1, 2, 3]), torch.tensor([0, 1, 2, 2]), reorder=True)

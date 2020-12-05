@@ -11,24 +11,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import math
-import functools
-from abc import ABC, abstractmethod
-from typing import Any, Callable, Optional, Union
-from collections.abc import Mapping, Sequence
-from collections import namedtuple
+from typing import Any, Callable, Optional
 
 import torch
-from torch import nn
+
 from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.metrics.utils import _input_format_classification
 
 
 class Accuracy(Metric):
-    """
-    Computes accuracy. Works with binary, multiclass, and multilabel data.
-    Accepts logits from a model output or integer class values in prediction.
-    Works with multi-dimensional preds and target.
+    r"""
+    Computes `Accuracy <https://en.wikipedia.org/wiki/Accuracy_and_precision>`_:
+
+    .. math:: \text{Accuracy} = \frac{1}{N}\sum_i^N 1(y_i = \hat{y_i})
+
+    Where :math:`y` is a tensor of target values, and :math:`\hat{y}` is a
+    tensor of predictions.  Works with binary, multiclass, and multilabel
+    data.  Accepts logits from a model output or integer class values in
+    prediction.  Works with multi-dimensional preds and target.
 
     Forward accepts
 
@@ -50,6 +50,9 @@ class Accuracy(Metric):
             before returning the value at the step. default: False
         process_group:
             Specify the process group on which synchronization is called. default: None (which selects the entire world)
+        dist_sync_fn:
+            Callback that performs the allgather operation on the metric state. When `None`, DDP
+            will be used to perform the allgather. default: None
 
     Example:
 
@@ -67,11 +70,13 @@ class Accuracy(Metric):
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
+        dist_sync_fn: Callable = None,
     ):
         super().__init__(
             compute_on_step=compute_on_step,
             dist_sync_on_step=dist_sync_on_step,
             process_group=process_group,
+            dist_sync_fn=dist_sync_fn,
         )
 
         self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")

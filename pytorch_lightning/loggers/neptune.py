@@ -13,8 +13,8 @@
 # limitations under the License.
 
 """
-Neptune
--------
+Neptune Logger
+--------------
 """
 from argparse import Namespace
 from typing import Any, Dict, Iterable, List, Optional, Union
@@ -36,7 +36,9 @@ from pytorch_lightning.utilities import rank_zero_only
 
 class NeptuneLogger(LightningLoggerBase):
     r"""
-    Log using `Neptune <https://neptune.ai>`_. Install it with pip:
+    Log using `Neptune <https://neptune.ai>`_.
+
+    Install it with pip:
 
     .. code-block:: bash
 
@@ -161,9 +163,16 @@ class NeptuneLogger(LightningLoggerBase):
         experiment_name: Optional. Editable name of the experiment.
             Name is displayed in the experiment’s Details (Metadata section) and
             in experiments view as a column.
+        experiment_id: Optional. Default is ``None``. The ID of the existing experiment.
+            If specified, connect to experiment with experiment_id in project_name.
+            Input arguments "experiment_name", "params", "properties" and "tags" will be overriden based
+            on fetched experiment data.
+        prefix: A string to put at the beginning of metric keys.
         \**kwargs: Additional arguments like `params`, `tags`, `properties`, etc. used by
             :func:`neptune.Session.create_experiment` can be passed as keyword arguments in this logger.
     """
+
+    LOGGER_JOIN_CHAR = '-'
 
     def __init__(
         self,
@@ -172,6 +181,8 @@ class NeptuneLogger(LightningLoggerBase):
         close_after_fit: Optional[bool] = True,
         offline_mode: bool = False,
         experiment_name: Optional[str] = None,
+        experiment_id: Optional[str] = None,
+        prefix: str = '',
         **kwargs
     ):
         if neptune is None:
@@ -183,8 +194,9 @@ class NeptuneLogger(LightningLoggerBase):
         self.offline_mode = offline_mode
         self.close_after_fit = close_after_fit
         self.experiment_name = experiment_name
+        self._prefix = prefix
         self._kwargs = kwargs
-        self._experiment_id = None
+        self.experiment_id = experiment_id
         self._experiment = self._create_or_get_experiment()
 
         log.info(f'NeptuneLogger will work in {"offline" if self.offline_mode else "online"} mode')
@@ -195,7 +207,7 @@ class NeptuneLogger(LightningLoggerBase):
         # Experiment cannot be pickled, and additionally its ID cannot be pickled in offline mode
         state['_experiment'] = None
         if self.offline_mode:
-            state['_experiment_id'] = None
+            state['experiment_id'] = None
 
         return state
 
@@ -240,6 +252,8 @@ class NeptuneLogger(LightningLoggerBase):
             step: Step number at which the metrics should be recorded, must be strictly increasing
         """
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
+
+        metrics = self._add_prefix(metrics)
         for key, val in metrics.items():
             self.log_metric(key, val, step=step)
 
@@ -366,10 +380,14 @@ class NeptuneLogger(LightningLoggerBase):
             session = neptune.Session.with_default_backend(api_token=self.api_key)
             project = session.get_project(self.project_name)
 
-        if self._experiment_id is None:
+        if self.experiment_id is None:
             exp = project.create_experiment(name=self.experiment_name, **self._kwargs)
+            self.experiment_id = exp.id
         else:
-            exp = project.get_experiments(id=self._experiment_id)[0]
+            exp = project.get_experiments(id=self.experiment_id)[0]
+            self.experiment_name = exp.get_system_properties()['name']
+            self.params = exp.get_parameters()
+            self.properties = exp.get_properties()
+            self.tags = exp.get_tags()
 
-        self._experiment_id = exp.id
         return exp

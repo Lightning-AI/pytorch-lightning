@@ -12,27 +12,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import ExitStack
-from typing import Optional
+from typing import Any, Optional, Union
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
-from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
+from pytorch_lightning.utilities import AMPType, HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
-try:
+if HOROVOD_AVAILABLE:
     import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
 
 
 class HorovodAccelerator(Accelerator):
     amp_backend: AMPType
 
     def __init__(self, trainer, cluster_environment=None):
+        """
+        Runs training using horovod
+
+        Example::
+
+            # default
+            trainer = Trainer(accelerator=HorovodAccelerator())
+
+        """
         super().__init__(trainer, cluster_environment)
         self.nickname = 'horovod'
 
@@ -83,6 +88,8 @@ class HorovodAccelerator(Accelerator):
 
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
+
+        self.trainer.convert_to_lightning_optimizers()
 
         # Update logger rank info from Horovod to avoid race conditions from  different ranks
         # creating directories / writing files in the same locations.
@@ -161,3 +168,41 @@ class HorovodAccelerator(Accelerator):
     def broadcast(self, obj, src=0):
         obj = hvd.broadcast_object(obj, src)
         return obj
+
+    def gather_all_tensors(self, result: Union[torch.Tensor], group: Optional[Any] = None):
+        if group is not None:
+            raise ValueError(
+                "Horovod does not support allgather using a subcommunicator at this time. "
+                "Unset `group`."
+            )
+
+        if len(result.shape) == 0:
+            # Convert scalars to single dimension tensors
+            result = result.reshape(1)
+
+        # sync and gather all
+        hvd.join()
+        gathered = hvd.allgather(result)
+        gathered_result = list(gathered.split(1, dim=0))
+        return gathered_result
+
+    def sync_tensor(self,
+                    tensor: Union[torch.Tensor],
+                    group: Optional[Any] = None,
+                    reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
+        if group is not None:
+            raise ValueError(
+                "Horovod does not support allreduce using a subcommunicator at this time. "
+                "Unset `group`."
+            )
+
+        if reduce_op is None or reduce_op == "sum":
+            reduce_op = hvd.Sum
+        elif isinstance(reduce_op, str) and reduce_op in ("avg", "mean"):
+            reduce_op = hvd.Average
+        else:
+            raise ValueError(f"unrecognized `reduce_op`: {reduce_op}")
+
+        # sync all processes before reduction
+        hvd.join()
+        return hvd.allreduce(tensor, op=reduce_op)

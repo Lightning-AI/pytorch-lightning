@@ -53,7 +53,10 @@ different fields contributing!
 The first 5 core contributors will fit this profile. Thus if you overlap strongly with experiences and expertise as someone else on the team, you might have to wait until the next set of contributors are added.
 
 #### Summary: Requirements to apply
-- Solve 10 Github issues. The goal is to be inline with expectations for solving issues by the last one so you can do them on your own. If not, I might ask you to solve a few more specific ones.
-- Do 10 PR reviews. The goal is to be inline with expectations for solving issues by the last one so you can do them on your own. If not, I might ask you to solve a few more specific ones.
+The goal is to be inline with expectations for solving issues by the last one so you can do them on your own. If not, I might ask you to solve a few more specific ones.
 
-If you want to be considered, ping me on gitter and start [tracking your progress here](https://docs.google.com/spreadsheets/d/15D58gp8DvI0Z6qbbYVRuaWioiwzafcP58-UlbuO_CMU/edit?usp=sharing).
+- Solve 10+ Github issues. 
+- Create 5+ meaningful PRs which solves some reported issue - bug,
+- Perform 10+ PR reviews from other contributors.
+
+If you want to be considered, ping me on [Slack](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A).

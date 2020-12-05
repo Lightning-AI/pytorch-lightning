@@ -28,6 +28,7 @@ FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel-ubuntu18.04
 
 ARG PYTHON_VERSION=3.7
 ARG PYTORCH_VERSION=1.6
+ARG CMAKE_VERSION=3.18.4
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
@@ -37,7 +38,7 @@ ENV TZ=Europe/Prague
 ENV PATH="$PATH:/root/.local/bin"
 ENV CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda"
 
-RUN apt-get update && \
+RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends \
         build-essential \
         pkg-config \
@@ -90,10 +91,19 @@ RUN \
     #pip install "torch==${PYTORCH_VERSION}.*" --pre && \
     # set particular PyTorch version
     python -c "import re ; fname = 'requirements.txt' ; req = re.sub(r'torch[>=]+[\d\.]+', 'torch==${PYTORCH_VERSION}.*', open(fname).read()) ; open(fname, 'w').write(req)" && \
-
+    # Drop fairscale for PT <= 1.4
+    if [[ $PYTORCH_VERSION < 1.4 ]] ; then \
+        python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)" ; \
+    fi && \
     # Install all requirements
+    # todo: find a way how to install nightly PT version
+    #  --pre --extra-index-url https://download.pytorch.org/whl/nightly/cu${cuda_ver[0]}${cuda_ver[1]}/torch_nightly.html
     pip install -r requirements/devel.txt --upgrade-strategy only-if-needed --use-feature=2020-resolver && \
     rm -rf requirements*
+
+RUN \
+    # install DALI, needed for examples
+    pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda${CUDA_VERSION%%.*}0
 
 RUN \
     # install NVIDIA AMP
@@ -105,5 +115,6 @@ RUN \
     # Show what we have
     pip --version && \
     pip list && \
+    python -c 'from nvidia.dali.pipeline import Pipeline' && \
     python -c "import sys; assert sys.version[:3] == '$PYTHON_VERSION', sys.version" && \
     python -c "import torch; assert torch.__version__[:3] == '$PYTORCH_VERSION', torch.__version__"

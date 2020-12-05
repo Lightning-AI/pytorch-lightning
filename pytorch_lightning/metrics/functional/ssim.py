@@ -14,22 +14,22 @@
 from typing import Optional, Sequence, Tuple
 
 import torch
-from pytorch_lightning.metrics.functional.reduction import reduce
-from pytorch_lightning.metrics.utils import _check_same_shape
 from torch.nn import functional as F
 
+from pytorch_lightning.metrics.utils import _check_same_shape, reduce
 
-def _gaussian_kernel(channel, kernel_size, sigma, device):
-    def _gaussian(kernel_size, sigma, device):
-        gauss = torch.arange(
-            start=(1 - kernel_size) / 2, end=(1 + kernel_size) / 2, step=1, dtype=torch.float32, device=device
-        )
-        gauss = torch.exp(-gauss.pow(2) / (2 * pow(sigma, 2)))
-        return (gauss / gauss.sum()).unsqueeze(dim=0)  # (1, kernel_size)
 
-    gaussian_kernel_x = _gaussian(kernel_size[0], sigma[0], device)
-    gaussian_kernel_y = _gaussian(kernel_size[1], sigma[1], device)
-    kernel = torch.matmul(gaussian_kernel_x.t(), gaussian_kernel_y)
+def _gaussian(kernel_size: int, sigma: int, dtype: torch.dtype, device: torch.device):
+    dist = torch.arange(start=(1 - kernel_size) / 2, end=(1 + kernel_size) / 2, step=1, dtype=dtype, device=device)
+    gauss = torch.exp(-torch.pow(dist / sigma, 2) / 2)
+    return (gauss / gauss.sum()).unsqueeze(dim=0)  # (1, kernel_size)
+
+
+def _gaussian_kernel(channel: int, kernel_size: Sequence[int], sigma: Sequence[float],
+                     dtype: torch.dtype, device: torch.device):
+    gaussian_kernel_x = _gaussian(kernel_size[0], sigma[0], dtype, device)
+    gaussian_kernel_y = _gaussian(kernel_size[1], sigma[1], dtype, device)
+    kernel = torch.matmul(gaussian_kernel_x.t(), gaussian_kernel_y)  # (kernel_size, 1) * (1, kernel_size)
 
     return kernel.expand(channel, 1, kernel_size[0], kernel_size[1])
 
@@ -82,9 +82,15 @@ def _ssim_compute(
     device = preds.device
 
     channel = preds.size(1)
-    kernel = _gaussian_kernel(channel, kernel_size, sigma, device)
+    dtype = preds.dtype
+    kernel = _gaussian_kernel(channel, kernel_size, sigma, dtype, device)
+    pad_w = (kernel_size[0] - 1) // 2
+    pad_h = (kernel_size[1] - 1) // 2
 
-    input_list = torch.cat([preds, target, preds * preds, target * target, preds * target])  # (5 * B, C, H, W)
+    preds = F.pad(preds, (pad_w, pad_w, pad_h, pad_h), mode='reflect')
+    target = F.pad(target, (pad_w, pad_w, pad_h, pad_h), mode='reflect')
+
+    input_list = torch.cat((preds, target, preds * preds, target * target, preds * target))  # (5 * B, C, H, W)
     outputs = F.conv2d(input_list, kernel, groups=channel)
     output_list = [outputs[x * preds.size(0): (x + 1) * preds.size(0)] for x in range(len(outputs))]
 
@@ -100,6 +106,7 @@ def _ssim_compute(
     lower = sigma_pred_sq + sigma_target_sq + c2
 
     ssim_idx = ((2 * mu_pred_target + c1) * upper) / ((mu_pred_sq + mu_target_sq + c1) * lower)
+    ssim_idx = ssim_idx[..., pad_h:-pad_h, pad_w:-pad_w]
 
     return reduce(ssim_idx, reduction)
 

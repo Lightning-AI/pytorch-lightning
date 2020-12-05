@@ -1,18 +1,15 @@
 from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE
 from tests.base.boring_model import BoringModel
 from pytorch_lightning import Trainer
 import pytest
 import os
 from unittest import mock
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
-from distutils.version import LooseVersion
 import torch
 
 
-@pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.6.0"),
-    reason="Minimal PT version is set to 1.6",
-)
+@pytest.mark.skipif(not NATIVE_AMP_AVAILABLE, reason="Minimal PT version is set to 1.6")
 @mock.patch.dict(os.environ, {
     "CUDA_VISIBLE_DEVICES": "0,1",
     "SLURM_NTASKS": "2",
@@ -46,10 +43,7 @@ def test_amp_choice_default_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
         trainer.fit(model)
 
 
-@pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.6.0"),
-    reason="Minimal PT version is set to 1.6",
-)
+@pytest.mark.skipif(not NATIVE_AMP_AVAILABLE, reason="Minimal PT version is set to 1.6")
 @mock.patch.dict(os.environ, {
     "CUDA_VISIBLE_DEVICES": "0,1",
     "SLURM_NTASKS": "2",
@@ -86,20 +80,17 @@ def test_amp_choice_custom_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
         trainer.fit(model)
 
 
-@pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.6.0"),
-    reason="Minimal PT version is set to 1.6")
+class GradientUnscaleBoringModel(BoringModel):
+    def on_after_backward(self):
+        norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
+        if not (torch.isinf(norm) or torch.isnan(norm)):
+            assert norm.item() < 15.
+
+
+@pytest.mark.skipif(not NATIVE_AMP_AVAILABLE, reason="Minimal PT version is set to 1.6")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_amp_gradient_unscale(tmpdir):
-
-    class ExtendedBoringModel(BoringModel):
-
-        def on_after_backward(self):
-            norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
-            if not (torch.isinf(norm) or torch.isnan(norm)):
-                assert norm.item() < 15.
-
-    model = ExtendedBoringModel()
+    model = GradientUnscaleBoringModel()
 
     trainer = Trainer(
         max_epochs=2,
@@ -117,19 +108,18 @@ def test_amp_gradient_unscale(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Minimal PT version is set to 1.6")
+class UnscaleAccumulateGradBatchesBoringModel(BoringModel):
+
+    def on_after_backward(self):
+        norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
+        if not (torch.isinf(norm) or torch.isnan(norm)):
+            assert norm.item() < 15.
+
+
+@pytest.mark.skipif(not NATIVE_AMP_AVAILABLE, reason="Minimal PT version is set to 1.6")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_amp_gradient_unscale_accumulate_grad_batches(tmpdir):
-
-    class ExtendedBoringModel(BoringModel):
-
-        def on_after_backward(self):
-            norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
-            if not (torch.isinf(norm) or torch.isnan(norm)):
-                assert norm.item() < 15.
-
-    model = ExtendedBoringModel()
+    model = UnscaleAccumulateGradBatchesBoringModel()
 
     trainer = Trainer(
         max_epochs=2,

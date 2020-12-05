@@ -12,36 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import io
 import os
 import re
-import signal
-from abc import ABC
-from subprocess import call
 
 import torch
-import torch.distributed as torch_distrib
 
 import pytorch_lightning
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import AMPType, rank_zero_warn
+from pytorch_lightning.utilities import APEX_AVAILABLE, AMPType, OMEGACONF_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-try:
+if APEX_AVAILABLE:
     from apex import amp
-except ImportError:
-    amp = None
 
-try:
+if OMEGACONF_AVAILABLE:
     from omegaconf import Container
-except ImportError:
-    OMEGACONF_AVAILABLE = False
-else:
-    OMEGACONF_AVAILABLE = True
 
 
 class CheckpointConnector:
@@ -54,10 +43,10 @@ class CheckpointConnector:
 
     def restore_weights(self, model: LightningModule):
         """
-        We attempt to restore weights in this order:
-        1. HPC weights.
-        2. if no HPC weights restore checkpoint_path weights
-        3. otherwise don't restore weights
+        Attempt to restore a checkpoint (e.g. weights) in this priority:
+        1. from HPC weights
+        2. from `resume_from_checkpoint` file
+        3. don't restore
         """
         # clear cache before restore
         if self.trainer.on_gpu:
@@ -83,44 +72,49 @@ class CheckpointConnector:
 
     def restore(self, checkpoint_path: str, on_gpu: bool):
         """
-        Restore training state from checkpoint.
+        Load model/training states from the checkpoint file through file-read and state-restore.
         Also restores all training state like:
         - epoch
         - callbacks
         - schedulers
         - optimizer
+        In detail, check return value description of `dump_checkpoint`
         """
 
         # if on_gpu:
         #     checkpoint = torch.load(checkpoint_path)
         # else:
         # load on CPU first
+        # read a checkpoint dictionary object from the checkpoint file at `checkpoint_path`
         checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
 
+        # restore states from the checkpoint dictionary object
         # load model state
         model = self.trainer.get_model()
+
+        # restore model and datamodule state
+        self.restore_model_state(model, checkpoint)
+
+        if on_gpu:
+            model.cuda(self.trainer.root_gpu)
+
+        # restore training state
+        self.restore_training_state(checkpoint)
+
+    def restore_model_state(self, model: LightningModule, checkpoint) -> None:
+        """
+        Restore model states from a 'PyTorch-Lightning checkpoint' dictionary object
+        """
 
         # give the datamodule a chance to load something
         if self.trainer.datamodule is not None:
             self.trainer.datamodule.on_load_checkpoint(checkpoint)
 
-        # give model a chance to load something
+        # give model a chance to restore something
         model.on_load_checkpoint(checkpoint)
 
-        # load the state_dict on the model automatically
+        # restore the state_dict on the model
         model.load_state_dict(checkpoint['state_dict'])
-
-        if on_gpu:
-            model.cuda(self.trainer.root_gpu)
-
-        # restore amp scaling
-        if self.trainer.amp_backend == AMPType.NATIVE and 'native_amp_scaling_state' in checkpoint:
-            self.trainer.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
-        elif self.trainer.amp_backend == AMPType.APEX and 'amp_scaling_state' in checkpoint:
-            amp.load_state_dict(checkpoint['amp_scaling_state'])
-
-        # load training state (affects trainer only)
-        self.restore_training_state(checkpoint)
 
     def restore_training_state(self, checkpoint):
         """
@@ -129,6 +123,7 @@ class CheckpointConnector:
         :param checkpoint:
         :return:
         """
+        # validation
         if 'optimizer_states' not in checkpoint or 'lr_schedulers' not in checkpoint:
             raise KeyError(
                 'Trying to restore training state but checkpoint contains only the model.'
@@ -143,7 +138,13 @@ class CheckpointConnector:
                 " where `model.ckpt` is your checkpoint file."
             )
 
-        # load callback states
+        # restore amp scaling
+        if self.trainer.amp_backend == AMPType.NATIVE and 'native_amp_scaling_state' in checkpoint:
+            self.trainer.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
+        elif self.trainer.amp_backend == AMPType.APEX and 'amp_scaling_state' in checkpoint:
+            amp.load_state_dict(checkpoint['amp_scaling_state'])
+
+        # restore callback states
         self.trainer.on_load_checkpoint(checkpoint)
 
         self.trainer.global_step = checkpoint['global_step']
@@ -226,6 +227,9 @@ class CheckpointConnector:
 
         model.on_hpc_save(checkpoint)
 
+        if self.trainer.accelerator_backend:
+            checkpoint = self.trainer.accelerator_backend.on_save(checkpoint)
+
         # do the actual save
         # TODO: fix for anything with multiprocess DP, DDP, DDP2
         try:
@@ -241,15 +245,31 @@ class CheckpointConnector:
         return filepath
 
     def dump_checkpoint(self, weights_only: bool = False) -> dict:
-        """Creating model checkpoint.
+        """Creating a model checkpoint dictionary object from various component states.
 
         Args:
             weights_only: saving model weights only
 
         Return:
-             structured dictionary
+            structured dictionary: {
+                'epoch':                     training epoch
+                'global_step':               training global step
+                'pytorch-lightning_version': PyTorch Lightning's version
+                'callbacks':                 "callback specific state"[] # if not weights_only
+                'optimizer_states':          "PT optim's state_dict"[]   # if not weights_only
+                'lr_schedulers':             "PT sched's state_dict"[]   # if not weights_only
+                'native_amp_scaling_state':  PT amp's state_dict         # if not weights_only and use native amp
+                'amp_scaling_state':         Apex's state_dict           # if not weights_only and use apex amp
+                'state_dict':                Model's state_dict (e.g. network weights)
+                CHECKPOINT_HYPER_PARAMS_NAME:
+                CHECKPOINT_HYPER_PARAMS_KEY:
+                CHECKPOINT_HYPER_PARAMS_TYPE:
+                something_cool_i_want_to_save: anything you define through model.on_save_checkpoint
+                LightningDataModule.__class__.__name__: pl DataModule's state
+            }
         """
 
+        # dump epoch/global_step/pytorch-lightning_version
         current_epoch = self.trainer.current_epoch
         global_step = self.trainer.global_step
         has_reached_max_steps = self.trainer.max_steps and self.trainer.max_steps <= global_step
@@ -266,23 +286,25 @@ class CheckpointConnector:
 
         if not weights_only:
 
-            # save callbacks
+            # dump callbacks
             callback_states = self.trainer.on_save_checkpoint()
             checkpoint['callbacks'] = callback_states
 
-            # save optimizers
             optimizer_states = []
             for i, optimizer in enumerate(self.trainer.optimizers):
-                optimizer_states.append(optimizer.state_dict())
+                # Rely on accelerator to dump optimizer state
+                optimizer_state = self.trainer.accelerator_backend.optimizer_state(optimizer)
+                optimizer_states.append(optimizer_state)
+
             checkpoint['optimizer_states'] = optimizer_states
 
-            # save lr schedulers
+            # dump lr schedulers
             lr_schedulers = []
             for scheduler in self.trainer.lr_schedulers:
                 lr_schedulers.append(scheduler['scheduler'].state_dict())
             checkpoint['lr_schedulers'] = lr_schedulers
 
-            # save native amp scaling
+            # dump amp scaling
             if self.trainer.amp_backend == AMPType.NATIVE and not self.trainer.use_tpu and self.trainer.scaler is not None:
                 checkpoint['native_amp_scaling_state'] = self.trainer.scaler.state_dict()
             elif self.trainer.amp_backend == AMPType.APEX:
@@ -291,20 +313,20 @@ class CheckpointConnector:
         # add the hyper_parameters and state_dict from the model
         model = self.trainer.get_model()
 
+        # dump the module_arguments and state_dict from the model
         checkpoint['state_dict'] = model.state_dict()
 
         if model.hparams:
             if hasattr(model, '_hparams_name'):
                 checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_NAME] = model._hparams_name
-            # add arguments to the checkpoint
-            if OMEGACONF_AVAILABLE:
+            # dump arguments
+            if OMEGACONF_AVAILABLE and isinstance(model.hparams, Container):
                 checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = model.hparams
-                if isinstance(model.hparams, Container):
-                    checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_TYPE] = type(model.hparams)
+                checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_TYPE] = type(model.hparams)
             else:
                 checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = dict(model.hparams)
 
-        # give the model a chance to add a few things
+        # give the model a chance to dump a few things
         model.on_save_checkpoint(checkpoint)
         if self.trainer.datamodule is not None:
             self.trainer.datamodule.on_save_checkpoint(checkpoint)
@@ -315,19 +337,13 @@ class CheckpointConnector:
         filepath = '{}/hpc_ckpt_{}.ckpt'.format(folderpath, self.max_ckpt_in_folder(folderpath))
 
         # load on CPU first
-        checkpoint = torch.load(filepath, map_location=lambda storage, loc: storage)
+        checkpoint = pl_load(filepath, map_location=lambda storage, loc: storage)
 
         # load model state
         model = self.trainer.get_model()
 
-        # load the state_dict on the model automatically
-        model.load_state_dict(checkpoint['state_dict'])
-
-        # restore amp scaling
-        if self.trainer.amp_backend == AMPType.NATIVE and 'native_amp_scaling_state' in checkpoint:
-            self.trainer.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
-        elif self.trainer.amp_backend == AMPType.APEX and 'amp_scaling_state' in checkpoint:
-            amp.load_state_dict(checkpoint['amp_scaling_state'])
+        # restore states from 'PyTorch-Lightning checkpoint' dictionary object
+        self.restore_model_state(model, checkpoint)
 
         if self.trainer.root_gpu is not None:
             model.cuda(self.trainer.root_gpu)
@@ -356,10 +372,19 @@ class CheckpointConnector:
         return max(ckpt_vs)
 
     def save_checkpoint(self, filepath, weights_only: bool = False):
+        """Save model/training states as a checkpoint file through state-dump and file-write.
+
+        Args:
+            filepath: write-target file's path
+            weights_only: saving model weights only
+        """
+        # dump states as a checkpoint dictionary object
         checkpoint = self.dump_checkpoint(weights_only)
 
         if self.trainer.is_global_zero:
-            # do the actual save
+            # write the checkpoint dictionary on the file
+            if self.trainer.accelerator_backend:
+                checkpoint = self.trainer.accelerator_backend.on_save(checkpoint)
             try:
                 atomic_save(checkpoint, filepath)
             except AttributeError as err:
