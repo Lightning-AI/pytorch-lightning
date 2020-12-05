@@ -140,7 +140,7 @@ class ModelCheckpoint(Callback):
 
     CHECKPOINT_JOIN_CHAR = "-"
     CHECKPOINT_NAME_LAST = "last"
-    FILE_EXTENSION = "ckpt"
+    FILE_EXTENSION = ".ckpt"
 
     def __init__(
         self,
@@ -443,7 +443,7 @@ class ModelCheckpoint(Callback):
         )
         if ver is not None:
             filename = self.CHECKPOINT_JOIN_CHAR.join((filename, f"v{ver}"))
-        ckpt_name = f"{filename}.{self.FILE_EXTENSION}"
+        ckpt_name = f"{filename}{self.FILE_EXTENSION}"
         return os.path.join(self.dirpath, ckpt_name) if self.dirpath else ckpt_name
 
     def __resolve_ckpt_dir(self, trainer, pl_module):
@@ -546,7 +546,7 @@ class ModelCheckpoint(Callback):
                 ckpt_name_metrics,
                 prefix=self.prefix
             )
-            last_filepath = os.path.join(self.dirpath, f"{last_filepath}.ckpt")
+            last_filepath = os.path.join(self.dirpath, f"{last_filepath}{self.FILE_EXTENSION}")
 
         self._save_model(last_filepath, trainer, pl_module)
         if (
