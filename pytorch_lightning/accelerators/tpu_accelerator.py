@@ -252,27 +252,6 @@ class TPUAccelerator(Accelerator):
 
         return closure_loss
 
-    def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure, *args, **kwargs):
-        model_ref = self.trainer.get_model()
-        if isinstance(optimizer, LightningOptimizer):
-            is_lbfgs = isinstance(optimizer._optimizer, torch.optim.LBFGS)
-        else:
-            is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-
-        # model hook
-        model_ref.optimizer_step(
-            epoch=self.trainer.current_epoch,
-            batch_idx=batch_idx,
-            optimizer=optimizer,
-            optimizer_idx=opt_idx,
-            optimizer_closure=lambda_closure,
-            on_tpu=True,
-            using_native_amp=False,
-            using_lbfgs=is_lbfgs,
-            *args,
-            **kwargs,
-        )
-
     def _clip_gradients(self, optimizer: Optimizer, grad_clip_val: Union[float, int], norm_type: float = 2.0):
         # this code is a modification of torch.nn.utils.clip_grad_norm_
         # with TPU support based on https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md

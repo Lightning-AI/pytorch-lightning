@@ -28,7 +28,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import TPU_AVAILABLE, MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
@@ -475,9 +475,32 @@ class TrainLoop:
         return training_step_output_for_epoch_end
 
     def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure, *args, **kwargs):
-        # optimizer step lightningModule hook
-        self.trainer.accelerator_backend.optimizer_step(
-            optimizer, batch_idx, opt_idx, train_step_and_backward_closure, *args, **kwargs
+        model_ref = self.trainer.get_model()
+
+        if isinstance(optimizer, LightningOptimizer):
+            is_lbfgs = isinstance(optimizer._optimizer, torch.optim.LBFGS)
+        else:
+            is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
+        using_native_amp = self.trainer.amp_backend == AMPType.NATIVE
+
+        # native amp + lbfgs is a no go right now
+        if using_native_amp and is_lbfgs:
+            raise MisconfigurationException(
+                'native PyTorch amp and lbfgs are not compatible.'
+                ' To request, please file a Github issue in PyTorch and tag @mcarilli')
+
+        # model hook
+        model_ref.optimizer_step(
+            epoch=self.trainer.current_epoch,
+            batch_idx=batch_idx,
+            optimizer=optimizer,
+            optimizer_idx=opt_idx,
+            optimizer_closure=train_step_and_backward_closure,
+            on_tpu=self.trainer.use_tpu and TPU_AVAILABLE,
+            using_native_amp=using_native_amp,
+            using_lbfgs=is_lbfgs,
+            *args,
+            **kwargs,
         )
 
     def on_before_zero_grad(self, optimizer):

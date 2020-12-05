@@ -1240,7 +1240,7 @@ class LightningModule(
         if isinstance(optimizer, LightningOptimizer):
             optimizer.step(closure=optimizer_closure)
         else:
-            if on_tpu and TPU_AVAILABLE:
+            if on_tpu:
                 xm.optimizer_step(optimizer, optimizer_args={'closure': optimizer_closure, **kwargs})
 
             elif self.trainer.amp_backend is not None:
