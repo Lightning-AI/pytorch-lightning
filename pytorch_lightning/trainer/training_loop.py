@@ -492,18 +492,20 @@ class TrainLoop:
 
     def track_and_norm_grad(self, optimizer):
         # track gradient norms
-        grad_norm_dic = self._track_gradient_norm()
+        grad_norm_dic = self._track_gradient_norm(optimizer)
 
         # clip gradients
         self.trainer.accelerator_backend.clip_gradients(optimizer)
         self._cur_grad_norm_dict = grad_norm_dic
 
-    def _track_gradient_norm(self):
+    def _track_gradient_norm(self, optimizer):
+
         grad_norm_dict = {}
         if (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0:
             if float(self.trainer.track_grad_norm) > 0:
                 model = self.trainer.get_model()
-                grad_norm_dict = model.grad_norm(self.trainer.track_grad_norm)
+                optimizer_params = set([param for pg in optimizer.param_groups for param in pg['params']])
+                grad_norm_dict = model.grad_norm(self.trainer.track_grad_norm, parameter_filter=optimizer_params)
         return grad_norm_dict
 
     def process_hiddens(self, opt_closure_result):

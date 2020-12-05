@@ -15,15 +15,16 @@
 """
 Module to describe gradients
 """
-from typing import Dict, Union
+from typing import Dict, Union, List
 
 import torch
 from torch.nn import Module
+from torch.nn import Parameter
 
 
 class GradInformation(Module):
 
-    def grad_norm(self, norm_type: Union[float, int, str]) -> Dict[str, float]:
+    def grad_norm(self, norm_type: Union[float, int, str], parameter_filter: List[Parameter] = None) -> Dict[str, float]:
         """Compute each parameter's gradient's norm and their overall norm.
 
         The overall norm is computed over all gradients together, as if they
@@ -32,6 +33,8 @@ class GradInformation(Module):
         Args:
             norm_type: The type of the used p-norm, cast to float if necessary.
                 Can be ``'inf'`` for infinity norm.
+            parameter_filter: An optional list of parameters. If non-empty, grad
+                norm will only be computed for parameters in the list.
 
         Return:
             norms: The dictionary of p-norms of each parameter's gradient and
@@ -42,7 +45,7 @@ class GradInformation(Module):
 
         norms, all_norms = {}, []
         for name, p in self.named_parameters():
-            if p.grad is None:
+            if p.grad is None or (parameter_filter and p not in parameter_filter):
                 continue
 
             param_norm = float(p.grad.data.norm(norm_type))
