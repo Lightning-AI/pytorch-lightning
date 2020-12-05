@@ -563,6 +563,15 @@ def test_multiple_optimizers_step(tmpdir):
     Tests that `step` works with several optimizers
     """
     class TestModel(BoringModel):
+
+        called = False
+
+        def on_after_backward(self):
+            self.called = True
+            norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
+            if not (torch.isinf(norm) or torch.isnan(norm)):
+                assert norm.item() < 15., norm.item()
+
         def training_step(self, batch, batch_idx, optimizer_idx):
             # manual
             (opt_a, opt_b) = self.optimizers()
@@ -621,6 +630,7 @@ def test_multiple_optimizers_step(tmpdir):
 
     num_manual_backward_calls = 3
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * num_manual_backward_calls
+    assert model.called
 
 
 def test_step_with_optimizer_closure(tmpdir):

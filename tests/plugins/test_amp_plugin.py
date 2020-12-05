@@ -1,12 +1,14 @@
-from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE
-from tests.base.boring_model import BoringModel
-from pytorch_lightning import Trainer
-import pytest
 import os
 from unittest import mock
-from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
+
+import pytest
 import torch
+
+from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
+from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE
+from tests.base.boring_model import BoringModel
 
 
 @pytest.mark.skipif(not NATIVE_AMP_AVAILABLE, reason="Minimal PT version is set to 1.6")
@@ -110,7 +112,10 @@ def test_amp_gradient_unscale(tmpdir):
 
 class UnscaleAccumulateGradBatchesBoringModel(BoringModel):
 
+    called = False
+
     def on_after_backward(self):
+        self.called = True
         norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
         if not (torch.isinf(norm) or torch.isnan(norm)):
             assert norm.item() < 15.
@@ -136,3 +141,5 @@ def test_amp_gradient_unscale_accumulate_grad_batches(tmpdir):
         accumulate_grad_batches=2,
     )
     trainer.fit(model)
+
+    assert model.called

@@ -26,6 +26,7 @@ class NativeAMPPlugin(PrecisionPlugin):
         Integrates native amp into Lightning's internals.
         """
         self.trainer = trainer
+        self.automatic_optimization = trainer.train_loop.automatic_optimization
 
     def connect(self, model, optimizers):
         return model, optimizers
@@ -38,10 +39,8 @@ class NativeAMPPlugin(PrecisionPlugin):
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         closure_loss = self.trainer.scaler.scale(closure_loss)
 
-        automatic_optimization = self.trainer.train_loop.automatic_optimization
-
         # do backward pass
-        if automatic_optimization:
+        if self.automatic_optimization:
             model = self.trainer.get_model()
             model.backward(closure_loss, optimizer, opt_idx)
         else:
@@ -51,7 +50,7 @@ class NativeAMPPlugin(PrecisionPlugin):
         closure_loss = closure_loss.detach()
 
         # unscale gradient to allow analyze within `on_after_backward`
-        if not self.trainer.train_loop.should_accumulate() and automatic_optimization:
+        if not self.trainer.train_loop.should_accumulate() and self.automatic_optimization:
             self.trainer.scaler.unscale_(optimizer)
 
         return closure_loss
@@ -69,6 +68,11 @@ class NativeAMPPlugin(PrecisionPlugin):
         # TODO: pass the closure to the step ASAP
         with trainer.profiler.profile("closure"):
             closure()
+
+        if not self.automatic_optimization:
+            trainer.scaler.unscale_(optimizer)
+            trainer.call_hook("on_after_backward")
+
         with trainer.profiler.profile("optimizer_step"):
             trainer.scaler.step(optimizer)
             trainer.scaler.update()

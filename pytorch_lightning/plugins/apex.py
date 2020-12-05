@@ -30,6 +30,7 @@ class ApexPlugin(PrecisionPlugin):
 
     def __init__(self, trainer=None):
         self.trainer = trainer
+        self.automatic_optimization = trainer.train_loop.automatic_optimization
 
     def connect(self, model, optimizers):
         model, optimizers = self.configure_apex(amp, model, optimizers, self.trainer.amp_level)
@@ -49,7 +50,7 @@ class ApexPlugin(PrecisionPlugin):
         closure_loss = closure_loss.__enter__()
 
         # do backward pass
-        if self.trainer.train_loop.automatic_optimization:
+        if self.automatic_optimization:
             model = self.trainer.get_model()
             model.backward(closure_loss, optimizer, opt_idx)
         else:
@@ -137,5 +138,9 @@ class ApexPlugin(PrecisionPlugin):
         # TODO: pass the closure to the step ASAP
         with trainer.profiler.profile("closure"):
             closure()
+
+        if not self.automatic_optimization:
+            trainer.call_hook("on_after_backward")
+
         with trainer.profiler.profile("optimizer_step"):
             optimizer.step()
