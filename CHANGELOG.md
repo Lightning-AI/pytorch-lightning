@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [1.1.0rc1] - 2020-12-02
+## [1.1.0rc] - 2020-12-02
 
 ### Added
 
@@ -88,7 +88,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Deprecated `prefix` argument in `ModelCheckpoint` ([#4765](https://github.com/PyTorchLightning/pytorch-lightning/pull/4765))
 
-- Deprecated the old way of assigning hyperparameters through `self.hparams = ...` ([#4813](https://github.com/PyTorchLightning/pytorch-lightning/pull/4813))
+
+- Deprecated the old way of assigning hyper-parameters through `self.hparams = ...` ([#4813](https://github.com/PyTorchLightning/pytorch-lightning/pull/4813))
+
+
+- Deprecated `mode='auto'` from `ModelCheckpoint` and `EarlyStopping` ([#4695](https://github.com/PyTorchLightning/pytorch-lightning/pull/4695))
+
 
 ### Removed
 
