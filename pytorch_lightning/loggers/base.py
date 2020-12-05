@@ -410,7 +410,7 @@ class DummyExperiment(object):
         return self.nop
 
     def __getitem__(self, idx):
-        # enables self.logger[0].experiment.add_image 
+        # enables self.logger[0].experiment.add_image
         # and self.logger.experiment[0].add_image(...)
         return self
 

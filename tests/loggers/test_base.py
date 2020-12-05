@@ -216,7 +216,6 @@ def test_with_accumulate_grad_batches():
     assert logger.history == {0: {'loss': 0.5623850983416314}, 1: {'loss': 0.4778883735637184}}
 
 
-
 def test_dummylogger_support_indexing():
     logger = DummyLogger()
     assert logger[0] == logger
