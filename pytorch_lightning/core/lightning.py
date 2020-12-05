@@ -1237,18 +1237,11 @@ class LightningModule(
             model hook don't forget to add the call to it before ``optimizer.zero_grad()`` yourself.
 
         """
-        if isinstance(optimizer, LightningOptimizer):
-            optimizer.step(closure=optimizer_closure)
-        else:
-            if on_tpu:
-                xm.optimizer_step(optimizer, optimizer_args={'closure': optimizer_closure, **kwargs})
-
-            elif self.trainer.amp_backend is not None:
-                self.trainer.precision_connector.backend.optimizer_step(
-                    self.trainer, optimizer, optimizer_closure)
-
-            else:
-                optimizer.step(closure=optimizer_closure, *args, **kwargs)
+        if not isinstance(optimizer, LightningOptimizer):
+            # wraps into LightingOptimizer only for running step
+            optimizer = LightningOptimizer(optimizer)
+            optimizer._on_trainer_init(self.trainer)
+        optimizer.step(closure=optimizer_closure)
 
     def optimizer_zero_grad(
         self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int
