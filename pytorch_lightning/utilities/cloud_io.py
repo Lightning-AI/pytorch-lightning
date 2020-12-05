@@ -14,19 +14,19 @@
 
 import io
 from distutils.version import LooseVersion
-from typing import Union, IO
 from pathlib import Path
-from urllib.parse import urlparse
-import torch
+from typing import IO, Union
+
 import fsspec
+import torch
 
 
 def load(path_or_url: Union[str, IO, Path], map_location=None):
     if not isinstance(path_or_url, (str, Path)):
         # any sort of BytesIO or similiar
         return torch.load(path_or_url, map_location=map_location)
-    if path_or_url.startswith("http"):
-        return torch.hub.load_state_dict_from_url(path_or_url, map_location=map_location)
+    if str(path_or_url).startswith("http"):
+        return torch.hub.load_state_dict_from_url(str(path_or_url), map_location=map_location)
     fs = get_filesystem(path_or_url)
     with fs.open(path_or_url, "rb") as f:
         return torch.load(f, map_location=map_location)
@@ -52,6 +52,7 @@ def atomic_save(checkpoint, filepath: str):
         filepath: The path to which the checkpoint will be saved.
             This points to the file that the checkpoint will be stored in.
     """
+
     bytesbuffer = io.BytesIO()
     # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
     # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.

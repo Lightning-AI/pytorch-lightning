@@ -612,10 +612,10 @@ stored. If you don't then use this argument for convenience. Paths can be local
 paths or remote paths such as `s3://bucket/path` or 'hdfs://path/'. Credentials
 will need to be set up to use remote filepaths.
 
-Example::
+.. testcode::
 
     # default used by the Trainer
-    trainer = Trainer(default_root_path=os.getcwd())
+    trainer = Trainer(default_root_dir=os.getcwd())
 
 distributed_backend
 ^^^^^^^^^^^^^^^^^^^
@@ -623,14 +623,6 @@ This has been renamed "accelerator".
 
 fast_dev_run
 ^^^^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/fast_dev_run.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/fast_dev_run.mp4"></video>
-
-|
 
 .. raw:: html
 
@@ -1100,7 +1092,7 @@ Your effective batch size is batch_size * total tpu cores.
 
 This parameter can be either 1 or 8.
 
-.. testcode::
+Example::
 
     # your_trainer_file.py
 
