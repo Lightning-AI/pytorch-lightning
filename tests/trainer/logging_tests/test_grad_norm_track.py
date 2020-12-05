@@ -28,7 +28,7 @@ class TestModel(LightningModule):
         self.loss = nn.L1Loss()
 
     def train_dataloader(self):
-        xs, ys = torch.zeros(16, 1, 10, 10), torch.ones(16, 1, 6, 6)
+        xs, ys = torch.ones(16, 1, 10, 10), torch.ones(16, 1, 6, 6)*5
         ds = TensorDataset(xs, ys)
         return DataLoader(ds)
 
