@@ -570,7 +570,7 @@ def test_multiple_optimizers_step(tmpdir):
             self.called = True
             norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
             if not (torch.isinf(norm) or torch.isnan(norm)):
-                assert norm.item() < 15., norm.item()
+                assert norm.item() < 100, norm.item()
 
         def training_step(self, batch, batch_idx, optimizer_idx):
             # manual
