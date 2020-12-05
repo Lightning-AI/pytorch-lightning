@@ -7,7 +7,7 @@ import pytest
 import torch
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.metrics.functional.classification import auc
 from pytorch_lightning.profiler.profilers import PassThroughProfiler, SimpleProfiler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
