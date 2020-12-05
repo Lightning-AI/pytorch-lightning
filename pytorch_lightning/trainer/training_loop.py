@@ -477,10 +477,7 @@ class TrainLoop:
     def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure, *args, **kwargs):
         model_ref = self.trainer.get_model()
 
-        if isinstance(optimizer, LightningOptimizer):
-            is_lbfgs = isinstance(optimizer._optimizer, torch.optim.LBFGS)
-        else:
-            is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
+        is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
         using_native_amp = self.trainer.amp_backend == AMPType.NATIVE
 
         # native amp + lbfgs is a no go right now
