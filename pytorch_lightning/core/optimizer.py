@@ -82,8 +82,7 @@ class LightningOptimizer:
     def _accumulated_batches_reached(self):
         if self._accumulate_grad_batches is None:
             return self._trainer.train_loop._accumulated_batches_reached()
-        else:
-            return (self._trainer.batch_idx + 1) % self._accumulate_grad_batches == 0
+        return (self._trainer.batch_idx + 1) % self._accumulate_grad_batches == 0
 
     @property
     def _should_accumulate(self):
