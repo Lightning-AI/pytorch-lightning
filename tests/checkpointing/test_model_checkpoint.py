@@ -263,34 +263,19 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
 
 def test_model_checkpoint_file_extension(tmpdir):
 
-    # tests that format_checkpoint_name uses the user-defined FILE_EXTENSION
-    ckpt_name = ModelCheckpoint(monitor='early_stop_on', dirpath='.').format_checkpoint_name(0, 1, {})
+    # tests that files get saved with user-defined FILE_EXTENSION
     ModelCheckpoint.FILE_EXTENSION = '.tpkc'
-    tpkc_name = ModelCheckpoint(monitor='early_stop_on', dirpath='.').format_checkpoint_name(0, 1, {})
-    assert ckpt_name == str(Path('.').resolve() / 'epoch=0-step=1.ckpt')
-    assert tpkc_name == str(Path('.').resolve() / 'epoch=0-step=1.tpkc')
-
-    # tests that _save_last_checkpoint uses the user-defined FILE_EXTENSION
-    seed_everything()
-    model = LogInTwoMethods()
-    epochs = 1
-    ModelCheckpoint.CHECKPOINT_NAME_LAST = 'last-{epoch}'
-    model_checkpoint = ModelCheckpoint(monitor='early_stop_on', dirpath=tmpdir, save_top_k=-1, save_last=True)
+    model = LogInTwoMethods()   
+    model_checkpoint = ModelCheckpoint(monitor='early_stop_on', dirpath=tmpdir, save_top_k=1, save_last=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[model_checkpoint],
-        max_epochs=epochs,
-        limit_train_batches=10,
-        limit_val_batches=10,
-        logger=False,
-    )
+        max_epochs=2
+        )
     trainer.fit(model)
-    last_filename = model_checkpoint._format_checkpoint_name(
-        ModelCheckpoint.CHECKPOINT_NAME_LAST, trainer.current_epoch, trainer.global_step, {}
-    )
-    last_filename = last_filename + '.tpkc'
-    assert str(tmpdir / last_filename) == model_checkpoint.last_model_path
-
+    expected = 'last.tpkc'
+    assert expected in set(os.listdir(tmpdir))
+    
     # Reset model checkpoint file extension so it does not break other tests
     ModelCheckpoint.FILE_EXTENSION = '.ckpt'
 
