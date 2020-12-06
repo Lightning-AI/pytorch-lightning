@@ -22,7 +22,7 @@ import re
 import tempfile
 from abc import ABC
 from argparse import Namespace
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -36,8 +36,7 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.utilities.deprecated_api import DeprecatedDistDeviceAttributes
-from pytorch_lightning.utilities import TPU_AVAILABLE, rank_zero_warn, DeviceType
+from pytorch_lightning.utilities import TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
@@ -55,7 +54,6 @@ class LightningModule(
     DataHooks,
     CheckpointHooks,
     Module,
-    DeprecatedDistDeviceAttributes,
 ):
     # Below is for property support of JIT in PyTorch 1.7
     # since none of them is important when using JIT, we are going to ignore them.
@@ -64,10 +62,9 @@ class LightningModule(
         "example_input_array",
         "hparams",
         "hparams_initial",
+        "on_gpu",
         "current_epoch",
         "global_step",
-        "_device_type",
-        "_distrib_type",
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
     def __init__(self, *args, **kwargs):
@@ -76,9 +73,6 @@ class LightningModule(
         # see (https://github.com/pytorch/pytorch/blob/3e6bb5233f9ca2c5aa55d9cda22a7ee85439aa6e/
         # torch/nn/modules/module.py#L227)
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
-
-        self._device_type = DeviceType.CPU
-        self._distrib_type = None
 
         self.exp_save_path = None
 
