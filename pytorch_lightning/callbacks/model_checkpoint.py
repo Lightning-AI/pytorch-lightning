@@ -205,8 +205,7 @@ class ModelCheckpoint(Callback):
         checkpoints can be saved at the end of the epoch loop
         """
         trainer.global_step -= 1
-        # self.check_checkpoint_callback(should_save=True, is_last=True)
-        self.save_checkpoint(trainer, pl_module)
+        self.save_checkpoint(trainer, pl_module, is_last=True)
         trainer.global_step += 1
 
     def on_save_checkpoint(self, trainer, pl_module) -> Dict[str, Any]:
@@ -233,7 +232,7 @@ class ModelCheckpoint(Callback):
         ) and trainer.checkpoint_connector.has_trained
         return should_save
 
-    def save_checkpoint(self, trainer, pl_module):
+    def save_checkpoint(self, trainer, pl_module, is_last=True):
         """
         Performs the main logic around saving a checkpoint.
         This method runs on all ranks, it is the responsibility of `self.save_function`
@@ -242,7 +241,7 @@ class ModelCheckpoint(Callback):
         epoch = trainer.current_epoch
         global_step = trainer.global_step
 
-        if not self.should_save(trainer):
+        if not (self.should_save(trainer) or is_last):
             return
 
         self._add_backward_monitor_support(trainer)
