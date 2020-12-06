@@ -194,6 +194,18 @@ class ModelCheckpoint(Callback):
         """
         self.save_checkpoint(trainer, pl_module)
 
+    def on_epoch_end(self, trainer, pl_module):
+        """
+        checkpoints can be saved at the end of the val loop
+        """
+        self.save_checkpoint(trainer, pl_module)
+
+    def on_train_end(self, trainer, pl_module):
+        """
+        checkpoints can be saved at the end of the val loop
+        """
+        self.save_checkpoint(trainer, pl_module)
+
     def on_save_checkpoint(self, trainer, pl_module) -> Dict[str, Any]:
         return {
             "monitor": self.monitor,
@@ -517,11 +529,11 @@ class ModelCheckpoint(Callback):
         should_save_last = self.monitor is None or self.save_last
         if not should_save_last:
             return
-
         last_filepath = filepath
 
         # when user ALSO asked for the 'last.ckpt' change the name
         if self.save_last:
+            rank_zero_info("Saving latest checkpoint...")
             last_filepath = self._format_checkpoint_name(
                 self.CHECKPOINT_NAME_LAST,
                 trainer.current_epoch,

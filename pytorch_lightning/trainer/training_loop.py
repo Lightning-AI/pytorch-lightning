@@ -185,11 +185,12 @@ class TrainLoop:
 
         self._teardown_already_run = True
 
+        # TODO: clean up
         # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
         # when a checkpoint was saved at the last step
-        self.trainer.global_step -= 1
-        self.check_checkpoint_callback(should_save=True, is_last=True)
-        self.trainer.global_step += 1
+        # self.trainer.global_step -= 1
+        # self.check_checkpoint_callback(should_save=True, is_last=True)
+        # self.trainer.global_step += 1
 
         # hook
         self.trainer.call_hook("on_train_end")
@@ -210,15 +211,15 @@ class TrainLoop:
             model = self.trainer.get_model()
             model.cpu()
             torch.cuda.empty_cache()
-
-    def check_checkpoint_callback(self, should_save, is_last=False):
-        # TODO bake this logic into the checkpoint callback
-        if should_save and self.trainer.checkpoint_connector.has_trained:
-            checkpoint_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
-            if is_last and any(c.save_last for c in checkpoint_callbacks):
-                rank_zero_info("Saving latest checkpoint...")
-            model = self.trainer.get_model()
-            [cb.on_validation_end(self.trainer, model) for cb in checkpoint_callbacks]
+    # # TODO: clean up
+    # def check_checkpoint_callback(self, should_save, is_last=False):
+    #     # TODO bake this logic into the checkpoint callback
+    #     if should_save and self.trainer.checkpoint_connector.has_trained:
+    #         checkpoint_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
+    #         if is_last and any(c.save_last for c in checkpoint_callbacks):
+    #             rank_zero_info("Saving latest checkpoint...")
+    #         model = self.trainer.get_model()
+    #         [cb.on_validation_end(self.trainer, model) for cb in checkpoint_callbacks]
 
     def on_train_epoch_start(self, epoch):
 
@@ -619,7 +620,7 @@ class TrainLoop:
         )
 
         # when no val loop is present or fast-dev-run still need to call checkpoints
-        self.check_checkpoint_callback(not (should_check_val or is_overridden('validation_step', model)))
+        # self.check_checkpoint_callback(not (should_check_val or is_overridden('validation_step', model)))
 
         # increment the global step once
         # progress global step according to grads progress
