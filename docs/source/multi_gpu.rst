@@ -627,36 +627,35 @@ This means the memory overhead per GPU is lower, as each GPU only has to maintai
 The benefits vary by model and parameter sizes, but we've recorded up to a 63% memory reduction per GPU allowing us to double our model sizes. Because of extremely efficient communication,
 these benefits in multi-GPU setups are almost free and throughput scales well with multi-node setups.
 
+Below we use the `NeMo Transformer Lightning Language Modeling example <https://github.com/NVIDIA/NeMo/tree/main/examples/nlp/language_modeling>`_ to benchmark the maximum batch size and model size that can be fit on 8 A100 GPUs for DDP vs Sharded Training.
+Note that the benefits can still be obtained using 2 or more GPUs, and for even larger batch sizes you can scale to multiple nodes.
+
 **Increase Your Batch Size**
 
 Use Sharded Training to scale your batch size further using the same compute. This will reduce your overall epoch time.
-Below we use the `NeMo Transformer Lightning Language Modeling example <https://github.com/NVIDIA/NeMo/tree/main/examples/nlp/language_modeling>`_ to benchmark the maximum batch size that can be fit on 8 A100 GPUs for DDP vs Sharded Training.
-Note that the benefits can still be obtained using 2 or more GPUs, and for even larger batch sizes you can scale to multiple nodes.
 
 +----------------------+-----------------------+----------------+---------------------+
 | Distributed Training | Model Size (Millions) | Max Batch Size | Percentage Gain (%) |
 +======================+=======================+================+=====================+
-| DDP                  | 930                   | 32             | -                   |
+| Native DDP           | 930                   | 32             | -                   |
 +----------------------+-----------------------+----------------+---------------------+
-| Sharded              | 930                   | **52**         | **48%**             |
+| Sharded DDP          | 930                   | **52**         | **48%**             |
 +----------------------+-----------------------+----------------+---------------------+
 
 **Increase Your Model Size**
 
 Use Sharded Training to scale your model size further using the same compute.
-We use the `NeMo Transformer Lightning Language Modeling example <https://github.com/NVIDIA/NeMo/tree/main/examples/nlp/language_modeling>`_ to benchmark the maximum model size that can fit on 8 A100 GPUs for DDP vs Sharded Training.
-Note that the benefits can still be obtained using 2 or more GPUs, and for even larger models you can scale to multiple nodes.
 
 +----------------------+------------+---------------------------+---------------------+
 | Distributed Training | Batch Size | Max Model Size (Millions) | Percentage Gain (%) |
 +======================+============+===========================+=====================+
-| DDP                  | 32         | 930                       | -                   |
+| Native DDP           | 32         | 930                       | -                   |
 +----------------------+------------+---------------------------+---------------------+
-| Sharded              | 32         | **1404**                  | **41%**             |
+| Sharded DDP          | 32         | **1404**                  | **41%**             |
 +----------------------+------------+---------------------------+---------------------+
-| DDP                  | 8          | 1572                      | -                   |
+| Native DDP           | 8          | 1572                      | -                   |
 +----------------------+------------+---------------------------+---------------------+
-| Sharded              | 8          | **2872**                  | **59%**             |
+| Sharded DDP          | 8          | **2872**                  | **59%**             |
 +----------------------+------------+---------------------------+---------------------+
 
 It is highly recommended to use Sharded Training in multi-GPU environments where memory is limited, or where training larger models are beneficial (500+ million parameter models).
