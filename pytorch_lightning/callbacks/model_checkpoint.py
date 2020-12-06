@@ -232,7 +232,7 @@ class ModelCheckpoint(Callback):
         ) and trainer.checkpoint_connector.has_trained
         return should_save
 
-    def save_checkpoint(self, trainer, pl_module, is_last=True):
+    def save_checkpoint(self, trainer, pl_module, is_last=False):
         """
         Performs the main logic around saving a checkpoint.
         This method runs on all ranks, it is the responsibility of `self.save_function`

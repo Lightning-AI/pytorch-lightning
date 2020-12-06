@@ -543,14 +543,21 @@ def test_model_checkpoint_save_last_warning(tmpdir, caplog, max_epochs, should_v
     model = LogInTwoMethods()
     if not should_validate:
         model.validation_step = None
+    model_checkpoint = ModelCheckpoint(
+        monitor='early_stop_on', dirpath=tmpdir,
+        save_top_k=0, save_last=save_last
+    )
     trainer = Trainer(
         default_root_dir=tmpdir,
-        callbacks=[ModelCheckpoint(monitor='early_stop_on', filepath=tmpdir,
-                                   save_top_k=0, save_last=save_last)],
+        callbacks=[model_checkpoint],
         max_epochs=max_epochs,
     )
     trainer.fit(model)
     assert caplog.messages.count('Saving latest checkpoint...') == save_last
+    path_last = str(tmpdir / "last.ckpt")
+    if save_last:
+        assert path_last == model_checkpoint.last_model_path
+        assert os.path.isfile(path_last)
 
 
 def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
