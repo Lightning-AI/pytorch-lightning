@@ -21,6 +21,7 @@ from torch.optim import Adam, Optimizer
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
 
 
@@ -196,3 +197,45 @@ def test_state(tmpdir):
     assert lightning_dict == optimizer.__dict__
     assert optimizer.state_dict() == lightning_optimizer.state_dict()
     assert optimizer.state == lightning_optimizer.state
+
+
+def test_lightning_optimizer_automatic_optimization(tmpdir):
+    """
+    Test that optimizer are correctly wrapped by our LightningOptimizer
+    """
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx, optimizer_idx=None):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            return loss
+
+        def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
+                           optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
+
+            assert optimizer_closure.__name__ == "train_step_and_backward_closure"
+
+            optimizer.step(closure=optimizer_closure, make_optimizer_step=True)
+
+        def configure_optimizers(self):
+            optimizer_1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            optimizer_2 = torch.optim.Adam(self.layer.parameters(), lr=0.1)
+            optimizer_1 = LightningOptimizer(optimizer_1, 4)
+
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
+            return [optimizer_1, optimizer_2], [lr_scheduler]
+
+    try:
+        model = TestModel()
+        trainer = Trainer(
+            default_root_dir=os.getcwd(),
+            limit_train_batches=1,
+            limit_val_batches=1,
+            max_epochs=1,
+            weights_summary=None,
+            enable_pl_optimizer=True,
+            automatic_optimization=True
+        )
+        trainer.fit(model)
+    except MisconfigurationException as e:
+        assert "In automatic optimization, `make_optimizer_step` should be None." in str(e)

@@ -43,7 +43,7 @@ def test_automatic_optimization(tmpdir):
 
         trainer.fit(model)
     except MisconfigurationException as e:
-        assert "When overriding `LightningModule` optimizer_step with Trainer(" in str(e)
+        assert "It ensures `optimizer_step` is called on every batch" in str(e)
 
 
 @pytest.mark.parametrize("enable_pl_optimizer", [False, True])

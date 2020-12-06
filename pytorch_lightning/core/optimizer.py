@@ -84,10 +84,16 @@ class LightningOptimizer:
                 self._optimizer_idx = opt_idx
                 break
 
+    @classmethod
+    def to_lightning_optimizer(cls, optimizer, trainer):
+        optimizer = cls(optimizer)
+        optimizer._on_trainer_init(trainer)
+        return optimizer
+
     def _accumulated_batches_reached(self):
-        if self._accumulate_grad_batches is None:
+        if self.accumulate_grad_batches is None:
             return self._trainer.train_loop._accumulated_batches_reached()
-        return (self._trainer.batch_idx + 1) % self._accumulate_grad_batches == 0
+        return (self._trainer.batch_idx + 1) % self.accumulate_grad_batches == 0
 
     @property
     def _should_accumulate(self):
@@ -106,8 +112,7 @@ class LightningOptimizer:
                 xm.optimizer_step(optimizer, optimizer_args={'closure': closure, **kwargs})
 
         elif trainer.amp_backend is not None:
-            trainer.precision_connector.backend.optimizer_step(
-                trainer, optimizer, closure)
+            trainer.precision_connector.backend.optimizer_step(trainer, optimizer, closure)
 
         else:
             with trainer.profiler.profile(profiler_name):
@@ -216,11 +221,11 @@ class LightningOptimizer:
                     # Trainer(accumulate_grad_batches=x)
                     opt_dis.step(closure=optimizer_closure, make_optimizer_step=True)
         """
-        profiler_name = "optimizer_step_and_closure"
+        profiler_name = f"optimizer_step_and_closure_{self._optimizer_idx}"
 
         if closure is None:
             closure = do_nothing_closure
-            profile_name = "optimizer_step"
+            profile_name = f"optimizer_step_{self._optimizer_idx}"
         else:
             if not isinstance(closure, types.FunctionType):
                 raise MisconfigurationException("When closure is provided, it should be a function")
@@ -238,8 +243,9 @@ class LightningOptimizer:
             self.__optimizer_step(*args, closure=closure, profiler_name=profiler_name, **kwargs)
         else:
             # make sure to call optimizer_closure when accumulating
-            with self._trainer.profiler.profile("closure"), self._trainer.train_loop.block_ddp_sync_behaviour():
-                closure()
+            with self._trainer.profiler.profile(f"closure_{self._optimizer_idx}"):
+                with self._trainer.train_loop.block_ddp_sync_behaviour():
+                    closure()
 
     def __repr__(self):
         groups = [

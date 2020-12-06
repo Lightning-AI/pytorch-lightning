@@ -84,8 +84,8 @@ class ConfigValidator(object):
 
         if has_optimizer_step and going_to_accumulate_grad_batches and automatic_optimization:
             raise MisconfigurationException(
-                'When overriding `LightningModule` optimizer_step with `Trainer(..., automatic_optimization=True, ...)`,'
-                ' `accumulate_grad_batches` should to be 1. It ensures this `optimizer_step` is called on every batch'
+                'When overriding `LightningModule` optimizer_step with `Trainer(automatic_optimization=True, ...)`,'
+                ' `accumulate_grad_batches` should to be 1. It ensures `optimizer_step` is called on every batch'
             )
 
     def __verify_eval_loop_configuration(self, model, eval_loop_name):
