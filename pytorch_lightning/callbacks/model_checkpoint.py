@@ -220,17 +220,25 @@ class ModelCheckpoint(Callback):
         self.best_model_score = checkpointed_state["best_model_score"]
         self.best_model_path = checkpointed_state["best_model_path"]
 
-    def should_save(self, trainer):
+    def should_save(self, trainer, is_last=False):
         epoch = trainer.current_epoch
         global_step = trainer.global_step
         should_save = not (
+            # negative conditions
             self.save_top_k == 0  # no models are saved
             or self.period < 1  # no models are saved
             or (epoch + 1) % self.period  # skip epoch
             or trainer.running_sanity_check  # don't save anything during sanity check
-            or self.last_global_step_saved == global_step  # already saved at the last step
-        ) and trainer.checkpoint_connector.has_trained
-        return should_save
+        ) or (
+            # positive conditions
+            is_last and self.save_last  # user required to save the last model
+        )
+        # already saved at the last step
+        should_skip = (self.last_global_step_saved == global_step)
+        # used in this scenario:
+        # tests.checkpointing.test_model_checkpoint.test_checkpoint_repeated_strategy_extended
+        has_trained = trainer.checkpoint_connector.has_trained
+        return should_save and not should_skip and has_trained
 
     def save_checkpoint(self, trainer, pl_module, is_last=False):
         """
@@ -241,7 +249,7 @@ class ModelCheckpoint(Callback):
         epoch = trainer.current_epoch
         global_step = trainer.global_step
 
-        if not (self.should_save(trainer) or is_last):
+        if not self.should_save(trainer, is_last=is_last):
             return
 
         self._add_backward_monitor_support(trainer)
