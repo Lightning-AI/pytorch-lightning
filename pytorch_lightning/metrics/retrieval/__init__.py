@@ -11,30 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.metrics.metric import Metric
-
-from pytorch_lightning.metrics.classification import (
-    Accuracy,
-    Precision,
-    Recall,
-    FBeta,
-    F1,
-    ConfusionMatrix
-)
-
-from pytorch_lightning.metrics.regression import (
-    MeanSquaredError,
-    MeanAbsoluteError,
-    MeanSquaredLogError,
-    ExplainedVariance,
-    PSNR,
-    SSIM,
-)
-
-from pytorch_lightning.metrics.retrieval import (
-    MeanAveragePrecision,
-    MeanReciprocalRank,
-    PrecisionAtK,
-    RecallAtK,
-    HitRateAtK,
-)
+#from pytorch_lightning.metrics.retrieval import 
+from pytorch_lightning.metrics.retrieval.mean_average_precision import MeanAveragePrecision
+from pytorch_lightning.metrics.retrieval.mean_reciprocal_rank import MeanReciprocalRank
+from pytorch_lightning.metrics.retrieval.precision import PrecisionAtK
+from pytorch_lightning.metrics.retrieval.recall import RecallAtK
+from pytorch_lightning.metrics.retrieval.hit_rate import HitRateAtK
