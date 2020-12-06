@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-export PL_RUNNING_SPECIAL_TESTS=1
 # Running special tests
-PL_RUNNING_SPECIAL_TESTS=1 python -m coverage run --source pytorch_lightning -a -m pytest tests/trainer/optimization/test_manual_optimization.py::test_step_with_optimizer_closure_with_different_frequencies_ddp --verbose --capture=no
+export PL_RUNNING_SPECIAL_TESTS=1
+DEFAULTS="-m coverage run --source pytorch_lightning -a -m pytest  --verbose --capture=no"
+python ${DEFAULTS} pytest tests/trainer/optimization/test_manual_optimization.py::test_step_with_optimizer_closure_with_different_frequencies_ddp
