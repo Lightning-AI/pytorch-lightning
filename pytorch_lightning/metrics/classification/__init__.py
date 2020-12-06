@@ -14,5 +14,9 @@
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
 from pytorch_lightning.metrics.classification.hamming_loss import HammingLoss
 from pytorch_lightning.metrics.classification.precision_recall import Precision, Recall
-from pytorch_lightning.metrics.classification.f_beta import FBeta, F1
+from pytorch_lightning.metrics.classification.average_precision import AveragePrecision
 from pytorch_lightning.metrics.classification.confusion_matrix import ConfusionMatrix
+from pytorch_lightning.metrics.classification.f_beta import FBeta, F1
+from pytorch_lightning.metrics.classification.precision_recall import Precision, Recall
+from pytorch_lightning.metrics.classification.precision_recall_curve import PrecisionRecallCurve
+from pytorch_lightning.metrics.classification.roc import ROC

@@ -268,6 +268,30 @@ Accuracy
 .. autoclass:: pytorch_lightning.metrics.classification.Accuracy
     :noindex:
 
+AveragePrecision
+~~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.AveragePrecision
+    :noindex:
+
+ConfusionMatrix
+~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.ConfusionMatrix
+    :noindex:
+
+F1
+~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.F1
+    :noindex:
+
+FBeta
+~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.FBeta
+    :noindex:
+
 Hamming Loss
 ~~~~~~~~~~~~
 
@@ -280,29 +304,24 @@ Precision
 .. autoclass:: pytorch_lightning.metrics.classification.Precision
     :noindex:
 
+PrecisionRecallCurve
+~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.PrecisionRecallCurve
+    :noindex:
+
 Recall
 ~~~~~~
 
 .. autoclass:: pytorch_lightning.metrics.classification.Recall
     :noindex:
 
-FBeta
-~~~~~
+ROC
+~~~
 
-.. autoclass:: pytorch_lightning.metrics.classification.FBeta
+.. autoclass:: pytorch_lightning.metrics.classification.ROC
     :noindex:
 
-F1
-~~
-
-.. autoclass:: pytorch_lightning.metrics.classification.F1
-    :noindex:
-
-ConfusionMatrix
-~~~~~~~~~~~~~~~
-
-.. autoclass:: pytorch_lightning.metrics.classification.ConfusionMatrix
-    :noindex:
 
 Functional Metrics (Classification)
 -----------------------------------
@@ -311,12 +330,6 @@ accuracy [func]
 ~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.accuracy
-    :noindex:
-
-hamming_loss [func]
-~~~~~~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.metrics.functional.hamming_loss
     :noindex:
 
 auc [func]
@@ -343,7 +356,7 @@ multiclass_auroc [func]
 average_precision [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.average_precision
+.. autofunction:: pytorch_lightning.metrics.functional.average_precision
     :noindex:
 
 
@@ -374,6 +387,11 @@ fbeta [func]
 .. autofunction:: pytorch_lightning.metrics.functional.fbeta
     :noindex:
 
+hamming_loss [func]
+~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.metrics.functional.hamming_loss
+    :noindex:
 
 iou [func]
 ~~~~~~~~~~
@@ -382,10 +400,10 @@ iou [func]
     :noindex:
 
 
-multiclass_roc [func]
+roc [func]
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.multiclass_roc
+.. autofunction:: pytorch_lightning.metrics.functional.roc
     :noindex:
 
 
@@ -406,7 +424,7 @@ precision_recall [func]
 precision_recall_curve [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.precision_recall_curve
+.. autofunction:: pytorch_lightning.metrics.functional.precision_recall_curve
     :noindex:
 
 
@@ -416,11 +434,10 @@ recall [func]
 .. autofunction:: pytorch_lightning.metrics.functional.classification.recall
     :noindex:
 
+select_topk [func]
+~~~~~~~~~~~~~~~~~~~~~
 
-roc [func]
-~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.metrics.functional.classification.roc
+.. autofunction:: pytorch_lightning.metrics.utils.select_topk
     :noindex:
 
 
@@ -441,14 +458,14 @@ stat_scores_multiple_classes [func]
 to_categorical [func]
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.to_categorical
+.. autofunction:: pytorch_lightning.metrics.utils.to_categorical
     :noindex:
 
 
 to_onehot [func]
 ~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.to_onehot
+.. autofunction:: pytorch_lightning.metrics.utils.to_onehot
     :noindex:
 
 ******************
