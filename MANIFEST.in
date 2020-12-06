@@ -54,6 +54,7 @@ include pyproject.toml
 # Exclude build configs
 exclude *.yml
 exclude *.yaml
+exclude *.jsonnet
 
 # Exclude pyright config
 exclude .pyrightconfig.json
