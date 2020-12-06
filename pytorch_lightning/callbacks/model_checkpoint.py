@@ -231,10 +231,11 @@ class ModelCheckpoint(Callback):
             or trainer.running_sanity_check  # don't save anything during sanity check
         ) or (
             # positive conditions
-            is_last and self.save_last  # user required to save the last model
+            is_last
+            and self.save_last  # user required to save the last model
         )
         # already saved at the last step
-        should_skip = (self.last_global_step_saved == global_step)
+        should_skip = self.last_global_step_saved == global_step
         # used in this scenario:
         # tests.checkpointing.test_model_checkpoint.test_checkpoint_repeated_strategy_extended
         has_trained = trainer.checkpoint_connector.has_trained
