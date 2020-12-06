@@ -206,10 +206,9 @@ class Trainer(
 
             log_every_n_steps: How often to log within steps (defaults to every 50 steps).
 
-            automatic_optimization: If False you are responsible for calling .backward, .step, zero_grad.
-                If False you are responsible for calling .backward, .step, zero_grad in LightningModule.
-                This argument has been moved to LightningModule. It is deprecated here in v1.1 and
-                will be removed in v1.3.
+            automatic_optimization: If False you are responsible for calling .backward, .step, zero_grad
+                in LightningModule. This argument has been moved to LightningModule. It is deprecated
+                here in v1.1 and will be removed in v1.3.
 
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
@@ -505,11 +504,9 @@ class Trainer(
         # hook
         self.train_loop.on_train_start()
 
-        if self.train_loop.should_skip_training():
-            self.train_loop.on_train_end()
-            return
-
         try:
+            if self.train_loop.should_skip_training():
+                return
             # run all epochs
             for epoch in range(self.current_epoch, self.max_epochs):
 
@@ -521,9 +518,6 @@ class Trainer(
                     self.train_loop.run_training_epoch()
 
                 if self.max_steps and self.max_steps <= self.global_step:
-
-                    # hook
-                    self.train_loop.on_train_end()
                     return
 
                 # update LR schedulers
@@ -535,16 +529,12 @@ class Trainer(
 
                 if self.should_stop:
                     if met_min_epochs and met_min_steps:
-                        self.train_loop.on_train_end()
                         return
                     log.info(
                         'Trainer was signaled to stop but required minimum epochs'
                         f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
                         ' not been met. Training will continue...'
                     )
-
-            # hook
-            self.train_loop.on_train_end()
 
         except KeyboardInterrupt:
             rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
@@ -554,9 +544,9 @@ class Trainer(
                 self.interrupted = True
                 self._state = TrainerState.INTERRUPTED
                 self.on_keyboard_interrupt()
-
-                # hook
-                self.train_loop.on_train_end()
+        finally:
+            # hook
+            self.train_loop.on_train_end()
 
     def run_evaluation(self, test_mode: bool = False, max_batches=None):
 
