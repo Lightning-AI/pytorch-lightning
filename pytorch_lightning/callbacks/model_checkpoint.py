@@ -196,15 +196,18 @@ class ModelCheckpoint(Callback):
 
     def on_epoch_end(self, trainer, pl_module):
         """
-        checkpoints can be saved at the end of the val loop
+        checkpoints can be saved at the end of the train loop
         """
         self.save_checkpoint(trainer, pl_module)
 
     def on_train_end(self, trainer, pl_module):
         """
-        checkpoints can be saved at the end of the val loop
+        checkpoints can be saved at the end of the epoch loop
         """
+        trainer.global_step -= 1
+        # self.check_checkpoint_callback(should_save=True, is_last=True)
         self.save_checkpoint(trainer, pl_module)
+        trainer.global_step += 1
 
     def on_save_checkpoint(self, trainer, pl_module) -> Dict[str, Any]:
         return {
@@ -218,6 +221,18 @@ class ModelCheckpoint(Callback):
         self.best_model_score = checkpointed_state["best_model_score"]
         self.best_model_path = checkpointed_state["best_model_path"]
 
+    def should_save(self, trainer):
+        epoch = trainer.current_epoch
+        global_step = trainer.global_step
+        should_save = not (
+            self.save_top_k == 0  # no models are saved
+            or self.period < 1  # no models are saved
+            or (epoch + 1) % self.period  # skip epoch
+            or trainer.running_sanity_check  # don't save anything during sanity check
+            or self.last_global_step_saved == global_step  # already saved at the last step
+        )
+        return should_save
+
     def save_checkpoint(self, trainer, pl_module):
         """
         Performs the main logic around saving a checkpoint.
@@ -227,13 +242,7 @@ class ModelCheckpoint(Callback):
         epoch = trainer.current_epoch
         global_step = trainer.global_step
 
-        if (
-            self.save_top_k == 0  # no models are saved
-            or self.period < 1  # no models are saved
-            or (epoch + 1) % self.period  # skip epoch
-            or trainer.running_sanity_check  # don't save anything during sanity check
-            or self.last_global_step_saved == global_step  # already saved at the last step
-        ):
+        if not self.should_save(trainer):
             return
 
         self._add_backward_monitor_support(trainer)
@@ -497,11 +506,17 @@ class ModelCheckpoint(Callback):
         if self.save_top_k is None and self.monitor is not None:
             self.save_top_k = 1
 
+    def _valid_monitor_key(self, trainer):
+        metrics = trainer.logger_connector.callback_metrics
+
+        # validate metric
+        return self.monitor is None or self._is_valid_monitor_key(metrics)
+
     def _validate_monitor_key(self, trainer):
         metrics = trainer.logger_connector.callback_metrics
 
         # validate metric
-        if self.monitor is not None and not self._is_valid_monitor_key(metrics):
+        if not self._valid_monitor_key(trainer):
             m = (
                 f"ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics:"
                 f" {list(metrics.keys())}. "
