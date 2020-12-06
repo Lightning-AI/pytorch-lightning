@@ -261,23 +261,27 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     assert ckpt_name == filepath / 'test-epoch=3-step=2.ckpt'
 
 
+class ModelCheckpointExtensionTest(ModelCheckpoint):
+        # Helper class for test_model_checkpoint_file_extension
+        # Needs to be defined outside of function call as local objects cannot be pickled
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+
 def test_model_checkpoint_file_extension(tmpdir):
 
     # tests that files get saved with user-defined FILE_EXTENSION
-    ModelCheckpoint.FILE_EXTENSION = '.tpkc'
+    ModelCheckpointExtensionTest.FILE_EXTENSION = '.tpkc'
     model = LogInTwoMethods()
-    model_checkpoint = ModelCheckpoint(monitor='early_stop_on', dirpath=tmpdir, save_top_k=1, save_last=True)
+    model_checkpoint = ModelCheckpointExtensionTest(monitor='early_stop_on', dirpath=tmpdir, save_top_k=1, save_last=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[model_checkpoint],
-        max_epochs=2
+        max_steps=1
     )
     trainer.fit(model)
     expected = 'last.tpkc'
     assert expected in set(os.listdir(tmpdir))
-
-    # Reset model checkpoint file extension so it does not break other tests
-    ModelCheckpoint.FILE_EXTENSION = '.ckpt'
 
 
 def test_model_checkpoint_save_last(tmpdir):
