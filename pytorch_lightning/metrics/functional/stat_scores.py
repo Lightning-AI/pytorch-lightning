@@ -83,18 +83,15 @@ def _stat_scores_update(
     target: torch.Tensor,
     reduce: str = "micro",
     mdmc_reduce: Optional[str] = None,
-    threshold: float = 0.5,
     num_classes: Optional[int] = None,
+    top_k: Optional[int] = None,
+    threshold: float = 0.5,
     is_multiclass: Optional[bool] = None,
     ignore_index: Optional[int] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
 
     preds, target, _ = _input_format_classification(
-        preds,
-        target,
-        threshold=threshold,
-        num_classes=num_classes,
-        is_multiclass=is_multiclass,
+        preds, target, threshold=threshold, num_classes=num_classes, is_multiclass=is_multiclass, top_k=top_k
     )
 
     if len(preds.shape) == 3:
@@ -158,8 +155,9 @@ def stat_scores(
     target: torch.Tensor,
     reduce: str = "micro",
     mdmc_reduce: Optional[str] = None,
-    threshold: float = 0.5,
     num_classes: Optional[int] = None,
+    top_k: Optional[int] = None,
+    threshold: float = 0.5,
     is_multiclass: Optional[bool] = None,
     ignore_index: Optional[int] = None,
 ) -> torch.Tensor:
@@ -176,11 +174,12 @@ def stat_scores(
             Defines the reduction that is applied. Should be one of the following:
 
             - ``'micro'`` [default]: Counts the statistics by summing over all [sample, class]
-              combinations (globally). Produces a one element tensor for each statistic.
+              combinations (globally). Each statistic is represented by a single integer.
             - ``'macro'``: Counts the statistics for each class separately (over all samples).
-              Produces a ``(C, )`` 1d tensor. Requires ``num_classes`` to be set.
+              Each statistic is represented by a ``(C,)`` tensor. Requires ``num_classes``
+              to be set.
             - ``'samples'``: Counts the statistics for each sample separately (over all classes).
-              Produces a ``(N, )`` 1d tensor.
+              Each statistic is represented by a ``(N, )`` 1d tensor.
 
             Note that what is considered a sample in the multi-dimensional multi-class case
             depends on the value of ``mdmc_reduce``.
@@ -190,36 +189,53 @@ def stat_scores(
             one of the following:
 
             - ``None`` [default]: Should be left unchanged if your data is not multi-dimensional
-              multi-class.
+              multi-class (see :ref:`metrics:Input types` for the definition of input types).
 
             - ``'samplewise'``: In this case, the statistics are computed separately for each
               sample on the ``N`` axis, and then concatenating the outputs together. This is
-              done by, for each sample, treating the flattened extra axes ``...`` (see
-              :ref:`metrics:Input types`) as the ``N`` dimension within the sample, and computing
-              the statistics for the sample based on that.
+              done by, for each sample, treating the flattened extra axes ``...`` as the ``N``
+              dimension within the sample, and computing the statistics for the sample based on
+              that.
 
-            - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs (see :ref:`metrics:Input types`)
-              are flattened into a new ``N_X`` sample axis, i.e. the inputs are treated as if they
+            - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs are
+              flattened into a new ``N_X`` sample axis, i.e. the inputs are treated as if they
               were ``(N_X, C)``. From here on the ``reduce`` parameter applies as usual.
 
         num_classes:
             Number of classes. Necessary for (multi-dimensional) multi-class or multi-label data.
+        top_k:
+            Number of highest probability entries for each sample to convert to 1s, relevant
+            only for (multi-dimensional) multi-class inputs with probability predictions. The
+            default value (``None``) will be interpreted as 1 for these inputs.
+
+            Should be left at default (``None``) for all other types of inputs.
 
         threshold:
             Threshold probability value for transforming probability predictions to binary
             (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
         is_multiclass:
-            If ``False``, treat multi-class and multi-dim multi-class inputs with 1 or 2 classes as
-            binary and multi-label, respectively. If ``True``, treat binary and multi-label inputs
-            as multi-class or multi-dim multi-class with 2 classes, respectively.
-            Defaults to ``None``, which treats inputs as they appear.
+            Used only in certain special cases, where you want to treat inputs as a different type
+            than what they appear to be (see :ref:`metrics: Input types` documentation section for
+            input classification and examples of the use of this parameter). Should be left at default
+            value (``None``) in most cases.
+
+            The special cases where this parameter should be set are:
+
+            - When you want to treat binary or multi-label inputs as multi-class or multi-dimensional
+              multi-class with 2 classes, respectively. The probabilities are interpreted as the
+              probability of the "1" class, and thresholding still applies as usual. In this case
+              the parameter should be set to ``True``.
+            - When you want to treat multi-class or multi-dimensional mulit-class inputs with 2 classes
+              as binary or multi-label inputs, respectively. This is mainly meant for the case when
+              inputs are labels, but will work if they are probabilities as well. For this case the
+              parameter should be set to ``False``.
         ignore_index:
             Integer specifying a target class to ignore. If given, this class index does not contribute
             to the returned score, regardless of reduction method. Has no effect if given an int that
             is not in the range ``[0, C-1]``, or if  ``C=1``, where ``C`` is the number of classes.
 
             If an index is ignored, and ``reduce='macro'``, the class statistics for the ignored
-            class will all be returned as ``nan`` (to not break the indexing of other labels).
+            class will all be returned as ``-1``.
 
     Return:
         The metric returns a tensor of shape ``(..., 5)``, where the last dimension corresponds
@@ -273,6 +289,14 @@ def stat_scores(
         raise ValueError("When you set reduce as macro, you have to provide the number of classes.")
 
     tp, fp, tn, fn = _stat_scores_update(
-        preds, target, reduce, mdmc_reduce, threshold, num_classes, is_multiclass, ignore_index
+        preds,
+        target,
+        reduce=reduce,
+        mdmc_reduce=mdmc_reduce,
+        top_k=top_k,
+        threshold=threshold,
+        num_classes=num_classes,
+        is_multiclass=is_multiclass,
+        ignore_index=ignore_index,
     )
     return _stat_scores_compute(tp, fp, tn, fn)
