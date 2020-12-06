@@ -633,13 +633,13 @@ Use Sharded Training to scale your batch size further using the same compute. Th
 Below we use the `NeMo Transformer Lightning Language Modeling example <https://github.com/NVIDIA/NeMo/tree/main/examples/nlp/language_modeling>`_ to benchmark the maximum batch size that can be fit on 8 A100 GPUs for DDP vs Sharded Training.
 Note that the benefits can still be obtained using 2 or more GPUs, and for even larger batch sizes you can scale to multiple nodes.
 
-+----------------------+-----------------------+----------------+
-| Distributed Training | Model Size (Millions) | Max Batch Size |
-+======================+=======================+================+
-| DDP                  | 930                   | 32             |
-+----------------------+-----------------------+----------------+
-| Sharded              | 930                   | **52**         |
-+----------------------+-----------------------+----------------+
++----------------------+-----------------------+----------------+---------------------+
+| Distributed Training | Model Size (Millions) | Max Batch Size | Percentage Gain (%) |
++======================+=======================+================+=====================+
+| DDP                  | 930                   | 32             | -                   |
++----------------------+-----------------------+----------------+---------------------+
+| Sharded              | 930                   | **52**         | **48%**             |
++----------------------+-----------------------+----------------+---------------------+
 
 **Increase Your Model Size**
 
@@ -647,17 +647,17 @@ Use Sharded Training to scale your model size further using the same compute.
 We use the `NeMo Transformer Lightning Language Modeling example <https://github.com/NVIDIA/NeMo/tree/main/examples/nlp/language_modeling>`_ to benchmark the maximum model size that can fit on 8 A100 GPUs for DDP vs Sharded Training.
 Note that the benefits can still be obtained using 2 or more GPUs, and for even larger models you can scale to multiple nodes.
 
-+----------------------+------------+---------------------------+
-| Distributed Training | Batch Size | Max Model Size (Millions) |
-+======================+============+===========================+
-| DDP                  | 32         | 930                       |
-+----------------------+------------+---------------------------+
-| Sharded              | 32         | **1404**                  |
-+----------------------+------------+---------------------------+
-| DDP                  | 8          | 1572                      |
-+----------------------+------------+---------------------------+
-| Sharded              | 8          | **2872**                  |
-+----------------------+------------+---------------------------+
++----------------------+------------+---------------------------+---------------------+
+| Distributed Training | Batch Size | Max Model Size (Millions) | Percentage Gain (%) |
++======================+============+===========================+=====================+
+| DDP                  | 32         | 930                       | -                   |
++----------------------+------------+---------------------------+---------------------+
+| Sharded              | 32         | **1404**                  | **41%**             |
++----------------------+------------+---------------------------+---------------------+
+| DDP                  | 8          | 1572                      | -                   |
++----------------------+------------+---------------------------+---------------------+
+| Sharded              | 8          | **2872**                  | **59%**             |
++----------------------+------------+---------------------------+---------------------+
 
 It is highly recommended to use Sharded Training in multi-GPU environments where memory is limited, or where training larger models are beneficial (500+ million parameter models).
 A technical note: as batch size scales, storing activations for the backwards pass becomes the bottleneck in training. As a result, sharding optimizer state and gradients becomes less impactful.
