@@ -97,6 +97,7 @@ class Trainer(
         progress_bar_refresh_rate: int = 1,
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
+        track_grad_norm_mode: str = 'parameters',
         check_val_every_n_epoch: int = 1,
         fast_dev_run: bool = False,
         accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
@@ -261,6 +262,9 @@ class Trainer(
 
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm.
 
+            track_grad_norm_mode: How grad norms are aggregated. By default it aggregates for each parameter.
+                Additionally it can aggregate for parameter+optimizer and optimizer.
+
             truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of much longer
                 sequence.
 
@@ -335,7 +339,12 @@ class Trainer(
 
         # init training tricks
         self.training_tricks_connector.on_trainer_init(
-            gradient_clip_val, track_grad_norm, accumulate_grad_batches, truncated_bptt_steps, terminate_on_nan
+            gradient_clip_val,
+            track_grad_norm,
+            track_grad_norm_mode,
+            accumulate_grad_batches,
+            truncated_bptt_steps,
+            terminate_on_nan
         )
 
         # init accelerator related flags

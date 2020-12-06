@@ -221,11 +221,37 @@ class AverageValueMeter:
 
 class GradNormTracker:
 
-    def __init__(self):
+    def __init__(self, aggregation_mode, norm_type):
         self._grad_norm_dic = {}
+        self.norm_type = norm_type
 
-    def track_norm(self, grad_norm_dic):
+        if aggregation_mode == 'optimizer':
+            self.name_mapping = self.aggregate_over_optimizer
+        elif aggregation_mode == 'optimizer+parameters':
+            self.name_mapping = self.aggregate_over_optimizer_and_parameters
+        elif aggregation_mode =='parameters':
+            self.name_mapping = self.aggregate_over_parameters
+
+    @staticmethod
+    def norm_name(norm_type):
+        return f'grad_{norm_type}_norm'
+
+    def aggregate_over_optimizer(self, name, opt_idx):
+        base = self.norm_name(self.norm_type)
+        if 'norm_total' in name:
+            return f'opt_{opt_idx}_{base}_total'
+        else:
+            return f'opt_{opt_idx}_{base}'
+
+    def aggregate_over_optimizer_and_parameters(self, name, opt_idx):
+        return f'opt_{opt_idx}_{name}'
+
+    def aggregate_over_parameters(self, name, opt_idx):
+        return name
+
+    def track_norm(self, grad_norm_dic, opt_idx):
         for name, norm in grad_norm_dic.items():
+            name = self.name_mapping(name, opt_idx)
             if name not in self._grad_norm_dic:
                 self._grad_norm_dic[name] = AverageValueMeter()
             self._grad_norm_dic[name].add(norm)

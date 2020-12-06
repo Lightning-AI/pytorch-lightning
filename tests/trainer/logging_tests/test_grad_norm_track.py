@@ -48,7 +48,7 @@ class TestModel(LightningModule):
         return {'loss': self.loss(out, ys)}
 
 
-def test_grad_norm_track():
+def test_grad_norm_track_aggregated_over_parameters():
     model = TestModel()
     trainer = Trainer(track_grad_norm=2,
                       log_every_n_steps=1,
@@ -56,7 +56,6 @@ def test_grad_norm_track():
 
     trainer.fit(model)
 
-    keys = list(trainer.logged_metrics.keys())
     first_optimizer = ('grad_2.0_norm_first.weight_mean',
                        'grad_2.0_norm_first.weight_std',
                        'grad_2.0_norm_first.bias_mean',
@@ -73,3 +72,52 @@ def test_grad_norm_track():
                         'grad_2.0_norm_total_std')
     assert all([trainer.logged_metrics[key] > 0.0 for key in second_optimizer]), f'Grad norm not logged for second optimizer'
 
+def test_grad_norm_track_aggregated_over_optimizers_and_parameters():
+    model = TestModel()
+    trainer = Trainer(track_grad_norm=2,
+                      track_grad_norm_mode='optimizer+parameters',
+                      log_every_n_steps=1,
+                      fast_dev_run=True)
+
+    trainer.fit(model)
+
+    first_optimizer = ('opt_0_grad_2.0_norm_first.weight_mean',
+                       'opt_0_grad_2.0_norm_first.weight_std',
+                       'opt_0_grad_2.0_norm_first.bias_mean',
+                       'opt_0_grad_2.0_norm_first.bias_std',
+                       'opt_0_grad_2.0_norm_total_mean',
+                       'opt_0_grad_2.0_norm_total_std')
+    assert all([trainer.logged_metrics[key] > 0.0 for key in first_optimizer]), f'Grad norm not logged for first optimizer'
+
+    second_optimizer = ('opt_1_grad_2.0_norm_second.weight_mean',
+                        'opt_1_grad_2.0_norm_second.weight_std',
+                        'opt_1_grad_2.0_norm_second.bias_mean',
+                        'opt_1_grad_2.0_norm_second.bias_std',
+                        'opt_1_grad_2.0_norm_total_mean',
+                        'opt_1_grad_2.0_norm_total_std')
+    assert all([trainer.logged_metrics[key] > 0.0 for key in second_optimizer]), f'Grad norm not logged for second optimizer'
+
+def test_grad_norm_track_aggregated_over_optimizers():
+    model = TestModel()
+    trainer = Trainer(track_grad_norm=2,
+                      track_grad_norm_mode='optimizer',
+                      log_every_n_steps=1,
+                      fast_dev_run=True)
+
+    trainer.fit(model)
+
+    first_optimizer = ('opt_0_grad_2.0_norm_mean',
+                       'opt_0_grad_2.0_norm_std',
+                       'opt_0_grad_2.0_norm_total_mean',
+                       'opt_0_grad_2.0_norm_total_std')
+    assert all([trainer.logged_metrics[key] > 0.0
+                for key
+                in first_optimizer]), f'Grad norm not logged for first optimizer'
+
+    second_optimizer = ('opt_1_grad_2.0_norm_mean',
+                        'opt_1_grad_2.0_norm_std',
+                        'opt_1_grad_2.0_norm_total_mean',
+                        'opt_1_grad_2.0_norm_total_std')
+    assert all([trainer.logged_metrics[key] > 0.0
+                for key
+                in second_optimizer]), f'Grad norm not logged for second optimizer'

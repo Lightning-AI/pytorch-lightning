@@ -24,6 +24,7 @@ class TrainingTricksConnector:
             self,
             gradient_clip_val,
             track_grad_norm,
+            track_grad_norm_mode,
             accumulate_grad_batches,
             truncated_bptt_steps,
             terminate_on_nan
@@ -38,6 +39,12 @@ class TrainingTricksConnector:
         if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != 'inf':
             raise MisconfigurationException("track_grad_norm can be an int, a float or 'inf' (infinity norm).")
         self.trainer.track_grad_norm = float(track_grad_norm)
+
+        # gradient norm tracking aggregation mode
+        if not isinstance(track_grad_norm_mode, str) and\
+           not track_grad_norm_mode in ['parameters', 'optimizer', 'optimizer+parameters']:
+            raise MisconfigurationException("track_grad_norm can be an int, a float or 'inf' (infinity norm).")
+        self.trainer.track_grad_norm_mode = track_grad_norm_mode
 
         # accumulated grads
         self.trainer.accumulate_grad_batches = accumulate_grad_batches
