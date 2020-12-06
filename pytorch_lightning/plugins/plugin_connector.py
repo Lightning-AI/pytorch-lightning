@@ -120,7 +120,7 @@ class PluginConnector:
                     f" {plugin} is not a supported lightning custom plugin."
                     " If you're trying to pass a custom plugin, please pass this as an object to"
                     " Trainer(plugins=[MyPlugin()]."
-                    f" Supported plugins as string input: {(e.name for e in LightningCustomPlugins)}."
+                    f" Supported plugins as string input: {[e.name for e in LightningCustomPlugins]}."
                 )
             plugin_cls = LightningCustomPlugins[plugin].value
             return plugin_cls(trainer=self.trainer)
