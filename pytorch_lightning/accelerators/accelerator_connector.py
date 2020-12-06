@@ -17,7 +17,7 @@ from pytorch_lightning import accelerators
 import os
 import torch
 
-from pytorch_lightning.accelerators.accelerator import NewCPUAccelerator, NewAccelerator
+from pytorch_lightning.accelerators.accelerator import NewCPUAccelerator, NewAccelerator, NewGPUAccelerator
 from pytorch_lightning.accelerators.data_parallel import SingleDevicePlugin
 from pytorch_lightning.accelerators.precision import PrecisionPlugin
 from pytorch_lightning.utilities import device_parser
@@ -69,8 +69,6 @@ class BackendConnector(object):
 
         self.num_processes = num_processes
         self.tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
-        # todo: select accelerator based on trainer flags
-        self.accelerator = self.select_accelerator(accelerator)
         self.distributed_backend = distributed_backend
         self.auto_select_gpus = auto_select_gpus
         self.gpus = gpus
@@ -94,9 +92,12 @@ class BackendConnector(object):
 
         self.parallel_devices = device_parser.parse_gpu_ids(self.gpus)
         self.root_gpu = device_parser.determine_root_gpu_device(self.parallel_devices)
-        self.root_device = torch.device("cpu")
+        # self.root_device = torch.device("cpu")
 
         self.set_distributed_mode()
+
+        # todo: select accelerator based on trainer flags
+        self.accelerator = self.select_accelerator(accelerator)
 
         # override dist backend when using tpus
         if self.on_tpu:
@@ -143,10 +144,20 @@ class BackendConnector(object):
             return 0
         return len(gpus)
 
+    def select_precision_plugin(self):
+        return PrecisionPlugin()
+
     def select_accelerator(self, accelerator: Union[str, NewAccelerator]):
-        return NewCPUAccelerator(
+
+        # return NewCPUAccelerator(
+        #     precision_plugin=PrecisionPlugin(),
+        #     training_type_plugin=SingleDevicePlugin(device=torch.device("cpu")),
+        #     gradient_clip_val=None
+        # )
+
+        return NewGPUAccelerator(
             precision_plugin=PrecisionPlugin(),
-            training_type_plugin=SingleDevicePlugin(device=torch.device("cpu")),
+            training_type_plugin=SingleDevicePlugin(device=torch.device("cuda", self.root_gpu)),
             gradient_clip_val=None
         )
 
