@@ -202,8 +202,8 @@ Class vs Functional Metrics
 
 The functional metrics follow the simple paradigm input in, output out. This means, they don't provide any advanced mechanisms for syncing across DDP nodes or aggregation over batches. They simply compute the metric value based on the given inputs.
 
-Also the integration within other parts of PyTorch Lightning will never be as tight as with the class-based interface.
-If you look for just computing the values, the functional metrics are the way to go. However, if you are looking for the best integration and user experience, please consider also to use the class interface.
+Also, the integration within other parts of PyTorch Lightning will never be as tight as with the class-based interface.
+If you look for just computing the values, the functional metrics are the way to go. However, if you are looking for the best integration and user experience, please consider also using the class interface.
 
 **********************
 Classification Metrics
@@ -224,7 +224,7 @@ into these categories (``N`` stands for the batch size and ``C`` for number of c
     "Multi-class with probabilities", "(N, C)", "``float``", "(N,)", "``int``"
     "Multi-label", "(N, ...)", "``float``", "(N, ...)", "``binary``\*"
     "Multi-dimensional multi-class", "(N, ...)", "``int``", "(N, ...)", "``int``"
-    "Multi-dimensional multi-class with probabilities", "(N, C, ...) or (N, ..., C)", "``float``", "(N, ...)", "``int``"
+    "Multi-dimensional multi-class with probabilities", "(N, C, ...)", "``float``", "(N, ...)", "``int``"
 
 .. note::
     All dimensions of size 1 (except ``N``) are "squeezed out" at the beginning, so 
@@ -233,7 +233,7 @@ into these categories (``N`` stands for the batch size and ``C`` for number of c
 When predictions or targets are integers, it is assumed that class labels start at 0, i.e. 
 the possible class labels are 0, 1, 2, 3, etc. Below are some examples of different input types
 
-.. code-block:: python
+.. testcode::
 
     # Binary inputs
     binary_preds  = torch.tensor([0.6, 0.1, 0.9])
@@ -251,7 +251,7 @@ the possible class labels are 0, 1, 2, 3, etc. Below are some examples of differ
     ml_preds  = torch.tensor([[0.2, 0.8, 0.9], [0.5, 0.6, 0.1], [0.3, 0.1, 0.1]])
     ml_target = torch.tensor([[0, 1, 1], [1, 0, 0], [0, 0, 0]])
 
-In some rare cases, you might have inputs which appear to be (multi-dimensional) multi-class,
+In some rare cases, you might have inputs which appear to be (multi-dimensional) multi-class
 but are actually binary/multi-label. For example, if both predictions and targets are 1d
 binary tensors. Or it could be the other way around, you want to treat binary/multi-label
 inputs as 2-class (multi-dimensional) multi-class inputs.
@@ -317,6 +317,30 @@ Accuracy
 .. autoclass:: pytorch_lightning.metrics.classification.Accuracy
     :noindex:
 
+AveragePrecision
+~~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.AveragePrecision
+    :noindex:
+
+ConfusionMatrix
+~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.ConfusionMatrix
+    :noindex:
+
+F1
+~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.F1
+    :noindex:
+
+FBeta
+~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.FBeta
+    :noindex:
+
 Hamming Loss
 ~~~~~~~~~~~~
 
@@ -329,29 +353,24 @@ Precision
 .. autoclass:: pytorch_lightning.metrics.classification.Precision
     :noindex:
 
+PrecisionRecallCurve
+~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.classification.PrecisionRecallCurve
+    :noindex:
+
 Recall
 ~~~~~~
 
 .. autoclass:: pytorch_lightning.metrics.classification.Recall
     :noindex:
 
-FBeta
-~~~~~
+ROC
+~~~
 
-.. autoclass:: pytorch_lightning.metrics.classification.FBeta
+.. autoclass:: pytorch_lightning.metrics.classification.ROC
     :noindex:
 
-F1
-~~
-
-.. autoclass:: pytorch_lightning.metrics.classification.F1
-    :noindex:
-
-ConfusionMatrix
-~~~~~~~~~~~~~~~
-
-.. autoclass:: pytorch_lightning.metrics.classification.ConfusionMatrix
-    :noindex:
 
 StatScores
 ~~~~~~~~~~
@@ -367,12 +386,6 @@ accuracy [func]
 ~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.accuracy
-    :noindex:
-
-hamming_loss [func]
-~~~~~~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.metrics.functional.hamming_loss
     :noindex:
 
 auc [func]
@@ -399,7 +412,7 @@ multiclass_auroc [func]
 average_precision [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.average_precision
+.. autofunction:: pytorch_lightning.metrics.functional.average_precision
     :noindex:
 
 
@@ -430,6 +443,11 @@ fbeta [func]
 .. autofunction:: pytorch_lightning.metrics.functional.fbeta
     :noindex:
 
+hamming_loss [func]
+~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.metrics.functional.hamming_loss
+    :noindex:
 
 iou [func]
 ~~~~~~~~~~
@@ -438,10 +456,10 @@ iou [func]
     :noindex:
 
 
-multiclass_roc [func]
+roc [func]
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.multiclass_roc
+.. autofunction:: pytorch_lightning.metrics.functional.roc
     :noindex:
 
 
@@ -462,7 +480,7 @@ precision_recall [func]
 precision_recall_curve [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.precision_recall_curve
+.. autofunction:: pytorch_lightning.metrics.functional.precision_recall_curve
     :noindex:
 
 
@@ -472,11 +490,10 @@ recall [func]
 .. autofunction:: pytorch_lightning.metrics.functional.classification.recall
     :noindex:
 
+select_topk [func]
+~~~~~~~~~~~~~~~~~~~~~
 
-roc [func]
-~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.metrics.functional.classification.roc
+.. autofunction:: pytorch_lightning.metrics.utils.select_topk
     :noindex:
 
 
@@ -490,14 +507,14 @@ stat_scores [func]
 to_categorical [func]
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.to_categorical
+.. autofunction:: pytorch_lightning.metrics.utils.to_categorical
     :noindex:
 
 
 to_onehot [func]
 ~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.to_onehot
+.. autofunction:: pytorch_lightning.metrics.utils.to_onehot
     :noindex:
 
 ******************
@@ -507,10 +524,10 @@ Regression Metrics
 Class Metrics (Regression)
 --------------------------
 
-MeanSquaredError
-~~~~~~~~~~~~~~~~
+ExplainedVariance
+~~~~~~~~~~~~~~~~~
 
-.. autoclass:: pytorch_lightning.metrics.regression.MeanSquaredError
+.. autoclass:: pytorch_lightning.metrics.regression.ExplainedVariance
     :noindex:
 
 
@@ -521,17 +538,17 @@ MeanAbsoluteError
     :noindex:
 
 
+MeanSquaredError
+~~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.regression.MeanSquaredError
+    :noindex:
+
+
 MeanSquaredLogError
 ~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: pytorch_lightning.metrics.regression.MeanSquaredLogError
-    :noindex:
-
-
-ExplainedVariance
-~~~~~~~~~~~~~~~~~
-
-.. autoclass:: pytorch_lightning.metrics.regression.ExplainedVariance
     :noindex:
 
 
@@ -573,17 +590,17 @@ mean_squared_error [func]
     :noindex:
 
 
-psnr [func]
-~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.metrics.functional.psnr
-    :noindex:
-
-
 mean_squared_log_error [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.mean_squared_log_error
+    :noindex:
+
+
+psnr [func]
+~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.metrics.functional.psnr
     :noindex:
 
 

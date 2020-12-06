@@ -1,19 +1,22 @@
 """
 Deep Reinforcement Learning: Deep Q-network (DQN)
 
-This example is based on https://github.com/PacktPublishing/Deep-Reinforcement-Learning-Hands-On-
-Second-Edition/blob/master/Chapter06/02_dqn_pong.py
-
 The template illustrates using Lightning for Reinforcement Learning. The example builds a basic DQN using the
 classic CartPole environment.
 
 To run the template, just run:
-python reinforce_learn_Qnet.py
+`python reinforce_learn_Qnet.py`
 
-After ~1500 steps, you will see the total_reward hitting the max score of 200. Open up TensorBoard to
-see the metrics:
+After ~1500 steps, you will see the total_reward hitting the max score of 200.
+Open up TensorBoard to see the metrics:
 
-tensorboard --logdir default
+`tensorboard --logdir default`
+
+References
+----------
+
+[1] https://github.com/PacktPublishing/Deep-Reinforcement-Learning-Hands-On-
+Second-Edition/blob/master/Chapter06/02_dqn_pong.py
 """
 
 import argparse

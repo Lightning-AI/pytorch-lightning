@@ -1,11 +1,11 @@
 import numpy as np
 import pytest
 import torch
-from sklearn.metrics import accuracy_score as sk_accuracy, hamming_loss as sk_hamming_loss
+from sklearn.metrics import accuracy_score as sk_accuracy
 
-from pytorch_lightning.metrics import Accuracy, HammingLoss
-from pytorch_lightning.metrics.functional import accuracy, hamming_loss
-from pytorch_lightning.metrics.classification.utils import _input_format_classification
+from pytorch_lightning.metrics import Accuracy
+from pytorch_lightning.metrics.functional import accuracy
+from pytorch_lightning.metrics.classification.helpers import _input_format_classification
 from tests.metrics.classification.inputs import (
     _binary_inputs,
     _binary_prob_inputs,
@@ -31,17 +31,6 @@ def _sk_accuracy(preds, target):
     return sk_accuracy(y_true=sk_target, y_pred=sk_preds)
 
 
-def _sk_hamming_loss(preds, target):
-    sk_preds, sk_target, _ = _input_format_classification(preds, target, threshold=THRESHOLD)
-    sk_preds, sk_target = sk_preds.numpy(), sk_target.numpy()
-    sk_preds, sk_target = sk_preds.reshape(sk_preds.shape[0], -1), sk_target.reshape(sk_target.shape[0], -1)
-
-    return sk_hamming_loss(y_true=sk_target, y_pred=sk_preds)
-
-
-@pytest.mark.parametrize(
-    "metric, fn_metric, sk_metric", [(Accuracy, accuracy, _sk_accuracy), (HammingLoss, hamming_loss, _sk_hamming_loss)]
-)
 @pytest.mark.parametrize(
     "preds, target",
     [
@@ -60,28 +49,28 @@ def _sk_hamming_loss(preds, target):
 class TestAccuracies(MetricTester):
     @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [False, True])
-    def test_accuracy_class(self, ddp, dist_sync_on_step, preds, target, metric, sk_metric, fn_metric):
+    def test_accuracy_class(self, ddp, dist_sync_on_step, preds, target):
         self.run_class_metric_test(
             ddp=ddp,
             preds=preds,
             target=target,
-            metric_class=metric,
-            sk_metric=sk_metric,
+            metric_class=Accuracy,
+            sk_metric=_sk_accuracy,
             dist_sync_on_step=dist_sync_on_step,
             metric_args={"threshold": THRESHOLD},
         )
 
-    def test_accuracy_fn(self, preds, target, metric, sk_metric, fn_metric):
+    def test_accuracy_fn(self, preds, target):
         self.run_functional_metric_test(
             preds,
             target,
-            metric_functional=fn_metric,
-            sk_metric=sk_metric,
+            metric_functional=accuracy,
+            sk_metric=_sk_accuracy,
             metric_args={"threshold": THRESHOLD},
         )
 
 
-l1to4 = [.1, .2, .3, .4]
+l1to4 = [0.1, 0.2, 0.3, 0.4]
 l1to4t3 = np.array([l1to4, l1to4, l1to4])
 l1to4t3_mc = [l1to4t3.T, l1to4t3.T, l1to4t3.T]
 
@@ -130,7 +119,7 @@ def test_topk_accuracy(preds, target, exp_result, k, mdmc_accuracy):
     assert accuracy(preds, target, top_k=k, mdmc_accuracy=mdmc_accuracy) == exp_result
 
 
-# Only MC and MDMC with probs input type should be accepted
+# Only MC and MDMC with probs input type should be accepted for top_k
 @pytest.mark.parametrize(
     "preds, target",
     [
@@ -145,10 +134,10 @@ def test_topk_accuracy(preds, target, exp_result, k, mdmc_accuracy):
     ],
 )
 def test_topk_accuracy_wrong_input_types(preds, target):
-    topk = Accuracy(top_k=2)
+    topk = Accuracy(top_k=1)
 
     with pytest.raises(ValueError):
         topk(preds[0], target[0])
 
     with pytest.raises(ValueError):
-        accuracy(preds[0], target[0], top_k=2)
+        accuracy(preds[0], target[0], top_k=1)

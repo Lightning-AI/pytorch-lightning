@@ -14,13 +14,9 @@
 from typing import Any, Callable, Optional
 
 import torch
+
 from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.metrics.functional.accuracy import (
-    _accuracy_update,
-    _hamming_loss_update,
-    _accuracy_compute,
-    _hamming_loss_compute,
-)
+from pytorch_lightning.metrics.functional.accuracy import _accuracy_update, _accuracy_compute
 
 
 class Accuracy(Metric):
@@ -45,12 +41,9 @@ class Accuracy(Metric):
     Accepts all input types listed in :ref:`metrics:Input types`.
 
     Args:
-        top_k:
-            Number of highest probability predictions considered to find the correct label, for
-            (multi-dimensional) multi-class inputs with probability predictions. Default 1
-
-            If your inputs are not (multi-dimensional) multi-class inputs with probability predictions,
-            an error will be raised if ``top_k`` is set to a value other than 1.
+        threshold:
+            Threshold probability value for transforming probability predictions to binary
+            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
         mdmc_accuracy:
             Determines how should the extra dimension be handeled in case of multi-dimensional multi-class
             inputs. Options are ``"global"`` or ``"subset"``.
@@ -61,9 +54,12 @@ class Accuracy(Metric):
             If ``"subset"``, than the equivalent of subset accuracy is performed for each sample on the
             ``N`` dimension - that is, for the sample to count as correct, all labels on its extra dimension
             must be predicted correctly (the ``top_k`` option still applies here).
-        threshold:
-            Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
+        top_k:
+            Number of highest probability entries for each sample to convert to 1s, relevant
+            only for (multi-dimensional) multi-class inputs with probability predictions. The
+            default value (``None``) will be interpreted as 1 for these inputs.
+
+            Should be left at default (``None``) for all other types of inputs.
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
@@ -94,9 +90,9 @@ class Accuracy(Metric):
 
     def __init__(
         self,
-        top_k: int = 1,
-        mdmc_accuracy: str = "subset",
         threshold: float = 0.5,
+        mdmc_accuracy: str = "subset",
+        top_k: Optional[int] = None,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -126,7 +122,9 @@ class Accuracy(Metric):
             target: Ground truth values
         """
 
-        correct, total = _accuracy_update(preds, target, self.threshold, self.top_k, self.mdmc_accuracy)
+        correct, total = _accuracy_update(
+            preds, target, threshold=self.threshold, top_k=self.top_k, mdmc_accuracy=self.mdmc_accuracy
+        )
 
         self.correct += correct
         self.total += total
@@ -136,81 +134,3 @@ class Accuracy(Metric):
         Computes accuracy based on inputs passed in to ``update`` previously.
         """
         return _accuracy_compute(self.correct, self.total)
-
-
-class HammingLoss(Metric):
-    """
-    Computes the share of wrongly predicted labels.
-
-    This is the same as ``1-accuracy`` for binary data, while for all other types of inputs it
-    treats each possible label separately - meaning that, for example, multi-class data is
-    treated as if it were multi-label. If this is not what you want, consider using
-    :class:`~pytorch_lightning.metrics.classification.Accuracy`.
-
-    Accepts all input types listed in :ref:`metrics:Input types`.
-
-    Args:
-        threshold:
-            Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
-        compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False. default: True
-        dist_sync_on_step:
-            Synchronize metric state across processes at each ``forward()``
-            before returning the value at the step. default: False
-        process_group:
-            Specify the process group on which synchronization is called. default: None (which selects the entire world)
-        dist_sync_fn:
-            Callback that performs the allgather operation on the metric state. When `None`, DDP
-            will be used to perform the allgather. default: None
-
-    Example:
-
-        >>> from pytorch_lightning.metrics import HammingLoss
-        >>> target = torch.tensor([[0, 1], [1, 1]])
-        >>> preds = torch.tensor([[0, 1], [0, 1]])
-        >>> hamming_loss = HammingLoss()
-        >>> hamming_loss(preds, target)
-        tensor(0.2500)
-
-    """
-
-    def __init__(
-        self,
-        threshold: float = 0.5,
-        compute_on_step: bool = True,
-        dist_sync_on_step: bool = False,
-        process_group: Optional[Any] = None,
-        dist_sync_fn: Callable = None,
-    ):
-        super().__init__(
-            compute_on_step=compute_on_step,
-            dist_sync_on_step=dist_sync_on_step,
-            process_group=process_group,
-            dist_sync_fn=dist_sync_fn,
-        )
-
-        self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
-        self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
-
-        self.threshold = threshold
-
-    def update(self, preds: torch.Tensor, target: torch.Tensor):
-        """
-        Update state with predictions and targets. See :ref:`metrics:Input types` for more information
-        on input types.
-
-        Args:
-            preds: Predictions from model (probabilities, or labels)
-            target: Ground truth values
-        """
-        correct, total = _hamming_loss_update(preds, target, self.threshold)
-
-        self.correct += correct
-        self.total += total
-
-    def compute(self) -> torch.Tensor:
-        """
-        Computes hamming loss based on inputs passed in to ``update`` previously.
-        """
-        return _hamming_loss_compute(self.correct, self.total)
