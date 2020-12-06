@@ -998,5 +998,5 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp(mock_sgd_ste
     expected_calls = [call(closure=ANY, optim='sgd') for s in range(4)]
     mock_sgd_step.assert_has_calls(expected_calls)
 
-    expected_calls = [call(closure=ANY, optim='adam') for s in range(2)]
+    expected_calls = [call(closure=ANY, optim='adam')] * 2
     mock_adam_step.assert_has_calls(expected_calls)
