@@ -23,7 +23,7 @@ class Accuracy(Metric):
     r"""
     Computes `Accuracy <https://en.wikipedia.org/wiki/Accuracy_and_precision>`_:
 
-    .. math:: 
+    .. math::
         \text{Accuracy} = \frac{1}{N}\sum_i^N 1(y_i = \hat{y}_i)
 
     Where :math:`y` is a tensor of target values, and :math:`\hat{y}` is a

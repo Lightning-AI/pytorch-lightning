@@ -23,7 +23,7 @@ class HammingLoss(Metric):
     Computes the average Hamming loss or `Hamming distance <https://en.wikipedia.org/wiki/Hamming_distance>`_
     between targets and predictions:
 
-    .. math:: 
+    .. math::
         \text{Hamming loss} = \frac{1}{N \cdot L}\sum_i^N \sum_l^L 1(y_{il} \neq \hat{y_{il}})
 
     Where :math:`y` is a tensor of target values, :math:`\hat{y}` is a tensor of predictions,
