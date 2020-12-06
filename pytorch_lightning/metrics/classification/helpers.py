@@ -425,9 +425,9 @@ def _input_format_classification(
             preds = select_topk(preds, top_k)
         else:
             num_classes = num_classes if num_classes else max(preds.max(), target.max()) + 1
-            preds = to_onehot(preds, num_classes)
+            preds = to_onehot(preds, max(2,num_classes))
 
-        target = to_onehot(target, num_classes)
+        target = to_onehot(target, max(2,num_classes))
 
         if is_multiclass is False:
             preds, target = preds[:, 1, ...], target[:, 1, ...]
