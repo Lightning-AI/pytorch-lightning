@@ -20,7 +20,13 @@ from pytorch_lightning.metrics.functional.hamming_loss import _hamming_loss_upda
 
 class HammingLoss(Metric):
     """
-    Computes the share of wrongly predicted labels.
+    Computes the average Hamming loss or <`Hamming distance`> between targets and predictions:
+
+    .. math:: \text{Hamming loss} = \frac{1}{N \cdot L}\sum_i^N \sum_l^L 1(y_{il} \neq \hat{y_{il}})
+
+    Where :math:`y` is a tensor of target values, :math:`\hat{y}` is a tensor of predictions,
+    and :math:`\bullet_{il}` refers to the :math:`l`th label of the :math:`i`th sample of that
+    tensor.
 
     This is the same as ``1-accuracy`` for binary data, while for all other types of inputs it
     treats each possible label separately - meaning that, for example, multi-class data is
