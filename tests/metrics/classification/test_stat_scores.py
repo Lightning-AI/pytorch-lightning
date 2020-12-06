@@ -5,7 +5,7 @@ import pytest
 import torch
 from sklearn.metrics import multilabel_confusion_matrix
 
-from pytorch_lightning.metrics.classification.utils import _input_format_classification
+from pytorch_lightning.metrics.classification.helpers import _input_format_classification
 from pytorch_lightning.metrics import StatScores
 from pytorch_lightning.metrics.functional import stat_scores
 from tests.metrics.classification.inputs import (
@@ -134,7 +134,7 @@ def test_wrong_params(reduce, mdmc_reduce, num_classes, inputs):
     ],
 )
 class TestStatScores(MetricTester):
-    @pytest.mark.parametrize("ddp", [False, True])
+    @pytest.mark.parametrize("ddp", [False])
     @pytest.mark.parametrize("dist_sync_on_step", [True, False])
     def test_stat_scores_class(
         self,
