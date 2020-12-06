@@ -71,9 +71,9 @@ class LightningOptimizer:
     def accumulate_grad_batches(self, accumulate_grad_batches):
         if self._automatic_optimization is None or self._automatic_optimization:
             raise MisconfigurationException(
-                'In automatic optimization, `make_optimizer_step` should be None. '
-                'This option is enabled only with Trainer(automatic_optimization=False) '
-                'Currently, all optimizers follow the Trainer(accumulate_grad_batches=x) logic')
+                'In automatic optimization, `make_optimizer_step` should be None.'
+                ' This option is enabled only with `Trainer(automatic_optimization=False)`'
+                ' Currently, all optimizers follow the `Trainer(accumulate_grad_batches=x)` logic')
         self._accumulate_grad_batches = accumulate_grad_batches
 
     def _on_trainer_init(self, trainer):
@@ -230,9 +230,9 @@ class LightningOptimizer:
         else:
             if self._automatic_optimization:
                 raise MisconfigurationException(
-                    'In automatic optimization, `make_optimizer_step` should be None. '
-                    'This option is enabled only with Trainer(automatic_optimization=False) '
-                    'Currently, all optimizers follow the Trainer(accumulate_grad_batches=x) logic')
+                    'In automatic optimization, `make_optimizer_step` should be None.'
+                    ' This option is enabled only with `Trainer(automatic_optimization=False)`'
+                    ' Currently, all optimizers follow the `Trainer(accumulate_grad_batches=x)` logic')
 
         if make_optimizer_step:
             self.__optimizer_step(*args, closure=closure, profiler_name=profiler_name, **kwargs)
