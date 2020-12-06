@@ -14,7 +14,6 @@
 
 from enum import Enum
 from typing import Any, Optional, Union
-from contextlib import contextmanager
 
 import torch
 import torch.distributed as torch_distrib
@@ -211,18 +210,6 @@ class Accelerator(object):
 
     def on_save(self, checkpoint):
         return checkpoint
-
-    @contextmanager
-    def block_ddp_plugin_sync_behaviour(self):
-        """
-        Blocks ddp sync gradients behaviour on backwards pass.
-        This is useful for skipping sync when accumulating gradients, reducing communication overhead
-        Returns: context manager with sync behaviour off
-        """
-        if self.ddp_plugin:
-            yield self.ddp_plugin.block_backward_sync(self.trainer.model)
-        else:
-            yield
 
 
 # TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...

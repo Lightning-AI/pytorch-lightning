@@ -321,7 +321,6 @@ class TrainLoop:
             args = self.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
 
             # manually capture logged metrics
-            model_ref._results = Result()
             model_ref._current_fx_name = 'training_step'
             model_ref._results = Result()
             training_step_output = self.trainer.accelerator_backend.training_step(args)
@@ -681,25 +680,8 @@ class TrainLoop:
                     # -------------------
 
                     # perform dpp sync only when performing optimizer_step
-                    if self.automatic_optimization:
-                        with self.block_ddp_sync_behaviour():
-                            self.training_step_and_backward(
-                                split_batch,
-                                batch_idx,
-                                opt_idx,
-                                optimizer,
-                                self.trainer.hiddens
-                            )
-                    else:
-                        # do not block ddp gradient sync when using manual optimization
-                        # as gradients are needed within the training step
-                        self.training_step_and_backward(
-                            split_batch,
-                            batch_idx,
-                            opt_idx,
-                            optimizer,
-                            self.trainer.hiddens
-                        )
+                    with self.block_ddp_sync_behaviour():
+                        self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens)
 
                     batch_outputs = self._process_closure_result(
                         batch_outputs=batch_outputs,
@@ -761,13 +743,8 @@ class TrainLoop:
 
     @contextmanager
     def block_ddp_sync_behaviour(self):
-        """
-        Blocks ddp sync gradients behaviour on backwards pass.
-        This is useful for skipping sync when accumulating gradients, reducing communication overhead
-        Returns: context manager with sync behaviour off
-        """
-        if self.trainer.accelerator_backend is not None:
-            yield self.trainer.accelerator_backend.block_ddp_plugin_sync_behaviour()
+        if isinstance(self.trainer.model, torch.nn.parallel.DistributedDataParallel):
+            yield self.trainer.model.no_sync()
         else:
             yield
 
