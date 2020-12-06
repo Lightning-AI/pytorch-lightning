@@ -23,10 +23,10 @@ import pytorch_lightning as pl
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.utilities import BOLT_AVAILABLE
+from pytorch_lightning.utilities import BOLTS_AVAILABLE
 from tests.base.boring_model import BoringModel, RandomDataset, RandomDictDataset, RandomDictStringDataset
 
-if BOLT_AVAILABLE:
+if BOLTS_AVAILABLE:
     from pl_bolts.optimizers.lars_scheduling import LARSWrapper
     from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 
@@ -206,47 +206,9 @@ def test_state(tmpdir):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not BOLT_AVAILABLE, reason="Bolt is required for this test")
+@pytest.mark.skipif(not BOLTS_AVAILABLE, reason="Bolt is required for this test")
 def test_lightning_optimizer_state(tmpdir):
-    class CheckpointEveryNSteps(pl.Callback):
-        """
-        Save a checkpoint every N steps, instead of Lightning's default that checkpoints
-        based on validation loss.
-        """
-
-        def __init__(
-            self,
-            save_step_frequency,
-            prefix="latest-Checkpoint",
-            use_modelcheckpoint_filename=False,
-        ):
-            """
-            Args:
-                save_step_frequency: how often to save in steps
-                prefix: add a prefix to the name, only used if
-                    use_modelcheckpoint_filename=False
-                use_modelcheckpoint_filename: just use the ModelCheckpoint callback's
-                    default filename, don't use ours.
-            """
-            self.save_step_frequency = save_step_frequency
-            self.prefix = prefix
-            self.use_modelcheckpoint_filename = use_modelcheckpoint_filename
-
-        def on_batch_end(self, trainer: pl.Trainer, _):
-            """ Check if we should save a checkpoint after every train batch """
-            global_step = trainer.global_step
-            if global_step % self.save_step_frequency == 0:
-                if self.use_modelcheckpoint_filename:
-                    filename = trainer.checkpoint_callback.filename
-                else:
-                    filename = "{}.ckpt".format(self.prefix)
-                ckpt_path = os.path.join(trainer.checkpoint_callback.dirpath, filename)
-                trainer.save_checkpoint(ckpt_path)
-
     class TestModel(BoringModel):
-
-        def on_train_epoch_start(self) -> None:
-            print('override any method to prove your bug')
 
         def configure_optimizers(self):
             optimizer = torch.optim.Adam(self.parameters(), lr=0.1)
@@ -263,12 +225,6 @@ def test_lightning_optimizer_state(tmpdir):
     val_data = torch.utils.data.DataLoader(RandomDataset(32, 64),batch_size=1)
     test_data = torch.utils.data.DataLoader(RandomDataset(32, 64),batch_size=1)
 
-    checkpoint_callback = ModelCheckpoint(
-        monitor='loss',
-        mode='min',
-        filepath=tmpdir
-    )
-
     model = TestModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -277,7 +233,5 @@ def test_lightning_optimizer_state(tmpdir):
         accelerator='ddp_spawn',
         log_every_n_steps=1,
         gpus=1,
-        checkpoint_callback=checkpoint_callback,
-        callbacks=[CheckpointEveryNSteps(1)]
     )
     trainer.fit(model, train_data, val_data)

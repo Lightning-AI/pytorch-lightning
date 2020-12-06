@@ -201,7 +201,6 @@ class LightningOptimizer:
 
             else:
                 with trainer.profiler.profile(profiler_name):
-                    print(optimizer)
                     if self._support_closure:
                         optimizer.step(closure=closure, *args, **kwargs)
                     else:
