@@ -39,7 +39,7 @@ class IoU(ConfusionMatrix):
         num_classes: Number of classes in the dataset.
         ignore_index: optional int specifying a target class to ignore. If given, this class index does not contribute
             to the returned score, regardless of reduction method. Has no effect if given an int that is not in the
-            range [0, num_classes-1], where num_classes is either given or derived from pred and target. By default, no
+            range [0, num_classes-1]. By default, no
             index is ignored, and all classes are used.
         absent_score: score to use for an individual class, if no instances of the class index were present in
             `pred` AND no instances of the class index were present in `target`. For example, if we have 3 classes,

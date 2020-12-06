@@ -18,7 +18,6 @@ from tests.metrics.classification.inputs import (
 )
 from tests.metrics.utils import NUM_CLASSES, THRESHOLD, MetricTester
 
-partial(sk_jaccard_score, average='macro')
 
 
 def _binary_prob_sk_metric(preds, target, average=None):
