@@ -1,4 +1,5 @@
 import os
+from contextlib import contextmanager
 from typing import Any, Dict, List, Union, Optional
 
 import torch.distributed as torch_distrib
@@ -131,3 +132,18 @@ class DDPPlugin(LightningPlugin):
         if isinstance(model, LightningDistributedDataParallel):
             return model.module
         return model
+
+    @contextmanager
+    def block_backward_sync(self, model: LightningDistributedDataParallel):
+        """
+        Blocks ddp sync gradients behaviour on backwards pass.
+        This is useful for skipping sync when accumulating gradients, reducing communication overhead
+        Returns: context manager with sync behaviour off
+        """
+        yield model.no_sync()
+
+    def on_before_manual_backward(self, model: LightningDistributedDataParallel, output: Any):
+        model.reducer_prepare_for_backwards(output)
+
+    def on_after_manual_backward(self, model: LightningDistributedDataParallel):
+        model.reducer_reset_hooks()

@@ -89,6 +89,26 @@ class DDPHPCAccelerator(Accelerator):
             output = self.trainer.model(*args)
         return output
 
+    def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
+        automatic_optimization = self.trainer.train_loop.automatic_optimization
+
+        if not automatic_optimization:
+            # Manually prepare for reduce as user calling backwards manually
+            self.ddp_plugin.on_before_manual_backward(self.trainer.model, closure_loss)
+
+        super().backward(
+            closure_loss=closure_loss,
+            optimizer=optimizer,
+            opt_idx=opt_idx,
+            *args,
+            **kwargs
+        )
+
+        if not automatic_optimization:
+            # Manually prepare for reduce as user calling backwards manually
+            self.ddp_plugin.on_after_manual_backward(self.trainer.model)
+        return closure_loss
+
     def barrier(self, name: Optional[str] = None):
         if torch_distrib.is_initialized():
             torch_distrib.barrier()
