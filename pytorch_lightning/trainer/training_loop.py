@@ -321,7 +321,6 @@ class TrainLoop:
             args = self.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
 
             # manually capture logged metrics
-            model_ref._results = Result()
             model_ref._current_fx_name = 'training_step'
             model_ref._results = Result()
             training_step_output = self.trainer.accelerator_backend.training_step(args)
