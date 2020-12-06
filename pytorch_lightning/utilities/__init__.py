@@ -63,3 +63,17 @@ FLOAT64_EPSILON = numpy.finfo(numpy.float64).eps
 class AMPType(Enum):
     APEX = 'apex'
     NATIVE = 'native'
+
+
+class DistributedType(Enum):
+    DP = 'dp'
+    DDP = 'ddp'
+    DDP2 = 'ddp2'
+    DDP_SPAWN = 'ddp_spawn'
+    HOROVOD = 'horovod'
+
+
+class DeviceType(Enum):
+    CPU = 'cpu'
+    GPU = 'gpu'
+    TPU = 'tpu'
