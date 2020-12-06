@@ -262,10 +262,10 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
 
 
 class ModelCheckpointExtensionTest(ModelCheckpoint):
-        # Helper class for test_model_checkpoint_file_extension
-        # Needs to be defined outside of function call as local objects cannot be pickled
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
+    # Helper class for test_model_checkpoint_file_extension
+    # Needs to be defined outside of function call as local objects cannot be pickled
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 def test_model_checkpoint_file_extension(tmpdir):
