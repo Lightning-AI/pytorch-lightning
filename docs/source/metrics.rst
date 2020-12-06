@@ -424,6 +424,12 @@ recall [func]
 .. autofunction:: pytorch_lightning.metrics.functional.classification.recall
     :noindex:
 
+select_topk [func]
+~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.metrics.utils.select_topk
+    :noindex:
+
 
 stat_scores [func]
 ~~~~~~~~~~~~~~~~~~
