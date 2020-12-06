@@ -1332,6 +1332,8 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
         ),
     ],
 )
+# Todo: mock nb Gpus so all these tests can run on any device
+# todo: think about simplification, that the the expected will be just a list use_xxx which shall be true...
 def test_trainer_config(trainer_kwargs, expected):
     trainer = Trainer(**trainer_kwargs)
     assert trainer.use_dp is expected["use_dp"], 'for input: %s' % trainer_kwargs

@@ -24,6 +24,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
+from pytorch_lightning.accelerators.types import DeviceType
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
@@ -284,8 +285,8 @@ class Trainer(
                 handle AMP, TPU, accumulated_gradients, etc..
         """
         super().__init__()
+        self._device_type = DeviceType.CPU
         self._distrib_type = None
-        self._device_type = None
 
         # init connectors
         self.dev_debugger = InternalDebugger(self)
