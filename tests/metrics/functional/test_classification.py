@@ -7,18 +7,11 @@ from sklearn.metrics import (
     jaccard_score as sk_jaccard_score,
     precision_score as sk_precision,
     recall_score as sk_recall,
-    f1_score as sk_f1_score,
-    fbeta_score as sk_fbeta_score,
-    roc_curve as sk_roc_curve,
     roc_auc_score as sk_roc_auc_score,
-    precision_recall_curve as sk_precision_recall_curve
 )
 
 from pytorch_lightning import seed_everything
 from pytorch_lightning.metrics.functional.classification import (
-    to_onehot,
-    to_categorical,
-    get_num_classes,
     stat_scores,
     stat_scores_multiple_classes,
     accuracy,
@@ -26,14 +19,12 @@ from pytorch_lightning.metrics.functional.classification import (
     recall,
     _binary_clf_curve,
     dice_score,
-    average_precision,
     auroc,
     multiclass_auroc,
-    precision_recall_curve,
-    roc,
     auc,
     iou,
 )
+from pytorch_lightning.metrics.utils import to_onehot, get_num_classes, to_categorical
 
 
 @pytest.mark.parametrize(['sklearn_metric', 'torch_metric', 'only_binary'], [
@@ -41,8 +32,6 @@ from pytorch_lightning.metrics.functional.classification import (
     pytest.param(partial(sk_jaccard_score, average='macro'), iou, False, id='iou'),
     pytest.param(partial(sk_precision, average='micro'), precision, False, id='precision'),
     pytest.param(partial(sk_recall, average='micro'), recall, False, id='recall'),
-    pytest.param(sk_roc_curve, roc, True, id='roc'),
-    pytest.param(sk_precision_recall_curve, precision_recall_curve, True, id='precision_recall_curve'),
     pytest.param(sk_roc_auc_score, auroc, True, id='auroc')
 ])
 def test_against_sklearn(sklearn_metric, torch_metric, only_binary):
@@ -243,35 +232,6 @@ def test_binary_clf_curve(sample_weight, pos_label, exp_shape):
     assert thresh.shape == (exp_shape,)
 
 
-@pytest.mark.parametrize(['pred', 'target', 'expected_p', 'expected_r', 'expected_t'], [
-    pytest.param([1, 2, 3, 4], [1, 0, 0, 1], [0.5, 1 / 3, 0.5, 1., 1.], [1, 0.5, 0.5, 0.5, 0.], [1, 2, 3, 4])
-])
-def test_pr_curve(pred, target, expected_p, expected_r, expected_t):
-    p, r, t = precision_recall_curve(torch.tensor(pred), torch.tensor(target))
-    assert p.size() == r.size()
-    assert p.size(0) == t.size(0) + 1
-
-    assert torch.allclose(p, torch.tensor(expected_p).to(p))
-    assert torch.allclose(r, torch.tensor(expected_r).to(r))
-    assert torch.allclose(t, torch.tensor(expected_t).to(t))
-
-
-@pytest.mark.parametrize(['pred', 'target', 'expected_tpr', 'expected_fpr'], [
-    pytest.param([0, 1], [0, 1], [0, 1, 1], [0, 0, 1]),
-    pytest.param([1, 0], [0, 1], [0, 0, 1], [0, 1, 1]),
-    pytest.param([1, 1], [1, 0], [0, 1], [0, 1]),
-    pytest.param([1, 0], [1, 0], [0, 1, 1], [0, 0, 1]),
-    pytest.param([0.5, 0.5], [0, 1], [0, 1], [0, 1]),
-])
-def test_roc_curve(pred, target, expected_tpr, expected_fpr):
-    fpr, tpr, thresh = roc(torch.tensor(pred), torch.tensor(target))
-
-    assert fpr.shape == tpr.shape
-    assert fpr.size(0) == thresh.size(0)
-    assert torch.allclose(fpr, torch.tensor(expected_fpr).to(fpr))
-    assert torch.allclose(tpr, torch.tensor(expected_tpr).to(tpr))
-
-
 @pytest.mark.parametrize(['pred', 'target', 'expected'], [
     pytest.param([0, 1, 0, 1], [0, 1, 0, 1], 1.),
     pytest.param([1, 1, 0, 0], [0, 0, 1, 1], 0.),
@@ -335,21 +295,6 @@ def test_multiclass_auroc_against_sklearn(n_cls):
 def test_auc(x, y, expected):
     # Test Area Under Curve (AUC) computation
     assert auc(torch.tensor(x), torch.tensor(y)) == expected
-
-
-@pytest.mark.parametrize(['scores', 'target', 'expected_score'], [
-    # Check the average_precision_score of a constant predictor is
-    # the TPR
-    # Generate a dataset with 25% of positives
-    # And a constant score
-    # The precision is then the fraction of positive whatever the recall
-    # is, as there is only one threshold:
-    pytest.param(torch.tensor([1, 1, 1, 1]), torch.tensor([0, 0, 0, 1]), .25),
-    # With threshold 0.8 : 1 TP and 2 TN and one FN
-    pytest.param(torch.tensor([.6, .7, .8, 9]), torch.tensor([1, 0, 0, 1]), .75),
-])
-def test_average_precision(scores, target, expected_score):
-    assert average_precision(scores, target) == expected_score
 
 
 @pytest.mark.parametrize(['pred', 'target', 'expected'], [
