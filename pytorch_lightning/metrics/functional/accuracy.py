@@ -14,7 +14,7 @@
 from typing import Tuple, Optional
 
 import torch
-from pytorch_lightning.metrics.classification.utils import _input_format_classification
+from pytorch_lightning.metrics.classification.helpers import _input_format_classification
 
 
 def _accuracy_update(

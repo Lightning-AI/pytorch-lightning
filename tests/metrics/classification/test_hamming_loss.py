@@ -4,7 +4,7 @@ from sklearn.metrics import hamming_loss as sk_hamming_loss
 
 from pytorch_lightning.metrics import HammingLoss
 from pytorch_lightning.metrics.functional import hamming_loss
-from pytorch_lightning.metrics.classification.utils import _input_format_classification
+from pytorch_lightning.metrics.classification.helpers import _input_format_classification
 from tests.metrics.classification.inputs import (
     _binary_inputs,
     _binary_prob_inputs,

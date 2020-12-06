@@ -5,7 +5,7 @@ from sklearn.metrics import accuracy_score as sk_accuracy
 
 from pytorch_lightning.metrics import Accuracy
 from pytorch_lightning.metrics.functional import accuracy
-from pytorch_lightning.metrics.classification.utils import _input_format_classification
+from pytorch_lightning.metrics.classification.helpers import _input_format_classification
 from tests.metrics.classification.inputs import (
     _binary_inputs,
     _binary_prob_inputs,
