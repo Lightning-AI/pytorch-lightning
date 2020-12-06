@@ -90,7 +90,7 @@ class ModelCheckpoint(Callback):
             Example::
 
                 # custom path
-                # saves a file like: my/path/epoch=0.ckpt
+                # saves a file like: my/path/epoch=0-step=10.ckpt
                 >>> checkpoint_callback = ModelCheckpoint(dirpath='my/path/')
 
             By default, dirpath is ``None`` and will be set at runtime to the location
