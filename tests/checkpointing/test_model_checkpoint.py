@@ -997,3 +997,23 @@ def test_hparams_type(tmpdir, hparams_type):
     else:
         # make sure it's not AttributeDict
         assert type(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY]) == hparams_type
+
+
+def test_model_checkpoint_no_val_loader_invocation(tmpdir):
+    """Test to ensure that the model callback saves the checkpoints only once in distributed mode."""
+    class NoValBoringModel(LogInTwoMethods):
+        def val_dataloader(self):
+            return None
+
+    model = NoValBoringModel()
+
+    num_epochs = 4
+    model_checkpoint = ModelCheckpointTestInvocations(monitor='early_stop_on', expected_count=num_epochs, save_top_k=-1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[model_checkpoint],
+        max_epochs=num_epochs,
+        gpus=0,
+    )
+    result = trainer.fit(model)
+    assert 1 == result
