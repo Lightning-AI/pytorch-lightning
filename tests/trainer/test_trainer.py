@@ -1334,13 +1334,13 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
 )
 def test_trainer_config(trainer_kwargs, expected):
     trainer = Trainer(**trainer_kwargs)
-    assert trainer.use_dp is expected["use_dp"]
-    assert trainer.use_ddp is expected["use_ddp"]
-    assert trainer.use_ddp2 is expected["use_ddp2"]
-    assert trainer.num_gpus == expected["num_gpus"]
-    assert trainer.on_gpu is expected["on_gpu"]
-    assert trainer.use_single_gpu is expected["use_single_gpu"]
-    assert trainer.num_processes == expected["num_processes"]
+    assert trainer.use_dp is expected["use_dp"], 'for input: %s' % trainer_kwargs
+    assert trainer.use_ddp is expected["use_ddp"], 'for input: %s' % trainer_kwargs
+    assert trainer.use_ddp2 is expected["use_ddp2"], 'for input: %s' % trainer_kwargs
+    assert trainer.num_gpus == expected["num_gpus"], 'for input: %s' % trainer_kwargs
+    assert trainer.on_gpu is expected["on_gpu"], 'for input: %s' % trainer_kwargs
+    assert trainer.use_single_gpu is expected["use_single_gpu"], 'for input: %s' % trainer_kwargs
+    assert trainer.num_processes == expected["num_processes"], 'for input: %s' % trainer_kwargs
 
 
 def test_trainer_subclassing():
