@@ -51,10 +51,11 @@ def accuracy(
     mdmc_accuracy: str = "subset",
     top_k: Optional[int] = None,
 ) -> torch.Tensor:
-    """
+    r"""
     Computes `Accuracy <https://en.wikipedia.org/wiki/Accuracy_and_precision>`_:
 
-    .. math:: \text{Accuracy} = \frac{1}{N}\sum_i^N 1(y_i = \hat{y_i})
+    .. math::
+        \text{Accuracy} = \frac{1}{N}\sum_i^N 1(y_i = \hat{y}_i)
 
     Where :math:`y` is a tensor of target values, and :math:`\hat{y}` is a
     tensor of predictions.
