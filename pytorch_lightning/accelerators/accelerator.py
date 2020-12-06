@@ -60,6 +60,9 @@ class NewAccelerator(object):
             return model.transfer_batch_to_device(batch, device)
         return move_data_to_device(batch, device)
 
+    def on_train_start(self):
+        pass
+
     def training_step(self, args):
         batch = self.to_device(args[0])
 
@@ -214,6 +217,13 @@ class NewGPUAccelerator(NewAccelerator):
         model.to(self.root_device)
 
         return super().setup(trainer, model)
+
+    def on_train_start(self):
+        # clear cache before training
+        # use context because of:
+        # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
+        with torch.cuda.device(self.root_device):
+            torch.cuda.empty_cache()
 
 
 # TODO: Add NewTPUAccelerator
