@@ -22,6 +22,17 @@ class DeprecatedDistDeviceAttributes:
     num_gpus: int
 
     @property
+    def on_cpu(self) -> bool:
+        rank_zero_warn("Internal: `on_cpu` is deprecated in v1.1 and will be removed in v1.2.", DeprecationWarning)
+        return self._device_type == DeviceType.CPU
+
+    @on_cpu.setter
+    def on_cpu(self, val: bool) -> None:
+        rank_zero_warn("Internal: `on_cpu` is deprecated in v1.1 and will be removed in v1.2.", DeprecationWarning)
+        if val:
+            self._device_type = DeviceType.CPU
+
+    @property
     def on_tpu(self) -> bool:
         rank_zero_warn("Internal: `on_tpu` is deprecated in v1.1 and will be removed in v1.2.", DeprecationWarning)
         return self._device_type == DeviceType.TPU

@@ -36,7 +36,7 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.accelerators.deprecated_api import DeprecatedDistDeviceAttributes
+from pytorch_lightning.utilities.deprecated_api import DeprecatedDistDeviceAttributes
 from pytorch_lightning.utilities import TPU_AVAILABLE, rank_zero_warn, DeviceType
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -64,9 +64,10 @@ class LightningModule(
         "example_input_array",
         "hparams",
         "hparams_initial",
-        "on_gpu",
         "current_epoch",
         "global_step",
+        "_device_type",
+        "_distrib_type",
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
     def __init__(self, *args, **kwargs):
