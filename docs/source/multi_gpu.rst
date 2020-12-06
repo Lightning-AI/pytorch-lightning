@@ -658,7 +658,7 @@ Use Sharded Training to scale your model size further using the same compute.
 | Sharded DDP          | 8          | **2872**                  | **59%**             |
 +----------------------+------------+---------------------------+---------------------+
 
-It is highly recommended to use Sharded Training in multi-GPU environments where memory is limited, or where training larger models are beneficial (500+ million parameter models).
+It is highly recommended to use Sharded Training in multi-GPU environments where memory is limited, or where training larger models are beneficial (500M+ parameter models).
 A technical note: as batch size scales, storing activations for the backwards pass becomes the bottleneck in training. As a result, sharding optimizer state and gradients becomes less impactful.
 Work within the future will bring optional sharding to activations and model parameters to reduce memory further, but come with a speed cost.
 
