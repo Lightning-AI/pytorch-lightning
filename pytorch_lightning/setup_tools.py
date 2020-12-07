@@ -24,9 +24,6 @@ from pytorch_lightning import PROJECT_ROOT, __homepage__, __version__
 _PATH_BADGES = os.path.join('.', 'docs', 'source', '_images', 'badges')
 # badge to download
 _DEFAULT_BADGES = [
-    'PyPI - Python Version',
-    'PyPI Status',
-    'PyPI Status',
     'Conda',
     'DockerHub',
     'codecov',
@@ -34,7 +31,6 @@ _DEFAULT_BADGES = [
     'Slack',
     'Discourse status',
     'license',
-    'Next Release'
 ]
 
 
@@ -59,14 +55,19 @@ def _load_requirements(path_dir: str , file_name: str = 'requirements.txt', comm
     return reqs
 
 
-def _parse_for_badge(text: str, release_url: str = None, path_badges: str = _PATH_BADGES, badge_names: Iterable = _DEFAULT_BADGES) -> str:
+def _parse_for_badge(
+        text: str,
+        release_url: str = None,
+        path_badges: str = _PATH_BADGES,
+        badge_names: Iterable = _DEFAULT_BADGES,
+) -> str:
     """ Returns the new parsed text with url change with local downloaded files
 
     >>> _parse_for_badge('Some text here... '  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-    ...     '[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pytorch-lightning)]'
-    ...     '(https://pypi.org/project/pytorch-lightning/) and another text later')
+    ...     '[![Conda](https://img.shields.io/conda/v/conda-forge/pytorch-lightning?label=conda)]'
+    ...     '(https://anaconda.org/conda-forge/pytorch-lightning) and another text later')
     'Some text here...
-     [![PyPI - Python Version](...docs...source..._images...badges...PyPI_Python_Version_badge.png)](https://pypi.org/project/pytorch-lightning/)
+     [![Conda](...docs...source..._images...badges...Conda_badge.svg)](https://anaconda.org/conda-forge/pytorch-lightning)
      and another text later'
     >>> import shutil
     >>> shutil.rmtree(_PATH_BADGES)
@@ -156,8 +157,6 @@ def _load_long_description(path_dir: str) -> str:
 
     >>> _load_long_description(PROJECT_ROOT)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     '<div align="center">...'
-    >>> import shutil
-    >>> shutil.rmtree(_PATH_BADGES)
     """
     path_readme = os.path.join(path_dir, "README.md")
     text = open(path_readme, encoding="utf-8").read()
