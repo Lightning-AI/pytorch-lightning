@@ -70,7 +70,7 @@ class NewAccelerator(object):
 
         with self.precision_plugin.train_step_context():
             with self.training_type_plugin.train_step_context():
-                return self.model.training_step(*args)
+                return self.lightning_module.training_step(*args)
 
     def validation_step(self, args):
         batch = self.to_device(args[0])
@@ -79,7 +79,7 @@ class NewAccelerator(object):
 
         with self.precision_plugin.val_step_context():
             with self.training_type_plugin.val_step_context():
-                return self.model.validation_step(*args)
+                return self.lightning_module.validation_step(*args)
 
     def test_step(self, args):
         batch = self.to_device(args[0])
@@ -88,7 +88,7 @@ class NewAccelerator(object):
 
         with self.precision_plugin.test_step_context():
             with self.training_type_plugin.test_step_context():
-                return self.model.test_step(*args)
+                return self.lightning_module.test_step(*args)
 
     def process_dataloader(self, dataloader):
         return dataloader
@@ -99,14 +99,14 @@ class NewAccelerator(object):
     def optimizer_step(self, optimizer, current_epoch, batch_idx, opt_idx, lambda_closure):
         # TODO: Check out if this can be simplified with new LightningOptimizer!
 
-        model_ref = self.model
+        model_ref = self.lightning_module
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-        native_amp = self.trainer.amp_backend == AMPType.NATIVE
+        native_amp = isinstance(self.precision_plugin, MixedPrecisionPlugin) and self.precision_plugin.backend == AMPType.NATIVE
 
-        self.precision_plugin.pre_optimizer_step(optimizer)
+        self.precision_plugin.pre_optimizer_step(optimizer, opt_idx)
 
         # model hook
-        model_ref.optimizer_step(
+        res = model_ref.optimizer_step(
             epoch=current_epoch,
             batch_idx=batch_idx,
             optimizer=optimizer,
@@ -118,6 +118,7 @@ class NewAccelerator(object):
         )
 
         self.precision_plugin.post_optimizer_step()
+        return res
 
     def optimizer_zero_grad(self, current_epoch, batch_idx, optimizer, opt_idx):
         model_ref = self.model_ref
@@ -134,7 +135,7 @@ class NewAccelerator(object):
             return
         self._clip_gradients(optimizer, grad_clip_val)
 
-        model = self.model_ref
+        model = self.lightning_module
 
         # TODO: Change this. Probably to isinstance(self.precision_plugin, MixedPrecisionPlugin) and self.precision_plugin.backend == AMPType.APEX
         if self.trainer.amp_backend == AMPType.APEX:
@@ -196,6 +197,7 @@ class NewAccelerator(object):
 
     def to_device(self, batch):
         return self.batch_to_device(batch, self.root_device)
+
 
 
 class NewCPUAccelerator(NewAccelerator):
