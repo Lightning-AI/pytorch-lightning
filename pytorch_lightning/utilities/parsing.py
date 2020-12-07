@@ -198,8 +198,8 @@ class AttributeDict(Dict):
 
 
 def lightning_get_attr_holders(model, attribute):
-    """ Special attribute finding for lightning.  Gets the object or dict that holds attribute, or None. Checks for attribute in model namespace,
-            the old hparams namespace/dict, and the datamodule, returns the first one that has it. """
+    """ Special attribute finding for lightning.  Gets all of the objects or dicts that holds attribute.
+            Checks for attribute in model namespace, the old hparams namespace/dict, and the datamodule. """
     trainer = getattr(model, 'trainer', None)
 
     holders = []
@@ -221,6 +221,8 @@ def lightning_get_attr_holders(model, attribute):
 
 
 def lightning_get_attr_holder(model, attribute):
+    """ Special attribute finding for lightning.  Gets the object or dict that holds attribute, or None. Checks for attribute in model namespace,
+            the old hparams namespace/dict, and the datamodule, returns the first one that has it. """
     holders = lightning_get_attr_holders(model, attribute)
     if len(holders) == 0:
         return None
