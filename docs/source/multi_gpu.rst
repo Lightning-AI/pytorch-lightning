@@ -621,7 +621,7 @@ The technique can be found within `DeepSpeed ZeRO <https://arxiv.org/abs/1910.02
 however the implementation is built from the ground up to be pytorch compatible and standalone.
 Sharded Training allows you to maintain GPU scaling efficiency, whilst reducing memory overhead drastically. In short, expect normal linear scaling, and significantly reduced memory usage when training large models.
 
-Sharded Training still utilizes Data Parallel Training under the hood, except the optimizer state and gradients which are sharded across GPUs.
+Sharded Training still utilizes Data Parallel Training under the hood, except optimizer states and gradients are sharded across GPUs.
 This means the memory overhead per GPU is lower, as each GPU only has to maintain a partition of your optimizer state and gradients.
 
 The benefits vary by model and parameter sizes, but we've recorded up to a 63% memory reduction per GPU allowing us to double our model sizes. Because of extremely efficient communication,
