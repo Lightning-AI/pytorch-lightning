@@ -249,6 +249,10 @@ class Accelerator(object):
     def on_save(self, checkpoint):
         return checkpoint
 
+    @property
+    def distributed_sampler_kwargs(self):
+        raise NotImplementedError
+
 
 # TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...
 class BackendType(Enum):

@@ -23,7 +23,13 @@ from torch.optim import Optimizer
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.utilities import TPU_AVAILABLE, rank_zero_info, rank_zero_only, rank_zero_warn, move_data_to_device
+from pytorch_lightning.utilities import (
+    TPU_AVAILABLE,
+    move_data_to_device,
+    rank_zero_info,
+    rank_zero_only,
+    rank_zero_warn,
+)
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -375,3 +381,7 @@ class TPUAccelerator(Accelerator):
         https://github.com/pytorch/xla/blob/master/API_GUIDE.md#saving-and-loading-xla-tensors
         """
         return move_data_to_device(checkpoint, torch.device("cpu"))
+
+    @property
+    def distributed_sampler_kwargs(self):
+        return dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())

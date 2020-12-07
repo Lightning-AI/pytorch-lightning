@@ -149,3 +149,6 @@ class DDPPlugin(LightningPlugin):
         if isinstance(model, LightningDistributedDataParallel):
             return model.module
         return model
+
+    def distributed_sampler_kwargs(self, distributed_sampler_kwargs):
+        return distributed_sampler_kwargs

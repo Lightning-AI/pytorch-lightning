@@ -306,3 +306,10 @@ class PipeRpcPlugin(RPCPlugin):
             self._optimizer_step(opt_idx, *args, **kwargs)
             return True
         return False
+
+    def distributed_sampler_kwargs(self, distributed_sampler_kwargs):
+        distributed_sampler_kwargs = dict(
+            num_replicas=len(mpu.get_model_parallel_group()),
+            rank=torch_distrib.get_rank() % len(self.balance),
+        )
+        return distributed_sampler_kwargs
