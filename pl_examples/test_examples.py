@@ -72,22 +72,21 @@ def test_examples_dp(tmpdir, import_cli, cli_args):
         module.cli_main()
 
 
-# ToDo: fix this failing example
-# @pytest.mark.parametrize('import_cli', [
-#     'pl_examples.basic_examples.simple_image_classifier',
-#     'pl_examples.basic_examples.backbone_image_classifier',
-#     'pl_examples.basic_examples.autoencoder',
-# ])
-# @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-# @pytest.mark.parametrize('cli_args', [ARGS_DDP, ARGS_DDP_AMP])
-# def test_examples_ddp(tmpdir, import_cli, cli_args):
-#
-#     module = importlib.import_module(import_cli)
-#     # update the temp dir
-#     cli_args = cli_args % {'tmpdir': tmpdir}
-#
-#     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
-#         module.cli_main()
+@pytest.mark.parametrize('import_cli', [
+    'pl_examples.basic_examples.simple_image_classifier',
+    'pl_examples.basic_examples.backbone_image_classifier',
+    'pl_examples.basic_examples.autoencoder',
+])
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.parametrize('cli_args', [ARGS_DDP, ARGS_DDP_AMP])
+def test_examples_ddp(tmpdir, import_cli, cli_args):
+
+    module = importlib.import_module(import_cli)
+    # update the temp dir
+    cli_args = cli_args % {'tmpdir': tmpdir}
+
+    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
+        module.cli_main()
 
 
 @pytest.mark.parametrize(
