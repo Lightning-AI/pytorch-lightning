@@ -502,7 +502,7 @@ def auc(
     """
     dx = x[1:] - x[:-1]
     if (dx < 0).any():
-        if (dx <= 0).all():
+        if (dx < 0).all():
             direction = -1.
         else:
             raise ValueError(f"The 'x' array is neither increasing or decreasing: {x}")
