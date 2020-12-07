@@ -1,5 +1,5 @@
 import torch
-from typing import List
+from typing import List, Optional, Callable, Any
 from pytorch_lightning.metrics import Metric
 
 from pytorch_lightning.metrics.utils import get_mini_groups
@@ -26,8 +26,20 @@ class RetrievalMetric(Metric):
 
     options = ['error', 'skip', 'positive', 'negative']
 
-    def __init__(self, dist_sync_on_step: bool = False, empty_documents: str = 'skip', exclude: int = IGNORE_IDX):
-        super().__init__(dist_sync_on_step=dist_sync_on_step)
+    def __init__(self,
+        compute_on_step: bool = True,
+        dist_sync_on_step: bool = False,
+        process_group: Optional[Any] = None,
+        dist_sync_fn: Callable = None,
+        empty_documents: str = 'skip',
+        exclude: int = IGNORE_IDX
+    ):
+        super().__init__(
+            compute_on_step=compute_on_step,
+            dist_sync_on_step=dist_sync_on_step,
+            process_group=process_group,
+            dist_sync_fn=dist_sync_fn
+        )
 
         if empty_documents not in self.options:
             raise ValueError(
@@ -50,7 +62,7 @@ class RetrievalMetric(Metric):
         self.idx = torch.cat([self.idx, idx])
         self.preds = torch.cat([self.preds, preds])
         self.target = torch.cat([self.target, target])
-    
+
     def compute(self):
         res = []
         for group in get_mini_groups(self.idx):
@@ -59,8 +71,10 @@ class RetrievalMetric(Metric):
                     raise ValueError(
                         f"{self.__class__.__name__} was provided with a prediction with no positive values, idx: {group}"
                     )
-                elif self.empty_documents == 'positive': res.append(torch.tensor([1.0]))
-                elif self.empty_documents == 'negative': res.append(torch.tensor([0.0]))
+                if self.empty_documents == 'positive':
+                    res.append(torch.tensor(1.0))
+                elif self.empty_documents == 'negative':
+                    res.append(torch.tensor(0.0))
             else:
                 res.append(
                     self.metric(group)

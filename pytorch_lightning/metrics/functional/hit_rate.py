@@ -46,5 +46,5 @@ def hit_rate(
             f"`preds` and `target` must have the same shape and be on the same device"
         )
 
-    revelevant = target[torch.argsort(preds, dim=-1, descending=True)][:k].sum()
-    return (revelevant > 0).to(preds)
+    relevant = target[torch.argsort(preds, dim=-1, descending=True)][:k].sum()
+    return (relevant > 0).to(preds)

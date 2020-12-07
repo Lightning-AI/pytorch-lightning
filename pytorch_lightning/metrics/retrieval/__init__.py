@@ -14,6 +14,6 @@
 #from pytorch_lightning.metrics.retrieval import 
 from pytorch_lightning.metrics.retrieval.mean_average_precision import MeanAveragePrecision
 from pytorch_lightning.metrics.retrieval.mean_reciprocal_rank import MeanReciprocalRank
-from pytorch_lightning.metrics.retrieval.precision import PrecisionAtK
-from pytorch_lightning.metrics.retrieval.recall import RecallAtK
-from pytorch_lightning.metrics.retrieval.hit_rate import HitRateAtK
+from pytorch_lightning.metrics.retrieval.precision import RetrievalPrecision
+from pytorch_lightning.metrics.retrieval.recall import RetrievalRecall
+from pytorch_lightning.metrics.retrieval.hit_rate import HitRate
