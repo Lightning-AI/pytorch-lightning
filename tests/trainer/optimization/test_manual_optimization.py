@@ -1012,7 +1012,7 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp(mock_sgd_ste
     expected_calls = [call(closure=ANY, optim='adam')] * 2
     mock_adam_step.assert_has_calls(expected_calls)
 
-   
+
 def test_step_with_misconfiguraiton_error_when_overriding_optimizer_zero_grad(tmpdir):
     """
     Tests that `optimizer_zero_grad` in manual_optimization triggers a MisconfigurationException
