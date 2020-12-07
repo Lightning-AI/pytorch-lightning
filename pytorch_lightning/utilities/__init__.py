@@ -61,11 +61,11 @@ FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps
 FLOAT64_EPSILON = numpy.finfo(numpy.float64).eps
 
 
-class LightningType(str, Enum):
+class LightningEnum(str, Enum):
     """ Type of any enumerator with allowed comparison to string invariant to cases. """
 
     @classmethod
-    def from_str(cls, value: str) -> 'LightningType':
+    def from_str(cls, value: str) -> 'LightningEnum':
         statuses = [status for status in dir(cls) if not status.startswith('_')]
         for st in statuses:
             if st.lower() == value.lower():
@@ -77,7 +77,7 @@ class LightningType(str, Enum):
         return self.value.lower() == other.lower()
 
 
-class AMPType(LightningType):
+class AMPType(LightningEnum):
     """Type of Automatic Mixed Precission used for training.
 
     >>> # you can math the type with string
@@ -88,7 +88,7 @@ class AMPType(LightningType):
     NATIVE = 'native'
 
 
-class DistributedType(LightningType):
+class DistributedType(LightningEnum):
     """ Define type of ditributed computing.
 
     >>> # you can math the type with string
@@ -105,7 +105,7 @@ class DistributedType(LightningType):
     HOROVOD = 'horovod'
 
 
-class DeviceType(LightningType):
+class DeviceType(LightningEnum):
     """ Define Device type byt its nature - acceleatrors.
 
     >>> DeviceType.CPU == DeviceType.from_str('cpu')
