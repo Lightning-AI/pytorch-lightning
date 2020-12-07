@@ -109,6 +109,6 @@ def accuracy(
         >>> accuracy(preds, target, top_k=2)
         tensor(0.6667)
     """
-        assert 0 <= threshold <= 1, f"threshold: {threshold} is out of range"
+
     correct, total = _accuracy_update(preds, target, threshold, top_k, mdmc_accuracy)
     return _accuracy_compute(correct, total)
