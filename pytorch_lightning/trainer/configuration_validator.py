@@ -73,7 +73,7 @@ class ConfigValidator(object):
         enable_pl_optimizer = self.trainer._enable_pl_optimizer
         automatic_optimization = self.trainer.train_loop.automatic_optimization
         if has_optimizer_step and not enable_pl_optimizer and automatic_optimization:
-            log.warn(
+            rank_zero_warn(
                 "When overriding `LightningModule` optimizer_step with"
                 " `Trainer(..., enable_pl_optimizer=False, automatic_optimization=True, ...)`,"
                 " we won t be calling `.zero_grad` we can't assume when you call your `optimizer.step()`."

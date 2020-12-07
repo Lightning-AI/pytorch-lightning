@@ -127,7 +127,7 @@ class Accelerator(object):
         return self.trainer.should_stop
 
     def setup_optimizers(self, model):
-        if self.trainer.testing is True:
+        if self.trainer.testing:
             return
 
         optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
