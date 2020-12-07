@@ -32,7 +32,9 @@ jobs:
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: docs/source/_images/badges/*
+        file: |
+          dist/*
+          docs/source/_images/badges/*
         tag: ${{ github.ref }}
         asset_name: badges
         overwrite: false
