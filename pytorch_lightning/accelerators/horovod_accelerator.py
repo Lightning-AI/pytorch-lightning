@@ -19,7 +19,7 @@ from torch.optim.lr_scheduler import _LRScheduler
 
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.utilities import AMPType, HOROVOD_AVAILABLE
-from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.distributed import rank_zero_only, all_gather_horovod_if_available
 
 if HOROVOD_AVAILABLE:
     import horovod.torch as hvd
