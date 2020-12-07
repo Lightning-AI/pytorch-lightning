@@ -202,20 +202,22 @@ def lightning_get_attr_holder(model, attribute):
             the old hparams namespace/dict, and the datamodule, returns the first one that has it. """
     trainer = getattr(model, 'trainer', None)
 
+    holder = None
+
     # Check if attribute in model
     if hasattr(model, attribute):
-        return model
+        holder = model
 
     # Check if attribute in model.hparams, either namespace or dict
-    if hasattr(model, 'hparams'):
+    if holder is None and hasattr(model, 'hparams'):
         if attribute in model.hparams:
-            return model.hparams
+            holder = model.hparams
 
     # Check if the attribute in datamodule (datamodule gets registered in Trainer)
-    if trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
-        return trainer.datamodule
+    if holder is None and trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
+        holder = trainer.datamodule
 
-    return None
+    return holder
 
 
 def lightning_hasattr(model, attribute):
