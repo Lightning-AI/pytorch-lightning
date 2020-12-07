@@ -13,19 +13,16 @@
 # limitations under the License.
 import functools
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Optional, Union
-from collections.abc import Mapping, Sequence
-from collections import namedtuple
+from collections.abc import Sequence
 from copy import deepcopy
-from distutils.version import LooseVersion
+from typing import Any, Callable, Optional, Union
 
-import os
 import torch
 from torch import nn
 
+from pytorch_lightning.metrics.utils import _flatten, dim_zero_cat, dim_zero_mean, dim_zero_sum
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import gather_all_tensors
-from pytorch_lightning.metrics.utils import _flatten, dim_zero_cat, dim_zero_mean, dim_zero_sum
 
 
 class Metric(nn.Module, ABC):
