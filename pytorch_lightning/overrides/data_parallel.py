@@ -14,7 +14,7 @@
 
 import itertools
 import threading
-from collections.abc import Mapping, Iterable
+from collections.abc import Iterable, Mapping
 from itertools import chain
 
 import torch
@@ -199,7 +199,7 @@ class LightningDistributedDataParallel(DistributedDataParallel):
             self.reducer_prepare_for_backwards(output)
 
         if output is None:
-            warn_missing_output(f'{fx_called} returned None. Did you forget to re')
+            warn_missing_output(f'{fx_called} returned None. Did you forget to return an output')
         return output
 
     def reducer_prepare_for_backwards(self, output):

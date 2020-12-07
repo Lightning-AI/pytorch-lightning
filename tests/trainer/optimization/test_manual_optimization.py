@@ -852,7 +852,7 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
                 self.manual_backward(loss_dis, opt_dis)
 
             # this will accumulate gradients for 2 batches and then call opt_gen.step()
-            opt_gen.step(closure=gen_closure, make_optimizer_step=batch_idx % 2 == 0, optim='sgd')
+            opt_gen.step(closure=gen_closure, make_optimizer_step=(batch_idx % 2 == 0), optim='sgd')
 
             # update discriminator every 4 baches
             # therefore, no gradient accumulation for discriminator
