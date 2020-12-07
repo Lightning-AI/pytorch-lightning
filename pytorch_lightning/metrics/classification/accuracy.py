@@ -29,15 +29,15 @@ class Accuracy(Metric):
     Where :math:`y` is a tensor of target values, and :math:`\hat{y}` is a
     tensor of predictions.
 
-    This metric generalizes to subset accuracy for multilabel data, and similarly for
-    multi-dimensional multi-class data: for the sample to be counted as correct, the the
-    class has to be correctly predicted across all extra dimension for each sample in the
-    ``N`` dimension. Consider using :class:`~pytorch_lightning.metrics.classification.HammingLoss`
-    is this is not what you want.
-
     For multi-class and multi-dimensional multi-class data with probability predictions, the
     parameter ``top_k`` generalizes this metric to a Top-K accuracy metric: for each sample the
     top-K highest probability items are considered to find the correct label.
+
+    This metric generalizes to subset accuracy for multilabel data: for the sample to be counted as
+    correct, all labels in that sample have to be correctly predicted. Consider using :class:`~pytorch_lightning.metrics.classification.HammingLoss`
+    is this is not what you want. In multi-dimensional multi-class case the `mdmc_accuracy` parameters
+    gives you a choice between computing the subset accuracy, or counting each sample on the extra
+    axis separately.
 
     Accepts all input types listed in :ref:`metrics:Input types`.
 
