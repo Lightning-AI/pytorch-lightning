@@ -28,6 +28,14 @@ jobs:
         python setup.py sdist bdist_wheel
         ls -lh dist/
 
+    - name: Upload badges
+      uses: actions/upload-artifact@v2
+      with:
+        name: badges
+        path: docs/source/_images/badges/*
+      # Use always() to always run this step to publish test results when there are test failures
+      if: success()
+
     # TODO: keep the sleep
     #- name: Delay releasing
     #  if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
