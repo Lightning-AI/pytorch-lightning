@@ -79,7 +79,7 @@ def accuracy(
             Threshold probability value for transforming probability predictions to binary
             (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
         top_k:
-            Number of highest probability entries for each sample to convert to 1s, relevant
+            Number of highest probability predictions considered to find the correct label, relevant
             only for (multi-dimensional) multi-class inputs with probability predictions. The
             default value (``None``) will be interpreted as 1 for these inputs.
 
