@@ -16,14 +16,15 @@ from enum import Enum
 from typing import Any, Optional, Union
 
 import torch
+import torch.distributed as torch_distrib
 from torch.optim import Optimizer
 
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
-from pytorch_lightning.core.lightning import LightningModule
-import torch.distributed as torch_distrib
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
@@ -98,40 +99,6 @@ class Accelerator(object):
             closure_loss = closure_loss.detach()
         return closure_loss
 
-    def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure, *args, **kwargs):
-        model_ref = self.trainer.get_model()
-        is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-        using_native_amp = self.trainer.amp_backend == AMPType.NATIVE
-        automatic_optimization = self.trainer.train_loop.automatic_optimization
-
-        # native amp + lbfgs is a no go right now
-        if using_native_amp and is_lbfgs:
-            raise MisconfigurationException(
-                'native PyTorch amp and lbfgs are not compatible.'
-                ' To request, please file a Github issue in PyTorch and tag @mcarilli')
-
-        # model hook
-        model_ref.optimizer_step(
-            epoch=self.trainer.current_epoch,
-            batch_idx=batch_idx,
-            optimizer=optimizer,
-            optimizer_idx=opt_idx,
-            optimizer_closure=lambda_closure,
-            on_tpu=False,  # TPUAccelerator class sets this as True
-            using_native_amp=using_native_amp,
-            using_lbfgs=is_lbfgs,
-            *args,
-            **kwargs,
-        )
-
-        # scale when native amp
-        if automatic_optimization and using_native_amp:
-            self.trainer.scaler.update()
-
-    def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
-        model_ref = self.trainer.get_model()
-        model_ref.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
-
     def clip_gradients(self, optimizer, clip_val=None):
         # use the trainer's clip val if none passed
         grad_clip_val = self.trainer.gradient_clip_val
@@ -160,7 +127,7 @@ class Accelerator(object):
         return self.trainer.should_stop
 
     def setup_optimizers(self, model):
-        if self.trainer.testing is True:
+        if self.trainer.testing:
             return
 
         optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
