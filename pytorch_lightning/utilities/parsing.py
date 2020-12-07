@@ -197,7 +197,7 @@ class AttributeDict(Dict):
         return out
 
 
-def lightning_get_attr_holders(model, attribute):
+def lightning_get_all_attr_holders(model, attribute):
     """ Special attribute finding for lightning.  Gets all of the objects or dicts that holds attribute.
             Checks for attribute in model namespace, the old hparams namespace/dict, and the datamodule. """
     trainer = getattr(model, 'trainer', None)
@@ -220,10 +220,10 @@ def lightning_get_attr_holders(model, attribute):
     return holders
 
 
-def lightning_get_attr_holder(model, attribute):
+def lightning_get_first_attr_holder(model, attribute):
     """ Special attribute finding for lightning.  Gets the object or dict that holds attribute, or None. Checks for attribute in model namespace,
             the old hparams namespace/dict, and the datamodule, returns the first one that has it. """
-    holders = lightning_get_attr_holders(model, attribute)
+    holders = lightning_get_all_attr_holders(model, attribute)
     if len(holders) == 0:
         return None
     return holders[0]
@@ -232,13 +232,13 @@ def lightning_get_attr_holder(model, attribute):
 def lightning_hasattr(model, attribute):
     """ Special hasattr for lightning. Checks for attribute in model namespace,
         the old hparams namespace/dict, and the datamodule. """
-    return lightning_get_attr_holder(model, attribute) is not None
+    return lightning_get_first_attr_holder(model, attribute) is not None
 
 
 def lightning_getattr(model, attribute):
     """ Special getattr for lightning. Checks for attribute in model namespace,
         the old hparams namespace/dict, and the datamodule. """
-    holder = lightning_get_attr_holder(model, attribute)
+    holder = lightning_get_first_attr_holder(model, attribute)
     if holder is None:
         raise ValueError(f'{attribute} is neither stored in the model namespace'
                          ' nor the `hparams` namespace/dict, nor the datamodule.')
@@ -253,7 +253,7 @@ def lightning_setattr(model, attribute, value):
         and the old hparams namespace/dict.
         Will also set the attribute on datamodule, if it exists.
     """
-    holders = lightning_get_attr_holders(model, attribute)
+    holders = lightning_get_all_attr_holders(model, attribute)
     if len(holders) == 0:
         raise ValueError(f'{attribute} is neither stored in the model namespace'
                          ' nor the `hparams` namespace/dict, nor the datamodule.')
