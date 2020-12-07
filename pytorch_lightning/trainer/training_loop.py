@@ -484,28 +484,11 @@ class TrainLoop:
         return training_step_output_for_epoch_end
 
     def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):
-        model_ref = self.trainer.get_model()
-
-        is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-        using_native_amp = self.trainer.amp_backend == AMPType.NATIVE
-
-        # native amp + lbfgs is a no go right now
-        if using_native_amp and is_lbfgs:
-            raise MisconfigurationException(
-                'native PyTorch amp and lbfgs are not compatible.'
-                ' To request, please file a Github issue in PyTorch and tag @mcarilli')
-
-        # model hook
-        model_ref.optimizer_step(
-            self.trainer.current_epoch,
-            batch_idx,
-            optimizer,
-            opt_idx,
-            train_step_and_backward_closure,
-            on_tpu=self.trainer._device_type == DeviceType.TPU and _TPU_AVAILABLE,
-            using_native_amp=using_native_amp,
-            using_lbfgs=is_lbfgs,
-        )
+        with self.trainer.profiler.profile("optimizer_step"):
+            # optimizer step lightningModule hook
+            self.trainer.accelerator_backend.optimizer_step(
+                optimizer, self.trainer.current_epoch, batch_idx, opt_idx, train_step_and_backward_closure
+            )
 
     def on_before_zero_grad(self, optimizer):
         self.trainer.call_hook('on_before_zero_grad', optimizer)
