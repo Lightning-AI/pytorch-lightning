@@ -39,10 +39,11 @@ steps:
     # todo: temprarl fix till https://github.com/PyTorchLightning/pytorch-lightning/pull/4922 is resolved
     - pip install --extra-index-url https://developer.download.nvidia.com/compute/redist "nvidia-dali-cuda100<0.27" --upgrade-strategy only-if-needed
     - pip list
-    - coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=25 # --flake8
-    - python -m pytest benchmarks pl_examples -v --maxfail=2 --durations=0 # --flake8
-    #- cd docs; make doctest; make coverage
+    - python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=25 # --flake8
+    # Running special tests
+    - sh tests/special_tests.sh
     - coverage report
+    - python -m pytest benchmarks pl_examples -v --maxfail=2 --durations=0
     # see: https://docs.codecov.io/docs/merging-reports
     - codecov --token $CODECOV_TOKEN --flags=gpu,pytest --name="GPU-coverage" --env=linux --build $DRONE_BUILD_NUMBER --commit $DRONE_COMMIT
     # --build $DRONE_BUILD_NUMBER --branch $DRONE_BRANCH --commit $DRONE_COMMIT --tag $DRONE_TAG --pr $DRONE_PULL_REQUEST
