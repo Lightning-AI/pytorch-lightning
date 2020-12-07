@@ -365,6 +365,24 @@ class LightningModule(
 
         return on_epoch
 
+    def all_gather(self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False):
+        r"""
+        Allows users to call ``self.all_gather()`` from the LightningModule, thus making
+        the ```all_gather``` operation accelerator agnostic.
+
+        ```all_gather``` is a function provided by accelerators to gather a tensor from several
+        distributed processes
+
+        Args:
+            tensor: tensor of shape (batch, ...)
+            group: the process group to gather results from. Defaults to all processes (world)
+            sync_grads: flag that allows users to synchronize gradients for all_gather op
+
+        Return:
+            A tensor of shape (world_size, batch, ...)
+        """
+        return self.trainer.accelerator_backend.all_gather(tensor, group=group, sync_grads=sync_grads)
+
     def forward(self, *args, **kwargs):
         r"""
         Same as :meth:`torch.nn.Module.forward()`, however in Lightning you want this to define
