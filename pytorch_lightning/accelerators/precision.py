@@ -33,6 +33,21 @@ class PrecisionPlugin(Plugin):
     def connect(self, model: torch.nn.Module, optimizers, lr_schedulers):
         return model, optimizers, lr_schedulers
 
+    def backward(self, model: LightningModule, closure_loss, optimizer, opt_idx, *args, **kwargs):
+        # TODO: Check where we can get automatic_optimization from (probably when setting up the model after https://github.com/PyTorchLightning/pytorch-lightning/issues/4317)
+        automatic_optimization = model.automatic_optimization
+
+        # do backward pass
+        if automatic_optimization:
+            model.backward(closure_loss, optimizer, opt_idx)
+        else:
+            closure_loss.backward(*args, **kwargs)
+
+        # once backward has been applied, release graph
+        closure_loss = closure_loss.detach()
+
+        return closure_loss
+
 
 class MixedPrecisionPlugin(PrecisionPlugin):
     EPSILON = 1e-5
@@ -55,21 +70,13 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     def post_optimizer_step(self, optimizer, optimizer_idx):
         self.scaler.update()
 
-    def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
+    def backward(self, model: LightningModule, closure_loss, optimizer, opt_idx, *args, **kwargs):
         closure_loss = self.scaler.scale(closure_loss)
 
         # TODO: Check where we can get automatic_optimization from (probably when setting up the model after https://github.com/PyTorchLightning/pytorch-lightning/issues/4317)
-        automatic_optimization = self.trainer.train_loop.automatic_optimization
+        automatic_optimization = model.automatic_optimization
 
-        # do backward pass
-        if automatic_optimization:
-            model = self.trainer.get_model()
-            model.backward(closure_loss, optimizer, opt_idx)
-        else:
-            closure_loss.backward(*args, **kwargs)
-
-        # once backward has been applied, release graph
-        closure_loss = closure_loss.detach()
+        closure_loss = super().backward(model, closure_loss, optimizer, opt_idx, *args, **kwargs)
 
         # unscale gradient to allow analyze within `on_after_backward`
         # TODO: Check from where we can get the should_accumulate value (maybe pass it as argument?)
@@ -101,7 +108,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         closure_loss = closure_loss.__enter__()
 
         # do backward pass
-        if self.trainer.train_loop.automatic_optimization:
+        if self.lightning_module:
             model = self.trainer.get_model()
             model.backward(closure_loss, optimizer, opt_idx)
         else:
