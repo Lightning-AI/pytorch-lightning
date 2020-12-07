@@ -404,8 +404,10 @@ def test_model_saving_loading(tmpdir):
 
     # fit model
     trainer = Trainer(
-        max_epochs=1, logger=logger,
-        callbacks=[ModelCheckpoint(dirpath=tmpdir), default_root_dir=tmpdir],
+        max_epochs=1,
+        logger=logger,
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
+        default_root_dir=tmpdir,
     )
     result = trainer.fit(model)
 
