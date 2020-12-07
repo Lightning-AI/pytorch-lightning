@@ -17,7 +17,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import is_lightning_optimizer
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.sharded_native_amp_plugin import ShardedNativeAMPPlugin
-from pytorch_lightning.utilities import AMPType, FAIRSCALE_AVAILABLE, rank_zero_only
+from pytorch_lightning.utilities import FAIRSCALE_AVAILABLE, AMPType, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if FAIRSCALE_AVAILABLE:
