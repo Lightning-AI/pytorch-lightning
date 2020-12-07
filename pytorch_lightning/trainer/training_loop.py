@@ -501,7 +501,7 @@ class TrainLoop:
         grad_norm_dic = self._track_gradient_norm()
 
         # clip gradients
-        self.trainer.accelerator_backend.clip_gradients(optimizer)
+        self.trainer.accelerator_backend.clip_gradients(optimizer, self.trainer.gradient_clip_val)
         self._cur_grad_norm_dict = grad_norm_dic
 
     def _track_gradient_norm(self):

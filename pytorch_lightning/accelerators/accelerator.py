@@ -20,11 +20,9 @@ class NewAccelerator(object):
         self,
         precision_plugin: PrecisionPlugin,
         training_type_plugin: TrainingTypePlugin,
-        gradient_clip_val,
     ):
         self.precision_plugin = precision_plugin
         self.training_type_plugin = training_type_plugin
-        self.gradient_clip_val = gradient_clip_val
 
         self.optimizers = None
         self.lr_schedulers = None
@@ -124,12 +122,11 @@ class NewAccelerator(object):
         model_ref = self.lightning_module
         model_ref.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
 
-    def clip_gradients(self, optimizer, clip_val=None):
-        # use the trainer's clip val if none passed
-        grad_clip_val = self.gradient_clip_val
-        if clip_val is not None:
-            grad_clip_val = clip_val
+    def clip_gradients(self, optimizer, clip_val):
+        # TODO: separate TPU case from here
+        self._clip_gradients(optimizer, clip_val)
 
+    def _clip_gradients(self, optimizer, grad_clip_val):
         if grad_clip_val is None:
             return
         
