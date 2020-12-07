@@ -17,10 +17,9 @@ import pickle
 import platform
 import re
 from argparse import Namespace
-from distutils.version import LooseVersion
 from pathlib import Path
 from unittest import mock
-from unittest.mock import MagicMock, Mock
+from unittest.mock import Mock
 
 import cloudpickle
 import pytest
@@ -918,18 +917,20 @@ def test_val_check_interval_checkpoint_files(tmpdir):
         save_top_k=-1,
         monitor="val_acc",
         mode="max",
-        verbose=True
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
         val_check_interval=0.2,
         max_epochs=1,
         limit_train_batches=10,
-        callbacks=[model_checkpoint]
+        callbacks=[model_checkpoint],
+        logger=False,
+        weights_summary=None,
+        progress_bar_refresh_rate=0,
     )
     trainer.fit(model)
-    files = sorted([p.name for p in Path(tmpdir).glob("*.ckpt")])
-    assert files == [f"epoch=0-step={s}.ckpt" for s in [1, 3, 5, 7, 9]]
+    files = {p.basename for p in tmpdir.listdir()}
+    assert files == {f"epoch=0-step={s}.ckpt" for s in [1, 3, 5, 7, 9]}
 
 
 def test_current_score(tmpdir):
@@ -1029,7 +1030,7 @@ def test_ckpt_version_is_changed_after_rerun_new_trainer(tmpdir):
     """
     epochs = 2
     for i in range(epochs):
-        mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", save_last=False, filename="{epoch}")
+        mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="{epoch}")
         trainer = Trainer(
             max_epochs=epochs,
             limit_train_batches=1,
@@ -1051,8 +1052,6 @@ def test_ckpt_version_is_changed_after_rerun_new_trainer(tmpdir):
         f"epoch={e}-v{v}.ckpt"
         for e in range(epochs)
         for v in range(epochs)
-        # "last-v0.ckpt"
-        # "last-v1.ckpt"
     }
 
 
@@ -1061,7 +1060,7 @@ def test_ckpt_version_is_changed_after_rerun_same_trainer(tmpdir):
     Check that previous checkpoints are renamed to have
     the v0 suffix when same trainer instance is used
     """
-    mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", save_last=False, filename="test")
+    mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="test")
     trainer = Trainer(
         max_epochs=2,
         limit_train_batches=1,
@@ -1090,7 +1089,7 @@ def test_correct_state_after_rename_ckpt(tmpdir):
     """
     Checks that the {kth,}_best_model_path attributes are
     updated after renaming file.ckpt to file-v0.ckpt.
-    This case is not covered by `test_ckpt_version_is_changed_after_rerun_same_trainer`,
+    This case is not covered by `test_ckpt_version_is_changed_after_rerun_same_trainer`
     """
     mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=1, monitor="epoch", filename="test")
     trainer = Trainer(

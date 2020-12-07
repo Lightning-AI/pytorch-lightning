@@ -272,7 +272,7 @@ class ModelCheckpoint(Callback):
 
     def __init_ckpt_dir(self, filepath, dirpath, filename, save_top_k):
         if filepath:
-            if (dirpath or filename):
+            if dirpath or filename:
                 raise MisconfigurationException(
                     'You have set all three path/name inputs which are not feasible.'
                     f' You have to choose either filepath={filepath} OR dirpath={dirpath}'
@@ -539,13 +539,13 @@ class ModelCheckpoint(Callback):
         return filepath
 
     def _monitor_candidates(self, trainer):
-        ckpt_name_metrics = deepcopy(trainer.logger_connector.logged_metrics)
-        ckpt_name_metrics.update(trainer.logger_connector.callback_metrics)
-        ckpt_name_metrics.update(trainer.logger_connector.progress_bar_metrics)
-        ckpt_name_metrics.update({"step": trainer.global_step, "epoch": trainer.current_epoch})
-        return ckpt_name_metrics
+        monitor_candidates = deepcopy(trainer.logger_connector.logged_metrics)
+        monitor_candidates.update(trainer.logger_connector.callback_metrics)
+        monitor_candidates.update(trainer.logger_connector.progress_bar_metrics)
+        monitor_candidates.update({"step": trainer.global_step, "epoch": trainer.current_epoch})
+        return monitor_candidates
 
-    def _save_last_checkpoint(self, trainer, pl_module, ckpt_name_metrics, filepath):
+    def _save_last_checkpoint(self, trainer, pl_module, monitor_candidates, filepath):
         should_save_last = self.monitor is None or self.save_last
         if not should_save_last:
             return
@@ -558,8 +558,8 @@ class ModelCheckpoint(Callback):
                 self.CHECKPOINT_NAME_LAST,
                 trainer.current_epoch,
                 trainer.global_step,
-                ckpt_name_metrics,
-                prefix=self.prefix
+                monitor_candidates,
+                prefix=self.prefix,
             )
             last_filepath = os.path.join(self.dirpath, f"{last_filepath}{self.FILE_EXTENSION}")
 
@@ -571,10 +571,10 @@ class ModelCheckpoint(Callback):
         else:
             self._save_model(last_filepath, trainer, pl_module)
         if (
-                self.last_model_path
-                and self.last_model_path != last_filepath
-                and (self.save_top_k != -1 or self.save_last)
-                and trainer.is_global_zero
+            self.last_model_path
+            and self.last_model_path != last_filepath
+            and (self.save_top_k != -1 or self.save_last)
+            and trainer.is_global_zero
         ):
             self._del_model(self.last_model_path)
         self.last_model_path = last_filepath
