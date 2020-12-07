@@ -159,16 +159,19 @@ def _load_long_description(path_dir: str) -> str:
     >>> import shutil
     >>> shutil.rmtree(_PATH_BADGES)
     """
-    # https://github.com/PyTorchLightning/pytorch-lightning/raw/master/docs/source/_images/lightning_module/pt_to_pl.png
-    github_source_url = os.path.join(__homepage__, "raw", __version__)
     path_readme = os.path.join(path_dir, "README.md")
     text = open(path_readme, encoding="utf-8").read()
+
+    # https://github.com/PyTorchLightning/pytorch-lightning/raw/master/docs/source/_images/lightning_module/pt_to_pl.png
+    github_source_url = os.path.join(__homepage__, "raw", __version__)
     # replace relative repository path to absolute link to the release
     #  do not replace all "docs" as in the readme we reger some other sources with particular path to docs
     text = text.replace("docs/source/_images/", f"{os.path.join(github_source_url, 'docs/source/_images/')}")
 
-    # readthedocs badges
+    # readthedocs badge
     text = text.replace('badge/?version=stable', f'badge/?version={__version__}')
+    # codecov badge
+    text = text.replace('/branch/master/graph/badge.svg', f'/release/{__version__}/graph/badge.svg')
     # replace github badges for release ones
     text = text.replace('badge.svg?branch=master&event=push', f'badge.svg?branch={__version__}&event=release')
 
