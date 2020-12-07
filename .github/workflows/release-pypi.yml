@@ -28,11 +28,14 @@ jobs:
         python setup.py sdist bdist_wheel
         ls -lh dist/
 
-    - name: Upload badges
-      uses: actions/upload-artifact@v2
+    - name: Upload to release
+      uses: svenstaro/upload-release-action@v2
       with:
-        path: docs/source/_images/badges/*
-      if: success()
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: docs/source/_images/badges/*
+        tag: ${{ github.ref }}
+        overwrite: true
+        file_glob: true
 
     # TODO: keep the sleep
     #- name: Delay releasing
