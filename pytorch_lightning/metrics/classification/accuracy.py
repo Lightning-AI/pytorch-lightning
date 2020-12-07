@@ -94,7 +94,7 @@ class Accuracy(Metric):
         self,
         threshold: float = 0.5,
         top_k: Optional[int] = None,
-        mdmc_accuracy: str = "subset",
+        mdmc_accuracy: str = "global",
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,

@@ -37,7 +37,7 @@ def _accuracy_update(
         correct = (sample_correct == sample_total).sum()
         total = target.shape[0]
 
-    return (torch.tensor(correct, device=preds.device), torch.tensor(total, device=preds.device))
+    return correct, total
 
 
 def _accuracy_compute(correct: torch.Tensor, total: torch.Tensor) -> torch.Tensor:
