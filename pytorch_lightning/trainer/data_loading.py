@@ -132,7 +132,7 @@ class TrainerDataLoadingMixin(ABC):
         return dataloader
 
     def _get_distributed_sampler(self, dataloader, shuffle):
-        kwargs = self.distributed_backend.distributed_sampler_kwargs
+        kwargs = self.accelerator_backend.distributed_sampler_kwargs
         kwargs['shuffle'] = shuffle and not self.overfit_batches
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler

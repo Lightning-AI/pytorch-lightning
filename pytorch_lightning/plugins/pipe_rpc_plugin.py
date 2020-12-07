@@ -309,7 +309,7 @@ class PipeRpcPlugin(RPCPlugin):
 
     def distributed_sampler_kwargs(self, distributed_sampler_kwargs):
         distributed_sampler_kwargs = dict(
-            num_replicas=len(mpu.get_model_parallel_group()),
-            rank=torch_distrib.get_rank() % len(self.balance),
+            num_replicas=mpu.get_data_parallel_world_size(),
+            rank=mpu.get_data_parallel_rank(),
         )
         return distributed_sampler_kwargs
