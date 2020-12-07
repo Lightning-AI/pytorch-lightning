@@ -1,5 +1,6 @@
 import os
 import pytest
+import sys
 import torch
 import torch.nn as nn
 
@@ -18,16 +19,26 @@ def setup_ddp(rank, world_size):
 def _test_all_gather(rank, world_size):
     setup_ddp(rank, world_size)
 
-    tensor1 = torch.randn(8)
-    tensor2 = torch.randn(8, 16, 32)
+    tensor1 = torch.ones(8, requires_grad=True)
+    tensor2 = torch.ones((8, 16, 32), requires_grad=True)
 
     tensor1_gathered = AllGatherGrad.apply(tensor1)
     tensor2_gathered = AllGatherGrad.apply(tensor2)
 
-    assert torch.sum(tensor1_gathered[rank] - tensor1) == 0
-    assert torch.sum(tensor2_gathered[rank] - tensor2) == 0
+    tensor1_gathered = tensor1_gathered * rank
+    tensor2_gathered = tensor2_gathered * rank
+
+    tensor1_gathered.sum().backward()
+    tensor2_gathered.sum().backward()
+
+    grad1 = torch.zeros_like(tensor1.grad).fill_(torch.arange(world_size).sum().float())
+    grad2 = torch.zeros_like(tensor2.grad).fill_(torch.arange(world_size).sum().float())
+
+    assert torch.allclose(grad1, tensor1.grad)
+    assert torch.allclose(grad2, tensor2.grad)
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
 def test_all_gather():
     world_size = 3
     torch.multiprocessing.spawn(_test_all_gather, args=(world_size,), nprocs=world_size)
