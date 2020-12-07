@@ -25,7 +25,7 @@ def _accuracy_update(
 
     if mode in ["binary", "multi-label"]:
         correct = (preds == target).all(dim=1).sum()
-        total = target.shape[0]
+        total = torch.tensor(target.shape[0], device=target.device)
     elif mdmc_accuracy == "global":
         correct = (preds * target).sum()
         total = target.sum()
@@ -35,7 +35,7 @@ def _accuracy_update(
         sample_total = target.sum(dim=extra_dims)
 
         correct = (sample_correct == sample_total).sum()
-        total = target.shape[0]
+        total = torch.tensor(target.shape[0], device=target.device)
 
     return correct, total
 
@@ -89,7 +89,8 @@ def accuracy(
             inputs. Options are ``"global"`` or ``"subset"``.
 
             If ``"global"``, then the inputs are treated as if the sample (``N``) and the extra dimension
-            were unrolled into a new sample dimension.
+            were unrolled into a new sample dimension. If predictions are labels, this option is equivalent
+            to first flattening ``preds`` and ``target``, and then computing accuracy.
 
             If ``"subset"``, then the equivalent of subset accuracy is performed for each sample on the
             ``N`` dimension - that is, for the sample to count as correct, all labels on its extra dimension
@@ -112,6 +113,9 @@ def accuracy(
 
     if mdmc_accuracy not in ["global", "subset"]:
         raise ValueError("The `mdmc_accuracy` should be either 'subset' or 'global'.")
+
+    if top_k <= 0:
+        raise ValueError("The `top_k` should be an integer larger than 1.")
 
     correct, total = _accuracy_update(preds, target, threshold, top_k, mdmc_accuracy)
     return _accuracy_compute(correct, total)

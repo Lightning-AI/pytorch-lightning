@@ -56,7 +56,8 @@ class Accuracy(Metric):
             inputs. Options are ``"global"`` or ``"subset"``.
 
             If ``"global"``, then the inputs are treated as if the sample (``N``) and the extra dimension
-            were unrolled into a new sample dimension.
+            were unrolled into a new sample dimension. If predictions are labels, this option is equivalent
+            to first flattening ``preds`` and ``target``, and then computing accuracy.
 
             If ``"subset"``, then the equivalent of subset accuracy is performed for each sample on the
             ``N`` dimension - that is, for the sample to count as correct, all labels on its extra dimension
@@ -112,8 +113,10 @@ class Accuracy(Metric):
 
         if not 0 <= threshold <= 1:
             raise ValueError("The `threshold` should lie in the [0,1] interval.")
-
         self.threshold = threshold
+
+        if top_k <= 0:
+            raise ValueError("The `top_k` should be an integer larger than 1.")
         self.top_k = top_k
 
         if mdmc_accuracy not in ["global", "subset"]:

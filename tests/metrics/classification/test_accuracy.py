@@ -1,3 +1,5 @@
+from functools import partial
+
 import numpy as np
 import pytest
 import torch
@@ -23,50 +25,62 @@ from tests.metrics.utils import THRESHOLD, MetricTester
 torch.manual_seed(42)
 
 
-def _sk_accuracy(preds, target):
-    sk_preds, sk_target, _ = _input_format_classification(preds, target, threshold=THRESHOLD)
+def _sk_accuracy(preds, target, mdmc_accuracy):
+    sk_preds, sk_target, mode = _input_format_classification(preds, target, threshold=THRESHOLD)
     sk_preds, sk_target = sk_preds.numpy(), sk_target.numpy()
-    sk_preds, sk_target = sk_preds.reshape(sk_preds.shape[0], -1), sk_target.reshape(sk_target.shape[0], -1)
 
+    if mode == "multi-dim multi-class":
+        if mdmc_accuracy == "global":
+            sk_preds, sk_target = np.transpose(sk_preds, (0, 2, 1)), np.transpose(sk_target, (0, 2, 1))
+            sk_preds, sk_target = sk_preds.reshape(-1, sk_preds.shape[2]), sk_target.reshape(-1, sk_target.shape[2])
+        elif mdmc_accuracy == "subset":
+            return np.all(sk_preds == sk_target, axis=(1, 2)).mean()
+ 
     return sk_accuracy(y_true=sk_target, y_pred=sk_preds)
 
 
 @pytest.mark.parametrize(
-    "preds, target",
+    "preds, target, mdmc_accuracy",
     [
-        (_binary_prob_inputs.preds, _binary_prob_inputs.target),
-        (_binary_inputs.preds, _binary_inputs.target),
-        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target),
-        (_multilabel_inputs.preds, _multilabel_inputs.target),
-        (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target),
-        (_multiclass_inputs.preds, _multiclass_inputs.target),
-        (_multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target),
-        (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target),
-        (_multilabel_multidim_prob_inputs.preds, _multilabel_multidim_prob_inputs.target),
-        (_multilabel_multidim_inputs.preds, _multilabel_multidim_inputs.target),
+        (_binary_prob_inputs.preds, _binary_prob_inputs.target, "global"),
+        (_binary_inputs.preds, _binary_inputs.target, "global"),
+        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target, "global"),
+        (_multilabel_inputs.preds, _multilabel_inputs.target, "subset"),  # As this is treated as MDMC by default
+        (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, "global"),
+        (_multiclass_inputs.preds, _multiclass_inputs.target, "global"),
+        (_multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target, "global"),
+        (_multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target, "subset"),
+        (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target, "global"),
+        (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target, "subset"),
+        (_multilabel_multidim_prob_inputs.preds, _multilabel_multidim_prob_inputs.target, "global"),
+        (
+            _multilabel_multidim_inputs.preds,
+            _multilabel_multidim_inputs.target,
+            "subset",  # As this is treated as MDMC by default
+        ),
     ],
 )
 class TestAccuracies(MetricTester):
-    @pytest.mark.parametrize("ddp", [True, False])
+    @pytest.mark.parametrize("ddp", [False, True])
     @pytest.mark.parametrize("dist_sync_on_step", [False, True])
-    def test_accuracy_class(self, ddp, dist_sync_on_step, preds, target):
+    def test_accuracy_class(self, ddp, dist_sync_on_step, preds, target, mdmc_accuracy):
         self.run_class_metric_test(
             ddp=ddp,
             preds=preds,
             target=target,
             metric_class=Accuracy,
-            sk_metric=_sk_accuracy,
+            sk_metric=partial(_sk_accuracy, mdmc_accuracy=mdmc_accuracy),
             dist_sync_on_step=dist_sync_on_step,
-            metric_args={"threshold": THRESHOLD},
+            metric_args={"threshold": THRESHOLD, "mdmc_accuracy": mdmc_accuracy},
         )
 
-    def test_accuracy_fn(self, preds, target):
+    def test_accuracy_fn(self, preds, target, mdmc_accuracy):
         self.run_functional_metric_test(
             preds,
             target,
             metric_functional=accuracy,
-            sk_metric=_sk_accuracy,
-            metric_args={"threshold": THRESHOLD},
+            sk_metric=partial(_sk_accuracy, mdmc_accuracy=mdmc_accuracy),
+            metric_args={"threshold": THRESHOLD, "mdmc_accuracy": mdmc_accuracy},
         )
 
 

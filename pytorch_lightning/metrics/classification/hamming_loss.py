@@ -81,7 +81,8 @@ class HammingLoss(Metric):
         self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
-        assert 0 <= threshold <= 1, f"threshold: {threshold} is out of range"
+        if not 0 <= threshold <= 1:
+            raise ValueError("The `threshold` should lie in the [0,1] interval.")
         self.threshold = threshold
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
