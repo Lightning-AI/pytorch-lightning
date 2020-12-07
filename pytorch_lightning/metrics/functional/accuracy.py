@@ -48,8 +48,8 @@ def accuracy(
     preds: torch.Tensor,
     target: torch.Tensor,
     threshold: float = 0.5,
-    mdmc_accuracy: str = "subset",
     top_k: Optional[int] = None,
+    mdmc_accuracy: str = "subset",
 ) -> torch.Tensor:
     r"""
     Computes `Accuracy <https://en.wikipedia.org/wiki/Accuracy_and_precision>`_:
@@ -78,6 +78,12 @@ def accuracy(
         threshold:
             Threshold probability value for transforming probability predictions to binary
             (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
+        top_k:
+            Number of highest probability entries for each sample to convert to 1s, relevant
+            only for (multi-dimensional) multi-class inputs with probability predictions. The
+            default value (``None``) will be interpreted as 1 for these inputs.
+
+            Should be left at default (``None``) for all other types of inputs.
         mdmc_accuracy:
             Determines how should the extra dimension be handeled in case of multi-dimensional multi-class
             inputs. Options are ``"global"`` or ``"subset"``.
@@ -89,12 +95,6 @@ def accuracy(
             ``N`` dimension - that is, for the sample to count as correct, all labels on its extra dimension
             must be predicted correctly (the ``top_k`` option still applies here). The final score is then
             simply the number of totally correctly predicted samples.
-        top_k:
-            Number of highest probability entries for each sample to convert to 1s, relevant
-            only for (multi-dimensional) multi-class inputs with probability predictions. The
-            default value (``None``) will be interpreted as 1 for these inputs.
-
-            Should be left at default (``None``) for all other types of inputs.
 
     Example:
 
