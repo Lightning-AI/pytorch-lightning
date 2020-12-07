@@ -135,8 +135,3 @@ class ModelVer0_7(EvalModelTemplate):
 
     def test_end(self, outputs):
         return {'test_loss': torch.tensor(0.7)}
-
-
-def test_reorder_remove_in_v1_1():
-    with pytest.deprecated_call(match='The `reorder` parameter to `auc` has been deprecated'):
-        _ = auc(torch.tensor([0, 1, 2, 3]), torch.tensor([0, 1, 2, 2]), reorder=True)

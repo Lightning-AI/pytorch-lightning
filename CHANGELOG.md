@@ -111,11 +111,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
+- Removed `reorder` parameter of the `auc` metric ([#](https://github.com/PyTorchLightning/pytorch-lightning/pull/))
+
 
 
 ### Fixed
 
 - Added feature to move tensors to CPU before saving ([#4309](https://github.com/PyTorchLightning/pytorch-lightning/pull/4309))
+
 
 - Fixed `LoggerConnector` to have logged metrics on root device in DP ([#4138](https://github.com/PyTorchLightning/pytorch-lightning/pull/4138))
 
