@@ -22,7 +22,7 @@ import os
 import sys
 
 # this is need as e.g. Conda do not uses `PYTHONPATH` env var as pip or/and virtualenv
-sys.path += os.getenv('PYTHONPATH').split(':')
+sys.path = os.getenv('PYTHONPATH').split(':') + sys.path
 
 from pytorch_lightning import Trainer  # noqa: E402
 from pytorch_lightning.callbacks import ModelCheckpoint  # noqa: E402
