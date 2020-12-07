@@ -63,6 +63,6 @@ def hamming_loss(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0
         tensor(0.2500)
 
     """
-        assert 0 <= threshold <= 1, f"threshold: {threshold} is out of range"
+    assert 0 <= threshold <= 1, f"threshold: {threshold} is out of range"
     correct, total = _hamming_loss_update(preds, target, threshold)
     return _hamming_loss_compute(correct, total)

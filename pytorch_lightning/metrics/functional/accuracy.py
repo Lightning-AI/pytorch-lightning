@@ -91,7 +91,7 @@ def accuracy(
             If ``"global"``, then the inputs are treated as if the sample (``N``) and the extra dimension
             were unrolled into a new sample dimension.
 
-            If ``"subset"``, than the equivalent of subset accuracy is performed for each sample on the
+            If ``"subset"``, then the equivalent of subset accuracy is performed for each sample on the
             ``N`` dimension - that is, for the sample to count as correct, all labels on its extra dimension
             must be predicted correctly (the ``top_k`` option still applies here). The final score is then
             simply the number of totally correctly predicted samples.

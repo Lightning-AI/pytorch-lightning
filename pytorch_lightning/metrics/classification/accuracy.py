@@ -35,8 +35,8 @@ class Accuracy(Metric):
 
     This metric generalizes to subset accuracy for multilabel data: for the sample to be counted as
     correct, all labels in that sample have to be correctly predicted. Consider using :class:`~pytorch_lightning.metrics.classification.HammingLoss`
-    is this is not what you want. In multi-dimensional multi-class case the `mdmc_accuracy` parameters
-    gives you a choice between computing the subset accuracy, or counting each sample on the extra
+    is this is not what you want. In a multi-dimensional multi-class case, the `mdmc_accuracy` parameters
+    gives you a choice between computing the subset accuracy or counting each sample on the extra
     axis separately.
 
     Accepts all input types listed in :ref:`metrics:Input types`.
@@ -52,13 +52,13 @@ class Accuracy(Metric):
 
             Should be left at default (``None``) for all other types of inputs.
         mdmc_accuracy:
-            Determines how should the extra dimension be handeled in case of multi-dimensional multi-class
+            Determines how should the extra dimension be handled in case of multi-dimensional multi-class
             inputs. Options are ``"global"`` or ``"subset"``.
 
             If ``"global"``, then the inputs are treated as if the sample (``N``) and the extra dimension
             were unrolled into a new sample dimension.
 
-            If ``"subset"``, than the equivalent of subset accuracy is performed for each sample on the
+            If ``"subset"``, then the equivalent of subset accuracy is performed for each sample on the
             ``N`` dimension - that is, for the sample to count as correct, all labels on its extra dimension
             must be predicted correctly (the ``top_k`` option still applies here). The final score is then
             simply the number of totally correctly predicted samples.
