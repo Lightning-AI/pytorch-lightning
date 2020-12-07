@@ -94,7 +94,7 @@ class NewAccelerator(object):
         return dataloader
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
-        return self.precision_plugin.backward(closure_loss, optimizer, opt_idx, *args, **kwargs)
+        return self.precision_plugin.backward(self.lightning_module, closure_loss, optimizer, opt_idx, *args, **kwargs)
 
     def optimizer_step(self, optimizer, current_epoch, batch_idx, opt_idx, lambda_closure):
         # TODO: Check out if this can be simplified with new LightningOptimizer!
@@ -117,11 +117,11 @@ class NewAccelerator(object):
             using_lbfgs=is_lbfgs,
         )
 
-        self.precision_plugin.post_optimizer_step()
+        self.precision_plugin.post_optimizer_step(optimizer, opt_idx)
         return res
 
     def optimizer_zero_grad(self, current_epoch, batch_idx, optimizer, opt_idx):
-        model_ref = self.model_ref
+        model_ref = self.lightning_module
         model_ref.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
 
     def clip_gradients(self, optimizer, clip_val=None):
@@ -129,6 +129,10 @@ class NewAccelerator(object):
         grad_clip_val = self.gradient_clip_val
         if clip_val is not None:
             grad_clip_val = clip_val
+
+        if grad_clip_val is None:
+            return
+        
         grad_clip_val = float(grad_clip_val)
 
         if grad_clip_val <= 0:
