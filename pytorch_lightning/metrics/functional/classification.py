@@ -625,7 +625,7 @@ def multiclass_auroc(
             f"Number of classes deduced from 'pred' ({pred.size(1)}) does not equal"
             f" the number of classes passed in 'num_classes' ({num_classes}).")
 
-    @multiclass_auc_decorator(reorder=False)
+    @multiclass_auc_decorator()
     def _multiclass_auroc(pred, target, sample_weight, num_classes):
         return __multiclass_roc(pred, target, sample_weight, num_classes)
 
