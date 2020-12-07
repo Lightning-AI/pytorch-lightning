@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from pytorch_lightning.plugins.plugin import LightningPlugin
 
-class ClusterEnvironment:
+
+class ClusterEnvironment(LightningPlugin):
 
     def __init__(self):
         self._world_size = None
