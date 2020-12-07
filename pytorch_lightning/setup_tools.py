@@ -156,13 +156,12 @@ def _load_long_description(path_dir: str) -> str:
     >>> shutil.rmtree(_PATH_BADGES)
     """
     # https://github.com/PyTorchLightning/pytorch-lightning/raw/master/docs/source/_images/lightning_module/pt_to_pl.png
-    url = os.path.join(__homepage__, 'raw', __version__, 'docs')
-    path_readme = os.path.join(path_dir, 'README.md')
-    text = open(path_readme, encoding='utf-8').read()
+    github_url = os.path.join(__homepage__, "raw", __version__,)
+    path_readme = os.path.join(path_dir, "README.md")
+    text = open(path_readme, encoding="utf-8").read()
     # replace relative repository path to absolute link to the release
-    text = text.replace('](docs', f']({url}')
-    # SVG images are not readable on PyPI, so replace them with PNG
-    text = text.replace('.svg', '.png')
+    #  do not replace all "docs" as in the readme we reger some other sources with particular path to docs
+    text = text.replace("docs/source/_images/", f"{os.path.join(github_url, 'docs/source/_images/')}")
     # download badge and replace url with local file
     text = _parse_for_badge(text)
     return text
