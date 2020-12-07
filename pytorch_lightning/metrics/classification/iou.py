@@ -20,8 +20,14 @@ from pytorch_lightning.metrics.classification.confusion_matrix import ConfusionM
 
 
 class IoU(ConfusionMatrix):
-    """
-    Intersection over union, or Jaccard index calculation. Works with binary, multiclass, and multilabel data.
+    r"""
+    Computes `Intersection over union, or Jaccard index calculation <https://en.wikipedia.org/wiki/Jaccard_index>`_:
+
+    .. math:: J(A,B) = \frac{|A\cap B|}{|A\cup B|}
+
+    Where: :math:`A` and :math:`B` are both tensors of the same size, containing integer class values. They may be subject to conversion from input data (see description below). Note that it is different from box IoU.
+
+    Works with binary, multiclass and multi-label data.
     Accepts logits from a model output or integer class values in prediction.
     Works with multi-dimensional preds and target.
 

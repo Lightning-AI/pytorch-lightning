@@ -50,10 +50,12 @@ def iou(
         num_classes: Optional[int] = None,
         reduction: str = 'elementwise_mean',
 ) -> torch.Tensor:
-    """
-    Intersection over union, or Jaccard index calculation. Works with binary, multiclass, and multilabel data.
-    Accepts logits from a model output or integer class values in prediction.
-    Works with multi-dimensional preds and target.
+    r"""
+    Computes `Intersection over union, or Jaccard index calculation <https://en.wikipedia.org/wiki/Jaccard_index>`_:
+
+    .. math:: J(A,B) = \frac{|A\cap B|}{|A\cup B|}
+
+    Where: :math:`A` and :math:`B` are both tensors of the same size, containing integer class values. They may be subject to conversion from input data (see description below). Note that it is different from box IoU.
 
     If pred and target are the same shape and pred is a float tensor, we use the ``threshold`` argument.
     This is the case for binary and multi-label logits.
