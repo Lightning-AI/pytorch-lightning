@@ -87,7 +87,8 @@ def accuracy(
 
             If ``"subset"``, than the equivalent of subset accuracy is performed for each sample on the
             ``N`` dimension - that is, for the sample to count as correct, all labels on its extra dimension
-            must be predicted correctly (the ``top_k`` option still applies here).
+            must be predicted correctly (the ``top_k`` option still applies here). The final score is then
+            simply the number of totally correctly predicted samples.
         top_k:
             Number of highest probability entries for each sample to convert to 1s, relevant
             only for (multi-dimensional) multi-class inputs with probability predictions. The
