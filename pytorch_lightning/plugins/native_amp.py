@@ -69,6 +69,11 @@ class NativeAMPPlugin(PrecisionPlugin):
         # TODO: pass the closure to the step ASAP
         with trainer.profiler.profile("closure"):
             closure()
+
+        if not self.trainer.train_loop.automatic_optimization:
+            trainer.scaler.unscale_(optimizer)
+            trainer.call_hook("on_after_backward")
+
         with trainer.profiler.profile("optimizer_step"):
             trainer.scaler.step(optimizer)
             trainer.scaler.update()
