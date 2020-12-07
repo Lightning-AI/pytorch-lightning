@@ -155,3 +155,96 @@ def sync_ddp(
         result = result / torch.distributed.get_world_size(group)
 
     return result
+
+
+class AllGatherGrad(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, tensor):
+        ctx.batch_size = tensor.shape[0]
+
+        gathered_tensor = [
+            torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())
+        ]
+
+        torch.distributed.all_gather(gathered_tensor, tensor)
+        gathered_tensor = torch.stack(gathered_tensor, dim=0)
+
+        return gathered_tensor
+
+    @staticmethod
+    def backward(ctx, *grad_output):
+        #grad_input = grad_output.clone()
+        print(grad_output.shape)
+        exit(-1)
+        torch.distributed.all_reduce(grad_input, op=torch.distributed.ReduceOp.SUM, async_op=False)
+
+        return grad_input[
+            torch.distributed.get_rank() * ctx.batch_size:(torch.distributed.get_rank() + 1) * ctx.batch_size
+        ]
+
+
+def all_gather_ddp_if_available(
+    tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False
+) -> torch.Tensor:
+    """
+    Function to gather a tensor from several distributed processes
+
+    Args:
+        tensor: tensor of shape (batch, ...)
+        group: the process group to gather results from. Defaults to all processes (world)
+        sync_grads: flag that allows users to synchronize gradients for all_gather op
+
+    Return:
+        A tensor of shape (world_size, batch, ...)
+    """
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        if sync_grads:
+            return AllGatherGrad.apply(tensor, group)
+        else:
+            gathered_tensor = [
+                torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())
+            ]
+
+            torch.distributed.all_gather(gathered_tensor, tensor)
+            gathered_tensor = torch.cat(gathered_tensor, 0)
+
+            return gathered_tensor
+    return tensor
+
+
+def all_gather_tpu_if_available(
+    tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False
+) -> torch.Tensor:
+    """
+    Function to gather a tensor from several distributed processes
+
+    Args:
+        tensor: tensor of shape (batch, ...)
+        group: the process group to gather results from. Defaults to all processes (world)
+        sync_grads: flag that allows users to synchronize gradients for all_gather op
+
+    Return:
+        A tensor of shape (world_size, batch, ...)
+    """
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        return sync_ddp(result, group=group, reduce_op=reduce_op)
+    return result
+
+
+def all_gather_horovod_if_available(
+    tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False
+) -> torch.Tensor:
+    """
+    Function to gather a tensor from several distributed processes
+
+    Args:
+        tensor: tensor of shape (batch, ...)
+        group: the process group to gather results from. Defaults to all processes (world)
+        sync_grads: flag that allows users to synchronize gradients for all_gather op
+
+    Return:
+        A tensor of shape (world_size, batch, ...)
+    """
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        return sync_ddp(result, group=group, reduce_op=reduce_op)
+    return result

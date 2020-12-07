@@ -19,6 +19,7 @@ class AllGatherModel(BoringModel):
         self.layer4 = torch.nn.Linear(32, 2)
 
     def forward(self, x):
+        # no grad cases
         tensor1 = self.layer1(x)
         tensor2 = self.layer2(x)
 
@@ -28,7 +29,7 @@ class AllGatherModel(BoringModel):
         assert torch.sum(tensor1_gathered[self.global_rank] - tensor1) == 0
         assert torch.sum(tensor2_gathered[self.global_rank] - tensor2) == 0
 
-        # with grads
+        # with grad cases
         tensor3 = self.layer3(x)
         tensor4 = self.layer4(x)
 
@@ -43,27 +44,9 @@ class AllGatherModel(BoringModel):
         return self.layer(x)
 
 
-# test for ddp backends
-def setup_ddp(rank, world_size):
-    """ Setup ddp enviroment """
-    os.environ["MASTER_ADDR"] = 'localhost'
-    os.environ['MASTER_PORT'] = '8088'
-
-    if torch.distributed.is_available() and sys.platform not in ('win32', 'cygwin'):
-        torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
-
-
-def _test_all_gather_ddp(rank, world_size):
-    setup_ddp(rank, world_size)
-
-# test horovod
-
-
-# test tpu
-
-
+# TODO: horovod and TPU
 @pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
-@pytest.mark.parametrize("accelerator", ['ddp', 'horovod', 'tpu'])
+@pytest.mark.parametrize("accelerator", ['ddp', 'ddp_cpu', 'ddp_spawn'])
 def test_all_gather(accelerator):
     gpus = 2
 
