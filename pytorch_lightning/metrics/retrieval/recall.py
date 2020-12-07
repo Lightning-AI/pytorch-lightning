@@ -1,7 +1,7 @@
 from typing import List, Optional, Callable, Any
 
 from pytorch_lightning.metrics.retrieval.retrieval_metric import RetrievalMetric, IGNORE_IDX
-from pytorch_lightning.metrics.functional.ir_recall import recall
+from pytorch_lightning.metrics.functional.ir_recall import retrieval_recall
 
 
 class RetrievalRecall(RetrievalMetric):
@@ -40,8 +40,9 @@ class RetrievalRecall(RetrievalMetric):
             exclude=exclude,
         )
         self.k = k
+
     def metric(self, group: List[int]):
         _preds = self.preds[group]
         _target = self.target[group]
         valid_indexes = (_target != self.exclude)
-        return recall(_preds[valid_indexes], _target[valid_indexes], k=self.k)
+        return retrieval_recall(_preds[valid_indexes], _target[valid_indexes], k=self.k)

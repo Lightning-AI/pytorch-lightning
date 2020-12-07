@@ -1,10 +1,10 @@
 from typing import List
 
 from pytorch_lightning.metrics.retrieval.retrieval_metric import RetrievalMetric
-from pytorch_lightning.metrics.functional.reciprocal_rank import reciprocal_rank
+from pytorch_lightning.metrics.functional.ir_reciprocal_rank import retrieval_reciprocal_rank
 
 
-class MeanReciprocalRank(RetrievalMetric):
+class RetrievalMRR(RetrievalMetric):
     """
     Mean Reciprocal Rank computes the MRR over multiple retrieved documents for each query.
     Each reciprocal rank computation on a single query can be done on a different number of
@@ -16,7 +16,7 @@ class MeanReciprocalRank(RetrievalMetric):
         >>> preds = torch.tensor([0.2, 0.3, 0.5, 0.1, 0.3, 0.5, 0.2])
         >>> target = torch.tensor([False, False, True, False, True, False, False])
 
-        >>> mrr = MeanReciprocalRank()
+        >>> mrr = RetrievalMRR()
         >>> mrr(indexes, preds, target)
         >>> mrr.compute()
         ... 0.75
@@ -26,4 +26,4 @@ class MeanReciprocalRank(RetrievalMetric):
         _preds = self.preds[group]
         _target = self.target[group]
         valid_indexes = (_target != self.exclude)
-        return reciprocal_rank(_preds[valid_indexes], _target[valid_indexes])
+        return retrieval_reciprocal_rank(_preds[valid_indexes], _target[valid_indexes])

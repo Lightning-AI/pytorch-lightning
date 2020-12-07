@@ -14,7 +14,7 @@
 import torch
 
 
-def precision(
+def retrieval_precision(
     preds: torch.Tensor,
     target: torch.Tensor,
     k: int = 1

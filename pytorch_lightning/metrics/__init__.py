@@ -32,9 +32,9 @@ from pytorch_lightning.metrics.regression import (
 )
 
 from pytorch_lightning.metrics.retrieval import (
-    MeanAveragePrecision,
-    MeanReciprocalRank,
-    PrecisionAtK,
-    RecallAtK,
-    HitRateAtK,
+    RetrievalMAP,
+    RetrievalMRR,
+    RetrievalPrecision,
+    RetrievalRecall,
+    RetrievalHitRate,
 )

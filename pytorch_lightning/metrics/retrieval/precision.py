@@ -1,7 +1,7 @@
 from typing import List, Optional, Callable, Any
 
 from pytorch_lightning.metrics.retrieval.retrieval_metric import RetrievalMetric, IGNORE_IDX
-from pytorch_lightning.metrics.functional.ir_precision import precision
+from pytorch_lightning.metrics.functional.ir_precision import retrieval_precision
 
 
 class RetrievalPrecision(RetrievalMetric):
@@ -9,6 +9,8 @@ class RetrievalPrecision(RetrievalMetric):
     Precision at K computes the P@K over multiple retrieved documents for each query.
     Each precision at k computation on each query can be done on a different number
     of predictions thanks to the usage of a tensor dedicated to separate query results.
+
+    Notice that RetrievalPrecision@1 == RetrievalHitRate@1
 
     Example:
 
@@ -29,7 +31,7 @@ class RetrievalPrecision(RetrievalMetric):
         dist_sync_fn: Callable = None,
         empty_documents: str = 'skip',
         exclude: int = IGNORE_IDX,
-        k: int = 1
+        k: int = None
     ):
         super().__init__(
             compute_on_step=compute_on_step,
@@ -45,4 +47,4 @@ class RetrievalPrecision(RetrievalMetric):
         _preds = self.preds[group]
         _target = self.target[group]
         valid_indexes = (_target != self.exclude)
-        return precision(_preds[valid_indexes], _target[valid_indexes], k=self.k)
+        return retrieval_precision(_preds[valid_indexes], _target[valid_indexes], k=self.k)

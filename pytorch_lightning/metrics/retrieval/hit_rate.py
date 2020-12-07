@@ -1,16 +1,16 @@
 from typing import List, Optional, Callable, Any
 
 from pytorch_lightning.metrics.retrieval.retrieval_metric import RetrievalMetric, IGNORE_IDX
-from pytorch_lightning.metrics.functional.hit_rate import hit_rate
+from pytorch_lightning.metrics.functional.ir_hit_rate import retrieval_hit_rate
 
 
-class HitRate(RetrievalMetric):
+class RetrievalHitRate(RetrievalMetric):
     """
     Hit Rate at K computes the HR@K over multiple retrieved documents for each query.
     Each hit rate at k computation over a single query can be done on a different number 
     of predictions thanks to the usage of a tensor dedicated to separate query results.
 
-    Notice that HR@1 == P@1
+    Notice that RetrievalHitRate@1 == RetrievalPrecision@1
 
     Example:
 
@@ -18,7 +18,7 @@ class HitRate(RetrievalMetric):
         >>> preds = torch.tensor([0.2, 0.3, 0.5, 0.1, 0.3, 0.5, 0.2])
         >>> target = torch.tensor([False, False, True, False, True, False, False])
 
-        >>> hr_k = HitRate(k=1)
+        >>> hr_k = RetrievalHitRate(k=1)
         >>> hr_k(indexes, preds, target)
         >>> hr_k.compute()
         ... 0.5
@@ -47,4 +47,4 @@ class HitRate(RetrievalMetric):
         _preds = self.preds[group]
         _target = self.target[group]
         valid_indexes = (_target != self.exclude)
-        return hit_rate(_preds[valid_indexes], _target[valid_indexes], k=self.k)
+        return retrieval_hit_rate(_preds[valid_indexes], _target[valid_indexes], k=self.k)

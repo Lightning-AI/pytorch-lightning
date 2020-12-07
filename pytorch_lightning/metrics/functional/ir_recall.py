@@ -14,7 +14,7 @@
 import torch
 
 
-def recall(
+def retrieval_recall(
     preds: torch.Tensor,
     target: torch.Tensor,
     k: int = 1

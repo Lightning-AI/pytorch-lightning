@@ -14,31 +14,29 @@
 import torch
 
 
-def hit_rate(
+def retrieval_reciprocal_rank(
     preds: torch.Tensor,
-    target: torch.Tensor,
-    k: int = 1
+    target: torch.Tensor
 ):
     """
-    Computes the hit_rate @ k metric for information retrieval
-    Hir Rate at k is 1 iff there is at least one relevant documents among the top K.
+    Computes reciprocal rank metric for information retrieval,
+    as explained here: https://en.wikipedia.org/wiki/Mean_reciprocal_rank
 
     `preds` and `target` should be of the same shape and live on the same device. If not target is true, 0 is returned.
 
     Args:
         preds: estimated probabilities of each document to be relevant.
         target: ground truth about each document being relevant.
-        k: consider only the top k elements.
 
     Returns:
-        a single-value tensor with the hit rate at k (HR@K) of the predictions `preds` wrt the labels `target`.
+        a single-value tensor with the reciprocal rank (RR) of the predictions `preds` wrt the labels `target`.
 
     Example:
 
         >>> preds = torch.tensor([0.2, 0.3, 0.5])
-        >>> target = torch.tensor([True, False, True])
-        >>> hit_rate(preds, target, k=2)
-        ... 1.0
+        >>> target = torch.tensor([False, True, False])
+        >>> reciprocal_rank(preds, target)
+        ... 0.5
     """
 
     if preds.shape != target.shape or preds.device != target.device: 
@@ -46,5 +44,10 @@ def hit_rate(
             f"`preds` and `target` must have the same shape and be on the same device"
         )
 
-    relevant = target[torch.argsort(preds, dim=-1, descending=True)][:k].sum()
-    return (relevant > 0).to(preds)
+    if target.sum() == 0:
+        return torch.tensor(0).to(preds)
+
+    target = target[torch.argsort(preds, dim=-1, descending=True)]
+    position = torch.where(target == 1)[0]
+    res = 1.0 / (position[0] + 1)
+    return res
