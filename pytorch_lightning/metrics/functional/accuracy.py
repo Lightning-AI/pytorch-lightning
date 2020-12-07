@@ -85,7 +85,7 @@ def accuracy(
 
             Should be left at default (``None``) for all other types of inputs.
         mdmc_accuracy:
-            Determines how should the extra dimension be handeled in case of multi-dimensional multi-class
+            Determines how should the extra dimension be handled in case of multi-dimensional multi-class
             inputs. Options are ``"global"`` or ``"subset"``.
 
             If ``"global"``, then the inputs are treated as if the sample (``N``) and the extra dimension
