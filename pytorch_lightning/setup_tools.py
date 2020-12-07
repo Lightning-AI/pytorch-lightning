@@ -167,8 +167,13 @@ def _load_long_description(path_dir: str) -> str:
     #  do not replace all "docs" as in the readme we reger some other sources with particular path to docs
     text = text.replace("docs/source/_images/", f"{os.path.join(github_source_url, 'docs/source/_images/')}")
 
-    # https://github.com/Borda/pytorch-lightning/releases/download/1.1.0a6/codecov_badge.png
-    github_release_url = os.path.join(__homepage__, "releases", "download", __version__)
-    # download badge and replace url with local file
-    text = _parse_for_badge(text, github_release_url)
+    # readthedocs badges
+    text = text.replace('badge/?version=stable', f'badge/?version={__version__}')
+    # replace github badges for release ones
+    text = text.replace('badge.svg?branch=master&event=push', f'badge.svg?branch={__version__}&event=release')
+
+    # # https://github.com/Borda/pytorch-lightning/releases/download/1.1.0a6/codecov_badge.png
+    # github_release_url = os.path.join(__homepage__, "releases", "download", __version__)
+    # # download badge and replace url with local file
+    # text = _parse_for_badge(text, github_release_url)
     return text
