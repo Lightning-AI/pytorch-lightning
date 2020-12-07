@@ -42,7 +42,7 @@ class LoggerConnector:
 
     @property
     def cached_results(self) -> Union[EpochResultStore, None]:
-        return self._cached_results.get(self._current_stage)
+        return self._cached_results.get(self._current_stage)    # type: ignore
 
     def set_stage(self, stage_or_testing: Union[str, bool], reset: bool = False) -> None:
         self._current_stage = LoggerStages.determine_stage(stage_or_testing)
@@ -587,11 +587,13 @@ class LoggerConnector:
         return gathered_epoch_outputs
 
     def log_train_step_metrics(self, batch_output):
+        _, batch_log_metrics = self.cached_results.update_logger_connector()
         # when metrics should be logged
         if self.should_update_logs or self.trainer.fast_dev_run:
             # logs user requested information to logger
-            metrics = self.cached_results.get_latest_batch_log_metrics()
             grad_norm_dic = batch_output.grad_norm_dic
-            if len(metrics) > 0 or len(grad_norm_dic) > 0:
-                self.log_metrics(metrics, grad_norm_dic, log_train_step_metrics=True)
-                self.callback_metrics.update(metrics)
+            if grad_norm_dic is None:
+                grad_norm_dic = {}
+            if len(batch_log_metrics) > 0 or len(grad_norm_dic) > 0:
+                self.log_metrics(batch_log_metrics, grad_norm_dic, log_train_step_metrics=True)
+                self.callback_metrics.update(batch_log_metrics)

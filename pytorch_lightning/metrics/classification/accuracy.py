@@ -29,15 +29,15 @@ class Accuracy(Metric):
     Where :math:`y` is a tensor of target values, and :math:`\hat{y}` is a
     tensor of predictions.
 
-    This metric generalizes to subset accuracy for multilabel data, and similarly for
-    multi-dimensional multi-class data: for the sample to be counted as correct, the the
-    class has to be correctly predicted across all extra dimension for each sample in the
-    ``N`` dimension. Consider using :class:`~pytorch_lightning.metrics.classification.HammingLoss`
-    is this is not what you want.
-
     For multi-class and multi-dimensional multi-class data with probability predictions, the
     parameter ``top_k`` generalizes this metric to a Top-K accuracy metric: for each sample the
     top-K highest probability items are considered to find the correct label.
+
+    This metric generalizes to subset accuracy for multilabel data: for the sample to be counted as
+    correct, all labels in that sample have to be correctly predicted. Consider using :class:`~pytorch_lightning.metrics.classification.HammingLoss`
+    is this is not what you want. In multi-dimensional multi-class case the `mdmc_accuracy` parameters
+    gives you a choice between computing the subset accuracy, or counting each sample on the extra
+    axis separately.
 
     Accepts all input types listed in :ref:`metrics:Input types`.
 
@@ -45,6 +45,12 @@ class Accuracy(Metric):
         threshold:
             Threshold probability value for transforming probability predictions to binary
             (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
+        top_k:
+            Number of highest probability predictions considered to find the correct label, relevant
+            only for (multi-dimensional) multi-class inputs with probability predictions. The
+            default value (``None``) will be interpreted as 1 for these inputs.
+
+            Should be left at default (``None``) for all other types of inputs.
         mdmc_accuracy:
             Determines how should the extra dimension be handeled in case of multi-dimensional multi-class
             inputs. Options are ``"global"`` or ``"subset"``.
@@ -54,13 +60,8 @@ class Accuracy(Metric):
 
             If ``"subset"``, than the equivalent of subset accuracy is performed for each sample on the
             ``N`` dimension - that is, for the sample to count as correct, all labels on its extra dimension
-            must be predicted correctly (the ``top_k`` option still applies here).
-        top_k:
-            Number of highest probability entries for each sample to convert to 1s, relevant
-            only for (multi-dimensional) multi-class inputs with probability predictions. The
-            default value (``None``) will be interpreted as 1 for these inputs.
-
-            Should be left at default (``None``) for all other types of inputs.
+            must be predicted correctly (the ``top_k`` option still applies here). The final score is then
+            simply the number of totally correctly predicted samples.
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
@@ -92,8 +93,8 @@ class Accuracy(Metric):
     def __init__(
         self,
         threshold: float = 0.5,
-        mdmc_accuracy: str = "subset",
         top_k: Optional[int] = None,
+        mdmc_accuracy: str = "subset",
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,

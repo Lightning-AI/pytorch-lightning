@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+### Added
+
+- `Accuracy` metric now generalizes to Top-k accuracy for (multi-dimensional) multi-class inputs using the `top_k` parameter ([#4838](https://github.com/PyTorchLightning/pytorch-lightning/pull/4838))
+
+- `HammingLoss` metric to compute the hamming loss (distance) ([#4838](https://github.com/PyTorchLightning/pytorch-lightning/pull/4838))
+
+### Changed
+
+- `Accuracy` metrics now computes subset accuracy for multi-label inputs (consistent with scikit-learn's `accuracy_score`) ([#4838](https://github.com/PyTorchLightning/pytorch-lightning/pull/4838))
+
 ### Fixed
 
 - Fixed `LoggerConnector` to have logged metrics on root device in DP ([#4138](https://github.com/PyTorchLightning/pytorch-lightning/pull/4138))
