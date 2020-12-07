@@ -34,7 +34,7 @@ jobs:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
         file: dist/*
         tag: ${{ github.ref }}
-        asset_name: badges
+        asset_name: packages
         overwrite: false
         file_glob: true
 

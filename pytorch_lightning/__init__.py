@@ -1,11 +1,11 @@
 """Root package info."""
 
-__version__ = '1.1.0a7'
+__version__ = '1.1.0rc1'
 __author__ = 'William Falcon et al.'
 __author_email__ = 'waf2107@columbia.edu'
 __license__ = 'Apache-2.0'
 __copyright__ = 'Copyright (c) 2018-2020, %s.' % __author__
-__homepage__ = 'https://github.com/Borda/pytorch-lightning'  # todo: revert this back
+__homepage__ = 'https://github.com/PyTorchLightning/pytorch-lightning'
 # this has to be simple string, see: https://github.com/pypa/twine/issues/522
 __docs__ = (
     "PyTorch Lightning is the lightweight PyTorch wrapper for ML researchers."
