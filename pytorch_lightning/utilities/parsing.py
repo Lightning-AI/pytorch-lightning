@@ -222,11 +222,11 @@ def lightning_get_all_attr_holders(model, attribute):
 
 def lightning_get_first_attr_holder(model, attribute):
     """ Special attribute finding for lightning.  Gets the object or dict that holds attribute, or None. Checks for attribute in model namespace,
-            the old hparams namespace/dict, and the datamodule, returns the first one that has it. """
+            the old hparams namespace/dict, and the datamodule, returns the last one that has it. """
     holders = lightning_get_all_attr_holders(model, attribute)
     if len(holders) == 0:
         return None
-    return holders[0]
+    return holders[-1]
 
 
 def lightning_hasattr(model, attribute):
