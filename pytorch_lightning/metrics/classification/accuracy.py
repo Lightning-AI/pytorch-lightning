@@ -44,7 +44,7 @@ class Accuracy(Metric):
     Args:
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
+            `(0,1)` predictions, in the case of binary or multi-label inputs. Default: `0.5`
         top_k:
             Number of highest probability predictions considered to find the correct label, relevant
             only for (multi-dimensional) multi-class inputs with probability predictions. The
@@ -110,6 +110,7 @@ class Accuracy(Metric):
         self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
+        assert 0 <= threshold <= 1, f"threshold: {threshold} is out of range"
         self.threshold = threshold
         self.top_k = top_k
         self.mdmc_accuracy = mdmc_accuracy

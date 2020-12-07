@@ -40,7 +40,7 @@ class HammingLoss(Metric):
     Args:
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
+            `(0,1)` predictions, in the case of binary or multi-label inputs. Default: `0.5`
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
@@ -81,6 +81,7 @@ class HammingLoss(Metric):
         self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
+        assert 0 <= threshold <= 1, f"threshold: {threshold} is out of range"
         self.threshold = threshold
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
