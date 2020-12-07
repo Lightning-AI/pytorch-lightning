@@ -1,3 +1,4 @@
+import torch
 from typing import List, Optional, Callable, Any
 
 from pytorch_lightning.metrics.retrieval.retrieval_metric import RetrievalMetric, IGNORE_IDX
@@ -22,7 +23,8 @@ class RetrievalRecall(RetrievalMetric):
         ... 0.5
     """
 
-    def __init__(self,
+    def __init__(
+        self,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -41,7 +43,7 @@ class RetrievalRecall(RetrievalMetric):
         )
         self.k = k
 
-    def metric(self, group: List[int]):
+    def metric(self, group: List[int]) -> torch.Tensor:
         _preds = self.preds[group]
         _target = self.target[group]
         valid_indexes = (_target != self.exclude)

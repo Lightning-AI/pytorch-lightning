@@ -17,7 +17,7 @@ import torch
 def retrieval_average_precision(
     preds: torch.Tensor,
     target: torch.Tensor
-):
+) -> torch.Tensor:
     """
     Computes average precision metric for information retrieval,
     as explained here: https://en.wikipedia.org/wiki/Evaluation_measures_(information_retrieval)#Mean_average_precision
@@ -35,7 +35,7 @@ def retrieval_average_precision(
 
         >>> preds = torch.tensor([0.2, 0.3, 0.5])
         >>> target = torch.tensor([True, False, True])
-        >>> average_precision(preds, target)
+        >>> retrieval_average_precision(preds, target)
         ... 0.833
     """
 

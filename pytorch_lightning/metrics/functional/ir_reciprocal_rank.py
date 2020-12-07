@@ -17,7 +17,7 @@ import torch
 def retrieval_reciprocal_rank(
     preds: torch.Tensor,
     target: torch.Tensor
-):
+) -> torch.Tensor:
     """
     Computes reciprocal rank metric for information retrieval,
     as explained here: https://en.wikipedia.org/wiki/Mean_reciprocal_rank
@@ -35,7 +35,7 @@ def retrieval_reciprocal_rank(
 
         >>> preds = torch.tensor([0.2, 0.3, 0.5])
         >>> target = torch.tensor([False, True, False])
-        >>> reciprocal_rank(preds, target)
+        >>> retrieval_reciprocal_rank(preds, target)
         ... 0.5
     """
 

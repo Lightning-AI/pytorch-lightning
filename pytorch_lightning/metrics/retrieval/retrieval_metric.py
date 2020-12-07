@@ -54,16 +54,16 @@ class RetrievalMetric(Metric):
         self.add_state("preds", default=torch.tensor([], dtype=torch.int64), dist_reduce_fx="cat")
         self.add_state("target", default=torch.tensor([], dtype=torch.int64), dist_reduce_fx="cat")
 
-    def update(self, idx: torch.Tensor, preds: torch.Tensor, target: torch.Tensor):
+    def update(self, idx: torch.Tensor, preds: torch.Tensor, target: torch.Tensor) -> None:
         assert idx.shape == preds.shape == target.shape, (
-            f"Indexes, predicions and targets must be of the same shape"
+            "Indexes, predicions and targets must be of the same shape"
         )
 
         self.idx = torch.cat([self.idx, idx])
         self.preds = torch.cat([self.preds, preds])
         self.target = torch.cat([self.target, target])
 
-    def compute(self):
+    def compute(self) -> torch.Tensor:
         res = []
         for group in get_mini_groups(self.idx):
             if self.target[group].sum() == 0:
@@ -81,6 +81,6 @@ class RetrievalMetric(Metric):
                 )
         return torch.stack(res).mean()
 
-    def metric(self, group: List[int]):
+    def metric(self, group: List[int]) -> torch.Tensor:
         r""" Compute a metric over a single group. """
         raise NotImplementedError("This method must be overridden by subclasses")

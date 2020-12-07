@@ -18,7 +18,7 @@ def retrieval_hit_rate(
     preds: torch.Tensor,
     target: torch.Tensor,
     k: int = 1
-):
+) -> torch.Tensor:
     """
     Computes the hit_rate @ k metric for information retrieval
     Hir Rate at k is 1 iff there is at least one relevant documents among the top K.
@@ -37,7 +37,7 @@ def retrieval_hit_rate(
 
         >>> preds = torch.tensor([0.2, 0.3, 0.5])
         >>> target = torch.tensor([True, False, True])
-        >>> hit_rate(preds, target, k=2)
+        >>> retrieval_hit_rate(preds, target, k=2)
         ... 1.0
     """
 

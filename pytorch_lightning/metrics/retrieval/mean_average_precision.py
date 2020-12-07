@@ -1,3 +1,4 @@
+import torch
 from typing import List
 
 from pytorch_lightning.metrics.retrieval.retrieval_metric import RetrievalMetric
@@ -22,7 +23,7 @@ class RetrievalMAP(RetrievalMetric):
         ... 0.75
     """
 
-    def metric(self, group: List[int]):
+    def metric(self, group: List[int]) -> torch.Tensor:
         _preds = self.preds[group]
         _target = self.target[group]
         valid_indexes = _target != self.exclude

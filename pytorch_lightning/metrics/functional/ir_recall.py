@@ -18,7 +18,7 @@ def retrieval_recall(
     preds: torch.Tensor,
     target: torch.Tensor,
     k: int = 1
-):
+) -> torch.Tensor:
     """
     Computes the recall @ k metric for information retrieval,
     as explained here: https://en.wikipedia.org/wiki/Precision_and_recall#Definition_(information_retrieval_context)
@@ -38,7 +38,7 @@ def retrieval_recall(
 
         >>> preds = torch.tensor([0.2, 0.3, 0.5])
         >>> target = torch.tensor([True, False, True])
-        >>> recall(preds, target, k=2)
+        >>> retrieval_recall(preds, target, k=2)
         ... 0.5
     """
 
