@@ -20,6 +20,9 @@ def _get_test_cases():
     class TestHparamsNamespace:
         learning_rate = 1
 
+        def __contains__(self, item):
+            return item == "learning_rate"
+
     TestHparamsDict = {'learning_rate': 2}
 
     class TestModel1:  # test for namespace
