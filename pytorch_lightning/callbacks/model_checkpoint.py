@@ -515,13 +515,27 @@ class ModelCheckpoint(Callback):
             )
             raise MisconfigurationException(m)
 
-    def _get_metric_interpolated_filepath_name(self, ckpt_name_metrics: Dict[str, Any], epoch: int, step: int):
-        filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics)
-        version_cnt = 0
+    def _get_metric_interpolated_filepath_name(self, monitor_candidates: Dict[str, Any], epoch: int, step: int) -> str:
+        original_filepath = self.format_checkpoint_name(epoch, step, monitor_candidates)
+        v0_filepath = self.format_checkpoint_name(epoch, step, monitor_candidates, ver=0)
+        if not self._fs.exists(original_filepath) and not self._fs.exists(v0_filepath):
+            # first time
+            return original_filepath
+        elif self._fs.exists(original_filepath) and not self._fs.exists(v0_filepath):
+            # re-run special case, rename file to file-v0
+            self._fs.move(original_filepath, v0_filepath)
+            if original_filepath in self.best_k_models:
+                self.best_k_models[v0_filepath] = self.best_k_models.pop(original_filepath)
+            if original_filepath == self.kth_best_model_path:
+                self.kth_best_model_path = v0_filepath
+            if original_filepath == self.best_model_path:
+                self.best_model_path = v0_filepath
+        # re-run, use the vesion suffix
+        version = 0
+        filepath = v0_filepath
         while self._fs.exists(filepath):
-            filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics, ver=version_cnt)
-            # this epoch called before
-            version_cnt += 1
+            version += 1
+            filepath = self.format_checkpoint_name(epoch, step, monitor_candidates, ver=version)
         return filepath
 
     def _monitor_candidates(self, trainer):
