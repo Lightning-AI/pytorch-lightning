@@ -501,7 +501,13 @@ def auc(
         tensor(4.)
     """
     dx = x[1:] - x[:-1]
-    direction = -1. if (dx < 0).any() else 1.
+    if (dx < 0).any():
+        if (dx <= 0).all():
+            direction = -1.
+        else:
+            raise ValueError(f"The 'x' array is neither increasing or decreasing: {x}")
+    else:
+        direction = 1.
     return direction * torch.trapz(y, x)
 
 
