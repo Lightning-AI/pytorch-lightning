@@ -110,5 +110,8 @@ def accuracy(
         tensor(0.6667)
     """
 
+    if mdmc_accuracy not in ["global", "subset"]:
+        raise ValueError("The `mdmc_accuracy` should be either 'subset' or 'global'.")
+
     correct, total = _accuracy_update(preds, target, threshold, top_k, mdmc_accuracy)
     return _accuracy_compute(correct, total)

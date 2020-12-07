@@ -110,9 +110,15 @@ class Accuracy(Metric):
         self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
-        assert 0 <= threshold <= 1, f"threshold: {threshold} is out of range"
+        if not 0 <= threshold <= 1:
+            raise ValueError("The `threshold` should lie in the [0,1] interval.")
+
         self.threshold = threshold
         self.top_k = top_k
+
+        if mdmc_accuracy not in ["global", "subset"]:
+            raise ValueError("The `mdmc_accuracy` should be either 'subset' or 'global'.")
+
         self.mdmc_accuracy = mdmc_accuracy
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
