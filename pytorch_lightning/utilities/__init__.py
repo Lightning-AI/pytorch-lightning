@@ -60,12 +60,29 @@ FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps
 FLOAT64_EPSILON = numpy.finfo(numpy.float64).eps
 
 
-class AMPType(Enum):
+class AMPType(str, Enum):
+    """Type of Automatic Mixed Precission used for training.
+
+    >>> # you can math the type with string
+    >>> AMPType.APEX == 'apex'
+    True
+    """
+
     APEX = 'apex'
     NATIVE = 'native'
 
 
-class DistributedType(Enum):
+class DistributedType(str, Enum):
+    """ Define type of ditributed computing.
+
+    >>> # you can math the type with string
+    >>> DistributedType.DDP == 'ddp'
+    True
+    >>> # which is case sensitive
+    >>> DistributedType.DDP2 == 'DDP2'
+    False
+    """
+
     DP = 'dp'
     DDP = 'ddp'
     DDP2 = 'ddp2'
@@ -73,7 +90,17 @@ class DistributedType(Enum):
     HOROVOD = 'horovod'
 
 
-class DeviceType(Enum):
-    CPU = 'cpu'
-    GPU = 'gpu'
-    TPU = 'tpu'
+class DeviceType(str, Enum):
+    """ Define Device type byt its nature - acceleatrors.
+
+    >>> # you can math the type with string
+    >>> DeviceType.GPU == 'GPU'
+    True
+    >>> # which is case sensitive
+    >>> DeviceType.TPU == 'tpu'
+    False
+    """
+
+    CPU = 'CPU'
+    GPU = 'GPU'
+    TPU = 'TPU'
