@@ -445,6 +445,30 @@ class Trainer(
         # Callback system
         self.on_init_end()
 
+    @property
+    def optimizers(self):
+        return self.accelerator_backend.optimizers
+
+    @optimizers.setter
+    def optimizers(self, new_optims):
+        self.accelerator_backend.optimizers = new_optims
+
+    @property
+    def lr_schedulers(self):
+        return self.accelerator_backend.lr_schedulers
+
+    @lr_schedulers.setter
+    def lr_schedulers(self, new_schedulers):
+        self.accelerator_backend.lr_schedulers = new_schedulers
+
+    @property
+    def optimizer_frequencies(self):
+        return self.accelerator_backend.optimizer_frequencies
+
+    @optimizer_frequencies.setter
+    def optimizer_frequencies(self, new_freqs):
+        self.accelerator_backend.optimizer_frequencies = new_freqs
+
     def fit(
         self,
         model: LightningModule,
