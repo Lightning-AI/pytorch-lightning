@@ -34,7 +34,8 @@ jobs:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
         file: docs/source/_images/badges/*
         tag: ${{ github.ref }}
-        overwrite: true
+        asset_name: badges
+        overwrite: false
         file_glob: true
 
     # TODO: keep the sleep
