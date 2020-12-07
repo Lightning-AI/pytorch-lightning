@@ -148,6 +148,7 @@ class NewAccelerator(object):
         model = self.lightning_module
 
         # TODO: Change this. Probably to isinstance(self.precision_plugin, MixedPrecisionPlugin) and self.precision_plugin.backend == AMPType.APEX
+        #  ... or we call master_params() and in the default plugin we return the model.parameters()
         if self.trainer.amp_backend == AMPType.APEX:
             parameters = self.precision_plugin.master_params(optimizer)
         else:
