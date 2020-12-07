@@ -500,11 +500,8 @@ def auc(
         >>> auc(x, y)
         tensor(4.)
     """
-    direction = 1.
     dx = x[1:] - x[:-1]
-    if (dx < 0).any():
-        direction = -1.
-
+    direction = -1. if (dx < 0).any() else 1.
     return direction * torch.trapz(y, x)
 
 
