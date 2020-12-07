@@ -35,7 +35,7 @@ def _sk_accuracy(preds, target, mdmc_accuracy):
             sk_preds, sk_target = sk_preds.reshape(-1, sk_preds.shape[2]), sk_target.reshape(-1, sk_target.shape[2])
         elif mdmc_accuracy == "subset":
             return np.all(sk_preds == sk_target, axis=(1, 2)).mean()
- 
+
     return sk_accuracy(y_true=sk_target, y_pred=sk_preds)
 
 
