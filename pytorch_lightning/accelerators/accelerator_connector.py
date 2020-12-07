@@ -82,8 +82,8 @@ class BackendConnector(object):
         # init the default rank if exists
         # we need to call this here or NVIDIA flags and other messaging in init will show on all ranks
         # this way we only show it on rank 0
-        if 'LOCAL_RANK' in os.environ:
-            rank_zero_only.rank = int(os.environ['LOCAL_RANK'])
+        if "LOCAL_RANK" in os.environ:
+            rank_zero_only.rank = int(os.environ["LOCAL_RANK"])
 
         # TODO: Move autoselect GPUS to other place
         # for gpus allow int, string and gpu list
@@ -118,7 +118,7 @@ class BackendConnector(object):
         # NVIDIA setup
         # self.set_nvidia_flags(self.trainer.is_slurm_managing_tasks, self.trainer.data_parallel_device_ids)
 
-        self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
+        self.on_colab_kaggle = os.getenv("COLAB_GPU") or os.getenv("KAGGLE_URL_BASE")
 
         self.replace_sampler_ddp = replace_sampler_ddp
 
@@ -147,6 +147,9 @@ class BackendConnector(object):
     def select_precision_plugin(self):
         return PrecisionPlugin()
 
+    def select_training_type_plugin(self):
+        return SingleDevicePlugin(device=torch.device(f"cuda:{self.root_gpu}" if self.on_gpu else "cpu"))
+
     def select_accelerator(self, accelerator: Union[str, NewAccelerator]):
 
         # return NewCPUAccelerator(
@@ -155,10 +158,15 @@ class BackendConnector(object):
         #     gradient_clip_val=None
         # )
 
-        return NewGPUAccelerator(
-            precision_plugin=PrecisionPlugin(),
-            training_type_plugin=SingleDevicePlugin(device=torch.device("cuda", self.root_gpu)),
-            gradient_clip_val=None
+        if self.on_gpu:
+            acc_cls = NewGPUAccelerator
+        else:
+            acc_cls = NewCPUAccelerator
+
+        return acc_cls(
+            precision_plugin=self.select_precision_plugin(),
+            training_type_plugin=self.select_training_type_plugin(),
+            gradient_clip_val=None,
         )
 
     def set_distributed_mode(self):
@@ -181,7 +189,7 @@ class BackendConnector(object):
             # Default: DDP-Spawn
             elif self.num_gpus > 1:
                 rank_zero_warn(
-                    'You requested multiple GPUs but did not specify a backend, e.g.'
+                    "You requested multiple GPUs but did not specify a backend, e.g."
                     ' (distributed_backend="dp"|"ddp"|"ddp2").'
                     ' Setting distributed_backend="ddp_spawn" for you.'
                 )
@@ -201,8 +209,8 @@ class BackendConnector(object):
             if self.num_gpus == 0:
                 # DDP CPU
                 if self.num_nodes > 1 or self.num_processes > 1:
-                    self.use_ddp = True 
-            
+                    self.use_ddp = True
+
             # DDP Single GPU
             elif self.num_gpus == 1:
                 self.use_single_gpu = True
@@ -223,7 +231,7 @@ class BackendConnector(object):
         elif self.distributed_backend == "ddp_cpu":
             if self.num_gpus > 0:
                 rank_zero_warn(
-                    'You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs.'
+                    "You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs."
                 )
             self.use_ddp = True
             self.data_parallel_device_ids = None
@@ -236,18 +244,17 @@ class BackendConnector(object):
         # throw error to force user ddp or ddp2 choice
         if self.num_nodes > 1 and not (self.use_ddp2 or self.use_ddp):
             raise MisconfigurationException(
-                'DataParallel does not support num_nodes > 1. Switching to DistributedDataParallel for you. '
-                'To silence this warning set distributed_backend=ddp or distributed_backend=ddp2'
+                "DataParallel does not support num_nodes > 1. Switching to DistributedDataParallel for you. "
+                "To silence this warning set distributed_backend=ddp or distributed_backend=ddp2"
             )
 
-        rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self.on_gpu}')
+        rank_zero_info(f"GPU available: {torch.cuda.is_available()}, used: {self.on_gpu}")
         num_cores = self.tpu_cores if self.tpu_cores is not None else 0
-        rank_zero_info(f'TPU available: {XLA_AVAILABLE}, using: {num_cores} TPU cores')
+        rank_zero_info(f"TPU available: {XLA_AVAILABLE}, using: {num_cores} TPU cores")
 
         if torch.cuda.is_available() and not self.on_gpu:
-            rank_zero_warn('GPU available but not used. Set the --gpus flag when calling the script.')
+            rank_zero_warn("GPU available but not used. Set the --gpus flag when calling the script.")
 
-    
     def _set_horovod_backend(self):
         self.check_horovod()
         self.use_horovod = True
@@ -263,16 +270,16 @@ class BackendConnector(object):
         if not HOROVOD_AVAILABLE:
             raise MisconfigurationException(
                 'Requested `distributed_backend="horovod"`, but Horovod is not installed.'
-                'Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]'
+                "Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]"
             )
 
         if self.num_gpus > 1 or self.num_nodes > 1:
             raise MisconfigurationException(
-                'Horovod does not support setting num_nodes / num_gpus explicitly. Use '
-                'horovodrun / mpirun to configure the number of processes.'
+                "Horovod does not support setting num_nodes / num_gpus explicitly. Use "
+                "horovodrun / mpirun to configure the number of processes."
             )
 
     @staticmethod
     def has_horovodrun():
         """Returns True if running with `horovodrun` using Gloo or OpenMPI."""
-        return 'OMPI_COMM_WORLD_RANK' in os.environ or 'HOROVOD_RANK' in os.environ
+        return "OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ
