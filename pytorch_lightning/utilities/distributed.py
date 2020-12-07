@@ -159,7 +159,7 @@ def sync_ddp(
 
 class AllGatherGrad(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, tensor, group=None):
+    def forward(ctx, tensor, group=torch.distributed.group.WORLD):
         ctx.batch_size = tensor.shape[0]
         ctx.group = group
 
@@ -174,19 +174,16 @@ class AllGatherGrad(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, *grad_output):
-        #grad_input = grad_output.clone()
-        print(grad_output.shape)
-        exit(-1)
+        grad_output = torch.cat(grad_output)
+
         torch.distributed.all_reduce(
-            grad_input,
+            grad_output,
             op=torch.distributed.ReduceOp.SUM,
             async_op=False,
             group=ctx.group
         )
 
-        return grad_input[
-            torch.distributed.get_rank() * ctx.batch_size:(torch.distributed.get_rank() + 1) * ctx.batch_size
-        ]
+        return grad_output[torch.distributed.get_rank()]
 
 
 def all_gather_ddp_if_available(
@@ -212,7 +209,7 @@ def all_gather_ddp_if_available(
             ]
 
             torch.distributed.all_gather(gathered_tensor, tensor)
-            gathered_tensor = torch.cat(gathered_tensor, 0)
+            gathered_tensor = torch.stack(gathered_tensor, dim=0)
 
             return gathered_tensor
     return tensor
