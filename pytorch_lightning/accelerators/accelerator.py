@@ -88,6 +88,15 @@ class NewAccelerator(object):
             with self.training_type_plugin.test_step_context():
                 return self.lightning_module.test_step(*args)
 
+    def training_step_end(self, output):
+        return output
+
+    def test_step_end(self, output):
+        return output
+
+    def validation_step_end(self, output):
+        return output
+
     def process_dataloader(self, dataloader):
         return dataloader
 
