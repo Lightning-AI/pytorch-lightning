@@ -114,7 +114,7 @@ def accuracy(
     if mdmc_accuracy not in ["global", "subset"]:
         raise ValueError("The `mdmc_accuracy` should be either 'subset' or 'global'.")
 
-    if top_k <= 0:
+    if top_k is not None and top_k <= 0:
         raise ValueError("The `top_k` should be an integer larger than 1.")
 
     correct, total = _accuracy_update(preds, target, threshold, top_k, mdmc_accuracy)
