@@ -166,7 +166,6 @@ class BackendConnector(object):
         return acc_cls(
             precision_plugin=self.select_precision_plugin(),
             training_type_plugin=self.select_training_type_plugin(),
-            gradient_clip_val=None,
         )
 
     def set_distributed_mode(self):
