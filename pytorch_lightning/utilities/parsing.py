@@ -236,8 +236,7 @@ def lightning_getattr(model, attribute):
 
     if isinstance(holder, dict):
         return holder[attribute]
-    else:
-        return getattr(holder, attribute)
+    return getattr(holder, attribute)
 
 
 def lightning_setattr(model, attribute, value):
