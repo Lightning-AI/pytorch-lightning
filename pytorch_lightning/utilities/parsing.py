@@ -197,27 +197,34 @@ class AttributeDict(Dict):
         return out
 
 
-def lightning_get_attr_holder(model, attribute):
+def lightning_get_attr_holders(model, attribute):
     """ Special attribute finding for lightning.  Gets the object or dict that holds attribute, or None. Checks for attribute in model namespace,
             the old hparams namespace/dict, and the datamodule, returns the first one that has it. """
     trainer = getattr(model, 'trainer', None)
 
-    holder = None
+    holders = []
 
     # Check if attribute in model
     if hasattr(model, attribute):
-        holder = model
+        holders.append(model)
 
     # Check if attribute in model.hparams, either namespace or dict
-    if holder is None and hasattr(model, 'hparams'):
+    if hasattr(model, 'hparams'):
         if attribute in model.hparams:
-            holder = model.hparams
+            holders.append(model.hparams)
 
     # Check if the attribute in datamodule (datamodule gets registered in Trainer)
-    if holder is None and trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
-        holder = trainer.datamodule
+    if trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
+        holders.append(trainer.datamodule)
 
-    return holder
+    return holders
+
+
+def lightning_get_attr_holder(model, attribute):
+    holders = lightning_get_attr_holders(model, attribute)
+    if len(holders) == 0:
+        return None
+    return holders[0]
 
 
 def lightning_hasattr(model, attribute):
@@ -244,12 +251,13 @@ def lightning_setattr(model, attribute, value):
         and the old hparams namespace/dict.
         Will also set the attribute on datamodule, if it exists.
     """
-    holder = lightning_get_attr_holder(model, attribute)
-    if holder is None:
+    holders = lightning_get_attr_holders(model, attribute)
+    if len(holders) == 0:
         raise ValueError(f'{attribute} is neither stored in the model namespace'
                          ' nor the `hparams` namespace/dict, nor the datamodule.')
 
-    if isinstance(holder, dict):
-        holder[attribute] = value
-    else:
-        setattr(holder, attribute, value)
+    for holder in holders:
+        if isinstance(holder, dict):
+            holder[attribute] = value
+        else:
+            setattr(holder, attribute, value)
