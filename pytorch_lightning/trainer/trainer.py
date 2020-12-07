@@ -521,8 +521,8 @@ class Trainer(
         # self.accelerator_backend.train_loop = self.train
         # self.accelerator_backend.validation_loop = self.run_evaluation
         # self.accelerator_backend.test_loop = self.run_evaluation
+
         self.train_loop.setup_training(model)
-        self.train()
 
         # ----------------------------
         # TRAIN
@@ -530,7 +530,11 @@ class Trainer(
         # hook
         self.call_hook('on_fit_start')
 
-        results = self.accelerator_backend.train()
+        if self.testing:
+            results = self.run_test()
+        else:
+            results = self.train()
+
         self.accelerator_backend.teardown()
 
         # ----------------------------
