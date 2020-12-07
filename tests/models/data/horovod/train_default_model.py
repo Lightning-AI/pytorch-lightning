@@ -49,7 +49,7 @@ def run_test_from_config(trainer_options):
     reset_seed()
 
     ckpt_path = trainer_options['weights_save_path']
-    trainer_options.update(checkpoint_callback=ModelCheckpoint(dirpath=ckpt_path))
+    trainer_options.update(callbacks=[ModelCheckpoint(dirpath=ckpt_path)])
 
     model = EvalModelTemplate()
 

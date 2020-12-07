@@ -43,7 +43,7 @@ def test_cpu_slurm_save_load(enable_pl_optimizer, tmpdir):
         logger=logger,
         limit_train_batches=0.2,
         limit_val_batches=0.2,
-        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
         enable_pl_optimizer=enable_pl_optimizer,
     )
     result = trainer.fit(model)
@@ -80,7 +80,7 @@ def test_cpu_slurm_save_load(enable_pl_optimizer, tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
         enable_pl_optimizer=enable_pl_optimizer,
     )
     model = EvalModelTemplate(**hparams)
@@ -208,7 +208,7 @@ def test_running_test_after_fitting(tmpdir):
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         limit_test_batches=0.2,
-        checkpoint_callback=checkpoint,
+        callbacks=[checkpoint],
         logger=logger,
     )
     result = trainer.fit(model)
@@ -239,7 +239,7 @@ def test_running_test_no_val(tmpdir):
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         limit_test_batches=0.2,
-        checkpoint_callback=checkpoint,
+        callbacks=[checkpoint],
         logger=logger,
     )
     result = trainer.fit(model)
