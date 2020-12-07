@@ -76,7 +76,7 @@ class ConfigValidator(object):
             log.warn(
                 "When overriding `LightningModule` optimizer_step with"
                 " `Trainer(..., enable_pl_optimizer=False, automatic_optimization=True, ...)`,"
-                " we won t be calling `.zero_grad` we can't assume when you call your `optimizer.step()`."
+                " we won't be calling `.zero_grad` we can't assume when you call your `optimizer.step()`."
                 " For Lightning to take care of it, please use `Trainer(enable_pl_optimizer=True)`."
             )
 
