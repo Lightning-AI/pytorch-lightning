@@ -503,12 +503,7 @@ def auc(
     direction = 1.
     dx = x[1:] - x[:-1]
     if (dx < 0).any():
-        if (dx, 0).all():
-            direction = -1.
-        else:
-            # TODO: Update message on removing reorder
-            raise ValueError("Reorder is not turned on, and the 'x' array is"
-                             f" neither increasing or decreasing: {x}")
+        direction = -1.
 
     return direction * torch.trapz(y, x)
 
