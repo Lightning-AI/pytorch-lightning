@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from enum import Enum
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 from typing import Any, Optional, Union
 
 import torch
@@ -34,7 +34,7 @@ else:
         SUM = None
 
 
-class Accelerator(ABC):
+class Accelerator(metaclass=ABCMeta):
 
     def __init__(self, trainer=None, cluster_environment=None, ddp_plugin=None):
         self.trainer = trainer
