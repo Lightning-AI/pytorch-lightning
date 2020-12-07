@@ -69,10 +69,14 @@ class ConfigValidator(object):
                 ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.'
             )
 
-        has_optimizer_step = is_overridden('optimizer_step', model)
-        enable_pl_optimizer = self.trainer._enable_pl_optimizer
-        automatic_optimization = self.trainer.train_loop.automatic_optimization
-        if has_optimizer_step and not enable_pl_optimizer and automatic_optimization:
+        trainer = self.trainer
+
+        trainer.overriden_optimizer_step = is_overridden('optimizer_step', model)
+        trainer.overriden_optimizer_zero_grad = is_overridden('optimizer_zero_grad', model)
+
+        enable_pl_optimizer = trainer._enable_pl_optimizer
+        automatic_optimization = trainer.train_loop.automatic_optimization
+        if trainer.overriden_optimizer_step and not enable_pl_optimizer and automatic_optimization:
             rank_zero_warn(
                 "When overriding `LightningModule` optimizer_step with"
                 " `Trainer(..., enable_pl_optimizer=False, automatic_optimization=True, ...)`,"
@@ -80,12 +84,20 @@ class ConfigValidator(object):
                 " For Lightning to take care of it, please use `Trainer(enable_pl_optimizer=True)`."
             )
 
-        going_to_accumulate_grad_batches = self.trainer.accumulation_scheduler.going_to_accumulate_grad_batches()
+        going_to_accumulate_grad_batches = trainer.accumulation_scheduler.going_to_accumulate_grad_batches()
 
-        if has_optimizer_step and going_to_accumulate_grad_batches and automatic_optimization:
+        has_overriden_optimization_functions = trainer.overriden_optimizer_step or trainer.overriden_optimizer_zero_grad
+        if (has_overriden_optimization_functions) and going_to_accumulate_grad_batches and automatic_optimization:
             raise MisconfigurationException(
-                'When overriding `LightningModule` optimizer_step with `Trainer(automatic_optimization=True, ...)`,'
-                ' `accumulate_grad_batches` should to be 1. It ensures `optimizer_step` is called on every batch'
+                'When overriding `LightningModule` optimizer_step or optimizer_zero_grad with '
+                '`Trainer(automatic_optimization=True, ...)`, `accumulate_grad_batches` should to be 1.'
+                ' It ensures optimizer_step or optimizer_zero_grad are called on every batch.'
+            )
+
+        if (enable_pl_optimizer) and trainer.overriden_optimizer_zero_grad and not automatic_optimization:
+            raise MisconfigurationException(
+                'When overriding `LightningModule` optimizer_zero_grad with  '
+                '`Trainer(automatic_optimization=False, enable_pl_optimizer=True, ...) is not supported'
             )
 
     def __verify_eval_loop_configuration(self, model, eval_loop_name):

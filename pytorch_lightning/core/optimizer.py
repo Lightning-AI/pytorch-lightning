@@ -69,11 +69,6 @@ class LightningOptimizer:
 
     @accumulate_grad_batches.setter
     def accumulate_grad_batches(self, accumulate_grad_batches):
-        if self._automatic_optimization is None or self._automatic_optimization:
-            raise MisconfigurationException(
-                'In automatic optimization, `make_optimizer_step` should be None.'
-                ' This option is enabled only with `Trainer(automatic_optimization=False)`'
-                ' Currently, all optimizers follow the `Trainer(accumulate_grad_batches=x)` logic')
         self._accumulate_grad_batches = accumulate_grad_batches
 
     def _on_trainer_init(self, trainer):
@@ -126,6 +121,20 @@ class LightningOptimizer:
             optimizer,
             self._optimizer_idx
         )
+
+    def _check_make_optimizer_step(self, make_optimizer_step: Optional[bool]) -> bool:
+        if make_optimizer_step is not None and self._trainer.overriden_optimizer_zero_grad:
+            raise MisconfigurationException(
+                "When overriding LightningModule `optimizer_zero_grad`, make_optimizer_step is not allowed.")
+
+        if self._trainer.train_loop.automatic_optimization:
+            if self._trainer.overriden_optimizer_step and self._trainer.overriden_optimizer_zero_grad:
+                return True
+
+        if make_optimizer_step is None:
+            make_optimizer_step = not self._should_accumulate
+
+        return make_optimizer_step
 
     def step(self, *args, closure: Optional[Callable] = None, make_optimizer_step: Optional[bool] = None, **kwargs):
         """
@@ -230,14 +239,7 @@ class LightningOptimizer:
             if not isinstance(closure, types.FunctionType):
                 raise MisconfigurationException("When closure is provided, it should be a function")
 
-        if make_optimizer_step is None:
-            make_optimizer_step = not self._should_accumulate
-        else:
-            if self._automatic_optimization:
-                raise MisconfigurationException(
-                    'In automatic optimization, `make_optimizer_step` should be None.'
-                    ' This option is enabled only with `Trainer(automatic_optimization=False)`'
-                    ' Currently, all optimizers follow the `Trainer(accumulate_grad_batches=x)` logic')
+        make_optimizer_step = self._check_make_optimizer_step(make_optimizer_step)
 
         if make_optimizer_step:
             self.__optimizer_step(*args, closure=closure, profiler_name=profiler_name, **kwargs)
