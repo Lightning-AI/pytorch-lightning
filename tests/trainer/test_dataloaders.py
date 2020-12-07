@@ -682,7 +682,7 @@ def test_dataloader_reinit_for_subclass(tmpdir):
     trainer = Trainer(
         gpus=[0, 1],
         num_nodes=1,
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         default_root_dir=tmpdir,
     )
 
@@ -740,10 +740,10 @@ def test_dataloader_distributed_sampler(tmpdir):
     trainer = Trainer(
         gpus=[0, 1],
         num_nodes=1,
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         default_root_dir=tmpdir,
         max_steps=1,
-        callbacks=[DistribSamplerCallback()]
+        callbacks=[DistribSamplerCallback()],
     )
     trainer.fit(model)
     trainer.test(ckpt_path=None)
@@ -772,7 +772,7 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
     trainer = Trainer(
         gpus=[0, 1],
         num_nodes=1,
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         default_root_dir=tmpdir,
         max_steps=100,
         callbacks=[DistribSamplerCallback()],

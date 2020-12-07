@@ -102,7 +102,7 @@ def test_sync_batchnorm_ddp(tmpdir):
     trainer = Trainer(
         gpus=2,
         num_nodes=1,
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         max_epochs=1,
         max_steps=3,
         sync_batchnorm=True,
