@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from enum import Enum
-from typing import Union, Optional, List
+from typing import List, Optional, Union
 
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.plugins.apex import ApexPlugin
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
+from pytorch_lightning.plugins.ddp_sequential_plugin import DDPSequentialPlugin
 from pytorch_lightning.plugins.plugin import LightningPlugin
 from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
@@ -163,17 +164,18 @@ class PluginConnector:
     @classmethod
     def available_plugins(cls):
         """
-            List of all available plugins that can be string arguments to the trainer.
-            Returns: List of all available plugins that are supported as string arguments.
+        List of all available plugins that can be string arguments to the trainer.
+        Returns: List of all available plugins that are supported as string arguments.
         """
         return [e.name for e in LightningCustomPlugins]
 
 
 class LightningCustomPlugins(Enum):
     """
-        String support for custom lightning plugins.
-        Allows easier access to custom lightning plugins from the command line.
+    String support for custom lightning plugins.
+    Allows easier access to custom lightning plugins from the command line.
     """
     ddp_sharded = DDPShardedPlugin
+    ddp_sequential = DDPSequentialPlugin
     native_amp = NativeAMPPlugin
     apex_amp = ApexPlugin

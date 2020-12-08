@@ -14,6 +14,7 @@
 """General utilities"""
 import importlib
 import platform
+from distutils.version import LooseVersion
 from enum import Enum
 
 import numpy
@@ -53,6 +54,8 @@ TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 FAIRSCALE_AVAILABLE = platform.system() != 'Windows' and _module_available('fairscale.nn.data_parallel')
 RPC_AVAILABLE = platform.system() != 'Windows' and _module_available('torch.distributed.rpc')
 GROUP_AVAILABLE = platform.system() != 'Windows' and _module_available('torch.distributed.group')
+FAIRSCALE_PIPE_AVAILABLE = FAIRSCALE_AVAILABLE and LooseVersion(torch.__version__) == LooseVersion("1.6.0")
+BOLTS_AVAILABLE = _module_available('pl_bolts')
 
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
 FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps
