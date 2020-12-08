@@ -187,7 +187,7 @@ class CycleIterator(object):
     """
     Iterator for restarting a dataloader if it runs out of samples
     """
-    def __init__(self, loader: Any, length: int = None):
+    def __init__(self, loader: Any, length: Optional[int] = None):
         """
 
         Args:
@@ -318,8 +318,8 @@ class CombinedLoader(object):
         {'a': tensor([4, 5]), 'b': tensor([5, 6, 7, 8, 9])}
         {'a': tensor([0, 1, 2, 3]), 'b': tensor([10, 11, 12, 13, 14])}
         >>> combined_loader = CombinedLoader(loaders, 'min_size')
-        >>> for item in combined_loader: \
-                print(item)
+        >>> for item in combined_loader:
+        ...     print(item)
         {'a': tensor([0, 1, 2, 3]), 'b': tensor([0, 1, 2, 3, 4])}
         {'a': tensor([4, 5]), 'b': tensor([5, 6, 7, 8, 9])}
 
@@ -479,8 +479,9 @@ class CombinedLoaderIterator(object):
         return apply_to_collection(loader_iters, Iterator, next)
 
     @staticmethod
-    def create_loader_iters(loaders: Union[Any, Iterator,
-                                           Sequence, Mapping]) -> Union[Any, Iterator, Sequence, Mapping]:
+    def create_loader_iters(
+        loaders: Union[Any, Iterator, Sequence, Mapping]
+    ) -> Union[Any, Iterator, Sequence, Mapping]:
         """
         Create and return a collection of iterators from loaders.
 
