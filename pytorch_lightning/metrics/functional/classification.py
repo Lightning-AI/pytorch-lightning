@@ -17,6 +17,8 @@ from typing import Callable, Optional, Sequence, Tuple
 import torch
 from torch.nn import functional as F
 
+from pytorch_lightning.metrics.functional import roc
+from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve
 from pytorch_lightning.metrics.utils import to_categorical, get_num_classes, reduce, class_reduce
 from pytorch_lightning.utilities import rank_zero_warn
 
@@ -332,107 +334,6 @@ def recall(
                             num_classes=num_classes, class_reduction=class_reduction)[1]
 
 
-def _binary_clf_curve(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        sample_weight: Optional[Sequence] = None,
-        pos_label: int = 1.,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """
-    adapted from https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/metrics/_ranking.py
-    """
-    if sample_weight is not None and not isinstance(sample_weight, torch.Tensor):
-        sample_weight = torch.tensor(sample_weight, device=pred.device, dtype=torch.float)
-
-    # remove class dimension if necessary
-    if pred.ndim > target.ndim:
-        pred = pred[:, 0]
-    desc_score_indices = torch.argsort(pred, descending=True)
-
-    pred = pred[desc_score_indices]
-    target = target[desc_score_indices]
-
-    if sample_weight is not None:
-        weight = sample_weight[desc_score_indices]
-    else:
-        weight = 1.
-
-    # pred typically has many tied values. Here we extract
-    # the indices associated with the distinct values. We also
-    # concatenate a value for the end of the curve.
-    distinct_value_indices = torch.where(pred[1:] - pred[:-1])[0]
-    threshold_idxs = F.pad(distinct_value_indices, (0, 1), value=target.size(0) - 1)
-
-    target = (target == pos_label).to(torch.long)
-    tps = torch.cumsum(target * weight, dim=0)[threshold_idxs]
-
-    if sample_weight is not None:
-        # express fps as a cumsum to ensure fps is increasing even in
-        # the presence of floating point errors
-        fps = torch.cumsum((1 - target) * weight, dim=0)[threshold_idxs]
-    else:
-        fps = 1 + threshold_idxs - tps
-
-    return fps, tps, pred[threshold_idxs]
-
-
-# TODO: deprecated in favor of general ROC in pytorch_lightning/metrics/functional/roc.py
-def __roc(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        sample_weight: Optional[Sequence] = None,
-        pos_label: int = 1.,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """
-    Computes the Receiver Operating Characteristic (ROC). It assumes classifier is binary.
-
-    .. warning:: Deprecated
-
-    Args:
-        pred: estimated probabilities
-        target: ground-truth labels
-        sample_weight: sample weights
-        pos_label: the label for the positive class
-
-    Return:
-        false-positive rate (fpr), true-positive rate (tpr), thresholds
-
-    Example:
-
-        >>> x = torch.tensor([0, 1, 2, 3])
-        >>> y = torch.tensor([0, 1, 1, 1])
-        >>> fpr, tpr, thresholds = __roc(x, y)
-        >>> fpr
-        tensor([0., 0., 0., 0., 1.])
-        >>> tpr
-        tensor([0.0000, 0.3333, 0.6667, 1.0000, 1.0000])
-        >>> thresholds
-        tensor([4, 3, 2, 1, 0])
-
-    """
-    fps, tps, thresholds = _binary_clf_curve(pred=pred, target=target,
-                                             sample_weight=sample_weight,
-                                             pos_label=pos_label)
-
-    # Add an extra threshold position
-    # to make sure that the curve starts at (0, 0)
-    tps = torch.cat([torch.zeros(1, dtype=tps.dtype, device=tps.device), tps])
-    fps = torch.cat([torch.zeros(1, dtype=fps.dtype, device=fps.device), fps])
-    thresholds = torch.cat([thresholds[0][None] + 1, thresholds])
-
-    if fps[-1] <= 0:
-        raise ValueError("No negative samples in targets, false positive value should be meaningless")
-
-    fpr = fps / fps[-1]
-
-    if tps[-1] <= 0:
-        raise ValueError("No positive samples in targets, true positive value should be meaningless")
-
-    tpr = tps / tps[-1]
-
-    return fpr, tpr, thresholds
-
-
 # TODO: deprecated in favor of general ROC in pytorch_lightning/metrics/functional/roc.py
 def __multiclass_roc(
         pred: torch.Tensor,
@@ -474,7 +375,7 @@ def __multiclass_roc(
     for c in range(num_classes):
         pred_c = pred[:, c]
 
-        class_roc_vals.append(__roc(pred=pred_c, target=target, sample_weight=sample_weight, pos_label=c))
+        class_roc_vals.append(roc(preds=pred_c, target=target, sample_weights=sample_weight, pos_label=c, num_classes=1))
 
     return tuple(class_roc_vals)
 
@@ -572,7 +473,7 @@ def auroc(
 
     @auc_decorator()
     def _auroc(pred, target, sample_weight, pos_label):
-        return __roc(pred, target, sample_weight, pos_label)
+        return roc(preds=pred, target=target, sample_weights=sample_weight, pos_label=pos_label, num_classes=1)
 
     return _auroc(pred=pred, target=target, sample_weight=sample_weight, pos_label=pos_label)
 
@@ -625,7 +526,7 @@ def multiclass_auroc(
 
     @multiclass_auc_decorator()
     def _multiclass_auroc(pred, target, sample_weight, num_classes):
-        return __multiclass_roc(pred, target, sample_weight, num_classes)
+        return roc(preds=pred, target=target, sample_weights=sample_weight, num_classes=num_classes)
 
     class_aurocs = _multiclass_auroc(pred=pred, target=target,
                                      sample_weight=sample_weight,
