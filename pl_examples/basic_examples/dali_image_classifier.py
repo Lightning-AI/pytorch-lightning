@@ -32,7 +32,7 @@ else:
     from tests.base.datasets import MNIST
 
 if DALI_AVAILABLE:
-    import nvidia.dali.ops as ops
+    from nvidia.dali import ops
     from nvidia.dali.pipeline import Pipeline
     from nvidia.dali.plugin.pytorch import DALIClassificationIterator
     from nvidia.dali import __version__ as dali_version
