@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 
-import pytest
 import os
-from tests.base.boring_model import BoringModel
-from pytorch_lightning.callbacks import Callback
-from pytorch_lightning import accelerators, Trainer
-from pytorch_lightning.cluster_environments import SLURMEnvironment, TorchElasticEnvironment, ClusterEnvironment
-from pytorch_lightning.accelerators import Accelerator
 from unittest import mock
+
+import pytest
+
+from pytorch_lightning import Trainer, accelerators
+from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.cluster_environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
+from tests.base.boring_model import BoringModel
 
 
 def test_accelerator_choice_cpu(tmpdir):
@@ -323,7 +325,7 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(tmpdir):
 @mock.patch('torch.cuda.device_count', return_value=0)
 def test_custom_accelerator(tmpdir):
     class Accel(Accelerator):
-        def init_distributed_connection(
+        def init_ddp_connection(
                 self,
                 global_rank: int,
                 world_size: int,
