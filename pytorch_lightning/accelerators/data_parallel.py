@@ -256,8 +256,6 @@ class DDPPlugin(ParallelPlugin):
             return super().determine_node_rank()
 
     def setup(self, model):
-        print("DDPPlugin.setup")
-
         self._model = model
 
         # start the other scripts
