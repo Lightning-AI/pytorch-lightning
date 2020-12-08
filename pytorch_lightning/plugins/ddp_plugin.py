@@ -1,6 +1,6 @@
 import os
 from contextlib import contextmanager
-from typing import Any, Dict, List, Union, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import torch.distributed as torch_distrib
 from torch.optim import Optimizer
@@ -159,7 +159,7 @@ class DDPPlugin(LightningPlugin):
         return distributed_sampler_kwargs
 
     @property
-    def data_parallel_group(self) -> torch_distrib.group:
+    def data_parallel_group(self):
         """
         Return the group that this process exists in. By default, this is the world size.
         Useful for when additional parallel groups have been created, to select certain processes.
