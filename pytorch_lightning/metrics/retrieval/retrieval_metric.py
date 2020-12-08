@@ -20,7 +20,7 @@ class RetrievalMetric(Metric):
 
     Indexes and target must have the same dimension. If preds has a higher number of dimensions,
     we perform argmax on ``dim=1``. Indexes indicate to which query a prediction belongs.
-    Predictions will be first grouped by indexes and then the actual metric will be computed as the mean 
+    Predictions will be first grouped by indexes and then the actual metric will be computed as the mean
     of the scores over each query.
 
     Args:
@@ -32,7 +32,8 @@ class RetrievalMetric(Metric):
             Synchronize metric state across processes at each ``forward()``
             before returning the value at the step. default: False
         process_group:
-            Specify the process group on which synchronization is called. default: None (which selects the entire world)
+            Specify the process group on which synchronization is called. default: None (which selects
+            the entire world)
         dist_sync_fn:
             Callback that performs the allgather operation on the metric state. When `None`, DDP
             will be used to perform the allgather. default: None
