@@ -11,10 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.metrics.classification.accuracy import Accuracy
-from pytorch_lightning.metrics.classification.average_precision import AveragePrecision
-from pytorch_lightning.metrics.classification.confusion_matrix import ConfusionMatrix
-from pytorch_lightning.metrics.classification.f_beta import FBeta, F1
-from pytorch_lightning.metrics.classification.precision_recall import Precision, Recall
-from pytorch_lightning.metrics.classification.precision_recall_curve import PrecisionRecallCurve
-from pytorch_lightning.metrics.classification.roc import ROC
+# Running special tests
+export PL_RUNNING_SPECIAL_TESTS=1
+DEFAULTS="-m coverage run --source pytorch_lightning -a -m pytest --verbose --capture=no"
+python ${DEFAULTS} tests/trainer/optimization/test_manual_optimization.py::test_step_with_optimizer_closure_with_different_frequencies_ddp

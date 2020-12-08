@@ -26,7 +26,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
-from pytorch_lightning.utilities import AMPType, parsing
+from pytorch_lightning.utilities import TPU_AVAILABLE, AMPType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
@@ -321,7 +321,6 @@ class TrainLoop:
             args = self.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
 
             # manually capture logged metrics
-            model_ref._results = Result()
             model_ref._current_fx_name = 'training_step'
             model_ref._results = Result()
             training_step_output = self.trainer.accelerator_backend.training_step(args)
@@ -475,20 +474,33 @@ class TrainLoop:
         return training_step_output_for_epoch_end
 
     def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure, *args, **kwargs):
-        # optimizer step lightningModule hook
-        if isinstance(optimizer, LightningOptimizer):
-            optimizer.step(closure=train_step_and_backward_closure)
-        else:
-            with self.trainer.profiler.profile("optimizer_step"):
-                self.trainer.accelerator_backend.optimizer_step(
-                    optimizer, batch_idx, opt_idx, train_step_and_backward_closure, *args, **kwargs
-                )
+        model_ref = self.trainer.get_model()
+
+        is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
+        using_native_amp = self.trainer.amp_backend == AMPType.NATIVE
+
+        # native amp + lbfgs is a no go right now
+        if using_native_amp and is_lbfgs:
+            raise MisconfigurationException(
+                'native PyTorch amp and lbfgs are not compatible.'
+                ' To request, please file a Github issue in PyTorch and tag @mcarilli')
+
+        # model hook
+        model_ref.optimizer_step(
+            epoch=self.trainer.current_epoch,
+            batch_idx=batch_idx,
+            optimizer=optimizer,
+            optimizer_idx=opt_idx,
+            optimizer_closure=train_step_and_backward_closure,
+            on_tpu=self.trainer.use_tpu and TPU_AVAILABLE,
+            using_native_amp=using_native_amp,
+            using_lbfgs=is_lbfgs,
+            *args,
+            **kwargs,
+        )
 
     def on_before_zero_grad(self, optimizer):
         self.trainer.call_hook('on_before_zero_grad', optimizer)
-
-    def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
-        self.trainer.accelerator_backend.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
     def track_and_norm_grad(self, optimizer):
         # track gradient norms
@@ -667,9 +679,15 @@ class TrainLoop:
                     # calculate loss (train step + train step end)
                     # -------------------
 
-                    # perform dpp sync only when performing optimizer_step
+                    # automatic_optimization=True: perform dpp sync only when performing optimizer_step
+                    # automatic_optimization=False: don't block synchronization here
                     with self.block_ddp_sync_behaviour():
-                        self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens)
+                        self.training_step_and_backward(
+                            split_batch,
+                            batch_idx,
+                            opt_idx,
+                            optimizer,
+                            self.trainer.hiddens)
 
                     batch_outputs = self._process_closure_result(
                         batch_outputs=batch_outputs,
@@ -708,7 +726,6 @@ class TrainLoop:
                     if self._curr_step_result is None:
                         # user decided to skip optimization
                         # make sure to zero grad.
-                        self.zero_grad_handler(batch_idx, optimizer, opt_idx)
                         continue
 
                     batch_outputs = self._process_closure_result(
@@ -719,9 +736,6 @@ class TrainLoop:
                     # todo: Properly aggregate grad_norm accros opt_idx and split_idx
                     grad_norm_dic = self._cur_grad_norm_dict
                     self._cur_grad_norm_dict = None
-
-                    # hook + clear gradients
-                    self.zero_grad_handler(batch_idx, optimizer, opt_idx)
 
                     # update running loss + reset accumulated loss
                     self.update_running_loss()
@@ -735,10 +749,22 @@ class TrainLoop:
 
     @contextmanager
     def block_ddp_sync_behaviour(self):
-        if isinstance(self.trainer.model, torch.nn.parallel.DistributedDataParallel):
-            yield self.trainer.model.no_sync()
+        """
+        automatic_optimization = True
+        Blocks ddp sync gradients behaviour on backwards pass.
+        This is useful for skipping sync when accumulating gradients, reducing communication overhead
+
+        automatic_optimization = False
+        do not block ddp gradient sync when using manual optimization
+        as gradients are needed within the training step
+
+        Returns: context manager with sync behaviour off
+
+        """
+        if self.trainer.accelerator_backend is not None and self.automatic_optimization:
+            yield self.trainer.accelerator_backend.block_ddp_plugin_sync_behaviour()
         else:
-            yield
+            yield None
 
     def _process_closure_result(
         self, batch_outputs: list, opt_idx: int
@@ -825,8 +851,8 @@ class TrainLoop:
         # inform logger the batch loop has finished
         self.trainer.logger_connector.on_train_epoch_end()
 
-        self.trainer.call_hook('on_epoch_end', capture=True)
-        self.trainer.call_hook('on_train_epoch_end', epoch_output, capture=True)
+        self.trainer.call_hook('on_epoch_end')
+        self.trainer.call_hook('on_train_epoch_end', epoch_output)
 
     def increment_accumulated_grad_global_step(self):
         num_accumulated_batches_reached = self._accumulated_batches_reached()
@@ -947,14 +973,3 @@ class TrainLoop:
 
         # reset for next set of accumulated grads
         self.accumulated_loss.reset()
-
-    def zero_grad_handler(self, batch_idx, optimizer, opt_idx):
-        if self.automatic_optimization:
-            # hook
-            self.on_before_zero_grad(optimizer)
-            optimizers = enumerate([optimizer])
-        else:
-            optimizers = []
-
-        for idx, optimizer in optimizers:
-            self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
