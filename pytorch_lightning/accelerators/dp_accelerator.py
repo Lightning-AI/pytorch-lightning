@@ -181,3 +181,7 @@ class DataParallelAccelerator(Accelerator):
         if isinstance(model, LightningDataParallel):
             return model.module
         return model
+
+    @property
+    def is_distributed(self):
+        return True

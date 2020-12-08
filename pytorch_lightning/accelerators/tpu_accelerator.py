@@ -368,3 +368,7 @@ class TPUAccelerator(Accelerator):
     @property
     def distributed_sampler_kwargs(self):
         return dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
+
+    @property
+    def is_distributed(self):
+        return True

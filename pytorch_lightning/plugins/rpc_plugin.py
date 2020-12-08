@@ -57,12 +57,11 @@ class RPCPlugin(DDPPlugin):
             torch.distributed.rpc.shutdown()
             self.rpc_initialized = False
 
-    def optimizer_step(self,
-                       model,
-                       lightning_optimizer,
-                       closure,
-                       *args,
-                       **kwargs):
+    def worker_optimizer_step(self,
+                              model,
+                              opt_idx,
+                              *args,
+                              **kwargs):
         raise NotImplementedError
 
     def is_main_rpc_process(self):

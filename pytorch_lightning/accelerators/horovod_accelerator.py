@@ -210,3 +210,7 @@ class HorovodAccelerator(Accelerator):
     @property
     def distributed_sampler_kwargs(self):
         return dict(num_replicas=hvd.size(), rank=hvd.rank())
+
+    @property
+    def is_distributed(self):
+        return True

@@ -90,3 +90,7 @@ class CPUAccelerator(Accelerator):
                     group: Optional[Any] = None,
                     reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
         return tensor
+
+    @property
+    def is_distributed(self):
+        return False

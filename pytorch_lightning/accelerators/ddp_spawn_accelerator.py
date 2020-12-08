@@ -303,3 +303,7 @@ class DDPSpawnAccelerator(Accelerator):
         if self.ddp_plugin is not None:
             distributed_sampler_kwargs = self.ddp_plugin.distributed_sampler_kwargs(distributed_sampler_kwargs)
         return distributed_sampler_kwargs
+
+    @property
+    def is_distributed(self):
+        return True

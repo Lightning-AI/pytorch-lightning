@@ -229,6 +229,10 @@ class Accelerator(object):
     def distributed_sampler_kwargs(self):
         raise NotImplementedError
 
+    @property
+    def is_distributed(self):
+        raise NotImplementedError
+
     @contextmanager
     def block_ddp_plugin_sync_behaviour(self):
         """
@@ -238,7 +242,6 @@ class Accelerator(object):
         """
         cm = self.ddp_plugin.block_backward_sync(self.trainer.model) if self.ddp_plugin else None
         yield cm
-
 
 # TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...
 class BackendType(Enum):
