@@ -35,7 +35,7 @@ def do_nothing_closure():
 class LightningOptimizer:
     """
     This class is used to wrap the user optimizers and handle properly
-    the backward and optimizer_step logic across accelerators, AMP, accumulated_grad_batches
+    the backward and optimizer_step logic across accelerators, AMP, accumulate_grad_batches
     """
     def __init__(self,
                  optimizer: Optimizer,
@@ -60,17 +60,35 @@ class LightningOptimizer:
         self._trainer = None
         self._optimizer = optimizer
         self._accumulate_grad_batches = accumulate_grad_batches
-        self._use_accumulate_grad_batches_from_trainer = accumulate_grad_batches is None
+        self._automatic_optimization = None
+        self._optimizer_idx = None
+
+    @property
+    def accumulate_grad_batches(self):
+        return self._accumulate_grad_batches
+
+    @accumulate_grad_batches.setter
+    def accumulate_grad_batches(self, accumulate_grad_batches):
+        self._accumulate_grad_batches = accumulate_grad_batches
 
     def _on_trainer_init(self, trainer):
         self._trainer = proxy(trainer)
+        self._automatic_optimization = trainer.train_loop.automatic_optimization
+        for opt_idx, opt in enumerate(trainer.optimizers):
+            if opt == self._optimizer:
+                self._optimizer_idx = opt_idx
+                break
+
+    @classmethod
+    def to_lightning_optimizer(cls, optimizer, trainer):
+        optimizer = cls(optimizer)
+        optimizer._on_trainer_init(trainer)
+        return optimizer
 
     def _accumulated_batches_reached(self):
-        if self._use_accumulate_grad_batches_from_trainer:
-            accumulate_grad_batches = self._trainer.accumulate_grad_batches
-        else:
-            accumulate_grad_batches = self._accumulate_grad_batches
-        return (self._trainer.batch_idx + 1) % accumulate_grad_batches == 0
+        if self.accumulate_grad_batches is None:
+            return self._trainer.train_loop._accumulated_batches_reached()
+        return (self._trainer.batch_idx + 1) % self.accumulate_grad_batches == 0
 
     @property
     def _should_accumulate(self):
@@ -78,6 +96,45 @@ class LightningOptimizer:
         accumulation_done = self._accumulated_batches_reached()
         is_final_batch = self._trainer.train_loop._num_training_batches_reached()
         return not (accumulation_done or is_final_batch)
+
+    def __optimizer_step(self, *args, closure: Optional[Callable] = None, profiler_name: str = None, **kwargs):
+        trainer = self._trainer
+        optimizer = self._optimizer
+        model = trainer.get_model()
+
+        if trainer.on_tpu:
+            with trainer.profiler.profile(profiler_name):
+                xm.optimizer_step(optimizer, optimizer_args={'closure': closure, **kwargs})
+
+        elif trainer.amp_backend is not None:
+            trainer.precision_connector.backend.optimizer_step(trainer, optimizer, closure)
+
+        else:
+            with trainer.profiler.profile(profiler_name):
+                optimizer.step(closure=closure, *args, **kwargs)
+
+        trainer.train_loop.on_before_zero_grad(self)
+
+        model.optimizer_zero_grad(
+            trainer.current_epoch,
+            trainer.batch_idx,
+            optimizer,
+            self._optimizer_idx
+        )
+
+    def _check_make_optimizer_step(self, make_optimizer_step: Optional[bool]) -> bool:
+        if make_optimizer_step is not None and self._trainer.overriden_optimizer_zero_grad:
+            raise MisconfigurationException(
+                "When overriding LightningModule `optimizer_zero_grad`, make_optimizer_step is not allowed.")
+
+        if self._trainer.train_loop.automatic_optimization:
+            if self._trainer.overriden_optimizer_step and self._trainer.overriden_optimizer_zero_grad:
+                return True
+
+        if make_optimizer_step is None:
+            make_optimizer_step = not self._should_accumulate
+
+        return make_optimizer_step
 
     def step(self, *args, closure: Optional[Callable] = None, make_optimizer_step: Optional[bool] = None, **kwargs):
         """
@@ -173,40 +230,23 @@ class LightningOptimizer:
                     # Trainer(accumulate_grad_batches=x)
                     opt_dis.step(closure=optimizer_closure, make_optimizer_step=True)
         """
-        profiler_name = "optimizer_step_and_closure"
+        profiler_name = f"optimizer_step_and_closure_{self._optimizer_idx}"
 
         if closure is None:
             closure = do_nothing_closure
-            profile_name = "optimizer_step"
+            profile_name = f"optimizer_step_{self._optimizer_idx}"
         else:
             if not isinstance(closure, types.FunctionType):
                 raise MisconfigurationException("When closure is provided, it should be a function")
 
-        if make_optimizer_step is None:
-            make_optimizer_step = not self._should_accumulate
-
-        trainer = self._trainer
-        optimizer = self._optimizer
+        make_optimizer_step = self._check_make_optimizer_step(make_optimizer_step)
 
         if make_optimizer_step:
-            if trainer.on_tpu:
-                with trainer.profiler.profile(profiler_name):
-                    xm.optimizer_step(optimizer, optimizer_args={'closure': closure, **kwargs})
-
-            elif trainer.amp_backend is not None:
-                trainer.precision_connector.backend.optimizer_step(
-                    trainer, optimizer, closure)
-
-            else:
-                with trainer.profiler.profile(profiler_name):
-                    optimizer.step(closure=closure, *args, **kwargs)
-
-            # perform zero grad
-            optimizer.zero_grad()
+            self.__optimizer_step(*args, closure=closure, profiler_name=profiler_name, **kwargs)
         else:
             # make sure to call optimizer_closure when accumulating
-            with trainer.profiler.profile("closure"):
-                with trainer.train_loop.block_ddp_sync_behaviour():
+            with self._trainer.profiler.profile(f"closure_{self._optimizer_idx}"):
+                with self._trainer.train_loop.block_ddp_sync_behaviour():
                     closure()
 
     def __repr__(self):

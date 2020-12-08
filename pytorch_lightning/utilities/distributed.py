@@ -89,6 +89,9 @@ def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None)
     if group is None:
         group = torch.distributed.group.WORLD
 
+    # convert tensors to contiguous format
+    result = result.contiguous()
+
     world_size = torch.distributed.get_world_size(group)
 
     gathered_result = [torch.zeros_like(result) for _ in range(world_size)]

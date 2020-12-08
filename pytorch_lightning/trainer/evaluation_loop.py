@@ -106,9 +106,9 @@ class EvaluationLoop(object):
 
     def on_evaluation_end(self, *args, **kwargs):
         if self.testing:
-            self.trainer.call_hook('on_test_end', *args, capture=True, **kwargs)
+            self.trainer.call_hook('on_test_end', *args, **kwargs)
         else:
-            self.trainer.call_hook('on_validation_end', *args, capture=True, **kwargs)
+            self.trainer.call_hook('on_validation_end', *args, **kwargs)
 
     def reload_evaluation_dataloaders(self):
         model = self.trainer.get_model()
@@ -329,9 +329,9 @@ class EvaluationLoop(object):
     def on_evaluation_epoch_end(self, *args, **kwargs):
         # call the callback hook
         if self.testing:
-            self.trainer.call_hook('on_test_epoch_end', *args, capture=True, **kwargs)
+            self.trainer.call_hook('on_test_epoch_end', *args, **kwargs)
         else:
-            self.trainer.call_hook('on_validation_epoch_end', *args, capture=True, **kwargs)
+            self.trainer.call_hook('on_validation_epoch_end', *args, **kwargs)
 
     def log_evaluation_step_metrics(self, output, batch_idx):
         if self.trainer.running_sanity_check:
@@ -346,10 +346,8 @@ class EvaluationLoop(object):
         self.__log_result_step_metrics(step_log_metrics, step_pbar_metrics, batch_idx)
 
     def __log_result_step_metrics(self, step_log_metrics, step_pbar_metrics, batch_idx):
-        cached_batch_log_metrics = \
-            self.trainer.logger_connector.cached_results.get_latest_batch_log_metrics()
-        cached_batch_pbar_metrics = \
-            self.trainer.logger_connector.cached_results.get_latest_batch_pbar_metrics()
+        cached_results = self.trainer.logger_connector.cached_results
+        cached_batch_pbar_metrics, cached_batch_log_metrics = cached_results.update_logger_connector()
 
         step_log_metrics.update(cached_batch_log_metrics)
         step_pbar_metrics.update(cached_batch_pbar_metrics)

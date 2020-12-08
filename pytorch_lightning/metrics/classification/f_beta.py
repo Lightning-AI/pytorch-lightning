@@ -15,11 +15,11 @@ from typing import Any, Optional
 
 import torch
 
-from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.metrics.functional.f_beta import (
     _fbeta_update,
     _fbeta_compute
 )
+from pytorch_lightning.metrics.metric import Metric
 
 
 class FBeta(Metric):
