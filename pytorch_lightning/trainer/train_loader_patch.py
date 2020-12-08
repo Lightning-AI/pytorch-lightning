@@ -1,18 +1,3 @@
-'''
-    This patch solves two problems discussed in
-    https://github.com/PyTorchLightning/pytorch-lightning/pull/1959
-
-    The function  train_dataloader can either return a single instance of
-    torch.utils.data.DataLoader or a dictionary of dataloaders.
-
-    This patch fixes the length and iteration issus
-    and make the rest of the code oblivious of the underlying data structure.
-
-    I will keep the name of the class but a better name is probable advisable
-
-    @christofer-f
-'''
-
 import itertools
 
 from typing import Any, Union
