@@ -215,10 +215,14 @@ class TrainLoop:
         # TODO bake this logic into the checkpoint callback
         if should_save and self.trainer.checkpoint_connector.has_trained:
             checkpoint_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
+
             if is_last and any(c.save_last for c in checkpoint_callbacks):
                 rank_zero_info("Saving latest checkpoint...")
+
             model = self.trainer.get_model()
-            [cb.on_validation_end(self.trainer, model) for cb in checkpoint_callbacks]
+
+            for callback in checkpoint_callbacks:
+                callback.on_validation_end(self.trainer, model)
 
     def on_train_epoch_start(self, epoch):
 
@@ -908,7 +912,7 @@ class TrainLoop:
     def save_loggers_on_train_batch_end(self):
         # when loggers should save to disk
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
-        if should_flush_logs or self.trainer.fast_dev_run:
+        if should_flush_logs or self.trainer.fast_dev_run is True:
             if self.trainer.is_global_zero and self.trainer.logger is not None:
                 self.trainer.logger.save()
 
