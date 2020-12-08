@@ -2,8 +2,8 @@ import pytest
 import torch
 from sklearn.metrics import hamming_loss as sk_hamming_loss
 
-from pytorch_lightning.metrics import HammingLoss
-from pytorch_lightning.metrics.functional import hamming_loss
+from pytorch_lightning.metrics import HammingDistance
+from pytorch_lightning.metrics.functional import hamming_distance
 from pytorch_lightning.metrics.classification.helpers import _input_format_classification
 from tests.metrics.classification.inputs import (
     _binary_inputs,
@@ -45,25 +45,25 @@ def _sk_hamming_loss(preds, target):
         (_multilabel_multidim_inputs.preds, _multilabel_multidim_inputs.target),
     ],
 )
-class TestAccuracies(MetricTester):
+class TestHammingDistance(MetricTester):
     @pytest.mark.parametrize("ddp", [True, False])
     @pytest.mark.parametrize("dist_sync_on_step", [False, True])
-    def test_accuracy_class(self, ddp, dist_sync_on_step, preds, target):
+    def test_hamming_distance_class(self, ddp, dist_sync_on_step, preds, target):
         self.run_class_metric_test(
             ddp=ddp,
             preds=preds,
             target=target,
-            metric_class=HammingLoss,
+            metric_class=HammingDistance,
             sk_metric=_sk_hamming_loss,
             dist_sync_on_step=dist_sync_on_step,
             metric_args={"threshold": THRESHOLD},
         )
 
-    def test_accuracy_fn(self, preds, target):
+    def test_hamming_distance_fn(self, preds, target):
         self.run_functional_metric_test(
             preds,
             target,
-            metric_functional=hamming_loss,
+            metric_functional=hamming_distance,
             sk_metric=_sk_hamming_loss,
             metric_args={"threshold": THRESHOLD},
         )

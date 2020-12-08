@@ -404,6 +404,11 @@ def _input_format_classification(
     else:
         preds, target = preds.squeeze(), target.squeeze()
 
+    # Convert half precision tensors to full precision, as not all ops are supported
+    # for example, min() is not supported
+    if preds.dtype == torch.float16:
+        preds = preds.float()
+
     case = _check_classification_inputs(
         preds,
         target,

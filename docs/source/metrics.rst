@@ -341,10 +341,10 @@ FBeta
 .. autoclass:: pytorch_lightning.metrics.classification.FBeta
     :noindex:
 
-Hamming Loss
-~~~~~~~~~~~~
+Hamming Distance
+~~~~~~~~~~~~~~~~
 
-.. autoclass:: pytorch_lightning.metrics.classification.HammingLoss
+.. autoclass:: pytorch_lightning.metrics.classification.HammingDistance
     :noindex:
 
 Precision
@@ -443,10 +443,10 @@ fbeta [func]
 .. autofunction:: pytorch_lightning.metrics.functional.fbeta
     :noindex:
 
-hamming_loss [func]
-~~~~~~~~~~~~~~~~~~~
+hamming_distance [func]
+~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.hamming_loss
+.. autofunction:: pytorch_lightning.metrics.functional.hamming_distance
     :noindex:
 
 iou [func]
