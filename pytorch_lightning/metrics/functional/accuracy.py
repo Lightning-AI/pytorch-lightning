@@ -73,7 +73,7 @@ def accuracy(
 
     Args:
         preds: Predictions from model (probabilities, or labels)
-        target: Ground truth values
+        target: Ground truth labels
         threshold:
             Threshold probability value for transforming probability predictions to binary
             (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5

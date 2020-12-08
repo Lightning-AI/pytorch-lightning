@@ -36,7 +36,7 @@ class Accuracy(Metric):
     For multi-label and multi-dimensional multi-class inputs, this metric computes the "global"
     accuracy by default, which counts all labels or sub-samples separately. This can be
     changed to subset accuracy (which requires all labels or sub-samples in the sample to
-    be correctly predicted) by setting `subset_accuracy=True`.
+    be correctly predicted) by setting ``subset_accuracy=True``.
 
     Accepts all input types listed in :ref:`metrics:Input types`.
 
@@ -115,12 +115,12 @@ class Accuracy(Metric):
 
         if not 0 <= threshold <= 1:
             raise ValueError("The `threshold` should lie in the [0,1] interval.")
-        self.threshold = threshold
 
         if top_k is not None and top_k <= 0:
             raise ValueError("The `top_k` should be an integer larger than 1.")
-        self.top_k = top_k
 
+        self.threshold = threshold
+        self.top_k = top_k
         self.subset_accuracy = subset_accuracy
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
@@ -130,7 +130,7 @@ class Accuracy(Metric):
 
         Args:
             preds: Predictions from model (probabilities, or labels)
-            target: Ground truth values
+            target: Ground truth labels
         """
 
         correct, total = _accuracy_update(

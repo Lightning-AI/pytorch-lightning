@@ -39,7 +39,7 @@ class HammingDistance(Metric):
     Args:
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            `(0,1)` predictions, in the case of binary or multi-label inputs. Default: `0.5`
+            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
@@ -48,7 +48,7 @@ class HammingDistance(Metric):
         process_group:
             Specify the process group on which synchronization is called. default: None (which selects the entire world)
         dist_sync_fn:
-            Callback that performs the allgather operation on the metric state. When `None`, DDP
+            Callback that performs the allgather operation on the metric state. When ``None``, DDP
             will be used to perform the allgather. default: None
 
     Example:
@@ -91,7 +91,7 @@ class HammingDistance(Metric):
 
         Args:
             preds: Predictions from model (probabilities, or labels)
-            target: Ground truth values
+            target: Ground truth labels
         """
         correct, total = _hamming_distance_update(preds, target, self.threshold)
 
