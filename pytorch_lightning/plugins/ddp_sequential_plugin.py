@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License
 import os
 from typing import Any, List, Optional
 
@@ -22,17 +35,18 @@ if FAIRSCALE_PIPE_AVAILABLE:
 
 
 class DDPSequentialPlugin(RPCPlugin):
-    def __init__(self,
-                 balance: Optional[List[int]] = None,
-                 microbatches: int = 8,
-                 checkpoint: str = 'except_last',
-                 balance_mode: str = "balance_by_size",
-                 pipelined_backward: Optional[bool] = True,
-                 **kwargs):
+    def __init__(
+            self,
+            balance: Optional[List[int]] = None,
+            microbatches: int = 8,
+            checkpoint: str = 'except_last',
+            balance_mode: str = "balance_by_size",
+            pipelined_backward: Optional[bool] = True,
+            **kwargs):
         """
         Provides sequential model parallelism for :class:`nn.Sequential <torch.nn.Sequential>` module.
         If the module requires lots of memory, Pipe can be used to reduce this by leveraging multiple GPUs.
-        ::
+
             Example::
                 class MyLightningModule:
                     def __init__(self):
@@ -244,18 +258,19 @@ class DDPSequentialPlugin(RPCPlugin):
                 'DDPSequentialPlugin is currently not supported in Automatic Mixed Precision')
 
     def configure_ddp(
-            self, model: LightningModule, device_ids: List[int]
-    ) -> DistributedDataParallel:
+            self,
+            model: LightningModule, device_ids: List[int]) -> DistributedDataParallel:
         ddp_plugin = RPCPlugin(process_group=mpu.get_data_parallel_group()).configure_ddp(model, device_ids)
         ddp_plugin.prepare_for_backwards = False
         return ddp_plugin
 
     @rank_zero_only
-    def rpc_save_model(self,
-                       save_model_fn,
-                       last_filepath,
-                       trainer,
-                       pl_module) -> None:
+    def rpc_save_model(
+            self,
+            save_model_fn,
+            last_filepath,
+            trainer,
+            pl_module) -> None:
         model = trainer.get_model()
         if hasattr(model.sequential_module, "foreach_worker"):
             current_layers = pl_module.sequential_module
@@ -269,11 +284,12 @@ class DDPSequentialPlugin(RPCPlugin):
             del pl_module.sequential_module
             pl_module.sequential_module = current_layers
 
-    def worker_optimizer_step(self,
-                              model: LightningModule,
-                              opt_idx: int,
-                              *args,
-                              **kwargs) -> None:
+    def worker_optimizer_step(
+            self,
+            model: LightningModule,
+            opt_idx: int,
+            *args,
+            **kwargs) -> None:
         model.sequential_module.foreach_worker(
             run_optimizer,
             {"opt_idx": opt_idx, "args": args, "kwargs": kwargs},
@@ -315,11 +331,12 @@ class LightningPipeModule(nn.Module):
         This class wraps Fairscale Pipe and PipeRCPWrapper class.
     """
 
-    def __init__(self,
-                 module: nn.Sequential,
-                 balance: List[int],
-                 microbatches: int = 8,
-                 checkpoint='never'):
+    def __init__(
+            self,
+            module: nn.Sequential,
+            balance: List[int],
+            microbatches: int = 8,
+            checkpoint='never'):
         super().__init__()
         self.module = module
         self.balance = balance

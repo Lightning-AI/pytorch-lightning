@@ -11,6 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+
+Example script of running the experimental DDP Sequential Plugin.
+This script splits a convolutional model onto multiple GPUs, whilst using the internal built in balancer
+to balance across your GPUs.
+
+To run:
+python conv_model_sequential_example.py --accelerator ddp --gpus 4 --max_epochs 1  --batch_size 256 --use_ddp_sequential
+"""
 import math
 from argparse import ArgumentParser
 
@@ -28,15 +37,6 @@ from pytorch_lightning.utilities import BOLTS_AVAILABLE, FAIRSCALE_PIPE_AVAILABL
 if BOLTS_AVAILABLE:
     import pl_bolts
     from pl_bolts.transforms.dataset_normalizations import cifar10_normalization
-"""
-
-Example script of running the experimental DDP Sequential Plugin.
-This script splits a convolutional model onto multiple GPUs, whilst using the internal built in balancer
-to balance across your GPUs.
-
-To run:
-python conv_model_sequential_example.py --accelerator ddp --gpus 4 --max_epochs 1  --batch_size 256 --use_ddp_sequential
-"""
 
 
 #####################
@@ -49,11 +49,18 @@ class Flatten(nn.Module):
         return x.view(x.size(0), -1)
 
 
-class ConvNN(nn.Module):
+###############################
+#       LightningModule       #
+###############################
 
     def __init__(self):
         super().__init__()
 
+class LitResnet(pl.LightningModule):
+    def __init__(self, lr=0.05, batch_size=32, manual_optimization=False):
+        super().__init__()
+
+        self.save_hyperparameters()
         self.sequential_module = nn.Sequential(
             # Conv Layer block 1
             nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, padding=1),
@@ -90,23 +97,6 @@ class ConvNN(nn.Module):
             nn.Dropout(p=0.1),
             nn.Linear(512, 10)
         )
-
-    def forward(self, x):
-        return self.sequential_module(x)
-
-
-###############################
-#       LightningModule       #
-###############################
-
-
-class LitResnet(pl.LightningModule):
-    def __init__(self, lr=0.05, batch_size=32, manual_optimization=False):
-        super().__init__()
-
-        self.save_hyperparameters()
-        model = ConvNN()
-        self.sequential_module = model.sequential_module
         self._example_input_array = torch.randn((1, 3, 32, 32))
         self._manual_optimization = manual_optimization
         if self._manual_optimization:
@@ -135,7 +125,7 @@ class LitResnet(pl.LightningModule):
         self.log('Training Loss', loss)
         return loss
 
-    def evaluate(self, batch, batch_idx, stage=None):
+    def _evaluate(self, batch, batch_idx, stage=None):
         x, y = batch
         out = self.forward(x)
         logits = F.log_softmax(out, dim=-1)
@@ -150,10 +140,10 @@ class LitResnet(pl.LightningModule):
         return loss, acc
 
     def validation_step(self, batch, batch_idx):
-        return self.evaluate(batch, batch_idx, 'val')[0]
+        return self._evaluate(batch, batch_idx, 'val')[0]
 
     def test_step(self, batch, batch_idx):
-        loss, acc = self.evaluate(batch, batch_idx, 'test')
+        loss, acc = self._evaluate(batch, batch_idx, 'test')
         self.log_dict({'test_loss': loss, 'test_acc': acc})
 
     def configure_optimizers(self):
