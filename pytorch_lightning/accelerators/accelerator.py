@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from contextlib import contextmanager
 from enum import Enum
 from typing import Any, Optional, Union
@@ -21,10 +20,8 @@ import torch.distributed as torch_distrib
 from torch.optim import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
 
 if torch.distributed.is_available():
@@ -221,6 +218,18 @@ class Accelerator(object):
 
     def on_save(self, checkpoint):
         return checkpoint
+
+    @property
+    def rpc_enabled(self):
+        return self.ddp_plugin is not None and isinstance(self.ddp_plugin, RPCPlugin)
+
+    @property
+    def distributed_sampler_kwargs(self):
+        raise NotImplementedError
+
+    @property
+    def require_distributed_sampler(self):
+        raise NotImplementedError
 
     @contextmanager
     def block_ddp_plugin_sync_behaviour(self):

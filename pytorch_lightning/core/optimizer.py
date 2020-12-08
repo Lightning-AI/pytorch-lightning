@@ -113,6 +113,17 @@ class LightningOptimizer:
             with trainer.profiler.profile(profiler_name):
                 optimizer.step(closure=closure, *args, **kwargs)
 
+        accelerator_backend = trainer.accelerator_backend
+        if accelerator_backend is not None and accelerator_backend.rpc_enabled:
+            if accelerator_backend.ddp_plugin.is_main_rpc_process:
+                # Initialize optimizer step on main process
+                accelerator_backend.ddp_plugin.worker_optimizer_step(
+                    model=model,
+                    opt_idx=self._optimizer_idx,
+                    *args,
+                    **kwargs
+                )
+
         trainer.train_loop.on_before_zero_grad(self)
 
         model.optimizer_zero_grad(
