@@ -51,7 +51,7 @@ def hamming_distance(preds: torch.Tensor, target: torch.Tensor, threshold: float
     Args:
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
+            (0,1) predictions, in the case of binary or multi-label inputs. Default: `0.5`
 
     Example:
 
