@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from contextlib import contextmanager
 from enum import Enum
 from typing import Any, Optional, Union
 
@@ -86,6 +87,12 @@ class Accelerator(object):
         return dataloader
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
+        automatic_optimization = self.trainer.train_loop.automatic_optimization
+
+        if not automatic_optimization and self.ddp_plugin is not None:
+            # Manually prepare for reduce as user calling backwards manually
+            self.ddp_plugin.on_before_manual_backward(self.trainer.model, closure_loss)
+
         if self.trainer.precision == 16:
             closure_loss = self.trainer.precision_connector.backend.backward(
                 closure_loss, optimizer, opt_idx, *args, **kwargs
@@ -97,6 +104,10 @@ class Accelerator(object):
 
             # once backward has been applied, release graph
             closure_loss = closure_loss.detach()
+
+        if not automatic_optimization and self.ddp_plugin is not None:
+            # Manually prepare for reduce as user calling backwards manually
+            self.ddp_plugin.on_after_manual_backward(self.trainer.model)
         return closure_loss
 
     def clip_gradients(self, optimizer, clip_val=None):
@@ -210,6 +221,16 @@ class Accelerator(object):
 
     def on_save(self, checkpoint):
         return checkpoint
+
+    @contextmanager
+    def block_ddp_plugin_sync_behaviour(self):
+        """
+        Blocks ddp sync gradients behaviour on backwards pass.
+        This is useful for skipping sync when accumulating gradients, reducing communication overhead
+        Returns: context manager with sync behaviour off
+        """
+        cm = self.ddp_plugin.block_backward_sync(self.trainer.model) if self.ddp_plugin else None
+        yield cm
 
 
 # TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...
