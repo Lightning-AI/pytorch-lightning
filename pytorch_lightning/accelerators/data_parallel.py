@@ -139,7 +139,6 @@ class SingleDevicePlugin(TrainingTypePlugin):
     def connect(self, model: torch.nn.Module):
         self._model = model
         self.model_to_device()
-
         return self.model
 
     @property
@@ -180,7 +179,6 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
 
     def connect(self, model):
         self.setup(model)
-
         return self.model
 
     @property
