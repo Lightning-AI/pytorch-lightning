@@ -226,6 +226,7 @@ def lightning_get_first_attr_holder(model, attribute):
     holders = lightning_get_all_attr_holders(model, attribute)
     if len(holders) == 0:
         return None
+    # using the last holder to preserve backwards compatibility
     return holders[-1]
 
 
