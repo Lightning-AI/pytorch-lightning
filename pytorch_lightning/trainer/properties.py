@@ -38,7 +38,7 @@ class TrainerProperties(ABC):
     logger_connector: LoggerConnector
     _state: TrainerState
     global_rank: int
-    fast_dev_run: bool
+    fast_dev_run: Union[int, bool]
     use_dp: bool
     use_ddp: bool
     use_ddp2: bool
@@ -57,19 +57,19 @@ class TrainerProperties(ABC):
     @property
     def log_dir(self):
         if self.checkpoint_callback is not None:
-            dir = self.checkpoint_callback.dirpath
-            dir = os.path.split(dir)[0]
+            dirpath = self.checkpoint_callback.dirpath
+            dirpath = os.path.split(dirpath)[0]
         elif self.logger is not None:
             if isinstance(self.logger, TensorBoardLogger):
-                dir = self.logger.log_dir
+                dirpath = self.logger.log_dir
             else:
-                dir = self.logger.save_dir
+                dirpath = self.logger.save_dir
         else:
-            dir = self._default_root_dir
+            dirpath = self._default_root_dir
 
         if self.accelerator_backend is not None:
-            dir = self.accelerator_backend.broadcast(dir)
-        return dir
+            dirpath = self.accelerator_backend.broadcast(dirpath)
+        return dirpath
 
     @property
     def use_amp(self) -> bool:
