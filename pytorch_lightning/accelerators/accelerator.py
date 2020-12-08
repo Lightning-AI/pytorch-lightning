@@ -29,7 +29,9 @@ class NewAccelerator(object):
         self.optimizer_frequencies = None
 
     def setup(self, trainer, model):
+        print(trainer.global_rank, "Accelerator.setup")
         self.connect_training_type_plugin(self.training_type_plugin, model)
+        self.training_type_plugin.setup(model)
         self.setup_optimizers(trainer, model)
         self.connect_precision_plugin(self.precision_plugin)
 
@@ -53,7 +55,7 @@ class NewAccelerator(object):
         pass
 
     def batch_to_device(self, batch: Any, device: torch.device):
-        model = self.model
+        model = self.lightning_module
         if model is not None:
             return model.transfer_batch_to_device(batch, device)
         return move_data_to_device(batch, device)

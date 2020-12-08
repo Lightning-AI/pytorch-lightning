@@ -28,6 +28,9 @@ def overwrite_by_env_vars(fn: Callable) -> Callable:
     def overwrite_by_env_vars(self, *args, **kwargs):
         # get the class
         cls = self.__class__
+
+        print("before", kwargs["gpus"])
+
         if args:  # inace any args passed move them to kwargs
             # parse only the argument names
             cls_arg_names = [arg[0] for arg in get_init_arguments_and_types(cls)]
@@ -36,6 +39,8 @@ def overwrite_by_env_vars(fn: Callable) -> Callable:
         # update the kwargs by env variables
         # todo: maybe add a warning that some init args were overwritten by Env arguments
         kwargs.update(vars(parse_env_variables(cls)))
+
+        print("after", kwargs["gpus"])
 
         # all args were already moved to kwargs
         return fn(self, **kwargs)
