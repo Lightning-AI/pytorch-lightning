@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from contextlib import contextmanager
 from enum import Enum
 from typing import Any, List, Optional, Union
 
@@ -21,6 +22,8 @@ from torch.optim import Optimizer
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -86,6 +89,12 @@ class Accelerator(object):
         return dataloader
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
+        automatic_optimization = self.trainer.train_loop.automatic_optimization
+
+        if not automatic_optimization and self.ddp_plugin is not None:
+            # Manually prepare for reduce as user calling backwards manually
+            self.ddp_plugin.on_before_manual_backward(self.trainer.model, closure_loss)
+
         if self.trainer.precision == 16:
             closure_loss = self.trainer.precision_connector.backend.backward(
                 closure_loss, optimizer, opt_idx, *args, **kwargs
@@ -99,43 +108,12 @@ class Accelerator(object):
             closure_loss = closure_loss.detach()
         return closure_loss
 
-    def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure, *args, **kwargs):
-
-        automatic_optimization = self.trainer.train_loop.automatic_optimization
-        using_native_amp = self.trainer.amp_backend == AMPType.NATIVE
-
-        model_ref = self.trainer.get_model()
-        is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-        using_native_amp = self.trainer.amp_backend == AMPType.NATIVE
-        automatic_optimization = self.trainer.train_loop.automatic_optimization
-
-        # native amp + lbfgs is a no go right now
-        if using_native_amp and is_lbfgs:
-            raise MisconfigurationException(
-                'native PyTorch amp and lbfgs are not compatible.'
-                ' To request, please file a Github issue in PyTorch and tag @mcarilli')
-
-        # model hook
-        model_ref.optimizer_step(
-            epoch=self.trainer.current_epoch,
-            batch_idx=batch_idx,
-            optimizer=optimizer,
-            optimizer_idx=opt_idx,
-            optimizer_closure=lambda_closure,
-            on_tpu=False,  # TPUAccelerator class sets this as True
-            using_native_amp=using_native_amp,
-            using_lbfgs=is_lbfgs,
-            *args,
-            **kwargs,
-        )
-
-        # scale when native amp
-        if automatic_optimization and using_native_amp:
-            self.trainer.scaler.update()
-
-    def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
-        model_ref = self.trainer.get_model()
-        model_ref.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
+    def optimizer_step(self, optimizer, closure, *args, **kwargs):
+        if self.ddp_plugin is None:
+            return False
+        if isinstance(self.ddp_plugin, RPCPlugin):
+            return self.ddp_plugin.optimizer_step(self.trainer.is_master, optimizer, closure, *args, **kwargs)
+        return False
 
     def clip_gradients(self, optimizer, clip_val=None):
         # use the trainer's clip val if none passed
@@ -165,7 +143,7 @@ class Accelerator(object):
         return self.trainer.should_stop
 
     def setup_optimizers(self, model):
-        if self.trainer.testing is True:
+        if self.trainer.testing:
             return
 
         optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
@@ -252,6 +230,16 @@ class Accelerator(object):
     @property
     def distributed_sampler_kwargs(self):
         raise NotImplementedError
+
+    @contextmanager
+    def block_ddp_plugin_sync_behaviour(self):
+        """
+        Blocks ddp sync gradients behaviour on backwards pass.
+        This is useful for skipping sync when accumulating gradients, reducing communication overhead
+        Returns: context manager with sync behaviour off
+        """
+        cm = self.ddp_plugin.block_backward_sync(self.trainer.model) if self.ddp_plugin else None
+        yield cm
 
 
 # TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...

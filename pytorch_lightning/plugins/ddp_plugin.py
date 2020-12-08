@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from contextlib import contextmanager
 from typing import Any, Dict, List, Optional, Union
 
 import torch.distributed as torch_distrib
@@ -152,3 +153,21 @@ class DDPPlugin(LightningPlugin):
 
     def distributed_sampler_kwargs(self, distributed_sampler_kwargs):
         return distributed_sampler_kwargs
+
+    @contextmanager
+    def block_backward_sync(self, model: LightningDistributedDataParallel):
+        """
+        Blocks ddp sync gradients behaviour on backwards pass.
+        This is useful for skipping sync when accumulating gradients, reducing communication overhead
+        Returns: context manager with sync behaviour off
+        """
+        yield model.no_sync()
+
+    def on_before_manual_backward(self, model: LightningDistributedDataParallel, output: Any):
+        model.reducer_prepare_for_backwards(output)
+
+    def on_after_manual_backward(self, model: LightningDistributedDataParallel):
+        model.reducer_reset_hooks()
+
+    def _save_model(self, checkpoint_save_model, last_filepath, trainer, pl_module):
+        checkpoint_save_model(last_filepath, trainer, pl_module)

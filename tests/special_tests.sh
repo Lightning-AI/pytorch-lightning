@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 export PL_RUNNING_SPECIAL_TESTS=1
-# Running special tests
-PL_RUNNING_SPECIAL_TESTS=1 python -m coverage run --source pytorch_lightning -a -m pytest tests/plugins/test_pipe_plugin.py::test_pipe_plugin_ddp_rpc_manual --verbose --capture=no
-PL_RUNNING_SPECIAL_TESTS=1 python -m coverage run --source pytorch_lightning -a -m pytest tests/plugins/test_pipe_plugin.py::test_pipe_plugin_ddp_rpc_manual_amp --verbose --capture=no
-PL_RUNNING_SPECIAL_TESTS=1 python -m coverage run --source pytorch_lightning -a -m pytest tests/plugins/test_pipe_plugin.py::test_pipe_plugin_ddp_rpc_automatic --verbose --capture=no
-PL_RUNNING_SPECIAL_TESTS=1 python -m coverage run --source pytorch_lightning -a -m pytest tests/plugins/test_pipe_plugin.py::test_pipe_plugin_ddp_rpc_with_wrong_balance --verbose --capture=no
+DEFAULTS="-m coverage run --source pytorch_lightning -a -m pytest --verbose --capture=no"
+python ${DEFAULTS} tests/plugins/test_pipe_plugin.py::test_pipe_plugin_ddp_rpc_manual --verbose --capture=no
+python ${DEFAULTS} tests/plugins/test_pipe_plugin.py::test_pipe_plugin_ddp_rpc_manual_amp --verbose --capture=no
+python ${DEFAULTS} tests/plugins/test_pipe_plugin.py::test_pipe_plugin_ddp_rpc_automatic --verbose --capture=no
+python ${DEFAULTS} tests/plugins/test_pipe_plugin.py::test_pipe_plugin_ddp_rpc_with_wrong_balance --verbose --capture=no
+python ${DEFAULTS} tests/trainer/optimization/test_manual_optimization.py::test_step_with_optimizer_closure_with_different_frequencies_ddp
