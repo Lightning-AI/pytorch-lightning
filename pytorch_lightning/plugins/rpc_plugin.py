@@ -14,9 +14,12 @@
 import os
 
 import torch
-from torch.distributed import rpc
 
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
+from pytorch_lightning.utilities import RPC_AVAILABLE
+
+if RPC_AVAILABLE:
+    from torch.distributed import rpc
 
 
 class RPCPlugin(DDPPlugin):
