@@ -207,12 +207,6 @@ def all_gather_ddp_if_available(
         if sync_grads:
             return AllGatherGrad.apply(tensor, group)
         else:
-            gathered_tensor = [
-                torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())
-            ]
-
-            torch.distributed.all_gather(gathered_tensor, tensor)
-            gathered_tensor = torch.stack(gathered_tensor, dim=0)
-
-            return gathered_tensor
+            with torch.no_grad:
+                return AllGatherGrad.apply(tensor, group)
     return tensor
