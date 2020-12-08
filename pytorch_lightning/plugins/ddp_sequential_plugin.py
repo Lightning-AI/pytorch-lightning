@@ -1,5 +1,5 @@
 import os
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import torch
 import torch.distributed as torch_distrib
@@ -8,6 +8,7 @@ from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning import _logger as log
+from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import FAIRSCALE_PIPE_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -102,7 +103,8 @@ class DDPSequentialPlugin(RPCPlugin):
             world_size: int,
             is_slurm_managing_tasks: bool = True,
     ) -> None:
-        self._check_manual_optimization(trainer)
+        trainer.prepared_for_backwards = False
+        self._check_arguments(trainer)
         if not self._skip_init_connections(trainer):
             super().init_distributed_connection(
                 trainer=trainer,
@@ -124,6 +126,9 @@ class DDPSequentialPlugin(RPCPlugin):
                 if self.balance is None:
                     self._infer_model_balance(trainer)
                 self._assert_valid_model_balance(trainer)
+
+    def on_before_manual_backward(self, model: LightningDistributedDataParallel, output: Any):
+        pass
 
     def _infer_model_balance(self, trainer):
         log.info(f'Inferring model balance using {self.balance_mode} mode')
@@ -246,7 +251,7 @@ class DDPSequentialPlugin(RPCPlugin):
             torch_distrib.barrier()  # Ensure we join main process initialization
             model.sequential_module.foreach_worker(register_optimizers, include_self=True)
 
-    def _check_manual_optimization(self, trainer):
+    def _check_arguments(self, trainer):
         if trainer.amp_backend is not None:
             raise MisconfigurationException(
                 'DDPSequentialPlugin is currently not supported in Automatic Mixed Precision')
@@ -255,6 +260,7 @@ class DDPSequentialPlugin(RPCPlugin):
             self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
         ddp_plugin = RPCPlugin(process_group=mpu.get_data_parallel_group()).configure_ddp(model, device_ids)
+        ddp_plugin.prepare_for_backwards = False
         return ddp_plugin
 
     @rank_zero_only

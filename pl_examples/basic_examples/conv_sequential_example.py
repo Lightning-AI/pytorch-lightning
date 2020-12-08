@@ -217,12 +217,9 @@ if __name__ == "__main__":
 
     plugins = None
     if args.use_ddp_sequential:
-        plugins = DDPSequentialPlugin(
-            balance=[10, 17],
-            automatic_optimization=args.automatic_optimization
-        )
+        plugins = DDPSequentialPlugin(balance=[1, 26])
 
-    model = LitResnet(batch_size=args.batch_size, use_ddp_sequential=args.use_ddp_sequential)
+    model = LitResnet(batch_size=args.batch_size, automatic_optimization=args.automatic_optimization)
 
     trainer = pl.Trainer.from_argparse_args(args, plugins=[plugins] if plugins else None)
     trainer.fit(model, cifar10_dm)
