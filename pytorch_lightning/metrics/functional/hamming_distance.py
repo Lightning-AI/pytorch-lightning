@@ -17,7 +17,7 @@ import torch
 from pytorch_lightning.metrics.classification.helpers import _input_format_classification
 
 
-def _hamming_loss_update(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5) -> Tuple[torch.Tensor, int]:
+def _hamming_distance_update(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5) -> Tuple[torch.Tensor, int]:
     preds, target, _ = _input_format_classification(preds, target, threshold=threshold)
 
     correct = (preds == target).sum()
@@ -26,17 +26,17 @@ def _hamming_loss_update(preds: torch.Tensor, target: torch.Tensor, threshold: f
     return correct, total
 
 
-def _hamming_loss_compute(correct: torch.Tensor, total: Union[int, torch.Tensor]) -> torch.Tensor:
+def _hamming_distance_compute(correct: torch.Tensor, total: Union[int, torch.Tensor]) -> torch.Tensor:
     return 1 - correct.float() / total
 
 
-def hamming_loss(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5) -> torch.Tensor:
+def hamming_distance(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5) -> torch.Tensor:
     r"""
-    Computes the average Hamming loss or `Hamming distance <https://en.wikipedia.org/wiki/Hamming_distance>`_
-    between targets and predictions:
+    Computes the average `Hamming distance <https://en.wikipedia.org/wiki/Hamming_distance>`_ (also
+    known as Hamming loss) between targets and predictions:
 
     .. math::
-        \text{Hamming loss} = \frac{1}{N \cdot L} \sum_i^N \sum_l^L 1(y_{il} \neq \hat{y}_{il})
+        \text{Hamming distance} = \frac{1}{N \cdot L} \sum_i^N \sum_l^L 1(y_{il} \neq \hat{y}_{il})
 
     Where :math:`y` is a tensor of target values, :math:`\hat{y}` is a tensor of predictions,
     and :math:`\bullet_{il}` refers to the :math:`l`-th label of the :math:`i`-th sample of that
@@ -56,13 +56,13 @@ def hamming_loss(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0
 
     Example:
 
-        >>> from pytorch_lightning.metrics.functional import hamming_loss
+        >>> from pytorch_lightning.metrics.functional import hamming_distance
         >>> target = torch.tensor([[0, 1], [1, 1]])
         >>> preds = torch.tensor([[0, 1], [0, 1]])
-        >>> hamming_loss(preds, target)
+        >>> hamming_distance(preds, target)
         tensor(0.2500)
 
     """
 
-    correct, total = _hamming_loss_update(preds, target, threshold)
-    return _hamming_loss_compute(correct, total)
+    correct, total = _hamming_distance_update(preds, target, threshold)
+    return _hamming_distance_compute(correct, total)

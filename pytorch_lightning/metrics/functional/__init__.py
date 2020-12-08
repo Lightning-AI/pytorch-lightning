@@ -29,7 +29,7 @@ from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matr
 # TODO: unify metrics between class and functional, add below
 from pytorch_lightning.metrics.functional.explained_variance import explained_variance
 from pytorch_lightning.metrics.functional.f_beta import fbeta, f1
-from pytorch_lightning.metrics.functional.hamming_loss import hamming_loss
+from pytorch_lightning.metrics.functional.hamming_distance import hamming_distance
 from pytorch_lightning.metrics.functional.mean_absolute_error import mean_absolute_error
 from pytorch_lightning.metrics.functional.mean_squared_error import mean_squared_error
 from pytorch_lightning.metrics.functional.mean_squared_log_error import mean_squared_log_error

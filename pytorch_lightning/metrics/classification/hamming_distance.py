@@ -15,16 +15,16 @@ from typing import Any, Callable, Optional
 
 import torch
 from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.metrics.functional.hamming_loss import _hamming_loss_update, _hamming_loss_compute
+from pytorch_lightning.metrics.functional.hamming_distance import _hamming_distance_update, _hamming_distance_compute
 
 
-class HammingLoss(Metric):
+class HammingDistance(Metric):
     r"""
-    Computes the average Hamming loss or `Hamming distance <https://en.wikipedia.org/wiki/Hamming_distance>`_
-    between targets and predictions:
+    Computes the average `Hamming distance <https://en.wikipedia.org/wiki/Hamming_distance>`_ (also
+    known as Hamming loss) between targets and predictions:
 
     .. math::
-        \text{Hamming loss} = \frac{1}{N \cdot L}\sum_i^N \sum_l^L 1(y_{il} \neq \hat{y_{il}})
+        \text{Hamming distance} = \frac{1}{N \cdot L}\sum_i^N \sum_l^L 1(y_{il} \neq \hat{y_{il}})
 
     Where :math:`y` is a tensor of target values, :math:`\hat{y}` is a tensor of predictions,
     and :math:`\bullet_{il}` refers to the :math:`l`-th label of the :math:`i`-th sample of that
@@ -54,11 +54,11 @@ class HammingLoss(Metric):
 
     Example:
 
-        >>> from pytorch_lightning.metrics import HammingLoss
+        >>> from pytorch_lightning.metrics import HammingDistance
         >>> target = torch.tensor([[0, 1], [1, 1]])
         >>> preds = torch.tensor([[0, 1], [0, 1]])
-        >>> hamming_loss = HammingLoss()
-        >>> hamming_loss(preds, target)
+        >>> hamming_distance = HammingDistance()
+        >>> hamming_distance(preds, target)
         tensor(0.2500)
 
     """
@@ -94,13 +94,13 @@ class HammingLoss(Metric):
             preds: Predictions from model (probabilities, or labels)
             target: Ground truth values
         """
-        correct, total = _hamming_loss_update(preds, target, self.threshold)
+        correct, total = _hamming_distance_update(preds, target, self.threshold)
 
         self.correct += correct
         self.total += total
 
     def compute(self) -> torch.Tensor:
         """
-        Computes hamming loss based on inputs passed in to ``update`` previously.
+        Computes hamming distance based on inputs passed in to ``update`` previously.
         """
-        return _hamming_loss_compute(self.correct, self.total)
+        return _hamming_distance_compute(self.correct, self.total)
