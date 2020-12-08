@@ -15,8 +15,7 @@ from typing import Tuple
 
 import torch
 
-from pytorch_lightning.metrics.utils import _input_format_classification_one_hot
-from pytorch_lightning.metrics.functional.reduction import class_reduce
+from pytorch_lightning.metrics.utils import _input_format_classification_one_hot, class_reduce
 
 
 def _fbeta_update(
