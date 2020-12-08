@@ -224,7 +224,7 @@ The accelerator backend to use (previously known as distributed_backend).
 - (```ddp```) is DistributedDataParallel (each gpu on each node trains, and syncs grads)
 - (```ddp_cpu```) is DistributedDataParallel on CPU (same as `ddp`, but does not use GPUs.
   Useful for multi-node CPU training or single-node debugging. Note that this will **not** give
-  a speedup on a single node, since Torch already makes effient use of multiple CPUs on a single
+  a speedup on a single node, since Torch already makes efficient use of multiple CPUs on a single
   machine.)
 - (```ddp2```) dp on node, ddp across nodes. Useful for things like increasing
     the number of negative samples
@@ -971,7 +971,7 @@ Number of processes to train with. Automatically set to the number of GPUs
 when using ``accelerator="ddp"``. Set to a number greater than 1 when
 using ``accelerator="ddp_cpu"`` to mimic distributed training on a
 machine without GPUs. This is useful for debugging, but **will not** provide
-any speedup, since single-process Torch already makes effient use of multiple
+any speedup, since single-process Torch already makes efficient use of multiple
 CPUs.
 
 .. testcode::
