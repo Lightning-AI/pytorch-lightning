@@ -33,6 +33,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities import TPU_AVAILABLE, rank_zero_warn
@@ -1231,20 +1232,11 @@ class LightningModule(
                     optimizer.step(closure=optimizer_closure)
                     optimizer.zero_grad()
 
-        Note:
-            If you also override the :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_before_zero_grad`
-            model hook don't forget to add the call to it before ``optimizer.zero_grad()`` yourself.
-
         """
-        if on_tpu and TPU_AVAILABLE:
-            xm.optimizer_step(optimizer, optimizer_args={'closure': optimizer_closure, **kwargs})
-
-        elif self.trainer.amp_backend is not None:
-            self.trainer.precision_connector.backend.optimizer_step(
-                self.trainer, optimizer, optimizer_closure)
-
-        else:
-            optimizer.step(closure=optimizer_closure, *args, **kwargs)
+        if not isinstance(optimizer, LightningOptimizer):
+            # wraps into LightingOptimizer only for running step
+            optimizer = LightningOptimizer.to_lightning_optimizer(optimizer, self.trainer)
+        optimizer.step(closure=optimizer_closure, *args, **kwargs)
 
     def optimizer_zero_grad(
         self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int
