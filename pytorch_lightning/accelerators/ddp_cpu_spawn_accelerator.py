@@ -110,9 +110,10 @@ class DDPCPUSpawnAccelerator(Accelerator):
 
         if isinstance(self.ddp_plugin, RPCPlugin):
             if not self.ddp_plugin.is_main_rpc_process:
-                self.ddp_plugin.on_exit_rpc_process(self.trainer)
+                self.ddp_plugin.on_accelerator_exit_rpc_process(self.trainer)
                 self.ddp_plugin.exit_rpc_process()
-                return
+                if self.ddp_plugin.return_after_exit_rpc_process:
+                    return
             self.ddp_plugin.on_main_rpc_connection(self.trainer)
 
         # call setup after the ddp process has connected

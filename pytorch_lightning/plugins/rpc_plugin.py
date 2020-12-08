@@ -68,9 +68,9 @@ class RPCPlugin(DDPPlugin):
         """
         raise NotImplementedError
 
-    def on_exit_rpc_process(self, trainer) -> None:
+    def on_accelerator_exit_rpc_process(self, trainer) -> None:
         """
-        Called to exit RPC process that is being managed by main process.
+        Called to exit RPC process within the accelerator, that is being managed by main process.
         Args:
             trainer: The trainer object.
         """
@@ -80,6 +80,15 @@ class RPCPlugin(DDPPlugin):
         if self.rpc_initialized:
             torch.distributed.rpc.shutdown()
             self.rpc_initialized = False
+
+    @property
+    def return_after_exit_rpc_process(self) -> bool:
+        """
+        Override to decide whether to skip train/test function after shutdown completed.
+        Usually RPC shutdown is a join/exit function, afterwards we want to exit the process.
+        Returns: Whether to return after rpc exit.
+        """
+        raise NotImplementedError
 
     def worker_optimizer_step(self,
                               model: LightningModule,
