@@ -679,9 +679,15 @@ class TrainLoop:
                     # calculate loss (train step + train step end)
                     # -------------------
 
-                    # perform dpp sync only when performing optimizer_step
+                    # automatic_optimization=True: perform dpp sync only when performing optimizer_step
+                    # automatic_optimization=False: don't block synchronization here
                     with self.block_ddp_sync_behaviour():
-                        self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens)
+                        self.training_step_and_backward(
+                            split_batch,
+                            batch_idx,
+                            opt_idx,
+                            optimizer,
+                            self.trainer.hiddens)
 
                     batch_outputs = self._process_closure_result(
                         batch_outputs=batch_outputs,
@@ -743,10 +749,22 @@ class TrainLoop:
 
     @contextmanager
     def block_ddp_sync_behaviour(self):
-        if isinstance(self.trainer.model, torch.nn.parallel.DistributedDataParallel):
-            yield self.trainer.model.no_sync()
+        """
+        automatic_optimization = True
+        Blocks ddp sync gradients behaviour on backwards pass.
+        This is useful for skipping sync when accumulating gradients, reducing communication overhead
+
+        automatic_optimization = False
+        do not block ddp gradient sync when using manual optimization
+        as gradients are needed within the training step
+
+        Returns: context manager with sync behaviour off
+
+        """
+        if self.trainer.accelerator_backend is not None and self.automatic_optimization:
+            yield self.trainer.accelerator_backend.block_ddp_plugin_sync_behaviour()
         else:
-            yield
+            yield None
 
     def _process_closure_result(
         self, batch_outputs: list, opt_idx: int
