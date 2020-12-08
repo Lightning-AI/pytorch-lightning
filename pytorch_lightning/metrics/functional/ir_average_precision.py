@@ -18,21 +18,20 @@ def retrieval_average_precision(
     preds: torch.Tensor,
     target: torch.Tensor
 ) -> torch.Tensor:
-    """
-    Computes average precision metric for information retrieval,
-    as explained here: https://en.wikipedia.org/wiki/Evaluation_measures_(information_retrieval)#Mean_average_precision
+    r"""
+    Computes average precision (for information retrieval),
+    as explained `here <https://en.wikipedia.org/wiki/Evaluation_measures_(information_retrieval)#Average_precision>`_.
 
-    `preds` and `target` should be of the same shape and live on the same device. If not target is true, 0 is returned.
+    `preds` and `target` should be of the same shape and live on the same device. If no `target` is ``True``, 0 is returned.
 
     Args:
         preds: estimated probabilities of each document to be relevant.
         target: ground truth about each document being relevant.
 
-    Returns:
+    Return:
         a single-value tensor with the average precision (AP) of the predictions `preds` wrt the labels `target`.
 
     Example:
-
         >>> preds = torch.tensor([0.2, 0.3, 0.5])
         >>> target = torch.tensor([True, False, True])
         >>> retrieval_average_precision(preds, target)

@@ -11,8 +11,5 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pytorch_lightning.metrics.retrieval.retrieval_metric import RetrievalMetric
 from pytorch_lightning.metrics.retrieval.mean_average_precision import RetrievalMAP
-from pytorch_lightning.metrics.retrieval.mean_reciprocal_rank import RetrievalMRR
-from pytorch_lightning.metrics.retrieval.precision import RetrievalPrecision
-from pytorch_lightning.metrics.retrieval.recall import RetrievalRecall
-from pytorch_lightning.metrics.retrieval.hit_rate import RetrievalHitRate

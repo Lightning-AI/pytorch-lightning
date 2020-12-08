@@ -561,6 +561,30 @@ bleu_score [func]
 .. autofunction:: pytorch_lightning.metrics.functional.nlp.bleu_score
     :noindex:
 
+*********************
+Information Retrieval
+*********************
+
+Class Metrics (IR)
+------------------
+
+Mean Average Precision
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: pytorch_lightning.metrics.retrieval.RetrievalMAP
+    :noindex:
+
+
+Functional Metrics (IR)
+-----------------------
+
+average_precision_retrieval [func]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.metrics.functional.ir_average_precision.retrieval_average_precision
+    :noindex:
+
+
 ********
 Pairwise
 ********

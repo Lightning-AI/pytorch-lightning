@@ -36,8 +36,4 @@ from pytorch_lightning.metrics.regression import (
 
 from pytorch_lightning.metrics.retrieval import (
     RetrievalMAP,
-    RetrievalMRR,
-    RetrievalPrecision,
-    RetrievalRecall,
-    RetrievalHitRate,
 )
