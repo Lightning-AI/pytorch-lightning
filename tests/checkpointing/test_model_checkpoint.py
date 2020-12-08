@@ -897,12 +897,12 @@ def test_configure_model_checkpoint(tmpdir):
     assert trainer.checkpoint_callbacks == [callback1, callback2]
 
     with pytest.warns(DeprecationWarning, match='will no longer be supported in v1.3'):
-        trainer = Trainer(callbacks=[callback1], **kwargs)
+        trainer = Trainer(checkpoint_callback=callback1, **kwargs)
         assert [c for c in trainer.callbacks if isinstance(c, ModelCheckpoint)] == [callback1]
         assert trainer.checkpoint_callback == callback1
 
     with pytest.warns(DeprecationWarning, match="will no longer be supported in v1.3"):
-        trainer = Trainer(callbacks=[callback1, callback2], **kwargs)
+        trainer = Trainer(checkpoint_callback=callback1, callbacks=[callback2], **kwargs)
         assert trainer.checkpoint_callback == callback2
         assert trainer.checkpoint_callbacks == [callback2, callback1]
 
