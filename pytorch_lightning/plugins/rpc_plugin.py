@@ -14,6 +14,7 @@
 import os
 
 import torch
+from pytorch_lightning.core.lightning import LightningModule
 
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.utilities import RPC_AVAILABLE
@@ -37,7 +38,7 @@ class RPCPlugin(DDPPlugin):
 
     def init_rpc_connection(self,
                             global_rank: int,
-                            world_size: int):
+                            world_size: int) -> None:
         os.environ['MASTER_PORT'] = os.getenv('RPC_MASTER_PORT', '15000')
         rpc.init_rpc(f"worker{global_rank}", rank=global_rank, world_size=world_size)
         self.rpc_initialized = True
@@ -46,13 +47,32 @@ class RPCPlugin(DDPPlugin):
                        save_model_fn,
                        last_filepath,
                        trainer,
-                       pl_module):
+                       pl_module) -> None:
+        """
+        Override to save model to disk.
+        This is required as the main process will be required to handle aggregating model states from RPC processes.
+        Args:
+            save_model_fn: The saving function to save final model.
+            last_filepath: The filepath to save the model to.
+            trainer: The trainer object.
+            pl_module: The LightningModule.
+        """
         raise NotImplementedError
 
-    def on_main_rpc_connection(self, trainer):
+    def on_main_rpc_connection(self, trainer) -> None:
+        """
+        Called when main rpc connection has been established.
+        Args:
+            trainer: The trainer object.
+        """
         raise NotImplementedError
 
-    def on_exit_rpc_process(self, trainer):
+    def on_exit_rpc_process(self, trainer) -> None:
+        """
+        Called to exit RPC process that is being managed by main process.
+        Args:
+            trainer: The trainer object.
+        """
         self.exit_rpc_process()
 
     def exit_rpc_process(self):
@@ -61,14 +81,28 @@ class RPCPlugin(DDPPlugin):
             self.rpc_initialized = False
 
     def worker_optimizer_step(self,
-                              model,
-                              opt_idx,
+                              model: LightningModule,
+                              opt_idx: int,
                               *args,
-                              **kwargs):
+                              **kwargs) -> None:
+        """
+        Called when optimizer step is run on the main process. Used to signal any RPC workers to run optimizer step.
+        Args:
+            model: The LightningModule.
+            opt_idx: The idx of the optimizer to carry out step on.
+        """
         raise NotImplementedError
 
-    def is_main_rpc_process(self):
+    @property
+    def is_main_rpc_process(self) -> bool:
+        """
+        Override to add logic to determine current process is main RPC process.
+        """
         raise NotImplementedError
 
-    def barrier(self):
+    def barrier(self) -> None:
+        """
+        Override to define distributed sync communication. This needs to be handled differently due to
+        the RPC connection managing certain processes at the same time.
+        """
         raise NotImplementedError
