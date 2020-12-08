@@ -16,14 +16,14 @@ import torch
 
 import pytorch_lightning as pl
 import tests.base.develop_utils as tutils
-from tests.base import EvalModelTemplate
+from tests.base import BoringModel
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_single_gpu_validate(tmpdir):
     tutils.set_random_master_port()
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     trainer = pl.Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
@@ -34,12 +34,12 @@ def test_single_gpu_validate(tmpdir):
     trainer.fit(model)
     assert 'ckpt' in trainer.checkpoint_callback.best_model_path
     results = trainer.validate()
-    assert 'val_acc' in results[0]
+    assert 'x' in results[0]
 
     old_weights = model.c_d1.weight.clone().detach().cpu()
 
     results = trainer.validate(model)
-    assert 'val_acc' in results[0]
+    assert 'x' in results[0]
 
     # make sure weights didn't change
     new_weights = model.c_d1.weight.clone().detach().cpu()
@@ -51,7 +51,7 @@ def test_single_gpu_validate(tmpdir):
 def test_ddp_spawn_validate(tmpdir):
     tutils.set_random_master_port()
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     trainer = pl.Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
@@ -63,12 +63,12 @@ def test_ddp_spawn_validate(tmpdir):
     trainer.fit(model)
     assert 'ckpt' in trainer.checkpoint_callback.best_model_path
     results = trainer.validate()
-    assert 'val_acc' in results[0]
+    assert 'x' in results[0]
 
     old_weights = model.c_d1.weight.clone().detach().cpu()
 
     results = trainer.validate(model)
-    assert 'val_acc' in results[0]
+    assert 'x' in results[0]
 
     # make sure weights didn't change
     new_weights = model.c_d1.weight.clone().detach().cpu()
