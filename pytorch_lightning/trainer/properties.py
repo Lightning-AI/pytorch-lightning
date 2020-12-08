@@ -249,9 +249,9 @@ class TrainerProperties(ABC):
         self.convert_to_lightning_optimizers()
 
     @property
-    def is_ddp_based(self):
+    def require_distributed_sampler(self):
         if self.accelerator_backend is not None:
-            return self.accelerator_backend.is_ddp_based
+            return self.accelerator_backend.require_distributed_sampler
         return self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu
 
     @property

@@ -212,5 +212,5 @@ class HorovodAccelerator(Accelerator):
         return dict(num_replicas=hvd.size(), rank=hvd.rank())
 
     @property
-    def is_ddp_based(self):
+    def require_distributed_sampler(self):
         return True

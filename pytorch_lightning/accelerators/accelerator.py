@@ -228,7 +228,7 @@ class Accelerator(object):
         raise NotImplementedError
 
     @property
-    def is_ddp_based(self):
+    def require_distributed_sampler(self):
         raise NotImplementedError
 
     @contextmanager

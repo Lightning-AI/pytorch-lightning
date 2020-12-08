@@ -183,5 +183,5 @@ class DataParallelAccelerator(Accelerator):
         return model
 
     @property
-    def is_ddp_based(self):
+    def require_distributed_sampler(self):
         return False
