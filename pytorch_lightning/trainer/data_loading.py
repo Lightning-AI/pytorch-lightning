@@ -100,8 +100,8 @@ class TrainerDataLoadingMixin(ABC):
         if not is_dataloader or is_iterable_ds:
             return dataloader
 
-        is_in_dist = self.accelerator_backend.is_distributed if self.accelerator_backend is not None else False
-        need_dist_sampler = is_in_dist and not isinstance(dataloader.sampler, DistributedSampler)
+        is_ddp_based = self.accelerator_backend.is_ddp_based if self.accelerator_backend is not None else False
+        need_dist_sampler = is_ddp_based and not isinstance(dataloader.sampler, DistributedSampler)
         if self.replace_sampler_ddp and need_dist_sampler:
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
                 raise MisconfigurationException(

@@ -31,6 +31,7 @@ else:
         SUM = None
 
 
+
 class Accelerator(object):
 
     def __init__(self, trainer=None, cluster_environment=None, ddp_plugin=None):
@@ -228,7 +229,7 @@ class Accelerator(object):
         raise NotImplementedError
 
     @property
-    def is_distributed(self):
+    def is_ddp_based(self):
         raise NotImplementedError
 
     @contextmanager

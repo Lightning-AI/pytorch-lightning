@@ -18,7 +18,7 @@ import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
-from pytorch_lightning.utilities import AMPType, HOROVOD_AVAILABLE
+from pytorch_lightning.utilities import HOROVOD_AVAILABLE, AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
 if HOROVOD_AVAILABLE:
@@ -212,5 +212,5 @@ class HorovodAccelerator(Accelerator):
         return dict(num_replicas=hvd.size(), rank=hvd.rank())
 
     @property
-    def is_distributed(self):
+    def is_ddp_based(self):
         return True

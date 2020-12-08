@@ -370,5 +370,5 @@ class TPUAccelerator(Accelerator):
         return dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
 
     @property
-    def is_distributed(self):
+    def is_ddp_based(self):
         return True

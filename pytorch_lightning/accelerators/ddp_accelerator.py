@@ -347,5 +347,5 @@ class DDPAccelerator(Accelerator):
         return distributed_sampler_kwargs
 
     @property
-    def is_distributed(self):
+    def is_ddp_based(self):
         return True

@@ -92,5 +92,5 @@ class CPUAccelerator(Accelerator):
         return tensor
 
     @property
-    def is_distributed(self):
+    def is_ddp_based(self):
         return False
