@@ -24,6 +24,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import HYDRA_AVAILABLE, AMPType
 from pytorch_lightning.utilities.distributed import (
     find_free_network_port,
@@ -101,11 +102,18 @@ class DDPCPUSpawnAccelerator(Accelerator):
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
         model.trainer = self.trainer
-        self.init_ddp_connection(
+        self.init_distributed_connection(
             self.trainer.global_rank,
             self.trainer.world_size,
             self.trainer.is_slurm_managing_tasks
         )
+
+        if isinstance(self.ddp_plugin, RPCPlugin):
+            if not self.ddp_plugin.is_main_rpc_process:
+                self.ddp_plugin.on_exit_rpc_process(self.trainer)
+                self.ddp_plugin.exit_rpc_process()
+                return
+            self.ddp_plugin.on_main_rpc_connection(self.trainer)
 
         # call setup after the ddp process has connected
         self.trainer.call_setup_hook(model)
@@ -127,6 +135,8 @@ class DDPCPUSpawnAccelerator(Accelerator):
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
         self.setup_optimizers(model)
+
+        self.ddp_plugin.on_after_setup_optimizers(self.trainer)
 
         # set model properties before going into wrapper
         self.trainer.model_connector.copy_trainer_model_properties(model)
@@ -221,7 +231,7 @@ class DDPCPUSpawnAccelerator(Accelerator):
             mp_queue.put(results)
 
     def configure_ddp(
-        self, model: LightningModule, device_ids: List[int]
+            self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
         model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model

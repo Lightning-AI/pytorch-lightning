@@ -70,7 +70,7 @@ class DDPPlugin(LightningPlugin):
         )
         return model
 
-    def init_ddp_connection(
+    def init_distributed_connection(
             self,
             trainer,
             cluster_environment,
@@ -112,6 +112,13 @@ class DDPPlugin(LightningPlugin):
     def optimizer_state(self, optimizer: Optimizer) -> dict:
         return optimizer.state_dict()
 
+    def on_after_setup_optimizers(self, trainer):
+        """
+        Called after optimizers have been set-up. This is useful for doing any configuration options in RPC, or
+        state sharding.
+        """
+        pass
+
     def get_model_from_plugin(
             self,
             model: Union[LightningDistributedDataParallel, LightningModule]
@@ -148,3 +155,15 @@ class DDPPlugin(LightningPlugin):
 
     def on_after_manual_backward(self, model: LightningDistributedDataParallel):
         model.reducer_reset_hooks()
+
+    def distributed_sampler_kwargs(self, distributed_sampler_kwargs):
+        return distributed_sampler_kwargs
+
+    @property
+    def data_parallel_group(self) -> torch_distrib.group:
+        """
+        Return the group that this process exists in. By default, this is the world size.
+        Useful for when additional parallel groups have been created, to select certain processes.
+        Returns: The ProcessGroup this process exists in.
+        """
+        return torch_distrib.group.WORLD

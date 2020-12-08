@@ -131,20 +131,7 @@ class TrainerDataLoadingMixin(ABC):
         return dataloader
 
     def _get_distributed_sampler(self, dataloader, shuffle):
-        if self.use_tpu:
-            kwargs = dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
-        elif self.use_horovod:
-            kwargs = dict(num_replicas=hvd.size(), rank=hvd.rank())
-        else:
-            world_size = {
-                "ddp": self.num_nodes * self.num_processes,
-                "ddp_spawn": self.num_nodes * self.num_processes,
-                "ddp2": self.num_nodes,
-                "ddp_cpu": self.num_processes * self.num_nodes
-            }
-            assert self.distributed_backend is not None
-            kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.global_rank)
-
+        kwargs = self.accelerator_backend.distributed_sampler_kwargs
         kwargs['shuffle'] = shuffle and not self.overfit_batches
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler

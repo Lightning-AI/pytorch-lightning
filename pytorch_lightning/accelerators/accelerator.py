@@ -11,20 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from contextlib import contextmanager
 from enum import Enum
 from typing import Any, Optional, Union
 
 import torch
 import torch.distributed as torch_distrib
+from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from torch.optim import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
 
 if torch.distributed.is_available():
@@ -146,10 +143,10 @@ class Accelerator(object):
         self.trainer.lr_schedulers = lr_schedulers
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
-    def init_ddp_connection(
+    def init_distributed_connection(
             self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
     ) -> None:
-        self.ddp_plugin.init_ddp_connection(
+        self.ddp_plugin.init_distributed_connection(
             self.trainer,
             self.cluster_environment,
             global_rank,
@@ -221,6 +218,16 @@ class Accelerator(object):
 
     def on_save(self, checkpoint):
         return checkpoint
+
+    @property
+    def rpc_enabled(self):
+        if self.ddp_plugin is not None and isinstance(self.ddp_plugin, RPCPlugin):
+            return True
+        return False
+
+    @property
+    def distributed_sampler_kwargs(self):
+        raise NotImplementedError
 
     @contextmanager
     def block_ddp_plugin_sync_behaviour(self):

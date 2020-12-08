@@ -27,6 +27,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import HYDRA_AVAILABLE, AMPType
 from pytorch_lightning.utilities.distributed import find_free_network_port, rank_zero_only, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -162,8 +163,11 @@ class DDPAccelerator(Accelerator):
         return output
 
     def barrier(self, name: Optional[str] = None):
-        if torch_distrib.is_initialized():
-            torch_distrib.barrier()
+        if self.rpc_enabled:
+            # Allow RPC to handle barrier on main RPC processes
+            self.ddp_plugin.barrier()
+        elif torch_distrib.is_initialized():
+            torch_distrib.barrier(group=self.ddp_plugin.data_parallel_group)
 
     def _check_can_spawn_children(self):
         if self._has_spawned_children:
@@ -177,9 +181,11 @@ class DDPAccelerator(Accelerator):
         self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
         self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
-    def model_to_device(self, model, process_idx):
+    def init_device(self, process_idx):
         self.trainer.root_gpu = self.trainer.data_parallel_device_ids[self.trainer.local_rank]
         torch.cuda.set_device(self.trainer.root_gpu)
+
+    def model_to_device(self, model):
         model.cuda(self.trainer.root_gpu)
 
     def get_device_ids(self):
@@ -192,12 +198,12 @@ class DDPAccelerator(Accelerator):
     def early_stopping_should_stop(self, pl_module):
         stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device)
         torch_distrib.all_reduce(stop, op=torch_distrib.reduce_op.SUM)
-        torch_distrib.barrier()
+        self.barrier('early_stopping')
         should_stop = stop == self.trainer.world_size
         return should_stop
 
     def broadcast(self, obj, src=0):
-        return self.dist.broadcast(obj)
+        return self.dist.broadcast(obj, group=self.ddp_plugin.data_parallel_group)
 
     def ddp_train(self, process_idx, model):
         """
@@ -226,15 +232,25 @@ class DDPAccelerator(Accelerator):
         # set warning rank
         rank_zero_only.rank = self.trainer.global_rank
 
+        # Initialize cuda device
+        self.init_device(process_idx)
+
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
         model.trainer = self.trainer
-        self.init_ddp_connection(
+        self.init_distributed_connection(
             self.trainer.global_rank,
             self.trainer.world_size,
             self.trainer.is_slurm_managing_tasks
         )
+
+        if isinstance(self.ddp_plugin, RPCPlugin):
+            if not self.ddp_plugin.is_main_rpc_process:
+                self.ddp_plugin.on_exit_rpc_process(self.trainer)
+                self.ddp_plugin.exit_rpc_process()
+                return
+            self.ddp_plugin.on_main_rpc_connection(self.trainer)
 
         # call setup after the ddp process has connected
         self.trainer.call_setup_hook(model)
@@ -251,7 +267,7 @@ class DDPAccelerator(Accelerator):
             model = self.configure_sync_batchnorm(model)
 
         # move the model to the correct device
-        self.model_to_device(model, process_idx)
+        self.model_to_device(model)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
@@ -284,7 +300,7 @@ class DDPAccelerator(Accelerator):
         return results
 
     def configure_ddp(
-        self, model: LightningModule, device_ids: List[int]
+            self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
         model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model
@@ -317,3 +333,13 @@ class DDPAccelerator(Accelerator):
 
     def get_reference_model(self, model) -> LightningModule:
         return self.ddp_plugin.get_model_from_plugin(model)
+
+    @property
+    def distributed_sampler_kwargs(self):
+        distributed_sampler_kwargs = dict(
+            num_replicas=self.trainer.num_nodes * self.trainer.num_processes,
+            rank=self.trainer.global_rank
+        )
+        if self.ddp_plugin is not None:
+            distributed_sampler_kwargs = self.ddp_plugin.distributed_sampler_kwargs(distributed_sampler_kwargs)
+        return distributed_sampler_kwargs

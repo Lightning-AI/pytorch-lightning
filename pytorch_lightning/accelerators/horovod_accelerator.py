@@ -206,3 +206,7 @@ class HorovodAccelerator(Accelerator):
         # sync all processes before reduction
         hvd.join()
         return hvd.allreduce(tensor, op=reduce_op)
+
+    @property
+    def distributed_sampler_kwargs(self):
+        return dict(num_replicas=hvd.size(), rank=hvd.rank())

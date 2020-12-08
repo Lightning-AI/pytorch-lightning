@@ -102,6 +102,18 @@ class LightningOptimizer:
         optimizer = self._optimizer
         model = trainer.get_model()
 
+        accelerator_backend = trainer.accelerator_backend
+        if accelerator_backend is not None and accelerator_backend.rpc_enabled:
+            if accelerator_backend.ddp_plugin.is_main_rpc_process:
+                # Initialize optimizer step on main process
+                accelerator_backend.ddp_plugin.optimizer_step(
+                    model=model,
+                    lightning_optimizer=self,
+                    closure=closure,
+                    *args,
+                    **kwargs
+                )
+
         if trainer.on_tpu:
             with trainer.profiler.profile(profiler_name):
                 xm.optimizer_step(optimizer, optimizer_args={'closure': closure, **kwargs})
