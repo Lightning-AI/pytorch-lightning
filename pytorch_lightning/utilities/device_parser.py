@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, MutableSequence, Optional, Union
+from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 import torch
 
@@ -146,9 +146,9 @@ def _sanitize_gpu_ids(gpus: List[int]) -> List[int]:
     return gpus
 
 
-def _normalize_parse_gpu_input_to_list(gpus: Union[int, List[int]]) -> Optional[List[int]]:
+def _normalize_parse_gpu_input_to_list(gpus: Union[int, List[int], Tuple[int, ...]]) -> Optional[List[int]]:
     assert gpus is not None
-    if isinstance(gpus, MutableSequence):
+    if isinstance(gpus, (list, tuple)):
         return list(gpus)
 
     # must be an int
@@ -177,7 +177,7 @@ def _check_data_type(device_ids: Any) -> None:
         device_ids: gpus/tpu_cores parameter as passed to the Trainer
     """
     if device_ids is not None and \
-            (not isinstance(device_ids, (int, str, MutableSequence)) or isinstance(device_ids, bool)):
+            (not isinstance(device_ids, (int, str, list, tuple)) or isinstance(device_ids, bool)):
         raise MisconfigurationException("Device ID's (GPU/TPU) must be int, string or sequence of ints or None.")
 
 

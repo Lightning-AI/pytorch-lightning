@@ -18,7 +18,7 @@ import os
 import torch
 
 from pytorch_lightning.accelerators.accelerator import NewCPUAccelerator, NewAccelerator, NewGPUAccelerator
-from pytorch_lightning.accelerators.data_parallel import SingleDevicePlugin
+from pytorch_lightning.accelerators.data_parallel import SingleDevicePlugin, DDPPlugin
 from pytorch_lightning.accelerators.precision import PrecisionPlugin
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities import rank_zero_only
@@ -48,7 +48,6 @@ class BackendConnector(object):
         self,
         num_processes,
         tpu_cores,
-        accelerator,
         distributed_backend,
         auto_select_gpus,
         gpus,
@@ -89,7 +88,6 @@ class BackendConnector(object):
         # for gpus allow int, string and gpu list
         # if auto_select_gpus and isinstance(gpus, int):
         #     self.trainer.gpus = self.trainer.tuner.pick_multiple_gpus(gpus)
-
         self.parallel_devices = device_parser.parse_gpu_ids(self.gpus)
         self.root_gpu = device_parser.determine_root_gpu_device(self.parallel_devices)
         # self.root_device = torch.device("cpu")
@@ -97,7 +95,7 @@ class BackendConnector(object):
         self.set_distributed_mode()
 
         # todo: select accelerator based on trainer flags
-        self.accelerator = self.select_accelerator(accelerator)
+        self.accelerator = self.select_accelerator()
 
         # override dist backend when using tpus
         if self.on_tpu:
@@ -148,15 +146,23 @@ class BackendConnector(object):
         return PrecisionPlugin()
 
     def select_training_type_plugin(self):
-        return SingleDevicePlugin(device=torch.device(f"cuda:{self.root_gpu}" if self.on_gpu else "cpu"))
+        if self.distributed_backend == "ddp":
+            plugin = DDPPlugin(
+                parallel_device_ids=self.parallel_devices,
+                num_nodes=self.num_nodes,
+                logger=None,
+                cluster_environment=TorchElasticEnvironment(),  # TODO: deterimine this using plugin connector?
+                is_slurm_managing_tasks=False,  # TODO: determine this
+            )
+        else:
+            # TODO: cover all other cases
+            plugin = SingleDevicePlugin(device=torch.device(f"cuda:{self.root_gpu}" if self.on_gpu else "cpu"))
+        return plugin
 
-    def select_accelerator(self, accelerator: Union[str, NewAccelerator]):
-
-        # return NewCPUAccelerator(
-        #     precision_plugin=PrecisionPlugin(),
-        #     training_type_plugin=SingleDevicePlugin(device=torch.device("cpu")),
-        #     gradient_clip_val=None
-        # )
+    def select_accelerator(self):
+        if isinstance(self.distributed_backend, NewAccelerator):
+            # custom accelerator from user
+            return self.distributed_backend
 
         if self.on_gpu:
             acc_cls = NewGPUAccelerator

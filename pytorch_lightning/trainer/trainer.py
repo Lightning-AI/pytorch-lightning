@@ -311,6 +311,10 @@ class Trainer(
         self._distrib_type = None
         self._running_stage = None
 
+        distributed_backend = distributed_backend or accelerator
+
+        print("gpus passed into trainer", gpus)
+
         # init connectors
         self.dev_debugger = InternalDebugger(self)
         self.config_validator = ConfigValidator(self)
@@ -319,7 +323,6 @@ class Trainer(
         self.accelerator_connector = BackendConnector(
             num_processes,
             tpu_cores,
-            accelerator,
             distributed_backend,
             auto_select_gpus,
             gpus,
@@ -513,6 +516,7 @@ class Trainer(
         # self.accelerator_backend = self.accelerator_connector.select_accelerator()
         self.call_hook("on_before_accelerator_backend_setup", model)
         self.accelerator_backend.setup(self, model)
+        self.training_type_plugin.pre_training()
 
         # ----------------------------
         # INSPECT THESE FOR MAIN LOOPS

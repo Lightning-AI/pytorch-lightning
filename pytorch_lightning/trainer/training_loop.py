@@ -130,12 +130,9 @@ class TrainLoop:
         # --------------------------
         # Setup??
         # --------------------------
+        # ref_model = self.trainer.get_model()
+        print(self.trainer.global_rank, type(model))
         ref_model = self.trainer.get_model()
-
-        # set the ranks and devices
-        # TODO dist was a AttributeDict, should be moved to plugin?
-        # self.trainer.accelerator_backend.dist.rank = self.trainer.global_rank
-        # self.trainer.accelerator_backend.dist.device = ref_model.device
 
         # give model convenience properties
         ref_model.trainer = self.trainer
