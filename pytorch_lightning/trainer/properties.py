@@ -27,9 +27,15 @@ from pytorch_lightning.trainer.connectors.checkpoint_connector import Checkpoint
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import argparse_utils
+from pytorch_lightning.utilities import HOROVOD_AVAILABLE, TPU_AVAILABLE, argparse_utils, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.model_utils import is_overridden
+
+if TPU_AVAILABLE:
+    import torch_xla.core.xla_model as xm
+
+if HOROVOD_AVAILABLE:
+    import horovod.torch as hvd
 
 
 class TrainerProperties(ABC):
@@ -241,6 +247,35 @@ class TrainerProperties(ABC):
         self.__dict__ = d
         # wrap optimizers in enable_pl_optimzer is True
         self.convert_to_lightning_optimizers()
+
+    @property
+    def require_distributed_sampler(self):
+        if self.accelerator_backend is not None:
+            return self.accelerator_backend.require_distributed_sampler
+        return self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu
+
+    @property
+    def distributed_sampler_kwargs(self):
+        if self.accelerator_backend is not None:
+            return self.accelerator_backend.distributed_sampler_kwargs
+
+        if self.use_tpu:
+            kwargs = dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
+
+        elif self.use_horovod:
+            kwargs = dict(num_replicas=hvd.size(), rank=hvd.rank())
+
+        else:
+            world_size = {
+                "ddp": self.num_nodes * self.num_processes,
+                "ddp_spawn": self.num_nodes * self.num_processes,
+                "ddp2": self.num_nodes,
+                "ddp_cpu": self.num_processes * self.num_nodes
+            }
+            assert self.distributed_backend is not None
+            kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.global_rank)
+
+        return kwargs
 
 
 # Used to represent the concrete type TrainerProperties class methods are called on.

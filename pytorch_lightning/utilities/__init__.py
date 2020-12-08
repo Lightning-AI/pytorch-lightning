@@ -52,6 +52,8 @@ HOROVOD_AVAILABLE = _module_available("horovod.torch")
 
 TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 FAIRSCALE_AVAILABLE = platform.system() != 'Windows' and _module_available('fairscale.nn.data_parallel')
+RPC_AVAILABLE = platform.system() != 'Windows' and _module_available('torch.distributed.rpc')
+GROUP_AVAILABLE = platform.system() != 'Windows' and _module_available('torch.distributed.group')
 
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
 FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps
