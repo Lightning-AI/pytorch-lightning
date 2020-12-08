@@ -116,7 +116,7 @@ class DataParallelAccelerator(Accelerator):
         self.trainer.model.forward = self.model_autocast_original_forward
         self.barrier()
 
-    def training_step(self, args):
+    def _step(self, args):
         if self.trainer.amp_backend == AMPType.NATIVE:
             with torch.cuda.amp.autocast():
                 output = self.trainer.model(*args)
@@ -124,13 +124,14 @@ class DataParallelAccelerator(Accelerator):
             output = self.trainer.model(*args)
         return output
 
+    def training_step(self, args):
+        return self._step(args)
+
     def validation_step(self, args):
-        output = self.training_step(args)
-        return output
+        return self._step(args)
 
     def test_step(self, args):
-        output = self.training_step(args)
-        return output
+        return self._step(args)
 
     def training_step_end(self, output):
         if isinstance(output, Result):
