@@ -22,9 +22,14 @@ from typing import Union, Optional, Any
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
+    from torch.distributed import group
 else:
     class ReduceOp:
         SUM = None
+
+
+    class group:
+        WORLD = None
 
 
 def rank_zero_only(fn):
@@ -159,7 +164,7 @@ def sync_ddp(
 
 class AllGatherGrad(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, tensor, group=torch.distributed.group.WORLD):
+    def forward(ctx, tensor, group=group.WORLD):
         ctx.batch_size = tensor.shape[0]
         ctx.group = group
 
