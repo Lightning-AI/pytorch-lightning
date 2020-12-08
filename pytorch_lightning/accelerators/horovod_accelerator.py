@@ -116,9 +116,7 @@ class HorovodAccelerator(Accelerator):
 
     def _step(self, model_step: Callable, args):
         if self.trainer.on_gpu:
-            batch = args[0]
-            batch = self.batch_to_device(batch, hvd.local_rank())
-            args[0] = batch
+            args[0] = self.batch_to_device(args[0], hvd.local_rank())
 
         if self.trainer.amp_backend == AMPType.NATIVE:
             with torch.cuda.amp.autocast():
