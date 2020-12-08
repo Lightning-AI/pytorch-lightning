@@ -388,7 +388,7 @@ fbeta [func]
     :noindex:
 
 hamming_distance [func]
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.metrics.functional.hamming_distance
     :noindex:
