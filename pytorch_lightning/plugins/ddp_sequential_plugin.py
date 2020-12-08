@@ -106,27 +106,28 @@ class DDPSequentialPlugin(RPCPlugin):
     ) -> None:
         trainer.prepared_for_backwards = False
         self._check_arguments(trainer)
-        if not self._skip_init_connections(trainer):
-            super().init_ddp_connection(
-                trainer=trainer,
-                cluster_environment=cluster_environment,
-                global_rank=global_rank,
-                world_size=world_size,
-                is_slurm_managing_tasks=is_slurm_managing_tasks
-            )
-            super().init_rpc_connection(
-                global_rank=global_rank,
-                world_size=world_size
-            )
-            self.gpus_per_model = self._infer_check_num_gpus(trainer)
-            self.init_model_parallel_groups(trainer)
-            self.set_main_rpc_process()
+        if self._skip_init_connections(trainer):
+            return
+        super().init_ddp_connection(
+            trainer=trainer,
+            cluster_environment=cluster_environment,
+            global_rank=global_rank,
+            world_size=world_size,
+            is_slurm_managing_tasks=is_slurm_managing_tasks
+        )
+        super().init_rpc_connection(
+            global_rank=global_rank,
+            world_size=world_size
+        )
+        self.gpus_per_model = self._infer_check_num_gpus(trainer)
+        self.init_model_parallel_groups(trainer)
+        self.set_main_rpc_process()
 
-            self._check_sequential_model_exists(trainer)
-            if self.main_rpc_process:
-                if self.balance is None:
-                    self._infer_model_balance(trainer)
-                self._assert_valid_model_balance(trainer)
+        self._check_sequential_model_exists(trainer)
+        if self.main_rpc_process:
+            if self.balance is None:
+                self._infer_model_balance(trainer)
+            self._assert_valid_model_balance(trainer)
 
     def on_before_manual_backward(self, model: LightningDistributedDataParallel, output: Any):
         pass
