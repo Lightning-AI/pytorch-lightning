@@ -33,7 +33,6 @@ from pytorch_lightning.utilities import (
 )
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.distributed import all_gather_tpu_if_available
 
 if TPU_AVAILABLE:
     import torch_xla
@@ -353,20 +352,6 @@ class TPUAccelerator(Accelerator):
                     group: Optional[Any] = None,
                     reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
         return tensor
-
-    def all_gather(self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False):
-        """
-        Function to gather a tensor from several distributed processes
-
-        Args:
-            tensor: tensor of shape (batch, ...)
-            group: the process group to gather results from. Defaults to all processes (world)
-            sync_grads: flag that allows users to synchronize gradients for all_gather op
-
-        Return:
-            A tensor of shape (world_size, batch, ...)
-        """
-        return all_gather_tpu_if_available(tensor, group=group, sync_grads=sync_grads)
 
     @property
     def norm_clipping_epsilon(self):

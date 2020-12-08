@@ -19,7 +19,7 @@ from torch.optim.lr_scheduler import _LRScheduler
 
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.utilities import AMPType, HOROVOD_AVAILABLE
-from pytorch_lightning.utilities.distributed import rank_zero_only, all_gather_horovod_if_available
+from pytorch_lightning.utilities.distributed import rank_zero_only
 
 if HOROVOD_AVAILABLE:
     import horovod.torch as hvd
@@ -206,17 +206,3 @@ class HorovodAccelerator(Accelerator):
         # sync all processes before reduction
         hvd.join()
         return hvd.allreduce(tensor, op=reduce_op)
-
-    def all_gather(self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False):
-        """
-        Function to gather a tensor from several distributed processes
-
-        Args:
-            tensor: tensor of shape (batch, ...)
-            group: the process group to gather results from. Defaults to all processes (world)
-            sync_grads: flag that allows users to synchronize gradients for all_gather op
-
-        Return:
-            A tensor of shape (world_size, batch, ...)
-        """
-        return all_gather_horovod_if_available(tensor, group=group, sync_grads=sync_grads)

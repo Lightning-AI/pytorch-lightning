@@ -16,7 +16,7 @@ def setup_ddp(rank, world_size):
         torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
 
 
-def _test_all_gather(rank, world_size):
+def _test_all_gather_ddp(rank, world_size):
     setup_ddp(rank, world_size)
 
     tensor1 = torch.ones(8, requires_grad=True)
@@ -39,6 +39,6 @@ def _test_all_gather(rank, world_size):
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
-def test_all_gather():
+def test_all_gather_ddp():
     world_size = 3
-    torch.multiprocessing.spawn(_test_all_gather, args=(world_size,), nprocs=world_size)
+    torch.multiprocessing.spawn(_test_all_gather_ddp, args=(world_size,), nprocs=world_size)
