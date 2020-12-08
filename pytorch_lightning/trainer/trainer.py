@@ -539,7 +539,7 @@ class Trainer(
             results = self.train()
 
         # TODO: is calling post training the correct place here @justus?
-        self.training_type_plugin.post_training()
+        self.training_type_plugin.post_training(results, self.checkpoint_callback.best_model_path)
         self.accelerator_backend.teardown()
 
         # ----------------------------
