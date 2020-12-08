@@ -143,10 +143,10 @@ class Accelerator(object):
         self.trainer.lr_schedulers = lr_schedulers
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
-    def init_distributed_connection(
+    def init_ddp_connection(
             self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
     ) -> None:
-        self.ddp_plugin.init_distributed_connection(
+        self.ddp_plugin.init_ddp_connection(
             self.trainer,
             self.cluster_environment,
             global_rank,

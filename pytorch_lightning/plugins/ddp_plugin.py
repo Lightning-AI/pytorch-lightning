@@ -70,7 +70,7 @@ class DDPPlugin(LightningPlugin):
         )
         return model
 
-    def init_distributed_connection(
+    def init_ddp_connection(
             self,
             trainer,
             cluster_environment,

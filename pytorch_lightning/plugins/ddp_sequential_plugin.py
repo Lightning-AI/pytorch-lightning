@@ -82,7 +82,7 @@ class DDPSequentialPlugin(RPCPlugin):
         self.pipelined_backward = pipelined_backward
         self.main_rpc_process = False  # Updated by main process, default for all secondary processes
 
-    def init_distributed_connection(
+    def init_ddp_connection(
             self,
             trainer,
             cluster_environment,
@@ -93,7 +93,7 @@ class DDPSequentialPlugin(RPCPlugin):
         trainer.prepared_for_backwards = False
         self._check_arguments(trainer)
         if not self._skip_init_connections(trainer):
-            super().init_distributed_connection(
+            super().init_ddp_connection(
                 trainer=trainer,
                 cluster_environment=cluster_environment,
                 global_rank=global_rank,
