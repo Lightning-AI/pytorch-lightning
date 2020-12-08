@@ -926,10 +926,10 @@ class Trainer(
 
         if self.datamodule is not None:
             called = {
-                None: self.datamodule.has_setup_fit,
+                'fit': self.datamodule.has_setup_fit,
                 'validation': self.datamodule.has_setup_validation,
                 'test': self.datamodule.has_setup_test,
-            }[self.evaluating]
+            }[stage_name]
 
             if not called:
                 self.datamodule.setup(stage_name)
