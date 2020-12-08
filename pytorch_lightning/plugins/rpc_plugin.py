@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from typing import Optional
 
 import torch
-from pytorch_lightning.core.lightning import LightningModule
 
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.utilities import RPC_AVAILABLE
 
@@ -100,7 +101,7 @@ class RPCPlugin(DDPPlugin):
         """
         raise NotImplementedError
 
-    def barrier(self) -> None:
+    def barrier(self, name: Optional[str] = None) -> None:
         """
         Override to define distributed sync communication. This needs to be handled differently due to
         the RPC connection managing certain processes at the same time.

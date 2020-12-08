@@ -17,10 +17,10 @@ from typing import Any, Optional, Union
 
 import torch
 import torch.distributed as torch_distrib
-from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from torch.optim import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.parsing import AttributeDict
 
@@ -221,9 +221,7 @@ class Accelerator(object):
 
     @property
     def rpc_enabled(self):
-        if self.ddp_plugin is not None and isinstance(self.ddp_plugin, RPCPlugin):
-            return True
-        return False
+        return self.ddp_plugin is not None and isinstance(self.ddp_plugin, RPCPlugin)
 
     @property
     def distributed_sampler_kwargs(self):
@@ -242,6 +240,7 @@ class Accelerator(object):
         """
         cm = self.ddp_plugin.block_backward_sync(self.trainer.model) if self.ddp_plugin else None
         yield cm
+
 
 # TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...
 class BackendType(Enum):
