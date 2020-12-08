@@ -114,11 +114,11 @@ def test_rpc_function_calls_ddp(tmpdir):
         assert plugin.is_main_rpc_process_count == 1 + plugin.worker_optimizer_step_count
         assert plugin.on_exit_rpc_process_count == 0
     else:  # Worker process
-        assert plugin.rpc_save_model_count == 0
+        assert plugin.rpc_save_model_count == max_epochs
         assert plugin.on_main_rpc_connect_count == 0
         # Never signaled by worker, only by main process
         assert plugin.worker_optimizer_step_count == 0
         # Call once at init, and at optim step
-        assert plugin.is_main_rpc_process_count == 1 + plugin.worker_optimizer_step_count
+        assert plugin.is_main_rpc_process_count == 1 + (max_epochs * limit_train_batches)
         # Called at init
         assert plugin.on_exit_rpc_process_count == 1
