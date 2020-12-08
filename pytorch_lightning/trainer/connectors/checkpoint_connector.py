@@ -15,7 +15,7 @@
 import os
 from pathlib import Path
 import re
-from typing import Union
+from typing import Union, Optional
 
 import torch
 
@@ -331,7 +331,7 @@ class CheckpointConnector:
         # call hpc specific hook
         model.on_hpc_load(checkpoint)
 
-    def max_ckpt_in_folder(self, dir_path: Union[str, Path], name_key: str = 'ckpt_') -> Union[None, int]:
+    def max_ckpt_in_folder(self, dir_path: Union[str, Path], name_key: str = 'ckpt_') -> Optional[int]:
         """List up files in `dir_path` with name_key, then yield maximum suffix number.
 
         Args:
