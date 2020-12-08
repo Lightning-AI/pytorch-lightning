@@ -17,6 +17,7 @@ from typing import Any
 from torch import distributed as torch_distrib
 from torch.distributed import group
 
+
 class LightningDistributed:
 
     def __init__(self, rank=None, device=None):

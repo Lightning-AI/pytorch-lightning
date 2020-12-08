@@ -117,7 +117,6 @@ class DDPPlugin(LightningPlugin):
         Called after optimizers have been set-up. This is useful for doing any configuration options in RPC, or
         state sharding.
         """
-        pass
 
     def get_model_from_plugin(
             self,
