@@ -164,7 +164,6 @@ def sync_ddp(
 class AllGatherGrad(torch.autograd.Function):
     @staticmethod
     def forward(ctx, tensor, group=group.WORLD):
-        ctx.batch_size = tensor.shape[0]
         ctx.group = group
 
         gathered_tensor = [
