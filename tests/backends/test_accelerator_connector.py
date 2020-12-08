@@ -323,7 +323,7 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(tmpdir):
 @mock.patch('torch.cuda.device_count', return_value=0)
 def test_custom_accelerator(tmpdir):
     class Accel(Accelerator):
-        def init_distributed_connection(
+        def init_ddp_connection(
                 self,
                 global_rank: int,
                 world_size: int,
