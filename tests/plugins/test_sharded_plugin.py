@@ -301,9 +301,9 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
-def test_ddp_sharded_plugin_test(tmpdir):
+def test_ddp_sharded_plugin_evaluate(tmpdir):
     """
-        Test to ensure we can use test without fit
+        Test to ensure we can use validate and test without fit
     """
     model = BoringModel()
     trainer = Trainer(
@@ -312,6 +312,7 @@ def test_ddp_sharded_plugin_test(tmpdir):
         fast_dev_run=True,
     )
 
+    trainer.validate(model)
     trainer.test(model)
 
 
@@ -319,9 +320,9 @@ def test_ddp_sharded_plugin_test(tmpdir):
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
-def test_ddp_sharded_plugin_test_multigpu(tmpdir):
+def test_ddp_sharded_plugin_evaluate_multigpu(tmpdir):
     """
-        Test to ensure we can use test without fit
+        Test to ensure we can use validate and test without fit
     """
     model = BoringModel()
     trainer = Trainer(
@@ -331,4 +332,5 @@ def test_ddp_sharded_plugin_test_multigpu(tmpdir):
         fast_dev_run=True,
     )
 
+    trainer.validate(model)
     trainer.test(model)
