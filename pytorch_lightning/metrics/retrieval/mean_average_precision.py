@@ -8,7 +8,7 @@ from pytorch_lightning.metrics.functional.ir_average_precision import retrieval_
 class RetrievalMAP(RetrievalMetric):
     """
     Mean Average Precision computes the MAP over multiple retrieved documents for each query.
-    Each average precision computation on a single query can be done on a different number of 
+    Each average precision computation on a single query can be done on a different number of
     predictions thanks to the usage of a tensor dedicated to separate query results.
 
     Example:

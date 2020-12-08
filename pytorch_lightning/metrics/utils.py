@@ -125,9 +125,9 @@ def get_mini_groups(idx: torch.Tensor) -> List[torch.Tensor]:
     """
     Return a list of lists where each sub-list contains the indexes of each value of `idx`
     :params idx: a tensor of integer indexes
-    
+
     Example:
-    
+
         >>> indexes = torch.tensor([0, 0, 0, 1, 1, 1, 1])
         >>> groups = get_mini_groups(indexes)
         >>> groups
@@ -143,7 +143,7 @@ def get_mini_groups(idx: torch.Tensor) -> List[torch.Tensor]:
             indexes[_id] = [i]
     return [torch.tensor(x, dtype=torch.int64) for x in indexes.values()]
 
-  
+
 def to_onehot(
         tensor: torch.Tensor,
         num_classes: Optional[int] = None,

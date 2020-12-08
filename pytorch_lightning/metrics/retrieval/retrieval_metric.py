@@ -7,6 +7,7 @@ from pytorch_lightning.metrics.utils import get_mini_groups
 
 IGNORE_IDX = -100
 
+
 class RetrievalMetric(Metric):
     """
     Compute a metric for Information Retrieval by grouping predictions on the same
@@ -26,7 +27,8 @@ class RetrievalMetric(Metric):
 
     options = ['error', 'skip', 'positive', 'negative']
 
-    def __init__(self,
+    def __init__(
+        self,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -82,5 +84,5 @@ class RetrievalMetric(Metric):
         return torch.stack(res).mean()
 
     def metric(self, group: List[int]) -> torch.Tensor:
-        r""" Compute a metric over a single group. """
+        """ Compute a metric over a single group. """
         raise NotImplementedError("This method must be overridden by subclasses")

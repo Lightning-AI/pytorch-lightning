@@ -41,9 +41,9 @@ def retrieval_hit_rate(
         ... 1.0
     """
 
-    if preds.shape != target.shape or preds.device != target.device: 
+    if preds.shape != target.shape or preds.device != target.device:
         raise ValueError(
-            f"`preds` and `target` must have the same shape and be on the same device"
+            "`preds` and `target` must have the same shape and be on the same device"
         )
 
     relevant = target[torch.argsort(preds, dim=-1, descending=True)][:k].sum()

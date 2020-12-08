@@ -27,7 +27,7 @@ def retrieval_average_precision(
     Args:
         preds: estimated probabilities of each document to be relevant.
         target: ground truth about each document being relevant.
-    
+
     Returns:
         a single-value tensor with the average precision (AP) of the predictions `preds` wrt the labels `target`.
 
@@ -39,9 +39,9 @@ def retrieval_average_precision(
         ... 0.833
     """
 
-    if preds.shape != target.shape or preds.device != target.device: 
+    if preds.shape != target.shape or preds.device != target.device:
         raise ValueError(
-            f"`preds` and `target` must have the same shape and be on the same device"
+            "`preds` and `target` must have the same shape and be on the same device"
         )
 
     if target.sum() == 0:

@@ -8,7 +8,7 @@ from pytorch_lightning.metrics.functional.ir_hit_rate import retrieval_hit_rate
 class RetrievalHitRate(RetrievalMetric):
     """
     Hit Rate at K computes the HR@K over multiple retrieved documents for each query.
-    Each hit rate at k computation over a single query can be done on a different number 
+    Each hit rate at k computation over a single query can be done on a different number
     of predictions thanks to the usage of a tensor dedicated to separate query results.
 
     Notice that RetrievalHitRate@1 == RetrievalPrecision@1

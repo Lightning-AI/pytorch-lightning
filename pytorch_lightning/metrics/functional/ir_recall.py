@@ -42,9 +42,9 @@ def retrieval_recall(
         ... 0.5
     """
 
-    if preds.shape != target.shape or preds.device != target.device: 
+    if preds.shape != target.shape or preds.device != target.device:
         raise ValueError(
-            f"`preds` and `target` must have the same shape and be on the same device"
+            "`preds` and `target` must have the same shape and be on the same device"
         )
 
     if target.sum() == 0:
