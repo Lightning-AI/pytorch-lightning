@@ -23,17 +23,11 @@ from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.utilities import HOROVOD_AVAILABLE, TPU_AVAILABLE, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_utils import is_overridden
-
-if TPU_AVAILABLE:
-    import torch_xla.core.xla_model as xm
-
-if HOROVOD_AVAILABLE:
-    import horovod.torch as hvd
 
 
 class TrainerDataLoadingMixin(ABC):
@@ -100,8 +94,7 @@ class TrainerDataLoadingMixin(ABC):
         if not is_dataloader or is_iterable_ds:
             return dataloader
 
-        is_ddp_based = self.accelerator_backend.is_ddp_based if self.accelerator_backend is not None else False
-        need_dist_sampler = is_ddp_based and not isinstance(dataloader.sampler, DistributedSampler)
+        need_dist_sampler = self.is_ddp_based and not isinstance(dataloader.sampler, DistributedSampler)
         if self.replace_sampler_ddp and need_dist_sampler:
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
                 raise MisconfigurationException(
@@ -131,23 +124,7 @@ class TrainerDataLoadingMixin(ABC):
         return dataloader
 
     def _get_distributed_sampler(self, dataloader, shuffle):
-        if self.accelerator_backend is not None:
-            kwargs = self.accelerator_backend.distributed_sampler_kwargs
-        else:
-            # todo: Find a way to remove this part
-            if self.use_tpu:
-                kwargs = dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
-            elif self.use_horovod:
-                kwargs = dict(num_replicas=hvd.size(), rank=hvd.rank())
-            else:
-                world_size = {
-                    "ddp": self.num_nodes * self.num_processes,
-                    "ddp_spawn": self.num_nodes * self.num_processes,
-                    "ddp2": self.num_nodes,
-                    "ddp_cpu": self.num_processes * self.num_nodes
-                }
-                assert self.distributed_backend is not None
-                kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.global_rank)
+        kwargs = self.distributed_sampler_kwargs
         kwargs['shuffle'] = shuffle and not self.overfit_batches
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler

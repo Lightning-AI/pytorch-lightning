@@ -31,7 +31,6 @@ else:
         SUM = None
 
 
-
 class Accelerator(object):
 
     def __init__(self, trainer=None, cluster_environment=None, ddp_plugin=None):
