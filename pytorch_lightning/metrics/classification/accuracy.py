@@ -33,11 +33,10 @@ class Accuracy(Metric):
     parameter ``top_k`` generalizes this metric to a Top-K accuracy metric: for each sample the
     top-K highest probability items are considered to find the correct label.
 
-    This metric generalizes to subset accuracy for multilabel data: for the sample to be counted as
-    correct, all labels in that sample have to be correctly predicted. Consider using :class:`~pytorch_lightning.metrics.classification.HammingLoss`
-    is this is not what you want. In a multi-dimensional multi-class case, the `mdmc_accuracy` parameters
-    gives you a choice between computing the subset accuracy or counting each sample on the extra
-    axis separately.
+    For multi-label and multi-dimensional multi-class inputs, this metric computes the "global"
+    accuracy by default, which counts all labels or sub-samples separately. This can be
+    changed to subset accuracy (which requires all labels or sub-samples in the sample to
+    be correctly predicted) by setting `subset_accuracy=True`.
 
     Accepts all input types listed in :ref:`metrics:Input types`.
 
@@ -51,18 +50,21 @@ class Accuracy(Metric):
             default value (``None``) will be interpreted as 1 for these inputs.
 
             Should be left at default (``None``) for all other types of inputs.
-        mdmc_accuracy:
-            Determines how should the extra dimension be handled in case of multi-dimensional multi-class
-            inputs. Options are ``"global"`` or ``"subset"``.
+        subset_accuracy:
+            Whether to compute subset accuracy for multi-label and multi-dimensional
+            multi-class inputs (has no effect for other input types). Default: `False`
 
-            If ``"global"``, then the inputs are treated as if the sample (``N``) and the extra dimension
-            were unrolled into a new sample dimension. If predictions are labels, this option is equivalent
-            to first flattening ``preds`` and ``target``, and then computing accuracy.
+            For multi-label inputs, if the parameter is set to `True`, then all labels for
+            each sample must be correctly predicted for the sample to count as correct. If it
+            is set to `False`, then all labels are counted separately - this is equivalent to
+            flattening inputs beforehand (i.e. ``preds = preds.flatten()`` and same for ``target``).
 
-            If ``"subset"``, then the equivalent of subset accuracy is performed for each sample on the
-            ``N`` dimension - that is, for the sample to count as correct, all labels on its extra dimension
-            must be predicted correctly (the ``top_k`` option still applies here). The final score is then
-            simply the number of totally correctly predicted samples.
+            For multi-dimensional multi-class inputs, if the parameter is set to `True`, then all
+            sub-sample (on the extra axis) must be correct for the sample to be counted as correct.
+            If it is set to `False`, then all sub-samples are counter separately - this is equivalent,
+            in the case of label predictions, to flattening the inputs beforehand (i.e.
+            ``preds = preds.flatten()`` and same for ``target``). Note that the ``top_k`` parameter
+            still applies in both cases, if set.
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
@@ -95,7 +97,7 @@ class Accuracy(Metric):
         self,
         threshold: float = 0.5,
         top_k: Optional[int] = None,
-        mdmc_accuracy: str = "global",
+        subset_accuracy: bool = False,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -119,10 +121,7 @@ class Accuracy(Metric):
             raise ValueError("The `top_k` should be an integer larger than 1.")
         self.top_k = top_k
 
-        if mdmc_accuracy not in ["global", "subset"]:
-            raise ValueError("The `mdmc_accuracy` should be either 'subset' or 'global'.")
-
-        self.mdmc_accuracy = mdmc_accuracy
+        self.subset_accuracy = subset_accuracy
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
@@ -135,7 +134,7 @@ class Accuracy(Metric):
         """
 
         correct, total = _accuracy_update(
-            preds, target, threshold=self.threshold, top_k=self.top_k, mdmc_accuracy=self.mdmc_accuracy
+            preds, target, threshold=self.threshold, top_k=self.top_k, subset_accuracy=self.subset_accuracy
         )
 
         self.correct += correct

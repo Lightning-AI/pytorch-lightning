@@ -32,8 +32,7 @@ class HammingDistance(Metric):
 
     This is the same as ``1-accuracy`` for binary data, while for all other types of inputs it
     treats each possible label separately - meaning that, for example, multi-class data is
-    treated as if it were multi-label. If this is not what you want, consider using
-    :class:`~pytorch_lightning.metrics.classification.Accuracy`.
+    treated as if it were multi-label.
 
     Accepts all input types listed in :ref:`metrics:Input types`.
 

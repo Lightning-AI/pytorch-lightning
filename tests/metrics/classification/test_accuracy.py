@@ -25,62 +25,63 @@ from tests.metrics.utils import THRESHOLD, MetricTester
 torch.manual_seed(42)
 
 
-def _sk_accuracy(preds, target, mdmc_accuracy):
+def _sk_accuracy(preds, target, subset_accuracy):
     sk_preds, sk_target, mode = _input_format_classification(preds, target, threshold=THRESHOLD)
     sk_preds, sk_target = sk_preds.numpy(), sk_target.numpy()
 
-    if mode == "multi-dim multi-class":
-        if mdmc_accuracy == "global":
-            sk_preds, sk_target = np.transpose(sk_preds, (0, 2, 1)), np.transpose(sk_target, (0, 2, 1))
-            sk_preds, sk_target = sk_preds.reshape(-1, sk_preds.shape[2]), sk_target.reshape(-1, sk_target.shape[2])
-        elif mdmc_accuracy == "subset":
-            return np.all(sk_preds == sk_target, axis=(1, 2)).mean()
+    if mode == "multi-dim multi-class" and not subset_accuracy:
+        sk_preds, sk_target = np.transpose(sk_preds, (0, 2, 1)), np.transpose(sk_target, (0, 2, 1))
+        sk_preds, sk_target = sk_preds.reshape(-1, sk_preds.shape[2]), sk_target.reshape(-1, sk_target.shape[2])
+    elif mode == mode == "multi-dim multi-class" and subset_accuracy:
+        return np.all(sk_preds == sk_target, axis=(1, 2)).mean()
+    elif mode == "multi-label" and not subset_accuracy:
+        sk_preds, sk_target = sk_preds.reshape(-1), sk_target.reshape(-1)
 
     return sk_accuracy(y_true=sk_target, y_pred=sk_preds)
 
 
 @pytest.mark.parametrize(
-    "preds, target, mdmc_accuracy",
+    "preds, target, subset_accuracy",
     [
-        (_binary_prob_inputs.preds, _binary_prob_inputs.target, "global"),
-        (_binary_inputs.preds, _binary_inputs.target, "global"),
-        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target, "global"),
-        (_multilabel_inputs.preds, _multilabel_inputs.target, "subset"),  # As this is treated as MDMC by default
-        (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, "global"),
-        (_multiclass_inputs.preds, _multiclass_inputs.target, "global"),
-        (_multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target, "global"),
-        (_multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target, "subset"),
-        (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target, "global"),
-        (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target, "subset"),
-        (_multilabel_multidim_prob_inputs.preds, _multilabel_multidim_prob_inputs.target, "global"),
-        (
-            _multilabel_multidim_inputs.preds,
-            _multilabel_multidim_inputs.target,
-            "subset",  # As this is treated as MDMC by default
-        ),
+        (_binary_prob_inputs.preds, _binary_prob_inputs.target, False),
+        (_binary_inputs.preds, _binary_inputs.target, False),
+        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target, True),
+        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target, False),
+        (_multilabel_inputs.preds, _multilabel_inputs.target, True),
+        (_multilabel_inputs.preds, _multilabel_inputs.target, False),
+        (_multiclass_prob_inputs.preds, _multiclass_prob_inputs.target, False),
+        (_multiclass_inputs.preds, _multiclass_inputs.target, False),
+        (_multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target, False),
+        (_multidim_multiclass_prob_inputs.preds, _multidim_multiclass_prob_inputs.target, True),
+        (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target, False),
+        (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target, True),
+        (_multilabel_multidim_prob_inputs.preds, _multilabel_multidim_prob_inputs.target, True),
+        (_multilabel_multidim_prob_inputs.preds, _multilabel_multidim_prob_inputs.target, False),
+        (_multilabel_multidim_inputs.preds, _multilabel_multidim_inputs.target, True),
+        (_multilabel_multidim_inputs.preds, _multilabel_multidim_inputs.target, False),
     ],
 )
 class TestAccuracies(MetricTester):
     @pytest.mark.parametrize("ddp", [False, True])
     @pytest.mark.parametrize("dist_sync_on_step", [False, True])
-    def test_accuracy_class(self, ddp, dist_sync_on_step, preds, target, mdmc_accuracy):
+    def test_accuracy_class(self, ddp, dist_sync_on_step, preds, target, subset_accuracy):
         self.run_class_metric_test(
             ddp=ddp,
             preds=preds,
             target=target,
             metric_class=Accuracy,
-            sk_metric=partial(_sk_accuracy, mdmc_accuracy=mdmc_accuracy),
+            sk_metric=partial(_sk_accuracy, subset_accuracy=subset_accuracy),
             dist_sync_on_step=dist_sync_on_step,
-            metric_args={"threshold": THRESHOLD, "mdmc_accuracy": mdmc_accuracy},
+            metric_args={"threshold": THRESHOLD, "subset_accuracy": subset_accuracy},
         )
 
-    def test_accuracy_fn(self, preds, target, mdmc_accuracy):
+    def test_accuracy_fn(self, preds, target, subset_accuracy):
         self.run_functional_metric_test(
             preds,
             target,
             metric_functional=accuracy,
-            sk_metric=partial(_sk_accuracy, mdmc_accuracy=mdmc_accuracy),
-            metric_args={"threshold": THRESHOLD, "mdmc_accuracy": mdmc_accuracy},
+            sk_metric=partial(_sk_accuracy, subset_accuracy=subset_accuracy),
+            metric_args={"threshold": THRESHOLD, "subset_accuracy": subset_accuracy},
         )
 
 
@@ -100,24 +101,24 @@ topk_target_mdmc = torch.tensor([[[1, 1, 0], [2, 2, 2], [3, 3, 3]], [[2, 2, 0], 
 
 # Replace with a proper sk_metric test once sklearn 0.24 hits :)
 @pytest.mark.parametrize(
-    "preds, target, exp_result, k, mdmc_accuracy",
+    "preds, target, exp_result, k, subset_accuracy",
     [
-        (topk_preds_mc, topk_target_mc, 1 / 6, 1, "global"),
-        (topk_preds_mc, topk_target_mc, 3 / 6, 2, "global"),
-        (topk_preds_mc, topk_target_mc, 5 / 6, 3, "global"),
-        (topk_preds_mc, topk_target_mc, 1 / 6, 1, "subset"),
-        (topk_preds_mc, topk_target_mc, 3 / 6, 2, "subset"),
-        (topk_preds_mc, topk_target_mc, 5 / 6, 3, "subset"),
-        (topk_preds_mdmc, topk_target_mdmc, 1 / 6, 1, "global"),
-        (topk_preds_mdmc, topk_target_mdmc, 8 / 18, 2, "global"),
-        (topk_preds_mdmc, topk_target_mdmc, 13 / 18, 3, "global"),
-        (topk_preds_mdmc, topk_target_mdmc, 1 / 6, 1, "subset"),
-        (topk_preds_mdmc, topk_target_mdmc, 2 / 6, 2, "subset"),
-        (topk_preds_mdmc, topk_target_mdmc, 3 / 6, 3, "subset"),
+        (topk_preds_mc, topk_target_mc, 1 / 6, 1, False),
+        (topk_preds_mc, topk_target_mc, 3 / 6, 2, False),
+        (topk_preds_mc, topk_target_mc, 5 / 6, 3, False),
+        (topk_preds_mc, topk_target_mc, 1 / 6, 1, True),
+        (topk_preds_mc, topk_target_mc, 3 / 6, 2, True),
+        (topk_preds_mc, topk_target_mc, 5 / 6, 3, True),
+        (topk_preds_mdmc, topk_target_mdmc, 1 / 6, 1, False),
+        (topk_preds_mdmc, topk_target_mdmc, 8 / 18, 2, False),
+        (topk_preds_mdmc, topk_target_mdmc, 13 / 18, 3, False),
+        (topk_preds_mdmc, topk_target_mdmc, 1 / 6, 1, True),
+        (topk_preds_mdmc, topk_target_mdmc, 2 / 6, 2, True),
+        (topk_preds_mdmc, topk_target_mdmc, 3 / 6, 3, True),
     ],
 )
-def test_topk_accuracy(preds, target, exp_result, k, mdmc_accuracy):
-    topk = Accuracy(top_k=k, mdmc_accuracy=mdmc_accuracy)
+def test_topk_accuracy(preds, target, exp_result, k, subset_accuracy):
+    topk = Accuracy(top_k=k, subset_accuracy=subset_accuracy)
 
     for batch in range(preds.shape[0]):
         topk(preds[batch], target[batch])
@@ -130,7 +131,7 @@ def test_topk_accuracy(preds, target, exp_result, k, mdmc_accuracy):
     preds = preds.view(total_samples, 4, -1)
     target = target.view(total_samples, -1)
 
-    assert accuracy(preds, target, top_k=k, mdmc_accuracy=mdmc_accuracy) == exp_result
+    assert accuracy(preds, target, top_k=k, subset_accuracy=subset_accuracy) == exp_result
 
 
 # Only MC and MDMC with probs input type should be accepted for top_k
