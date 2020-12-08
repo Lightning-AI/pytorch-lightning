@@ -18,7 +18,6 @@ from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.plugins.apex import ApexPlugin
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
-from pytorch_lightning.plugins.ddp_sequential_plugin import DDPSequentialPlugin
 from pytorch_lightning.plugins.plugin import LightningPlugin
 from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
@@ -176,6 +175,5 @@ class LightningCustomPlugins(Enum):
     Allows easier access to custom lightning plugins from the command line.
     """
     ddp_sharded = DDPShardedPlugin
-    ddp_sequential = DDPSequentialPlugin
     native_amp = NativeAMPPlugin
     apex_amp = ApexPlugin
