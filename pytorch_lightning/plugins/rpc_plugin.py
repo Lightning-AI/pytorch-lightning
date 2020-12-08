@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Optional
+from typing import Any, Optional
 
 import torch
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.utilities import RPC_AVAILABLE
 
@@ -43,6 +44,9 @@ class RPCPlugin(DDPPlugin):
         os.environ['MASTER_PORT'] = os.getenv('RPC_MASTER_PORT', '15000')
         rpc.init_rpc(f"worker{global_rank}", rank=global_rank, world_size=world_size)
         self.rpc_initialized = True
+
+    def on_before_manual_backward(self, model: LightningDistributedDataParallel, output: Any):
+        pass
 
     def rpc_save_model(self,
                        save_model_fn,

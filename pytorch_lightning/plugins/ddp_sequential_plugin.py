@@ -247,11 +247,6 @@ class DDPSequentialPlugin(RPCPlugin):
             model.sequential_module.foreach_worker(register_optimizers, include_self=True)
 
     def _check_manual_optimization(self, trainer):
-        automatic_optimization = trainer.train_loop.automatic_optimization and trainer.model.automatic_optimization
-        if automatic_optimization:
-            raise MisconfigurationException(
-                ' is currently not supported in automatic optimization')
-
         if trainer.amp_backend is not None:
             raise MisconfigurationException(
                 'DDPSequentialPlugin is currently not supported in Automatic Mixed Precision')
