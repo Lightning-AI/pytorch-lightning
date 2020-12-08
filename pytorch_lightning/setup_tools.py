@@ -15,7 +15,7 @@
 import os
 import re
 import warnings
-from typing import List, Iterable
+from typing import Iterable, List
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -38,7 +38,7 @@ _DEFAULT_BADGES = [
 ]
 
 
-def _load_requirements(path_dir: str , file_name: str ='requirements.txt', comment_char: str ='#') -> List[str]:
+def _load_requirements(path_dir: str , file_name: str = 'requirements.txt', comment_char: str = '#') -> List[str]:
     """Load requirements from a file
 
     >>> _load_requirements(PROJECT_ROOT)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
