@@ -27,7 +27,6 @@ else:
     class ReduceOp:
         SUM = None
 
-
     class group:
         WORLD = None
 
