@@ -166,7 +166,7 @@ class DDPSequentialPlugin(RPCPlugin):
     def _find_and_init_pipe_module(self, model):
         if hasattr(model, "sequential_module") and isinstance(model.sequential_module, LightningPipeModule):
             # model has been wrapped already
-
+            return
         elif hasattr(model, "sequential_module") and isinstance(model.sequential_module, nn.Sequential):
             # try to wrap model for the user
             model.sequential_module = LightningPipeModule(
