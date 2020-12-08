@@ -293,7 +293,7 @@ FBeta
     :noindex:
 
 Hamming Distance
-~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 .. autoclass:: pytorch_lightning.metrics.classification.HammingDistance
     :noindex:
