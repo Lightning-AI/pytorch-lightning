@@ -11,9 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from unittest import mock
-from unittest.mock import MagicMock, call, ANY
+from unittest.mock import ANY, MagicMock, call
 
 from pytorch_lightning import Trainer
 from tests.base import BoringModel

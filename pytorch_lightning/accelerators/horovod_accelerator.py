@@ -18,15 +18,11 @@ import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities import AMPType, HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
-try:
+if HOROVOD_AVAILABLE:
     import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
 
 
 class HorovodAccelerator(Accelerator):

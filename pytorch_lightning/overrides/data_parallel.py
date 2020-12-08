@@ -14,7 +14,7 @@
 
 import itertools
 import threading
-from collections.abc import Mapping, Iterable
+from collections.abc import Iterable, Mapping
 from itertools import chain
 
 import torch
@@ -161,6 +161,7 @@ class LightningDistributedDataParallel(DistributedDataParallel):
 
     def forward(self, *inputs, **kwargs):  # pragma: no-cover
         self._sync_params()
+        self.reducer_reset_hooks()
         fx_called: str = ''
 
         if self.device_ids:
@@ -194,6 +195,15 @@ class LightningDistributedDataParallel(DistributedDataParallel):
             else:
                 output = self.module.validation_step(*inputs, **kwargs)
 
+        if not self._reducer_prepared_for_backwards:
+            self.reducer_prepare_for_backwards(output)
+
+        if output is None:
+            warn_missing_output(f'{fx_called} returned None. Did you forget to return an output')
+        return output
+
+    def reducer_prepare_for_backwards(self, output):
+        self._reducer_prepared_for_backwards = True
         if torch.is_grad_enabled():
             # We'll return the output object verbatim since it is a freeform
             # object. We need to find any tensors in this object, though,
@@ -205,9 +215,8 @@ class LightningDistributedDataParallel(DistributedDataParallel):
             else:
                 self.reducer.prepare_for_backward([])
 
-        if output is None:
-            warn_missing_output(f'{fx_called} returned None. Did you forget to re')
-        return output
+    def reducer_reset_hooks(self):
+        self._reducer_prepared_for_backwards = False
 
 
 def warn_missing_output(fx_called):

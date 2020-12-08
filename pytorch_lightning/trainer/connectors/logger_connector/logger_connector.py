@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from collections import ChainMap
 from copy import deepcopy
 from pprint import pprint
-from typing import Iterable, Union, cast
+from typing import Iterable, Union
 
 import torch
 
@@ -23,18 +22,13 @@ from pytorch_lightning.core import memory
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
-from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import (
-    LOOKUP_TABLE,
-    EpochResultStore,
-    LoggerStages,
-)
+from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore, LoggerStages
 from pytorch_lightning.utilities import flatten_dict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_utils import is_overridden
 
 
 class LoggerConnector:
-
     def __init__(self, trainer):
         self.trainer = trainer
         self.callback_metrics = {}
@@ -42,24 +36,23 @@ class LoggerConnector:
         self.logged_metrics = {}
         self.progress_bar_metrics = {}
         self.eval_loop_results = []
-        self._stages = sorted([s.value for s in LoggerStages])
-        self._cached_results = {stage: EpochResultStore(trainer, stage) for stage in self._stages}
+        self._cached_results = {stage: EpochResultStore(trainer, stage) for stage in LoggerStages}
         self._callback_hook_validator = CallbackHookNameValidator()
         self._current_stage = None
 
     @property
     def cached_results(self) -> Union[EpochResultStore, None]:
-        return self._cached_results[self._current_stage]
+        return self._cached_results.get(self._current_stage)    # type: ignore
 
-    def set_stage(self, stage_or_testing: str, reset:bool = False) -> None:
-        self._current_stage = self._determine_stage(stage_or_testing)
+    def set_stage(self, stage_or_testing: Union[str, bool], reset: bool = False) -> None:
+        self._current_stage = LoggerStages.determine_stage(stage_or_testing)
         if reset:
             self.cached_results.reset()
 
     def check_logging_in_callbacks(self, hook_fx_name, on_step: bool = None, on_epoch: bool = None) -> None:
-        self._callback_hook_validator.check_logging_in_callbacks(current_hook_fx_name=hook_fx_name,
-                                                                 on_step=on_step,
-                                                                 on_epoch=on_epoch)
+        self._callback_hook_validator.check_logging_in_callbacks(
+            current_hook_fx_name=hook_fx_name, on_step=on_step, on_epoch=on_epoch
+        )
 
     def on_evaluation_batch_start(self, testing, batch, dataloader_idx, num_dataloaders):
         model = self.trainer.get_model()
@@ -78,25 +71,11 @@ class LoggerConnector:
         self.cached_results._opt_idx = None
         self.cached_results._batch_size = None
 
-    def _determine_stage(self, stage_or_testing: Union[str, bool]) -> str:
-        stage_or_testing = str(stage_or_testing)
-        stages = self._stages
-        if stage_or_testing in stages:
-            return stage_or_testing
-        if stage_or_testing in LOOKUP_TABLE:
-            # Acces using trainer.testing
-            return LOOKUP_TABLE[stage_or_testing]
-        raise MisconfigurationException(
-            f"Provide stage_or_testing {stage_or_testing} doesn't belong either to {stages}"
-            f" or {LOOKUP_TABLE.keys()}"
-        )
-
-    def cache_logged_metrics(self) -> Union[EpochResultStore, None]:
+    def cache_logged_metrics(self):
         if self._current_stage is not None:
             self._cached_results[self._current_stage].cache_result()
 
-    def on_trainer_init(self, logger, flush_logs_every_n_steps: int,
-                        log_every_n_steps: int, move_metrics_to_cpu: bool):
+    def on_trainer_init(self, logger, flush_logs_every_n_steps: int, log_every_n_steps: int, move_metrics_to_cpu: bool):
         # logging
         self.configure_logger(logger)
         # todo: IDE is complaining, these shall be initialized in the Trainer init at leas as placeholders
@@ -122,9 +101,7 @@ class LoggerConnector:
 
             # default logger
             self.trainer.logger = TensorBoardLogger(
-                save_dir=self.trainer.default_root_dir,
-                version=version,
-                name='lightning_logs'
+                save_dir=self.trainer.default_root_dir, version=version, name='lightning_logs'
             )
         elif logger is False:
             self.trainer.logger = None
@@ -289,10 +266,7 @@ class LoggerConnector:
         return results
 
     def _track_callback_metrics(self, eval_results, using_eval_result):
-        if (
-                len(eval_results) > 0 and
-                (eval_results[0] is None or not isinstance(eval_results[0], Result))
-        ):
+        if len(eval_results) > 0 and (eval_results[0] is None or not isinstance(eval_results[0], Result)):
             return
 
         if using_eval_result:
@@ -379,20 +353,22 @@ class LoggerConnector:
                     _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.trainer.process_dict_result(result)
 
                 if num_loaders > 1:
-                    self.__process_eval_epoch_end_results_and_log_legacy_update(prog_bar_metrics, log_metrics, callback_metrics)
+                    self.__process_eval_epoch_end_results_and_log_legacy_update(
+                        prog_bar_metrics, log_metrics, callback_metrics
+                    )
 
             if num_loaders == 1:
-                self.__process_eval_epoch_end_results_and_log_legacy_update(prog_bar_metrics, log_metrics, callback_metrics)
+                self.__process_eval_epoch_end_results_and_log_legacy_update(
+                    prog_bar_metrics, log_metrics, callback_metrics
+                )
 
     def on_train_epoch_end(self):
         # inform cached logger connector epoch finished
         self.cached_results.has_batch_loop_finished = True
 
-    def log_train_epoch_end_metrics(self,
-                                    epoch_output,
-                                    checkpoint_accumulator,
-                                    early_stopping_accumulator,
-                                    num_optimizers):
+    def log_train_epoch_end_metrics(
+        self, epoch_output, checkpoint_accumulator, early_stopping_accumulator, num_optimizers
+    ):
         # epoch output is a list. Each item in that list has all the outputs per optimizer
         # epoch_output[optimizer_idx][training_step_idx][tbptt_index]
         # remember that not using truncated backprop is equivalent with truncated back prop of len(1)
@@ -438,11 +414,7 @@ class LoggerConnector:
         # TODO: deprecate 1.0
         else:
             out = self.__run_legacy_training_epoch_end(
-                num_optimizers,
-                epoch_output,
-                model,
-                is_result_obj,
-                epoch_callback_metrics
+                num_optimizers, epoch_output, model, is_result_obj, epoch_callback_metrics
             )
             epoch_log_metrics, epoch_progress_bar_metrics, epoch_callback_metrics = out
 
@@ -489,18 +461,15 @@ class LoggerConnector:
         epoch_output = model.training_epoch_end(epoch_output)
 
         if epoch_output is not None:
-            raise MisconfigurationException('training_epoch_end expects a return of None. '
-                                            'HINT: remove the return statement in training_epoch_end')
+            raise MisconfigurationException(
+                'training_epoch_end expects a return of None. '
+                'HINT: remove the return statement in training_epoch_end'
+            )
         # capture logging
         self.trainer.logger_connector.cache_logged_metrics()
 
     def __run_legacy_training_epoch_end(
-            self,
-            num_optimizers,
-            epoch_output,
-            model,
-            is_result_obj,
-            epoch_callback_metrics
+        self, num_optimizers, epoch_output, model, is_result_obj, epoch_callback_metrics
     ):
 
         epoch_log_metrics = {}
@@ -618,11 +587,13 @@ class LoggerConnector:
         return gathered_epoch_outputs
 
     def log_train_step_metrics(self, batch_output):
+        _, batch_log_metrics = self.cached_results.update_logger_connector()
         # when metrics should be logged
         if self.should_update_logs or self.trainer.fast_dev_run:
             # logs user requested information to logger
-            metrics = self.cached_results.get_latest_batch_log_metrics()
             grad_norm_dic = batch_output.grad_norm_dic
-            if len(metrics) > 0 or len(grad_norm_dic) > 0:
-                self.log_metrics(metrics, grad_norm_dic, log_train_step_metrics=True)
-                self.callback_metrics.update(metrics)
+            if grad_norm_dic is None:
+                grad_norm_dic = {}
+            if len(batch_log_metrics) > 0 or len(grad_norm_dic) > 0:
+                self.log_metrics(batch_log_metrics, grad_norm_dic, log_train_step_metrics=True)
+                self.callback_metrics.update(batch_log_metrics)

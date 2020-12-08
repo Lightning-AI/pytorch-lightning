@@ -261,6 +261,29 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     assert ckpt_name == filepath / 'test-epoch=3-step=2.ckpt'
 
 
+class ModelCheckpointExtensionTest(ModelCheckpoint):
+    FILE_EXTENSION = '.tpkc'
+
+
+def test_model_checkpoint_file_extension(tmpdir):
+    """
+    Test ModelCheckpoint with different file extension.
+    """
+
+    model = LogInTwoMethods()
+    model_checkpoint = ModelCheckpointExtensionTest(monitor='early_stop_on', dirpath=tmpdir, save_top_k=1, save_last=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[model_checkpoint],
+        max_steps=1,
+        logger=False,
+    )
+    trainer.fit(model)
+
+    expected = ['epoch=0-step=0.tpkc', 'last.tpkc']
+    assert set(expected) == set(os.listdir(tmpdir))
+
+
 def test_model_checkpoint_save_last(tmpdir):
     """Tests that save_last produces only one last checkpoint."""
     seed_everything()

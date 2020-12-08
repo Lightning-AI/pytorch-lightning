@@ -23,7 +23,14 @@ from torch.optim import Optimizer
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.utilities import TPU_AVAILABLE, rank_zero_info, rank_zero_only, rank_zero_warn, move_data_to_device
+from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.utilities import (
+    TPU_AVAILABLE,
+    move_data_to_device,
+    rank_zero_info,
+    rank_zero_only,
+    rank_zero_warn,
+)
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -81,7 +88,7 @@ class TPUAccelerator(Accelerator):
         # todo, pass also bets score
 
         # load last weights
-        if last_path and not self.trainer.testing:
+        if last_path and not self.trainer.evaluating:
             ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt)
 
@@ -109,7 +116,7 @@ class TPUAccelerator(Accelerator):
         model = self.trainer.model
 
         # load weights if not interrupted
-        if self.trainer.on_colab_kaggle and not self.trainer.testing:
+        if self.trainer.on_colab_kaggle and not self.trainer.evaluating:
             self.load_spawn_weights(model)
 
         self.trainer.model = model
@@ -245,24 +252,6 @@ class TPUAccelerator(Accelerator):
 
         return closure_loss
 
-    def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure, *args, **kwargs):
-        model_ref = self.trainer.get_model()
-        is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-
-        # model hook
-        model_ref.optimizer_step(
-            epoch=self.trainer.current_epoch,
-            batch_idx=batch_idx,
-            optimizer=optimizer,
-            optimizer_idx=opt_idx,
-            optimizer_closure=lambda_closure,
-            on_tpu=True,
-            using_native_amp=False,
-            using_lbfgs=is_lbfgs,
-            *args,
-            **kwargs,
-        )
-
     def _clip_gradients(self, optimizer: Optimizer, grad_clip_val: Union[float, int], norm_type: float = 2.0):
         # this code is a modification of torch.nn.utils.clip_grad_norm_
         # with TPU support based on https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md
@@ -342,7 +331,7 @@ class TPUAccelerator(Accelerator):
 
             # save the last weights
             last_path = None
-            if not self.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
+            if not self.trainer.evaluating and best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
                 state_dict = move_data_to_device(model.state_dict(), torch.device("cpu"))
                 atomic_save(state_dict, last_path)
