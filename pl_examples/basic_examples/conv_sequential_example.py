@@ -52,7 +52,7 @@ class Flatten(nn.Module):
 class ConvNN(nn.Module):
 
     def __init__(self):
-        super(ConvNN, self).__init__()
+        super().__init__()
 
         self.sequential_module = nn.Sequential(
             # Conv Layer block 1
