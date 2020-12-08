@@ -85,10 +85,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Enabled `self.log` in most functions ([#4969](https://github.com/PyTorchLightning/pytorch-lightning/pull/4969))
 
 
-- Added changeable extension variable for model checkpoints ([#4977](https://github.com/PyTorchLightning/pytorch-lightning/pull/4977))
-
-
-- Added Commet `experiment_key` argument to online mode example ([#4997](https://github.com/PyTorchLightning/pytorch-lightning/pull/4997))
+- Added changeable extension variable for `ModelCheckpoint` ([#4977](https://github.com/PyTorchLightning/pytorch-lightning/pull/4977))
 
 
 ### Changed
@@ -151,7 +148,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed allowing logger to support indexing ([#4595](https://github.com/PyTorchLightning/pytorch-lightning/pull/4595))
 
 
-- Fixed DDP and `manual_optimisation` ([#4976](https://github.com/PyTorchLightning/pytorch-lightning/pull/4976))
+- Fixed DDP and manual_optimization ([#4976](https://github.com/PyTorchLightning/pytorch-lightning/pull/4976))
 
 
 ## [1.0.8] - 2020-11-24
