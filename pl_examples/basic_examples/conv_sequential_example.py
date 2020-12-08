@@ -101,15 +101,15 @@ class ConvNN(nn.Module):
 
 
 class LitResnet(pl.LightningModule):
-    def __init__(self, lr=0.05, batch_size=32, automatic_optimization=False):
+    def __init__(self, lr=0.05, batch_size=32, manual_optimization=False):
         super().__init__()
 
         self.save_hyperparameters()
         model = ConvNN()
         self.sequential_module = model.sequential_module
         self._example_input_array = torch.randn((1, 3, 32, 32))
-        self._automatic_optimization = automatic_optimization
-        if not self._automatic_optimization:
+        self._manual_optimization = manual_optimization
+        if self._manual_optimization:
             self.training_step = self.training_step_manual
 
     def forward(self, x):
@@ -173,7 +173,7 @@ class LitResnet(pl.LightningModule):
     @property
     def automatic_optimization(self) -> bool:
         # Turn off automatic optimization when using pipe parallel
-        return self._automatic_optimization
+        return not self._manual_optimization
 
 
 #################################
@@ -217,9 +217,9 @@ if __name__ == "__main__":
 
     plugins = None
     if args.use_ddp_sequential:
-        plugins = DDPSequentialPlugin(balance=[1, 26])
+        plugins = DDPSequentialPlugin()
 
-    model = LitResnet(batch_size=args.batch_size, automatic_optimization=args.automatic_optimization)
+    model = LitResnet(batch_size=args.batch_size, manual_optimization=not args.automatic_optimization)
 
     trainer = pl.Trainer.from_argparse_args(args, plugins=[plugins] if plugins else None)
     trainer.fit(model, cifar10_dm)
