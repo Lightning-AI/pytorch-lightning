@@ -55,21 +55,21 @@ class DDPSequentialPlugin(RPCPlugin):
         or you can pass an example input array via the LightningModule to infer a balance.
         The module will be partitioned into multiple devices according to the given balance. You may also rely on
         your own heuristics to find your own optimal configuration.
+
         Args:
-            balance: The balance of the model, i.e [2, 2] (two layers on each GPU).
-            If not provided assumes user provides an input example array to find a balance on all GPUs.
+            balance: The balance of the model, i.e `[2, 2]` (two layers on each GPU).
+                If not provided assumes user provides an input example array to find a balance on all GPUs.
             microbatches: Allows for parallelization to reduce device utilization
-            by splitting the batch into further smaller batches.
-            checkpoint: Enables gradient checkpointing. ['always', 'except_last', 'never']
+                by splitting the batch into further smaller batches.
+            checkpoint: Enables gradient checkpointing. Options: `['always', 'except_last', 'never']`
             balance_mode: Type of balance heuristic to use if balance to be inferred.
             'balance_by_size': checks memory usage of each layer and determines balance,
             'balance_by_time': checks time of each layer and determines balance
-            pipelined_backward: if True, call torch.autograd.backward once per microbatch on the
-            backward pass (instead of once for the whole batch). This works
-            around a potential deadlock in pytorch when using tensor parallelism
-            at the same time. Defaults to `True` if
-            `get_model_parallel_world_size() > 1`
-            (default: `None`)
+            pipelined_backward: if True, call ``torch.autograd.backward`` once per microbatch on the
+                backward pass (instead of once for the whole batch). This works
+                around a potential deadlock in pytorch when using tensor parallelism
+                at the same time. Defaults to `True` if `get_model_parallel_world_size() > 1`
+                (default: `None`)
         """
         self._check_pipe_available()
         super().__init__(**kwargs)
