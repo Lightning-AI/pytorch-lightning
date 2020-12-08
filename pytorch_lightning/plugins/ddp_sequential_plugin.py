@@ -26,7 +26,6 @@ class DDPSequentialPlugin(RPCPlugin):
                  balance: Optional[List[int]] = None,
                  microbatches: int = 8,
                  checkpoint: str = 'except_last',
-                 gpus_per_model: Optional[int] = None,
                  balance_mode: str = "balance_by_size",
                  pipelined_backward: Optional[bool] = True,
                  **kwargs):
@@ -46,16 +45,6 @@ class DDPSequentialPlugin(RPCPlugin):
                 trainer = Trainer(accelerator='ddp', gpus=4, plugins=[plugin])
                 trainer.fit(model)
 
-                '''
-                Split my module across 2 gpus, two layers each.
-                The other two GPUs replicate this pattern and receive different data
-                using standard Distributed Data Parallel.
-                '''
-                model = MyLightningModule()
-                plugin = DDPSequentialPlugin(balance=[2, 2)
-                trainer = Trainer(accelerator='ddp', gpus=4, plugins=[plugin])
-                trainer.fit(model)
-
         .. _DDPSequentialPlugin: https://arxiv.org/abs/1811.06965
 
         Pipeline parallelism comes with with checkpointing to reduce peak
@@ -68,11 +57,10 @@ class DDPSequentialPlugin(RPCPlugin):
         your own heuristics to find your own optimal configuration.
         Args:
             balance: The balance of the model, i.e [2, 2] (two layers on each GPU).
-            If not provided assumes user provides an input example array and gpus_per_model to find a balance.
+            If not provided assumes user provides an input example array to find a balance on all GPUs.
             microbatches: Allows for parallelization to reduce device utilization
             by splitting the batch into further smaller batches.
             checkpoint: Enables gradient checkpointing. ['always', 'except_last', 'never']
-            gpus_per_model: Number of GPUs per model if balance is to be inferred.
             balance_mode: Type of balance heuristic to use if balance to be inferred.
             'balance_by_size': checks memory usage of each layer and determines balance,
             'balance_by_time': checks time of each layer and determines balance
@@ -87,7 +75,6 @@ class DDPSequentialPlugin(RPCPlugin):
         super().__init__(**kwargs)
 
         self.balance = balance
-        self.gpus_per_model = gpus_per_model
 
         self.microbatches = microbatches
         self.checkpoint = checkpoint
@@ -117,7 +104,7 @@ class DDPSequentialPlugin(RPCPlugin):
                 global_rank=global_rank,
                 world_size=world_size
             )
-
+            self.gpus_per_model = self._infer_check_num_gpus(trainer)
             self.init_model_parallel_groups(trainer)
             self.set_main_rpc_process()
 
@@ -206,14 +193,13 @@ class DDPSequentialPlugin(RPCPlugin):
         return False
 
     def init_model_parallel_groups(self, trainer):
-        self.gpus_per_model = self._infer_num_gpus(trainer)
         num_model_parallel = 1  # TODO currently no support for vertical model parallel
         mpu.initialize_model_parallel(
             model_parallel_size_=num_model_parallel,
             pipeline_length=self.gpus_per_model
         )
 
-    def _infer_num_gpus(self, trainer):
+    def _infer_check_num_gpus(self, trainer):
         """
         Infer the number of GPUs per model.
         Args:
@@ -221,11 +207,12 @@ class DDPSequentialPlugin(RPCPlugin):
         Returns: The appropriate balance for the model
         """
         if isinstance(self.balance, list):
+            if len(self.balance) != trainer.world_size:
+                raise MisconfigurationException(
+                    "Pipe currently only supports splitting the module onto all available GPUs"
+                )
             # User has defined a balance for his model
             return len(self.balance)
-        elif isinstance(self.gpus_per_model, int):
-            # User has defined the number of GPUs per model
-            return self.gpus_per_model
         # Assume that the user wants to balance his model on all GPUs
         return trainer.world_size
 
