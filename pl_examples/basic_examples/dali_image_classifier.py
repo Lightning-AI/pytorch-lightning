@@ -35,8 +35,9 @@ if DALI_AVAILABLE:
     import nvidia.dali.ops as ops
     from nvidia.dali.pipeline import Pipeline
     from nvidia.dali.plugin.pytorch import DALIClassificationIterator
+    from nvidia.dali import __version__ as dali_version
 
-    NEW_DALI_API = LooseVersion(nvidia.dali.__version__) >= LooseVersion('0.28.0')
+    NEW_DALI_API = LooseVersion(dali_version) >= LooseVersion('0.28.0')
     if NEW_DALI_API:
         from nvidia.dali.plugin.base_iterator import LastBatchPolicy
 else:
