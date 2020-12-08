@@ -29,7 +29,6 @@ class NewAccelerator(object):
         self.optimizer_frequencies = None
 
     def setup(self, trainer, model):
-        print(trainer.global_rank, "Accelerator.setup")
         self.connect_training_type_plugin(self.training_type_plugin, model)
         self.training_type_plugin.setup(model)
         self.setup_optimizers(trainer, model)

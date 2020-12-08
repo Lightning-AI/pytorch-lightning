@@ -130,9 +130,7 @@ class TrainLoop:
         # --------------------------
         # Setup??
         # --------------------------
-        # ref_model = self.trainer.get_model()
-        print(self.trainer.global_rank, type(model))
-        ref_model = self.trainer.get_model()
+        ref_model = model
 
         # give model convenience properties
         ref_model.trainer = self.trainer

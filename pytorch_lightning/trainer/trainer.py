@@ -313,8 +313,6 @@ class Trainer(
 
         distributed_backend = distributed_backend or accelerator
 
-        print("gpus passed into trainer", gpus)
-
         # init connectors
         self.dev_debugger = InternalDebugger(self)
         self.config_validator = ConfigValidator(self)
