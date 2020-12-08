@@ -136,7 +136,7 @@ def _mlmd_prob_to_mc_preds_tr(x):
         ###########################
         # Test some special cases
         # Make sure that half precision works, i.e. is converted to full precision
-        (_ml_prob_half, None, None, None, "multi-label", _ml_preds_tr, _rshp1),
+        (_ml_prob_half, None, None, None, "multi-label", lambda x: _ml_preds_tr(x.float()), _rshp1),
         # Binary as multiclass
         (_bin, None, None, None, "multi-class", _onehot2, _onehot2),
         # Binary probs as multiclass
