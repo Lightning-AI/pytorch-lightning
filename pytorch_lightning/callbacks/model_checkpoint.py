@@ -350,6 +350,7 @@ class ModelCheckpoint(Callback):
             log.debug(f"Removed checkpoint: {filepath}")
 
     def _save_model(self, filepath: str, trainer, pl_module):
+        # Todo: required argument `pl_module` is not used
         # in debugging, track when we save checkpoints
         trainer.dev_debugger.track_checkpointing_history(filepath)
 
@@ -461,6 +462,7 @@ class ModelCheckpoint(Callback):
         The base path gets extended with logger name and version (if these are available)
         and subfolder "checkpoints".
         """
+        # Todo: required argument `pl_module` is not used
         if self.dirpath is not None:
             return  # short circuit
 

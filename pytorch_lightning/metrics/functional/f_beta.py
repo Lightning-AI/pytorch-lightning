@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Tuple
+from warnings import warn
 
 import torch
 
@@ -150,4 +151,6 @@ def f1(
         >>> f1(preds, target, num_classes=3)
         tensor(0.3333)
     """
+    if beta != 1.0:
+        warn(f'The `beta={beta}` is used but it will not have any effect.')
     return fbeta(preds, target, num_classes, 1.0, threshold, average, multilabel)

@@ -1163,6 +1163,7 @@ class LightningModule(
             optimizer:
             optimizer_idx:
         """
+        # Todo: required argument `optimizer_idx` is not used
         for param in self.parameters():
             param.requires_grad = False
 

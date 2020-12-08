@@ -213,6 +213,7 @@ class DDPCPUSpawnAccelerator(Accelerator):
         self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
     def model_to_device(self, model, process_idx):
+        # Todo: required argument `process_idx` is not used
         model.cpu()
 
     def get_device_ids(self):
@@ -227,6 +228,7 @@ class DDPCPUSpawnAccelerator(Accelerator):
         self.trainer.model = model
 
     def transfer_distrib_spawn_state_on_fit_end(self, model, mp_queue, results):
+        # Todo: required argument `model` is not used
         # track the best model path
         best_model_path = None
         if self.trainer.checkpoint_callback is not None:

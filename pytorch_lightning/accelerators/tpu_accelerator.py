@@ -126,6 +126,7 @@ class TPUAccelerator(Accelerator):
         """
         Here we are inside each individual process
         """
+        # Todo: required argument `tpu_core_idx` is not used
         if not trainer:
             trainer = self.trainer
 
@@ -281,6 +282,7 @@ class TPUAccelerator(Accelerator):
         """
         Dump a temporary checkpoint after ddp ends to get weights out of the process
         """
+        # Todo: required argument `model` is not used
         if self.trainer.is_global_zero:
             path = os.path.join(self.trainer.default_root_dir, '__temp_weight_distributed_end.ckpt')
             self.trainer.save_checkpoint(path)

@@ -102,6 +102,7 @@ class DataConnector(object):
             model.test_dataloader = _PatchDataLoader(test_dataloaders)
 
     def attach_datamodule(self, model, datamodule: Optional[LightningDataModule], stage: str) -> None:
+        # Todo: required argument `stage` is not used
 
         # We use datamodule if it's been provided on .fit or .test, otherwise we check model for it
         datamodule = datamodule or getattr(model, 'datamodule', None)

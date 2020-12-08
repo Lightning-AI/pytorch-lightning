@@ -267,7 +267,7 @@ class LightningOptimizer:
 
         if closure is None:
             closure = do_nothing_closure
-            profile_name = f"optimizer_step_{self._optimizer_idx}"
+            # profile_name = f"optimizer_step_{self._optimizer_idx}"
         else:
             if not isinstance(closure, types.FunctionType):
                 raise MisconfigurationException("When closure is provided, it should be a function")
