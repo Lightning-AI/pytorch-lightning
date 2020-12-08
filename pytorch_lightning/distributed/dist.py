@@ -41,8 +41,7 @@ class LightningDistributed:
     def _broadcast(self, tensor, src=0, group=WORLD):
         if group is None:
             return torch_distrib.broadcast(tensor, src=src)
-        else:
-            return torch_distrib.broadcast(tensor, src=0, group=group)
+        return torch_distrib.broadcast(tensor, src=0, group=group)
 
     def _emit(self, obj: Any, group=WORLD):
         buffer = io.BytesIO()
