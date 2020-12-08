@@ -90,7 +90,7 @@ class ConfigValidator(object):
         if (has_overriden_optimization_functions) and going_to_accumulate_grad_batches and automatic_optimization:
             raise MisconfigurationException(
                 'When overriding `LightningModule` optimizer_step or optimizer_zero_grad with '
-                '`Trainer(...)`, `accumulate_grad_batches` should to be 1.'
+                ' `Trainer(...)`, `accumulate_grad_batches` should to be 1.'
                 ' It ensures optimizer_step or optimizer_zero_grad are called on every batch.'
             )
 
