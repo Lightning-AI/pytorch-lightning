@@ -48,13 +48,13 @@ class Flatten(nn.Module):
     def forward(self, x):
         return x.view(x.size(0), -1)
 
-
-###############################
-#       LightningModule       #
-###############################
+    ###############################
+    #       LightningModule       #
+    ###############################
 
     def __init__(self):
         super().__init__()
+
 
 class LitResnet(pl.LightningModule):
     def __init__(self, lr=0.05, batch_size=32, manual_optimization=False):
@@ -197,6 +197,7 @@ if __name__ == "__main__":
     parser = ArgumentParser(description="Pipe Example")
     parser.add_argument("--use_ddp_sequential", action="store_true")
     parser = Trainer.add_argparse_args(parser)
+    parser = pl_bolts.datamodules.CIFAR10DataModule.add_argparse_args(parser)
     args = parser.parse_args()
 
     assert BOLTS_AVAILABLE, "Bolts is required for this example, install it via pip install pytorch-lightning-bolts"
