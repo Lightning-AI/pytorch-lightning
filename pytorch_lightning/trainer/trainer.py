@@ -855,7 +855,8 @@ class Trainer(
         model.setup(stage_name)
 
     def _reset_result_and_set_hook_fx_name(self, hook_name):
-        if "batch_start" in hook_name:
+        # on_before_zero_grad is called within training_step
+        if "batch_start" in hook_name or "on_before_zero_grad" in hook_name:
             return True
         model_ref = self.get_model()
         if model_ref is not None:

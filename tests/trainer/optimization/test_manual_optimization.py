@@ -22,6 +22,7 @@ import torch.nn.functional as F
 
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.utilities import APEX_AVAILABLE
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel
 
 
@@ -563,6 +564,15 @@ def test_multiple_optimizers_step(tmpdir):
     Tests that `step` works with several optimizers
     """
     class TestModel(BoringModel):
+
+        called = False
+
+        def on_after_backward(self):
+            self.called = True
+            norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
+            if not (torch.isinf(norm) or torch.isnan(norm)):
+                assert norm.item() < 100, norm.item()
+
         def training_step(self, batch, batch_idx, optimizer_idx):
             # manual
             (opt_a, opt_b) = self.optimizers()
@@ -621,6 +631,7 @@ def test_multiple_optimizers_step(tmpdir):
 
     num_manual_backward_calls = 3
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * num_manual_backward_calls
+    assert model.called
 
 
 def test_step_with_optimizer_closure(tmpdir):
@@ -891,3 +902,32 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
 
     expected_calls = [call(closure=ANY, optim='adam') for s in range(2)]
     mock_adam_step.assert_has_calls(expected_calls)
+
+
+def test_step_with_misconfiguraiton_error_when_overriding_optimizer_zero_grad(tmpdir):
+    """
+    Tests that `optimizer_zero_grad` in manual_optimization triggers a MisconfigurationException
+    """
+    try:
+        class TestModel(BoringModel):
+
+            def optimizer_zero_grad(self, *_):
+                pass
+
+        model = TestModel()
+        model.val_dataloader = None
+        model.training_epoch_end = None
+
+        limit_train_batches = 8
+        trainer = Trainer(
+            automatic_optimization=False,
+            default_root_dir=tmpdir,
+            limit_train_batches=limit_train_batches,
+            limit_val_batches=2,
+            max_epochs=1,
+            log_every_n_steps=1,
+            accumulate_grad_batches=2,
+            enable_pl_optimizer=True,
+        )
+    except MisconfigurationException as e:
+        assert "`Trainer(automatic_optimization=False, enable_pl_optimizer=True, ...) is not supported" in str(e)
