@@ -60,6 +60,7 @@ jobs:
           flake8 .
 
   python-typing-mypy:
+    name: Python typing check [mypy]
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@master
@@ -70,6 +71,6 @@ jobs:
         run: |
           pip install mypy
           pip list
-      - name: mypy
+      - name: mypy check
         run: |
           mypy
