@@ -57,7 +57,8 @@ class DDPShardedPlugin(DDPPlugin):
 
     def _wrap_optimizers(self, model):
         trainer = model.trainer
-        if trainer.evaluating is True:
+
+        if trainer.evaluating:
             return
 
         self._reinit_with_fairscale_oss(trainer)
