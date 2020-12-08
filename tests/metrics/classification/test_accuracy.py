@@ -72,8 +72,6 @@ class TestAccuracies(MetricTester):
             sk_metric=partial(_sk_accuracy, mdmc_accuracy=mdmc_accuracy),
             dist_sync_on_step=dist_sync_on_step,
             metric_args={"threshold": THRESHOLD, "mdmc_accuracy": mdmc_accuracy},
-            check_dist_sync_on_step=False,
-            check_batch=False            
         )
 
     def test_accuracy_fn(self, preds, target, mdmc_accuracy):
