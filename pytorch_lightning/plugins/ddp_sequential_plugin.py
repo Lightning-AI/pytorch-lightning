@@ -164,10 +164,9 @@ class DDPSequentialPlugin(RPCPlugin):
                 'Did you defined set your sequential model as an `sequential_module` attribute of your model ?')
 
     def _find_and_init_pipe_module(self, model):
-        found_module = False
         if hasattr(model, "sequential_module") and isinstance(model.sequential_module, LightningPipeModule):
             # model has been wrapped already
-            found_module = True
+
         elif hasattr(model, "sequential_module") and isinstance(model.sequential_module, nn.Sequential):
             # try to wrap model for the user
             model.sequential_module = LightningPipeModule(
@@ -183,12 +182,12 @@ class DDPSequentialPlugin(RPCPlugin):
             # Update references for main process to access correct lightning functions when calling RPC
             model.sequential_module.module.model.trainer = model.trainer
             model.sequential_module.module.model.configure_optimizers = model.configure_optimizers
-            found_module = True
 
-        if not found_module:
+        else:
             raise MisconfigurationException(
                 'Could not find a PipeLightningModule within the model. '
-                'Did you defined set your sequential model as an `sequential_module` attribute of your model ?')
+                'Did you defined set your sequential model as an `sequential_module` attribute of your model ?'
+            )
 
     def _assert_valid_model_balance(self, trainer):
         model = trainer.get_model()
