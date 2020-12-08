@@ -30,7 +30,7 @@ class NewAccelerator(object):
 
     def setup(self, trainer, model):
         self.connect_training_type_plugin(self.training_type_plugin, model)
-        self.training_type_plugin.setup(model)
+        # self.training_type_plugin.setup(model)
         self.setup_optimizers(trainer, model)
         self.connect_precision_plugin(self.precision_plugin)
 
