@@ -20,6 +20,7 @@ import numpy as np
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection
+from pytorch_lightning.loggers.base import DummyLogger, DummyExperiment
 from pytorch_lightning.utilities import rank_zero_only
 from tests.base import EvalModelTemplate
 
@@ -213,6 +214,16 @@ def test_with_accumulate_grad_batches():
     assert logger.history == {0: {'loss': 0.5623850983416314}}
     logger.close()
     assert logger.history == {0: {'loss': 0.5623850983416314}, 1: {'loss': 0.4778883735637184}}
+
+
+def test_dummyexperiment_support_indexing():
+    experiment = DummyExperiment()
+    assert experiment[0] == experiment
+
+
+def test_dummylogger_support_indexing():
+    logger = DummyLogger()
+    assert logger[0] == logger
 
 
 def test_np_sanitization():

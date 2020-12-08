@@ -18,10 +18,12 @@ from unittest.mock import ANY, call, patch
 
 import pytest
 import torch
+import torch.distributed as torch_distrib
 import torch.nn.functional as F
 
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.utilities import APEX_AVAILABLE
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel
 
 
@@ -563,6 +565,15 @@ def test_multiple_optimizers_step(tmpdir):
     Tests that `step` works with several optimizers
     """
     class TestModel(BoringModel):
+
+        called = False
+
+        def on_after_backward(self):
+            self.called = True
+            norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
+            if not (torch.isinf(norm) or torch.isnan(norm)):
+                assert norm.item() < 100, norm.item()
+
         def training_step(self, batch, batch_idx, optimizer_idx):
             # manual
             (opt_a, opt_b) = self.optimizers()
@@ -621,6 +632,7 @@ def test_multiple_optimizers_step(tmpdir):
 
     num_manual_backward_calls = 3
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * num_manual_backward_calls
+    assert model.called
 
 
 def test_step_with_optimizer_closure(tmpdir):
@@ -851,7 +863,7 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
                 self.manual_backward(loss_dis, opt_dis)
 
             # this will accumulate gradients for 2 batches and then call opt_gen.step()
-            opt_gen.step(closure=gen_closure, make_optimizer_step=batch_idx % 2 == 0, optim='sgd')
+            opt_gen.step(closure=gen_closure, make_optimizer_step=(batch_idx % 2 == 0), optim='sgd')
 
             # update discriminator every 4 baches
             # therefore, no gradient accumulation for discriminator
@@ -891,3 +903,140 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
 
     expected_calls = [call(closure=ANY, optim='adam') for s in range(2)]
     mock_adam_step.assert_has_calls(expected_calls)
+
+
+@patch("torch.optim.Adam.step")
+@patch("torch.optim.SGD.step")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
+def test_step_with_optimizer_closure_with_different_frequencies_ddp(mock_sgd_step, mock_adam_step, tmpdir):
+    """
+    Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
+    """
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    class TestModel(BoringModel):
+
+        def loss_ones(self, batch, prediction):
+            # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
+            return torch.nn.functional.mse_loss(prediction, torch.ones_like(prediction))
+
+        def loss_zeros(self, batch, prediction):
+            # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
+            return torch.nn.functional.mse_loss(prediction, torch.zeros_like(prediction))
+
+        def manual_sync_grad(self) -> bool:
+            torch_distrib.all_reduce(self.layer.weight.grad.data, async_op=False)
+            return True
+
+        def training_step(self, batch, batch_idx, optimizer_idx):
+
+            # emulate gans training
+            opt_gen, opt_dis = self.optimizers()
+
+            # Note: Be careful, don't log on the same key in self.log in both closure
+            # as they will be aggregated together on epoch_end
+
+            world_size = torch_distrib.get_world_size(torch_distrib.group.WORLD)
+            assert world_size == 2
+
+            def compute_loss():
+                x = batch[0]
+                x = F.dropout(x, 0.1)
+                predictions = self(x)
+                predictions = F.dropout(predictions, 0.1)
+                loss_ones = self.loss_ones(None, predictions)
+                loss_zeros = self.loss_zeros(None, predictions)
+                return loss_ones, loss_zeros
+
+            def make_manual_backward(loss, opt, retain_graph=False):
+                self.manual_backward(loss, opt, retain_graph=retain_graph)
+                grad_clone = self.layer.weight.grad.clone()
+                assert self.manual_sync_grad()
+                self.layer.weight.grad /= world_size
+                assert torch.equal(self.layer.weight.grad, grad_clone)
+
+            def gen_closure():
+                loss_ones_gen, loss_zeros = compute_loss()
+                make_manual_backward(loss_ones_gen, opt_gen, retain_graph=True)
+                make_manual_backward(loss_ones_gen, opt_gen)
+
+            def dis_closure():
+                loss_ones_gen, loss_zeros = compute_loss()
+                make_manual_backward(loss_ones_gen, opt_dis, retain_graph=True)
+                make_manual_backward(loss_ones_gen, opt_dis)
+
+            # this will accumulate gradients for 2 batches and then call opt_gen.step()
+            opt_gen.step(closure=gen_closure, make_optimizer_step=batch_idx % 2 == 0, optim='sgd')
+
+            # update discriminator every 4 baches
+            # therefore, no gradient accumulation for discriminator
+            if batch_idx % 4 == 0 :
+                # Note: Set make_optimizer_step to True or it will use by default
+                # Trainer(accumulate_grad_batches=x)
+                opt_dis.step(closure=dis_closure, make_optimizer_step=True, optim='adam')
+
+        def training_epoch_end(self, outputs) -> None:
+            # outputs should be an array with an entry per optimizer
+            assert len(outputs) == 2
+
+        def configure_optimizers(self):
+            optimizer_gen = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            optimizer_dis = torch.optim.Adam(self.layer.parameters(), lr=0.001)
+            return [optimizer_gen, optimizer_dis]
+
+    seed_everything(42)
+
+    model = TestModel()
+    model.val_dataloader = None
+    model.training_epoch_end = None
+
+    limit_train_batches = 8
+    trainer = Trainer(
+        automatic_optimization=False,
+        default_root_dir=tmpdir,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=2,
+        max_epochs=1,
+        log_every_n_steps=1,
+        accumulate_grad_batches=2,
+        enable_pl_optimizer=True,
+        gpus=2,
+        accelerator="ddp",
+    )
+
+    trainer.fit(model)
+    expected_calls = [call(closure=ANY, optim='sgd')] * 4
+    mock_sgd_step.assert_has_calls(expected_calls)
+
+    expected_calls = [call(closure=ANY, optim='adam')] * 2
+    mock_adam_step.assert_has_calls(expected_calls)
+
+
+def test_step_with_misconfiguraiton_error_when_overriding_optimizer_zero_grad(tmpdir):
+    """
+    Tests that `optimizer_zero_grad` in manual_optimization triggers a MisconfigurationException
+    """
+    try:
+        class TestModel(BoringModel):
+
+            def optimizer_zero_grad(self, *_):
+                pass
+
+        model = TestModel()
+        model.val_dataloader = None
+        model.training_epoch_end = None
+
+        limit_train_batches = 8
+        trainer = Trainer(
+            automatic_optimization=False,
+            default_root_dir=tmpdir,
+            limit_train_batches=limit_train_batches,
+            limit_val_batches=2,
+            max_epochs=1,
+            log_every_n_steps=1,
+            accumulate_grad_batches=2,
+            enable_pl_optimizer=True,
+        )
+    except MisconfigurationException as e:
+        assert "`Trainer(automatic_optimization=False, enable_pl_optimizer=True, ...) is not supported" in str(e)
