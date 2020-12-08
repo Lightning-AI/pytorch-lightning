@@ -77,6 +77,7 @@ class CometLogger(LightningLoggerBase):
             save_dir='.',  # Optional
             project_name='default_project',  # Optional
             rest_api_key=os.environ.get('COMET_REST_API_KEY'),  # Optional
+            experiment_key=os.environ.get('COMET_EXPERIMENT_KEY'),  # Optional
             experiment_name='default'  # Optional
         )
         trainer = Trainer(logger=comet_logger)
