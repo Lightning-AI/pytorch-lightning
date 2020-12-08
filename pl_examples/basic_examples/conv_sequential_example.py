@@ -206,7 +206,6 @@ def instantiate_datamodule(args):
 if __name__ == "__main__":
     parser = ArgumentParser(description="Pipe Example")
     parser.add_argument("--use_ddp_sequential", action="store_true")
-    parser.add_argument("--batch_size", type=int, default=32)
     parser = Trainer.add_argparse_args(parser)
     args = parser.parse_args()
 
