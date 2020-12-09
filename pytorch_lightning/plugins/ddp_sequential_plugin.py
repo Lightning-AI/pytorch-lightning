@@ -47,17 +47,17 @@ class DDPSequentialPlugin(RPCPlugin):
         Provides sequential model parallelism for :class:`nn.Sequential <torch.nn.Sequential>` module.
         If the module requires lots of memory, Pipe can be used to reduce this by leveraging multiple GPUs.
 
-            Example::
-                class MyLightningModule:
-                    def __init__(self):
-                        ...
-                        model.sequential_module = torch.nn.Sequential(my_layers)
+        Example::
+            class MyLightningModule:
+                def __init__(self):
+                    ...
+                    model.sequential_module = torch.nn.Sequential(my_layers)
 
-                # Split my module across 4 gpus, one layer each
-                model = MyLightningModule()
-                plugin = DDPSequentialPlugin(balance=[1, 1, 1, 1])
-                trainer = Trainer(accelerator='ddp', gpus=4, plugins=[plugin])
-                trainer.fit(model)
+            # Split my module across 4 gpus, one layer each
+            model = MyLightningModule()
+            plugin = DDPSequentialPlugin(balance=[1, 1, 1, 1])
+            trainer = Trainer(accelerator='ddp', gpus=4, plugins=[plugin])
+            trainer.fit(model)
 
         .. _DDPSequentialPlugin: https://arxiv.org/abs/1811.06965
 
@@ -71,7 +71,6 @@ class DDPSequentialPlugin(RPCPlugin):
         your own heuristics to find your own optimal configuration.
 
         Args:
-<<<<<<< HEAD
             balance: The balance of the model, i.e [2, 2] (two layers on each GPU).
             If not provided assumes user provides an input example array to find a balance on all GPUs.
 
@@ -81,8 +80,10 @@ class DDPSequentialPlugin(RPCPlugin):
             checkpoint: Enables gradient checkpointing. ['always', 'except_last', 'never']
 
             balance_mode: Type of balance heuristic to use if balance to be inferred.
-            'balance_by_size': checks memory usage of each layer and determines balance,
-            'balance_by_time': checks time of each layer and determines balance
+
+                - 'balance_by_size': checks memory usage of each layer and determines balance
+
+                -'balance_by_time': checks time of each layer and determines balance
 
             pipelined_backward: if True, call torch.autograd.backward once per microbatch on the
 
@@ -90,21 +91,6 @@ class DDPSequentialPlugin(RPCPlugin):
             around a potential deadlock in pytorch when using tensor parallelism
             at the same time. Defaults to `True` if
             `get_model_parallel_world_size() > 1`
-=======
-            balance: The balance of the model, i.e `[2, 2]` (two layers on each GPU).
-                If not provided assumes user provides an input example array to find a balance on all GPUs.
-            microbatches: Allows for parallelization to reduce device utilization
-                by splitting the batch into further smaller batches.
-            checkpoint: Enables gradient checkpointing. Options: `['always', 'except_last', 'never']`
-            balance_mode: Type of balance heuristic to use if balance to be inferred.
-            'balance_by_size': checks memory usage of each layer and determines balance,
-            'balance_by_time': checks time of each layer and determines balance
-            pipelined_backward: if True, call ``torch.autograd.backward`` once per microbatch on the
-                backward pass (instead of once for the whole batch). This works
-                around a potential deadlock in pytorch when using tensor parallelism
-                at the same time. Defaults to `True` if `get_model_parallel_world_size() > 1`
-                (default: `None`)
->>>>>>> 2f9a522154ac0e49e297afbf9b8784120ab2c106
         """
         self._check_pipe_available()
         super().__init__(**kwargs)
@@ -293,7 +279,8 @@ class DDPSequentialPlugin(RPCPlugin):
             save_model_fn,
             last_filepath,
             trainer,
-            pl_module) -> None:
+            pl_module
+        ) -> None:
         model = trainer.get_model()
         if not hasattr(model.sequential_module, "foreach_worker"):
             return
@@ -303,9 +290,8 @@ class DDPSequentialPlugin(RPCPlugin):
             {"gpus_per_model": self.gpus_per_model},
             include_self=True
         )
-        pl_module.sequential_module = reload_sequential_from_saved_layers(self.gpus_per_model)
+        pl_module.sequential_module = load_sequential_from_saved_layers(self.gpus_per_model)
         save_model_fn(last_filepath, trainer, pl_module)
-        del pl_module.sequential_module
         pl_module.sequential_module = current_layers
 
     def worker_optimizer_step(
@@ -352,7 +338,7 @@ class DDPSequentialPlugin(RPCPlugin):
 
 class LightningPipeModule(nn.Module):
     """
-        This class wraps Fairscale Pipe and PipeRCPWrapper class.
+    This class wraps Fairscale Pipe and PipeRCPWrapper class.
     """
 
     def __init__(
@@ -360,7 +346,8 @@ class LightningPipeModule(nn.Module):
             module: nn.Sequential,
             balance: List[int],
             microbatches: int = 8,
-            checkpoint='never'):
+            checkpoint='never'
+        ):
         super().__init__()
         self.module = module
         self.balance = balance
@@ -416,7 +403,7 @@ def save_layers_on_all_rank_zero_workers(ctx, model):
         torch.save(seq, f"seq_{rank}.pt")
 
 
-def reload_sequential_from_saved_layers(gpus_per_model):
+def load_sequential_from_saved_layers(gpus_per_model):
     partial_seqs = [torch.load(f"seq_{rank}.pt", map_location='cpu') for rank in range(gpus_per_model)]
     seq = nn.Sequential()
     for p_seq in partial_seqs:
