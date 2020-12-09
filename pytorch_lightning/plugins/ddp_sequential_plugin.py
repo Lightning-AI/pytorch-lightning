@@ -86,7 +86,6 @@ class DDPSequentialPlugin(RPCPlugin):
                 -'balance_by_time': checks time of each layer and determines balance
 
             pipelined_backward: if True, call torch.autograd.backward once per microbatch on the
-
             backward pass (instead of once for the whole batch). This works
             around a potential deadlock in pytorch when using tensor parallelism
             at the same time. Defaults to `True` if
