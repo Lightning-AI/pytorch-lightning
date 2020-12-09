@@ -9,14 +9,16 @@ Multiple Datasets
 Lightning supports multiple dataloaders in a few ways.
 
 1. Create a dataloader that iterates multiple datasets under the hood.
-2. In the validation and test loop you also have the option to return multiple dataloaders
+2. In the training loop you can pass multiple loaders as a dict or list/tuple and lightning 
+   will automatically combine the batches from different loaders.
+3. In the validation and test loop you also have the option to return multiple dataloaders
    which lightning will call sequentially.
 
 ----------
 
 Multiple training dataloaders
 -----------------------------
-For training, the best way to use multiple dataloaders is to create a ``DataLoader`` class
+For training, the usual way to use multiple dataloaders is to create a ``DataLoader`` class
 which wraps your multiple dataloaders (this of course also works for testing and validation
 dataloaders).
 
@@ -58,6 +60,31 @@ dataloaders).
         def test_dataloader(self):
             # SAME
             ...
+
+However, with lightning you can also return multiple loaders and lightning will take care of batch combination.
+
+For more details please have a look at :attr:`~pytorch_lightning.trainer.trainer.Trainer.multiple_trainloader_mode`
+
+.. testcode::
+
+    class LitModel(LightningModule):
+
+        def train_dataloader(self):
+
+            loader_a = torch.utils.data.DataLoader(range(6), batch_size=4)
+            loader_b = torch.utils.data.DataLoader(range(15), batch_size=5)
+            
+            # pass loaders as a dict. This will create batches like this:
+            # {'a': batch from loader_a, 'b': batch from loader_b}
+            loaders = {'a': loader_a,
+                      'b': loader_b}
+
+            # OR: 
+            # pass loaders as sequence. This will create batches like this:
+            # [batch from loader_a, batch from loader_b]
+            loaders = [loader_a, loader_b]
+
+            return loaders
 
 ----------
 
