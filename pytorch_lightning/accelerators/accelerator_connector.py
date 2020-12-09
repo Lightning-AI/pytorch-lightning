@@ -335,6 +335,7 @@ class AcceleratorConnector:
             self.trainer.use_ddp = True
             self.trainer.data_parallel_device_ids = None
             self.trainer.on_gpu = False
+            self.trainer.on_cpu = True
         elif self.trainer.distributed_backend == "horovod":
             self._set_horovod_backend()
 
