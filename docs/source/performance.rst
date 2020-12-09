@@ -141,7 +141,9 @@ Pipe combines pipeline parallelism with checkpointing to reduce peak memory requ
 
 Find more explanation at https://arxiv.org/abs/1811.06965
 
-Before running, install Fairscale by using pip install pytorch-lightning["extra"].
+.. note:: DDPSequentialPlugin is currently supported only for torch 1.6
+
+Before running, install Fairscale by using pip install pytorch-lightning["extra"] and pip install pytorch-lightning-bolts
 
 To use Sequential Model Parallelism, one need to provide a  :class:`nn.Sequential <torch.nn.Sequential>` module.
 If the module requires lots of memory, Pipe can be used to reduce this by leveraging multiple GPUs.
@@ -183,9 +185,9 @@ When running this example on 2 GPUS.
 Run with Balancing
 .. code-block:: bash
 
-    python pl_examples/basic_examples/conv_sequential_example.py --use_pipe 1 --batch_size 1024
+    python pl_examples/basic_examples/conv_sequential_example.py --use_ddp_sequential --batch_size 1024
 
 Run without Balancing
 .. code-block:: bash
 
-    python pl_examples/basic_examples/conv_sequential_example.py --use_pipe 0 --batch_size 1024
+    python pl_examples/basic_examples/conv_sequential_example.py --batch_size 1024
