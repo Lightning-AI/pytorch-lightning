@@ -12,6 +12,7 @@ scikit-learn>=0.22.2
 scikit-image>=0.17.2
 black>=20.8b1
 isort>=5.6.4
+mypy>=0.720
 pre-commit>=1.0
 
 cloudpickle>=1.3

@@ -70,7 +70,7 @@ def scale_batch_size(trainer,
             or datamodule.
     """
     if trainer.fast_dev_run:
-        rank_zero_warn('Skipping batch size scaler since `fast_dev_run=True`', UserWarning)
+        rank_zero_warn('Skipping batch size scaler since fast_dev_run is enabled.', UserWarning)
         return
 
     if not lightning_hasattr(model, batch_arg_name):
