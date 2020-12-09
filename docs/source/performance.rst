@@ -139,21 +139,4 @@ Sequential Model Parallelism with Checkpointing
 PyTorch Lightning integration for Sequential Model Parallelism using `FairScale <https://github.com/facebookresearch/fairscale>`_.
 Sequential Model Parallelism splits a sequential module onto multiple GPUs, reducing peak GPU memory requirements substantially.
 
-.. code-block:: python
-
-    from pytorch_lightning.plugins.ddp_sequential_plugin import DDPSequentialPlugin
-    from pytorch_lightning import LightningModule
-
-    class MyModel(LightningModule):
-        def __init__(self):
-            ...
-            self.sequential_module = torch.nn.Sequential(my_layers)
-
-    # Split my module across 4 gpus, one layer each
-    model = MyModel()
-    plugin = DDPSequentialPlugin(balance=[1, 1, 1, 1])
-    trainer = Trainer(accelerator='ddp', gpus=4, plugins=[plugin])
-    trainer.fit(model)
-
-
 For more information, refer to :ref:`sequential-parallelism`.
