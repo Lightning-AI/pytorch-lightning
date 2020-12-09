@@ -209,7 +209,7 @@ class DDPSequentialPlugin(RPCPlugin):
         Returns: Whether to skip initialization
 
         """
-        return (torch_distrib.is_initialized() and trainer.testing)
+        return torch_distrib.is_initialized() and trainer.testing
 
     def init_model_parallel_groups(self, trainer):
         num_model_parallel = 1  # TODO currently no support for vertical model parallel
