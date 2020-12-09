@@ -135,17 +135,12 @@ def test_ddp_sequential_plugin_ddp_rpc_with_wrong_balance(tmpdir, args=None):
     try:
         trainer.fit(model)
 
-        assert len(trainer.dev_debugger.pbar_added_metrics) > 0
-
-        model.foreach_worker(cleanup, include_self=True)
-
-        if trainer.accelerator_backend.rpc_enabled:
-
-            # Called at the end of trainer to ensure all processes are killed
-            trainer.accelerator_backend.ddp_plugin.exit_rpc_process()
-
     except MisconfigurationException as e:
         assert str(e) == 'The provided balance sum: 4 does not match your Sequential length: 3'
+
+    if trainer.accelerator_backend.rpc_enabled:
+        # Called at the end of trainer to ensure all processes are killed
+        trainer.accelerator_backend.ddp_plugin.exit_rpc_process()
 
 
 class SequentialModelRPCManual(LightningModule):
