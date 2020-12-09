@@ -16,7 +16,7 @@ from typing import Callable, Optional, Sequence, Tuple
 
 import torch
 
-from pytorch_lightning.metrics.functional import roc
+from pytorch_lightning.metrics.functional.roc import roc
 from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve
 from pytorch_lightning.metrics.utils import to_categorical, get_num_classes, reduce, class_reduce
 from pytorch_lightning.utilities import rank_zero_warn
