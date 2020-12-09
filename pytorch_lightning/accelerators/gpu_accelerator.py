@@ -129,3 +129,7 @@ class GPUAccelerator(Accelerator):
                     group: Optional[Any] = None,
                     reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
         return tensor
+
+    @property
+    def require_distributed_sampler(self):
+        return False

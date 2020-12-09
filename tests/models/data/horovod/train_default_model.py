@@ -79,7 +79,7 @@ def run_test_from_config(trainer_options):
     trainer.checkpoint_connector.hpc_load(ckpt_path, on_gpu=args.on_gpu)
 
     if args.on_gpu:
-        trainer = Trainer(gpus=1, distributed_backend='horovod', max_epochs=1)
+        trainer = Trainer(gpus=1, accelerator='horovod', max_epochs=1)
         # Test the root_gpu property
         assert trainer.root_gpu == hvd.local_rank()
 
