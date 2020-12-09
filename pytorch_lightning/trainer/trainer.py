@@ -98,7 +98,7 @@ class Trainer(
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
         check_val_every_n_epoch: int = 1,
-        fast_dev_run: bool = False,
+        fast_dev_run: Union[int, bool] = False,
         accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
         max_epochs: int = 1000,
         min_epochs: int = 1,
@@ -186,7 +186,8 @@ class Trainer(
 
             distributed_backend: deprecated. Please use 'accelerator'
 
-            fast_dev_run: runs 1 batch of train, test and val to find any bugs (ie: a sort of unit test).
+            fast_dev_run: runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
+                of train, val and test to find any bugs (ie: a sort of unit test).
 
             flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
 
@@ -856,6 +857,9 @@ class Trainer(
         model.setup(stage_name)
 
     def _reset_result_and_set_hook_fx_name(self, hook_name):
+        # on_before_zero_grad is called within training_step
+        if "batch_start" in hook_name or "on_before_zero_grad" in hook_name:
+            return True
         model_ref = self.get_model()
         if model_ref is not None:
             # used to track current hook name called
@@ -869,10 +873,9 @@ class Trainer(
             # capture logging for this hook
             self.logger_connector.cache_logged_metrics()
 
-    def call_hook(self, hook_name, *args, capture=False, **kwargs):
+    def call_hook(self, hook_name, *args, **kwargs):
         # set hook_name to model + reset Result obj
-        if capture:
-            self._reset_result_and_set_hook_fx_name(hook_name)
+        skip = self._reset_result_and_set_hook_fx_name(hook_name)
 
         # always profile hooks
         with self.profiler.profile(hook_name):
@@ -895,7 +898,7 @@ class Trainer(
                 accelerator_hook = getattr(self.accelerator_backend, hook_name)
                 output = accelerator_hook(*args, **kwargs)
 
-        if capture:
+        if not skip:
             self._cache_logged_metrics()
         return output
 

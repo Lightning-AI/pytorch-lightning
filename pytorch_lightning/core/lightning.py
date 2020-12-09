@@ -33,6 +33,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities import TPU_AVAILABLE, rank_zero_warn
@@ -363,6 +364,24 @@ class LightningModule(
                 on_epoch = True
 
         return on_epoch
+
+    def all_gather(self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False):
+        r"""
+        Allows users to call ``self.all_gather()`` from the LightningModule, thus making
+        the ```all_gather``` operation accelerator agnostic.
+
+        ```all_gather``` is a function provided by accelerators to gather a tensor from several
+        distributed processes
+
+        Args:
+            tensor: tensor of shape (batch, ...)
+            group: the process group to gather results from. Defaults to all processes (world)
+            sync_grads: flag that allows users to synchronize gradients for all_gather op
+
+        Return:
+            A tensor of shape (world_size, batch, ...)
+        """
+        return self.trainer.accelerator_backend.all_gather(tensor, group=group, sync_grads=sync_grads)
 
     def forward(self, *args, **kwargs):
         r"""
@@ -1231,20 +1250,11 @@ class LightningModule(
                     optimizer.step(closure=optimizer_closure)
                     optimizer.zero_grad()
 
-        Note:
-            If you also override the :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_before_zero_grad`
-            model hook don't forget to add the call to it before ``optimizer.zero_grad()`` yourself.
-
         """
-        if on_tpu and TPU_AVAILABLE:
-            xm.optimizer_step(optimizer, optimizer_args={'closure': optimizer_closure, **kwargs})
-
-        elif self.trainer.amp_backend is not None:
-            self.trainer.precision_connector.backend.optimizer_step(
-                self.trainer, optimizer, optimizer_closure)
-
-        else:
-            optimizer.step(closure=optimizer_closure, *args, **kwargs)
+        if not isinstance(optimizer, LightningOptimizer):
+            # wraps into LightingOptimizer only for running step
+            optimizer = LightningOptimizer.to_lightning_optimizer(optimizer, self.trainer)
+        optimizer.step(closure=optimizer_closure, *args, **kwargs)
 
     def optimizer_zero_grad(
         self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int
