@@ -56,6 +56,11 @@ def test_automatic_optimization_num_calls(enable_pl_optimizer, tmpdir):
 
         class TestModel(BoringModel):
 
+            def training_step(self, batch, batch_idx, optimizer_idx):
+                output = self.layer(batch)
+                loss = self.loss(batch, output)
+                return {"loss": loss}
+
             def configure_optimizers(self):
                 optimizer = SGD(self.layer.parameters(), lr=0.1)
                 optimizer_2 = Adam(self.layer.parameters(), lr=0.1)
