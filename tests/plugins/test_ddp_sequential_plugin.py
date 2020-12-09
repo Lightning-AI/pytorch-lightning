@@ -53,8 +53,6 @@ def test_ddp_sequential_plugin_ddp_rpc_manual(tmpdir, args=None):
 
     assert len(trainer.dev_debugger.pbar_added_metrics) > 0
 
-    del model
-
 
 @pytest.mark.skipif(not FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
@@ -81,8 +79,6 @@ def test_ddp_sequential_plugin_ddp_rpc_manual_amp(tmpdir, args=None):
 
     except MisconfigurationException as e:
         assert str(e) == 'DDPSequentialPlugin is currently not supported in Automatic Mixed Precision'
-
-    del model
 
 
 @pytest.mark.skipif(not FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
@@ -112,8 +108,6 @@ def test_ddp_sequential_plugin_ddp_rpc_automatic(tmpdir, args=None):
     except MisconfigurationException as e:
         assert str(e) == 'PipeRPCPlugin is currently not supported in automatic optimization'
 
-    del model
-
 
 @pytest.mark.skipif(not FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
@@ -141,8 +135,6 @@ def test_ddp_sequential_plugin_ddp_rpc_with_wrong_balance(tmpdir, args=None):
 
     except MisconfigurationException as e:
         assert str(e) == 'The provided balance sum: 4 doesn t match your Sequential length: 3'
-
-    del model
 
 
 class SequentialModelRPCManual(LightningModule):

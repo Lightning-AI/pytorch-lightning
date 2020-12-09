@@ -43,7 +43,7 @@ def _module_available(module_path: str) -> bool:
             if importlib.util.find_spec(module_path) is None:
                 return False
         return True
-    except Exception:
+    except ImportError:
         return False
 
 

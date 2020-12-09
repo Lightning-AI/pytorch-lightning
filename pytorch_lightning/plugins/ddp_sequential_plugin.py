@@ -58,18 +58,22 @@ class DDPSequentialPlugin(RPCPlugin):
         Args:
             balance: The balance of the model, i.e [2, 2] (two layers on each GPU).
             If not provided assumes user provides an input example array to find a balance on all GPUs.
+
             microbatches: Allows for parallelization to reduce device utilization
             by splitting the batch into further smaller batches.
+
             checkpoint: Enables gradient checkpointing. ['always', 'except_last', 'never']
+
             balance_mode: Type of balance heuristic to use if balance to be inferred.
             'balance_by_size': checks memory usage of each layer and determines balance,
             'balance_by_time': checks time of each layer and determines balance
+
             pipelined_backward: if True, call torch.autograd.backward once per microbatch on the
+
             backward pass (instead of once for the whole batch). This works
             around a potential deadlock in pytorch when using tensor parallelism
             at the same time. Defaults to `True` if
             `get_model_parallel_world_size() > 1`
-            (default: `None`)
         """
         self._check_pipe_available()
         super().__init__(**kwargs)
@@ -188,9 +192,7 @@ class DDPSequentialPlugin(RPCPlugin):
         Returns: Whether to skip initialization
 
         """
-        if torch_distrib.is_initialized() and trainer.testing:
-            return True
-        return False
+        return (torch_distrib.is_initialized() and trainer.testing)
 
     def init_model_parallel_groups(self, trainer):
         num_model_parallel = 1  # TODO currently no support for vertical model parallel
@@ -202,8 +204,10 @@ class DDPSequentialPlugin(RPCPlugin):
     def _infer_check_num_gpus(self, trainer):
         """
         Infer the number of GPUs per model.
+
         Args:
             trainer: The trainer object.
+
         Returns: The appropriate balance for the model
         """
         if isinstance(self.balance, list):
@@ -243,31 +247,36 @@ class DDPSequentialPlugin(RPCPlugin):
             raise MisconfigurationException(
                 'DDPSequentialPlugin is currently not supported in Automatic Mixed Precision')
 
+    @staticmethod
     def configure_ddp(
-            self, model: LightningModule, device_ids: List[int]
-    ) -> DistributedDataParallel:
+            model: LightningModule,
+            device_ids: List[int]
+        ) -> DistributedDataParallel:
         ddp_plugin = RPCPlugin(process_group=mpu.get_data_parallel_group()).configure_ddp(model, device_ids)
-        ddp_plugin.prepare_for_backwards = False
+        ddp_plugin.PREPARE_FOR_BACKWARDS = False
         return ddp_plugin
 
     @rank_zero_only
-    def rpc_save_model(self,
-                       save_model_fn,
-                       last_filepath,
-                       trainer,
-                       pl_module) -> None:
+    def rpc_save_model(
+            self,
+            save_model_fn,
+            last_filepath,
+            trainer,
+            pl_module
+        ) -> None:
         model = trainer.get_model()
-        if hasattr(model.sequential_module, "foreach_worker"):
-            current_layers = pl_module.sequential_module
-            model.sequential_module.foreach_worker(
-                save_layers_on_all_rank_zero_workers,
-                {"gpus_per_model": self.gpus_per_model},
-                include_self=True
-            )
-            pl_module.sequential_module = reload_sequential_from_saved_layers(self.gpus_per_model)
-            save_model_fn(last_filepath, trainer, pl_module)
-            del pl_module.sequential_module
-            pl_module.sequential_module = current_layers
+        if not hasattr(model.sequential_module, "foreach_worker"):
+            return
+        current_layers = pl_module.sequential_module
+        model.sequential_module.foreach_worker(
+            save_layers_on_all_rank_zero_workers,
+            {"gpus_per_model": self.gpus_per_model},
+            include_self=True
+        )
+        pl_module.sequential_module = reload_sequential_from_saved_layers(self.gpus_per_model)
+        save_model_fn(last_filepath, trainer, pl_module)
+        del pl_module.sequential_module
+        pl_module.sequential_module = current_layers
 
     def worker_optimizer_step(self,
                               model: LightningModule,
