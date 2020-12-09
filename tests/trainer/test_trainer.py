@@ -1118,7 +1118,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
     "trainer_kwargs,expected",
     [
         pytest.param(
-            dict(distributed_backend=None, gpus=None),
+            dict(accelerator=None, gpus=None),
             dict(
                 use_dp=False,
                 use_ddp=False,
@@ -1130,7 +1130,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             ),
         ),
         pytest.param(
-            dict(distributed_backend="dp", gpus=None),
+            dict(accelerator="dp", gpus=None),
             dict(
                 use_dp=False,
                 use_ddp=False,
@@ -1142,7 +1142,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             ),
         ),
         pytest.param(
-            dict(distributed_backend="dp", gpus=None),
+            dict(accelerator="dp", gpus=None),
             dict(
                 use_dp=False,
                 use_ddp=False,
@@ -1154,7 +1154,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             ),
         ),
         pytest.param(
-            dict(distributed_backend="ddp", gpus=None),
+            dict(accelerator="ddp", gpus=None),
             dict(
                 use_dp=False,
                 use_ddp=False,
@@ -1166,7 +1166,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             ),
         ),
         pytest.param(
-            dict(distributed_backend="ddp", num_processes=2, gpus=None),
+            dict(accelerator="ddp", num_processes=2, gpus=None),
             dict(
                 use_dp=False,
                 use_ddp=True,
@@ -1178,7 +1178,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             ),
         ),
         pytest.param(
-            dict(distributed_backend="ddp", num_nodes=2, gpus=None),
+            dict(accelerator="ddp", num_nodes=2, gpus=None),
             dict(
                 use_dp=False,
                 use_ddp=True,
@@ -1190,7 +1190,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             ),
         ),
         pytest.param(
-            dict(distributed_backend="ddp_cpu", num_processes=2, gpus=None),
+            dict(accelerator="ddp_cpu", num_processes=2, gpus=None),
             dict(
                 use_dp=False,
                 use_ddp=True,
@@ -1202,7 +1202,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             ),
         ),
         pytest.param(
-            dict(distributed_backend="ddp2", gpus=None),
+            dict(accelerator="ddp2", gpus=None),
             dict(
                 use_dp=False,
                 use_ddp=False,
@@ -1214,7 +1214,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             ),
         ),
         pytest.param(
-            dict(distributed_backend=None, gpus=1),
+            dict(accelerator=None, gpus=1),
             dict(
                 use_dp=False,
                 use_ddp=False,
@@ -1227,7 +1227,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")],
         ),
         pytest.param(
-            dict(distributed_backend="dp", gpus=1),
+            dict(accelerator="dp", gpus=1),
             dict(
                 use_dp=True,
                 use_ddp=False,
@@ -1240,7 +1240,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")],
         ),
         pytest.param(
-            dict(distributed_backend="ddp", gpus=1),
+            dict(accelerator="ddp", gpus=1),
             dict(
                 use_dp=False,
                 use_ddp=True,
@@ -1253,7 +1253,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")],
         ),
         pytest.param(
-            dict(distributed_backend="ddp_cpu", num_processes=2, gpus=1),
+            dict(accelerator="ddp_cpu", num_processes=2, gpus=1),
             dict(
                 use_dp=False,
                 use_ddp=True,
@@ -1266,7 +1266,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")],
         ),
         pytest.param(
-            dict(distributed_backend="ddp2", gpus=1),
+            dict(accelerator="ddp2", gpus=1),
             dict(
                 use_dp=False,
                 use_ddp=False,
@@ -1279,7 +1279,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")],
         ),
         pytest.param(
-            dict(distributed_backend=None, gpus=2),
+            dict(accelerator=None, gpus=2),
             dict(
                 use_dp=False,
                 use_ddp=True,
@@ -1292,7 +1292,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             marks=[pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")],
         ),
         pytest.param(
-            dict(distributed_backend="dp", gpus=2),
+            dict(accelerator="dp", gpus=2),
             dict(
                 use_dp=True,
                 use_ddp=False,
@@ -1305,7 +1305,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             marks=[pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")],
         ),
         pytest.param(
-            dict(distributed_backend="ddp", gpus=2),
+            dict(accelerator="ddp", gpus=2),
             dict(
                 use_dp=False,
                 use_ddp=True,
@@ -1318,7 +1318,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             marks=[pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")],
         ),
         pytest.param(
-            dict(distributed_backend="ddp2", gpus=2),
+            dict(accelerator="ddp2", gpus=2),
             dict(
                 use_dp=False,
                 use_ddp=False,
