@@ -19,7 +19,6 @@ import torch.distributed as torch_distrib
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel
 
-import pytorch_lightning as pl
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
@@ -38,7 +37,7 @@ if HYDRA_AVAILABLE:
 class DDPHPCAccelerator(Accelerator):
 
     def __init__(self,
-                 trainer: 'pl.Trainer',
+                 trainer,
                  cluster_environment: Optional[ClusterEnvironment] = None,
                  ddp_plugin: Optional[DDPPlugin] = None):
         """

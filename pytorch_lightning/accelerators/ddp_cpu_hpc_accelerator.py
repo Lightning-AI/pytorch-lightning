@@ -13,7 +13,6 @@
 # limitations under the License
 from typing import Optional
 
-import pytorch_lightning as pl
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.ddp_hpc_accelerator import DDPHPCAccelerator
 from pytorch_lightning.cluster_environments import ClusterEnvironment
@@ -28,7 +27,7 @@ if HYDRA_AVAILABLE:
 class DDPCPUHPCAccelerator(DDPHPCAccelerator):
 
     def __init__(self,
-                 trainer: 'pl.Trainer',
+                 trainer,
                  cluster_environment: Optional[ClusterEnvironment] = None,
                  ddp_plugin: Optional[DDPPlugin] = None):
         """

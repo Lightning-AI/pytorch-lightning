@@ -15,7 +15,6 @@ from typing import Any, Optional, Union
 
 import torch
 
-import pytorch_lightning as pl
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
@@ -26,7 +25,7 @@ from pytorch_lightning.utilities import AMPType
 class GPUAccelerator(Accelerator):
     amp_backend: AMPType
 
-    def __init__(self, trainer: 'pl.Trainer', cluster_environment: Optional[ClusterEnvironment] = None):
+    def __init__(self, trainer, cluster_environment: Optional[ClusterEnvironment] = None):
         """
         Runs training using a single GPU
 

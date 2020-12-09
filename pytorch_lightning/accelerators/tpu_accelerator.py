@@ -20,7 +20,6 @@ import torch
 import torch.multiprocessing as mp
 from torch.optim import Optimizer
 
-import pytorch_lightning as pl
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
@@ -45,7 +44,7 @@ if TPU_AVAILABLE:
 
 class TPUAccelerator(Accelerator):
 
-    def __init__(self, trainer: 'pl.Trainer', cluster_environment: Optional[ClusterEnvironment] = None):
+    def __init__(self, trainer, cluster_environment: Optional[ClusterEnvironment] = None):
         """
         Runs training using TPUs (colab, single machine or pod)
 

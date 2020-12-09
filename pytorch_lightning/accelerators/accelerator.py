@@ -38,7 +38,7 @@ else:
 class Accelerator(object):
 
     def __init__(self,
-                 trainer: Optional['pl.Trainer'] = None,
+                 trainer: Optional = None,
                  cluster_environment: Optional[ClusterEnvironment] = None,
                  ddp_plugin: Optional[DDPPlugin] = None):
         self.trainer = trainer
