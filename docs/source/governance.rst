@@ -24,3 +24,4 @@ Core Maintainers
 - Lezwon Castelino (`lezwon <https://github.com/lezwon>`_)
 - Jeff Yang (`ydcjeff <https://github.com/ydcjeff>`_)
 - Roger Shieh (`s-rog <https://github.com/s-rog>`_)
+- Carlos Mocholí (`carmocca <https://github.com/carmocca>`_)
