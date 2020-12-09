@@ -168,8 +168,6 @@ class TrainerDataLoadingMixin(ABC):
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
         self.train_dataloader = CombinedLoader(self.train_dataloader, self._multiple_trainloader_mode)
 
-        self.num_training_batches = 0
-
         self.num_training_batches = len(self.train_dataloader) if has_len(self.train_dataloader) else float('inf')
 
         if isinstance(self.limit_train_batches, int) or self.limit_train_batches == 0.0:

@@ -45,7 +45,7 @@ def test_combined_dataset(dataset_1, dataset_2):
 
 
 def test_combined_dataset_length_mode_error():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match='Invalid Mode'):
         CombinedDataset._calc_num_data([range(10)], 'test')
 
 
@@ -66,19 +66,19 @@ def test_combined_loader_iterator_dict_min_size():
 
 def test_combined_loader_init_mode_error():
     """Test the ValueError when constructing `CombinedLoader`"""
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match='Invalid Mode'):
         CombinedLoader([range(10)], 'test')
 
 
 def test_combined_loader_loader_type_error():
     """Test the ValueError when wrapping the loaders"""
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match='Invalid Datatype'):
         CombinedLoader(None, 'max_size_cycle')
 
 
 def test_combined_loader_calc_length_mode_error():
     """Test the ValueError when calculating the number of batches"""
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match='Got Type NoneType, but expected one of Sequence, int or Mapping'):
         CombinedLoader._calc_num_batches(None)
 
 

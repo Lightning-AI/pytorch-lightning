@@ -309,10 +309,10 @@ class CombinedLoader(object):
     Combines different dataloaders and allows sampling in parallel.
 
     Examples:
-        >>> loaders = {'a': torch.utils.data.DataLoader(range(6), batch_size=4), \
+        >>> loaders = {'a': torch.utils.data.DataLoader(range(6), batch_size=4),
                        'b': torch.utils.data.DataLoader(range(15), batch_size=5)}
         >>> combined_loader = CombinedLoader(loaders, 'max_size_cycle')
-        >>> for item in combined_loader: \
+        >>> for item in combined_loader:
                 print(item)
         {'a': tensor([0, 1, 2, 3]), 'b': tensor([0, 1, 2, 3, 4])}
         {'a': tensor([4, 5]), 'b': tensor([5, 6, 7, 8, 9])}
