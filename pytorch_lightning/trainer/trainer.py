@@ -98,7 +98,7 @@ class Trainer(
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
         check_val_every_n_epoch: int = 1,
-        fast_dev_run: bool = False,
+        fast_dev_run: Union[int, bool] = False,
         accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
         max_epochs: int = 1000,
         min_epochs: int = 1,
@@ -186,7 +186,8 @@ class Trainer(
 
             distributed_backend: deprecated. Please use 'accelerator'
 
-            fast_dev_run: runs 1 batch of train, test and val to find any bugs (ie: a sort of unit test).
+            fast_dev_run: runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
+                of train, val and test to find any bugs (ie: a sort of unit test).
 
             flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
 

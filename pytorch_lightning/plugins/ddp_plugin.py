@@ -1,6 +1,6 @@
 import os
 from contextlib import contextmanager
-from typing import Any, Dict, List, Union, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import torch.distributed as torch_distrib
 from torch.optim import Optimizer
@@ -112,6 +112,12 @@ class DDPPlugin(LightningPlugin):
     def optimizer_state(self, optimizer: Optimizer) -> dict:
         return optimizer.state_dict()
 
+    def on_after_setup_optimizers(self, trainer):
+        """
+        Called after optimizers have been set-up. This is useful for doing any configuration options in RPC, or
+        state sharding.
+        """
+
     def get_model_from_plugin(
             self,
             model: Union[LightningDistributedDataParallel, LightningModule]
@@ -148,3 +154,15 @@ class DDPPlugin(LightningPlugin):
 
     def on_after_manual_backward(self, model: LightningDistributedDataParallel):
         model.reducer_reset_hooks()
+
+    def distributed_sampler_kwargs(self, distributed_sampler_kwargs):
+        return distributed_sampler_kwargs
+
+    @property
+    def data_parallel_group(self):
+        """
+        Return the group that this process exists in. By default, this is the world size.
+        Useful for when additional parallel groups have been created, to select certain processes.
+        Returns: The ProcessGroup this process exists in.
+        """
+        return torch_distrib.group.WORLD
