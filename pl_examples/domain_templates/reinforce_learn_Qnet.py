@@ -341,7 +341,7 @@ def main(args) -> None:
 
     trainer = pl.Trainer(
         gpus=1,
-        distributed_backend='dp',
+        accelerator='dp',
         val_check_interval=100
     )
 
