@@ -86,6 +86,7 @@ class DDPSequentialPlugin(RPCPlugin):
                 - 'balance_by_time': checks time of each layer and determines balance
 
             pipelined_backward: if True, call torch.autograd.backward once per microbatch on the
+
             backward pass (instead of once for the whole batch). This works
             around a potential deadlock in pytorch when using tensor parallelism
             at the same time. Defaults to `True` if
@@ -157,7 +158,7 @@ class DDPSequentialPlugin(RPCPlugin):
         Args:
             main_rank: The rank with the balance we'd like to replicate.
         """
-        self.balance = torch.tensor(self.balance, dtype=torch.int).cuda()
+        self.balance = torch.tensor(self.balance, dtype=torch.int, device='cuda')
         # Ensure we sync to all processes within the main data parallel group
         # We use the data parallel group as all main processes are found within the same group
         torch_distrib.broadcast(self.balance, src=main_rank, group=mpu.get_data_parallel_group())
