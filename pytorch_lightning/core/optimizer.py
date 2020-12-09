@@ -62,7 +62,6 @@ class LightningOptimizer:
         self._optimizer = optimizer
         self._accumulate_grad_batches = accumulate_grad_batches
         self._support_closure = 'closure' in inspect.signature(optimizer.step).parameters.keys()
-        self._automatic_optimization = None
         self._optimizer_idx = None
 
     @property
@@ -75,7 +74,6 @@ class LightningOptimizer:
 
     def _on_trainer_init(self, trainer):
         self._trainer = proxy(trainer)
-        self._automatic_optimization = trainer.train_loop.automatic_optimization
         for opt_idx, opt in enumerate(trainer.optimizers):
             if opt == self._optimizer:
                 self._optimizer_idx = opt_idx
