@@ -269,7 +269,7 @@ class DDPSequentialPlugin(RPCPlugin):
             model: LightningModule, device_ids: List[int]) -> DistributedDataParallel:
         ddp_plugin = RPCPlugin(process_group=mpu.get_data_parallel_group()).configure_ddp(model, device_ids)
         # Plugin handle backwards across processes. Currently not supported for DDP + pipe parallel
-        ddp_plugin.prepare_for_backwards = False
+        ddp_plugin.PREPARE_FOR_BACKWARDS = False
         return ddp_plugin
 
     @rank_zero_only

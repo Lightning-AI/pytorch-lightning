@@ -98,15 +98,9 @@ def test_ddp_sequential_plugin_ddp_rpc_automatic(tmpdir, args=None):
         plugins=[DDPSequentialPlugin(balance=[2, 1])],
     )
 
-    try:
-        trainer.fit(model)
+    trainer.fit(model)
 
-        assert len(trainer.dev_debugger.pbar_added_metrics) > 0
-
-        model.foreach_worker(cleanup, include_self=True)
-
-    except MisconfigurationException as e:
-        assert str(e) == 'PipeRPCPlugin is currently not supported in automatic optimization'
+    assert len(trainer.dev_debugger.pbar_added_metrics) > 0
 
 
 @pytest.mark.skipif(not FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
@@ -141,10 +135,10 @@ class SequentialModelRPCManual(LightningModule):
 
     def __init__(self):
         super().__init__()
-        self.layers = nn.Sequential(torch.nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2))
+        self.sequential_module = nn.Sequential(torch.nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2))
 
     def forward(self, x):
-        return self.layer(x)
+        return self.sequential_module(x)
 
     def loss(self, prediction):
         # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
@@ -157,7 +151,7 @@ class SequentialModelRPCManual(LightningModule):
 
     def training_step(self, batch, batch_idx):
         opt = self.optimizers()
-        output = self.layers(batch)
+        output = self.sequential_module(batch)
         loss = self.loss(output)
         self.log("train_loss", loss, on_epoch=True, prog_bar=True)
         self.manual_backward(loss, opt)
@@ -166,16 +160,16 @@ class SequentialModelRPCManual(LightningModule):
         assert torch.stack([torch.abs(p.grad).sum() for p in self.parameters()]).sum() == 0
 
     def validation_step(self, batch, batch_idx):
-        output = self.layers(batch)
+        output = self.sequential_module(batch)
         loss = self.loss(output)
         return loss
 
     def test_step(self, batch, batch_idx):
-        output = self.layers(batch)
+        output = self.sequential_module(batch)
         return self.loss(batch, output)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.SGD(self.layers.parameters(), lr=0.1)
+        optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
         return [optimizer], [lr_scheduler]
 
@@ -196,10 +190,10 @@ class SequentialModelRPCManual(LightningModule):
 class SequentialModelRPCAutomatic(LightningModule):
     def __init__(self):
         super().__init__()
-        self.layers = nn.Sequential(torch.nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2))
+        self.sequential_module = nn.Sequential(torch.nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2))
 
     def forward(self, x):
-        return self.layer(x)
+        return self.sequential_module(x)
 
     def loss(self, prediction):
         # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
@@ -211,22 +205,22 @@ class SequentialModelRPCAutomatic(LightningModule):
         return out
 
     def training_step(self, batch, batch_idx):
-        output = self.layers(batch)
+        output = self.sequential_module(batch)
         loss = self.loss(output)
         self.log("train_loss", loss, on_epoch=True, prog_bar=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        output = self.layers(batch)
+        output = self.sequential_module(batch)
         loss = self.loss(output)
         return loss
 
     def test_step(self, batch, batch_idx):
-        output = self.layer(batch)
+        output = self.sequential_module(batch)
         return self.loss(batch, output)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.SGD(self.layers.parameters(), lr=0.1)
+        optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
         return [optimizer], [lr_scheduler]
 
