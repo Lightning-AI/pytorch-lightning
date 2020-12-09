@@ -667,7 +667,7 @@ To use Sharded Training, you need to first install FairScale using the command b
 
 .. code-block:: bash
 
-    pip install https://github.com/facebookresearch/fairscale/archive/bb468670838b98dc8f8d67be4eabf195042a7994.zip
+    pip install https://github.com/PyTorchLightning/fairscale/archive/pl_1.1.0.zip
 
 
 .. code-block:: python
@@ -721,9 +721,9 @@ This should be kept within the ``sequential_module`` variable within your ``Ligh
     trainer = Trainer(accelerator='ddp', gpus=4, plugins=[plugin])
     trainer.fit(model)
 
-To run the example, you will need Bolts. Install with  ``pip install pytorch-lightning-bolts``
 
 We provide a minimal example of Sequential Model Parallelism using a convolutional model training on cifar10, split onto GPUs `here <https://github.com/PyTorchLightning/pytorch-lightning/tree/master/pl_examples/basic_examples/conv_sequential_example.py>`_.
+To run the example, you will to install `Bolts <https://github.com/PyTorchLightning/pytorch-lightning-bolts>`_. Install with ``pip install pytorch-lightning-bolts``.
 
 When running the Sequential Model Parallelism example on 2 GPUS we achieve these memory savings.
 
