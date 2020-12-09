@@ -172,7 +172,7 @@ def _load_long_description(path_dir: str) -> str:
     # codecov badge
     text = text.replace('/branch/master/graph/badge.svg', f'/release/{__version__}/graph/badge.svg')
     # replace github badges for release ones
-    text = text.replace('badge.svg?branch=master&event=push', f'badge.svg?branch={__version__}&event=release')
+    text = text.replace('badge.svg?branch=master&event=push', f'badge.svg?tag={__version__}')
 
     # # https://github.com/Borda/pytorch-lightning/releases/download/1.1.0a6/codecov_badge.png
     # github_release_url = os.path.join(__homepage__, "releases", "download", __version__)
