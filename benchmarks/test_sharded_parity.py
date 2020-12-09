@@ -131,6 +131,7 @@ def test_ddp_sharded_plugin_correctness_amp_multi_gpu_ddp(tmpdir, args=None):
     )
 
 
+@pytest.mark.skip(reason="Current issue with multiple optimizers and FairScale.")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
@@ -148,6 +149,7 @@ def test_ddp_sharded_plugin_correctness_multi_gpu_multi_optim():
     )
 
 
+@pytest.mark.skip(reason="Current issue with multiple optimizers and FairScale.")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
