@@ -174,7 +174,7 @@ class DDPAccelerator(Accelerator):
         if self._has_spawned_children:
             raise RuntimeError(
                 "You tried to run `.fit` or `.test` multiple times in the same script."
-                " This is not supported in DDP mode, switch to `distributed_backend='ddp_spawn'` instead."
+                " This is not supported in DDP mode, switch to `accelerator='ddp_spawn'` instead."
             )
 
     def set_world_ranks(self, process_idx):
