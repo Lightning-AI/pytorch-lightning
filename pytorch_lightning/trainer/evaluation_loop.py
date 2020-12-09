@@ -58,8 +58,14 @@ class EvaluationLoop(object):
         else:
             # val
             in_sanity_check = self.trainer.running_sanity_check
-            should_reload_every_epoch = self.trainer.reload_dataloaders_every_epoch
-            if (self.trainer.val_dataloaders is None or should_reload_every_epoch) and not in_sanity_check:
+
+            reload_dl_every_n_epoch = self.trainer.reload_dataloaders_every_n_epoch
+            if reload_dl_every_n_epoch and (not self.trainer.epoch % reload_dl_every_n_epoch):
+                should_reload_every_n_epoch = True
+            else:
+                should_reload_every_n_epoch = False
+
+            if (self.trainer.val_dataloaders is None or should_reload_every_n_epoch) and not in_sanity_check:
                 self.trainer.reset_val_dataloader(model)
 
             dataloaders = self.trainer.val_dataloaders
