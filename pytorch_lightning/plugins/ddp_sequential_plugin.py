@@ -278,8 +278,7 @@ class DDPSequentialPlugin(RPCPlugin):
             save_model_fn,
             last_filepath,
             trainer,
-            pl_module
-        ) -> None:
+            pl_module) -> None:
         model = trainer.get_model()
         if not hasattr(model.sequential_module, "foreach_worker"):
             return
@@ -345,8 +344,7 @@ class LightningPipeModule(nn.Module):
             module: nn.Sequential,
             balance: List[int],
             microbatches: int = 8,
-            checkpoint='never'
-        ):
+            checkpoint='never'):
         super().__init__()
         self.module = module
         self.balance = balance
