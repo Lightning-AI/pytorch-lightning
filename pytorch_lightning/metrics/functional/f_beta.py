@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Tuple
-from warnings import warn
 
 import torch
 
 from pytorch_lightning.metrics.utils import _input_format_classification_one_hot, class_reduce
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 def _fbeta_update(
@@ -152,5 +152,5 @@ def f1(
         tensor(0.3333)
     """
     if beta != 1.0:
-        warn(f'The `beta={beta}` is used but it will not have any effect.')
+        rank_zero_warn(f'The `beta={beta}` is used but it will not have any effect.')
     return fbeta(preds, target, num_classes, 1.0, threshold, average, multilabel)
