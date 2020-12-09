@@ -53,6 +53,10 @@ def test_ddp_sequential_plugin_ddp_rpc_manual(tmpdir, args=None):
 
     assert len(trainer.dev_debugger.pbar_added_metrics) > 0
 
+    if trainer.accelerator_backend.rpc_enabled:
+        # Called at the end of trainer to ensure all processes are killed
+        trainer.accelerator_backend.ddp_plugin.exit_rpc_process()
+
 
 @pytest.mark.skipif(not FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
@@ -101,6 +105,10 @@ def test_ddp_sequential_plugin_ddp_rpc_automatic(tmpdir, args=None):
     trainer.fit(model)
 
     assert len(trainer.dev_debugger.pbar_added_metrics) > 0
+
+    if trainer.accelerator_backend.rpc_enabled:
+        # Called at the end of trainer to ensure all processes are killed
+        trainer.accelerator_backend.ddp_plugin.exit_rpc_process()
 
 
 @pytest.mark.skipif(not FAIRSCALE_PIPE_AVAILABLE, reason="test requires FairScale to be installed")
