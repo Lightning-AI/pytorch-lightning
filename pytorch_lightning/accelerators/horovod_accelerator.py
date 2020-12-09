@@ -18,15 +18,11 @@ import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities import HOROVOD_AVAILABLE, AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
-try:
+if HOROVOD_AVAILABLE:
     import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
 
 
 class HorovodAccelerator(Accelerator):
@@ -210,3 +206,11 @@ class HorovodAccelerator(Accelerator):
         # sync all processes before reduction
         hvd.join()
         return hvd.allreduce(tensor, op=reduce_op)
+
+    @property
+    def distributed_sampler_kwargs(self):
+        return dict(num_replicas=hvd.size(), rank=hvd.rank())
+
+    @property
+    def require_distributed_sampler(self):
+        return True

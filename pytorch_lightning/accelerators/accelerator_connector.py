@@ -15,21 +15,18 @@ import os
 
 import torch
 
+from pytorch_lightning.utilities import HOROVOD_AVAILABLE
 from pytorch_lightning import _logger as log
 from pytorch_lightning import accelerators
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.cluster_environments.torchelastic_environment import TorchElasticEnvironment
-from pytorch_lightning.utilities import XLA_AVAILABLE, device_parser, rank_zero_only, TPU_AVAILABLE
+from pytorch_lightning.utilities import device_parser, rank_zero_only, TPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-try:
+if HOROVOD_AVAILABLE:
     import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
 
 
 class AcceleratorConnector:
@@ -90,7 +87,7 @@ class AcceleratorConnector:
         self.trainer.tpu_id = self.trainer.tpu_cores[0] if isinstance(self.trainer.tpu_cores, list) else None
 
         if num_processes != 1 and distributed_backend != "ddp_cpu":
-            rank_zero_warn("num_processes is only used for distributed_backend=\"ddp_cpu\". Ignoring it.")
+            rank_zero_warn("num_processes is only used for `accelerator='ddp_cpu'`. Ignoring it.")
         self.trainer.num_processes = num_processes
 
         # override with environment flag
@@ -286,7 +283,7 @@ class AcceleratorConnector:
             accelerator_backend = accelerators.CPUAccelerator(self.trainer, cluster_env)
         else:
             raise MisconfigurationException(
-                f'Trainer(distributed_backend={self.trainer.distributed_backend} is not a supported backend'
+                f'Trainer(accelerator={self.trainer.distributed_backend} is not a supported backend'
             )
 
         return accelerator_backend
@@ -309,8 +306,8 @@ class AcceleratorConnector:
             elif self.trainer.num_gpus > 1:
                 rank_zero_warn(
                     'You requested multiple GPUs but did not specify a backend, e.g.'
-                    ' Trainer(distributed_backend="dp"|"ddp"|"ddp2").'
-                    ' Setting distributed_backend="ddp_spawn" for you.'
+                    ' `Trainer(accelerator="dp"|"ddp"|"ddp2")`.'
+                    ' Setting `accelerator="ddp_spawn"` for you.'
                 )
                 self.trainer.distributed_backend = "ddp_spawn"
 
@@ -345,6 +342,7 @@ class AcceleratorConnector:
             self.trainer.use_ddp = True
             self.trainer.data_parallel_device_ids = None
             self.trainer.on_gpu = False
+            self.trainer.on_cpu = True
         elif self.trainer.distributed_backend == "horovod":
             self._set_horovod_backend()
 
@@ -352,7 +350,7 @@ class AcceleratorConnector:
         if self.trainer.num_nodes > 1 and not (self.trainer.use_ddp2 or self.trainer.use_ddp):
             raise MisconfigurationException(
                 'DataParallel does not support num_nodes > 1. Switching to DistributedDataParallel for you. '
-                'To silence this warning set distributed_backend=ddp or distributed_backend=ddp2'
+                'To silence this warning set `accelerator="ddp"` or `accelerator="ddp2"`'
             )
 
         rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self.trainer.on_gpu}')
@@ -376,7 +374,7 @@ class AcceleratorConnector:
         """Raises a `MisconfigurationException` if the Trainer is not configured correctly for Horovod."""
         if not HOROVOD_AVAILABLE:
             raise MisconfigurationException(
-                'Requested `distributed_backend="horovod"`, but Horovod is not installed.'
+                'Requested `accelerator="horovod"`, but Horovod is not installed.'
                 'Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]'
             )
 

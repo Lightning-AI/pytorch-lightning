@@ -24,12 +24,14 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import HYDRA_AVAILABLE, AMPType
 from pytorch_lightning.utilities.distributed import (
     find_free_network_port,
     rank_zero_only,
     rank_zero_warn,
     sync_ddp_if_available,
+    all_gather_ddp_if_available,
 )
 
 if HYDRA_AVAILABLE:
@@ -107,6 +109,15 @@ class DDPCPUSpawnAccelerator(Accelerator):
             self.trainer.is_slurm_managing_tasks
         )
 
+        if isinstance(self.ddp_plugin, RPCPlugin):
+            if not self.ddp_plugin.is_main_rpc_process:
+                self.ddp_plugin.on_accelerator_exit_rpc_process(self.trainer)
+                self.ddp_plugin.exit_rpc_process()
+                if self.ddp_plugin.return_after_exit_rpc_process:
+                    return
+            else:
+                self.ddp_plugin.on_main_rpc_connection(self.trainer)
+
         # call setup after the ddp process has connected
         self.trainer.call_setup_hook(model)
 
@@ -127,6 +138,8 @@ class DDPCPUSpawnAccelerator(Accelerator):
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
         self.setup_optimizers(model)
+
+        self.ddp_plugin.on_after_setup_optimizers(self.trainer)
 
         # set model properties before going into wrapper
         self.trainer.model_connector.copy_trainer_model_properties(model)
@@ -221,7 +234,7 @@ class DDPCPUSpawnAccelerator(Accelerator):
             mp_queue.put(results)
 
     def configure_ddp(
-        self, model: LightningModule, device_ids: List[int]
+            self, model: LightningModule, device_ids: List[int]
     ) -> DistributedDataParallel:
         model = self.ddp_plugin.configure_ddp(model, device_ids)
         return model
@@ -249,5 +262,33 @@ class DDPCPUSpawnAccelerator(Accelerator):
                     reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
         return sync_ddp_if_available(tensor, group, reduce_op)
 
+    def all_gather(self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False):
+        """
+        Function to gather a tensor from several distributed processes
+
+        Args:
+            tensor: tensor of shape (batch, ...)
+            group: the process group to gather results from. Defaults to all processes (world)
+            sync_grads: flag that allows users to synchronize gradients for all_gather op
+
+        Return:
+            A tensor of shape (world_size, batch, ...)
+        """
+        return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
+
     def get_reference_model(self, model) -> LightningModule:
         return self.ddp_plugin.get_model_from_plugin(model)
+
+    @property
+    def distributed_sampler_kwargs(self):
+        distributed_sampler_kwargs = dict(
+            num_replicas=self.trainer.num_nodes * self.trainer.num_processes,
+            rank=self.trainer.global_rank
+        )
+        if self.ddp_plugin is not None:
+            distributed_sampler_kwargs = self.ddp_plugin.distributed_sampler_kwargs(distributed_sampler_kwargs)
+        return distributed_sampler_kwargs
+
+    @property
+    def require_distributed_sampler(self):
+        return True
