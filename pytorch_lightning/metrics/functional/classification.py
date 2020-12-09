@@ -15,7 +15,6 @@ from functools import wraps
 from typing import Callable, Optional, Sequence, Tuple
 
 import torch
-from torch.nn import functional as F
 
 from pytorch_lightning.metrics.functional import roc
 from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve
@@ -526,7 +525,7 @@ def multiclass_auroc(
 
     @multiclass_auc_decorator()
     def _multiclass_auroc(pred, target, sample_weight, num_classes):
-        return roc(preds=pred, target=target, sample_weights=sample_weight, num_classes=num_classes)
+        return __multiclass_roc(pred=pred, target=target, sample_weight=sample_weight, num_classes=num_classes)
 
     class_aurocs = _multiclass_auroc(pred=pred, target=target,
                                      sample_weight=sample_weight,
