@@ -2,7 +2,6 @@ import torch
 from typing import List, Optional, Callable, Any
 
 from pytorch_lightning.metrics import Metric
-
 from pytorch_lightning.metrics.utils import get_mini_groups
 
 
@@ -15,17 +14,15 @@ class RetrievalMetric(Metric):
 
     Forward accepts
     - ``indexes`` (long tensor): ``(N, ...)``
-    - ``preds`` (long or float tensor): ``(N, ...)`` or ``(N, 2, ...)``
-    - ``target`` (long tensor): ``(N, ...)``
+    - ``preds`` (float tensor): ``(N, ...)``
+    - ``target`` (long or bool tensor): ``(N, ...)``
 
-    Indexes and target must have the same dimension. If preds has a higher number of dimensions,
-    we perform argmax on ``dim=1``. Indexes indicate to which query a prediction belongs.
-    Predictions will be first grouped by indexes and then the actual metric will be computed as the mean
-    of the scores over each query.
+    `indexes`, `preds` and `target` must have the same dimension.
+    `indexes` indicate to which query a prediction belongs.
+    Predictions will be first grouped by indexes and then the
+    actual metric will be computed as the mean of the scores over each query.
 
     Args:
-        threshold:
-            Threshold value for binary predictions. default: 0.5
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
@@ -42,8 +39,8 @@ class RetrievalMetric(Metric):
 
             - ``'skip'``: skip those queries (default)
             - ``'error'``: raise a ``ValueError``
-            - ``'pos'``: predictions on those queries count as ``1.0``
-            - ``'neg'``: predictions on those queries count as ``0.0``
+            - ``'pos'``: score on those queries is counted as ``1.0``
+            - ``'neg'``: score on those queries is counted as ``0.0``
 
         exclude:
             Do not take into account predictions where the target is equal to this value. default: -100
@@ -53,7 +50,6 @@ class RetrievalMetric(Metric):
 
     def __init__(
         self,
-        threshold: float = 0.5,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -74,31 +70,22 @@ class RetrievalMetric(Metric):
                 f"Allowed values are {self.query_without_relevant_docs_options}"
             )
 
-        self.threshold = threshold
         self.query_without_relevant_docs = query_without_relevant_docs
         self.exclude = exclude
 
         self.add_state("idx", default=torch.tensor([], dtype=torch.int64), dist_reduce_fx="cat")
-        self.add_state("preds", default=torch.tensor([], dtype=torch.int64), dist_reduce_fx="cat")
+        self.add_state("preds", default=torch.tensor([], dtype=torch.float32), dist_reduce_fx="cat")
         self.add_state("target", default=torch.tensor([], dtype=torch.int64), dist_reduce_fx="cat")
 
     def update(self, idx: torch.Tensor, preds: torch.Tensor, target: torch.Tensor) -> None:
-        r"""
-        First convert to same shapes and dtypes and then update state
-        """
-        if len(preds.shape) > len(target.shape):
-            preds = torch.argmax(preds, dim=-1)
-        elif preds.dtype != target.dtype:
-            preds = preds > self.threshold
-    
         if not (idx.shape == target.shape == preds.shape):
             raise ValueError(
                 "Indexes, preds and targets must be of the same shape after preds normalization"
             )
-
-        preds = preds.to(dtype=torch.int64).flatten()
-        target = target.to(dtype=torch.int64).flatten()
+        
         idx = idx.to(dtype=torch.int64).flatten()
+        preds = preds.to(dtype=torch.float32).flatten()
+        target = target.to(dtype=torch.int64).flatten()
 
         self.idx = torch.cat([self.idx, idx])
         self.preds = torch.cat([self.preds, preds])

@@ -36,7 +36,7 @@ def retrieval_average_precision(
         >>> preds = torch.tensor([0.2, 0.3, 0.5])
         >>> target = torch.tensor([True, False, True])
         >>> retrieval_average_precision(preds, target)
-        ... 0.833
+        tensor(0.8333)
     """
 
     if preds.shape != target.shape or preds.device != target.device:

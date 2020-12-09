@@ -114,15 +114,21 @@ def _input_format_classification_one_hot(
 
 def get_mini_groups(idx: torch.Tensor) -> List[torch.Tensor]:
     """
-    Return a list of lists where each sub-list contains the indexes of each value of `idx`
-    :params idx: a tensor of integer indexes
+    Given an integer `torch.Tensor` `idx`, return a `torch.Tensor` of indexes for
+    each different value in `idx`.
+
+    Args:
+        idx: a `torch.Tensor` of integers
+
+    Return:
+        A list of integer `torch.Tensor`s 
 
     Example:
 
         >>> indexes = torch.tensor([0, 0, 0, 1, 1, 1, 1])
         >>> groups = get_mini_groups(indexes)
         >>> groups
-        ... [torch.tensor([0, 1, 2]), torch.tensor([3, 4, 5, 6])]
+        [torch.tensor([0, 1, 2]), torch.tensor([3, 4, 5, 6])]
     """
 
     indexes = dict()

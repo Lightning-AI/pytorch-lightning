@@ -13,19 +13,16 @@ class RetrievalMAP(RetrievalMetric):
     Works with binary data. Accepts integer or float predictions from a model output.
 
     Forward accepts
-
     - ``indexes`` (long tensor): ``(N, ...)``
-    - ``preds`` (long or float tensor): ``(N, ...)`` or ``(N, 2, ...)``
-    - ``target`` (long tensor): ``(N, ...)``
+    - ``preds`` (float tensor): ``(N, ...)``
+    - ``target`` (long or bool tensor): ``(N, ...)``
 
-    Indexes and target must have the same dimension. If preds has a higher number of dimensions,
-    we perform argmax on ``dim=1``. Indexes indicate to which query a prediction belongs.
+    `indexes`, `preds` and `target` must have the same dimension.
+    `indexes` indicate to which query a prediction belongs.
     Predictions will be first grouped by indexes and then MAP will be computed as the mean 
     of the Average Precisions over each query.
 
     Args:
-        threshold:
-            Threshold value for binary predictions. default: 0.5
         compute_on_step:
             Forward only calls ``update()`` and return None if this is set to False. default: True
         dist_sync_on_step:
@@ -42,8 +39,8 @@ class RetrievalMAP(RetrievalMetric):
 
             - ``'skip'``: skip those queries (default)
             - ``'error'``: raise a ``ValueError``
-            - ``'pos'``: predictions on those queries count as ``1.0``
-            - ``'neg'``: predictions on those queries count as ``0.0``
+            - ``'pos'``: score on those queries is counted as ``1.0``
+            - ``'neg'``: score on those queries is counted as ``0.0``
 
         exclude:
             Do not take into account predictions where the target is equal to this value. default: -100
@@ -57,7 +54,7 @@ class RetrievalMAP(RetrievalMetric):
         >>> map = RetrievalMAP()
         >>> map(indexes, preds, target)
         >>> map.compute()
-        0.75
+        tensor(0.75)
     """
 
     def _metric(self, group: List[int]) -> torch.Tensor:

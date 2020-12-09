@@ -561,9 +561,9 @@ bleu_score [func]
 .. autofunction:: pytorch_lightning.metrics.functional.nlp.bleu_score
     :noindex:
 
-*********************
-Information Retrieval
-*********************
+*****************************
+Information Retrieval Metrics
+*****************************
 
 Class Metrics (IR)
 ------------------
