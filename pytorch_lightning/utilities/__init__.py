@@ -46,6 +46,8 @@ def _module_available(module_path: str) -> bool:
         return True
     except ImportError:
         return False
+    except AttributeError:
+        return False
 
 
 APEX_AVAILABLE = _module_available("apex.amp")
