@@ -17,7 +17,6 @@ from typing import Any, List, Optional, Union
 
 import torch
 import torch.distributed as torch_distrib
-import torch.distributed as dist
 import torch.multiprocessing as mp
 from torch.nn.parallel import DistributedDataParallel
 
@@ -232,13 +231,13 @@ class DDPSpawnAccelerator(Accelerator):
 
     def early_stopping_should_stop(self, pl_module):
         stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device)
-        dist.all_reduce(stop, op=dist.reduce_op.SUM)
-        dist.barrier()
+        torch_distrib.all_reduce(stop, op=torch_distrib.reduce_op.SUM)
+        torch_distrib.barrier()
         should_stop = stop == self.trainer.world_size
         return should_stop
 
     def broadcast(self, obj, src=0):
-        return self.dist.broadcast(obj)
+        return self.torch_distrib.broadcast(obj)
 
     def __recover_child_process_weights(self, model, best_path, last_path):
         # transfer back the best path to the trainer
