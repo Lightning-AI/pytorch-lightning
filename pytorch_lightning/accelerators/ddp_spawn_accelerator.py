@@ -238,7 +238,7 @@ class DDPSpawnAccelerator(Accelerator):
         return should_stop
 
     def broadcast(self, obj, src=0):
-        return self.torch_distrib.broadcast(obj)
+        return self.dist.broadcast(obj)
 
     def __recover_child_process_weights(self, model, best_path, last_path):
         # transfer back the best path to the trainer

@@ -199,7 +199,7 @@ class DDPCPUSpawnAccelerator(Accelerator):
             torch_distrib.barrier()
 
     def broadcast(self, obj, src=0):
-        return self.torch_distrib.broadcast(obj)
+        return self.dist.broadcast(obj)
 
     def early_stopping_should_stop(self, pl_module):
         stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device)
