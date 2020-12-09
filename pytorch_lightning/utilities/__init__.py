@@ -21,8 +21,7 @@ import numpy
 import torch
 
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only, rank_zero_warn
-from pytorch_lightning.utilities.distributed import AllGatherGrad
+from pytorch_lightning.utilities.distributed import AllGatherGrad, rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable
 from pytorch_lightning.utilities.xla_device_utils import XLA_AVAILABLE, XLADeviceUtils
 
@@ -35,6 +34,7 @@ def _module_available(module_path: str) -> bool:
     >>> _module_available('bla.bla')
     False
     """
+    # todo: find a better way than try / except
     try:
         mods = module_path.split('.')
         assert mods, 'nothing given to test'
