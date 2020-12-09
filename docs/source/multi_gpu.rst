@@ -694,8 +694,13 @@ Reference: https://arxiv.org/abs/1811.06965
 
 .. note:: DDPSequentialPlugin is currently supported only for Pytorch 1.6.
 
-To get started, install all extras using with ``pip install pytorch-lightning["extra"]``
-and Bolts with ``pip install pytorch-lightning-bolts``
+To get started, install FairScale through extras using with ``pip install pytorch-lightning["extra"]``
+
+or directly using
+
+.. code-block:: bash
+
+     pip install https://github.com/PyTorchLightning/fairscale/archive/pl_1.1.0.zip
 
 To use Sequential Model Parallelism, you must define a  :class:`nn.Sequential <torch.nn.Sequential>` module that defines the layers you wish to parallelize across GPUs.
 This should be kept within the ``sequential_module`` variable within your ``LightningModule`` like below.
@@ -716,6 +721,7 @@ This should be kept within the ``sequential_module`` variable within your ``Ligh
     trainer = Trainer(accelerator='ddp', gpus=4, plugins=[plugin])
     trainer.fit(model)
 
+To run the example, you will need Bolts. Install with  ``pip install pytorch-lightning-bolts``
 
 We provide a minimal example of Sequential Model Parallelism using a convolutional model training on cifar10, split onto GPUs `here <https://github.com/PyTorchLightning/pytorch-lightning/tree/master/pl_examples/basic_examples/conv_sequential_example.py>`_.
 
