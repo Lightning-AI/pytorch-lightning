@@ -17,6 +17,7 @@ from typing import Any, Optional, Union
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
+import pytorch_lightning as pl
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
@@ -30,7 +31,7 @@ if HOROVOD_AVAILABLE:
 class HorovodAccelerator(Accelerator):
     amp_backend: AMPType
 
-    def __init__(self, trainer: 'Trainer', cluster_environment: Optional[ClusterEnvironment] = None):
+    def __init__(self, trainer: 'pl.Trainer', cluster_environment: Optional[ClusterEnvironment] = None):
         """
         Runs training using horovod
 

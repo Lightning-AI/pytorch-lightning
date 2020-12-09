@@ -16,6 +16,7 @@ from typing import Optional, Union
 import torch
 from torch import optim
 
+import pytorch_lightning as pl
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.cluster_environments import ClusterEnvironment
@@ -29,7 +30,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 class DataParallelAccelerator(Accelerator):
 
-    def __init__(self, trainer: 'Trainer', cluster_environment: Optional[ClusterEnvironment] = None):
+    def __init__(self, trainer: 'pl.Trainer', cluster_environment: Optional[ClusterEnvironment] = None):
         """
         Runs training using DP via manual start (not HPC cluster)
 

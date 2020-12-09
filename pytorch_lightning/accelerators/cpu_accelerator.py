@@ -15,6 +15,7 @@ from typing import Any, Optional, Union
 
 import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
@@ -23,7 +24,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 class CPUAccelerator(Accelerator):
 
-    def __init__(self, trainer: 'Trainer', cluster_environment: Optional[ClusterEnvironment] = None):
+    def __init__(self, trainer: 'pl.Trainer', cluster_environment: Optional[ClusterEnvironment] = None):
         """
         Runs training on CPU
 

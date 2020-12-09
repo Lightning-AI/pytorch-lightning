@@ -19,6 +19,7 @@ import torch
 import torch.distributed as torch_distrib
 from torch.optim import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
@@ -37,7 +38,7 @@ else:
 class Accelerator(object):
 
     def __init__(self,
-                 trainer: Optional['Trainer'] = None,
+                 trainer: Optional['pl.Trainer'] = None,
                  cluster_environment: Optional[ClusterEnvironment] = None,
                  ddp_plugin: Optional[DDPPlugin] = None):
         self.trainer = trainer
