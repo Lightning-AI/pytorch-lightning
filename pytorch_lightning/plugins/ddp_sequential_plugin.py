@@ -305,11 +305,10 @@ class DDPSequentialPlugin(RPCPlugin):
         )
 
     def distributed_sampler_kwargs(self, distributed_sampler_kwargs):
-        distributed_sampler_kwargs = dict(
+        return dict(
             num_replicas=mpu.get_data_parallel_world_size(),
             rank=mpu.get_data_parallel_rank(),
         )
-        return distributed_sampler_kwargs
 
     @property
     def data_parallel_group(self):
