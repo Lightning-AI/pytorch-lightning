@@ -83,7 +83,7 @@ class DDPSequentialPlugin(RPCPlugin):
 
                 - 'balance_by_size': checks memory usage of each layer and determines balance
 
-                -'balance_by_time': checks time of each layer and determines balance
+                - 'balance_by_time': checks time of each layer and determines balance
 
             pipelined_backward: if True, call torch.autograd.backward once per microbatch on the
 
