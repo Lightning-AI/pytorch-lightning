@@ -126,11 +126,12 @@ class DDPSequentialPlugin(RPCPlugin):
             global_rank=global_rank,
             world_size=world_size
         )
+        model = trainer.get_model()
         self.gpus_per_model = self._infer_check_num_gpus(trainer)
         self.init_model_parallel_groups(trainer)
         self.set_main_rpc_process()
 
-        self._check_sequential_model_exists(trainer)
+        self._check_sequential_model_exists(model)
         if self.main_rpc_process:
             if self.balance is None:
                 self._infer_model_balance(trainer)
@@ -163,8 +164,7 @@ class DDPSequentialPlugin(RPCPlugin):
         torch_distrib.broadcast(self.balance, src=main_rank, group=mpu.get_data_parallel_group())
         self.balance = self.balance.cpu()
 
-    def _check_sequential_model_exists(self, trainer):
-        model = trainer.get_model()
+    def _check_sequential_model_exists(self, model):
         if not hasattr(model, "sequential_module") or not isinstance(model.sequential_module, nn.Sequential):
             raise MisconfigurationException(
                 'Could not find a PipeLightningModule within the model. '

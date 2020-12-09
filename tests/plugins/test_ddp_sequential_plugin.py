@@ -187,22 +187,7 @@ class SequentialModelRPCManual(LightningModule):
         return False
 
 
-class SequentialModelRPCAutomatic(LightningModule):
-    def __init__(self):
-        super().__init__()
-        self.sequential_module = nn.Sequential(torch.nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2))
-
-    def forward(self, x):
-        return self.sequential_module(x)
-
-    def loss(self, prediction):
-        # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
-        return torch.nn.functional.mse_loss(prediction, torch.ones_like(prediction))
-
-    def step(self, x):
-        x = self(x)
-        out = torch.nn.functional.mse_loss(x, torch.ones_like(x))
-        return out
+class SequentialModelRPCAutomatic(SequentialModelRPCManual):
 
     def training_step(self, batch, batch_idx):
         output = self.sequential_module(batch)
@@ -210,25 +195,6 @@ class SequentialModelRPCAutomatic(LightningModule):
         self.log("train_loss", loss, on_epoch=True, prog_bar=True)
         return loss
 
-    def validation_step(self, batch, batch_idx):
-        output = self.sequential_module(batch)
-        loss = self.loss(output)
-        return loss
-
-    def test_step(self, batch, batch_idx):
-        output = self.sequential_module(batch)
-        return self.loss(batch, output)
-
-    def configure_optimizers(self):
-        optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
-        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
-        return [optimizer], [lr_scheduler]
-
-    def train_dataloader(self):
-        return torch.utils.data.DataLoader(RandomDataset(32, 64))
-
-    def val_dataloader(self):
-        return torch.utils.data.DataLoader(RandomDataset(32, 64))
-
-    def test_dataloader(self):
-        return torch.utils.data.DataLoader(RandomDataset(32, 64))
+    @property
+    def automatic_optimization(self) -> bool:
+        return True
