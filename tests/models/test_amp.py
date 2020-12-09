@@ -129,7 +129,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         gpus=[0],
         accelerator='ddp_spawn',
         precision=16,
-        checkpoint_callback=checkpoint,
+        callbacks=[checkpoint],
         logger=logger,
     )
     trainer.is_slurm_managing_tasks = True
