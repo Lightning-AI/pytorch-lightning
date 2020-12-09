@@ -46,7 +46,7 @@ Example 1: Pretrained, prebuilt models
 Example 2: Extend for faster research
 -------------------------------------
 Bolts are contributed with benchmarks and continuous-integration tests. This means
-you can trust the implementations and use them to bootstrap your resarch much faster.
+you can trust the implementations and use them to bootstrap your research much faster.
 
 .. code-block:: python
 
