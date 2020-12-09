@@ -263,6 +263,13 @@ class AcceleratorConnector:
                 ddp_plugin=self.trainer.plugin_connector.ddp_plugin
             )
 
+        elif self.trainer.distributed_backend == "ddp_hpc":
+            accelerator_backend = accelerators.DDPHPCAccelerator(
+                self.trainer,
+                cluster_env,
+                ddp_plugin=self.trainer.plugin_connector.ddp_plugin
+            )
+
         elif self.trainer.use_dp:
             accelerator_backend = accelerators.DataParallelAccelerator(self.trainer, cluster_env)
 
@@ -315,7 +322,7 @@ class AcceleratorConnector:
             elif self.trainer.num_gpus > 1:
                 self.trainer.use_dp = True
 
-        elif self.trainer.distributed_backend in ("ddp", "ddp_spawn"):
+        elif self.trainer.distributed_backend in ("ddp", "ddp_spawn", "ddp_hpc"):
             if self.trainer.num_gpus == 0:
                 if self.trainer.num_nodes > 1 or self.trainer.num_processes > 1:
                     self.trainer.use_ddp = True  # ddp_cpu
