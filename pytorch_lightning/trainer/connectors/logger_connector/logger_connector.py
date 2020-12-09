@@ -589,7 +589,7 @@ class LoggerConnector:
     def log_train_step_metrics(self, batch_output):
         _, batch_log_metrics = self.cached_results.update_logger_connector()
         # when metrics should be logged
-        if self.should_update_logs or self.trainer.fast_dev_run:
+        if self.should_update_logs or self.trainer.fast_dev_run is True:
             # logs user requested information to logger
             grad_norm_dic = batch_output.grad_norm_dic
             if grad_norm_dic is None:

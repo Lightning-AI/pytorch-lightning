@@ -31,16 +31,34 @@ class DebuggingConnector:
             overfit_batches,
             fast_dev_run
     ):
+        if not isinstance(fast_dev_run, (bool, int)):
+            raise MisconfigurationException(
+                f'fast_dev_run={fast_dev_run} is not a valid configuration.'
+                ' It should be either a bool or an int >= 0'
+            )
+
+        if isinstance(fast_dev_run, int) and (fast_dev_run < 0):
+            raise MisconfigurationException(
+                f'fast_dev_run={fast_dev_run} is not a'
+                ' valid configuration. It should be >= 0.'
+            )
 
         self.trainer.fast_dev_run = fast_dev_run
-        if self.trainer.fast_dev_run:
-            limit_train_batches = 1
-            limit_val_batches = 1
-            limit_test_batches = 1
+        fast_dev_run = int(fast_dev_run)
+
+        # set fast_dev_run=True when it is 1, used while logging
+        if fast_dev_run == 1:
+            self.trainer.fast_dev_run = True
+
+        if fast_dev_run:
+            limit_train_batches = fast_dev_run
+            limit_val_batches = fast_dev_run
+            limit_test_batches = fast_dev_run
             self.trainer.num_sanity_val_steps = 0
             self.trainer.max_epochs = 1
             rank_zero_info(
-                'Running in fast_dev_run mode: will run a full train,' ' val and test loop using a single batch'
+                'Running in fast_dev_run mode: will run a full train,'
+                f' val and test loop using {fast_dev_run} batch(es)'
             )
 
         self.trainer.limit_train_batches = _determine_batch_limits(limit_train_batches, 'limit_train_batches')

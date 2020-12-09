@@ -33,6 +33,7 @@ import yaml
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -548,7 +549,13 @@ class ModelCheckpoint(Callback):
             )
             last_filepath = os.path.join(self.dirpath, f"{last_filepath}{self.FILE_EXTENSION}")
 
-        self._save_model(last_filepath, trainer, pl_module)
+        accelerator_backend = trainer.accelerator_backend
+
+        if accelerator_backend is not None and accelerator_backend.rpc_enabled:
+            # RPCPlugin manages saving all model states
+            accelerator_backend.ddp_plugin.rpc_save_model(self._save_model, last_filepath, trainer, pl_module)
+        else:
+            self._save_model(last_filepath, trainer, pl_module)
         if (
                 self.last_model_path
                 and self.last_model_path != last_filepath
