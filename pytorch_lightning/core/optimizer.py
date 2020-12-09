@@ -113,11 +113,11 @@ class LightningOptimizer:
 
         else:
             with trainer.profiler.profile(profiler_name):
-               if self._support_closure:
-                   optimizer.step(closure=closure, *args, **kwargs)
-               else:
-                   closure()
-                   optimizer.step(*args, **kwargs)
+                if self._support_closure:
+                    optimizer.step(closure=closure, *args, **kwargs)
+                else:
+                    closure()
+                    optimizer.step(*args, **kwargs)
 
         accelerator_backend = trainer.accelerator_backend
         if accelerator_backend is not None and accelerator_backend.rpc_enabled:

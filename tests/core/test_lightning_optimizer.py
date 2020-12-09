@@ -24,13 +24,12 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities import BOLTS_AVAILABLE
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel, RandomDataset, RandomDictDataset, RandomDictStringDataset
 
 if BOLTS_AVAILABLE:
     from pl_bolts.optimizers.lars_scheduling import LARSWrapper
     from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
 
 
 def test_lightning_optimizer(tmpdir):
@@ -207,27 +206,24 @@ def test_state(tmpdir):
     assert optimizer.state == lightning_optimizer.state
 
 
+class TestLightningOptimizerModel(BoringModel):
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=0.1)
+
+        optimizer = LARSWrapper(optimizer)
+        return [optimizer]
+
+
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not BOLTS_AVAILABLE, reason="Bolts is required for this test")
 def test_lightning_optimizer_state(tmpdir):
-    class TestModel(BoringModel):
-
-        def configure_optimizers(self):
-            optimizer = torch.optim.Adam(self.parameters(), lr=0.1)
-
-            optimizer = LARSWrapper(optimizer)
-            scheduler = LinearWarmupCosineAnnealingLR(
-                optimizer,
-                warmup_epochs=1,
-                max_epochs=20
-            )
-            return [optimizer], [scheduler]
 
     train_data = torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=1)
     val_data = torch.utils.data.DataLoader(RandomDataset(32, 64),batch_size=1)
     test_data = torch.utils.data.DataLoader(RandomDataset(32, 64),batch_size=1)
 
-    model = TestModel()
+    model = TestLightningOptimizerModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=10,
