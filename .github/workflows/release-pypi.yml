@@ -29,6 +29,7 @@ jobs:
         ls -lh dist/
 
     - name: Upload to release
+      if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
