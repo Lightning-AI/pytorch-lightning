@@ -254,6 +254,3 @@ class Accelerator(object):
         """
         cm = self.ddp_plugin.block_backward_sync(self.trainer.model) if self.ddp_plugin else None
         yield cm
-
-
-
