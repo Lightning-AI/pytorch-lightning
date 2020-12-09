@@ -472,8 +472,6 @@ def test_log_works_in_val_callback(tmpdir):
                         "forked": False,
                         "func_name": func_name}
 
-        """
-
         def on_validation_start(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_validation_start', 1, on_steps=self.choices,
                               on_epochs=self.choices, prob_bars=self.choices)
@@ -486,6 +484,7 @@ def test_log_works_in_val_callback(tmpdir):
             self.make_logging(pl_module, 'on_validation_epoch_start', 3, on_steps=self.choices,
                               on_epochs=self.choices, prob_bars=self.choices)
 
+        """
         def on_batch_start(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_batch_start', 4, on_steps=self.choices,
                               on_epochs=self.choices, prob_bars=self.choices)
@@ -493,6 +492,7 @@ def test_log_works_in_val_callback(tmpdir):
         def on_validation_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
             self.make_logging(pl_module, 'on_validation_batch_start', 5, on_steps=self.choices,
                               on_epochs=self.choices, prob_bars=self.choices)
+        """
 
         def on_batch_end(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_batch_end', 6, on_steps=self.choices,
@@ -509,8 +509,6 @@ def test_log_works_in_val_callback(tmpdir):
         def on_epoch_end(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_epoch_end', 8, on_steps=[False],
                               on_epochs=self.choices, prob_bars=self.choices)
-
-        """
 
         def on_validation_epoch_end(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_validation_epoch_end', 9, on_steps=[False],
@@ -541,16 +539,14 @@ def test_log_works_in_val_callback(tmpdir):
     trainer.fit(model)
     trainer.test()
 
-    """
     assert test_callback.funcs_called_count["on_epoch_start"] == 1
-    assert test_callback.funcs_called_count["on_batch_start"] == 1
+    # assert test_callback.funcs_called_count["on_batch_start"] == 1
     assert test_callback.funcs_called_count["on_batch_end"] == 1
     assert test_callback.funcs_called_count["on_validation_start"] == 1
     assert test_callback.funcs_called_count["on_validation_epoch_start"] == 1
-    assert test_callback.funcs_called_count["on_validation_batch_start"] == 4
+    # assert test_callback.funcs_called_count["on_validation_batch_start"] == 4
     assert test_callback.funcs_called_count["on_validation_batch_end"] == 4
     assert test_callback.funcs_called_count["on_epoch_end"] == 1
-    """
     assert test_callback.funcs_called_count["on_validation_epoch_end"] == 1
 
     # Make sure the func_name exists within callback_metrics. If not, we missed some
@@ -662,7 +658,6 @@ def test_log_works_in_test_callback(tmpdir):
                         "forked": False,
                         "func_name": func_name}
 
-        """
         def on_test_start(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_test_start', 1, on_steps=self.choices,
                               on_epochs=self.choices, prob_bars=self.choices)
@@ -675,11 +670,8 @@ def test_log_works_in_test_callback(tmpdir):
             self.make_logging(pl_module, 'on_test_epoch_start', 3, on_steps=self.choices,
                               on_epochs=self.choices, prob_bars=self.choices)
 
-        def on_test_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-            self.make_logging(pl_module, 'on_test_batch_start', 4, on_steps=self.choices,
-                              on_epochs=self.choices, prob_bars=self.choices)
-        def on_test_step_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-            self.make_logging(pl_module, 'on_test_step_end', 5, on_steps=self.choices,
+        def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+            self.make_logging(pl_module, 'on_test_batch_end', 5, on_steps=self.choices,
                               on_epochs=self.choices, prob_bars=self.choices)
 
             # used to make sure aggregation works fine.
@@ -690,7 +682,6 @@ def test_log_works_in_test_callback(tmpdir):
         def on_epoch_end(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_epoch_end', 6, on_steps=[False],
                               on_epochs=self.choices, prob_bars=self.choices)
-        """
 
         def on_test_epoch_end(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_test_epoch_end', 7, on_steps=[False],
@@ -728,13 +719,11 @@ def test_log_works_in_test_callback(tmpdir):
     )
     trainer.fit(model)
     trainer.test()
-    """
+
     assert test_callback.funcs_called_count["on_test_start"] == 1
     assert test_callback.funcs_called_count["on_epoch_start"] == 2
     assert test_callback.funcs_called_count["on_test_epoch_start"] == 1
-    assert test_callback.funcs_called_count["on_test_batch_start"] == 4
-    assert test_callback.funcs_called_count["on_test_step_end"] == 4
-    """
+    assert test_callback.funcs_called_count["on_test_batch_end"] == 4
     assert test_callback.funcs_called_count["on_test_epoch_end"] == 1
 
     # Make sure the func_name exists within callback_metrics. If not, we missed some
@@ -886,3 +875,34 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
 
     expected = torch.stack(model.val_losses[4:]).mean()
     assert get_metrics_at_idx(6)["valid_loss_1"] == expected
+
+
+def test_progress_bar_dict_contains_values_on_test_epoch_end(tmpdir):
+    class TestModel(BoringModel):
+        def test_step(self, *args):
+            self.log("foo", torch.tensor(self.current_epoch), on_step=False, on_epoch=True, prog_bar=True)
+
+        def test_epoch_end(self, *_):
+            self.epoch_end_called = True
+            self.log('foo_2', torch.tensor(self.current_epoch), prog_bar=True,
+                     on_epoch=True, sync_dist=True, sync_dist_op='sum')
+
+        def on_test_epoch_end(self, *_):
+            self.on_test_epoch_end_called = True
+            assert self.trainer.progress_bar_dict["foo"] == self.current_epoch
+            assert self.trainer.progress_bar_dict["foo_2"] == self.current_epoch
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=1,
+        num_sanity_val_steps=2,
+        checkpoint_callback=False,
+        logger=False,
+        weights_summary=None,
+        progress_bar_refresh_rate=0,
+    )
+    model = TestModel()
+    trainer.test(model)
+    assert model.epoch_end_called
+    assert model.on_test_epoch_end_called

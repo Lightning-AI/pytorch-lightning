@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import sys
+
 import pytest
 import torch
 from tests.base import BoringModel
 import platform
 from distutils.version import LooseVersion
-from pytorch_lightning import Trainer, Callback
+from pytorch_lightning import Trainer
 from unittest import mock
 
 
@@ -31,11 +33,7 @@ class TestModel(BoringModel):
             assert logged_times == expected, msg
 
 
-@pytest.mark.skipif(platform.system() == "Windows",
-                    reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif((platform.system() == "Darwin" and
-                     LooseVersion(torch.__version__) < LooseVersion("1.3.0")),
-                    reason="Distributed training is not supported on MacOS before Torch 1.3.0")
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 def test_global_zero_only_logging_ddp_cpu(tmpdir):
     """
     Makes sure logging only happens from root zero
@@ -43,7 +41,7 @@ def test_global_zero_only_logging_ddp_cpu(tmpdir):
     model = TestModel()
     model.training_epoch_end = None
     trainer = Trainer(
-        distributed_backend='ddp_cpu',
+        accelerator='ddp_cpu',
         num_processes=2,
         default_root_dir=tmpdir,
         limit_train_batches=1,
@@ -62,7 +60,7 @@ def test_global_zero_only_logging_ddp_spawn(tmpdir):
     model = TestModel()
     model.training_epoch_end = None
     trainer = Trainer(
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         gpus=2,
         default_root_dir=tmpdir,
         limit_train_batches=1,

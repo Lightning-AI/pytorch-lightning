@@ -54,6 +54,8 @@ class GPUAccelerator(Accelerator):
         # 16-bit
         model = self.trainer.precision_connector.connect(model)
 
+        self.trainer.convert_to_lightning_optimizers()
+
         self.trainer.model = model
 
     def train(self):
@@ -129,3 +131,7 @@ class GPUAccelerator(Accelerator):
                     group: Optional[Any] = None,
                     reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
         return tensor
+
+    @property
+    def require_distributed_sampler(self):
+        return False

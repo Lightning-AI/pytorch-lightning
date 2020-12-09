@@ -14,31 +14,32 @@
 
 """nn.Module with additional great features."""
 
-import os
-import tempfile
 import collections
 import copy
 import inspect
+import os
 import re
-import types
+import tempfile
 from abc import ABC
 from argparse import Namespace
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union, Mapping
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 import torch
+from torch import ScriptModule, Tensor
+from torch.nn import Module
+from torch.optim.optimizer import Optimizer
+
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.utilities import rank_zero_warn, AMPType, TPU_AVAILABLE
+from pytorch_lightning.utilities import TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
-from torch import ScriptModule, Tensor
-from torch.nn import Module
-from torch.optim.optimizer import Optimizer
 
 if TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -116,10 +117,8 @@ class LightningModule(
         # single optimizer
         if isinstance(opts, list) and len(opts) == 1 and isinstance(opts[0], Optimizer):
             return opts[0]
-
         # multiple opts
-        else:
-            return opts
+        return opts
 
     @property
     def example_input_array(self) -> Any:
@@ -365,6 +364,24 @@ class LightningModule(
                 on_epoch = True
 
         return on_epoch
+
+    def all_gather(self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False):
+        r"""
+        Allows users to call ``self.all_gather()`` from the LightningModule, thus making
+        the ```all_gather``` operation accelerator agnostic.
+
+        ```all_gather``` is a function provided by accelerators to gather a tensor from several
+        distributed processes
+
+        Args:
+            tensor: tensor of shape (batch, ...)
+            group: the process group to gather results from. Defaults to all processes (world)
+            sync_grads: flag that allows users to synchronize gradients for all_gather op
+
+        Return:
+            A tensor of shape (world_size, batch, ...)
+        """
+        return self.trainer.accelerator_backend.all_gather(tensor, group=group, sync_grads=sync_grads)
 
     def forward(self, *args, **kwargs):
         r"""
@@ -1090,7 +1107,7 @@ class LightningModule(
         .. tip:: In manual mode we still automatically clip grads if Trainer(gradient_clip_val=x) is set
 
         .. tip:: In manual mode we still automatically accumulate grad over batches if
-           Trainer(accumulate_grad_batches=x) is set and you use `model.manual_optimizer_step(optimizer)`
+           Trainer(accumulate_grad_batches=x) is set and you use `optimizer.step()`
 
         Example::
 
@@ -1099,7 +1116,7 @@ class LightningModule(
                 loss = ...
                 # automatically applies scaling, etc...
                 self.manual_backward(loss, opt_a)
-                self.manual_optimizer_step(opt_a)
+                opt_a.step()
         """
         # make sure we're using manual opt
         self._verify_is_manual_optimization('manual_backward')
@@ -1108,152 +1125,6 @@ class LightningModule(
         self._running_manual_backward = True
         self.trainer.train_loop.backward(loss, optimizer, -1, *args, **kwargs)
         self._running_manual_backward = False
-
-    def manual_optimizer_step(self,
-                              optimizer: Optimizer,
-                              *args,
-                              make_optimizer_step: Optional[bool] = None,
-                              optimizer_closure: Optional[Callable] = None,
-                              ** kwargs) -> None:
-        """
-        Call this directly from your training_step when doing optimizations manually.
-        By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
-
-        .. tip:: In manual mode we still automatically accumulate grad over batches if
-           Trainer(accumulate_grad_batches=x) is set.
-
-        Args:
-            optimizer: Optimizer used to perform `.step()` call
-
-            make_optimizer_step: Whether to force an optimizer step. When nothing is provided,
-                we will use `accumulate_grad_batches` for accumulation frequency by default.
-                However, one coud provide True and False based on its own scheduling.
-                c.f example 2 and 3
-
-            optimizer_closure: One could provide its own optimizer_closure. Set to None by default.
-
-            args: Any parameters provided to optimizer.step()
-
-            kwargs: Any parameters provided to optimizer.step()
-
-        Example::
-
-            def training_step(...):
-                (opt_a, opt_b) = self.optimizers()
-                loss = ...
-                # automatically applies scaling, etc...
-
-                self.manual_backward(loss, opt_a)
-
-                # This will use accumulate gradients for `accumulate_grad_batches` batches
-                # and then run opt_a.step()
-                self.manual_optimizer_step(opt_a)
-
-        Example::
-
-            def training_step(self, batch, batch_idx):
-                # using Boring Model
-                opt = self.optimizers() # only 1 optimizer
-
-                def compute_loss():
-                    x = batch[0]
-                    x = F.dropout(x, 0.1)
-                    predictions = self(x)
-                    predictions = F.dropout(predictions, 0.1)
-                    loss = self.loss(None, predictions)
-                    return loss
-
-                def optimizer_closure():
-                    # emulate MC dropout training
-                    num_backward = 1
-                    losses = []
-                    for backward_idx in range(num_backward + 1):
-                        loss = compute_loss()
-                        losses.append(loss)
-                        retain_graph = num_backward!= backward_idx
-                        self.manual_backward(loss, opt, retain_graph=retain_graph)
-                    loss_mean = torch.stack(losses).mean()
-                    loss_std = torch.stack(losses).std()
-                    self.log("train_loss_mean", loss_mean, on_step=True, prog_bar=True, on_epoch=True)
-                    self.log("train_loss_std", loss_std, on_step=True, prog_bar=True, on_epoch=True)
-
-                self.manual_optimizer_step(opt, optimizer_closure=optimizer_closure)
-
-        Example::
-
-            # Scenario for a gan.
-
-            def training_step(self, batch, batch_idx, optimizer_idx):
-
-                # emulate gans training
-                opt_gen, opt_dis = self.optimizers()
-
-                # Note: Be careful, don't log on the same key in self.log in both closure
-                # as they will be aggregated together on epoch_end
-
-                def gen_closure():
-                    ... forward and compute loss for generator
-                    loss_gen = ...
-                    self.log("loss_gen", loss_gen, on_step=True, on_epoch=True)
-                    self.manual_backward(loss_gen, opt_gen)
-
-                def dis_closure():
-                    ... forward and compute loss for discriminator
-                    loss_dis = ...
-                    self.log("loss_dis", loss_dis, on_step=True, on_epoch=True)
-                    self.manual_backward(loss_dis, opt_dis)
-
-                # this will accumulate gradients for 2 batches and then call opt_gen.step()
-                self.manual_optimizer_step(
-                    opt_gen,
-                    optimizer_closure=gen_closure,
-                    make_optimizer_step=batch_idx % 2 == 0)
-
-                # update discriminator every 4 batches
-                # therefore, no gradient accumulation for discriminator
-                if batch_idx % 4 == 0 :
-                    # Note: Set make_optimizer_step to True or it will use by default
-                    # Trainer(accumulate_grad_batches=x)
-                    self.manual_optimizer_step(
-                        opt_dis,
-                        optimizer_closure=dis_closure,
-                        make_optimizer_step=True)
-        """
-        # make sure we're using manual opt
-        self._verify_is_manual_optimization('manual_optimizer_step')
-
-        should_make_optimizer_step = not self.trainer.train_loop.should_accumulate()
-        make_optimizer_step = make_optimizer_step if make_optimizer_step is not None else should_make_optimizer_step
-
-        if make_optimizer_step:
-
-            # mock closure function as the user is responsible to call `manual_backward`
-            def do_nothing_optimizer_closure():
-                return
-
-            is_callable = isinstance(optimizer_closure, types.FunctionType)
-            optimizer_closure = optimizer_closure if is_callable else do_nothing_optimizer_closure
-
-            self.trainer.train_loop.optimizer_step(
-                optimizer,
-                None,
-                self.trainer.batch_idx,
-                optimizer_closure,
-                *args,
-                **kwargs,
-            )
-
-            # update will be called after every optimizer_step call
-            if self.trainer.amp_backend == AMPType.NATIVE:
-                self.trainer.scaler.update()
-
-            # perform zero grad
-            optimizer.zero_grad()
-
-        else:
-            # make sure to call optimizer_closure when accumulating
-            if isinstance(optimizer_closure, types.FunctionType):
-                optimizer_closure()
 
     def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
         """
@@ -1316,7 +1187,7 @@ class LightningModule(
         By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example
         once per optimizer.
 
-        .. tip:: Consider using `manual_optimizer_step` instead of overriding this method as done previously.
+        .. tip:: With `Trainer(enable_pl_optimizer=True)`, you can user `optimizer.step()` directly and it will handle zero_grad, accumulated gradients, AMP, TPU and more automatically for you.
 
         Warning:
             If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter
@@ -1379,25 +1250,11 @@ class LightningModule(
                     optimizer.step(closure=optimizer_closure)
                     optimizer.zero_grad()
 
-        Note:
-            If you also override the :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_before_zero_grad`
-            model hook don't forget to add the call to it before ``optimizer.zero_grad()`` yourself.
-
         """
-        if on_tpu:
-            xm.optimizer_step(optimizer, optimizer_args={'closure': optimizer_closure, **kwargs})
-        elif self.trainer.amp_backend == AMPType.NATIVE:
-            # native amp does not yet support closures.
-            # TODO: pass the closure to the step ASAP
-            optimizer_closure()
-            self.trainer.scaler.step(optimizer)
-        elif self.trainer.amp_backend == AMPType.APEX:
-            # apex amp does not yet support closures.
-            # TODO: pass the closure to the step ASAP
-            optimizer_closure()
-            optimizer.step(*args, **kwargs)
-        else:
-            optimizer.step(closure=optimizer_closure, *args, **kwargs)
+        if not isinstance(optimizer, LightningOptimizer):
+            # wraps into LightingOptimizer only for running step
+            optimizer = LightningOptimizer.to_lightning_optimizer(optimizer, self.trainer)
+        optimizer.step(closure=optimizer_closure, *args, **kwargs)
 
     def optimizer_zero_grad(
         self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int
@@ -1707,11 +1564,10 @@ class LightningModule(
                 raise ValueError(
                     f"Received `input_sample` of type {type(input_sample)}. Expected type is `Tensor`"
                 )
-            else:
-                raise ValueError(
-                    "Could not export to ONNX since neither `input_sample` nor"
-                    " `model.example_input_array` attribute is set."
-                )
+            raise ValueError(
+                "Could not export to ONNX since neither `input_sample` nor"
+                " `model.example_input_array` attribute is set."
+            )
         input_data = input_data.to(self.device)
         if "example_outputs" not in kwargs:
             self.eval()
@@ -1805,6 +1661,13 @@ class LightningModule(
 
     @hparams.setter
     def hparams(self, hp: Union[dict, Namespace, Any]):
+        # TODO: remove this method in v1.3.0.
+        rank_zero_warn(
+            "The setter for self.hparams in LightningModule is deprecated since v1.1.0 and will be"
+            " removed in v1.3.0. Replace the assignment `self.hparams = hparams` with "
+            " `self.save_hyperparameters()`.",
+            DeprecationWarning
+        )
         hparams_assignment_name = self.__get_hparams_assignment_variable()
         self._hparams_name = hparams_assignment_name
         self._set_hparams(hp)
@@ -1813,7 +1676,6 @@ class LightningModule(
             self._hparams_initial = copy.deepcopy(self._hparams)
 
     def __get_hparams_assignment_variable(self):
-        """"""
         """
         looks at the code of the class to figure out what the user named self.hparams
         this only happens when the user explicitly sets self.hparams
@@ -1825,7 +1687,7 @@ class LightningModule(
                 line = re.sub(r"\s+", "", line, flags=re.UNICODE)
                 if ".hparams=" in line:
                     return line.split("=")[1]
-        except Exception as e:
+        except Exception:
             return "hparams"
 
         return None

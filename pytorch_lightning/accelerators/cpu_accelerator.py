@@ -48,6 +48,8 @@ class CPUAccelerator(Accelerator):
         # allow for lr schedulers as well
         self.setup_optimizers(model)
 
+        self.trainer.convert_to_lightning_optimizers()
+
         self.trainer.model = model
 
     def train(self):
@@ -89,3 +91,7 @@ class CPUAccelerator(Accelerator):
                     group: Optional[Any] = None,
                     reduce_op: Optional[Union[ReduceOp, str]] = None) -> torch.Tensor:
         return tensor
+
+    @property
+    def require_distributed_sampler(self):
+        return False
