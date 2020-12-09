@@ -238,7 +238,8 @@ def test_lightning_optimizer_state(tmpdir):
         gpus=1,
     )
     trainer.fit(model, train_data, val_data)
-=======
+
+
 def test_lightning_optimizer_automatic_optimization(tmpdir):
     """
     Test lightning optimize works with make_optimizer_step in automatic_optimization
