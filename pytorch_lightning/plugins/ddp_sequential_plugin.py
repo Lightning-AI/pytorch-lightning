@@ -264,7 +264,6 @@ class DDPSequentialPlugin(RPCPlugin):
             raise MisconfigurationException(
                 'DDPSequentialPlugin is currently not supported in Automatic Mixed Precision')
 
-    @staticmethod
     def configure_ddp(
             self,
             model: LightningModule, device_ids: List[int]) -> DistributedDataParallel:
