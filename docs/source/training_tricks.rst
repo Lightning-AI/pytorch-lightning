@@ -132,7 +132,7 @@ Pipe combines pipeline parallelism with checkpointing to reduce peak memory requ
 
 Find more explanation at https://arxiv.org/abs/1811.06965
 
-.. note:: DDPSequentialPlugin is currently supported only for torch 1.6
+.. note:: DDPSequentialPlugin is currently supported only for Pytorch 1.6
 
 Before running, install Fairscale by using pip install pytorch-lightning["extra"] and pip install pytorch-lightning-bolts
 
@@ -141,8 +141,8 @@ If the module requires lots of memory, Pipe can be used to reduce this by levera
 
 .. code-block:: python
 
-    # from pytorch_lightning.plugins.ddp_sequential_plugin import DDPSequentialPlugin
-    # from pytorch_lightning import LightningModule
+    from pytorch_lightning.plugins.ddp_sequential_plugin import DDPSequentialPlugin
+    from pytorch_lightning import LightningModule
 
     class MyModel(LightningModule):
         def __init__(self):
@@ -174,11 +174,13 @@ When running this example on 2 GPUS.
      - 994 MB
 
 Run with Balancing
-.. code-block:: bash
+
+.. code-block:: python
 
     python pl_examples/basic_examples/conv_sequential_example.py --batch_size 1024 --gpus 2 --accelerator ddp --use_ddp_sequential
 
 Run without Balancing
-.. code-block:: bash
+
+.. code-block:: python
 
     python pl_examples/basic_examples/conv_sequential_example.py --batch_size 1024 --gpus 1
