@@ -694,8 +694,8 @@ Reference: https://arxiv.org/abs/1811.06965
 
 .. note:: DDPSequentialPlugin is currently supported only for Pytorch 1.6.
 
-Before running, install FairScale by using pip install pytorch-lightning["extra"] and pip install pytorch-lightning-bolts
-To use Sequential Model Parallelism, you need to first install FairScale using the command below or install all extras using ``pip install pytorch-lightning["extra"]``.
+To use Sequential Model Parallelism, you need to first install FairScale using the command below or install all extras using ``pip install pytorch-lightning["extra"]``
+and ``pip install pytorch-lightning-bolts``
 
 .. code-block:: bash
 
@@ -744,6 +744,12 @@ To run the example with Sequential Model Parallelism:
 .. code-block:: python
 
     python pl_examples/basic_examples/conv_sequential_example.py --batch_size 1024 --gpus 2 --accelerator ddp --use_ddp_sequential
+
+To run the same example without Sequential Model Parallelism:
+
+.. code-block:: python
+
+    python pl_examples/basic_examples/conv_sequential_example.py --batch_size 1024 --gpus 1
 
 
 Batch size
@@ -795,8 +801,8 @@ Lightning supports the use of TorchElastic to enable fault-tolerant and elastic 
 .. code-block:: python
 
     Trainer(gpus=8, accelerator='ddp')
-    
-    
+
+
 Following the `TorchElastic Quickstart documentation <https://pytorch.org/elastic/latest/quickstart.html>`_, you then need to start a single-node etcd server on one of the hosts:
 
 .. code-block:: bash
@@ -804,8 +810,8 @@ Following the `TorchElastic Quickstart documentation <https://pytorch.org/elasti
     etcd --enable-v2
          --listen-client-urls http://0.0.0.0:2379,http://127.0.0.1:4001
          --advertise-client-urls PUBLIC_HOSTNAME:2379
-         
-     
+
+
 And then launch the elastic job with:
 
 .. code-block:: bash
@@ -817,7 +823,7 @@ And then launch the elastic job with:
             --rdzv_backend=etcd
             --rdzv_endpoint=ETCD_HOST:ETCD_PORT
             YOUR_LIGHTNING_TRAINING_SCRIPT.py (--arg1 ... train script args...)
-            
+
 
 See the official `TorchElastic documentation <https://pytorch.org/elastic>`_ for details
 on installation and more use cases.
