@@ -207,9 +207,8 @@ def test_state(tmpdir):
     assert optimizer.state == lightning_optimizer.state
 
 
-
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not BOLTS_AVAILABLE, reason="Bolt is required for this test")
+@pytest.mark.skipif(not BOLTS_AVAILABLE, reason="Bolts is required for this test")
 def test_lightning_optimizer_state(tmpdir):
     class TestModel(BoringModel):
 
