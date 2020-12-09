@@ -20,9 +20,6 @@ from pytorch_lightning.cluster_environments.cluster_environment import ClusterEn
 
 class SLURMEnvironment(ClusterEnvironment):
 
-    def __init__(self):
-        super().__init__()
-
     def master_address(self):
         # figure out the root node addr
         try:
@@ -46,7 +43,7 @@ class SLURMEnvironment(ClusterEnvironment):
             default_port = default_port[-4:]
 
             # all ports should be in the 10k+ range
-            default_port = int(default_port) + 15000
+            default_port = int(default_port) + 10000
 
         except Exception:
             default_port = 12910
