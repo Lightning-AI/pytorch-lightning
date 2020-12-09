@@ -167,7 +167,7 @@ class DDPSequentialPlugin(RPCPlugin):
         if not hasattr(model, "sequential_module") or not isinstance(model.sequential_module, nn.Sequential):
             raise MisconfigurationException(
                 'Could not find a PipeLightningModule within the model. '
-                'Did you defined set your sequential model as an `sequential_module` attribute of your model ?')
+                'Did you set your sequential model as the `sequential_module` attribute of your model?')
 
     def _find_and_init_pipe_module(self, model):
         if hasattr(model, "sequential_module") and isinstance(model.sequential_module, LightningPipeModule):
