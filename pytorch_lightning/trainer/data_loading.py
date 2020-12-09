@@ -33,11 +33,9 @@ from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 from copy import deepcopy
 from typing import Iterable
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.trainer.train_loader_patch import MultiIterator
-from pytorch_lightning.trainer.supporters import CombinedLoaderIterator, CombinedLoader
+from pytorch_lightning.trainer.supporters import CombinedLoader
 
 TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
-from pytorch_lightning.trainer.train_loader_patch import MagicClass
 
 
 class TrainerDataLoadingMixin(ABC):
