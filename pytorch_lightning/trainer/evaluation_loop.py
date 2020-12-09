@@ -60,7 +60,7 @@ class EvaluationLoop(object):
             in_sanity_check = self.trainer.running_sanity_check
 
             reload_dl_every_n_epoch = self.trainer.reload_dataloaders_every_n_epoch
-            if reload_dl_every_n_epoch and (not self.trainer.epoch % reload_dl_every_n_epoch):
+            if reload_dl_every_n_epoch and (not self.trainer.current_epoch % reload_dl_every_n_epoch):
                 should_reload_every_n_epoch = True
             else:
                 should_reload_every_n_epoch = False
