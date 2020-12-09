@@ -132,3 +132,60 @@ To use Optimizer Sharded Training, refer to :ref:`model-parallelism`.
 Sharded DDP can work across all DDP variants by adding the additional ``--plugins ddp_sharded`` flag.
 
 Refer to the :ref:`distributed computing guide for more details <multi_gpu>`.
+
+
+Sequential Model Parallelism with Checkpointing to reduce peak memory
+---------------------------------------------------------------------
+Pipe Pipeline is a lightning integration of Pipeline Parallelism provided by Fairscale.
+Pipe combines pipeline parallelism with checkpointing to reduce peak memory required to train while minimizing device under-utilization.
+
+Find more explanation at https://arxiv.org/abs/1811.06965
+
+Before running, install Fairscale by using pip install pytorch-lightning["extra"].
+
+To use Sequential Model Parallelism, one need to provide a  :class:`nn.Sequential <torch.nn.Sequential>` module.
+If the module requires lots of memory, Pipe can be used to reduce this by leveraging multiple GPUs.
+
+.. code-block:: python
+
+    # from pytorch_lightning.plugins.ddp_sequential_plugin import DDPSequentialPlugin
+    # from pytorch_lightning import LightningModule
+
+    class MyModel(LightningModule):
+        def __init__(self):
+            ...
+            self.sequential_module = torch.nn.Sequential(my_layers)
+
+    # Split my module across 4 gpus, one layer each
+    model = MyModel()
+    plugin = DDPSequentialPlugin(balance=[1, 1, 1, 1])
+    trainer = Trainer(accelerator='ddp', gpus=4, plugins=[plugin])
+    trainer.fit(model)
+
+Find a [conv_sequential_example](https://github.com/PyTorchLightning/pytorch-lightning/tree/master/pl_examples/basic_examples/conv_sequential_example.py) tutorial on cifar10.
+
+When running this example on 2 GPUS.
+
+.. list-table:: GPU Memory Utilization
+   :widths: 25 25 50
+   :header-rows: 1
+
+   * - GPUS
+     - Without Balancing
+     - With Balancing
+   * - Gpu 0
+     - 4436 MB
+     - 1554 MB
+   * - Gpu 1
+     - ~0
+     - 994 MB
+
+Run with Balancing
+.. code-block:: bash
+
+    python pl_examples/basic_examples/conv_sequential_example.py --use_pipe 1 --batch_size 1024
+
+Run without Balancing
+.. code-block:: bash
+
+    python pl_examples/basic_examples/conv_sequential_example.py --use_pipe 0 --batch_size 1024
