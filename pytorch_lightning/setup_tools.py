@@ -24,9 +24,6 @@ from pytorch_lightning import PROJECT_ROOT, __homepage__, __version__
 _PATH_BADGES = os.path.join('.', 'docs', 'source', '_images', 'badges')
 # badge to download
 _DEFAULT_BADGES = [
-    'PyPI - Python Version',
-    'PyPI Status',
-    'PyPI Status',
     'Conda',
     'DockerHub',
     'codecov',
@@ -34,7 +31,6 @@ _DEFAULT_BADGES = [
     'Slack',
     'Discourse status',
     'license',
-    'Next Release'
 ]
 
 
@@ -59,14 +55,19 @@ def _load_requirements(path_dir: str , file_name: str = 'requirements.txt', comm
     return reqs
 
 
-def _parse_for_badge(text: str, path_badges: str = _PATH_BADGES, badge_names: Iterable = _DEFAULT_BADGES) -> str:
+def _parse_for_badge(
+        text: str,
+        release_url: str = None,
+        path_badges: str = _PATH_BADGES,
+        badge_names: Iterable = _DEFAULT_BADGES,
+) -> str:
     """ Returns the new parsed text with url change with local downloaded files
 
     >>> _parse_for_badge('Some text here... '  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-    ...     '[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pytorch-lightning)]'
-    ...     '(https://pypi.org/project/pytorch-lightning/) and another text later')
+    ...     '[![Conda](https://img.shields.io/conda/v/conda-forge/pytorch-lightning?label=conda)]'
+    ...     '(https://anaconda.org/conda-forge/pytorch-lightning) and another text later')
     'Some text here...
-     [![PyPI - Python Version](...docs...source..._images...badges...PyPI_Python_Version_badge.png)](https://pypi.org/project/pytorch-lightning/)
+     [![Conda](...docs...source..._images...badges...Conda_badge.svg)](https://anaconda.org/conda-forge/pytorch-lightning)
      and another text later'
     >>> import shutil
     >>> shutil.rmtree(_PATH_BADGES)
@@ -83,10 +84,14 @@ def _parse_for_badge(text: str, path_badges: str = _PATH_BADGES, badge_names: It
             continue
 
         # download badge
-        saved_badge_name = _download_badge(badge_url, badge_name, path_badges)
+        badge_path = _download_badge(badge_url, badge_name, path_badges)
+        if release_url:
+            # https://github.com/Borda/pytorch-lightning/releases/download/1.1.0a6/codecov_badge.png
+            badge_fname = os.path.basename(badge_path)
+            badge_path = os.path.join(release_url, badge_fname)
 
         # replace url with local file path
-        text = text.replace(f'[![{badge_name}]({badge_url})]', f'[![{badge_name}]({saved_badge_name})]')
+        text = text.replace(f'[![{badge_name}]({badge_url})]', f'[![{badge_name}]({badge_path})]')
 
     return text
 
@@ -152,17 +157,26 @@ def _load_long_description(path_dir: str) -> str:
 
     >>> _load_long_description(PROJECT_ROOT)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     '<div align="center">...'
-    >>> import shutil
-    >>> shutil.rmtree(_PATH_BADGES)
     """
+    path_readme = os.path.join(path_dir, "README.md")
+    text = open(path_readme, encoding="utf-8").read()
+
     # https://github.com/PyTorchLightning/pytorch-lightning/raw/master/docs/source/_images/lightning_module/pt_to_pl.png
-    url = os.path.join(__homepage__, 'raw', __version__, 'docs')
-    path_readme = os.path.join(path_dir, 'README.md')
-    text = open(path_readme, encoding='utf-8').read()
+    github_source_url = os.path.join(__homepage__, "raw", __version__)
     # replace relative repository path to absolute link to the release
-    text = text.replace('](docs', f']({url}')
-    # SVG images are not readable on PyPI, so replace them with PNG
-    text = text.replace('.svg', '.png')
-    # download badge and replace url with local file
-    text = _parse_for_badge(text)
+    #  do not replace all "docs" as in the readme we reger some other sources with particular path to docs
+    text = text.replace("docs/source/_images/", f"{os.path.join(github_source_url, 'docs/source/_images/')}")
+
+    # readthedocs badge
+    text = text.replace('badge/?version=stable', f'badge/?version={__version__}')
+    text = text.replace('pytorch-lightning.readthedocs.io/en/stable/', f'pytorch-lightning.readthedocs.io/en/{__version__}')
+    # codecov badge
+    text = text.replace('/branch/master/graph/badge.svg', f'/release/{__version__}/graph/badge.svg')
+    # replace github badges for release ones
+    text = text.replace('badge.svg?branch=master&event=push', f'badge.svg?tag={__version__}')
+
+    # # https://github.com/Borda/pytorch-lightning/releases/download/1.1.0a6/codecov_badge.png
+    # github_release_url = os.path.join(__homepage__, "releases", "download", __version__)
+    # # download badge and replace url with local file
+    # text = _parse_for_badge(text, github_release_url)
     return text
