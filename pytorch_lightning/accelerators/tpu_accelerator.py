@@ -14,7 +14,7 @@
 import io
 import os
 import re
-from typing import Any, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 import torch
 import torch.multiprocessing as mp
@@ -145,26 +145,18 @@ class TPUAccelerator(Accelerator):
         # persist info in spawn
         self.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
 
+    def _step(self, model_step: Callable, args):
+        args[0] = self.to_device(args[0])
+        return model_step(*args)
+
     def training_step(self, args):
-        batch = args[0]
-        batch = self.to_device(batch)
-        args[0] = batch
-        output = self.trainer.model.training_step(*args)
-        return output
+        return self._step(self.trainer.model.training_step, args)
 
     def validation_step(self, args):
-        batch = args[0]
-        batch = self.to_device(batch)
-        args[0] = batch
-        output = self.trainer.model.validation_step(*args)
-        return output
+        return self._step(self.trainer.model.validation_step, args)
 
     def test_step(self, args):
-        batch = args[0]
-        batch = self.to_device(batch)
-        args[0] = batch
-        output = self.trainer.model.test_step(*args)
-        return output
+        return self._step(self.trainer.model.test_step, args)
 
     def process_dataloader(self, dataloader):
         device = xm.xla_device(self.trainer.tpu_id)
