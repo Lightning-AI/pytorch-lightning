@@ -214,7 +214,7 @@ def main(hparams: Namespace):
         logger=logger,
         max_epochs=hparams.epochs,
         accumulate_grad_batches=hparams.grad_batches,
-        distributed_backend=hparams.distributed_backend,
+        accelerator=hparams.accelerator,
         precision=16 if hparams.use_amp else 32,
     )
 
