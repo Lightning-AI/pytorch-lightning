@@ -182,3 +182,7 @@ class DataParallelAccelerator(Accelerator):
         if isinstance(model, LightningDataParallel):
             return model.module
         return model
+
+    @property
+    def require_distributed_sampler(self):
+        return False
