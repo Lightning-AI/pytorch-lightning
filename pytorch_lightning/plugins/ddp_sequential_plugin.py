@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License
 import os
 from typing import Any, List, Optional
 
@@ -22,17 +35,18 @@ if FAIRSCALE_PIPE_AVAILABLE:
 
 
 class DDPSequentialPlugin(RPCPlugin):
-    def __init__(self,
-                 balance: Optional[List[int]] = None,
-                 microbatches: int = 8,
-                 checkpoint: str = 'except_last',
-                 balance_mode: str = "balance_by_size",
-                 pipelined_backward: Optional[bool] = True,
-                 **kwargs):
+    def __init__(
+            self,
+            balance: Optional[List[int]] = None,
+            microbatches: int = 8,
+            checkpoint: str = 'except_last',
+            balance_mode: str = "balance_by_size",
+            pipelined_backward: Optional[bool] = True,
+            **kwargs):
         """
         Provides sequential model parallelism for :class:`nn.Sequential <torch.nn.Sequential>` module.
         If the module requires lots of memory, Pipe can be used to reduce this by leveraging multiple GPUs.
-        ::
+
             Example::
                 class MyLightningModule:
                     def __init__(self):
@@ -55,7 +69,9 @@ class DDPSequentialPlugin(RPCPlugin):
         or you can pass an example input array via the LightningModule to infer a balance.
         The module will be partitioned into multiple devices according to the given balance. You may also rely on
         your own heuristics to find your own optimal configuration.
+
         Args:
+<<<<<<< HEAD
             balance: The balance of the model, i.e [2, 2] (two layers on each GPU).
             If not provided assumes user provides an input example array to find a balance on all GPUs.
 
@@ -74,6 +90,21 @@ class DDPSequentialPlugin(RPCPlugin):
             around a potential deadlock in pytorch when using tensor parallelism
             at the same time. Defaults to `True` if
             `get_model_parallel_world_size() > 1`
+=======
+            balance: The balance of the model, i.e `[2, 2]` (two layers on each GPU).
+                If not provided assumes user provides an input example array to find a balance on all GPUs.
+            microbatches: Allows for parallelization to reduce device utilization
+                by splitting the batch into further smaller batches.
+            checkpoint: Enables gradient checkpointing. Options: `['always', 'except_last', 'never']`
+            balance_mode: Type of balance heuristic to use if balance to be inferred.
+            'balance_by_size': checks memory usage of each layer and determines balance,
+            'balance_by_time': checks time of each layer and determines balance
+            pipelined_backward: if True, call ``torch.autograd.backward`` once per microbatch on the
+                backward pass (instead of once for the whole batch). This works
+                around a potential deadlock in pytorch when using tensor parallelism
+                at the same time. Defaults to `True` if `get_model_parallel_world_size() > 1`
+                (default: `None`)
+>>>>>>> 2f9a522154ac0e49e297afbf9b8784120ab2c106
         """
         self._check_pipe_available()
         super().__init__(**kwargs)
@@ -86,7 +117,7 @@ class DDPSequentialPlugin(RPCPlugin):
         self.pipelined_backward = pipelined_backward
         self.main_rpc_process = False  # Updated by main process, default for all secondary processes
 
-    def init_distributed_connection(
+    def init_ddp_connection(
             self,
             trainer,
             cluster_environment,
@@ -96,27 +127,28 @@ class DDPSequentialPlugin(RPCPlugin):
     ) -> None:
         trainer.prepared_for_backwards = False
         self._check_arguments(trainer)
-        if not self._skip_init_connections(trainer):
-            super().init_distributed_connection(
-                trainer=trainer,
-                cluster_environment=cluster_environment,
-                global_rank=global_rank,
-                world_size=world_size,
-                is_slurm_managing_tasks=is_slurm_managing_tasks
-            )
-            super().init_rpc_connection(
-                global_rank=global_rank,
-                world_size=world_size
-            )
-            self.gpus_per_model = self._infer_check_num_gpus(trainer)
-            self.init_model_parallel_groups(trainer)
-            self.set_main_rpc_process()
+        if self._skip_init_connections(trainer):
+            return
+        super().init_ddp_connection(
+            trainer=trainer,
+            cluster_environment=cluster_environment,
+            global_rank=global_rank,
+            world_size=world_size,
+            is_slurm_managing_tasks=is_slurm_managing_tasks
+        )
+        super().init_rpc_connection(
+            global_rank=global_rank,
+            world_size=world_size
+        )
+        self.gpus_per_model = self._infer_check_num_gpus(trainer)
+        self.init_model_parallel_groups(trainer)
+        self.set_main_rpc_process()
 
-            self._check_sequential_model_exists(trainer)
-            if self.main_rpc_process:
-                if self.balance is None:
-                    self._infer_model_balance(trainer)
-                self._assert_valid_model_balance(trainer)
+        self._check_sequential_model_exists(trainer)
+        if self.main_rpc_process:
+            if self.balance is None:
+                self._infer_model_balance(trainer)
+            self._assert_valid_model_balance(trainer)
 
     def on_before_manual_backward(self, model: LightningDistributedDataParallel, output: Any):
         pass
@@ -153,10 +185,9 @@ class DDPSequentialPlugin(RPCPlugin):
                 'Did you defined set your sequential model as an `sequential_module` attribute of your model ?')
 
     def _find_and_init_pipe_module(self, model):
-        found_module = False
         if hasattr(model, "sequential_module") and isinstance(model.sequential_module, LightningPipeModule):
             # model has been wrapped already
-            found_module = True
+            return
         elif hasattr(model, "sequential_module") and isinstance(model.sequential_module, nn.Sequential):
             # try to wrap model for the user
             model.sequential_module = LightningPipeModule(
@@ -172,12 +203,12 @@ class DDPSequentialPlugin(RPCPlugin):
             # Update references for main process to access correct lightning functions when calling RPC
             model.sequential_module.module.model.trainer = model.trainer
             model.sequential_module.module.model.configure_optimizers = model.configure_optimizers
-            found_module = True
 
-        if not found_module:
+        else:
             raise MisconfigurationException(
                 'Could not find a PipeLightningModule within the model. '
-                'Did you defined set your sequential model as an `sequential_module` attribute of your model ?')
+                'Did you defined set your sequential model as an `sequential_module` attribute of your model ?'
+            )
 
     def _assert_valid_model_balance(self, trainer):
         model = trainer.get_model()
@@ -249,11 +280,11 @@ class DDPSequentialPlugin(RPCPlugin):
 
     @staticmethod
     def configure_ddp(
-            model: LightningModule,
-            device_ids: List[int]
-        ) -> DistributedDataParallel:
+            self,
+            model: LightningModule, device_ids: List[int]) -> DistributedDataParallel:
         ddp_plugin = RPCPlugin(process_group=mpu.get_data_parallel_group()).configure_ddp(model, device_ids)
-        ddp_plugin.PREPARE_FOR_BACKWARDS = False
+        # Plugin handle backwards across processes. Currently not supported for DDP + pipe parallel
+        ddp_plugin.prepare_for_backwards = False
         return ddp_plugin
 
     @rank_zero_only
@@ -262,8 +293,7 @@ class DDPSequentialPlugin(RPCPlugin):
             save_model_fn,
             last_filepath,
             trainer,
-            pl_module
-        ) -> None:
+            pl_module) -> None:
         model = trainer.get_model()
         if not hasattr(model.sequential_module, "foreach_worker"):
             return
@@ -278,11 +308,12 @@ class DDPSequentialPlugin(RPCPlugin):
         del pl_module.sequential_module
         pl_module.sequential_module = current_layers
 
-    def worker_optimizer_step(self,
-                              model: LightningModule,
-                              opt_idx: int,
-                              *args,
-                              **kwargs) -> None:
+    def worker_optimizer_step(
+            self,
+            model: LightningModule,
+            opt_idx: int,
+            *args,
+            **kwargs) -> None:
         model.sequential_module.foreach_worker(
             run_optimizer,
             {"opt_idx": opt_idx, "args": args, "kwargs": kwargs},
@@ -324,11 +355,12 @@ class LightningPipeModule(nn.Module):
         This class wraps Fairscale Pipe and PipeRCPWrapper class.
     """
 
-    def __init__(self,
-                 module: nn.Sequential,
-                 balance: List[int],
-                 microbatches: int = 8,
-                 checkpoint='never'):
+    def __init__(
+            self,
+            module: nn.Sequential,
+            balance: List[int],
+            microbatches: int = 8,
+            checkpoint='never'):
         super().__init__()
         self.module = module
         self.balance = balance
