@@ -364,3 +364,11 @@ class TPUAccelerator(Accelerator):
         https://github.com/pytorch/xla/blob/master/API_GUIDE.md#saving-and-loading-xla-tensors
         """
         return move_data_to_device(checkpoint, torch.device("cpu"))
+
+    @property
+    def distributed_sampler_kwargs(self):
+        return dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
+
+    @property
+    def require_distributed_sampler(self):
+        return True

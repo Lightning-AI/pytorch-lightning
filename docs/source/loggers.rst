@@ -10,7 +10,7 @@ Loggers
 *******
 
 Lightning supports the most popular logging frameworks (TensorBoard, Comet, etc...). TensorBoard is used by default, 
-but you can pass to the :class:`~pytorch_lightning.trainer.trainer.Trainer` any combintation of the following loggers.
+but you can pass to the :class:`~pytorch_lightning.trainer.trainer.Trainer` any combination of the following loggers.
 
 .. note::
 

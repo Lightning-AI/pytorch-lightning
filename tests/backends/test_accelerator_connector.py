@@ -288,6 +288,7 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(tmpdir):
     """
     Test that we choose the custom cluster even when SLURM or TE flags are around
     """
+
     class CustomCluster(ClusterEnvironment):
         def master_address(self):
             return 'asdf'
@@ -322,7 +323,11 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(tmpdir):
 @mock.patch('torch.cuda.device_count', return_value=0)
 def test_custom_accelerator(tmpdir):
     class Accel(Accelerator):
-        def init_ddp_connection(self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True) -> None:
+        def init_ddp_connection(
+                self,
+                global_rank: int,
+                world_size: int,
+                is_slurm_managing_tasks: bool = True) -> None:
             pass
 
     class CB(Callback):
