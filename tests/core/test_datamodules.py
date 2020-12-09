@@ -356,7 +356,7 @@ def test_full_loop_dp(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=3,
         weights_summary=None,
-        distributed_backend='dp',
+        accelerator='dp',
         gpus=2,
         deterministic=True,
     )

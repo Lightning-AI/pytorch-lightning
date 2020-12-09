@@ -33,7 +33,7 @@ def main():
     parser.add_argument('--tmpdir')
     parser.add_argument('--workdir')
     parser.set_defaults(gpus=2)
-    parser.set_defaults(distributed_backend="ddp")
+    parser.set_defaults(accelerator="ddp")
     args = parser.parse_args()
 
     model = EvalModelTemplate()

@@ -224,7 +224,7 @@ The accelerator backend to use (previously known as distributed_backend).
 - (```ddp```) is DistributedDataParallel (each gpu on each node trains, and syncs grads)
 - (```ddp_cpu```) is DistributedDataParallel on CPU (same as `ddp`, but does not use GPUs.
   Useful for multi-node CPU training or single-node debugging. Note that this will **not** give
-  a speedup on a single node, since Torch already makes effient use of multiple CPUs on a single
+  a speedup on a single node, since Torch already makes efficient use of multiple CPUs on a single
   machine.)
 - (```ddp2```) dp on node, ddp across nodes. Useful for things like increasing
     the number of negative samples
@@ -245,7 +245,7 @@ Example::
     # ddp2 = DistributedDataParallel + dp
     trainer = Trainer(gpus=2, num_nodes=2, accelerator='ddp2')
 
-.. note:: this option does not apply to TPU. TPUs use ```ddp``` by default (over each core)
+.. note:: This option does not apply to TPU. TPUs use ```ddp``` by default (over each core)
 
 You can also modify hardware behavior by subclassing an existing accelerator to adjust for your needs.
 
@@ -632,9 +632,10 @@ fast_dev_run
 
 |
 
-Runs 1 batch of train, test  and val to find any bugs (ie: a sort of unit test).
+Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es) of train, val and test
+to find any bugs (ie: a sort of unit test).
 
-Under the hood the pseudocode looks like this:
+Under the hood the pseudocode looks like this when running *fast_dev_run* with a single batch:
 
 .. code-block:: python
 
@@ -658,6 +659,16 @@ Under the hood the pseudocode looks like this:
 
     # runs 1 train, val, test batch and program ends
     trainer = Trainer(fast_dev_run=True)
+
+    # runs 7 train, val, test batches and program ends
+    trainer = Trainer(fast_dev_run=7)
+
+.. note::
+
+    This argument is a bit different from ``limit_train/val/test_batches``. Setting this argument will
+    disable tuner, logger callbacks like ``LearningRateLogger`` and runs for only 1 epoch. This must be
+    used only for debugging purposes. ``limit_train/val/test_batches`` only limits the number of batches and won't
+    disable anything.
 
 gpus
 ^^^^
@@ -971,7 +982,7 @@ Number of processes to train with. Automatically set to the number of GPUs
 when using ``accelerator="ddp"``. Set to a number greater than 1 when
 using ``accelerator="ddp_cpu"`` to mimic distributed training on a
 machine without GPUs. This is useful for debugging, but **will not** provide
-any speedup, since single-process Torch already makes effient use of multiple
+any speedup, since single-process Torch already makes efficient use of multiple
 CPUs.
 
 .. testcode::
@@ -1200,8 +1211,7 @@ Orders the progress bar. Useful when running multiple trainers on the same node.
     # default used by the Trainer
     trainer = Trainer(process_position=0)
 
-Note:
-    This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
+.. note:: This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
 profiler
 ^^^^^^^^

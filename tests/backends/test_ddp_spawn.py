@@ -34,7 +34,7 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
         limit_train_batches=10,
         limit_val_batches=10,
         gpus=[0, 1],
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
     )
 
     model = EvalModelTemplate()
@@ -51,8 +51,8 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
         limit_train_batches=10,
         limit_val_batches=10,
         gpus=[0, 1],
-        distributed_backend='ddp_spawn',
-        progress_bar_refresh_rate=0
+        accelerator='ddp_spawn',
+        progress_bar_refresh_rate=0,
     )
 
     model = EvalModelTemplate()
@@ -79,7 +79,7 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
         limit_train_batches=0.2,
         limit_val_batches=0.2,
         gpus=[0, 1],
-        distributed_backend='ddp_spawn'
+        accelerator='ddp_spawn',
     )
     result = trainer.fit(model, **fit_options)
     assert result == 1, "DDP doesn't work with dataloaders passed to fit()."
