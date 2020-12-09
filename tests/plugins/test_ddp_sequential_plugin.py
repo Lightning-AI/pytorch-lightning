@@ -16,6 +16,7 @@ from unittest import mock
 
 import pytest
 import torch
+import torch.distributed as torch_distrib
 from torch import nn
 
 from pytorch_lightning import LightningModule, Trainer
@@ -51,7 +52,8 @@ def test_ddp_sequential_plugin_ddp_rpc_manual(tmpdir, args=None):
 
     trainer.fit(model)
 
-    assert len(trainer.dev_debugger.pbar_added_metrics) > 0
+    if torch_distrib.get_rank() == 0:
+        assert len(trainer.dev_debugger.pbar_added_metrics) > 0
 
     if trainer.accelerator_backend.rpc_enabled:
         # Called at the end of trainer to ensure all processes are killed
@@ -104,9 +106,11 @@ def test_ddp_sequential_plugin_ddp_rpc_automatic(tmpdir, args=None):
 
     trainer.fit(model)
 
-    assert len(trainer.dev_debugger.pbar_added_metrics) > 0
+    if torch_distrib.get_rank() == 0:
+        assert len(trainer.dev_debugger.pbar_added_metrics) > 0
 
     if trainer.accelerator_backend.rpc_enabled:
+
         # Called at the end of trainer to ensure all processes are killed
         trainer.accelerator_backend.ddp_plugin.exit_rpc_process()
 
@@ -136,7 +140,7 @@ def test_ddp_sequential_plugin_ddp_rpc_with_wrong_balance(tmpdir, args=None):
         model.foreach_worker(cleanup, include_self=True)
 
     except MisconfigurationException as e:
-        assert str(e) == 'The provided balance sum: 4 doesn t match your Sequential length: 3'
+        assert str(e) == 'The provided balance sum: 4 does not match your Sequential length: 3'
 
 
 class SequentialModelRPCManual(LightningModule):
