@@ -185,9 +185,9 @@ When running this example on 2 GPUS.
 Run with Balancing
 .. code-block:: bash
 
-    python pl_examples/basic_examples/conv_sequential_example.py --use_ddp_sequential --batch_size 1024
+    python pl_examples/basic_examples/conv_sequential_example.py --batch_size 1024 --gpus 2 --accelerator ddp --use_ddp_sequential
 
 Run without Balancing
 .. code-block:: bash
 
-    python pl_examples/basic_examples/conv_sequential_example.py --batch_size 1024
+    python pl_examples/basic_examples/conv_sequential_example.py --batch_size 1024 --gpus 1
