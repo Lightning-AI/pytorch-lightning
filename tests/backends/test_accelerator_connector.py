@@ -49,8 +49,8 @@ def test_accelerator_choice_ddp_cpu(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
-        distributed_backend='ddp_cpu',
-        callbacks=[CB()]
+        accelerator='ddp_cpu',
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
@@ -70,9 +70,9 @@ def test_accelerator_choice_ddp(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
-        distributed_backend='ddp',
+        accelerator='ddp',
         gpus=1,
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
@@ -92,9 +92,9 @@ def test_accelerator_choice_ddp_spawn(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         gpus=1,
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
@@ -122,9 +122,9 @@ def test_accelerator_choice_ddp_slurm(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
-        distributed_backend='ddp',
+        accelerator='ddp',
         gpus=2,
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
@@ -154,9 +154,9 @@ def test_accelerator_choice_ddp2_slurm(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
-        distributed_backend='ddp2',
+        accelerator='ddp2',
         gpus=2,
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
@@ -183,9 +183,9 @@ def test_accelerator_choice_ddp_te(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
-        distributed_backend='ddp',
+        accelerator='ddp',
         gpus=2,
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
@@ -212,9 +212,9 @@ def test_accelerator_choice_ddp2_te(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
-        distributed_backend='ddp2',
+        accelerator='ddp2',
         gpus=2,
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
@@ -241,9 +241,9 @@ def test_accelerator_choice_ddp_cpu_te(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
-        distributed_backend='ddp_cpu',
+        accelerator='ddp_cpu',
         num_processes=1,
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
@@ -269,9 +269,9 @@ def test_accelerator_choice_ddp_cpu_slurm(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
-        distributed_backend='ddp_cpu',
+        accelerator='ddp_cpu',
         num_processes=1,
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
@@ -306,9 +306,9 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(tmpdir):
     trainer = Trainer(
         plugins=[CustomCluster()],
         fast_dev_run=True,
-        distributed_backend='ddp_cpu',
+        accelerator='ddp_cpu',
         num_processes=1,
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
