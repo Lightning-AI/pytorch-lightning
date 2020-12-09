@@ -31,6 +31,7 @@ except ImportError:  # pragma: no-cover
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning import _logger as log
 
 
 class WandbLogger(LightningLoggerBase):
@@ -65,6 +66,8 @@ class WandbLogger(LightningLoggerBase):
         from pytorch_lightning import Trainer
         wandb_logger = WandbLogger()
         trainer = Trainer(logger=wandb_logger)
+
+    Note: When logging manually through `wandb.log` or `trainer.logger.experiment.log`, make sure to use `commit=False` so the logging step does not increase.
 
     See Also:
         - `Tutorial <https://app.wandb.ai/cayush/pytorchlightning/reports/
@@ -156,6 +159,9 @@ class WandbLogger(LightningLoggerBase):
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
         metrics = self._add_prefix(metrics)
+        logging_step = step + self._step_offset
+        if logging_step < self.experiment.step:
+            log.warning('Trying to log at a previous step. Use `commit=False` if logging metrics manually.')
         self.experiment.log(metrics, step=(step + self._step_offset) if step is not None else None)
 
     @property
