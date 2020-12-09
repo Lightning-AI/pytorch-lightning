@@ -143,7 +143,7 @@ def test_multi_cpu_model_ddp(enable_pl_optimizer, tmpdir):
         limit_val_batches=0.2,
         gpus=None,
         num_processes=2,
-        distributed_backend='ddp_cpu',
+        accelerator='ddp_cpu',
         enable_pl_optimizer=enable_pl_optimizer,
     )
 
