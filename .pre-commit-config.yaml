@@ -30,3 +30,7 @@ repos:
         args: [--settings-path, ./pyproject.toml]
         language: system
         types: [python]
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    hooks:
+      - id: mypy

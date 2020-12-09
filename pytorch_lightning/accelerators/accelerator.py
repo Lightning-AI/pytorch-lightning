@@ -172,6 +172,20 @@ class Accelerator(object):
         """
         raise NotImplementedError()
 
+    def all_gather(self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False):
+        """
+        Function to gather a tensor from several distributed processes
+
+        Args:
+            tensor: tensor of shape (batch, ...)
+            group: the process group to gather results from. Defaults to all processes (world)
+            sync_grads: flag that allows users to synchronize gradients for all_gather op
+
+        Return:
+            A tensor of shape (world_size, batch, ...)
+        """
+        raise NotImplementedError()
+
     def optimizer_state(self, optimizer: Optimizer) -> dict:
         """
         Returns state of an optimizer. Allows for syncing/collating optimizer state from processes in custom
