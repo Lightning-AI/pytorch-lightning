@@ -368,8 +368,7 @@ class LightningPipeModule(nn.Module):
         self.module.foreach_worker(*args, **kwargs)
 
     def forward(self, *args, **kwargs):
-        x = self.module(*args, **kwargs)
-        return x
+        return self.module(*args, **kwargs)
 
     def get_worker_map(self):
         # TODO, is this correct with multinodes? We also assume "worker" is the same as defined in the RPCPlugin
