@@ -17,7 +17,7 @@ common metric implementations.
 
 The metrics API provides ``update()``, ``compute()``, ``reset()`` functions to the user. The metric base class inherits
 ``nn.Module`` which allows us to call ``metric(...)`` directly. The ``forward()`` method of the base ``Metric`` class
-serves the dual purpose of calling ``update()`` on its input and simultanously returning the value of the metric over the
+serves the dual purpose of calling ``update()`` on its input and simultaneously returning the value of the metric over the
 provided input.
 
 These metrics work with DDP in PyTorch and PyTorch Lightning by default. When ``.compute()`` is called in

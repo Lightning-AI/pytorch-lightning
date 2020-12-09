@@ -22,9 +22,13 @@ from typing import Union, Optional, Any
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
+    from torch.distributed import group
 else:
     class ReduceOp:
         SUM = None
+
+    class group:
+        WORLD = None
 
 
 def rank_zero_only(fn):
@@ -155,3 +159,54 @@ def sync_ddp(
         result = result / torch.distributed.get_world_size(group)
 
     return result
+
+
+class AllGatherGrad(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, tensor, group=group.WORLD):
+        ctx.group = group
+
+        gathered_tensor = [
+            torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())
+        ]
+
+        torch.distributed.all_gather(gathered_tensor, tensor, group=group)
+        gathered_tensor = torch.stack(gathered_tensor, dim=0)
+
+        return gathered_tensor
+
+    @staticmethod
+    def backward(ctx, *grad_output):
+        grad_output = torch.cat(grad_output)
+
+        torch.distributed.all_reduce(
+            grad_output,
+            op=torch.distributed.ReduceOp.SUM,
+            async_op=False,
+            group=ctx.group
+        )
+
+        return grad_output[torch.distributed.get_rank()]
+
+
+def all_gather_ddp_if_available(
+    tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False
+) -> torch.Tensor:
+    """
+    Function to gather a tensor from several distributed processes
+
+    Args:
+        tensor: tensor of shape (batch, ...)
+        group: the process group to gather results from. Defaults to all processes (world)
+        sync_grads: flag that allows users to synchronize gradients for all_gather op
+
+    Return:
+        A tensor of shape (world_size, batch, ...)
+    """
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        if sync_grads:
+            return AllGatherGrad.apply(tensor, group)
+        else:
+            with torch.no_grad:
+                return AllGatherGrad.apply(tensor, group)
+    return tensor
