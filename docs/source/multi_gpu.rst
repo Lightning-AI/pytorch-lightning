@@ -743,13 +743,13 @@ When running the Sequential Model Parallelism example on 2 GPUS we achieve these
 
 To run the example with Sequential Model Parallelism:
 
-.. code-block:: python
+.. code-block:: bash
 
     python pl_examples/basic_examples/conv_sequential_example.py --batch_size 1024 --gpus 2 --accelerator ddp --use_ddp_sequential
 
 To run the same example without Sequential Model Parallelism:
 
-.. code-block:: python
+.. code-block:: bash
 
     python pl_examples/basic_examples/conv_sequential_example.py --batch_size 1024 --gpus 1
 
