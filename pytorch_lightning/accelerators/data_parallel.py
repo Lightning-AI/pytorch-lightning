@@ -382,19 +382,11 @@ class DDPPlugin(ParallelPlugin):
         if seed is not None:
             seed_everything(int(seed))
 
-        # show progressbar only on progress_rank 0
-        # TODO: check where to move this. Cannot stay here, since we won't have access to progressbar here
-        # if (self.node_rank != 0 or self.task_idx != 0) and self.trainer.progress_bar_callback is not None:
-        #     self.trainer.progress_bar_callback.disable()
-
         # determine which process we are and world size
         self.set_world_ranks()
 
         # set warning rank
         rank_zero_only.rank = self.global_rank
-
-        # TODO: This has to be done somewhere else!
-        # self.model.trainer = self.trainer
 
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
@@ -412,7 +404,6 @@ class DDPPlugin(ParallelPlugin):
             log.info(f"All DDP processes registered. Starting ddp with {self.world_size} processes")
             log.info("-" * 100)
 
-        # TODO: I moved this from training loop to here, is it the right place?
         # set the ranks and devices
         self.dist.rank = self.global_rank
         self.dist.device = self.root_device
@@ -421,10 +412,6 @@ class DDPPlugin(ParallelPlugin):
 
         # move the model to the correct device
         self.model_to_device()
-
-        # TODO: Check where this can be moved
-        # set model properties before going into wrapper
-        # self.trainer.model_connector.copy_trainer_model_properties(self.model)
 
         self.configure_ddp()
 
