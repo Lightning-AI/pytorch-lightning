@@ -405,5 +405,5 @@ def load_sequential_from_saved_layers(gpus_per_model):
         for name, child in p_seq.named_children():
             seq.add_module(name, child)
     # delete tmp files
-    _ = [os.remove(f"seq_{rank}.pt") for rank in range(gpus_per_model)]
+    [os.remove(f"seq_{rank}.pt") for rank in range(gpus_per_model)]
     return seq
