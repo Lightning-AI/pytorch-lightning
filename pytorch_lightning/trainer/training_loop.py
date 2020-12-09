@@ -215,10 +215,14 @@ class TrainLoop:
         # TODO bake this logic into the checkpoint callback
         if should_save and self.trainer.checkpoint_connector.has_trained:
             checkpoint_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
+
             if is_last and any(c.save_last for c in checkpoint_callbacks):
                 rank_zero_info("Saving latest checkpoint...")
+
             model = self.trainer.get_model()
-            [cb.on_validation_end(self.trainer, model) for cb in checkpoint_callbacks]
+
+            for callback in checkpoint_callbacks:
+                callback.on_validation_end(self.trainer, model)
 
     def on_train_epoch_start(self, epoch):
 
@@ -679,9 +683,15 @@ class TrainLoop:
                     # calculate loss (train step + train step end)
                     # -------------------
 
-                    # perform dpp sync only when performing optimizer_step
+                    # automatic_optimization=True: perform dpp sync only when performing optimizer_step
+                    # automatic_optimization=False: don't block synchronization here
                     with self.block_ddp_sync_behaviour():
-                        self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens)
+                        self.training_step_and_backward(
+                            split_batch,
+                            batch_idx,
+                            opt_idx,
+                            optimizer,
+                            self.trainer.hiddens)
 
                     batch_outputs = self._process_closure_result(
                         batch_outputs=batch_outputs,
@@ -743,10 +753,22 @@ class TrainLoop:
 
     @contextmanager
     def block_ddp_sync_behaviour(self):
-        if isinstance(self.trainer.model, torch.nn.parallel.DistributedDataParallel):
-            yield self.trainer.model.no_sync()
+        """
+        automatic_optimization = True
+        Blocks ddp sync gradients behaviour on backwards pass.
+        This is useful for skipping sync when accumulating gradients, reducing communication overhead
+
+        automatic_optimization = False
+        do not block ddp gradient sync when using manual optimization
+        as gradients are needed within the training step
+
+        Returns: context manager with sync behaviour off
+
+        """
+        if self.trainer.accelerator_backend is not None and self.automatic_optimization:
+            yield self.trainer.accelerator_backend.block_ddp_plugin_sync_behaviour()
         else:
-            yield
+            yield None
 
     def _process_closure_result(
         self, batch_outputs: list, opt_idx: int
@@ -890,7 +912,7 @@ class TrainLoop:
     def save_loggers_on_train_batch_end(self):
         # when loggers should save to disk
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
-        if should_flush_logs or self.trainer.fast_dev_run:
+        if should_flush_logs or self.trainer.fast_dev_run is True:
             if self.trainer.is_global_zero and self.trainer.logger is not None:
                 self.trainer.logger.save()
 
