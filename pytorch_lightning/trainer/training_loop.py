@@ -157,6 +157,9 @@ class TrainLoop:
         # register auto-resubmit when on SLURM
         self.trainer.slurm_connector.register_slurm_signal_handlers()
 
+        if not self.trainer.is_global_zero and self.trainer.progress_bar_callback is not None:
+            self.trainer.progress_bar_callback.disable()
+
         # --------------------------
         # Pre-train
         # --------------------------
