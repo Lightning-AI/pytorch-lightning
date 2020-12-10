@@ -27,6 +27,7 @@ from torch.utils.data import Dataset
 
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer, callbacks
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
 from tests.base.deterministic_model import DeterministicModel
@@ -88,7 +89,7 @@ def test__training_step__log(tmpdir):
         max_epochs=2,
         log_every_n_steps=1,
         weights_summary=None,
-        checkpoint_callback=callbacks.ModelCheckpoint(monitor='l_se')
+        callbacks=[ModelCheckpoint(monitor='l_se')],
     )
     trainer.fit(model)
 
