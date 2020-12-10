@@ -27,12 +27,12 @@ class TrainerCallbackHookMixin(ABC):
     get_model: Callable
 
     def setup(self, model, stage: str):
-        """Called in the beginning of fit and test"""
+        """Called in the beginning of fit, validate and test"""
         for callback in self.callbacks:
             callback.setup(self, model, stage)
 
     def teardown(self, stage: str):
-        """Called at the end of fit and test"""
+        """Called at the end of fit, validate and test"""
         for callback in self.callbacks:
             callback.teardown(self, self.get_model(), stage)
 
