@@ -237,7 +237,7 @@ def run_cli():
                                help='seed for initializing training.')
     parser = ImageNetLightningModel.add_model_specific_args(parent_parser)
     parser.set_defaults(
-        profiler=True,
+        profiler="simple",
         deterministic=True,
         max_epochs=90,
     )
