@@ -112,10 +112,11 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
     assert logger.name is None
 
     # mock return values of experiment
+    wandb.run = None
+    wandb.init().step = 0
     logger.experiment.id = '1'
     logger.experiment.project_name.return_value = 'project'
     logger.experiment.step = 0
-    logger._step_offset = 0
 
     for _ in range(2):
         _ = logger.experiment
