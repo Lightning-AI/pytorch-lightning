@@ -74,7 +74,9 @@ def test_loggers_fit_test_all(tmpdir, monkeypatch):
     with mock.patch('pytorch_lightning.loggers.test_tube.Experiment'):
         _test_loggers_fit_test(tmpdir, TestTubeLogger)
 
-    with mock.patch('pytorch_lightning.loggers.wandb.wandb'):
+    with mock.patch('pytorch_lightning.loggers.wandb.wandb') as wandb:
+        wandb.run = None
+        wandb.init().step = 0
         _test_loggers_fit_test(tmpdir, WandbLogger)
 
 
@@ -366,7 +368,9 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         logger.experiment.log.assert_called_once_with({"tmp-test": 1.0}, global_step=0)
 
     # WandB
-    with mock.patch('pytorch_lightning.loggers.wandb.wandb') as wandb:
+    with mock.patch('pytorch_lightning.loggers.wandb.wandb') as wandb:        
         logger = _instantiate_logger(WandbLogger, save_idr=tmpdir, prefix=prefix)
+        wandb.run = None
+        wandb.init().step = 0
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.log.assert_called_once_with({'tmp-test': 1.0}, step=0)
