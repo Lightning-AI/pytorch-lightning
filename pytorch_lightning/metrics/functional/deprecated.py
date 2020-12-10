@@ -12,6 +12,7 @@ def to_onehot(*args, **kwargs):
     )
     return new_to_onehot(*args, **kwargs)
 
+
 # TODO: remove in 1.1.1
 def to_categorical(*args, **kwargs):
     warnings.warn(
