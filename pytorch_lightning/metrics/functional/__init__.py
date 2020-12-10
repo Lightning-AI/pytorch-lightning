@@ -17,6 +17,8 @@ from pytorch_lightning.metrics.functional.classification import (
     auc,
     auroc,
     dice_score,
+    f1_score,
+    fbeta_score,
     get_num_classes,
     iou,
     multiclass_auroc,
