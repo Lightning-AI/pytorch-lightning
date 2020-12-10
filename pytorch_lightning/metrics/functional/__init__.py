@@ -38,3 +38,5 @@ from pytorch_lightning.metrics.functional.psnr import psnr
 from pytorch_lightning.metrics.functional.roc import roc
 from pytorch_lightning.metrics.functional.self_supervised import embedding_similarity
 from pytorch_lightning.metrics.functional.ssim import ssim
+
+from pytorch_lightning.metrics.functional.deprecated import to_categorical, to_onehot
