@@ -1476,6 +1476,6 @@ def test_trainer_profiler_incorrect_str_arg():
 ))
 def test_trainer_profiler_incorrect_arg_type(profiler):
     with pytest.raises(MisconfigurationException,
-                       match=r"Only None, bool, str and subclasses of `BaseProfiler` "
-                       r"are valid values for `Trainer`'s `profiler` parameter. *"):
+                       match=r"Only None, bool, str and subclasses of `BaseProfiler`"
+                             r" are valid values for `Trainer`'s `profiler` parameter. *"):
         Trainer(profiler=profiler)
