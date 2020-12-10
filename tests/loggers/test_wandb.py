@@ -34,6 +34,9 @@ def test_wandb_logger_init(wandb):
     wandb.init.assert_called_once()
     wandb.init().log.assert_called_once_with({'acc': 1.0}, step=None)
 
+    # mock wandb step
+    wandb.init().step = 0
+    
     # test wandb.init not called if there is a W&B run
     wandb.init().log.reset_mock()
     wandb.init.reset_mock()
@@ -71,6 +74,7 @@ def test_wandb_pickle(wandb, tmpdir):
     class Experiment:
         """ """
         id = 'the_id'
+        step = 0
 
         def project_name(self):
             return 'the_project_name'
@@ -110,6 +114,8 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
     # mock return values of experiment
     logger.experiment.id = '1'
     logger.experiment.project_name.return_value = 'project'
+    logger.experiment.step = 0
+    logger._step_offset = 0
 
     for _ in range(2):
         _ = logger.experiment
