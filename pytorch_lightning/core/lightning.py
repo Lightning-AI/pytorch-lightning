@@ -1016,7 +1016,7 @@ class LightningModule(
                     'name': None, # Custom name for LearningRateMonitor to use
                 }
 
-            Only the `scheduler` key is required, the rest will be set to the defaults above.
+            Only the ``scheduler`` key is required, the rest will be set to the defaults above.
 
         Examples:
             .. code-block:: python
