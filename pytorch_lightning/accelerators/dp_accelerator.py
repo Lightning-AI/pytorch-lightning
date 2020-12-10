@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Union
+from typing import Optional, Union
 
 import torch
 from torch import optim
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.distributed import LightningDistributed
@@ -27,7 +29,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 class DataParallelAccelerator(Accelerator):
 
-    def __init__(self, trainer, cluster_environment=None):
+    def __init__(self, trainer, cluster_environment: Optional[ClusterEnvironment] = None):
         """
         Runs training using DP via manual start (not HPC cluster)
 
