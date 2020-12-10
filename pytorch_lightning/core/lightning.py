@@ -989,7 +989,7 @@ class LightningModule(
             - List or Tuple - List of optimizers.
             - Two lists - The first list has multiple optimizers, the second a list of LR schedulers (or lr_dict).
             - Dictionary, with an 'optimizer' key, and (optionally) a 'lr_scheduler'
-              key which value is a single LR scheduler or lr_dict.
+              key whose value is a single LR scheduler or lr_dict.
             - Tuple of dictionaries as described, with an optional 'frequency' key.
             - None - Fit will run without any optimizer.
 
@@ -1001,21 +1001,22 @@ class LightningModule(
             In the former case, all optimizers will operate on the given batch in each optimization step.
             In the latter, only one optimizer will operate on the given batch at every step.
 
-            The lr_dict is a dictionary which contains scheduler and its associated configuration.
-            It has five keys. The default configuration is shown below.
+            The lr_dict is a dictionary which contains the scheduler and its associated configuration.
+            The default configuration is shown below.
 
             .. code-block:: python
 
                 {
-                    'scheduler': lr_scheduler, # The LR schduler
+                    'scheduler': lr_scheduler, # The LR scheduler instance (required)
                     'interval': 'epoch', # The unit of the scheduler's step size
                     'frequency': 1, # The frequency of the scheduler
                     'reduce_on_plateau': False, # For ReduceLROnPlateau scheduler
                     'monitor': 'val_loss', # Metric for ReduceLROnPlateau to monitor
-                    'strict': True # Whether to crash the training if `monitor` is not found
+                    'strict': True, # Whether to crash the training if `monitor` is not found
+                    'name': None, # Custom name for LearningRateMonitor to use
                 }
 
-            If user only provides LR schedulers, then their configuration will set to default as shown above.
+            Only the `scheduler` key is required, the rest will be set to the defaults above.
 
         Examples:
             .. code-block:: python
