@@ -50,6 +50,30 @@ def test_tbd_remove_in_v1_3_0(tmpdir):
                 self.hparams = hparams
         DeprecatedHparamsModel({})
 
+    with pytest.deprecated_call(match='will be removed in v1.3'):
+        from pytorch_lightning.metrics.functional.classification import roc
+        roc(pred=torch.tensor([0, 1]), target=torch.tensor([1, 1]), )
+
+    with pytest.deprecated_call(match='will be removed in v1.3'):
+        from pytorch_lightning.metrics.functional.classification import _roc
+        _roc(pred=torch.tensor([0, 1]), target=torch.tensor([0, 0]))
+
+    with pytest.deprecated_call(match='will be removed in v1.3'):
+        from pytorch_lightning.metrics.functional.classification import multiclass_roc
+        multiclass_roc(pred=torch.tensor([[1, 0], [0, 1]]), target=torch.tensor([0, 1]))
+
+    with pytest.deprecated_call(match='will be removed in v1.3'):
+        from pytorch_lightning.metrics.functional.classification import average_precision
+        average_precision(pred=torch.tensor([1]), target=torch.tensor([1]))
+
+    with pytest.deprecated_call(match='will be removed in v1.3'):
+        from pytorch_lightning.metrics.functional.classification import precision_recall_curve
+        precision_recall_curve(pred=torch.tensor([1]), target=torch.tensor([1]))
+
+    with pytest.deprecated_call(match='will be removed in v1.3'):
+        from pytorch_lightning.metrics.functional.classification import multiclass_precision_recall_curve
+        multiclass_precision_recall_curve(pred=torch.tensor([[1, 0], [0, 1]]), target=torch.tensor([0, 1]))
+
 
 def test_tbd_remove_in_v1_2_0():
     with pytest.deprecated_call(match='will be removed in v1.2'):
