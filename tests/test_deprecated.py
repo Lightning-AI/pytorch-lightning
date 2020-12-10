@@ -119,6 +119,20 @@ def test_tbd_remove_in_v1_2_0():
         checkpoint_cb = ModelCheckpoint(filepath='.', dirpath='.')
 
 
+def test_tbd_remove_in_v1_2_0_metrics():
+    from pytorch_lightning.metrics.classification import Fbeta
+    from pytorch_lightning.metrics.functional.classification import fbeta_score, f1_score
+
+    with pytest.deprecated_call(match='will be removed in v1.2'):
+        Fbeta(2)
+
+    with pytest.deprecated_call(match='will be removed in v1.2'):
+        fbeta_score(torch.tensor([0, 1, 0, 1]), torch.tensor([0, 1, 0, 0]), 0.2)
+
+    with pytest.deprecated_call(match='will be removed in v1.2'):
+        f1_score(torch.tensor([0, 1, 0, 1]), torch.tensor([0, 1, 0, 0]))
+
+
 # TODO: remove bool from Trainer.profiler param in v1.3.0, update profiler_connector.py
 @pytest.mark.parametrize(['profiler', 'expected'], [
     (True, SimpleProfiler),
