@@ -731,8 +731,6 @@ class Trainer(
         # --------------------
         self.verbose_evaluate = verbose
 
-        self.logger_connector.set_stage("validation")
-
         # If you supply a datamodule you can't supply val_dataloaders
         if val_dataloaders and datamodule:
             raise MisconfigurationException(
@@ -781,8 +779,6 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         self.verbose_evaluate = verbose
-
-        self.logger_connector.set_stage("test")
 
         # If you supply a datamodule you can't supply test_dataloaders
         if test_dataloaders and datamodule:
