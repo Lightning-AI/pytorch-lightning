@@ -162,7 +162,7 @@ class WandbLogger(LightningLoggerBase):
 
         metrics = self._add_prefix(metrics)
         if not WandbLogger.WARNING_DISPLAYED and (step is not None and step + self._step_offset < self.experiment.step):
-            log.warning('Trying to log at a previous step. Use `commit=False` if logging metrics manually.')
+            log.warning('Trying to log at a previous step. Use `commit=False` when logging metrics manually.')
             WandbLogger.WARNING_DISPLAYED = True
         self.experiment.log(metrics, step=(step + self._step_offset) if step is not None else None)
 
