@@ -17,7 +17,7 @@ from weakref import proxy
 
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.utilities import TPU_AVAILABLE
+from pytorch_lightning.utilities import PYSYFT_AVAILABLE, TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if TPU_AVAILABLE:
@@ -111,7 +111,11 @@ class LightningOptimizer:
 
         else:
             with trainer.profiler.profile(profiler_name):
-                optimizer.step(closure=closure, *args, **kwargs)
+                if PYSYFT_AVAILABLE:
+                    closure()
+                    optimizer.step(*args, **kwargs)
+                else:
+                    optimizer.step(closure=closure, *args, **kwargs)
 
         accelerator_backend = trainer.accelerator_backend
         if accelerator_backend is not None and accelerator_backend.rpc_enabled:

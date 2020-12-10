@@ -44,8 +44,8 @@ class LoggerConnector:
     def cached_results(self) -> Union[EpochResultStore, None]:
         return self._cached_results.get(self._current_stage)    # type: ignore
 
-    def set_stage(self, stage_or_testing: str, reset:bool = False) -> None:
-        self._current_stage = self._determine_stage(stage_or_testing)
+    def set_stage(self, stage_or_testing: Union[str, bool], reset: bool = False) -> None:
+        self._current_stage = LoggerStages.determine_stage(stage_or_testing)
         if self._current_stage == "train":
             self.trainer.training = True
         else:
