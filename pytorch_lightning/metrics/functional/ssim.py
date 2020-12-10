@@ -14,9 +14,9 @@
 from typing import Optional, Sequence, Tuple
 
 import torch
-from pytorch_lightning.metrics.functional.reduction import reduce
-from pytorch_lightning.metrics.utils import _check_same_shape
 from torch.nn import functional as F
+
+from pytorch_lightning.metrics.utils import _check_same_shape, reduce
 
 
 def _gaussian(kernel_size: int, sigma: int, dtype: torch.dtype, device: torch.device):
