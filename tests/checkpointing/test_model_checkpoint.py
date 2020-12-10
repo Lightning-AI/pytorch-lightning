@@ -261,6 +261,29 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     assert ckpt_name == filepath / 'test-epoch=3-step=2.ckpt'
 
 
+class ModelCheckpointExtensionTest(ModelCheckpoint):
+    FILE_EXTENSION = '.tpkc'
+
+
+def test_model_checkpoint_file_extension(tmpdir):
+    """
+    Test ModelCheckpoint with different file extension.
+    """
+
+    model = LogInTwoMethods()
+    model_checkpoint = ModelCheckpointExtensionTest(monitor='early_stop_on', dirpath=tmpdir, save_top_k=1, save_last=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[model_checkpoint],
+        max_steps=1,
+        logger=False,
+    )
+    trainer.fit(model)
+
+    expected = ['epoch=0-step=0.tpkc', 'last.tpkc']
+    assert set(expected) == set(os.listdir(tmpdir))
+
+
 def test_model_checkpoint_save_last(tmpdir):
     """Tests that save_last produces only one last checkpoint."""
     seed_everything()
@@ -615,7 +638,8 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_checkpoint_repeated_strategy(tmpdir):
+@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
+def test_checkpoint_repeated_strategy(enable_pl_optimizer, tmpdir):
     """
     This test validates that the checkpoint can be called when provided to callacks list
     """
@@ -637,7 +661,8 @@ def test_checkpoint_repeated_strategy(tmpdir):
         limit_train_batches=2,
         limit_val_batches=2,
         limit_test_batches=2,
-        callbacks=[checkpoint_callback]
+        callbacks=[checkpoint_callback],
+        enable_pl_optimizer=enable_pl_optimizer,
     )
 
     trainer.fit(model)
@@ -653,11 +678,13 @@ def test_checkpoint_repeated_strategy(tmpdir):
         # load from checkpoint
         chk = get_last_checkpoint()
         model = BoringModel.load_from_checkpoint(chk)
-        trainer = pl.Trainer(max_epochs=1,
-                             limit_train_batches=2,
-                             limit_val_batches=2,
-                             limit_test_batches=2,
-                             resume_from_checkpoint=chk)
+        trainer = pl.Trainer(
+            max_epochs=1,
+            limit_train_batches=2,
+            limit_val_batches=2,
+            limit_test_batches=2,
+            resume_from_checkpoint=chk,
+            enable_pl_optimizer=enable_pl_optimizer)
         trainer.fit(model)
         trainer.test(model)
 
@@ -665,7 +692,8 @@ def test_checkpoint_repeated_strategy(tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_checkpoint_repeated_strategy_tmpdir(tmpdir):
+@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
+def test_checkpoint_repeated_strategy_tmpdir(enable_pl_optimizer, tmpdir):
     """
     This test validates that the checkpoint can be called when provided to callacks list
     """
@@ -688,7 +716,9 @@ def test_checkpoint_repeated_strategy_tmpdir(tmpdir):
         limit_train_batches=2,
         limit_val_batches=2,
         limit_test_batches=2,
-        callbacks=[checkpoint_callback])
+        callbacks=[checkpoint_callback],
+        enable_pl_optimizer=enable_pl_optimizer,
+    )
 
     trainer.fit(model)
     assert sorted(os.listdir(tmpdir)) == sorted(['epoch=00.ckpt', 'lightning_logs'])
@@ -706,12 +736,14 @@ def test_checkpoint_repeated_strategy_tmpdir(tmpdir):
         # load from checkpoint
         chk = get_last_checkpoint()
         model = LogInTwoMethods.load_from_checkpoint(chk)
-        trainer = pl.Trainer(default_root_dir=tmpdir,
-                             max_epochs=1,
-                             limit_train_batches=2,
-                             limit_val_batches=2,
-                             limit_test_batches=2,
-                             resume_from_checkpoint=chk)
+        trainer = pl.Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            limit_train_batches=2,
+            limit_val_batches=2,
+            limit_test_batches=2,
+            resume_from_checkpoint=chk,
+            enable_pl_optimizer=enable_pl_optimizer)
 
         trainer.fit(model)
         trainer.test(model)
@@ -720,7 +752,8 @@ def test_checkpoint_repeated_strategy_tmpdir(tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_checkpoint_repeated_strategy_extended(tmpdir):
+@pytest.mark.parametrize("enable_pl_optimizer", [False, True])
+def test_checkpoint_repeated_strategy_extended(enable_pl_optimizer, tmpdir):
     """
     This test validates checkpoint can be called several times without
     increasing internally its global step if nothing run.
@@ -772,6 +805,7 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
         limit_train_batches=limit_train_batches,
         limit_val_batches=3,
         limit_test_batches=4,
+        enable_pl_optimizer=enable_pl_optimizer,
     )
 
     trainer = pl.Trainer(
@@ -863,7 +897,7 @@ def test_configure_model_checkpoint(tmpdir):
     assert trainer.checkpoint_callbacks == [callback1, callback2]
 
     with pytest.warns(DeprecationWarning, match='will no longer be supported in v1.3'):
-        trainer = Trainer(checkpoint_callback=callback1, callbacks=[], **kwargs)
+        trainer = Trainer(checkpoint_callback=callback1, **kwargs)
         assert [c for c in trainer.callbacks if isinstance(c, ModelCheckpoint)] == [callback1]
         assert trainer.checkpoint_callback == callback1
 

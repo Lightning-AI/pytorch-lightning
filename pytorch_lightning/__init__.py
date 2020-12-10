@@ -1,6 +1,6 @@
 """Root package info."""
 
-__version__ = '1.1.0-dev'
+__version__ = '1.1.0'
 __author__ = 'William Falcon et al.'
 __author_email__ = 'waf2107@columbia.edu'
 __license__ = 'Apache-2.0'
@@ -34,18 +34,22 @@ Documentation
 """
 
 import logging as python_logging
+import os
 
 _logger = python_logging.getLogger("lightning")
 _logger.addHandler(python_logging.StreamHandler())
 _logger.setLevel(python_logging.INFO)
 
+PACKAGE_ROOT = os.path.dirname(__file__)
+PROJECT_ROOT = os.path.dirname(PACKAGE_ROOT)
+
 try:
     # This variable is injected in the __builtins__ by the build
     # process. It used to enable importing subpackages of skimage when
     # the binaries are not built
-    __LIGHTNING_SETUP__
+    _ = None if __LIGHTNING_SETUP__ else None
 except NameError:
-    __LIGHTNING_SETUP__ = False
+    __LIGHTNING_SETUP__: bool = False
 
 if __LIGHTNING_SETUP__:
     import sys  # pragma: no-cover
@@ -67,13 +71,6 @@ else:
         'seed_everything',
         'metrics',
     ]
-
-    # necessary for regular bolts imports. Skip exception since bolts is not always installed
-    try:
-        from pytorch_lightning import bolts
-    except ImportError:
-        pass
-    # __call__ = __all__
 
 # for compatibility with namespace packages
 __import__('pkg_resources').declare_namespace(__name__)
