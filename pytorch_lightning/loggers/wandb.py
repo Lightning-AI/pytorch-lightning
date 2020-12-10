@@ -67,7 +67,8 @@ class WandbLogger(LightningLoggerBase):
         wandb_logger = WandbLogger()
         trainer = Trainer(logger=wandb_logger)
 
-    Note: When logging manually through `wandb.log` or `trainer.logger.experiment.log`, make sure to use `commit=False` so the logging step does not increase.
+    Note: When logging manually through `wandb.log` or `trainer.logger.experiment.log`,
+    make sure to use `commit=False` so the logging step does not increase.
 
     See Also:
         - `Tutorial <https://app.wandb.ai/cayush/pytorchlightning/reports/

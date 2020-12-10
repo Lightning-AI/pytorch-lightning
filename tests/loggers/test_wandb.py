@@ -36,7 +36,7 @@ def test_wandb_logger_init(wandb):
 
     # mock wandb step
     wandb.init().step = 0
-    
+
     # test wandb.init not called if there is a W&B run
     wandb.init().log.reset_mock()
     wandb.init.reset_mock()
