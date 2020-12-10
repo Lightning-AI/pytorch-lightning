@@ -63,7 +63,7 @@ class ModelCheckpoint(Callback):
             Please note that the monitors are checked every `period` epochs.
             if ``save_top_k >= 2`` and the callback is called multiple
             times inside an epoch, the name of the saved file will be
-            appended with a version count starting with `v0`.
+            appended with a version count starting with `v1`.
         mode: one of {auto, min, max}.
             If ``save_top_k != 0``, the decision
             to overwrite the current save file is made
@@ -515,26 +515,11 @@ class ModelCheckpoint(Callback):
             raise MisconfigurationException(m)
 
     def _get_metric_interpolated_filepath_name(self, monitor_candidates: Dict[str, Any], epoch: int, step: int) -> str:
-        original_filepath = self.format_checkpoint_name(epoch, step, monitor_candidates)
-        v0_filepath = self.format_checkpoint_name(epoch, step, monitor_candidates, ver=0)
-        if not self._fs.exists(original_filepath) and not self._fs.exists(v0_filepath):
-            # first time
-            return original_filepath
-        elif self._fs.exists(original_filepath) and not self._fs.exists(v0_filepath):
-            # re-run special case, rename file to file-v0
-            self._fs.move(original_filepath, v0_filepath)
-            if original_filepath in self.best_k_models:
-                self.best_k_models[v0_filepath] = self.best_k_models.pop(original_filepath)
-            if original_filepath == self.kth_best_model_path:
-                self.kth_best_model_path = v0_filepath
-            if original_filepath == self.best_model_path:
-                self.best_model_path = v0_filepath
-        # re-run, use the vesion suffix
-        version = 0
-        filepath = v0_filepath
+        filepath = self.format_checkpoint_name(epoch, step, monitor_candidates)
+        version = 1
         while self._fs.exists(filepath):
-            version += 1
             filepath = self.format_checkpoint_name(epoch, step, monitor_candidates, ver=version)
+            version += 1
         return filepath
 
     def _monitor_candidates(self, trainer):

@@ -1023,10 +1023,10 @@ def test_hparams_type(tmpdir, hparams_type):
         assert type(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY]) == hparams_type
 
 
-def test_ckpt_version_is_changed_after_rerun_new_trainer(tmpdir):
+def test_ckpt_version_after_rerun_new_trainer(tmpdir):
     """
-    Check that previous checkpoints are renamed to have
-    the v0 suffix when new trainer instances are used
+    Check that previous checkpoints are renamed to have the correct
+    version suffix when new trainer instances are used
     """
     epochs = 2
     for i in range(epochs):
@@ -1049,16 +1049,17 @@ def test_ckpt_version_is_changed_after_rerun_new_trainer(tmpdir):
 
     # check created ckpts
     assert set(f.basename for f in tmpdir.listdir()) == {
-        f"epoch={e}-v{v}.ckpt"
-        for e in range(epochs)
-        for v in range(epochs)
+        "epoch=0.ckpt",
+        "epoch=1.ckpt",
+        "epoch=0-v1.ckpt",
+        "epoch=1-v1.ckpt",
     }
 
 
-def test_ckpt_version_is_changed_after_rerun_same_trainer(tmpdir):
+def test_ckpt_version_after_rerun_same_trainer(tmpdir):
     """
-    Check that previous checkpoints are renamed to have
-    the v0 suffix when same trainer instance is used
+    Check that previous checkpoints are renamed to have the correct
+    version suffix when the same trainer instance is used
     """
     mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="test")
     trainer = Trainer(
@@ -1075,33 +1076,9 @@ def test_ckpt_version_is_changed_after_rerun_same_trainer(tmpdir):
     trainer.max_epochs = 4
     trainer.fit(BoringModel())
 
-    expected = [f"test-v{i}.ckpt" for i in range(trainer.max_epochs)]
-    # minimizing on epoch number so best is first
-    assert Path(mc.best_model_path).name == expected[0]
-    assert Path(mc.kth_best_model_path).name == expected[-1]
+    # TODO(carmocca): remove `+ 1` when #5007 is fixed
+    expected = {'test.ckpt', *[f"test-v{i}.ckpt" for i in range(1, trainer.max_epochs + 1)]}
     # check best_k_models state
-    assert sorted(Path(f).name for f in mc.best_k_models.keys()) == expected
+    assert {Path(f).name for f in mc.best_k_models.keys()} == expected
     # check created ckpts
-    assert [f.basename for f in tmpdir.listdir(sort=True)] == expected
-
-
-def test_correct_state_after_rename_ckpt(tmpdir):
-    """
-    Checks that the {kth,}_best_model_path attributes are
-    updated after renaming file.ckpt to file-v0.ckpt.
-    This case is not covered by `test_ckpt_version_is_changed_after_rerun_same_trainer`
-    """
-    mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=1, monitor="epoch", filename="test")
-    trainer = Trainer(
-        max_epochs=2,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        default_root_dir=tmpdir,
-        callbacks=[mc],
-        logger=False,
-        weights_summary=None,
-        progress_bar_refresh_rate=0,
-    )
-    trainer.fit(BoringModel())
-    assert Path(mc.best_model_path).name == "test-v0.ckpt"
-    assert Path(mc.kth_best_model_path).name == "test-v0.ckpt"
+    assert set(sorted(os.listdir(tmpdir))) == expected
