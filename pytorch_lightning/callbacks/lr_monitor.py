@@ -156,6 +156,7 @@ class LearningRateMonitor(Callback):
         # rate schduler + multiple parameter groups
         names = []
         for scheduler in lr_schedulers:
+            sch = scheduler['scheduler']
             if scheduler.get("name") is not None:
                 name = scheduler['name']
             else:
