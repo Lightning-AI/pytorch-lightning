@@ -33,7 +33,6 @@ import yaml
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
-from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -539,10 +538,8 @@ class ModelCheckpoint(Callback):
         return filepath
 
     def _monitor_candidates(self, trainer):
-        monitor_candidates = deepcopy(trainer.logger_connector.logged_metrics)
-        monitor_candidates.update(trainer.logger_connector.callback_metrics)
-        monitor_candidates.update(trainer.logger_connector.progress_bar_metrics)
-        monitor_candidates.update({"step": trainer.global_step, "epoch": trainer.current_epoch})
+        monitor_candidates = deepcopy(trainer.logger_connector.callback_metrics)
+        monitor_candidates.update(step=trainer.global_step, epoch=trainer.current_epoch)
         return monitor_candidates
 
     def _save_last_checkpoint(self, trainer, pl_module, monitor_candidates, filepath):
