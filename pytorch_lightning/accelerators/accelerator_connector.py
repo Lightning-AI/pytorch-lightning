@@ -19,8 +19,8 @@ import torch
 
 from pytorch_lightning.accelerators.accelerator import NewCPUAccelerator, NewAccelerator, NewGPUAccelerator
 from pytorch_lightning.accelerators.data_parallel import SingleDevicePlugin, DDPPlugin
-from pytorch_lightning.accelerators.precision import PrecisionPlugin
-from pytorch_lightning.utilities import device_parser
+from pytorch_lightning.accelerators.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
+from pytorch_lightning.utilities import AMPType, APEX_AVAILABLE, NATIVE_AMP_AVALAIBLE, device_parser
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -57,6 +57,9 @@ class BackendConnector(object):
         benchmark,
         replace_sampler_ddp,
         deterministic,
+        precision,
+        amp_type, 
+        amp_level
     ):
 
         # initialization
@@ -77,6 +80,9 @@ class BackendConnector(object):
         self.benchmark = benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
         self.deterministic = deterministic
+        self.precision = precision
+        self.amp_type = None if amp_type is None else amp_type.lower()
+        self.amp_level = amp_level
 
         # init the default rank if exists
         # we need to call this here or NVIDIA flags and other messaging in init will show on all ranks
@@ -143,7 +149,35 @@ class BackendConnector(object):
         return len(gpus)
 
     def select_precision_plugin(self):
-        return PrecisionPlugin()
+        if self.precision == 32:
+            self.amp_type = None
+            return PrecisionPlugin()
+
+        elif self.precision == 16:
+            if self.amp_type == 'native':
+                if not NATIVE_AMP_AVALAIBLE:
+                    rank_zero_warn('You have asked for native AMP but your PyTorch version does not support it.'
+                                ' Consider upgrading with `pip install torch>=1.6`.'
+                                ' We will attempt to use NVIDIA Apex for this session.')
+                    self.amp_type = 'apex'
+                else:
+                    log.info('Using native 16bit precision.')
+                    self.amp_type = AMPType.NATIVE
+                    return NativeMixedPrecisionPlugin()
+
+            if self.amp_type =='apex':
+                if not APEX_AVAILABLE:
+                    rank_zero_warn('You have asked for Apex AMP but you have not installed it yet.'
+                                ' Install apex first using this guide: https://github.com/NVIDIA/apex#linux')
+                else:
+                    log.info('Using APEX 16bit precision.')
+                    self.amp_type = AMPType.APEX
+                    return ApexMixedPrecisionPlugin(self.amp_level)
+
+
+        
+        else:
+            raise NotImplementedError('We only support precisions 32 and 16!')
 
     def select_training_type_plugin(self):
         if self.distributed_backend == "ddp":

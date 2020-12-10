@@ -94,7 +94,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         # TODO: Check where we can get automatic_optimization from (probably when setting up the model after https://github.com/PyTorchLightning/pytorch-lightning/issues/4317)
         automatic_optimization = model.automatic_optimization
 
-        closure_loss = super().backward(model, closure_loss, optimizer, opt_idx, *args, **kwargs)
+        closure_loss = super().backward(model, closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs)
 
         # unscale gradient to allow analyze within `on_after_backward`
         if not should_accumulate and automatic_optimization:
