@@ -100,8 +100,8 @@ class NewAccelerator(object):
     def process_dataloader(self, dataloader):
         return dataloader
 
-    def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
-        return self.precision_plugin.backward(self.lightning_module, closure_loss, optimizer, opt_idx, *args, **kwargs)
+    def backward(self, closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs):
+        return self.precision_plugin.backward(self.lightning_module, closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs)
 
     def optimizer_step(self, optimizer, current_epoch, batch_idx, opt_idx, lambda_closure):
         # TODO: Check out if this can be simplified with new LightningOptimizer!

@@ -818,12 +818,14 @@ class TrainLoop:
     def backward(self, result, optimizer, opt_idx, *args, **kwargs):
         self.trainer.dev_debugger.track_event("backward_call")
 
+        should_accumulate = self.should_accumulate()
+
         # backward can be called manually in the training loop
         if isinstance(result, torch.Tensor):
-            self.trainer.accelerator_backend.backward(result, optimizer, opt_idx, *args, **kwargs)
+            self.trainer.accelerator_backend.backward(result, optimizer, opt_idx, should_accumulate, *args, **kwargs)
         else:
             result.closure_loss = self.trainer.accelerator_backend.backward(
-                result.closure_loss, optimizer, opt_idx, *args, **kwargs
+                result.closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs
             )
 
         if not self.should_accumulate():

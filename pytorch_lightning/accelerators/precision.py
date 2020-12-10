@@ -33,7 +33,16 @@ class PrecisionPlugin(Plugin):
     def connect(self, model: torch.nn.Module, optimizers, lr_schedulers):
         return model, optimizers, lr_schedulers
 
-    def backward(self, model: LightningModule, closure_loss, optimizer, opt_idx, *args, **kwargs):
+    def backward(
+        self,
+        model: LightningModule,
+        closure_loss: torch.Tensor,
+        optimizer: torch.optim.Optimizer,
+        opt_idx: int,
+        should_accumulate: bool,
+        *args,
+        **kwargs,
+    ):
         # TODO: Check where we can get automatic_optimization from (probably when setting up the model after https://github.com/PyTorchLightning/pytorch-lightning/issues/4317)
         automatic_optimization = model.automatic_optimization
 
@@ -70,7 +79,16 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     def post_optimizer_step(self, optimizer, optimizer_idx):
         self.scaler.update()
 
-    def backward(self, model: LightningModule, closure_loss, optimizer, opt_idx, *args, **kwargs):
+    def backward(
+        self,
+        model: LightningModule,
+        closure_loss: torch.Tensor,
+        optimizer: torch.optim.Optimizer,
+        opt_idx: int,
+        should_accumulate: bool,
+        *args,
+        **kwargs,
+    ):
         closure_loss = self.scaler.scale(closure_loss)
 
         # TODO: Check where we can get automatic_optimization from (probably when setting up the model after https://github.com/PyTorchLightning/pytorch-lightning/issues/4317)
@@ -79,8 +97,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         closure_loss = super().backward(model, closure_loss, optimizer, opt_idx, *args, **kwargs)
 
         # unscale gradient to allow analyze within `on_after_backward`
-        # TODO: Check from where we can get the should_accumulate value (maybe pass it as argument?)
-        if not self.trainer.train_loop.should_accumulate() and automatic_optimization:
+        if not should_accumulate and automatic_optimization:
             self.scaler.unscale_(optimizer)
 
         return closure_loss
@@ -100,7 +117,16 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         reinit_scheduler_properties(optimizers, lr_schedulers)
         return model, optimizers, lr_schedulers
 
-    def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
+    def backward(
+        self,
+        model: LightningModule,
+        closure_loss: torch.Tensor,
+        optimizer: torch.optim.Optimizer,
+        opt_idx: int,
+        should_accumulate: bool,
+        *args,
+        **kwargs,
+    ):
         closure_loss = amp.scale_loss(closure_loss, optimizer)
 
         # enter apex context
@@ -108,8 +134,8 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         closure_loss = closure_loss.__enter__()
 
         # do backward pass
-        if self.lightning_module:
-            model = self.trainer.get_model()
+        # TODO: not entirely sure, why we need this
+        if model is not None and isinstance(model, LightningModule):
             model.backward(closure_loss, optimizer, opt_idx)
         else:
             closure_loss.backward(*args, **kwargs)
