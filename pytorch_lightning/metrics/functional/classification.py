@@ -16,9 +16,11 @@ from typing import Callable, Optional, Sequence, Tuple
 
 import torch
 
-from pytorch_lightning.metrics.functional.roc import roc
-from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve
-from pytorch_lightning.metrics.utils import to_categorical, get_num_classes, reduce, class_reduce
+from pytorch_lightning.metrics.functional.average_precision import average_precision as __ap
+from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve, precision_recall_curve as __prc
+from pytorch_lightning.metrics.functional.roc import roc as __roc
+# TODO: back compatibility, remove in v1.3
+from pytorch_lightning.metrics.utils import to_categorical, to_onehot, get_num_classes, reduce, class_reduce
 from pytorch_lightning.utilities import rank_zero_warn
 
 
@@ -333,8 +335,83 @@ def recall(
                             num_classes=num_classes, class_reduction=class_reduction)[1]
 
 
+# todo: remove in 1.3
+def roc(
+        pred: torch.Tensor,
+        target: torch.Tensor,
+        sample_weight: Optional[Sequence] = None,
+        pos_label: int = 1.,
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    rank_zero_warn(
+        "This `multiclass_roc` was deprecated in v1.1.0 in favor of `pytorch_lightning.metrics.functional.roc.roc`."
+        "It will be removed in v1.3.0", DeprecationWarning
+    )
+    return __roc(preds=pred, target=target, sample_weights=sample_weight, pos_label=pos_label)
+
+
 # TODO: deprecated in favor of general ROC in pytorch_lightning/metrics/functional/roc.py
-def __multiclass_roc(
+def _roc(
+        pred: torch.Tensor,
+        target: torch.Tensor,
+        sample_weight: Optional[Sequence] = None,
+        pos_label: int = 1.,
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """
+    Computes the Receiver Operating Characteristic (ROC). It assumes classifier is binary.
+
+    .. warning:: Deprecated
+
+    Args:
+        pred: estimated probabilities
+        target: ground-truth labels
+        sample_weight: sample weights
+        pos_label: the label for the positive class
+
+    Return:
+        false-positive rate (fpr), true-positive rate (tpr), thresholds
+
+    Example:
+
+        >>> x = torch.tensor([0, 1, 2, 3])
+        >>> y = torch.tensor([0, 1, 1, 1])
+        >>> fpr, tpr, thresholds = _roc(x, y)
+        >>> fpr
+        tensor([0., 0., 0., 0., 1.])
+        >>> tpr
+        tensor([0.0000, 0.3333, 0.6667, 1.0000, 1.0000])
+        >>> thresholds
+        tensor([4, 3, 2, 1, 0])
+
+    """
+    rank_zero_warn(
+        "This `multiclass_roc` was deprecated in v1.1.0 in favor of `pytorch_lightning.metrics.functional.roc.roc`."
+        "It will be removed in v1.3.0", DeprecationWarning
+    )
+    fps, tps, thresholds = _binary_clf_curve(
+        pred=pred, target=target, sample_weight=sample_weight, pos_label=pos_label
+    )
+
+    # Add an extra threshold position
+    # to make sure that the curve starts at (0, 0)
+    tps = torch.cat([torch.zeros(1, dtype=tps.dtype, device=tps.device), tps])
+    fps = torch.cat([torch.zeros(1, dtype=fps.dtype, device=fps.device), fps])
+    thresholds = torch.cat([thresholds[0][None] + 1, thresholds])
+
+    if fps[-1] <= 0:
+        raise ValueError("No negative samples in targets, false positive value should be meaningless")
+
+    fpr = fps / fps[-1]
+
+    if tps[-1] <= 0:
+        raise ValueError("No positive samples in targets, true positive value should be meaningless")
+
+    tpr = tps / tps[-1]
+
+    return fpr, tpr, thresholds
+
+
+# TODO: deprecated in favor of general ROC in pytorch_lightning/metrics/functional/roc.py
+def multiclass_roc(
         pred: torch.Tensor,
         target: torch.Tensor,
         sample_weight: Optional[Sequence] = None,
@@ -362,19 +439,24 @@ def __multiclass_roc(
         ...                      [0.05, 0.05, 0.85, 0.05],
         ...                      [0.05, 0.05, 0.05, 0.85]])
         >>> target = torch.tensor([0, 1, 3, 2])
-        >>> __multiclass_roc(pred, target)   # doctest: +NORMALIZE_WHITESPACE
+        >>> multiclass_roc(pred, target)   # doctest: +NORMALIZE_WHITESPACE
         ((tensor([0., 0., 1.]), tensor([0., 1., 1.]), tensor([1.8500, 0.8500, 0.0500])),
          (tensor([0., 0., 1.]), tensor([0., 1., 1.]), tensor([1.8500, 0.8500, 0.0500])),
          (tensor([0.0000, 0.3333, 1.0000]), tensor([0., 0., 1.]), tensor([1.8500, 0.8500, 0.0500])),
          (tensor([0.0000, 0.3333, 1.0000]), tensor([0., 0., 1.]), tensor([1.8500, 0.8500, 0.0500])))
     """
+    rank_zero_warn(
+        "This `multiclass_roc` was deprecated in v1.1.0 in favor of"
+        " `from pytorch_lightning.metrics.functional.roc import roc`."
+        " It will be removed in v1.3.0", DeprecationWarning
+    )
     num_classes = get_num_classes(pred, target, num_classes)
 
     class_roc_vals = []
     for c in range(num_classes):
         pred_c = pred[:, c]
 
-        class_roc_vals.append(roc(preds=pred_c, target=target, sample_weights=sample_weight, pos_label=c, num_classes=1))
+        class_roc_vals.append(_roc(pred=pred_c, target=target, sample_weight=sample_weight, pos_label=c))
 
     return tuple(class_roc_vals)
 
@@ -472,7 +554,7 @@ def auroc(
 
     @auc_decorator()
     def _auroc(pred, target, sample_weight, pos_label):
-        return roc(preds=pred, target=target, sample_weights=sample_weight, pos_label=pos_label, num_classes=1)
+        return _roc(pred, target, sample_weight, pos_label)
 
     return _auroc(pred=pred, target=target, sample_weight=sample_weight, pos_label=pos_label)
 
@@ -525,7 +607,7 @@ def multiclass_auroc(
 
     @multiclass_auc_decorator()
     def _multiclass_auroc(pred, target, sample_weight, num_classes):
-        return __multiclass_roc(pred=pred, target=target, sample_weight=sample_weight, num_classes=num_classes)
+        return multiclass_roc(pred, target, sample_weight, num_classes)
 
     class_aurocs = _multiclass_auroc(pred=pred, target=target,
                                      sample_weight=sample_weight,
@@ -672,3 +754,48 @@ def iou(
         ])
 
     return reduce(scores, reduction=reduction)
+
+
+# todo: remove in 1.3
+def precision_recall_curve(
+        pred: torch.Tensor,
+        target: torch.Tensor,
+        sample_weight: Optional[Sequence] = None,
+        pos_label: int = 1.,
+):
+    rank_zero_warn(
+        "This `precision_recall_curve` was deprecated in v1.1.0 in favor of"
+        " `from pytorch_lightning.metrics.functional.precision_recall_curve import precision_recall_curve`."
+        " It will be removed in v1.3.0", DeprecationWarning
+    )
+    return __prc(preds=pred, target=target, sample_weights=sample_weight, pos_label=pos_label)
+
+
+# todo: remove in 1.3
+def multiclass_precision_recall_curve(
+        pred: torch.Tensor,
+        target: torch.Tensor,
+        sample_weight: Optional[Sequence] = None,
+        num_classes: Optional[int] = None,
+):
+    rank_zero_warn(
+        "This `multiclass_precision_recall_curve` was deprecated in v1.1.0 in favor of"
+        " `from pytorch_lightning.metrics.functional.precision_recall_curve import precision_recall_curve`."
+        " It will be removed in v1.3.0", DeprecationWarning
+    )
+    return __prc(preds=pred, target=target, sample_weights=sample_weight, num_classes=num_classes)
+
+
+# todo: remove in 1.3
+def average_precision(
+        pred: torch.Tensor,
+        target: torch.Tensor,
+        sample_weight: Optional[Sequence] = None,
+        pos_label: int = 1.,
+):
+    rank_zero_warn(
+        "This `average_precision` was deprecated in v1.1.0 in favor of"
+        " `pytorch_lightning.metrics.functional.average_precision import precision_recall_curve`."
+        " It will be removed in v1.3.0", DeprecationWarning
+    )
+    return __ap(preds=pred, target=target, sample_weights=sample_weight, pos_label=pos_label)
