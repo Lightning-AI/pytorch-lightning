@@ -51,6 +51,18 @@ def test_tbd_remove_in_v1_3_0(tmpdir):
         DeprecatedHparamsModel({})
 
     with pytest.deprecated_call(match='will be removed in v1.3'):
+        from pytorch_lightning.metrics.functional.classification import to_onehot
+        to_onehot(torch.tensor([1, 2, 3]))
+
+    with pytest.deprecated_call(match='will be removed in v1.3'):
+        from pytorch_lightning.metrics.functional.classification import to_categorical
+        to_categorical(torch.tensor([[0.2, 0.5], [0.9, 0.1]]))
+
+    with pytest.deprecated_call(match='will be removed in v1.3'):
+        from pytorch_lightning.metrics.functional.classification import get_num_classes
+        get_num_classes(pred=torch.tensor([0, 1]), target=torch.tensor([1, 1]))
+
+    with pytest.deprecated_call(match='will be removed in v1.3'):
         from pytorch_lightning.metrics.functional.classification import roc
         roc(pred=torch.tensor([0, 1]), target=torch.tensor([1, 1]), )
 

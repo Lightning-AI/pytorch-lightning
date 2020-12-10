@@ -20,8 +20,70 @@ from pytorch_lightning.metrics.functional.average_precision import average_preci
 from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve, precision_recall_curve as __prc
 from pytorch_lightning.metrics.functional.roc import roc as __roc
 # TODO: back compatibility, remove in v1.3
-from pytorch_lightning.metrics.utils import to_categorical, to_onehot, get_num_classes, reduce, class_reduce
+from pytorch_lightning.metrics.utils import (
+    to_categorical as __tc,
+    to_onehot as __to,
+    get_num_classes as __gnc,
+    reduce,
+    class_reduce,
+)
 from pytorch_lightning.utilities import rank_zero_warn
+
+
+def to_onehot(
+        tensor: torch.Tensor,
+        num_classes: Optional[int] = None,
+) -> torch.Tensor:
+    """
+    Converts a dense label tensor to one-hot format
+
+    .. warning :: Deprecated in favor of :func:`~pytorch_lightning.metrics.utils.to_onehot`
+    """
+    rank_zero_warn(
+        "This `to_onehot` was deprecated in v1.1.0 in favor of"
+        " `from pytorch_lightning.metrics.utils import to_onehot`."
+        " It will be removed in v1.3.0", DeprecationWarning
+    )
+    return __to(tensor, num_classes)
+
+
+def to_categorical(
+        tensor: torch.Tensor,
+        argmax_dim: int = 1
+) -> torch.Tensor:
+    """
+    Converts a tensor of probabilities to a dense label tensor
+
+    .. warning :: Deprecated in favor of :func:`~pytorch_lightning.metrics.utils.to_categorical`
+
+    """
+    rank_zero_warn(
+        "This `to_categorical` was deprecated in v1.1.0 in favor of"
+        " `from pytorch_lightning.metrics.utils import to_categorical`."
+        " It will be removed in v1.3.0", DeprecationWarning
+    )
+    return __tc(tensor)
+
+
+def get_num_classes(
+        pred: torch.Tensor,
+        target: torch.Tensor,
+        num_classes: Optional[int] = None,
+) -> int:
+    """
+    Calculates the number of classes for a given prediction and target tensor.
+
+    .. warning :: Deprecated in favor of :func:`~pytorch_lightning.metrics.utils.get_num_classes`
+
+    """
+    rank_zero_warn(
+        "This `get_num_classes` was deprecated in v1.1.0 in favor of"
+        " `from pytorch_lightning.metrics.utils import get_num_classes`."
+        " It will be removed in v1.3.0", DeprecationWarning
+    )
+    return __gnc(pred,target, num_classes)
+
+
 
 
 def stat_scores(
