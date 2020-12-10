@@ -6,21 +6,15 @@ from pytorch_lightning.metrics.functional.image_gradients import image_gradients
 
 
 def test_invalid_input_img_type():
-    """ Test Whether the module successfully handles invalid input data type
-    """
-    invalid_dummy_input = [
-        [1, 2, 3],
-        [4, 5, 6],
-        [7, 8, 9]
-    ]
+    """Test Whether the module successfully handles invalid input data type"""
+    invalid_dummy_input = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
     device = torch.device("cpu")
     with pytest.raises(TypeError):
         image_gradients(invalid_dummy_input, device)
 
 
 def test_invalid_input_device_type():
-    """ Test wheather the module successfully handles invald input device type
-    """
+    """Test wheather the module successfully handles invald input device type"""
     BATCH_SIZE = 1
     HEIGHT = 5
     WIDTH = 5
@@ -56,7 +50,7 @@ def test_invalid_input_ndims():
 
 
 def test_multi_batch_image_gradients():
-    """ Test whether the module correctly calculates gradients for known input
+    """Test whether the module correctly calculates gradients for known input
     with non-unity batch size.Example input-output pair taken from TF's implementation of i
     mage-gradients
     """
@@ -73,19 +67,79 @@ def test_multi_batch_image_gradients():
     image = torch.stack([single_channel_img for _ in range(BATCH_SIZE)], dim=0)
 
     true_dy = [
-        [5., 5., 5., 5., 5., ],
-        [5., 5., 5., 5., 5., ],
-        [5., 5., 5., 5., 5., ],
-        [5., 5., 5., 5., 5., ],
-        [0., 0., 0., 0., 0., ]
+        [
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+        ],
+        [
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+        ],
+        [
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+        ],
+        [
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+        ],
+        [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        ],
     ]
 
     true_dx = [
-        [1., 1., 1., 1., 0., ],
-        [1., 1., 1., 1., 0., ],
-        [1., 1., 1., 1., 0., ],
-        [1., 1., 1., 1., 0., ],
-        [1., 1., 1., 1., 0., ]
+        [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+        ],
+        [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+        ],
+        [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+        ],
+        [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+        ],
+        [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+        ],
     ]
 
     true_dy = torch.Tensor(true_dy)
@@ -100,7 +154,7 @@ def test_multi_batch_image_gradients():
 
 
 def test_image_gradients():
-    """ Test whether the module correctly calculates gradients for known input.
+    """Test whether the module correctly calculates gradients for known input.
     Example input-output pair taken from TF's implementation of image-gradients
     """
 
@@ -115,19 +169,79 @@ def test_image_gradients():
     image = torch.reshape(image, (BATCH_SIZE, CHANNELS, HEIGHT, WIDTH))
 
     true_dy = [
-        [5., 5., 5., 5., 5., ],
-        [5., 5., 5., 5., 5., ],
-        [5., 5., 5., 5., 5., ],
-        [5., 5., 5., 5., 5., ],
-        [0., 0., 0., 0., 0., ]
+        [
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+        ],
+        [
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+        ],
+        [
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+        ],
+        [
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+        ],
+        [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        ],
     ]
 
     true_dx = [
-        [1., 1., 1., 1., 0., ],
-        [1., 1., 1., 1., 0., ],
-        [1., 1., 1., 1., 0., ],
-        [1., 1., 1., 1., 0., ],
-        [1., 1., 1., 1., 0., ]
+        [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+        ],
+        [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+        ],
+        [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+        ],
+        [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+        ],
+        [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+        ],
     ]
 
     true_dy = torch.Tensor(true_dy)
