@@ -1,10 +1,10 @@
-from pytorch_lightning.metrics.utils import to_categorical as new_to_categorical
-from pytorch_lightning.metrics.utils import to_onehot as new_to_onehot
+from pytorch_lightning.metrics.utils import to_categorical as __to_categorical
+from pytorch_lightning.metrics.utils import to_onehot as __to_onehot
 
 import warnings
 
 
-# TODO: remove in 1.1.1
+# TODO: remove in 1.2
 def to_onehot(*args, **kwargs):
     warnings.warn(
         (
@@ -13,10 +13,10 @@ def to_onehot(*args, **kwargs):
         ),
         DeprecationWarning,
     )
-    return new_to_onehot(*args, **kwargs)
+    return __to_onehot(*args, **kwargs)
 
 
-# TODO: remove in 1.1.1
+# TODO: remove in 1.2
 def to_categorical(*args, **kwargs):
     warnings.warn(
         (
@@ -25,4 +25,4 @@ def to_categorical(*args, **kwargs):
         ),
         DeprecationWarning,
     )
-    return new_to_categorical(*args, **kwargs)
+    return __to_categorical(*args, **kwargs)
