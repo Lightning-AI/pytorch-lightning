@@ -129,6 +129,9 @@ class DDPHPCAccelerator(Accelerator):
         # set warning rank
         rank_zero_only.rank = self.trainer.global_rank
 
+        # Initialize cuda device
+        self.init_device(process_idx)
+
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
