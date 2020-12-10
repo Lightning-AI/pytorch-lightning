@@ -20,6 +20,7 @@ from pytorch_lightning.metrics.functional.f_beta import (
     _fbeta_compute
 )
 from pytorch_lightning.metrics.metric import Metric
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 class FBeta(Metric):
@@ -149,7 +150,7 @@ class Fbeta(FBeta):
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
     ):
-        Fbeta(
+        rank_zero_warn(
             "This `Fbeta` was deprecated in v1.0.x in favor of"
             " `from pytorch_lightning.metrics.classification.f_beta import FBeta`."
             " It will be removed in v1.2.0", DeprecationWarning

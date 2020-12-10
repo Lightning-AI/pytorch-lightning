@@ -127,7 +127,7 @@ def test_tbd_remove_in_v1_2_0_metrics():
         Fbeta(2)
 
     with pytest.deprecated_call(match='will be removed in v1.2'):
-        fbeta_score(torch.tensor([0, 1, 0, 1]), torch.tensor([0, 1, 0, 0]), 0.2)
+        fbeta_score(torch.tensor([0, 1, 2, 3]), torch.tensor([0, 1, 2, 1]), 0.2)
 
     with pytest.deprecated_call(match='will be removed in v1.2'):
         f1_score(torch.tensor([0, 1, 0, 1]), torch.tensor([0, 1, 0, 0]))

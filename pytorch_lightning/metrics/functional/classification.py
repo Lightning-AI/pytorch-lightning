@@ -892,6 +892,8 @@ def fbeta_score(
         " `from pytorch_lightning.metrics.functional.f_beta import fbeta`."
         " It will be removed in v1.2.0", DeprecationWarning
     )
+    if num_classes is None:
+        num_classes = get_num_classes(pred, target)
     return __fb(preds=pred, target=target, beta=beta, num_classes=num_classes, average=class_reduction)
 
 
@@ -912,4 +914,6 @@ def f1_score(
         " `from pytorch_lightning.metrics.functional.f_beta import f1`."
         " It will be removed in v1.2.0", DeprecationWarning
     )
+    if num_classes is None:
+        num_classes = get_num_classes(pred, target)
     return __f1(preds=pred, target=target, num_classes=num_classes, average=class_reduction)
