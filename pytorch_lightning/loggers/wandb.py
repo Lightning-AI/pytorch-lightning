@@ -161,9 +161,9 @@ class WandbLogger(LightningLoggerBase):
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
         metrics = self._add_prefix(metrics)
-        if not WandbLogger.WARNING_DISPLAYED and (step is not None and step + self._step_offset < self.experiment.step):
+        if not self.WARNING_DISPLAYED and (step is not None and step + self._step_offset < self.experiment.step):
             log.warning('Trying to log at a previous step. Use `commit=False` when logging metrics manually.')
-            WandbLogger.WARNING_DISPLAYED = True
+            self.WARNING_DISPLAYED = True
         self.experiment.log(metrics, step=(step + self._step_offset) if step is not None else None)
 
     @property
