@@ -222,7 +222,7 @@ def test_dpp_reduce_mean_pbar(tmpdir):
         limit_train_batches=10,
         limit_test_batches=2,
         limit_val_batches=2,
-        distributed_backend=distributed_backend,
+        accelerator=distributed_backend,
         gpus=2,
         precision=32)
 

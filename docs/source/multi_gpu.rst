@@ -612,6 +612,7 @@ This is useful when dealing with large Transformer based models, or in environme
 Lightning currently offers the following methods to leverage model parallelism:
 
 - Sharded Training (partitioning your gradients and optimizer state across multiple GPUs, for reduced memory overhead with **no performance loss**)
+- Sequential Model Parallelism with Checkpointing (partition your :class:`nn.Sequential <torch.nn.Sequential>` module across multiple GPUs, leverage checkpointing and microbatching for further memory improvements and device utilization)
 
 Sharded Training
 ^^^^^^^^^^^^^^^^
@@ -666,7 +667,7 @@ To use Sharded Training, you need to first install FairScale using the command b
 
 .. code-block:: bash
 
-    pip install https://github.com/facebookresearch/fairscale/archive/bb468670838b98dc8f8d67be4eabf195042a7994.zip
+    pip install https://github.com/PyTorchLightning/fairscale/archive/pl_1.1.0.zip
 
 
 .. code-block:: python
@@ -677,6 +678,80 @@ To use Sharded Training, you need to first install FairScale using the command b
 Sharded Training can work across all DDP variants by adding the additional ``--plugins ddp_sharded`` flag.
 
 Internally we re-initialize your optimizers and shard them across your machines and processes. We handle all communication using PyTorch distributed, so no code changes are required.
+
+----------
+
+.. _sequential-parallelism:
+
+Sequential Model Parallelism with Checkpointing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PyTorch Lightning integration for Sequential Model Parallelism using `FairScale <https://github.com/facebookresearch/fairscale>`_.
+Sequential Model Parallelism splits a sequential module onto multiple GPUs, reducing peak GPU memory requirements substantially.
+We also provide auto-balancing techniques through FairScale, to find optimal balances for the model across GPUs.
+In addition, we use Gradient Checkpointing to reduce GPU memory requirements further, and micro-batches to minimizing device under-utilization automatically.
+
+Reference: https://arxiv.org/abs/1811.06965
+
+.. note:: DDPSequentialPlugin is currently supported only for Pytorch 1.6.
+
+To get started, install FairScale through extras using with ``pip install pytorch-lightning["extra"]``
+
+or directly using
+
+.. code-block:: bash
+
+     pip install https://github.com/PyTorchLightning/fairscale/archive/pl_1.1.0.zip
+
+To use Sequential Model Parallelism, you must define a  :class:`nn.Sequential <torch.nn.Sequential>` module that defines the layers you wish to parallelize across GPUs.
+This should be kept within the ``sequential_module`` variable within your ``LightningModule`` like below.
+
+.. code-block:: python
+
+    from pytorch_lightning.plugins.ddp_sequential_plugin import DDPSequentialPlugin
+    from pytorch_lightning import LightningModule
+
+    class MyModel(LightningModule):
+        def __init__(self):
+            ...
+            self.sequential_module = torch.nn.Sequential(my_layers)
+
+    # Split my module across 4 gpus, one layer each
+    model = MyModel()
+    plugin = DDPSequentialPlugin(balance=[1, 1, 1, 1])
+    trainer = Trainer(accelerator='ddp', gpus=4, plugins=[plugin])
+    trainer.fit(model)
+
+
+We provide a minimal example of Sequential Model Parallelism using a convolutional model training on cifar10, split onto GPUs `here <https://github.com/PyTorchLightning/pytorch-lightning/tree/master/pl_examples/basic_examples/conv_sequential_example.py>`_.
+To run the example, you need to install `Bolts <https://github.com/PyTorchLightning/pytorch-lightning-bolts>`_. Install with ``pip install pytorch-lightning-bolts``.
+
+When running the Sequential Model Parallelism example on 2 GPUS we achieve these memory savings.
+
+.. list-table:: GPU Memory Utilization
+   :widths: 25 25 50
+   :header-rows: 1
+
+   * - GPUS
+     - Without Balancing
+     - With Balancing
+   * - Gpu 0
+     - 4436 MB
+     - 1554 MB
+   * - Gpu 1
+     - ~0
+     - 994 MB
+
+To run the example with Sequential Model Parallelism:
+
+.. code-block:: bash
+
+    python pl_examples/basic_examples/conv_sequential_example.py --batch_size 1024 --gpus 2 --accelerator ddp --use_ddp_sequential
+
+To run the same example without Sequential Model Parallelism:
+
+.. code-block:: bash
+
+    python pl_examples/basic_examples/conv_sequential_example.py --batch_size 1024 --gpus 1
 
 
 Batch size
@@ -728,8 +803,8 @@ Lightning supports the use of TorchElastic to enable fault-tolerant and elastic 
 .. code-block:: python
 
     Trainer(gpus=8, accelerator='ddp')
-    
-    
+
+
 Following the `TorchElastic Quickstart documentation <https://pytorch.org/elastic/latest/quickstart.html>`_, you then need to start a single-node etcd server on one of the hosts:
 
 .. code-block:: bash
@@ -737,8 +812,8 @@ Following the `TorchElastic Quickstart documentation <https://pytorch.org/elasti
     etcd --enable-v2
          --listen-client-urls http://0.0.0.0:2379,http://127.0.0.1:4001
          --advertise-client-urls PUBLIC_HOSTNAME:2379
-         
-     
+
+
 And then launch the elastic job with:
 
 .. code-block:: bash
@@ -750,7 +825,7 @@ And then launch the elastic job with:
             --rdzv_backend=etcd
             --rdzv_endpoint=ETCD_HOST:ETCD_PORT
             YOUR_LIGHTNING_TRAINING_SCRIPT.py (--arg1 ... train script args...)
-            
+
 
 See the official `TorchElastic documentation <https://pytorch.org/elastic>`_ for details
 on installation and more use cases.
