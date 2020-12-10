@@ -97,6 +97,16 @@ def test_tbd_remove_in_v1_3_0_metrics():
         from pytorch_lightning.metrics.functional.classification import multiclass_precision_recall_curve
         multiclass_precision_recall_curve(pred=x_multy, target=y_multy)
 
+    with pytest.deprecated_call(match='will be removed in v1.3'):
+        from pytorch_lightning.metrics.functional.reduction import reduce
+        reduce(torch.tensor([0, 1, 1, 0]), 'sum')
+
+    with pytest.deprecated_call(match='will be removed in v1.3'):
+        from pytorch_lightning.metrics.functional.reduction import class_reduce
+        class_reduce(torch.randint(1, 10, (50,)).float(),
+                     torch.randint(10, 20, (50,)).float(),
+                     torch.randint(1, 100, (50,)).float())
+
 
 def test_tbd_remove_in_v1_2_0():
     with pytest.deprecated_call(match='will be removed in v1.2'):
