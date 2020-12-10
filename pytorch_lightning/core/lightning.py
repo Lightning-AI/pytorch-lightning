@@ -1412,8 +1412,10 @@ class LightningModule(
 
     def _verify_is_manual_optimization(self, fn_name):
         if self.trainer.train_loop.automatic_optimization:
-            m = f'to use {fn_name}, please disable automatic optimization: Trainer(automatic_optimization=False)'
-            raise MisconfigurationException(m)
+            raise MisconfigurationException(
+                f'to use {fn_name}, please disable automatic optimization:'
+                ' set model property `automatic_optimization` as False'
+            )
 
     @classmethod
     def _auto_collect_arguments(cls, frame=None) -> Tuple[Dict, Dict]:
