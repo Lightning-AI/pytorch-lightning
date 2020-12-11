@@ -676,7 +676,7 @@ class Trainer(
         should_sanity_check = using_val_step and self.num_sanity_val_steps > 0 and self.limit_val_batches > 0
 
         # If multiple val dataloaders are present, validation_step should have dataloader_idx argument
-        if using_val_step:
+        if using_val_step and hasattr(ref_model.val_dataloader, '__len__'):
             num_val_dataloaders = len(ref_model.val_dataloader())
             sig_val_step = signature(ref_model.validation_step)
             num_val_step_args = len(sig_val_step.parameters)
