@@ -121,7 +121,7 @@ def test_tbd_remove_in_v1_2_0():
 
 def test_tbd_remove_in_v1_2_0_metrics():
     from pytorch_lightning.metrics.classification import Fbeta
-    from pytorch_lightning.metrics.functional.classification import fbeta_score, f1_score
+    from pytorch_lightning.metrics.functional.classification import f1_score, fbeta_score
 
     with pytest.deprecated_call(match='will be removed in v1.2'):
         Fbeta(2)
