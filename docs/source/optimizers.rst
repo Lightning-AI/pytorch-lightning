@@ -191,6 +191,8 @@ override the :meth:`optimizer_step` function.
 
 For example, here step optimizer A every 2 batches and optimizer B every 4 batches
 
+.. note:: When using Trainer(enable_pl_optimizer=True), no need to call `.zero_grad`.
+
 .. testcode::
 
     def optimizer_zero_grad(self, current_epoch, batch_idx, optimizer, opt_idx):
@@ -207,6 +209,22 @@ For example, here step optimizer A every 2 batches and optimizer B every 4 batch
         if optimizer_i == 1:
             if batch_nb % 4 == 0 :
                optimizer.step(closure=closure)
+
+
+.. testcode::
+
+    def optimizer_zero_grad(self, current_epoch, batch_idx, optimizer, opt_idx):
+      optimizer.zero_grad()
+
+    # Alternating schedule for optimizer steps (ie: GANs)
+    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
+        # update generator opt every 2 steps
+        if optimizer_i == 0:
+            optimizer.step(closure=closure, make_optimizer_step=batch_nb % 2 == 0)
+
+        # update discriminator opt every 4 steps
+        if optimizer_i == 1:
+            optimizer.step(closure=closure, make_optimizer_step=batch_nb % 4 == 0)
 
 Here we add a learning-rate warm up
 
