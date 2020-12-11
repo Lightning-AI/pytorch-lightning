@@ -5,22 +5,19 @@ on Cora Dataset using pytorch-lightning. This example will also demonstrate how 
 model can be easily torch-scripted, thanks to Pytorch Geometric.
 """
 # python imports
-import os
 import os.path as osp
-import sys
-from functools import partial
-from collections import namedtuple
 from argparse import ArgumentParser
+from collections import namedtuple
 from typing import List, Optional, NamedTuple
 
-# thrid parties libraries
-import numpy as np
-from torch import nn
 import torch
-from torch import Tensor
-from torch.optim import Adam
 import torch.nn.functional as F
+from torch import Tensor
+# thrid parties libraries
+from torch import nn
+from torch.optim import Adam
 
+from pl_examples.pytorch_ecosystem import _TORCH_GEOMETRIC_AVAILABLE, nice_print, LIGHTNING_LOGO
 # Lightning imports
 from pytorch_lightning import (
     Trainer,
@@ -29,18 +26,12 @@ from pytorch_lightning import (
 )
 from pytorch_lightning.metrics import Accuracy
 
-try:
+if _TORCH_GEOMETRIC_AVAILABLE:
     # Pytorch Geometric imports
     from torch_geometric.nn import DNAConv, MessagePassing
-    from torch_geometric.data import DataLoader
     from torch_geometric.datasets import Planetoid
-    import torch_geometric.transforms as T
+    from torch_geometric import transforms as T
     from torch_geometric.data import NeighborSampler
-    from lightning import lightning_logo, nice_print
-except Exception:
-    HAS_PYTORCH_GEOMETRIC = False
-else:
-    HAS_PYTORCH_GEOMETRIC = True
 
 
 # use to make model jittable
@@ -67,16 +58,20 @@ class CoraDataset(LightningDataModule):
     Nodes represent documents and edges represent citation links.
     Training, validation and test splits are given by binary masks.
     c.f https://github.com/rusty1s/pytorch_geometric/blob/master/torch_geometric/datasets/planetoid.py
+
+    >>> CoraDataset()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     """
 
     NAME = "cora"
 
-    def __init__(self,
-                 num_workers: int = 1,
-                 batch_size: int = 8,
-                 drop_last: bool = True,
-                 pin_memory: bool = True,
-                 num_layers: int = None):
+    def __init__(
+            self,
+            num_workers: int = 1,
+            batch_size: int = 8,
+            drop_last: bool = True,
+            pin_memory: bool = True,
+            num_layers: int = None,
+    ):
         super().__init__()
 
         assert num_layers is not None
@@ -169,18 +164,21 @@ class DNAConvNet(LightningModule):
     Towards Dynamic Neighborhood Aggregation in Graph Neural Networks"
     <https://arxiv.org/abs/1904.04849>`_ paper
     c.f https://github.com/rusty1s/pytorch_geometric/blob/master/torch_geometric/nn/conv/dna_conv.py#L172
+
+    >>> DNAConvNet()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     """
 
-    def __init__(self,
-                 num_layers: int = 2,
-                 hidden_channels: int = 128,
-                 heads: int = 8,
-                 groups: int = 16,
-                 dropout: float = 0.8,
-                 cached: bool = False,
-                 num_features: int = None,
-                 num_classes: int = None,
-                 ):
+    def __init__(
+            self,
+            num_layers: int = 2,
+            hidden_channels: int = 128,
+            heads: int = 8,
+            groups: int = 16,
+            dropout: float = 0.8,
+            cached: bool = False,
+            num_features: int = None,
+            num_classes: int = None,
+    ):
         super().__init__()
 
         assert num_features is not None
@@ -343,7 +341,7 @@ def get_single_batch(datamodule):
 def run(args):
 
     nice_print("You are about to train a TorchScripted Pytorch Geometric Lightning model !")
-    nice_print(lightning_logo)
+    nice_print(LIGHTNING_LOGO)
 
     datamodule: LightningDataModule = instantiate_datamodule(args)
     model: LightningModule = instantiate_model(args, datamodule)
@@ -361,7 +359,7 @@ def run(args):
 
 
 if __name__ == "__main__":
-    if not HAS_PYTORCH_GEOMETRIC:
+    if not _TORCH_GEOMETRIC_AVAILABLE:
         print("Skip training. Pytorch Geometric isn't installed. Please, check README.md !")
 
     else:
