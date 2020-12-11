@@ -17,13 +17,13 @@ from pytorch_lightning.metrics.functional.classification import (
     accuracy,
     precision,
     recall,
-    _binary_clf_curve,
     dice_score,
     auroc,
     multiclass_auroc,
     auc,
     iou,
 )
+from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve
 from pytorch_lightning.metrics.utils import to_onehot, get_num_classes, to_categorical
 
 
@@ -222,7 +222,7 @@ def test_binary_clf_curve(sample_weight, pos_label, exp_shape):
     if sample_weight is not None:
         sample_weight = torch.ones_like(pred) * sample_weight
 
-    fps, tps, thresh = _binary_clf_curve(pred, target, sample_weight, pos_label)
+    fps, tps, thresh = _binary_clf_curve(preds=pred, target=target, sample_weights=sample_weight, pos_label=pos_label)
 
     assert isinstance(tps, torch.Tensor)
     assert isinstance(fps, torch.Tensor)
