@@ -405,6 +405,7 @@ class Trainer(
 
         # last thing are the plugins which override whatever the trainer used by default
         self.plugin_connector.on_trainer_init(plugins)
+        print('ClusterEnvironment', self.plugin_connector.cluster_environment)
 
         # Callback system
         self.on_init_end()
@@ -435,6 +436,15 @@ class Trainer(
         self._state = TrainerState.RUNNING
 
         # ----------------------------
+        # SET UP TRAINING
+        # ----------------------------
+        self.accelerator_backend = self.accelerator_connector.select_accelerator()
+        self.accelerator_backend.setup(model)
+        self.local_rank = self.accelerator_backend.cluster_environment.local_rank()
+        self.node_rank = self.accelerator_backend.cluster_environment.node_rank()
+        self.global_rank = self.accelerator_backend.cluster_environment.global_rank()
+
+        # ----------------------------
         # LINK DATA
         # ----------------------------
         # setup data, etc...
@@ -446,12 +456,6 @@ class Trainer(
         # bookkeeping
         # we reuse fit in .test() but change its behavior using this flag
         self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
-
-        # ----------------------------
-        # SET UP TRAINING
-        # ----------------------------
-        self.accelerator_backend = self.accelerator_connector.select_accelerator()
-        self.accelerator_backend.setup(model)
 
         # ----------------------------
         # INSPECT THESE FOR MAIN LOOPS

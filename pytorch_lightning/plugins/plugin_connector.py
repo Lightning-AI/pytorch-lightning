@@ -30,7 +30,7 @@ class PluginConnector:
         self.trainer = trainer
         self.plugins = []
         self.ddp_plugin = DDPPlugin()
-        self.cloud_environment = None
+        self.cluster_environment = None
         self.amp_plugin = NativeAMPPlugin(trainer)
         self.apex_plugin = ApexPlugin(trainer)
 
@@ -99,7 +99,7 @@ class PluginConnector:
                     raise MisconfigurationException(m)
 
                 # set the cluster
-                self.cloud_environment = plugin
+                self.cluster_environment = plugin
 
     def _convert_str_custom_plugins(self, plugins: Union[str, list]):
         """

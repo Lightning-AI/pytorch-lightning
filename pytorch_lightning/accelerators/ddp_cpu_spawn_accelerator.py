@@ -207,7 +207,7 @@ class DDPCPUSpawnAccelerator(Accelerator):
         self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
         self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
-    def model_to_device(self, model, process_idx):
+    def model_to_device(self, model):
         model.cpu()
 
     def get_device_ids(self):

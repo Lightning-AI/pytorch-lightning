@@ -144,14 +144,13 @@ class Accelerator(object):
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
     def init_ddp_connection(
-            self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True
+            self, global_rank: int, world_size: int
     ) -> None:
         self.ddp_plugin.init_ddp_connection(
             self.trainer,
             self.cluster_environment,
             global_rank,
-            world_size,
-            is_slurm_managing_tasks,
+            world_size
         )
 
     def sync_tensor(self,

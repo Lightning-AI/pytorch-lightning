@@ -14,6 +14,7 @@
 
 import os
 import re
+import socket
 import warnings
 from pytorch_lightning import _logger as log
 from pytorch_lightning.cluster_environments.cluster_environment import ClusterEnvironment
@@ -44,7 +45,9 @@ class LSFEnvironment(ClusterEnvironment):
         self._master_address = self._get_master_address()
         self._master_port = self._get_master_port()
         self._local_rank = self._get_local_rank()
+        self._global_rank = self._get_global_rank()
         self._world_size = self._get_world_size()
+        self._node_rank = self._get_node_rank()
 
         # set environment variables needed for initializing torch distributed process group
         os.environ["MASTER_ADDR"] = str(self._master_address)
@@ -52,8 +55,7 @@ class LSFEnvironment(ClusterEnvironment):
         os.environ["MASTER_PORT"] = str(self._master_port)
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
-    def _get_master_address(self):
-        """A helper for getting the master address"""
+    def _read_hosts(self):
         var = "LSB_HOSTS"
         hosts = os.environ.get(var)
         if not hosts:
@@ -62,6 +64,11 @@ class LSFEnvironment(ClusterEnvironment):
         if len(hosts) < 2:
             raise ValueError("Cannot parse hosts from LSB_HOSTS environment variable -- "
                              "expected format \"batch <rank_0_host> ...\"")
+        return hosts
+
+    def _get_master_address(self):
+        """A helper for getting the master address"""
+        hosts = self._read_hosts()
         return hosts[1]
 
     def _get_master_port(self):
@@ -84,6 +91,18 @@ class LSFEnvironment(ClusterEnvironment):
         else:
             log.debug("using externally specified master port")
         return port
+
+    def _get_global_rank(self):
+        """A helper function for getting the global rank
+
+        Read this from the environment variable JSM_NAMESPACE_LOCAL_RANK
+        """
+        var = "JSM_NAMESPACE_RANK"
+        global_rank = os.environ.get(var)
+        if global_rank is None:
+            raise ValueError("Cannot determine global rank -- expected in %s "
+                             "-- make sure you run your executable with jsrun" % var)
+        return int(global_rank)
 
     def _get_local_rank(self):
         """A helper function for getting the local rank
@@ -109,6 +128,16 @@ class LSFEnvironment(ClusterEnvironment):
                              "-- make sure you run your executable with jsrun" % var)
         return int(world_size)
 
+    def _get_node_rank(self):
+        hosts = self._read_hosts()
+        count = dict()
+        for host in hosts:
+            if 'batch' in host or 'login' in host:
+                continue
+            if host not in count:
+                count[host] = len(count)
+        return count[socket.gethostname()]
+
     def master_address(self):
         """
         Master address is read from a list of hosts contained in the environment variable *LSB_HOSTS*
@@ -132,3 +161,16 @@ class LSFEnvironment(ClusterEnvironment):
         World size is read from the environment variable JSM_NAMESPACE_LOCAL_RANK
         """
         return self._local_rank
+
+    def node_rank(self):
+        """
+        Node rank is determined by the position of the current hostname in the list of hosts stored in LSB_HOSTS
+        """
+        return self._node_rank
+
+    def global_rank(self):
+        """
+        World size is read from the environment variable JSM_NAMESPACE_LOCAL_RANK
+        """
+        return self._global_rank
+

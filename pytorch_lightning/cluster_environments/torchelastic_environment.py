@@ -45,7 +45,10 @@ class TorchElasticEnvironment(ClusterEnvironment):
         return port
 
     def world_size(self):
-        return os.environ.get('WORLD_SIZE')
+        return int(os.environ.get('WORLD_SIZE'))
 
     def local_rank(self):
-        return int(os.environ['LOCAL_RANK'])
+        return int(os.environ.get('LOCAL_RANK'))
+
+    def node_rank(self):
+        return int(os.environ.get('GROUP_RANK'))

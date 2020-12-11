@@ -78,3 +78,6 @@ class SLURMEnvironment(ClusterEnvironment):
             root_node = name + number
 
         return root_node
+
+    def node_rank(self):
+        return int(os.environ['SLURM_NODEID'])

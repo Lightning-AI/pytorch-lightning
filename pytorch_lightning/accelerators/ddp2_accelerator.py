@@ -145,8 +145,7 @@ class DDP2Accelerator(Accelerator):
         model.trainer = self.trainer
         self.init_ddp_connection(
             self.trainer.global_rank,
-            self.trainer.world_size,
-            self.trainer.is_slurm_managing_tasks
+            self.trainer.world_size
         )
 
         if isinstance(self.ddp_plugin, RPCPlugin):

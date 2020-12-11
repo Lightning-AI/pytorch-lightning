@@ -109,7 +109,6 @@ class DDPSequentialPlugin(RPCPlugin):
             cluster_environment,
             global_rank: int,
             world_size: int,
-            is_slurm_managing_tasks: bool = True,
     ) -> None:
         trainer.prepared_for_backwards = False
         self._check_arguments(trainer)
@@ -119,8 +118,7 @@ class DDPSequentialPlugin(RPCPlugin):
             trainer=trainer,
             cluster_environment=cluster_environment,
             global_rank=global_rank,
-            world_size=world_size,
-            is_slurm_managing_tasks=is_slurm_managing_tasks
+            world_size=world_size
         )
         super().init_rpc_connection(
             global_rank=global_rank,
