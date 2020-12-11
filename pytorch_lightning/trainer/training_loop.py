@@ -249,6 +249,7 @@ class TrainLoop:
         model = self.trainer.get_model()
 
         # reset train dataloader
+        assert self.trainer.reload_dataloaders_every_n_epochs >= 0
         reload_dl_every_n_epochs = self.trainer.reload_dataloaders_every_n_epochs
 
         if reload_dl_every_n_epochs and (not epoch % reload_dl_every_n_epochs):
