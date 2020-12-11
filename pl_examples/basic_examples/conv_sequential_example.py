@@ -32,9 +32,9 @@ import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.metrics.functional import accuracy
 from pytorch_lightning.plugins.ddp_sequential_plugin import DDPSequentialPlugin
-from pytorch_lightning.utilities import BOLTS_AVAILABLE, FAIRSCALE_PIPE_AVAILABLE
+from pytorch_lightning.utilities import _BOLTS_AVAILABLE, _FAIRSCALE_PIPE_AVAILABLE
 
-if BOLTS_AVAILABLE:
+if _BOLTS_AVAILABLE:
     import pl_bolts
     from pl_bolts.transforms.dataset_normalizations import cifar10_normalization
 
@@ -196,8 +196,8 @@ if __name__ == "__main__":
     parser = pl_bolts.datamodules.CIFAR10DataModule.add_argparse_args(parser)
     args = parser.parse_args()
 
-    assert BOLTS_AVAILABLE, "Bolts is required for this example, install it via pip install pytorch-lightning-bolts"
-    assert FAIRSCALE_PIPE_AVAILABLE, "FairScale and PyTorch 1.6 is required for this example."
+    assert _BOLTS_AVAILABLE, "Bolts is required for this example, install it via pip install pytorch-lightning-bolts"
+    assert _FAIRSCALE_PIPE_AVAILABLE, "FairScale and PyTorch 1.6 is required for this example."
 
     cifar10_dm = instantiate_datamodule(args)
 

@@ -13,8 +13,8 @@
 # limitations under the License.
 
 import os
-from pathlib import Path
 import re
+from pathlib import Path
 from typing import Union, Optional
 
 import torch
@@ -22,16 +22,16 @@ import torch
 import pytorch_lightning
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import APEX_AVAILABLE, AMPType, OMEGACONF_AVAILABLE, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType, _OMEGACONF_AVAILABLE, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if APEX_AVAILABLE:
+if _APEX_AVAILABLE:
     from apex import amp
 
-if OMEGACONF_AVAILABLE:
+if _OMEGACONF_AVAILABLE:
     from omegaconf import Container
 
 
@@ -297,7 +297,7 @@ class CheckpointConnector:
             if hasattr(model, '_hparams_name'):
                 checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_NAME] = model._hparams_name
             # dump arguments
-            if OMEGACONF_AVAILABLE and isinstance(model.hparams, Container):
+            if _OMEGACONF_AVAILABLE and isinstance(model.hparams, Container):
                 checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = model.hparams
                 checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_TYPE] = type(model.hparams)
             else:

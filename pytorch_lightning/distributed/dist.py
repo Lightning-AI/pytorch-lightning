@@ -17,10 +17,10 @@ from typing import Any
 import torch
 from torch import distributed as torch_distrib
 
-from pytorch_lightning.utilities import GROUP_AVAILABLE
+from pytorch_lightning.utilities import _GROUP_AVAILABLE
 
 WORLD = None
-if GROUP_AVAILABLE:
+if _GROUP_AVAILABLE:
     from torch.distributed import group
     WORLD = group.WORLD
 
