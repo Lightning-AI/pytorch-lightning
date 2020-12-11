@@ -453,7 +453,7 @@ def test_dm_reload_dataloaders_every_epoch(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=2,
         limit_train_batches=0.01,
-        reload_dataloaders_every_n_epoch=True,
+        reload_dataloaders_every_n_epochs=True,
     )
     results = trainer.fit(model, dm)
     assert results
