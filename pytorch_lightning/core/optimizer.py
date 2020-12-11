@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 import types
 from typing import Any, Callable, Optional
 from weakref import proxy
@@ -60,7 +61,7 @@ class LightningOptimizer:
         self._trainer = None
         self._optimizer = optimizer
         self._accumulate_grad_batches = accumulate_grad_batches
-        self._automatic_optimization = None
+        self._support_closure = 'closure' in inspect.signature(optimizer.step).parameters
         self._optimizer_idx = None
 
     @property
@@ -73,7 +74,6 @@ class LightningOptimizer:
 
     def _on_trainer_init(self, trainer):
         self._trainer = proxy(trainer)
-        self._automatic_optimization = trainer.train_loop.automatic_optimization
         for opt_idx, opt in enumerate(trainer.optimizers):
             if opt == self._optimizer:
                 self._optimizer_idx = opt_idx
@@ -111,7 +111,22 @@ class LightningOptimizer:
 
         else:
             with trainer.profiler.profile(profiler_name):
-                optimizer.step(closure=closure, *args, **kwargs)
+                if self._support_closure:
+                    optimizer.step(closure=closure, *args, **kwargs)
+                else:
+                    closure()
+                    optimizer.step(*args, **kwargs)
+
+        accelerator_backend = trainer.accelerator_backend
+        if accelerator_backend is not None and accelerator_backend.rpc_enabled:
+            if accelerator_backend.ddp_plugin.is_main_rpc_process:
+                # Initialize optimizer step on main process
+                accelerator_backend.ddp_plugin.worker_optimizer_step(
+                    model=model,
+                    opt_idx=self._optimizer_idx,
+                    *args,
+                    **kwargs
+                )
 
         trainer.train_loop.on_before_zero_grad(self)
 
