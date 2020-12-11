@@ -159,20 +159,26 @@ def _unfreeze_and_add_param_group(module: Module,
 class TransferLearningModel(pl.LightningModule):
     """Transfer Learning with pre-trained ResNet50.
 
-    Args:
-        hparams: Model hyperparameters
-        dl_path: Path where the data will be downloaded
+    >>> TransferLearningModel()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     """
-    def __init__(self,
-                 dl_path: Union[str, Path],
-                 backbone: str = 'resnet50',
-                 train_bn: bool = True,
-                 milestones: tuple = (5, 10),
-                 batch_size: int = 8,
-                 lr: float = 1e-2,
-                 lr_scheduler_gamma: float = 1e-1,
-                 num_workers: int = 6, **kwargs) -> None:
-        super().__init__()
+    def __init__(
+            self,
+            dl_path: Union[str, Path],
+            backbone: str = 'resnet50',
+            train_bn: bool = True,
+            milestones: tuple = (5, 10),
+            batch_size: int = 8,
+            lr: float = 1e-2,
+            lr_scheduler_gamma: float = 1e-1,
+            num_workers: int = 6,
+            **kwargs,
+    ) -> None:
+        """
+        Args:
+            hparams: Model hyperparameters
+            dl_path: Path where the data will be downloaded
+        """
+        super().__init__(**kwargs)
         self.dl_path = dl_path
         self.backbone = backbone
         self.train_bn = train_bn

@@ -53,13 +53,16 @@ class DQN(nn.Module):
     """
     Simple MLP network
 
-    Args:
-        obs_size: observation/state size of the environment
-        n_actions: number of discrete actions available in the environment
-        hidden_size: size of hidden layers
+    >>> DQN()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     """
 
     def __init__(self, obs_size: int, n_actions: int, hidden_size: int = 128):
+        """
+        Args:
+            obs_size: observation/state size of the environment
+            n_actions: number of discrete actions available in the environment
+            hidden_size: size of hidden layers
+        """
         super(DQN, self).__init__()
         self.net = nn.Sequential(
             nn.Linear(obs_size, hidden_size),
@@ -81,11 +84,14 @@ class ReplayBuffer:
     """
     Replay Buffer for storing past experiences allowing the agent to learn from them
 
-    Args:
-        capacity: size of the buffer
+    >>> ReplayBuffer()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     """
 
     def __init__(self, capacity: int) -> None:
+        """
+        Args:
+            capacity: size of the buffer
+        """
         self.buffer = deque(maxlen=capacity)
 
     def __len__(self) -> int:
@@ -113,12 +119,15 @@ class RLDataset(IterableDataset):
     Iterable Dataset containing the ExperienceBuffer
     which will be updated with new experiences during training
 
-    Args:
-        buffer: replay buffer
-        sample_size: number of experiences to sample at a time
+    >>> RLDataset()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     """
 
     def __init__(self, buffer: ReplayBuffer, sample_size: int = 200) -> None:
+        """
+        Args:
+            buffer: replay buffer
+            sample_size: number of experiences to sample at a time
+        """
         self.buffer = buffer
         self.sample_size = sample_size
 
@@ -132,12 +141,15 @@ class Agent:
     """
     Base Agent class handling the interaction with the environment
 
-    Args:
-        env: training environment
-        replay_buffer: replay buffer storing experiences
+    >>> Agent()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     """
 
     def __init__(self, env: gym.Env, replay_buffer: ReplayBuffer) -> None:
+        """
+        Args:
+            env: training environment
+            replay_buffer: replay buffer storing experiences
+        """
         self.env = env
         self.replay_buffer = replay_buffer
         self.reset()
@@ -204,20 +216,26 @@ class Agent:
 
 
 class DQNLightning(pl.LightningModule):
-    """ Basic DQN Model """
+    """ Basic DQN Model
 
-    def __init__(self,
-                 replay_size,
-                 warm_start_steps: int,
-                 gamma: float,
-                 eps_start: int,
-                 eps_end: int,
-                 eps_last_frame: int,
-                 sync_rate,
-                 lr: float,
-                 episode_length,
-                 batch_size, **kwargs) -> None:
-        super().__init__()
+    >>> DQNLightning()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    """
+
+    def __init__(
+            self,
+            replay_size,
+            warm_start_steps: int,
+            gamma: float,
+            eps_start: int,
+            eps_end: int,
+            eps_last_frame: int,
+            sync_rate,
+            lr: float,
+            episode_length,
+            batch_size,
+            **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
         self.replay_size = replay_size
         self.warm_start_steps = warm_start_steps
         self.gamma = gamma

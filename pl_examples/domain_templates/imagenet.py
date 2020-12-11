@@ -50,6 +50,9 @@ from pytorch_lightning.core import LightningModule
 
 
 class ImageNetLightningModel(LightningModule):
+    """
+    >>> ImageNetLightningModel()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    """
     # pull out resnet names from torchvision models
     MODEL_NAMES = sorted(
         name for name in models.__dict__

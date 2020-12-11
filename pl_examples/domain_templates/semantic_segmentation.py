@@ -141,16 +141,21 @@ class SegModel(pl.LightningModule):
     It uses the FCN ResNet50 model as an example.
 
     Adam optimizer is used along with Cosine Annealing learning rate scheduler.
+
+    >>> SegModel()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     """
 
-    def __init__(self,
-                 data_path: str,
-                 batch_size: int,
-                 lr: float,
-                 num_layers: int,
-                 features_start: int,
-                 bilinear: bool, **kwargs):
-        super().__init__()
+    def __init__(
+            self,
+            data_path: str,
+            batch_size: int,
+            lr: float,
+            num_layers: int,
+            features_start: int,
+            bilinear: bool,
+            **kwargs,
+    ):
+        super().__init__(**kwargs)
         self.data_path = data_path
         self.batch_size = batch_size
         self.lr = lr

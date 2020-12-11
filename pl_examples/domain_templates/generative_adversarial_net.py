@@ -37,6 +37,9 @@ from pytorch_lightning.trainer import Trainer
 
 
 class Generator(nn.Module):
+    """
+    >>> Generator()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    """
     def __init__(self, latent_dim, img_shape):
         super().__init__()
         self.img_shape = img_shape
@@ -64,6 +67,9 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
+    """
+    >>> Discriminator()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    """
     def __init__(self, img_shape):
         super().__init__()
 
@@ -83,6 +89,9 @@ class Discriminator(nn.Module):
 
 
 class GAN(LightningModule):
+    """
+    >>> GAN()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    """
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
@@ -180,6 +189,9 @@ class GAN(LightningModule):
 
 
 class MNISTDataModule(LightningDataModule):
+    """
+    >>> MNISTDataModule()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    """
     def __init__(self, batch_size: int = 64, data_path: str = os.getcwd(), num_workers: int = 4):
         super().__init__()
         self.batch_size = batch_size

@@ -22,12 +22,7 @@ class UNet(nn.Module):
     Architecture based on U-Net: Convolutional Networks for Biomedical Image Segmentation
     Link - https://arxiv.org/abs/1505.04597
 
-    Parameters:
-        num_classes: Number of output classes required (default 19 for KITTI dataset)
-        num_layers: Number of layers in each side of U-net
-        features_start: Number of features in first layer
-        bilinear: Whether to use bilinear interpolation or transposed
-            convolutions for upsampling.
+    >>> UNet()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     """
 
     def __init__(
@@ -36,6 +31,14 @@ class UNet(nn.Module):
             features_start: int = 64,
             bilinear: bool = False
     ):
+        """
+        Args:
+            num_classes: Number of output classes required (default 19 for KITTI dataset)
+            num_layers: Number of layers in each side of U-net
+            features_start: Number of features in first layer
+            bilinear: Whether to use bilinear interpolation or transposed
+                convolutions for upsampling.
+        """
         super().__init__()
         self.num_layers = num_layers
 
@@ -69,6 +72,8 @@ class DoubleConv(nn.Module):
     """
     Double Convolution and BN and ReLU
     (3x3 conv -> BN -> ReLU) ** 2
+
+    >>> DoubleConv()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     """
 
     def __init__(self, in_ch: int, out_ch: int):
@@ -89,6 +94,8 @@ class DoubleConv(nn.Module):
 class Down(nn.Module):
     """
     Combination of MaxPool2d and DoubleConv in series
+
+    >>> Down()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     """
 
     def __init__(self, in_ch: int, out_ch: int):
@@ -107,6 +114,8 @@ class Up(nn.Module):
     Upsampling (by either bilinear interpolation or transpose convolutions)
     followed by concatenation of feature map from contracting path,
     followed by double 3x3 convolution.
+
+    >>> Up()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     """
 
     def __init__(self, in_ch: int, out_ch: int, bilinear: bool = False):

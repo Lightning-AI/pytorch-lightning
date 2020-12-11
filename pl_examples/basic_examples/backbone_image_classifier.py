@@ -29,6 +29,9 @@ else:
 
 
 class Backbone(torch.nn.Module):
+    """
+    >>> Backbone()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    """
     def __init__(self, hidden_dim=128):
         super().__init__()
         self.l1 = torch.nn.Linear(28 * 28, hidden_dim)
@@ -42,6 +45,9 @@ class Backbone(torch.nn.Module):
 
 
 class LitClassifier(pl.LightningModule):
+    """
+    >>> LitClassifier()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    """
     def __init__(self, backbone, learning_rate=1e-3):
         super().__init__()
         self.save_hyperparameters()
