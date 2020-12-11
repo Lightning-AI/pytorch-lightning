@@ -508,14 +508,15 @@ class ModelCheckpoint(Callback):
 
         # validate metric
         if self.monitor is not None and not self._is_valid_monitor_key(metrics):
-            if trainer.current_epoch == 0:
-                m = (
-                    f"ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics:"
-                    f" {list(metrics.keys())}. You might "
-                    f"HINT: If you monitor training_epoch_end"
-                )
+            m = (
+                f"ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics:"
+                f" {list(metrics.keys())}. "
+            )
+            if not trainer.checkpoint_connector.one_training_epoch_completed:
+                m += "Running first epoch, a MisconfigurationException will be raise next epoch"
                 rank_zero_warn(m)
             else:
+                m += f"HINT: Did you call self.log('{self.monitor}', tensor) in the LightningModule?"
                 raise MisconfigurationException(m)
 
     def _get_metric_interpolated_filepath_name(self, ckpt_name_metrics: Dict[str, Any], epoch: int, step: int):

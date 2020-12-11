@@ -20,11 +20,11 @@ import torch
 import pytorch_lightning
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import APEX_AVAILABLE, AMPType, OMEGACONF_AVAILABLE, rank_zero_warn
+from pytorch_lightning.utilities import APEX_AVAILABLE, OMEGACONF_AVAILABLE, AMPType, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
 if APEX_AVAILABLE:
     from apex import amp
@@ -40,6 +40,7 @@ class CheckpointConnector:
 
         # used to validate checkpointing logic
         self.has_trained = False
+        self.one_training_epoch_completed = False
 
     def restore_weights(self, model: LightningModule):
         """

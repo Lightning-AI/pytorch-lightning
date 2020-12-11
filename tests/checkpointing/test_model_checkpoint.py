@@ -1023,56 +1023,27 @@ def test_hparams_type(tmpdir, hparams_type):
         assert type(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY]) == hparams_type
 
 
-@mock.patch("torch.save")  # need to mock torch.save or we get pickle error
-def test_model_checkpoint_with_training_epoch_End(tmpdir):
+def test_model_checkpoint_with_training_epoch_end(tmpdir):
 
     """
-    This test assert ModelCheckpoint finds monitor metrics when logged on training_epoch_end
+    This test assert ModelCheckpoint a warming is issued when monitor metric is used in training_epoch_end
     """
     class TestedModel(BoringModel):
-
-        def __init__(self):
-            super().__init__()
-            self.layer = torch.nn.Linear(32, 2)
-
-        def forward(self, x):
-            return self.layer(x)
-
-        def loss(self, batch, prediction):
-            # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
-            return torch.nn.functional.mse_loss(prediction, torch.ones_like(prediction))
-
-        def training_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            self.log('train_loss', loss)  # comment this line and it will work
-            return {"loss": loss}
-
-        def training_step_end(self, training_step_outputs):
-            return training_step_outputs
 
         def training_epoch_end(self, outputs) -> None:
             avg_loss = torch.stack([x["loss"] for x in outputs]).mean()
             self.log('epoch_end_train_loss', avg_loss)
             self.log('gb_step', self.global_step)
 
-        def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            return {"x": loss}
-
-        def validation_epoch_end(self, outputs) -> None:
-            torch.stack([x['x'] for x in outputs]).mean()
-
     model = TestedModel()
 
-    callbacks=[pl.callbacks.ModelCheckpoint(monitor='epoch_end_train_loss', save_top_k=-1)]
-    # Initialize a trainer
+    chk = ModelCheckpoint(monitor='epoch_end_train_loss', save_top_k=-1)
+
     trainer = pl.Trainer(
+        default_root_dir=tmpdir,
         max_epochs=3,
         progress_bar_refresh_rate=1,
-        callbacks=callbacks,
+        callbacks=[chk],
     )
-
-    # Train the model ⚡
+    trainer.current_epoch = 2
     trainer.fit(model)
