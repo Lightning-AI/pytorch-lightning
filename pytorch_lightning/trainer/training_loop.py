@@ -256,7 +256,7 @@ class TrainLoop:
             self.should_reload_dl_epoch = True
             self.trainer.reset_train_dataloader(model)
         else:
-            self.should_reload_dl_epoch = False 
+            self.should_reload_dl_epoch = False
 
         # todo: specify the possible exception
         with suppress(Exception):
