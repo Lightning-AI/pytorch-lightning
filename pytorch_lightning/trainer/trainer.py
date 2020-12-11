@@ -755,14 +755,15 @@ class Trainer(
             )
 
         # If multiple test dataloaders are present, test_step should have dataloader_idx argument
-        num_test_dataloaders = len(test_dataloaders)
-        if model is not None:
-            sig_test_step = signature(model.test_step)
-        else:
-            sig_test_step = signature(self.get_model().test_step)
-        num_test_step_args = len(sig_test_step.parameters)
-        if num_test_dataloaders > 1 and num_test_step_args < 3:
-            rank_zero_warn(f'multiple test dataloaders present, but no "dataloader_idx" argument given in test_step')
+        if test_dataloaders:
+            num_test_dataloaders = len(test_dataloaders)
+            if model is not None:
+                sig_test_step = signature(model.test_step)
+            else:
+                sig_test_step = signature(self.get_model().test_step)
+            num_test_step_args = len(sig_test_step.parameters)
+            if num_test_dataloaders > 1 and num_test_step_args < 3:
+                rank_zero_warn(f'multiple test dataloaders present, but no "dataloader_idx" argument given in test_step')
 
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
         self.data_connector.attach_datamodule(model or self.get_model(), datamodule, 'test')
