@@ -17,13 +17,16 @@ from pytorch_lightning.metrics.functional.classification import (
     auc,
     auroc,
     dice_score,
+    get_num_classes,
+    iou,
     multiclass_auroc,
     precision,
     precision_recall,
     recall,
     stat_scores,
     stat_scores_multiple_classes,
-    iou,
+    to_categorical,
+    to_onehot,
 )
 from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matrix
 # TODO: unify metrics between class and functional, add below
