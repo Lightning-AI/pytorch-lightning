@@ -225,7 +225,7 @@ For example, here step optimizer A every 2 batches and optimizer B every 4 batch
 
         # update discriminator opt every 4 steps
         if optimizer_i == 1:
-            optimizer.step(closure=closure, make_optimizer_step=batch_nb % 4 == 0)
+            optimizer.step(closure=closure, make_optimizer_step=(batch_nb % 4) == 0)
 
 Here we add a learning-rate warm up
 
