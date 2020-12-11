@@ -52,3 +52,6 @@ class TorchElasticEnvironment(ClusterEnvironment):
 
     def node_rank(self):
         return int(os.environ.get('GROUP_RANK'))
+
+    def global_rank(self):
+        return int(os.environ['RANK'])

@@ -81,3 +81,6 @@ class SLURMEnvironment(ClusterEnvironment):
 
     def node_rank(self):
         return int(os.environ['SLURM_NODEID'])
+
+    def global_rank(self):
+        return int(os.environ['SLURM_PROCID'])

@@ -31,3 +31,9 @@ class ClusterEnvironment(LightningPlugin):
 
     def local_rank(self):
         pass
+
+    def global_rank(self):
+        pass
+
+    def node_rank(self):
+        pass
