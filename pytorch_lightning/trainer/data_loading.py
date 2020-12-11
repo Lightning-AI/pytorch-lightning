@@ -23,7 +23,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import PYSYFT_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -152,7 +152,10 @@ class TrainerDataLoadingMixin(ABC):
         # automatically add samplers
         self.train_dataloader = self.auto_add_sampler(self.train_dataloader, shuffle=True)
 
-        self.num_training_batches = len(self.train_dataloader) if has_len(self.train_dataloader) else float('inf')
+        if not PYSYFT_AVAILABLE:
+            train_data_length = len(self.train_dataloader)
+            self.num_training_batches = len(self.train_dataloader) if has_len(self.train_dataloader) else float('inf')
+
         self._worker_check(self.train_dataloader, 'train dataloader')
 
         if isinstance(self.limit_train_batches, int) or self.limit_train_batches == 0.0:

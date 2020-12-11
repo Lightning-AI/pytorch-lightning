@@ -436,7 +436,6 @@ class TrainLoop:
 
         # track batch for manual reduction with result
         if PYSYFT_AVAILABLE:
-            # TODO: skip for now !
             split_batch_size = 1
         else:
             split_batch_size = len(split_batch)
@@ -557,6 +556,7 @@ class TrainLoop:
         train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         dataloader_idx = 0
         should_check_val = False
+
         for batch_idx, (batch, is_last_batch) in train_dataloader:
 
             self.trainer.batch_idx = batch_idx
