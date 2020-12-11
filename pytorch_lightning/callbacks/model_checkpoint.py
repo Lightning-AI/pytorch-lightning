@@ -32,8 +32,8 @@ import yaml
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
+from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -508,12 +508,15 @@ class ModelCheckpoint(Callback):
 
         # validate metric
         if self.monitor is not None and not self._is_valid_monitor_key(metrics):
-            m = (
-                f"ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics:"
-                f" {list(metrics.keys())}. "
-                f"HINT: Did you call self.log('{self.monitor}', tensor) in the LightningModule?"
-            )
-            raise MisconfigurationException(m)
+            if trainer.current_epoch == 0:
+                m = (
+                    f"ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics:"
+                    f" {list(metrics.keys())}. You might "
+                    f"HINT: If you monitor training_epoch_end"
+                )
+                rank_zero_warn(m)
+            else:
+                raise MisconfigurationException(m)
 
     def _get_metric_interpolated_filepath_name(self, ckpt_name_metrics: Dict[str, Any], epoch: int, step: int):
         filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics)
