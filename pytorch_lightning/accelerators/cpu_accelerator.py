@@ -16,13 +16,14 @@ from typing import Any, Optional, Union, Callable
 import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
+from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class CPUAccelerator(Accelerator):
 
-    def __init__(self, trainer, cluster_environment=None):
+    def __init__(self, trainer, cluster_environment: Optional[ClusterEnvironment] = None):
         """
         Runs training on CPU
 
