@@ -161,35 +161,20 @@ def test_apply_batch_transfer_handler(model_getter_mock):
         def on_before_batch_transfer(self, batch):
             self.on_before_batch_transfer_hook_rank = self.rank
             self.rank += 1
-
-            if isinstance(batch, CustomBatch):
-                batch.samples += 1
-            else:
-                batch = super().on_before_batch_transfer(batch)
-
+            batch.samples += 1
             return batch
 
         def on_after_batch_transfer(self, batch):
             self.on_after_batch_transfer_hook_rank = self.rank
             self.rank += 1
-
-            if isinstance(batch, CustomBatch):
-                batch.targets *= 2
-            else:
-                batch = super().on_after_batch_transfer(batch)
-
+            batch.targets *= 2
             return batch
 
         def transfer_batch_to_device(self, batch, device):
             self.transfer_batch_to_device_hook_rank = self.rank
             self.rank += 1
-
-            if isinstance(batch, CustomBatch):
-                batch.samples = batch.samples.to(device)
-                batch.targets = batch.targets.to(device)
-            else:
-                batch = super().transfer_batch_to_device(batch, device)
-
+            batch.samples = batch.samples.to(device)
+            batch.targets = batch.targets.to(device)
             return batch
 
     model = CurrentTestModel()

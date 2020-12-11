@@ -1,7 +1,3 @@
-.. testsetup:: *
-
-    from pytorch_lightning.core.datamodule import LightningDataModule
-
 .. _datamodules:
 
 LightningDataModule
@@ -298,7 +294,7 @@ Override to define how you want to move an arbitrary batch to a device.
         def transfer_batch_to_device(self, batch, device):
             x = batch['x']
             x = CustomDataWrapper(x)
-            batch['x'].to(device)
+            x.to(device)
             return batch
 
 on_before_batch_transfer
