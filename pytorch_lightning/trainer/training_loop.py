@@ -407,7 +407,6 @@ class TrainLoop:
 
         # track batch for manual reduction with result
         if PYSYFT_AVAILABLE:
-            # TODO: skip for now !
             split_batch_size = 1
         else:
             split_batch_size = len(split_batch)
