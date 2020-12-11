@@ -444,9 +444,7 @@ def _roc(
         " `from pytorch_lightning.metrics.functional.roc import roc`."
         " It will be removed in v1.3.0", DeprecationWarning
     )
-    fps, tps, thresholds = _binary_clf_curve(
-        pred=pred, target=target, sample_weight=sample_weight, pos_label=pos_label
-    )
+    fps, tps, thresholds = _binary_clf_curve(pred, target, sample_weights=sample_weight, pos_label=pos_label)
 
     # Add an extra threshold position
     # to make sure that the curve starts at (0, 0)
