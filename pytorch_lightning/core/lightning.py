@@ -265,6 +265,7 @@ class LightningModule(
             self._results.log(
                 name,
                 value,
+                self.device,
                 prog_bar,
                 logger,
                 on_step,

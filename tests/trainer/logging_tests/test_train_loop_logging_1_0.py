@@ -29,6 +29,7 @@ import pytorch_lightning as pl
 from pytorch_lightning import Trainer, callbacks
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
+from tests.backends import DDPLauncher
 from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
 from tests.base.deterministic_model import DeterministicModel
 
@@ -707,6 +708,62 @@ def test_logging_sync_dist_true_cpu(tmpdir):
     assert trainer.logged_metrics['foo'] == fake_result
     assert trainer.logged_metrics['foo_2'] == 4
     assert trainer.logged_metrics['bar'] == fake_result
+
+
+class TestLoggingSyncDistModel(BoringModel):
+    def training_step(self, batch, batch_idx):
+        acc = self.step(batch[0])
+        self.log('foo', 1,
+                 on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='sum')
+        assert self._results["foo"] == 2
+        return acc
+
+    def validation_step(self, batch, batch_idx):
+        self.training_step_called = True
+        output = self.layer(batch)
+        loss = self.loss(batch, output)
+        self.log('bar', 2, on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='mean')
+        assert self._results["bar"] == 2
+        return {"x": loss}
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@DDPLauncher.run("--max_epochs 1 --gpus 2 --accelerator ddp")
+def test_logging_sync_dist_true_ddp(tmpdir, args=None):
+    """
+    Tests to ensure that the sync_dist flag works with ddp
+    """
+    model = TestLoggingSyncDistModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=args.max_epochs,
+        weights_summary=None,
+        accelerator=args.accelerator,
+        gpus=args.gpus,
+    )
+    trainer.fit(model)
+
+    assert trainer.logged_metrics['foo'] == 2
+    assert trainer.logged_metrics['bar'] == 2
+
+@pytest.mark.skipif(platform.system() == "Windows",
+                    reason="Distributed training is not supported on Windows")
+def test_logging_sync_dist_true_ddp_cpu(tmpdir):
+    """
+    Tests to ensure that the sync_dist flag works with ddp cpu
+    """
+    model = TestLoggingSyncDistModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=2,
+        weights_summary=None,
+        accelerator="ddp_cpu",
+        num_processes=2
+    )
+    trainer.fit(model)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
