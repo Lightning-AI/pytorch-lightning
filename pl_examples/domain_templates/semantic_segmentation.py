@@ -32,6 +32,29 @@ DEFAULT_VOID_LABELS = (0, 1, 2, 3, 4, 5, 6, 9, 10, 14, 15, 16, 18, 29, 30, -1)
 DEFAULT_VALID_LABELS = (7, 8, 11, 12, 13, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33)
 
 
+def _create_synth_Cityscapes_dataset(path_dir):
+    """Create synthetic dataset with random images, just to simulate that the dataset have been already downloaded."""
+    non_existing_citites = ['dummy_kitti_1', 'dummy_kitti_2']
+    fine_labels_dir = Path(path_dir) / 'gtFine'
+    images_dir = Path(path_dir) / 'leftImg8bit'
+    dataset_splits = ['train', 'val', 'test']
+
+    for split in dataset_splits:
+        for city in non_existing_citites:
+            (images_dir / split / city).mkdir(parents=True)
+            (fine_labels_dir / split / city).mkdir(parents=True)
+            base_name = str(uuid.uuid4())
+            image_name = f'{base_name}_leftImg8bit.png'
+            instance_target_name = f'{base_name}_gtFine_instanceIds.png'
+            semantic_target_name = f'{base_name}_gtFine_labelIds.png'
+            Image.new('RGB', (2048, 1024)).save(
+                images_dir / split / city / image_name)
+            Image.new('L', (2048, 1024)).save(
+                fine_labels_dir / split / city / instance_target_name)
+            Image.new('L', (2048, 1024)).save(
+                fine_labels_dir / split / city / semantic_target_name)
+
+
 class KITTI(Dataset):
     """
     Class for KITTI Semantic Segmentation Benchmark dataset
@@ -53,6 +76,8 @@ class KITTI(Dataset):
     In the `get_item` function, images and masks are resized to the given `img_size`, masks are
     encoded using `encode_segmap`, and given `transform` (if any) are applied to the image only
     (mask does not usually require transforms, but they can be implemented in a similar way).
+
+    >>> KITTI()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     """
     IMAGE_PATH = os.path.join('training', 'image_2')
     MASK_PATH = os.path.join('training', 'semantic')
@@ -141,6 +166,8 @@ class SegModel(pl.LightningModule):
     It uses the FCN ResNet50 model as an example.
 
     Adam optimizer is used along with Cosine Annealing learning rate scheduler.
+
+    >>> SegModel()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     """
     def __init__(
             self,
