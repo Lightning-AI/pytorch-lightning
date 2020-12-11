@@ -18,6 +18,7 @@ Tests to ensure that the training loop works with a dict (1.0)
 import collections
 import itertools
 import os
+import platform
 from unittest import mock
 
 import numpy as np
@@ -726,6 +727,7 @@ class TestLoggingSyncDistModel(BoringModel):
         assert self._results["bar"] == 2
         return {"x": loss}
 
+
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @DDPLauncher.run("--max_epochs 1 --gpus 2 --accelerator ddp")
 def test_logging_sync_dist_true_ddp(tmpdir, args=None):
@@ -746,6 +748,7 @@ def test_logging_sync_dist_true_ddp(tmpdir, args=None):
 
     assert trainer.logged_metrics['foo'] == 2
     assert trainer.logged_metrics['bar'] == 2
+
 
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
