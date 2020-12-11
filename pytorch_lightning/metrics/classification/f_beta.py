@@ -183,7 +183,6 @@ class F1(FBeta):
     def __init__(
         self,
         num_classes: int = 1,
-        beta: float = 1.0,
         threshold: float = 0.5,
         average: str = "micro",
         multilabel: bool = False,
