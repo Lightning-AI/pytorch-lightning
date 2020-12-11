@@ -23,13 +23,8 @@ import pytorch_lightning as pl
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.utilities import BOLTS_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel, RandomDataset, RandomDictDataset, RandomDictStringDataset
-
-if BOLTS_AVAILABLE:
-    from pl_bolts.optimizers.lars_scheduling import LARSWrapper
-    from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 
 
 def test_lightning_optimizer(tmpdir):
@@ -212,33 +207,53 @@ def test_state(tmpdir):
     assert optimizer.state == lightning_optimizer.state
 
 
-class TestLightningOptimizerModel(BoringModel):
+def test_lightning_optimizer_with_wrong_optimizer_interface(tmpdir):
+    class OptimizerWrapper(object):
+        def __init__(self, optimizer):
+            self.optim = optimizer
+            self.state_dict = self.optim.state_dict
+            self.load_state_dict = self.optim.load_state_dict
+            self.zero_grad = self.optim.zero_grad
+            self.add_param_group = self.optim.add_param_group
+            self.__setstate__ = self.optim.__setstate__
+            self.__getstate__ = self.optim.__getstate__
+            self.__repr__ = self.optim.__repr__
 
-    def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=0.1)
+        @property
+        def __class__(self):
+            return Optimizer
 
-        optimizer = LARSWrapper(optimizer)
-        return [optimizer]
+        @property
+        def state(self):
+            return self.optim.state
 
+        @property
+        def param_groups(self):
+            return self.optim.param_groups
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not BOLTS_AVAILABLE, reason="Bolts is required for this test")
-def test_lightning_optimizer_state(tmpdir):
+        @param_groups.setter
+        def param_groups(self, value):
+            self.optim.param_groups = value
 
-    train_data = torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=1)
-    val_data = torch.utils.data.DataLoader(RandomDataset(32, 64),batch_size=1)
-    test_data = torch.utils.data.DataLoader(RandomDataset(32, 64),batch_size=1)
+        def step(self):
+            # wrongly defined step. Should contain closure
+            self.optim.step(closure=None)
+
+    class TestLightningOptimizerModel(BoringModel):
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.Adam(self.parameters(), lr=0.1)
+            optimizer = OptimizerWrapper(optimizer)
+            return [optimizer]
 
     model = TestLightningOptimizerModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=10,
+        max_epochs=1,
         weights_summary=None,
-        accelerator='ddp_spawn',
         log_every_n_steps=1,
-        gpus=1,
     )
-    trainer.fit(model, train_data, val_data)
+    trainer.fit(model)
 
 
 def test_lightning_optimizer_automatic_optimization(tmpdir):
