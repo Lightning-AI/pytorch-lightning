@@ -30,7 +30,6 @@ import pytorch_lightning as pl
 from pytorch_lightning import Trainer, callbacks
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
-from tests.backends import DDPLauncher
 from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
 from tests.base.deterministic_model import DeterministicModel
 
@@ -729,8 +728,9 @@ class TestLoggingSyncDistModel(BoringModel):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@DDPLauncher.run("--max_epochs 1 --gpus 2 --accelerator ddp")
-def test_logging_sync_dist_true_ddp(tmpdir, args=None):
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
+def test_logging_sync_dist_true_ddp(tmpdir):
     """
     Tests to ensure that the sync_dist flag works with ddp
     """
@@ -739,10 +739,10 @@ def test_logging_sync_dist_true_ddp(tmpdir, args=None):
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
-        max_epochs=args.max_epochs,
+        max_epochs=2,
         weights_summary=None,
-        accelerator=args.accelerator,
-        gpus=args.gpus,
+        accelerator="ddp",
+        gpus=2,
     )
     trainer.fit(model)
 
