@@ -210,8 +210,7 @@ For example, here step optimizer A every 2 batches and optimizer B every 4 batch
             if batch_nb % 4 == 0 :
                optimizer.step(closure=closure)
 
-.. note:: When using ``Trainer(enable_pl_optimizer=True)``, ``.step`` accept a boolean ``make_optimizer_step`` which 
-can be used as below.
+.. note:: When using ``Trainer(enable_pl_optimizer=True)``, ``.step`` accept a boolean ``make_optimizer_step`` which can be used as follow.
 
 .. testcode::
 
