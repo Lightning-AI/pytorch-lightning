@@ -180,7 +180,6 @@ class TransferLearningModel(pl.LightningModule):
     ) -> None:
         """
         Args:
-            hparams: Model hyperparameters
             dl_path: Path where the data will be downloaded
         """
         super().__init__(**kwargs)
