@@ -29,7 +29,8 @@ from pytorch_lightning import Trainer, LightningModule
 
 class RandomDataset(Dataset):
     """
-    >>> RandomDataset((10, 5), 20)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    >>> RandomDataset(size=10, length=20)  # doctest: +ELLIPSIS
+    <bug_report_model.RandomDataset object at ...>
     """
     def __init__(self, size, length):
         self.len = length
@@ -44,7 +45,10 @@ class RandomDataset(Dataset):
 
 class BoringModel(LightningModule):
     """
-    >>>BoringModel()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    >>> BoringModel()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    BoringModel(
+      (layer): Linear(...)
+    )
     """
 
     def __init__(self):
@@ -75,7 +79,7 @@ class BoringModel(LightningModule):
         # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
         return torch.nn.functional.mse_loss(prediction, torch.ones_like(prediction))
 
-    def step(self, x):
+    def _step(self, x):
         x = self.layer(x)
         out = torch.nn.functional.mse_loss(x, torch.ones_like(x))
         return out
@@ -119,10 +123,9 @@ class BoringModel(LightningModule):
 #  parser = ArgumentParser()
 #  args = parser.parse_args(opt)
 
-def run_test():
+def test_run():
 
     class TestModel(BoringModel):
-
         def on_train_epoch_start(self) -> None:
             print('override any method to prove your bug')
 
@@ -146,4 +149,4 @@ def run_test():
 
 if __name__ == '__main__':
     cli_lightning_logo()
-    run_test()
+    test_run()

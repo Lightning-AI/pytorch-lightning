@@ -53,6 +53,8 @@ class KITTI(Dataset):
     In the `get_item` function, images and masks are resized to the given `img_size`, masks are
     encoded using `encode_segmap`, and given `transform` (if any) are applied to the image only
     (mask does not usually require transforms, but they can be implemented in a similar way).
+
+    >>> KITTI()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     """
     IMAGE_PATH = os.path.join('training', 'image_2')
     MASK_PATH = os.path.join('training', 'semantic')
