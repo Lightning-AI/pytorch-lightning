@@ -49,6 +49,12 @@ class LightningOptimizer:
             )
 
         self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k != 'step'}
+        self.state_dict = optimizer.state_dict
+        self.load_state_dict = optimizer.load_state_dict
+        self.zero_grad = optimizer.zero_grad
+        self.add_param_group = optimizer.add_param_group
+        self.__setstate__ = optimizer.__setstate__
+        self.__getstate__ = optimizer.__getstate__
 
         # For Horovod
         if hasattr(optimizer, "skip_synchronize"):
@@ -63,6 +69,22 @@ class LightningOptimizer:
         self._accumulate_grad_batches = accumulate_grad_batches
         self._support_closure = 'closure' in inspect.signature(optimizer.step).parameters
         self._optimizer_idx = None
+
+    @property
+    def state(self):
+        return self._optimizer.state
+    
+    @state.setter
+    def state(self, state):
+        self._optimizer.state = state
+
+    @property
+    def param_groups(self):
+        return self._optimizer.param_groups
+
+    @param_groups.setter
+    def param_groups(self, param_groups):
+        self._optimizer.param_groups = param_groups
 
     @property
     def accumulate_grad_batches(self):
