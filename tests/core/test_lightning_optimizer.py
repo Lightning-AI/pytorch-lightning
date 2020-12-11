@@ -19,10 +19,12 @@ import torch
 import torch.nn as nn
 from torch.optim import Adam, Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
+from tests.base.boring_model import BoringModel, RandomDataset, RandomDictDataset, RandomDictStringDataset
 
 
 def test_lightning_optimizer(tmpdir):
@@ -80,8 +82,8 @@ def test_lightning_optimizer_from_user(tmpdir):
     assert trainer.optimizers[0].__repr__() == expected
 
 
-@patch("torch.optim.Adam.step")
-@patch("torch.optim.SGD.step")
+@patch("torch.optim.Adam.step", autospec=True)
+@patch("torch.optim.SGD.step", autospec=True)
 def test_lightning_optimizer_manual_optimization(mock_sgd_step, mock_adam_step, tmpdir):
     """
     Test that the user can use our LightningOptimizer. Not recommended for now.
@@ -96,13 +98,13 @@ def test_lightning_optimizer_manual_optimization(mock_sgd_step, mock_adam_step, 
             output = self.layer(batch)
             loss_1 = self.loss(batch, output)
             self.manual_backward(loss_1, opt_1)
-            opt_1.step(idx="1")
+            opt_1.step()
 
             def closure():
                 output = self.layer(batch)
                 loss_2 = self.loss(batch, output)
                 self.manual_backward(loss_2, opt_2)
-            opt_2.step(closure=closure, idx="2")
+            opt_2.step(closure=closure)
 
         def configure_optimizers(self):
             optimizer_1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -111,6 +113,10 @@ def test_lightning_optimizer_manual_optimization(mock_sgd_step, mock_adam_step, 
 
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
             return [optimizer_1, optimizer_2], [lr_scheduler]
+
+        @property
+        def automatic_optimization(self) -> bool:
+            return False
 
     model = TestModel()
     model.training_step_end = None
@@ -121,16 +127,16 @@ def test_lightning_optimizer_manual_optimization(mock_sgd_step, mock_adam_step, 
         limit_val_batches=1,
         max_epochs=1,
         weights_summary=None,
-        automatic_optimization=False,
-        enable_pl_optimizer=True)
+        enable_pl_optimizer=True,
+    )
     trainer.fit(model)
 
     assert len(mock_sgd_step.mock_calls) == 2
     assert len(mock_adam_step.mock_calls) == 8
 
 
-@patch("torch.optim.Adam.step")
-@patch("torch.optim.SGD.step")
+@patch("torch.optim.Adam.step", autospec=True)
+@patch("torch.optim.SGD.step", autospec=True)
 def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(mock_sgd_step, mock_adam_step, tmpdir):
     """
     Test that the user can use our LightningOptimizer. Not recommended.
@@ -145,13 +151,13 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(mock_
             output = self.layer(batch)
             loss_1 = self.loss(batch, output)
             self.manual_backward(loss_1, opt_1)
-            opt_1.step(idx="1")
+            opt_1.step()
 
             def closure():
                 output = self.layer(batch)
                 loss_2 = self.loss(batch, output)
                 self.manual_backward(loss_2, opt_2)
-            opt_2.step(closure=closure, idx="2")
+            opt_2.step(closure=closure)
 
         def configure_optimizers(self):
             optimizer_1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -160,6 +166,10 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(mock_
 
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
             return [optimizer_1, optimizer_2], [lr_scheduler]
+
+        @property
+        def automatic_optimization(self) -> bool:
+            return False
 
     model = TestModel()
     model.training_step_end = None
@@ -170,7 +180,6 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(mock_
         limit_val_batches=1,
         max_epochs=1,
         weights_summary=None,
-        automatic_optimization=False,
         accumulate_grad_batches=2,
         enable_pl_optimizer=True,
     )
@@ -184,13 +193,29 @@ def test_state(tmpdir):
     model = torch.nn.Linear(3, 4)
     optimizer = torch.optim.Adam(model.parameters())
     lightning_optimizer = LightningOptimizer(optimizer)
+
+    # test state
+    assert optimizer.state == lightning_optimizer.state
+    lightning_optimizer.state = optimizer.state
+    assert optimizer.state == lightning_optimizer.state
+
+    # test param_groups
+    assert optimizer.param_groups == lightning_optimizer.param_groups
+    lightning_optimizer.param_groups = optimizer.param_groups
+    assert optimizer.param_groups == lightning_optimizer.param_groups
+
+    # test defaults
+    assert optimizer.defaults == lightning_optimizer.defaults
+    lightning_optimizer.defaults = optimizer.defaults
+    assert optimizer.defaults == lightning_optimizer.defaults
+
     assert isinstance(lightning_optimizer, LightningOptimizer)
     assert isinstance(lightning_optimizer, Adam)
     assert isinstance(lightning_optimizer, Optimizer)
     lightning_dict = {}
-    special_attrs = ["_accumulate_grad_batches", "_optimizer", "_optimizer_idx",
-                     "_trainer", "_use_accumulate_grad_batches_from_trainer", "_automatic_optimization",
-                     "_accumulate_grad_batches"]
+    special_attrs = ["_accumulate_grad_batches", "_optimizer", "_optimizer_idx", "_support_closure",
+                     "_trainer", "__getstate__", "__setstate__", "state_dict", "load_state_dict",
+                     "zero_grad", "__setstate__", "add_param_group"]
     for k, v in lightning_optimizer.__dict__.items():
         if k not in special_attrs:
             lightning_dict[k] = v
@@ -237,7 +262,6 @@ def test_lightning_optimizer_automatic_optimization(tmpdir):
         max_epochs=1,
         weights_summary=None,
         enable_pl_optimizer=True,
-        automatic_optimization=True
     )
     trainer.fit(model)
 
@@ -291,7 +315,6 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
             max_epochs=1,
             weights_summary=None,
             enable_pl_optimizer=True,
-            automatic_optimization=True
         )
         trainer.fit(model)
 
@@ -352,7 +375,6 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad_make_opt
                 max_epochs=1,
                 weights_summary=None,
                 enable_pl_optimizer=True,
-                automatic_optimization=True
             )
             trainer.fit(model)
 
@@ -406,7 +428,6 @@ def test_lightning_optimizer_automatic_optimization_make_optimizer_step_2(tmpdir
             max_epochs=1,
             weights_summary=None,
             enable_pl_optimizer=True,
-            automatic_optimization=True,
         )
         trainer.fit(model)
 
