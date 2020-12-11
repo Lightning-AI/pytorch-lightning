@@ -49,6 +49,8 @@ class LightningOptimizer:
             )
 
         self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k != 'step'}
+
+        # save functions and attributes from optimizer
         self.state_dict = optimizer.state_dict
         self.load_state_dict = optimizer.load_state_dict
         self.zero_grad = optimizer.zero_grad
@@ -73,7 +75,7 @@ class LightningOptimizer:
     @property
     def state(self):
         return self._optimizer.state
-    
+
     @state.setter
     def state(self, state):
         self._optimizer.state = state
