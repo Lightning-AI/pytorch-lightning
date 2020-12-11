@@ -49,27 +49,27 @@ def test_tbd_remove_in_v1_3_0(tmpdir):
 
 
 def test_tbd_remove_in_v1_3_0_metrics():
+    from pytorch_lightning.metrics.functional.classification import to_onehot
     with pytest.deprecated_call(match='will be removed in v1.3'):
-        from pytorch_lightning.metrics.functional.classification import to_onehot
         to_onehot(torch.tensor([1, 2, 3]))
 
+    from pytorch_lightning.metrics.functional.classification import to_categorical
     with pytest.deprecated_call(match='will be removed in v1.3'):
-        from pytorch_lightning.metrics.functional.classification import to_categorical
         to_categorical(torch.tensor([[0.2, 0.5], [0.9, 0.1]]))
 
+    from pytorch_lightning.metrics.functional.classification import get_num_classes
     with pytest.deprecated_call(match='will be removed in v1.3'):
-        from pytorch_lightning.metrics.functional.classification import get_num_classes
         get_num_classes(pred=torch.tensor([0, 1]), target=torch.tensor([1, 1]))
 
     x_binary = torch.tensor([0, 1, 2, 3])
     y_binary = torch.tensor([0, 1, 2, 3])
 
+    from pytorch_lightning.metrics.functional.classification import roc
     with pytest.deprecated_call(match='will be removed in v1.3'):
-        from pytorch_lightning.metrics.functional.classification import roc
         roc(pred=x_binary, target=y_binary)
 
+    from pytorch_lightning.metrics.functional.classification import _roc
     with pytest.deprecated_call(match='will be removed in v1.3'):
-        from pytorch_lightning.metrics.functional.classification import _roc
         _roc(pred=x_binary, target=y_binary)
 
     x_multy = torch.tensor([[0.85, 0.05, 0.05, 0.05],
@@ -78,28 +78,28 @@ def test_tbd_remove_in_v1_3_0_metrics():
                             [0.05, 0.05, 0.05, 0.85]])
     y_multy = torch.tensor([0, 1, 3, 2])
 
+    from pytorch_lightning.metrics.functional.classification import multiclass_roc
     with pytest.deprecated_call(match='will be removed in v1.3'):
-        from pytorch_lightning.metrics.functional.classification import multiclass_roc
         multiclass_roc(pred=x_multy, target=y_multy)
 
+    from pytorch_lightning.metrics.functional.classification import average_precision
     with pytest.deprecated_call(match='will be removed in v1.3'):
-        from pytorch_lightning.metrics.functional.classification import average_precision
         average_precision(pred=x_binary, target=y_binary)
 
+    from pytorch_lightning.metrics.functional.classification import precision_recall_curve
     with pytest.deprecated_call(match='will be removed in v1.3'):
-        from pytorch_lightning.metrics.functional.classification import precision_recall_curve
         precision_recall_curve(pred=x_binary, target=y_binary)
 
+    from pytorch_lightning.metrics.functional.classification import multiclass_precision_recall_curve
     with pytest.deprecated_call(match='will be removed in v1.3'):
-        from pytorch_lightning.metrics.functional.classification import multiclass_precision_recall_curve
         multiclass_precision_recall_curve(pred=x_multy, target=y_multy)
 
+    from pytorch_lightning.metrics.functional.reduction import reduce
     with pytest.deprecated_call(match='will be removed in v1.3'):
-        from pytorch_lightning.metrics.functional.reduction import reduce
         reduce(torch.tensor([0, 1, 1, 0]), 'sum')
 
+    from pytorch_lightning.metrics.functional.reduction import class_reduce
     with pytest.deprecated_call(match='will be removed in v1.3'):
-        from pytorch_lightning.metrics.functional.reduction import class_reduce
         class_reduce(torch.randint(1, 10, (50,)).float(),
                      torch.randint(10, 20, (50,)).float(),
                      torch.randint(1, 100, (50,)).float())
