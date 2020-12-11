@@ -265,7 +265,6 @@ class LightningModule(
             self._results.log(
                 name,
                 value,
-                self.device,
                 prog_bar,
                 logger,
                 on_step,
@@ -279,6 +278,7 @@ class LightningModule(
                 sync_dist_group,
                 accelerator.sync_tensor,
                 self._current_dataloader_idx,
+                self.device,
             )
 
     def log_dict(

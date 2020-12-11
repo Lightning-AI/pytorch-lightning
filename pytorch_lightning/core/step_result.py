@@ -115,7 +115,6 @@ class Result(Dict):
         self,
         name: str,
         value: Any,
-        device: torch.device,
         prog_bar: bool = False,
         logger: bool = True,
         on_step: bool = False,
@@ -129,6 +128,7 @@ class Result(Dict):
         sync_dist_group: Optional[Any] = None,
         sync_fn: Callable = None,
         dataloader_idx: Optional[int] = None,
+        device: torch.device = None,
     ):
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
