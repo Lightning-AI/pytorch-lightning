@@ -110,7 +110,6 @@ def f1(
         preds: torch.Tensor,
         target: torch.Tensor,
         num_classes: int,
-        beta: float = 1.0,
         threshold: float = 0.5,
         average: str = "micro",
         multilabel: bool = False
