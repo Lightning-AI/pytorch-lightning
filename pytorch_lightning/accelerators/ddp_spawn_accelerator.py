@@ -22,6 +22,7 @@ from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
+from pytorch_lightning.accelerators.nvidia_mixin import NVIDIAMixin
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed import LightningDistributed
@@ -44,7 +45,7 @@ if HYDRA_AVAILABLE:
     from hydra.utils import get_original_cwd, to_absolute_path
 
 
-class DDPSpawnAccelerator(Accelerator):
+class DDPSpawnAccelerator(Accelerator, NVIDIAMixin):
 
     def __init__(self,
                  trainer,
@@ -68,6 +69,10 @@ class DDPSpawnAccelerator(Accelerator):
 
     def setup(self, model):
         os.environ['MASTER_PORT'] = os.environ.get('MASTER_PORT', str(find_free_network_port()))
+        # ----------------------------
+        # NVIDIA FLAGS
+        # ----------------------------
+        self.set_nvidia_flags(self.trainer.data_parallel_device_ids)
 
         # pass in a state q
         smp = mp.get_context('spawn')

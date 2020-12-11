@@ -21,6 +21,7 @@ from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
+from pytorch_lightning.accelerators.nvidia_mixin import NVIDIAMixin
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
@@ -35,7 +36,7 @@ if HYDRA_AVAILABLE:
 
 
 import sys
-class DDPHPCAccelerator(Accelerator):
+class DDPHPCAccelerator(Accelerator, NVIDIAMixin):
 
     def __init__(self,
                  trainer,
@@ -58,23 +59,21 @@ class DDPHPCAccelerator(Accelerator):
 
     def setup(self, model):
         self.trainer.model = model
+        # ----------------------------
+        # NVIDIA FLAGS
+        # ----------------------------
+        self.set_nvidia_flags(self.trainer.data_parallel_device_ids)
         self.task_idx = self.cluster_environment.local_rank()
+
 
     def train(self):
         model = self.trainer.model
         self.ddp_train(process_idx=self.task_idx, model=model)
 
     def set_world_ranks(self, process_idx):
-        rank = os.environ['JSM_NAMESPACE_RANK']
-        size = os.environ['JSM_NAMESPACE_SIZE']
-
-        rank_id = '%s/%s' % (rank, size)
-        print("set_world_ranks", rank_id, "process_idx=%s, trainer.node_rank=%s, trainer.num_processes=%s, trainer.num_nodes=%s" % (process_idx, self.trainer.node_rank, self.trainer.num_processes, self.trainer.num_nodes), file=sys.stderr)
         self.trainer.local_rank = process_idx
-        #self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
         self.trainer.global_rank = self.cluster_environment.node_rank() * self.trainer.num_processes + process_idx
         self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
-        print("set_world_ranks", rank_id, "trainer.global_rank=%s, trainer.world_size=%s" % (self.trainer.global_rank, self.trainer.world_size), file=sys.stderr)
 
     def init_device(self, process_idx):
         self.trainer.root_gpu = process_idx

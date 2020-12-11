@@ -17,12 +17,13 @@ import torch
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
+from pytorch_lightning.accelerators.nvidia_mixin import NVIDIAMixin
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.utilities import AMPType
 
 
-class GPUAccelerator(Accelerator):
+class GPUAccelerator(Accelerator, NVIDIAMixin):
     amp_backend: AMPType
 
     def __init__(self, trainer, cluster_environment: Optional[ClusterEnvironment] = None):
@@ -40,6 +41,10 @@ class GPUAccelerator(Accelerator):
         self.nickname = None
 
     def setup(self, model):
+        # ----------------------------
+        # NVIDIA FLAGS
+        # ----------------------------
+        self.set_nvidia_flags(self.trainer.data_parallel_device_ids)
 
         # call setup
         self.trainer.call_setup_hook(model)
