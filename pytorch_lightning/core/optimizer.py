@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
 import types
 from typing import Any, Callable, Optional
 from weakref import proxy
@@ -69,7 +68,6 @@ class LightningOptimizer:
         self._optimizer = optimizer
         self._trainer = None
         self._accumulate_grad_batches = accumulate_grad_batches
-        self._support_closure = 'closure' in inspect.signature(optimizer.step).parameters
         self._optimizer_idx = None
 
     @property
@@ -143,11 +141,7 @@ class LightningOptimizer:
 
         else:
             with trainer.profiler.profile(profiler_name):
-                if self._support_closure:
-                    optimizer.step(closure=closure, *args, **kwargs)
-                else:
-                    closure()
-                    optimizer.step(*args, **kwargs)
+                optimizer.step(closure=closure, *args, **kwargs)
 
         accelerator_backend = trainer.accelerator_backend
         if accelerator_backend is not None and accelerator_backend.rpc_enabled:

@@ -191,7 +191,7 @@ override the :meth:`optimizer_step` function.
 
 For example, here step optimizer A every 2 batches and optimizer B every 4 batches
 
-.. note:: When using ``Trainer(enable_pl_optimizer=True)``, no need to call ``.zero_grad(...)``.
+.. note:: When using Trainer(enable_pl_optimizer=True), no need to call `.zero_grad`.
 
 .. testcode::
 
@@ -210,6 +210,8 @@ For example, here step optimizer A every 2 batches and optimizer B every 4 batch
             if batch_nb % 4 == 0 :
                optimizer.step(closure=closure)
 
+.. note:: When using ``Trainer(enable_pl_optimizer=True)``, ``.step`` accept a boolean ``make_optimizer_step`` which 
+can be used as below.
 
 .. testcode::
 

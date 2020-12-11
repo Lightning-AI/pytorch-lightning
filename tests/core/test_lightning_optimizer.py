@@ -224,55 +224,6 @@ def test_state(tmpdir):
     assert optimizer.state == lightning_optimizer.state
 
 
-def test_lightning_optimizer_with_wrong_optimizer_interface(tmpdir):
-    class OptimizerWrapper(object):
-        def __init__(self, optimizer):
-            self.optim = optimizer
-            self.state_dict = self.optim.state_dict
-            self.load_state_dict = self.optim.load_state_dict
-            self.zero_grad = self.optim.zero_grad
-            self.add_param_group = self.optim.add_param_group
-            self.__setstate__ = self.optim.__setstate__
-            self.__getstate__ = self.optim.__getstate__
-            self.__repr__ = self.optim.__repr__
-
-        @property
-        def __class__(self):
-            return Optimizer
-
-        @property
-        def state(self):
-            return self.optim.state
-
-        @property
-        def param_groups(self):
-            return self.optim.param_groups
-
-        @param_groups.setter
-        def param_groups(self, value):
-            self.optim.param_groups = value
-
-        def step(self):
-            # wrongly defined step. Should contain closure
-            self.optim.step(closure=None)
-
-    class TestLightningOptimizerModel(BoringModel):
-
-        def configure_optimizers(self):
-            optimizer = torch.optim.Adam(self.parameters(), lr=0.1)
-            optimizer = OptimizerWrapper(optimizer)
-            return [optimizer]
-
-    model = TestLightningOptimizerModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        weights_summary=None,
-        log_every_n_steps=1,
-    )
-    trainer.fit(model)
-
-
 def test_lightning_optimizer_automatic_optimization(tmpdir):
     """
     Test lightning optimize works with make_optimizer_step in automatic_optimization
