@@ -61,7 +61,7 @@ class LightningOptimizer:
         self._trainer = None
         self._optimizer = optimizer
         self._accumulate_grad_batches = accumulate_grad_batches
-        self._support_closure = 'closure' in inspect.signature(optimizer.step).parameters.keys()
+        self._support_closure = 'closure' in inspect.signature(optimizer.step).parameters
         self._optimizer_idx = None
 
     @property
