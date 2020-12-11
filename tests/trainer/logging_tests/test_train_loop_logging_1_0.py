@@ -710,23 +710,6 @@ def test_logging_sync_dist_true_cpu(tmpdir):
     assert trainer.logged_metrics['bar'] == fake_result
 
 
-class TestLoggingSyncDistModel(BoringModel):
-    def training_step(self, batch, batch_idx):
-        acc = self.step(batch[0])
-        self.log('foo', 1,
-                 on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='sum')
-        assert self._results["foo"] == 2
-        return acc
-
-    def validation_step(self, batch, batch_idx):
-        self.training_step_called = True
-        output = self.layer(batch)
-        loss = self.loss(batch, output)
-        self.log('bar', 2, on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='mean')
-        assert self._results["bar"] == 2
-        return {"x": loss}
-
-
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
                     reason="test should be run outside of pytest")
@@ -734,6 +717,19 @@ def test_logging_sync_dist_true_ddp(tmpdir):
     """
     Tests to ensure that the sync_dist flag works with ddp
     """
+    class TestLoggingSyncDistModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            acc = self.step(batch[0])
+            self.log('foo', 1, on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='SUM')
+            return acc
+
+        def validation_step(self, batch, batch_idx):
+            self.training_step_called = True
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log('bar', 2, on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='AVG')
+            return {"x": loss}
+
     model = TestLoggingSyncDistModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
