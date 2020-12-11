@@ -55,7 +55,7 @@ def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
         default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )
     # fit model
     result = trainer.fit(model)
@@ -101,7 +101,7 @@ def test_no_val_end_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
         default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )
     result = trainer.fit(model)
 
@@ -145,7 +145,7 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
         default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir),
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )
     result = trainer.fit(model)
 
@@ -462,7 +462,7 @@ def test_model_checkpoint_only_weights(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_weights_only=True),
+        callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_weights_only=True)],
     )
     # fit model
     result = trainer.fit(model)
@@ -539,7 +539,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         max_epochs=2,
         limit_train_batches=0.65,
         limit_val_batches=1,
-        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_top_k=-1),
+        callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on', save_top_k=-1)],
         default_root_dir=tmpdir,
         val_check_interval=1.0,
         enable_pl_optimizer=enable_pl_optimizer,
@@ -718,7 +718,7 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
         max_epochs=2,
         progress_bar_refresh_rate=0,
         default_root_dir=tmpdir,
-        checkpoint_callback=ModelCheckpoint(monitor="early_stop_on", save_top_k=save_top_k),
+        callbacks=[ModelCheckpoint(monitor="early_stop_on", save_top_k=save_top_k)],
     )
     trainer.fit(model)
     if ckpt_path == "best":
@@ -1332,15 +1332,17 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
         ),
     ],
 )
+# Todo: mock nb Gpus so all these tests can run on any device
+# todo: think about simplification, that the the expected will be just a list use_xxx which shall be true...
 def test_trainer_config(trainer_kwargs, expected):
     trainer = Trainer(**trainer_kwargs)
-    assert trainer.use_dp is expected["use_dp"]
-    assert trainer.use_ddp is expected["use_ddp"]
-    assert trainer.use_ddp2 is expected["use_ddp2"]
-    assert trainer.num_gpus == expected["num_gpus"]
-    assert trainer.on_gpu is expected["on_gpu"]
-    assert trainer.use_single_gpu is expected["use_single_gpu"]
-    assert trainer.num_processes == expected["num_processes"]
+    assert trainer.use_dp is expected["use_dp"], 'for input: %s' % trainer_kwargs
+    assert trainer.use_ddp is expected["use_ddp"], 'for input: %s' % trainer_kwargs
+    assert trainer.use_ddp2 is expected["use_ddp2"], 'for input: %s' % trainer_kwargs
+    assert trainer.num_gpus == expected["num_gpus"], 'for input: %s' % trainer_kwargs
+    assert trainer.on_gpu is expected["on_gpu"], 'for input: %s' % trainer_kwargs
+    assert trainer.use_single_gpu is expected["use_single_gpu"], 'for input: %s' % trainer_kwargs
+    assert trainer.num_processes == expected["num_processes"], 'for input: %s' % trainer_kwargs
 
 
 def test_trainer_subclassing():
@@ -1474,6 +1476,6 @@ def test_trainer_profiler_incorrect_str_arg():
 ))
 def test_trainer_profiler_incorrect_arg_type(profiler):
     with pytest.raises(MisconfigurationException,
-                       match=r"Only None, bool, str and subclasses of `BaseProfiler` "
-                       r"are valid values for `Trainer`'s `profiler` parameter. *"):
+                       match=r"Only None, bool, str and subclasses of `BaseProfiler`"
+                             r" are valid values for `Trainer`'s `profiler` parameter. *"):
         Trainer(profiler=profiler)

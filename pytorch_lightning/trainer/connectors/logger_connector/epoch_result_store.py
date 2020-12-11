@@ -21,6 +21,12 @@ from pytorch_lightning.core.step_result import Result
 
 
 class LoggerStages(str, Enum):
+    """ Train/validation/test phase in each training step.
+
+    >>> # you can math the type with string
+    >>> LoggerStages.TRAIN == 'train'
+    True
+    """
     TRAIN = "train"
     VAL = "validation"
     TEST = "test"
@@ -35,7 +41,7 @@ class LoggerStages(str, Enum):
         raise RuntimeError(f"Invalid stage {stage_or_testing} of type {type(stage_or_testing)} given")
 
 
-class ResultStoreType(Enum):
+class ResultStoreType(str, Enum):
     INSIDE_BATCH_TRAIN_LOOP = "inside_batch_train_loop"
     OUTSIDE_BATCH_TRAIN_LOOP = "outside_batch_train_loop"
 

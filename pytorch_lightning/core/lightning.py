@@ -1397,7 +1397,7 @@ class LightningModule(
             if running_train_loss is not None
             else float("NaN")
         )
-        tqdm_dict = {"loss": "{:.3f}".format(avg_training_loss)}
+        tqdm_dict = {"loss": "{:.3g}".format(avg_training_loss)}
 
         if self.trainer.truncated_bptt_steps is not None:
             tqdm_dict["split_idx"] = self.trainer.split_idx
@@ -1412,8 +1412,10 @@ class LightningModule(
 
     def _verify_is_manual_optimization(self, fn_name):
         if self.trainer.train_loop.automatic_optimization:
-            m = f'to use {fn_name}, please disable automatic optimization: Trainer(automatic_optimization=False)'
-            raise MisconfigurationException(m)
+            raise MisconfigurationException(
+                f'to use {fn_name}, please disable automatic optimization:'
+                ' set model property `automatic_optimization` as False'
+            )
 
     @classmethod
     def _auto_collect_arguments(cls, frame=None) -> Tuple[Dict, Dict]:

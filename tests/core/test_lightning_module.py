@@ -38,7 +38,6 @@ def test_automatic_optimization(tmpdir):
             default_root_dir=tmpdir,
             limit_train_batches=2,
             accumulate_grad_batches=2,
-            automatic_optimization=True
         )
 
         trainer.fit(model)
@@ -95,7 +94,6 @@ def test_automatic_optimization_num_calls(enable_pl_optimizer, tmpdir):
             default_root_dir=tmpdir,
             limit_train_batches=8,
             accumulate_grad_batches=1,
-            automatic_optimization=True,
             enable_pl_optimizer=enable_pl_optimizer
         )
 
