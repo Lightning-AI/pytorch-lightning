@@ -685,6 +685,7 @@ def test_logging_sync_dist_true_cpu(tmpdir):
         def training_step(self, batch, batch_idx):
             acc = self.step(batch[0])
             self.log('foo', torch.tensor(fake_result), on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='sum')
+            self.log('foo_2', 2, on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='sum')
             return acc
 
         def validation_step(self, batch, batch_idx):
@@ -704,6 +705,7 @@ def test_logging_sync_dist_true_cpu(tmpdir):
     trainer.fit(model)
 
     assert trainer.logged_metrics['foo'] == fake_result
+    assert trainer.logged_metrics['foo_2'] == 4
     assert trainer.logged_metrics['bar'] == fake_result
 
 
