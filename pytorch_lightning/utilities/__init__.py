@@ -54,6 +54,7 @@ NATIVE_AMP_AVAILABLE = _module_available("torch.cuda.amp") and hasattr(torch.cud
 OMEGACONF_AVAILABLE = _module_available("omegaconf")
 HYDRA_AVAILABLE = _module_available("hydra")
 HOROVOD_AVAILABLE = _module_available("horovod.torch")
+BOLTS_AVAILABLE = _module_available("pl_bolts")
 
 TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 FAIRSCALE_AVAILABLE = platform.system() != 'Windows' and _module_available('fairscale.nn.data_parallel')
