@@ -364,7 +364,7 @@ from pytorch_lightning.utilities import (
     _XLA_AVAILABLE,
     _TPU_AVAILABLE,
 )
-TORCHVISION_AVAILABLE = importlib.util.find_spec("torchvision") is not None
+_TORCHVISION_AVAILABLE = importlib.util.find_spec("torchvision") is not None
 
 
 """
