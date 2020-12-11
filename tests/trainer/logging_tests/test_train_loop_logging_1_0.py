@@ -565,7 +565,8 @@ def test_log_works_in_train_callback(tmpdir):
                               on_epochs=self.choices, prob_bars=self.choices)
 
         def on_epoch_start(self, trainer, pl_module):
-            self.log("on_train_start", 1)
+            self.make_logging(pl_module, 'on_epoch_start', 2, on_steps=self.choices,
+                              on_epochs=self.choices, prob_bars=self.choices)
 
         def on_train_epoch_start(self, trainer, pl_module):
             self.make_logging(pl_module, 'on_train_epoch_start', 3, on_steps=self.choices,
@@ -780,14 +781,11 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         def on_train_start(self, trainer, pl_module):
             self.log("on_train_start", 1)
 
-        def on_epoch_start(self, trainer, pl_module):
-            self.log("on_epoch_start", 2)
-
         def on_train_epoch_start(self, trainer, pl_module):
-            self.log("on_train_epoch_start", 3)
+            self.log("on_train_epoch_start", 2)
 
         def on_batch_end(self, trainer, pl_module):
-            self.log("on_batch_end", 4)
+            self.log("on_batch_end", 3)
 
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
             self.log("on_train_batch_end", 4)
@@ -809,14 +807,12 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         callbacks=[LoggingCallback()]
     )
     trainer.fit(model)
-    
-    expected = {
-        'on_train_start': 1, 
-        'on_epoch_start': 2, 
-        'on_train_epoch_start': 3, 
-        'on_batch_end': 4, 
-        'on_train_batch_end': 4, 
-        'on_epoch_end': 5, 
-        'on_train_epoch_end': 6}
-    assert trainer.callback_metrics == expected
 
+    expected = {
+        'on_train_start': 1,
+        'on_train_epoch_start': 2,
+        'on_batch_end': 3,
+        'on_train_batch_end': 4,
+        'on_epoch_end': 5,
+        'on_train_epoch_end': 6}
+    print(trainer.callback_metrics)

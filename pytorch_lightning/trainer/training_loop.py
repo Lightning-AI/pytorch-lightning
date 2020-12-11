@@ -115,7 +115,6 @@ class TrainLoop:
         # attach model log function to callback
         self.trainer.callback_connector.attach_model_logging_functions(model)
 
-
     def setup_training(self, model: LightningModule):
         """Sanity check a few things before starting actual training.
 
