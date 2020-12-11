@@ -159,7 +159,12 @@ def _unfreeze_and_add_param_group(module: Module,
 class TransferLearningModel(pl.LightningModule):
     """Transfer Learning with pre-trained ResNet50.
 
-    >>> TransferLearningModel()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    >>> with TemporaryDirectory(dir='.') as tmp_dir:
+    ...     TransferLearningModel(tmp_dir)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    TransferLearningModel(
+      (feature_extractor): Sequential(...)
+      (fc): Sequential(...)
+    )
     """
     def __init__(
             self,
