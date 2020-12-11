@@ -750,25 +750,6 @@ def test_logging_sync_dist_true_ddp(tmpdir):
     assert trainer.logged_metrics['bar'] == 2
 
 
-@pytest.mark.skipif(platform.system() == "Windows",
-                    reason="Distributed training is not supported on Windows")
-def test_logging_sync_dist_true_ddp_cpu(tmpdir):
-    """
-    Tests to ensure that the sync_dist flag works with ddp cpu
-    """
-    model = TestLoggingSyncDistModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        max_epochs=2,
-        weights_summary=None,
-        accelerator="ddp_cpu",
-        num_processes=2
-    )
-    trainer.fit(model)
-
-
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_logging_sync_dist_true_gpu(tmpdir):
     """
