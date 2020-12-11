@@ -42,8 +42,6 @@ else:
 class ExternalMNISTInputIterator(object):
     """
     This iterator class wraps torchvision's MNIST dataset and returns the images and labels in batches
-
-    >>> ExternalMNISTInputIterator()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     """
 
     def __init__(self, mnist_ds, batch_size):

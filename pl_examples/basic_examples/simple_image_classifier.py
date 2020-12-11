@@ -26,6 +26,10 @@ from pl_examples.basic_examples.mnist_datamodule import MNISTDataModule
 class LitClassifier(pl.LightningModule):
     """
     >>> LitClassifier()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    LitClassifier(
+      (l1): Linear(...)
+      (l2): Linear(...)
+    )
     """
     def __init__(self, hidden_dim=128, learning_rate=1e-3):
         super().__init__()
