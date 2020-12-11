@@ -855,7 +855,7 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
     )
 
     trainer.fit(model)
-    expected_calls = [call() for s in range(2)]
+    expected_calls = [call(closure=ANY) for s in range(2)]
     step_mock.assert_has_calls(expected_calls)
 
 
