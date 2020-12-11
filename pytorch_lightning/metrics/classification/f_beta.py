@@ -20,6 +20,7 @@ from pytorch_lightning.metrics.functional.f_beta import (
     _fbeta_compute
 )
 from pytorch_lightning.metrics.metric import Metric
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 class FBeta(Metric):
@@ -129,6 +130,34 @@ class FBeta(Metric):
         """
         return _fbeta_compute(self.true_positives, self.predicted_positives,
                               self.actual_positives, self.beta, self.average)
+
+
+# todo: remove in v1.2
+class Fbeta(FBeta):
+    r"""
+    Computes `F-score <https://en.wikipedia.org/wiki/F-score>`_
+
+    .. warning :: Deprecated in favor of :func:`~pytorch_lightning.metrics.classification.f_beta.FBeta`
+    """
+    def __init__(
+        self,
+        num_classes: int,
+        beta: float = 1.0,
+        threshold: float = 0.5,
+        average: str = "micro",
+        multilabel: bool = False,
+        compute_on_step: bool = True,
+        dist_sync_on_step: bool = False,
+        process_group: Optional[Any] = None,
+    ):
+        rank_zero_warn(
+            "This `Fbeta` was deprecated in v1.0.x in favor of"
+            " `from pytorch_lightning.metrics.classification.f_beta import FBeta`."
+            " It will be removed in v1.2.0", DeprecationWarning
+        )
+        super().__init__(
+            num_classes, beta, threshold, average, multilabel, compute_on_step, dist_sync_on_step, process_group
+        )
 
 
 class F1(FBeta):
