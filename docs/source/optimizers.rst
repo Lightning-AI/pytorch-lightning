@@ -221,7 +221,7 @@ For example, here step optimizer A every 2 batches and optimizer B every 4 batch
     def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
         # update generator opt every 2 steps
         if optimizer_i == 0:
-            optimizer.step(closure=closure, make_optimizer_step=batch_nb % 2 == 0)
+            optimizer.step(closure=closure, make_optimizer_step=(batch_nb % 2) == 0)
 
         # update discriminator opt every 4 steps
         if optimizer_i == 1:
