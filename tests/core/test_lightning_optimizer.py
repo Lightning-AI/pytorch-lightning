@@ -196,9 +196,9 @@ def test_state(tmpdir):
     assert optimizer.state == lightning_optimizer.state
     lightning_optimizer.state = optimizer.state
     assert optimizer.state == lightning_optimizer.state
-    assert optimizer.params_group == lightning_optimizer.params_group
-    lightning_optimizer.params_group = optimizer.params_group
-    assert optimizer.params_group == lightning_optimizer.params_group
+    assert optimizer.param_groups == lightning_optimizer.param_groups
+    lightning_optimizer.param_groups = optimizer.param_groups
+    assert optimizer.param_groups == lightning_optimizer.param_groups
     assert isinstance(lightning_optimizer, LightningOptimizer)
     assert isinstance(lightning_optimizer, Adam)
     assert isinstance(lightning_optimizer, Optimizer)
