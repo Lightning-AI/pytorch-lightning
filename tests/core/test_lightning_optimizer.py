@@ -193,18 +193,18 @@ def test_state(tmpdir):
     model = torch.nn.Linear(3, 4)
     optimizer = torch.optim.Adam(model.parameters())
     lightning_optimizer = LightningOptimizer(optimizer)
-    assert optimize.state == lightning_optimizer.state
-    lightning_optimizer.state = optimize.state
-    assert optimize.state == lightning_optimizer.state
-    assert optimize.params_group == lightning_optimizer.params_group
-    lightning_optimizer.params_group = optimize.params_group
-    assert optimize.params_group == lightning_optimizer.params_group
+    assert optimizer.state == lightning_optimizer.state
+    lightning_optimizer.state = optimizer.state
+    assert optimizer.state == lightning_optimizer.state
+    assert optimizer.params_group == lightning_optimizer.params_group
+    lightning_optimizer.params_group = optimizer.params_group
+    assert optimizer.params_group == lightning_optimizer.params_group
     assert isinstance(lightning_optimizer, LightningOptimizer)
     assert isinstance(lightning_optimizer, Adam)
     assert isinstance(lightning_optimizer, Optimizer)
     lightning_dict = {}
     special_attrs = ["_accumulate_grad_batches", "_optimizer", "_optimizer_idx", "_support_closure",
-                     "_trainer", "__getstate__", "__setstate__", "state_dict", "load_state_dict", 
+                     "_trainer", "__getstate__", "__setstate__", "state_dict", "load_state_dict",
                      "zero_grad", "__setstate__", "add_param_group"]
     for k, v in lightning_optimizer.__dict__.items():
         if k not in special_attrs:
