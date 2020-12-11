@@ -142,7 +142,7 @@ class Result(Dict):
             if is_dist_initialized and isinstance(value, torch.Tensor):
                 value = value.clone()
             else:
-                value = torch.tensor(value, device=device).float()
+                value = torch.tensor(value, device=device, dtype=torch.float)
             value = sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
         if 'meta' not in self:
