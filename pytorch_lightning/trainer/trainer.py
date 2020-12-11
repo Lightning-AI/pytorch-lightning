@@ -681,7 +681,10 @@ class Trainer(
             sig_val_step = signature(ref_model.validation_step)
             num_val_step_args = len(sig_val_step.parameters)
             if num_val_dataloaders > 1 and num_val_step_args < 3:
-                rank_zero_warn(f'multiple val dataloaders present, but no "dataloader_idx" argument given in validation_step')
+                rank_zero_warn(
+                    'multiple val dataloaders present, '
+                    'but no "dataloader_idx" argument given in validation_step'
+                )
 
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
@@ -763,7 +766,9 @@ class Trainer(
                 sig_test_step = signature(self.get_model().test_step)
             num_test_step_args = len(sig_test_step.parameters)
             if num_test_dataloaders > 1 and num_test_step_args < 3:
-                rank_zero_warn(f'multiple test dataloaders present, but no "dataloader_idx" argument given in test_step')
+                rank_zero_warn(
+                    'multiple test dataloaders present, but no "dataloader_idx" argument given in test_step'
+                )
 
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
         self.data_connector.attach_datamodule(model or self.get_model(), datamodule, 'test')
