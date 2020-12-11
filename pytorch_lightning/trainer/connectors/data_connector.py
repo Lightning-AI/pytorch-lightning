@@ -31,7 +31,9 @@ class DataConnector(object):
         self.trainer.prepare_data_per_node = prepare_data_per_node
 
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch
+
         assert reload_dataloaders_every_n_epochs >= 0
+        self.trainer.should_reload_dl_epoch = bool(reload_dataloaders_every_n_epochs)
         self.trainer.reload_dataloaders_every_n_epochs = reload_dataloaders_every_n_epochs
         self.trainer._is_data_prepared = False
 
