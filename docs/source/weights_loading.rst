@@ -46,7 +46,7 @@ You can customize the checkpointing behavior to monitor any quantity of your tra
 1. Calculate any metric or other quantity you wish to monitor, such as validation loss.
 2. Log the quantity using :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method, with a key such as `val_loss`.
 3. Initializing the :class:`~pytorch_lightning.callbacks.ModelCheckpoint` callback, and set `monitor` to be the key of your quantity.
-4. Pass the callback to `checkpoint_callback` :class:`~pytorch_lightning.trainer.Trainer` flag.
+4. Pass the callback to the `callbacks` :class:`~pytorch_lightning.trainer.Trainer` flag.
 
 .. code-block:: python
 

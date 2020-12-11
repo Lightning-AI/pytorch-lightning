@@ -102,7 +102,7 @@ method of the trainer. A typical example of this would look like
     trainer.fit(model)
     
 The figure produced by ``lr_finder.plot()`` should look something like the figure
-below. It is recommended to not pick the learning rate that achives the lowest
+below. It is recommended to not pick the learning rate that achieves the lowest
 loss, but instead something in the middle of the sharpest downward slope (red point).
 This is the point returned py ``lr_finder.suggestion()``.
 

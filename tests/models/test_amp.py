@@ -37,7 +37,7 @@ def test_amp_single_gpu_dp(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=1,
-        distributed_backend='dp',
+        accelerator='dp',
         precision=16,
     )
 
@@ -56,7 +56,7 @@ def test_amp_single_gpu_ddp_spawn(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=1,
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         precision=16,
     )
 
@@ -77,7 +77,7 @@ def test_amp_multi_gpu_dp(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=2,
-        distributed_backend='dp',
+        accelerator='dp',
         precision=16,
     )
 
@@ -96,7 +96,7 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=2,
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         precision=16,
     )
 
@@ -127,9 +127,9 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=[0],
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         precision=16,
-        checkpoint_callback=checkpoint,
+        callbacks=[checkpoint],
         logger=logger,
     )
     trainer.is_slurm_managing_tasks = True
