@@ -15,8 +15,9 @@ from functools import wraps
 from typing import Callable, Optional, Sequence, Tuple
 
 import torch
-from torch.nn import functional as F
 
+from pytorch_lightning.metrics.functional.roc import roc
+from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve
 from pytorch_lightning.metrics.utils import to_categorical, get_num_classes, reduce, class_reduce
 from pytorch_lightning.utilities import rank_zero_warn
 
@@ -291,107 +292,6 @@ def recall(
                             num_classes=num_classes, class_reduction=class_reduction)[1]
 
 
-def _binary_clf_curve(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        sample_weight: Optional[Sequence] = None,
-        pos_label: int = 1.,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """
-    adapted from https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/metrics/_ranking.py
-    """
-    if sample_weight is not None and not isinstance(sample_weight, torch.Tensor):
-        sample_weight = torch.tensor(sample_weight, device=pred.device, dtype=torch.float)
-
-    # remove class dimension if necessary
-    if pred.ndim > target.ndim:
-        pred = pred[:, 0]
-    desc_score_indices = torch.argsort(pred, descending=True)
-
-    pred = pred[desc_score_indices]
-    target = target[desc_score_indices]
-
-    if sample_weight is not None:
-        weight = sample_weight[desc_score_indices]
-    else:
-        weight = 1.
-
-    # pred typically has many tied values. Here we extract
-    # the indices associated with the distinct values. We also
-    # concatenate a value for the end of the curve.
-    distinct_value_indices = torch.where(pred[1:] - pred[:-1])[0]
-    threshold_idxs = F.pad(distinct_value_indices, (0, 1), value=target.size(0) - 1)
-
-    target = (target == pos_label).to(torch.long)
-    tps = torch.cumsum(target * weight, dim=0)[threshold_idxs]
-
-    if sample_weight is not None:
-        # express fps as a cumsum to ensure fps is increasing even in
-        # the presence of floating point errors
-        fps = torch.cumsum((1 - target) * weight, dim=0)[threshold_idxs]
-    else:
-        fps = 1 + threshold_idxs - tps
-
-    return fps, tps, pred[threshold_idxs]
-
-
-# TODO: deprecated in favor of general ROC in pytorch_lightning/metrics/functional/roc.py
-def __roc(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        sample_weight: Optional[Sequence] = None,
-        pos_label: int = 1.,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """
-    Computes the Receiver Operating Characteristic (ROC). It assumes classifier is binary.
-
-    .. warning:: Deprecated
-
-    Args:
-        pred: estimated probabilities
-        target: ground-truth labels
-        sample_weight: sample weights
-        pos_label: the label for the positive class
-
-    Return:
-        false-positive rate (fpr), true-positive rate (tpr), thresholds
-
-    Example:
-
-        >>> x = torch.tensor([0, 1, 2, 3])
-        >>> y = torch.tensor([0, 1, 1, 1])
-        >>> fpr, tpr, thresholds = __roc(x, y)
-        >>> fpr
-        tensor([0., 0., 0., 0., 1.])
-        >>> tpr
-        tensor([0.0000, 0.3333, 0.6667, 1.0000, 1.0000])
-        >>> thresholds
-        tensor([4, 3, 2, 1, 0])
-
-    """
-    fps, tps, thresholds = _binary_clf_curve(pred=pred, target=target,
-                                             sample_weight=sample_weight,
-                                             pos_label=pos_label)
-
-    # Add an extra threshold position
-    # to make sure that the curve starts at (0, 0)
-    tps = torch.cat([torch.zeros(1, dtype=tps.dtype, device=tps.device), tps])
-    fps = torch.cat([torch.zeros(1, dtype=fps.dtype, device=fps.device), fps])
-    thresholds = torch.cat([thresholds[0][None] + 1, thresholds])
-
-    if fps[-1] <= 0:
-        raise ValueError("No negative samples in targets, false positive value should be meaningless")
-
-    fpr = fps / fps[-1]
-
-    if tps[-1] <= 0:
-        raise ValueError("No positive samples in targets, true positive value should be meaningless")
-
-    tpr = tps / tps[-1]
-
-    return fpr, tpr, thresholds
-
-
 # TODO: deprecated in favor of general ROC in pytorch_lightning/metrics/functional/roc.py
 def __multiclass_roc(
         pred: torch.Tensor,
@@ -433,7 +333,7 @@ def __multiclass_roc(
     for c in range(num_classes):
         pred_c = pred[:, c]
 
-        class_roc_vals.append(__roc(pred=pred_c, target=target, sample_weight=sample_weight, pos_label=c))
+        class_roc_vals.append(roc(preds=pred_c, target=target, sample_weights=sample_weight, pos_label=c, num_classes=1))
 
     return tuple(class_roc_vals)
 
@@ -441,7 +341,6 @@ def __multiclass_roc(
 def auc(
         x: torch.Tensor,
         y: torch.Tensor,
-        reorder: bool = True
 ) -> torch.Tensor:
     """
     Computes Area Under the Curve (AUC) using the trapezoidal rule
@@ -449,9 +348,6 @@ def auc(
     Args:
         x: x-coordinates
         y: y-coordinates
-        reorder: reorder coordinates, so they are increasing. The unstable algorithm of torch.argsort is
-            used internally to sort `x` which may in some cases cause inaccuracies in the result.
-            WARNING: Deprecated and will be removed in v1.1.
 
     Return:
         Tensor containing AUC score (float)
@@ -463,51 +359,38 @@ def auc(
         >>> auc(x, y)
         tensor(4.)
     """
-    direction = 1.
-
-    if reorder:
-        rank_zero_warn("The `reorder` parameter to `auc` has been deprecated and will be removed in v1.1"
-                       " Note that when `reorder` is True, the unstable algorithm of torch.argsort is"
-                       " used internally to sort 'x' which may in some cases cause inaccuracies"
-                       " in the result.",
-                       DeprecationWarning)
-        # can't use lexsort here since it is not implemented for torch
-        order = torch.argsort(x)
-        x, y = x[order], y[order]
+    dx = x[1:] - x[:-1]
+    if (dx < 0).any():
+        if (dx <= 0).all():
+            direction = -1.
+        else:
+            raise ValueError(f"The 'x' array is neither increasing or decreasing: {x}. Reorder is not supported.")
     else:
-        dx = x[1:] - x[:-1]
-        if (dx < 0).any():
-            if (dx, 0).all():
-                direction = -1.
-            else:
-                # TODO: Update message on removing reorder
-                raise ValueError("Reorder is not turned on, and the 'x' array is"
-                                 f" neither increasing or decreasing: {x}")
-
+        direction = 1.
     return direction * torch.trapz(y, x)
 
 
-def auc_decorator(reorder: bool = True) -> Callable:
+def auc_decorator() -> Callable:
     def wrapper(func_to_decorate: Callable) -> Callable:
         @wraps(func_to_decorate)
         def new_func(*args, **kwargs) -> torch.Tensor:
             x, y = func_to_decorate(*args, **kwargs)[:2]
 
-            return auc(x, y, reorder=reorder)
+            return auc(x, y)
 
         return new_func
 
     return wrapper
 
 
-def multiclass_auc_decorator(reorder: bool = True) -> Callable:
+def multiclass_auc_decorator() -> Callable:
     def wrapper(func_to_decorate: Callable) -> Callable:
         @wraps(func_to_decorate)
         def new_func(*args, **kwargs) -> torch.Tensor:
             results = []
             for class_result in func_to_decorate(*args, **kwargs):
                 x, y = class_result[:2]
-                results.append(auc(x, y, reorder=reorder))
+                results.append(auc(x, y))
 
             return torch.stack(results)
 
@@ -546,9 +429,9 @@ def auroc(
                          ' target tensor contains value different from 0 and 1.'
                          ' Use `multiclass_auroc` for multi class classification.')
 
-    @auc_decorator(reorder=True)
+    @auc_decorator()
     def _auroc(pred, target, sample_weight, pos_label):
-        return __roc(pred, target, sample_weight, pos_label)
+        return roc(preds=pred, target=target, sample_weights=sample_weight, pos_label=pos_label, num_classes=1)
 
     return _auroc(pred=pred, target=target, sample_weight=sample_weight, pos_label=pos_label)
 
@@ -599,9 +482,9 @@ def multiclass_auroc(
             f"Number of classes deduced from 'pred' ({pred.size(1)}) does not equal"
             f" the number of classes passed in 'num_classes' ({num_classes}).")
 
-    @multiclass_auc_decorator(reorder=False)
+    @multiclass_auc_decorator()
     def _multiclass_auroc(pred, target, sample_weight, num_classes):
-        return __multiclass_roc(pred, target, sample_weight, num_classes)
+        return __multiclass_roc(pred=pred, target=target, sample_weight=sample_weight, num_classes=num_classes)
 
     class_aurocs = _multiclass_auroc(pred=pred, target=target,
                                      sample_weight=sample_weight,

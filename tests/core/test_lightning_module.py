@@ -38,7 +38,6 @@ def test_automatic_optimization(tmpdir):
             default_root_dir=tmpdir,
             limit_train_batches=2,
             accumulate_grad_batches=2,
-            automatic_optimization=True
         )
 
         trainer.fit(model)
@@ -55,6 +54,11 @@ def test_automatic_optimization_num_calls(enable_pl_optimizer, tmpdir):
          patch("torch.optim.Adam.zero_grad") as adam_zero_grad:
 
         class TestModel(BoringModel):
+
+            def training_step(self, batch, batch_idx, optimizer_idx):
+                output = self.layer(batch)
+                loss = self.loss(batch, output)
+                return {"loss": loss}
 
             def configure_optimizers(self):
                 optimizer = SGD(self.layer.parameters(), lr=0.1)
@@ -90,7 +94,6 @@ def test_automatic_optimization_num_calls(enable_pl_optimizer, tmpdir):
             default_root_dir=tmpdir,
             limit_train_batches=8,
             accumulate_grad_batches=1,
-            automatic_optimization=True,
             enable_pl_optimizer=enable_pl_optimizer
         )
 
