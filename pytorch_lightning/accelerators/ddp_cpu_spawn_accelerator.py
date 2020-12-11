@@ -16,22 +16,23 @@ from typing import Any, List, Optional, Union
 
 import torch
 import torch.distributed as torch_distrib
-import torch.distributed as dist
 import torch.multiprocessing as mp
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
+from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import HYDRA_AVAILABLE, AMPType
 from pytorch_lightning.utilities.distributed import (
+    all_gather_ddp_if_available,
     find_free_network_port,
     rank_zero_only,
     rank_zero_warn,
     sync_ddp_if_available,
-    all_gather_ddp_if_available,
 )
 
 if HYDRA_AVAILABLE:
@@ -41,7 +42,11 @@ if HYDRA_AVAILABLE:
 
 class DDPCPUSpawnAccelerator(Accelerator):
 
-    def __init__(self, trainer, nprocs, cluster_environment=None, ddp_plugin=None):
+    def __init__(self,
+                 trainer,
+                 nprocs: int,
+                 cluster_environment: Optional[ClusterEnvironment] = None,
+                 ddp_plugin: Optional[DDPPlugin] = None):
         """
         Runs training using DDP (on a single machine or manually on multiple machines), using mp.spawn
 
@@ -197,8 +202,8 @@ class DDPCPUSpawnAccelerator(Accelerator):
 
     def early_stopping_should_stop(self, pl_module):
         stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device)
-        dist.all_reduce(stop, op=dist.reduce_op.SUM)
-        dist.barrier()
+        torch_distrib.all_reduce(stop, op=torch_distrib.reduce_op.SUM)
+        torch_distrib.barrier()
         should_stop = stop == self.trainer.world_size
         return should_stop
 
