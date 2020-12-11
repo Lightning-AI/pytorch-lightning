@@ -4,7 +4,6 @@ This example illustrates how one could train a graph convolution model with DNA 
 on Cora Dataset using pytorch-lightning. This example will also demonstrate how this
 model can be easily torch-scripted, thanks to Pytorch Geometric.
 """
-# python imports
 import os.path as osp
 from argparse import ArgumentParser
 from collections import namedtuple
@@ -13,12 +12,10 @@ from typing import List, Optional, NamedTuple
 import torch
 import torch.nn.functional as F
 from torch import Tensor
-# thrid parties libraries
 from torch import nn
 from torch.optim import Adam
 
 from pl_examples.pytorch_ecosystem import _TORCH_GEOMETRIC_AVAILABLE, nice_print, LIGHTNING_LOGO
-# Lightning imports
 from pytorch_lightning import (
     Trainer,
     LightningDataModule,
@@ -59,19 +56,23 @@ class CoraDataset(LightningDataModule):
     Training, validation and test splits are given by binary masks.
     c.f https://github.com/rusty1s/pytorch_geometric/blob/master/torch_geometric/datasets/planetoid.py
 
-    >>> CoraDataset()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    >>> CoraDataset(1)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     """
 
     NAME = "cora"
 
     def __init__(
             self,
+            num_layers: int,
             num_workers: int = 1,
             batch_size: int = 8,
             drop_last: bool = True,
             pin_memory: bool = True,
-            num_layers: int = None,
     ):
+
+        if not _TORCH_GEOMETRIC_AVAILABLE:
+            raise RuntimeError("Skip training. Pytorch Geometric isn't installed. Please, check README.md :]")
+
         super().__init__()
 
         assert num_layers is not None
@@ -165,20 +166,23 @@ class DNAConvNet(LightningModule):
     <https://arxiv.org/abs/1904.04849>`_ paper
     c.f https://github.com/rusty1s/pytorch_geometric/blob/master/torch_geometric/nn/conv/dna_conv.py#L172
 
-    >>> DNAConvNet()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    >>> DNAConvNet(5, 2)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     """
 
     def __init__(
             self,
+            num_features: int,
+            num_classes: int,
             num_layers: int = 2,
             hidden_channels: int = 128,
             heads: int = 8,
             groups: int = 16,
             dropout: float = 0.8,
             cached: bool = False,
-            num_features: int = None,
-            num_classes: int = None,
     ):
+        if not _TORCH_GEOMETRIC_AVAILABLE:
+            raise RuntimeError("Skip training. Pytorch Geometric isn't installed. Please, check README.md :]")
+
         super().__init__()
 
         assert num_features is not None
