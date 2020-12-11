@@ -169,7 +169,9 @@ def select_topk(prob_tensor: torch.Tensor, topk: int = 1, dim: int = 1) -> torch
                 [1, 1, 0]], dtype=torch.int32)
     """
     zeros = torch.zeros_like(prob_tensor)
-    topk_tensor = zeros.scatter(1, prob_tensor.topk(k=topk, dim=dim).indices, 1.0)
+    argsort = prob_tensor.argsort(dim, descending=True)
+    selected = torch.index_select(argsort, dim, torch.tensor(list(range(topk))))
+    topk_tensor = zeros.scatter(dim, selected, 1.0)
 
     return topk_tensor.int()
 
