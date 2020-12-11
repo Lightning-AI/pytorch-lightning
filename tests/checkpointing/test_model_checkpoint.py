@@ -1030,6 +1030,12 @@ def test_model_checkpoint_with_training_epoch_end(tmpdir):
     """
     class TestedModel(BoringModel):
 
+        def training_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log('train_loss', loss)
+            return {"loss": loss}
+
         def training_epoch_end(self, outputs) -> None:
             avg_loss = torch.stack([x["loss"] for x in outputs]).mean()
             self.log('epoch_end_train_loss', avg_loss)
@@ -1038,12 +1044,12 @@ def test_model_checkpoint_with_training_epoch_end(tmpdir):
     model = TestedModel()
 
     chk = ModelCheckpoint(monitor='epoch_end_train_loss', save_top_k=-1)
-
-    trainer = pl.Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=3,
-        progress_bar_refresh_rate=1,
-        callbacks=[chk],
-    )
-    trainer.current_epoch = 2
-    trainer.fit(model)
+    with pytest.warns(UserWarning, match="Running first epoch, a MisconfigurationException"):
+        trainer = pl.Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=3,
+            progress_bar_refresh_rate=1,
+            callbacks=[chk],
+        )
+        trainer.current_epoch = 2
+        trainer.fit(model)

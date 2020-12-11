@@ -514,7 +514,7 @@ class ModelCheckpoint(Callback):
             )
             if not trainer.checkpoint_connector.one_training_epoch_completed:
                 m += "Running first epoch, a MisconfigurationException will be raise next epoch"
-                rank_zero_warn(m)
+                rank_zero_warn(m, UserWarning)
             else:
                 m += f"HINT: Did you call self.log('{self.monitor}', tensor) in the LightningModule?"
                 raise MisconfigurationException(m)
