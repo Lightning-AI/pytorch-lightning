@@ -62,7 +62,7 @@ class TrainerOptimizersMixin(ABC):
             scheduler_dict = (
                 lambda scheduler, opt_idx: dict(scheduler, opt_idx=opt_idx)
                 if isinstance(scheduler, dict)
-                else dict({'scheduler': scheduler, 'opt_idx': opt_idx})
+                else {'scheduler': scheduler, 'opt_idx': opt_idx}
             )
 
             lr_schedulers = [

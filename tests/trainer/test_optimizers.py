@@ -398,6 +398,54 @@ def test_step_scheduling_for_multiple_optimizers_with_frequency(tmpdir):
     assert result
 
 
+def test_step_scheduling_for_multiple_optimizers_without_frequency(tmpdir):
+    """
+    Test that all step LR schedulers for multiple optimizers update
+    when corresponding frequency is not set.
+    """
+
+    class DummyStepModel(BoringModel):
+        def training_step(self, batch, batch_idx, optimizer_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            return {"loss": loss}
+
+        def training_epoch_end(self, outputs) -> None:
+            pass
+
+        def configure_optimizers(self):
+            optimizer1 = optim.Adam(self.parameters(), lr=0.01)
+            optimizer2 = optim.Adam(self.parameters(), lr=0.01)
+
+            lr_dict_1 = {
+                'scheduler': optim.lr_scheduler.OneCycleLR(optimizer1, max_lr=0.01, total_steps=5),
+                'interval': 'step',
+            }
+            lr_dict_2 = {
+                'scheduler': optim.lr_scheduler.OneCycleLR(optimizer2, max_lr=0.01, total_steps=5),
+                'interval': 'step',
+            }
+
+            return [
+                {'optimizer': optimizer1, 'lr_scheduler': lr_dict_1},
+                {'optimizer': optimizer2, 'lr_scheduler': lr_dict_2},
+            ]
+
+    model = DummyStepModel()
+
+    trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=1, limit_train_batches=5, max_epochs=1)
+    result = trainer.fit(model)
+    assert trainer.lr_schedulers[0]['opt_idx'] == 0
+    assert trainer.lr_schedulers[1]['opt_idx'] == 1
+    assert (
+        trainer.lr_schedulers[0]['scheduler']._step_count == 6
+    )  # Step count is 1 greater than the expected value because scheduler.step() is called once during initialization.
+    assert (
+        trainer.lr_schedulers[1]['scheduler']._step_count == 6
+    )  # Step count is 1 greater than the expected value because scheduler.step() is called once during initialization.
+    assert result
+
+
 def test_epoch_scheduling_for_multiple_optimizers_with_frequency(tmpdir):
     """
     Test that epoch LR schedulers for multiple optimizers follow
