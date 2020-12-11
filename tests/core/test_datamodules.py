@@ -468,12 +468,9 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
     if is_overridden('transfer_batch_to_device', dm):
         model.transfer_batch_to_device = dm.transfer_batch_to_device
 
-    if is_overridden('on_before_batch_transfer', dm):
-        model.on_before_batch_transfer = dm.on_before_batch_transfer
-    if is_overridden('transfer_batch_to_device', dm):
-        model.transfer_batch_to_device = dm.transfer_batch_to_device
-    if is_overridden('on_after_batch_transfer', dm):
-        model.on_after_batch_transfer = dm.on_after_batch_transfer
+    model.on_before_batch_transfer = dm.on_before_batch_transfer
+    model.transfer_batch_to_device = dm.transfer_batch_to_device
+    model.on_after_batch_transfer = dm.on_after_batch_transfer
 
     trainer.accelerator_backend = GPUAccelerator(trainer)
     batch_gpu = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
