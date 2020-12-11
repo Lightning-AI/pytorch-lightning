@@ -71,7 +71,7 @@ class CallbackConnector:
             )
 
         if not self._trainer_has_checkpoint_callbacks() and checkpoint_callback is True:
-            self.trainer.callbacks.append(ModelCheckpoint(dirpath=None, filename=None))
+            self.trainer.callbacks.append(ModelCheckpoint(dirpath=None, filename=None, mode='min'))
 
     def configure_progress_bar(self, refresh_rate=1, process_position=0):
         # smaller refresh rate on colab causes crashes, warn user about this
