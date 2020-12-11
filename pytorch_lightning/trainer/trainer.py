@@ -674,6 +674,14 @@ class Trainer(
         using_val_step = ref_model.val_dataloader is not None and is_overridden('validation_step', ref_model)
         should_sanity_check = using_val_step and self.num_sanity_val_steps > 0 and self.limit_val_batches > 0
 
+        # If multiple val dataloaders are present, validation_step should have dataloader_idx argument
+        if using_val_step:
+            num_val_dataloaders = len(ref_model.val_dataloader.dataloader)
+            sig_val_step = signature(ref_model.validation_step)
+            num_val_step_args = len(sig_val_step.parameters)
+            if num_val_dataloaders > 1 and num_val_step_args < 3:
+                rank_zero_warn(f'multiple val dataloaders present, but no "dataloader_idx" argument given in validation_step')
+
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
         if should_sanity_check:
@@ -744,6 +752,16 @@ class Trainer(
             raise MisconfigurationException(
                 'You cannot pass test_dataloaders to trainer.test if you supply a datamodule'
             )
+
+        # If multiple test dataloaders are present, test_step should have dataloader_idx argument
+        num_test_dataloaders = len(test_dataloaders)
+        if model is not None:
+            sig_test_step = signature(model.test_step)
+        else:
+            sig_test_step = signature(self.get_model().test_step)
+        num_test_step_args = len(sig_test_step.parameters)
+        if num_test_dataloaders > 1 and num_test_step_args < 3:
+            rank_zero_warn(f'multiple test dataloaders present, but no "dataloader_idx" argument given in test_step')
 
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
         self.data_connector.attach_datamodule(model or self.get_model(), datamodule, 'test')
