@@ -1034,10 +1034,6 @@ def test_model_checkpoint_file_already_exists(tmpdir, max_epochs, save_top_k, ex
     """
     Test that version is added to filename if required and it already exists in dirpath.
     """
-    class CustomModel(LogInTwoMethods):
-        def validation_epoch_end(self, outputs):
-            return {'epoch': self.current_epoch}
-
     model_checkpoint = ModelCheckpoint(
         dirpath=tmpdir,
         filename='curr_epoch',
@@ -1056,7 +1052,7 @@ def test_model_checkpoint_file_already_exists(tmpdir, max_epochs, save_top_k, ex
         progress_bar_refresh_rate=0,
     )
 
-    model = CustomModel()
+    model = BoringModel()
     trainer.fit(model)
     ckpt_files = os.listdir(tmpdir)
     assert set(ckpt_files) == set(expected)
