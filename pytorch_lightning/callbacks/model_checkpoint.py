@@ -512,7 +512,7 @@ class ModelCheckpoint(Callback):
                 f"ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics:"
                 f" {list(metrics.keys())}. "
             )
-            if not trainer.checkpoint_connector.one_training_epoch_completed:
+            if not trainer.checkpoint_connector._one_training_epoch_completed:
                 m += "Running first epoch, a MisconfigurationException will be raise next epoch"
                 rank_zero_warn(m, UserWarning)
             else:

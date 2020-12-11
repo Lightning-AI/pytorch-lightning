@@ -768,7 +768,7 @@ def test_checkpoint_repeated_strategy_extended(enable_pl_optimizer, tmpdir):
             return {"val_loss": loss}
 
     def assert_trainer_init(trainer):
-        assert not trainer.checkpoint_connector.has_trained
+        assert not trainer.checkpoint_connector._has_trained
         assert trainer.global_step == 0
         assert trainer.current_epoch == 0
 
@@ -816,7 +816,7 @@ def test_checkpoint_repeated_strategy_extended(enable_pl_optimizer, tmpdir):
     assert_trainer_init(trainer)
 
     trainer.fit(model)
-    assert trainer.checkpoint_connector.has_trained
+    assert trainer.checkpoint_connector._has_trained
     assert trainer.global_step == epochs * limit_train_batches
     assert trainer.current_epoch == epochs - 1
     assert_checkpoint_log_dir(0)
@@ -842,12 +842,12 @@ def test_checkpoint_repeated_strategy_extended(enable_pl_optimizer, tmpdir):
         assert_trainer_init(trainer)
 
         trainer.test(model)
-        assert not trainer.checkpoint_connector.has_trained
+        assert not trainer.checkpoint_connector._has_trained
         assert trainer.global_step == epochs * limit_train_batches
         assert trainer.current_epoch == epochs
 
         trainer.fit(model)
-        assert not trainer.checkpoint_connector.has_trained
+        assert not trainer.checkpoint_connector._has_trained
         assert trainer.global_step == epochs * limit_train_batches
         assert trainer.current_epoch == epochs
         assert_checkpoint_log_dir(idx)

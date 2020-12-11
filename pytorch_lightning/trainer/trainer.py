@@ -494,8 +494,8 @@ class Trainer(
         # set stage for logging
         self.logger_connector.set_stage("train")
 
-        self.checkpoint_connector.has_trained = False
-        self.checkpoint_connector.one_training_epoch_completed = False
+        self.checkpoint_connector._has_trained = False
+        self.checkpoint_connector._one_training_epoch_completed = False
 
         # enable train mode
         model = self.get_model()
@@ -527,7 +527,7 @@ class Trainer(
                 # update LR schedulers
                 self.optimizer_connector.update_learning_rates(interval='epoch')
 
-                self.checkpoint_connector.one_training_epoch_completed = True
+                self.checkpoint_connector._one_training_epoch_completed = True
 
                 # early stopping
                 met_min_epochs = epoch >= self.min_epochs - 1

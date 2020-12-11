@@ -213,7 +213,7 @@ class TrainLoop:
 
     def check_checkpoint_callback(self, should_save, is_last=False):
         # TODO bake this logic into the checkpoint callback
-        if should_save and self.trainer.checkpoint_connector.has_trained:
+        if should_save and self.trainer.checkpoint_connector._has_trained:
             checkpoint_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
 
             if is_last and any(c.save_last for c in checkpoint_callbacks):
@@ -599,7 +599,7 @@ class TrainLoop:
             # update LR schedulers
             monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
             self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
-            self.trainer.checkpoint_connector.has_trained = True
+            self.trainer.checkpoint_connector._has_trained = True
 
             # max steps reached, end training
             if self.trainer.max_steps is not None and self.trainer.max_steps == self.trainer.global_step + 1:

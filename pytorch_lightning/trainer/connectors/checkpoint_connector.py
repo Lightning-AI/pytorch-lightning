@@ -39,8 +39,8 @@ class CheckpointConnector:
         self.trainer = trainer
 
         # used to validate checkpointing logic
-        self.has_trained = False
-        self.one_training_epoch_completed = False
+        self._has_trained = False
+        self._one_training_epoch_completed = False
 
     def restore_weights(self, model: LightningModule):
         """
