@@ -45,6 +45,7 @@ import torchvision.models as models
 import torchvision.transforms as transforms
 
 import pytorch_lightning as pl
+from pl_examples import cli_lightning_logo
 from pytorch_lightning.core import LightningModule
 
 
@@ -259,4 +260,5 @@ def run_cli():
 
 
 if __name__ == '__main__':
+    cli_lightning_logo()
     run_cli()

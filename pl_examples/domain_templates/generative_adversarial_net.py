@@ -31,6 +31,7 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 
+from pl_examples import cli_lightning_logo
 from pytorch_lightning.core import LightningModule, LightningDataModule
 from pytorch_lightning.trainer import Trainer
 
@@ -224,6 +225,7 @@ def main(args: Namespace) -> None:
 
 
 if __name__ == '__main__':
+    cli_lightning_logo()
     parser = ArgumentParser()
 
     # Add program level args, if any.

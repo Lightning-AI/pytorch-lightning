@@ -24,6 +24,7 @@ from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 
 import pytorch_lightning as pl
+from pl_examples import cli_lightning_logo
 from pl_examples.domain_templates.unet import UNet
 from pytorch_lightning.loggers import WandbLogger
 
@@ -239,6 +240,7 @@ def main(hparams: Namespace):
 
 
 if __name__ == '__main__':
+    cli_lightning_logo()
     parser = ArgumentParser()
     parser.add_argument("--data_path", type=str, help="path where dataset is stored")
     parser.add_argument("--gpus", type=int, default=-1, help="number of available GPUs")
