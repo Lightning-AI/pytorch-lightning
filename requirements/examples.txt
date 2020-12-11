@@ -1,6 +1,2 @@
 torchvision>=0.4.1
 gym>=0.17.0
-
-# Ecosystem
-torch-geometric>=1.6.1
-torch-sparse>=0.6.7

@@ -1,0 +1,97 @@
+name: CI ecosystem examples
+
+# see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
+on:  # Trigger the workflow on push or pull request, but only for the master branch
+  push:
+    branches: [master, "release/*"]  # include release branches like release/1.0.x
+  pull_request:
+    branches: [master, "release/*"]
+
+jobs:
+  pytest:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-18.04]  #, windows-2019, macOS-10.15
+        python-version: [3.7]
+        requires: ['minimal', 'latest']
+
+    # Timeout: https://stackoverflow.com/a/59076067/4521646
+    timeout-minutes: 35  # TODO: the macOS is taking too long, probably caching did not work...
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Update Pip
+      run: |
+        # todo: unfreeze PIP after resolving minimal dependencies
+        pip install --quiet "pip==20.1" --upgrade --user  # needed for get pip cacher folder
+
+    - name: Set min. dependencies
+      if: matrix.requires == 'minimal'
+      run: |
+        python -c "fname = 'requirements.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
+        python -c "fname = 'requirements/extra.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
+        python -c "fname = 'requirements/loggers.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
+        python -c "fname = 'requirements/test.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
+        python -c "fname = 'requirements/examples.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
+        python -c "fname = 'requirements/ecosystem.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
+        # remove Fairscale from requirements
+        python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)"
+
+    # Note: This uses an internal pip API and may not always work
+    # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
+    - name: Get pip cache dir
+      id: pip-cache
+      run: |
+        echo "::set-output name=dir::$(pip cache dir)"
+
+    - name: pip cache
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.pip-cache.outputs.dir }}
+        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements/extra.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-
+
+    - name: Install dependencies
+      run: |
+        # python -m pip install --upgrade --user pip
+        # todo: skip horovod
+        pip install --requirement requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet --upgrade
+        pip install --requirement ./requirements/ecosystem.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet --upgrade
+        python --version
+        pip --version
+        pip list
+      shell: bash
+
+    - name: Cache datasets
+      uses: actions/cache@v2
+      with:
+        path: Datasets # This path is specific to Ubuntu
+        # Look to see if there is a cache hit for the corresponding requirements file
+        key: pl-dataset
+
+    - name: Tests
+      run: |
+        # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
+        coverage run --source pytorch_lightning -m pytest pl_examples/ecosystem -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+
+    - name: Upload pytest test results
+      uses: actions/upload-artifact@v2
+      with:
+        name: pytest-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}
+        path: junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+      # Use always() to always run this step to publish test results when there are test failures
+      if: failure()
+
+    - name: Statistics
+      if: success()
+      run: |
+        coverage report
+        coverage xml
