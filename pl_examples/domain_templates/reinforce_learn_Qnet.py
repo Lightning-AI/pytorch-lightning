@@ -88,7 +88,7 @@ class ReplayBuffer:
     Replay Buffer for storing past experiences allowing the agent to learn from them
 
     >>> ReplayBuffer(5)  # doctest: +ELLIPSIS
-    <reinforce_learn_Qnet.ReplayBuffer object at ...>
+    <...reinforce_learn_Qnet.ReplayBuffer object at ...>
     """
 
     def __init__(self, capacity: int) -> None:
@@ -124,7 +124,7 @@ class RLDataset(IterableDataset):
     which will be updated with new experiences during training
 
     >>> RLDataset(ReplayBuffer(5))  # doctest: +ELLIPSIS
-    <reinforce_learn_Qnet.RLDataset object at ...>
+    <...reinforce_learn_Qnet.RLDataset object at ...>
     """
 
     def __init__(self, buffer: ReplayBuffer, sample_size: int = 200) -> None:
@@ -149,7 +149,7 @@ class Agent:
     >>> env = gym.make("CartPole-v0")
     >>> buffer = ReplayBuffer(10)
     >>> Agent(env, buffer)  # doctest: +ELLIPSIS
-    <reinforce_learn_Qnet.Agent object at ...>
+    <...reinforce_learn_Qnet.Agent object at ...>
     """
 
     def __init__(self, env: gym.Env, replay_buffer: ReplayBuffer) -> None:

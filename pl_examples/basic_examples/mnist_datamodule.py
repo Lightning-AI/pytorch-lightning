@@ -31,7 +31,7 @@ class MNISTDataModule(LightningDataModule):
     Standard MNIST, train, val, test splits and transforms
 
     >>> MNISTDataModule()  # doctest: +ELLIPSIS
-    <mnist_datamodule.MNISTDataModule object at ...>
+    <...mnist_datamodule.MNISTDataModule object at ...>
     """
 
     name = "mnist"

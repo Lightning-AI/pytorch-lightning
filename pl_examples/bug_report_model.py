@@ -30,7 +30,7 @@ from pytorch_lightning import Trainer, LightningModule
 class RandomDataset(Dataset):
     """
     >>> RandomDataset(size=10, length=20)  # doctest: +ELLIPSIS
-    <bug_report_model.RandomDataset object at ...>
+    <...bug_report_model.RandomDataset object at ...>
     """
     def __init__(self, size, length):
         self.len = length
