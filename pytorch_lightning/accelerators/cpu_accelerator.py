@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, Callable
 
 import torch
 
@@ -61,29 +61,22 @@ class CPUAccelerator(Accelerator):
         results = self.train_or_test()
         return results
 
-    def training_step(self, args):
+    def _step(self, model_step: Callable, args):
         if self.trainer.amp_backend == AMPType.NATIVE:
             with torch.cuda.amp.autocast():
-                output = self.trainer.model.training_step(*args)
+                output = model_step(*args)
         else:
-            output = self.trainer.model.training_step(*args)
+            output = model_step(*args)
         return output
+
+    def training_step(self, args):
+        return self._step(self.trainer.model.training_step, args)
 
     def validation_step(self, args):
-        if self.trainer.amp_backend == AMPType.NATIVE:
-            with torch.cuda.amp.autocast():
-                output = self.trainer.model.validation_step(*args)
-        else:
-            output = self.trainer.model.validation_step(*args)
-        return output
+        return self._step(self.trainer.model.validation_step, args)
 
     def test_step(self, args):
-        if self.trainer.amp_backend == AMPType.NATIVE:
-            with torch.cuda.amp.autocast():
-                output = self.trainer.model.test_step(*args)
-        else:
-            output = self.trainer.model.test_step(*args)
-        return output
+        return self._step(self.trainer.model.test_step, args)
 
     def sync_tensor(self,
                     tensor: Union[torch.Tensor],
