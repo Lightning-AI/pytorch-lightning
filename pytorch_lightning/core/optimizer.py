@@ -66,11 +66,19 @@ class LightningOptimizer:
         else:
             self.__class__ = type("Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
 
-        self._trainer = None
         self._optimizer = optimizer
+        self._trainer = None
         self._accumulate_grad_batches = accumulate_grad_batches
         self._support_closure = 'closure' in inspect.signature(optimizer.step).parameters
         self._optimizer_idx = None
+
+    @property
+    def defaults(self):
+        return self._optimizer.defaults
+
+    @defaults.setter
+    def defaults(self, defaults):
+        self._optimizer.defaults = defaults
 
     @property
     def state(self):

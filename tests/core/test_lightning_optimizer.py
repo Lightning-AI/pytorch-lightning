@@ -193,12 +193,22 @@ def test_state(tmpdir):
     model = torch.nn.Linear(3, 4)
     optimizer = torch.optim.Adam(model.parameters())
     lightning_optimizer = LightningOptimizer(optimizer)
+
+    # test state
     assert optimizer.state == lightning_optimizer.state
     lightning_optimizer.state = optimizer.state
     assert optimizer.state == lightning_optimizer.state
+
+    # test param_groups
     assert optimizer.param_groups == lightning_optimizer.param_groups
     lightning_optimizer.param_groups = optimizer.param_groups
     assert optimizer.param_groups == lightning_optimizer.param_groups
+
+    # test defaults
+    assert optimizer.defaults == lightning_optimizer.defaults
+    lightning_optimizer.defaults = optimizer.defaults
+    assert optimizer.defaults == lightning_optimizer.defaults
+
     assert isinstance(lightning_optimizer, LightningOptimizer)
     assert isinstance(lightning_optimizer, Adam)
     assert isinstance(lightning_optimizer, Optimizer)
