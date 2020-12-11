@@ -104,6 +104,7 @@ def test_tbd_remove_in_v1_3_0_metrics():
                      torch.randint(10, 20, (50,)).float(),
                      torch.randint(1, 100, (50,)).float())
 
+
 # TODO: remove bool from Trainer.profiler param in v1.3.0, update profiler_connector.py
 @pytest.mark.parametrize(['profiler', 'expected'], [
     (True, SimpleProfiler),
