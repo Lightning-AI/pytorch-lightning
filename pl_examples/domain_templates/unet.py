@@ -22,14 +22,25 @@ class UNet(nn.Module):
     Architecture based on U-Net: Convolutional Networks for Biomedical Image Segmentation
     Link - https://arxiv.org/abs/1505.04597
 
-    >>> UNet()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    >>> UNet(num_classes=2, num_layers=3)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    UNet(
+      (layers): ModuleList(
+        (0): DoubleConv(...)
+        (1): Down(...)
+        (2): Down(...)
+        (3): Up(...)
+        (4): Up(...)
+        (5): Conv2d(64, 2, kernel_size=(1, 1), stride=(1, 1))
+      )
+    )
     """
 
     def __init__(
-            self, num_classes: int = 19,
+            self,
+            num_classes: int = 19,
             num_layers: int = 5,
             features_start: int = 64,
-            bilinear: bool = False
+            bilinear: bool = False,
     ):
         """
         Args:
@@ -73,7 +84,10 @@ class DoubleConv(nn.Module):
     Double Convolution and BN and ReLU
     (3x3 conv -> BN -> ReLU) ** 2
 
-    >>> DoubleConv()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    >>> DoubleConv(4, 4)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    DoubleConv(
+      (net): Sequential(...)
+    )
     """
 
     def __init__(self, in_ch: int, out_ch: int):
@@ -95,7 +109,15 @@ class Down(nn.Module):
     """
     Combination of MaxPool2d and DoubleConv in series
 
-    >>> Down()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    >>> Down(4, 8)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    Down(
+      (net): Sequential(
+        (0): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+        (1): DoubleConv(
+          (net): Sequential(...)
+        )
+      )
+    )
     """
 
     def __init__(self, in_ch: int, out_ch: int):
@@ -115,7 +137,13 @@ class Up(nn.Module):
     followed by concatenation of feature map from contracting path,
     followed by double 3x3 convolution.
 
-    >>> Up()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    >>> Up(8, 4)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    Up(
+      (upsample): ConvTranspose2d(8, 4, kernel_size=(2, 2), stride=(2, 2))
+      (conv): DoubleConv(
+        (net): Sequential(...)
+      )
+    )
     """
 
     def __init__(self, in_ch: int, out_ch: int, bilinear: bool = False):

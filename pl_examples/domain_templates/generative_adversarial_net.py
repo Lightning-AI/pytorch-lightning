@@ -210,7 +210,7 @@ class GAN(LightningModule):
 
 class MNISTDataModule(LightningDataModule):
     """
-    >>> MNISTDataModule()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    >>> MNISTDataModule()  # doctest: +ELLIPSIS
     <generative_adversarial_net.MNISTDataModule object at ...>
     """
     def __init__(self, batch_size: int = 64, data_path: str = os.getcwd(), num_workers: int = 4):
