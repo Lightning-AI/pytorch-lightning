@@ -49,14 +49,6 @@ class LightningOptimizer:
 
         self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k != 'step'}
 
-        # save functions and attributes from optimizer
-        self.state_dict = optimizer.state_dict
-        self.load_state_dict = optimizer.load_state_dict
-        self.zero_grad = optimizer.zero_grad
-        self.add_param_group = optimizer.add_param_group
-        self.__setstate__ = optimizer.__setstate__
-        self.__getstate__ = optimizer.__getstate__
-
         # For Horovod
         if hasattr(optimizer, "skip_synchronize"):
             self.__class__ = type("Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__.__bases__[0]), {})
