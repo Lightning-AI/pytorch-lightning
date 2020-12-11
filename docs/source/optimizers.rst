@@ -241,6 +241,19 @@ Here we add a learning-rate warm up
         # update params
         optimizer.step(closure=closure)
 
+The default ``optimizer_step`` is relying on the internal ``LightningOptimizer`` to properly perform a step.
+
+.. testcode::
+
+    from pytorch_lightning.core.optimizer import LightningOptimizer
+   
+    # function hook in LightningModule
+    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
+      if not isinstance(optimizer, LightningOptimizer):
+         # wraps into LightingOptimizer only for running step
+         optimizer = LightningOptimizer.to_lightning_optimizer(optimizer, self.trainer)
+      optimizer.step(closure=closure)
+
 ----------
 
 Using the closure functions for optimization
