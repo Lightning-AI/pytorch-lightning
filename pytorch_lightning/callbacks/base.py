@@ -16,8 +16,17 @@ r"""
 Abstract base class used to build new callbacks.
 
 """
+from __future__ import annotations
 
 import abc
+from typing import TYPE_CHECKING, Any, Dict, List, Union
+
+from torch.optim.optimizer import Optimizer
+
+if TYPE_CHECKING:
+    from pytorch_lightning.core.lightning import LightningModule
+    from pytorch_lightning.core.optimizer import LightningOptimizer
+    from pytorch_lightning.trainer.trainer import Trainer
 
 
 class Callback(abc.ABC):
@@ -27,154 +36,149 @@ class Callback(abc.ABC):
     Subclass this class and override any of the relevant hooks
     """
 
-    def setup(self, trainer, pl_module, stage: str):
+    def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
         """Called when fit or test begins"""
-        pass
 
-    def teardown(self, trainer, pl_module, stage: str):
+    def teardown(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
         """Called when fit or test ends"""
-        pass
 
-    def on_init_start(self, trainer):
-        """Called when the trainer initialization begins, model has not yet been set."""
-        pass
+    def on_init_start(self, trainer: Trainer) -> None:
+        """Called when the trainer: Trainer initialization begins, model has not yet been set."""
 
-    def on_init_end(self, trainer):
-        """Called when the trainer initialization ends, model has not yet been set."""
-        pass
+    def on_init_end(self, trainer: Trainer) -> None:
+        """Called when the trainer: Trainer initialization ends, model has not yet been set."""
 
-    def on_fit_start(self, trainer, pl_module):
+    def on_fit_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         """Called when fit begins"""
-        pass
 
-    def on_fit_end(self, trainer, pl_module):
+    def on_fit_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         """Called when fit ends"""
-        pass
 
-    def on_sanity_check_start(self, trainer, pl_module):
+    def on_sanity_check_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         """Called when the validation sanity check starts."""
-        pass
 
-    def on_sanity_check_end(self, trainer, pl_module):
+    def on_sanity_check_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         """Called when the validation sanity check ends."""
-        pass
 
-    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_train_batch_start(
+        self, trainer: Trainer, pl_module: LightningModule, batch: Any, batch_idx: int, dataloader_idx: int
+    ) -> None:
         """Called when the train batch begins."""
-        pass
 
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_train_batch_end(
+        self,
+        trainer: Trainer,
+        pl_module: LightningModule,
+        outputs: List[Any],
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int,
+    ) -> None:
         """Called when the train batch ends."""
-        pass
 
-    def on_train_epoch_start(self, trainer, pl_module):
+    def on_train_epoch_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         """Called when the train epoch begins."""
-        pass
 
-    def on_train_epoch_end(self, trainer, pl_module, outputs):
+    def on_train_epoch_end(self, trainer: Trainer, pl_module: LightningModule, outputs: List[Any]) -> None:
         """Called when the train epoch ends."""
-        pass
 
-    def on_validation_epoch_start(self, trainer, pl_module):
+    def on_validation_epoch_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         """Called when the val epoch begins."""
-        pass
 
-    def on_validation_epoch_end(self, trainer, pl_module):
+    def on_validation_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         """Called when the val epoch ends."""
-        pass
 
-    def on_test_epoch_start(self, trainer, pl_module):
+    def on_test_epoch_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         """Called when the test epoch begins."""
-        pass
 
-    def on_test_epoch_end(self, trainer, pl_module):
+    def on_test_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         """Called when the test epoch ends."""
-        pass
 
-    def on_epoch_start(self, trainer, pl_module):
+    def on_epoch_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         """Called when the epoch begins."""
-        pass
 
-    def on_epoch_end(self, trainer, pl_module):
+    def on_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         """Called when the epoch ends."""
-        pass
 
-    def on_batch_start(self, trainer, pl_module):
+    def on_batch_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         """Called when the training batch begins."""
-        pass
 
-    def on_validation_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_validation_batch_start(
+        self, trainer: Trainer, pl_module: LightningModule, batch: Any, batch_idx: int, dataloader_idx: int
+    ) -> None:
         """Called when the validation batch begins."""
-        pass
 
-    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_validation_batch_end(
+        self,
+        trainer: Trainer,
+        pl_module: LightningModule,
+        outputs: List[Any],
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int,
+    ) -> None:
         """Called when the validation batch ends."""
-        pass
 
-    def on_test_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_test_batch_start(
+        self, trainer: Trainer, pl_module: LightningModule, batch: Any, batch_idx: int, dataloader_idx: int
+    ) -> None:
         """Called when the test batch begins."""
-        pass
 
-    def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_test_batch_end(
+        self,
+        trainer: Trainer,
+        pl_module: LightningModule,
+        outputs: List[Any],
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int,
+    ) -> None:
         """Called when the test batch ends."""
-        pass
 
-    def on_batch_end(self, trainer, pl_module):
+    def on_batch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         """Called when the training batch ends."""
-        pass
 
-    def on_train_start(self, trainer, pl_module):
+    def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         """Called when the train begins."""
-        pass
 
-    def on_train_end(self, trainer, pl_module):
+    def on_train_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         """Called when the train ends."""
-        pass
 
-    def on_pretrain_routine_start(self, trainer, pl_module):
+    def on_pretrain_routine_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         """Called when the pretrain routine begins."""
-        pass
 
-    def on_pretrain_routine_end(self, trainer, pl_module):
+    def on_pretrain_routine_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         """Called when the pretrain routine ends."""
-        pass
 
-    def on_validation_start(self, trainer, pl_module):
+    def on_validation_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         """Called when the validation loop begins."""
-        pass
 
-    def on_validation_end(self, trainer, pl_module):
+    def on_validation_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         """Called when the validation loop ends."""
-        pass
 
-    def on_test_start(self, trainer, pl_module):
+    def on_test_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         """Called when the test begins."""
-        pass
 
-    def on_test_end(self, trainer, pl_module):
+    def on_test_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         """Called when the test ends."""
-        pass
 
-    def on_keyboard_interrupt(self, trainer, pl_module):
+    def on_keyboard_interrupt(self, trainer: Trainer, pl_module: LightningModule) -> None:
         """Called when the training is interrupted by KeyboardInterrupt."""
-        pass
 
-    def on_save_checkpoint(self, trainer, pl_module):
+    def on_save_checkpoint(self, trainer: Trainer, pl_module: LightningModule) -> Dict[str, Any]:
         """Called when saving a model checkpoint, use to persist state."""
-        pass
 
-    def on_load_checkpoint(self, checkpointed_state):
+    def on_load_checkpoint(self, checkpointed_state: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint, use to reload state."""
-        pass
 
-    def on_after_backward(self, trainer, pl_module):
+    def on_after_backward(self, trainer: Trainer, pl_module: LightningModule) -> None:
         """
         Called after loss.backward() and before optimizers do anything.
         """
-        pass
 
-    def on_before_zero_grad(self, trainer, pl_module, optimizer):
+    def on_before_zero_grad(
+        self, trainer: Trainer, pl_module: LightningModule, optimizer: Union[Optimizer, LightningOptimizer]
+    ) -> None:
         """
         Called after optimizer.step() and before optimizer.zero_grad().
         """
-        pass
