@@ -388,8 +388,6 @@ class DDPPlugin(ParallelPlugin):
         # set warning rank
         rank_zero_only.rank = self.global_rank
 
-        torch.cuda.set_device(self.root_device)
-
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
@@ -444,7 +442,6 @@ class DDPPlugin(ParallelPlugin):
         return model
 
     def barrier(self, *args, **kwargs):
-        print("entering barrier on process", self.global_rank, "current device", self.root_device)
         if torch_distrib.is_initialized():
             torch_distrib.barrier()
 
