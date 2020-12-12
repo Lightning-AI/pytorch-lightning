@@ -240,6 +240,7 @@ class GradNormTracker:
 
         self._grad_norm_dic = {}
         self.norm_type = norm_type
+        self.aggregation_mode = aggregation_mode
 
         if aggregation_mode == 'optimizer':
             self.name_mapping = self.aggregate_over_optimizer
@@ -287,6 +288,15 @@ class GradNormTracker:
             mean, std = norm.value()
             reduced_norm[f'{name}_mean'] = mean
             reduced_norm[f'{name}_std'] = std
+
+        # If aggregating over optimizers only keep total norm mean
+        if self.aggregation_mode == 'optimizer':
+            reduced_norm = {name: val for name, val in reduced_norm.items() if 'norm_total_mean' in name}
+        # Remove total norm std when aggregating over parameters
+        if self.aggregation_mode == 'parameters':
+            total_norm_std = GradNormTracker.norm_name(self.norm_type) + '_total_std'
+            del reduced_norm[total_norm_std]
+
         self._grad_norm_dic = reduced_norm
 
     def get_and_reset(self):
