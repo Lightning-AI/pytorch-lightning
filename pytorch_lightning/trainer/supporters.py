@@ -195,7 +195,7 @@ class AverageValueMeter:
         self.sum += value * n
         if n <= 0:
             raise ValueError("Cannot use a non-positive weight for the running stat.")
-        elif self.n == 0:
+        if self.n == 0:
             self.mean = 0.0 + value  # This is to force a copy in torch/numpy
             self.std = np.inf
             self.mean_old = self.mean
@@ -265,8 +265,7 @@ class GradNormTracker:
         base = self.norm_name(self.norm_type)
         if 'norm_total' in name:
             return f'opt_{opt_idx}_{base}_total'
-        else:
-            return f'opt_{opt_idx}_{base}'
+        return f'opt_{opt_idx}_{base}'
 
     def aggregate_over_optimizer_and_parameters(self, name, opt_idx):
         return f'opt_{opt_idx}_{name}'
