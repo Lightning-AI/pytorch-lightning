@@ -504,8 +504,10 @@ class DDPSpawnPlugin(ParallelPlugin):
     def pre_training(self):
         mp.spawn(self.new_process, nprocs=self.num_processes, args=(self.mp_queue, self.model, self.proc_offset,))
 
-    def new_process(self, process_idx, mp_queue, model, proc_offset):
+        print(self.global_rank, "I am still running", os.getpid())
 
+    def new_process(self, process_idx, mp_queue, model, proc_offset):
+        print("i am a new process", os.getpid())
         # TODO: check if needed
         # seed = os.environ.get("PL_GLOBAL_SEED")
         # if seed is not None:
