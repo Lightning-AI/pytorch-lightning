@@ -67,3 +67,16 @@ class TestHammingDistance(MetricTester):
             sk_metric=_sk_hamming_loss,
             metric_args={"threshold": THRESHOLD},
         )
+
+
+@pytest.mark.parametrize("threshold", [1.5])
+def test_wrong_params(threshold):
+    preds, target = _multiclass_prob_inputs.preds, _multiclass_prob_inputs.target
+
+    with pytest.raises(ValueError):
+        ham_dist = HammingDistance(threshold=threshold)
+        ham_dist(preds, target)
+        ham_dist.compute()
+
+    with pytest.raises(ValueError):
+        hamming_distance(preds, target, threshold=threshold)

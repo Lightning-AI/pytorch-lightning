@@ -156,3 +156,16 @@ def test_topk_accuracy_wrong_input_types(preds, target):
 
     with pytest.raises(ValueError):
         accuracy(preds[0], target[0], top_k=1)
+
+
+@pytest.mark.parametrize("top_k, threshold", [(0, 0.5), (None, 1.5)])
+def test_wrong_params(top_k, threshold):
+    preds, target = _multiclass_prob_inputs.preds, _multiclass_prob_inputs.target
+
+    with pytest.raises(ValueError):
+        acc = Accuracy(threshold=threshold, top_k=top_k)
+        acc(preds, target)
+        acc.compute()
+
+    with pytest.raises(ValueError):
+        accuracy(preds, target, threshold=threshold, top_k=top_k)
