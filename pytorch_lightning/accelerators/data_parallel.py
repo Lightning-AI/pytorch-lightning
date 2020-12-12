@@ -504,7 +504,8 @@ class DDPSpawnPlugin(ParallelPlugin):
     def pre_training(self):
         mp.spawn(self.new_process, nprocs=self.num_processes, args=(self.mp_queue, self.model, self.proc_offset,))
 
-        print(self.global_rank, "I am still running", os.getpid())
+        print(self.global_rank, "I am still running", os.getpid(),
+              "i will go into training loop and crash because i didn't enter process group")
 
     def new_process(self, process_idx, mp_queue, model, proc_offset):
         print("i am a new process", os.getpid())
@@ -514,6 +515,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         #     seed_everything(int(seed))
 
         # # TODO: Check if current process can be used as one training proc
+        #     No because torch.multiprocessing does not support the fork method in combination with cuda
         # # start from one since current process is proc 0
         # for proc_idx in range(1, self.num_processes):
         #     # use os.fork, since this enables us to continue from here
