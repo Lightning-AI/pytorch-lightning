@@ -47,7 +47,6 @@ class TorchElasticEnvironment(ClusterEnvironment):
     See `Elastic Launch <https://pytorch.org/elastic/latest/distributed.html>` for more details.
     """
 
-
     def _read_required(self, envar, target):
         """A helper for reading required environment variables"""
         ret = os.environ.get(envar)

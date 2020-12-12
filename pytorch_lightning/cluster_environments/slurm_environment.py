@@ -172,4 +172,3 @@ class SLURMEnvironment(ClusterEnvironment):
         World size is read from the environment variable SLURM_PROCID
         """
         return self._global_rank
-

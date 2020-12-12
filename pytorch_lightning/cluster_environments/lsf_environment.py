@@ -174,4 +174,3 @@ class LSFEnvironment(ClusterEnvironment):
         World size is read from the environment variable JSM_NAMESPACE_RANK
         """
         return self._global_rank
-

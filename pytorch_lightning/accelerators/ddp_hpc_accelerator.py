@@ -35,7 +35,6 @@ if HYDRA_AVAILABLE:
     from hydra.utils import get_original_cwd, to_absolute_path
 
 
-import sys
 class DDPHPCAccelerator(Accelerator, NVIDIAMixin):
 
     def __init__(self,
@@ -64,7 +63,6 @@ class DDPHPCAccelerator(Accelerator, NVIDIAMixin):
         # ----------------------------
         self.set_nvidia_flags(self.trainer.data_parallel_device_ids)
         self.task_idx = self.cluster_environment.local_rank()
-
 
     def train(self):
         model = self.trainer.model

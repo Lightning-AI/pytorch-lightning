@@ -17,6 +17,7 @@ import torch
 
 from pytorch_lightning import _logger as log
 
+
 class NVIDIAMixin:
 
     def set_nvidia_flags(self, data_parallel_device_ids):

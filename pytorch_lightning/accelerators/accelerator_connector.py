@@ -202,13 +202,13 @@ class AcceleratorConnector:
             if use_cpu:
                 if spawn:
                     ddp_cls = accelerators.DDPCPUSpawnAccelerator
-                    ddp_kwargs['nprocs'] = self.trainer.num_processes
+                    acc_kwargs['nprocs'] = self.trainer.num_processes
                 else:
                     ddp_cls = accelerators.DDPCPUHPCAccelerator
             else:
                 if spawn:
                     ddp_cls = accelerators.DDPSpawnAccelerator
-                    ddp_kwargs['nprocs'] = self.trainer.num_processes
+                    acc_kwargs['nprocs'] = self.trainer.num_processes
                 else:
                     ddp_cls = accelerators.DDPHPCAccelerator
             accelerator_backend = ddp_cls(*acc_args, **acc_kwargs)
