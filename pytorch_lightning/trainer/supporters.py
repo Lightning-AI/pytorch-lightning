@@ -180,7 +180,11 @@ class PredictionCollection(object):
                 torch.save(outputs, fp)
 
 
+'''
+This class is taken from https://github.com/pytorch/tnt/blob/master/torchnet/meter/averagevaluemeter.py#L6
+'''
 class AverageValueMeter:
+
     def __init__(self):
         super(AverageValueMeter, self).__init__()
         self.reset()
