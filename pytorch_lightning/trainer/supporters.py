@@ -20,6 +20,7 @@ import torch
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from torch import Tensor
 import numpy as np
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class TensorRunningAccum(object):
@@ -235,6 +236,9 @@ class GradNormTracker:
             self.name_mapping = self.aggregate_over_optimizer_and_parameters
         elif aggregation_mode =='parameters':
             self.name_mapping = self.aggregate_over_parameters
+        else:
+            raise MisconfigurationException(f'Invalid value=`{self.aggration_mode}` for aggregation_mode. Supported'
+                                            f' values are `parameters`, `optimizer` and `optimizer+parameters`.')
 
     @staticmethod
     def norm_name(norm_type):
