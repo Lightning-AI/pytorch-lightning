@@ -478,7 +478,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.is_slurm_managing_tasks = is_slurm_managing_tasks
         self.proc_offset = proc_offset
         self._ddp_kwargs = kwargs
-        self.process_idx = None
         self.dist = LightningDistributed()
         self.num_processes = len(parallel_device_ids)
         self.mp_queue = None
@@ -496,36 +495,50 @@ class DDPSpawnPlugin(ParallelPlugin):
         smp = mp.get_context('spawn')
         self.mp_queue = smp.SimpleQueue()
 
-    def set_world_ranks(self):
-        self.local_rank = self.process_idx
+    def set_world_ranks(self, process_idx):
+        self.local_rank = process_idx
         # check from where we get node_rank, num_processes and num_nodes
-        self.global_rank = self.determine_node_rank() * self.num_processes + self.process_idx
+        self.global_rank = self.determine_node_rank() * self.num_processes + process_idx
         self.world_size = self.num_nodes * self.num_processes
 
     def pre_training(self):
+        mp.spawn(self.new_process, nprocs=self.num_processes, args=(self.mp_queue, self.model, self.proc_offset,))
 
-        # TODO: Check if current process can be used as one training proc
-        # start from one since current process is proc 0
-        for proc_idx in range(1, self.num_processes):
-            # use os.fork, since this enables us to continue from here
-            # instead of spawning with separate function
-            pid = os.fork()
+        print(self.global_rank, "I am still running", os.getpid(),
+              "i will go into training loop and crash because i didn't enter process group")
 
-            # set in child processes (PID=0). All previous child processes
-            # should already have their process_idx assigned
-            if pid == 0 and self.process_idx is None:
-                self.process_idx = proc_idx + self.proc_offset
+    def new_process(self, process_idx, mp_queue, model, proc_offset):
+        print("i am a new process", os.getpid())
+        # TODO: check if needed
+        # seed = os.environ.get("PL_GLOBAL_SEED")
+        # if seed is not None:
+        #     seed_everything(int(seed))
 
-        # set process idx for current process
-        if pid != 0:
-            self.process_idx = 0 + self.proc_offset
+        # # TODO: Check if current process can be used as one training proc
+        #     No because torch.multiprocessing does not support the fork method in combination with cuda
+        # # start from one since current process is proc 0
+        # for proc_idx in range(1, self.num_processes):
+        #     # use os.fork, since this enables us to continue from here
+        #     # instead of spawning with separate function
+        #     pid = os.fork()
+        #
+        #     # set in child processes (PID=0). All previous child processes
+        #     # should already have their process_idx assigned
+        #     if pid == 0 and self.process_idx is None:
+        #         self.process_idx = proc_idx + self.proc_offset
+        #
+        # # set process idx for current process
+        # if pid != 0:
+        #     self.process_idx = 0 + self.proc_offset
 
         # TODO: Check where to put that since we don't have access to the pbar here
         # show progressbar only on progress_rank 0
         # if (self.trainer.node_rank != 0 or self.process_idx != 0) and self.trainer.progress_bar_callback is not None:
         #     self.trainer.progress_bar_callback.disable()
 
-        self.set_world_ranks()
+        process_idx = process_idx + proc_offset
+
+        self.set_world_ranks(process_idx)
 
         # set warning rank
         rank_zero_only.rank = self.global_rank
