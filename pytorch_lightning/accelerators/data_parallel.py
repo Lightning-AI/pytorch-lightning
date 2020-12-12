@@ -488,6 +488,8 @@ class DDPSpawnPlugin(ParallelPlugin):
         return torch.device("cuda", self.parallel_device_ids[self.local_rank])
 
     def setup(self, model):
+        self._model = model
+
         os.environ['MASTER_PORT'] = os.environ.get('MASTER_PORT', str(find_free_network_port()))
 
         # pass in a state q
