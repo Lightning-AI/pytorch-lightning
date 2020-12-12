@@ -26,6 +26,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning import Trainer, callbacks, seed_everything
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests.base import BoringModel, RandomDataset, SimpleModule
@@ -291,7 +292,7 @@ def test_eval_logging_auto_reduce(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         weights_summary=None,
-        checkpoint_callback=callbacks.ModelCheckpoint(dirpath='val_loss')
+        callbacks=[ModelCheckpoint(dirpath='val_loss')],
     )
     trainer.fit(model)
 
@@ -358,7 +359,7 @@ def test_monitor_val_epoch_end(tmpdir):
     trainer = Trainer(
         max_epochs=epoch_min_loss_override + 2,
         logger=False,
-        checkpoint_callback=checkpoint_callback,
+        callbacks=[checkpoint_callback],
     )
     trainer.fit(model)
 

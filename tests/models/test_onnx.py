@@ -87,8 +87,8 @@ def test_model_saves_on_multi_gpu(tmpdir):
         limit_train_batches=10,
         limit_val_batches=10,
         gpus=[0, 1],
-        distributed_backend='ddp_spawn',
-        progress_bar_refresh_rate=0
+        accelerator='ddp_spawn',
+        progress_bar_refresh_rate=0,
     )
 
     model = EvalModelTemplate()
