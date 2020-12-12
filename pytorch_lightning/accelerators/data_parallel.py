@@ -444,6 +444,7 @@ class DDPPlugin(ParallelPlugin):
         return model
 
     def barrier(self, *args, **kwargs):
+        print("entering barrier on process", self.global_rank, "current device", self.root_device)
         if torch_distrib.is_initialized():
             torch_distrib.barrier()
 
