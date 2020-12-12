@@ -52,11 +52,11 @@ class FBeta(Metric):
             Threshold value for binary or multi-label logits. default: 0.5
 
         average:
-            * `'micro'` computes metric globally
-            * `'macro'` computes metric for each class and uniformly averages them
-            * `'weighted'` computes metric for each class and does a weighted-average,
-                where each class is weighted by their support (accounts for class imbalance)
-            * `None` computes and returns the metric per class
+            - ``'micro'`` computes metric globally
+            - ``'macro'`` computes metric for each class and uniformly averages them
+            - ``'weighted'`` computes metric for each class and does a weighted-average,
+              where each class is weighted by their support (accounts for class imbalance)
+            - ``'none'`` computes and returns the metric per class
 
         multilabel: If predictions are from multilabel classification.
         compute_on_step:
@@ -185,11 +185,11 @@ class F1(FBeta):
             Threshold value for binary or multi-label logits. default: 0.5
 
         average:
-            * `'micro'` computes metric globally
-            * `'macro'` computes metric for each class and uniformly averages them
-            * `'weighted'` computes metric for each class and does a weighted-average,
-                where each class is weighted by their support (accounts for class imbalance)
-            * `None` computes and returns the metric per class
+            - ``'micro'`` computes metric globally
+            - ``'macro'`` computes metric for each class and uniformly averages them
+            - ``'weighted'`` computes metric for each class and does a weighted-average,
+              where each class is weighted by their support (accounts for class imbalance)
+            - ``'none'`` computes and returns the metric per class
 
         multilabel: If predictions are from multilabel classification.
         compute_on_step:
