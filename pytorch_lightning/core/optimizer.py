@@ -57,11 +57,34 @@ class LightningOptimizer:
         else:
             self.__class__ = type("Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
 
-        self._trainer = None
         self._optimizer = optimizer
+        self._trainer = None
         self._accumulate_grad_batches = accumulate_grad_batches
-        self._automatic_optimization = None
         self._optimizer_idx = None
+
+    @property
+    def defaults(self):
+        return self._optimizer.defaults
+
+    @defaults.setter
+    def defaults(self, defaults):
+        self._optimizer.defaults = defaults
+
+    @property
+    def state(self):
+        return self._optimizer.state
+
+    @state.setter
+    def state(self, state):
+        self._optimizer.state = state
+
+    @property
+    def param_groups(self):
+        return self._optimizer.param_groups
+
+    @param_groups.setter
+    def param_groups(self, param_groups):
+        self._optimizer.param_groups = param_groups
 
     @property
     def accumulate_grad_batches(self):
@@ -73,7 +96,6 @@ class LightningOptimizer:
 
     def _on_trainer_init(self, trainer):
         self._trainer = proxy(trainer)
-        self._automatic_optimization = trainer.train_loop.automatic_optimization
         for opt_idx, opt in enumerate(trainer.optimizers):
             if opt == self._optimizer:
                 self._optimizer_idx = opt_idx

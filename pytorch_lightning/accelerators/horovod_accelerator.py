@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import ExitStack
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, Callable
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
+from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.utilities import HOROVOD_AVAILABLE, AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
@@ -28,7 +30,7 @@ if HOROVOD_AVAILABLE:
 class HorovodAccelerator(Accelerator):
     amp_backend: AMPType
 
-    def __init__(self, trainer, cluster_environment=None):
+    def __init__(self, trainer, cluster_environment: Optional[ClusterEnvironment] = None):
         """
         Runs training using horovod
 
@@ -114,46 +116,26 @@ class HorovodAccelerator(Accelerator):
         hvd.join()
         return results
 
-    def training_step(self, args):
+    def _step(self, model_step: Callable, args):
         if self.trainer.on_gpu:
-            batch = args[0]
-            batch = self.batch_to_device(batch, hvd.local_rank())
-            args[0] = batch
+            args[0] = self.batch_to_device(args[0], hvd.local_rank())
 
         if self.trainer.amp_backend == AMPType.NATIVE:
             with torch.cuda.amp.autocast():
-                output = self.trainer.model.training_step(*args)
+                output = model_step(*args)
         else:
-            output = self.trainer.model.training_step(*args)
+            output = model_step(*args)
 
         return output
+
+    def training_step(self, args):
+        return self._step(self.trainer.model.training_step, args)
 
     def validation_step(self, args):
-        if self.trainer.on_gpu:
-            batch = args[0]
-            batch = self.batch_to_device(batch, hvd.local_rank())
-            args[0] = batch
-
-        if self.trainer.amp_backend == AMPType.NATIVE:
-            with torch.cuda.amp.autocast():
-                output = self.trainer.model.validation_step(*args)
-        else:
-            output = self.trainer.model.validation_step(*args)
-
-        return output
+        return self._step(self.trainer.model.validation_step, args)
 
     def test_step(self, args):
-        if self.trainer.on_gpu:
-            batch = args[0]
-            batch = self.batch_to_device(batch, hvd.local_rank())
-            args[0] = batch
-
-        if self.trainer.amp_backend == AMPType.NATIVE:
-            with torch.cuda.amp.autocast():
-                output = self.trainer.model.test_step(*args)
-        else:
-            output = self.trainer.model.test_step(*args)
-        return output
+        return self._step(self.trainer.model.test_step, args)
 
     def backward(self, closure_loss, optimizer, opt_idx, *args, **kwargs):
         super().backward(closure_loss, optimizer, opt_idx, *args, **kwargs)

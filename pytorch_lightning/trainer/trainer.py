@@ -359,7 +359,7 @@ class Trainer(
         )
 
         # init train loop related flags
-        # TODO: deprecate in 1.2.0
+        # TODO: remove in 1.3.0
         if automatic_optimization is None:
             automatic_optimization = True
         else:

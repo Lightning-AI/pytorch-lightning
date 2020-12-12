@@ -593,9 +593,9 @@ Below are the possible configurations we support.
 
 Implement Your Own Distributed (DDP) training
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.core.LightningModule.`.
+If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.plugins.ddp_plugin.DDPPlugin.init_ddp_connection`.
 
-If you also need to use your own DDP implementation, override:  :meth:`pytorch_lightning.core.LightningModule.configure_ddp`.
+If you also need to use your own DDP implementation, override: :meth:`pytorch_lightning.plugins.ddp_plugin.DDPPlugin.configure_ddp`.
 
 
 ----------
@@ -663,7 +663,7 @@ It is highly recommended to use Sharded Training in multi-GPU environments where
 A technical note: as batch size scales, storing activations for the backwards pass becomes the bottleneck in training. As a result, sharding optimizer state and gradients becomes less impactful.
 Work within the future will bring optional sharding to activations and model parameters to reduce memory further, but come with a speed cost.
 
-To use Sharded Training, you need to first install FairScale using the command below or install all extras using ``pip install pytorch-lightning["extra"]``.
+To use Sharded Training, you need to first install FairScale using the command below.
 
 .. code-block:: bash
 
