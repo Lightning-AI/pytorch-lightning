@@ -227,6 +227,17 @@ class AverageValueMeter:
 class GradNormTracker:
 
     def __init__(self, aggregation_mode, norm_type):
+        """
+        Track grad norms and aggregate the values across parameters, optimizers or both.
+
+        Args:
+
+            aggregation_mode: How grad norms are aggregated. The supported values are `parameters`, `optimizer`,
+                `optimizer+parameters`.
+
+            norm_type: The type of the used p-norm. This class uses the value to name the output norms correctly.
+        """
+
         self._grad_norm_dic = {}
         self.norm_type = norm_type
 
