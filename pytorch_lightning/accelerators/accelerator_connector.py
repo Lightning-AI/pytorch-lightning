@@ -122,17 +122,6 @@ class AcceleratorConnector:
         self.trainer.world_size = 1
         self.trainer.interactive_ddp_procs = []
 
-        # link up SLURM
-        # TODO: this should be taken out of here... but depends too much on DDP
-        #self.trainer.slurm_connector.on_trainer_init(self.trainer.num_nodes)
-        ##self.trainer.is_slurm_managing_tasks = True
-        #self.trainer.node_rank = self.determine_ddp_node_rank()
-        #self.trainer.local_rank = self.determine_local_rank()
-        #self.trainer.global_rank = 0
-
-        # NVIDIA setup
-        self.set_nvidia_flags(self.trainer.data_parallel_device_ids)
-
         self.trainer.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
 
         self.trainer.replace_sampler_ddp = replace_sampler_ddp
@@ -155,11 +144,6 @@ class AcceleratorConnector:
     def _select_environment(self):
         if self.trainer.plugin_connector.cluster_environment:
             env = self.trainer.plugin_connector.cluster_environment
-            print("RETURNING self.trainer.plugin_connector.cluster_environment", env)
-        #elif self.trainer.is_slurm_managing_tasks:
-        #    env = SLURMEnvironment()
-        #elif self._is_using_torchelastic():
-        #    env = TorchElasticEnvironment()
         else:
             env = TorchElasticEnvironment()
         return env
@@ -185,25 +169,6 @@ class AcceleratorConnector:
         # ----------------------------------
         # choose an accelerator for the user
         # ----------------------------------
-        #use_slurm_ddp = self.trainer.use_ddp and self.trainer.is_slurm_managing_tasks
-
-        # torchelastic or general non_slurm ddp
-        #te_flags_passed = 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ)
-        #use_torchelastic_ddp = self.trainer.use_ddp and te_flags_passed
-
-        #use_ddp_spawn = self.trainer.use_ddp and self.trainer.distributed_backend == "ddp_spawn"
-        #use_ddp_cpu_spawn = self.trainer.use_ddp and self.trainer.distributed_backend == "ddp_cpu"
-
-        #use_ddp_hpc = self.trainer.use_ddp and self.trainer.distributed_backend == "ddp_hpc"
-
-        #use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and self._is_using_torchelastic()
-        #use_ddp_cpu_slurm = use_ddp_cpu_spawn and self.trainer.is_slurm_managing_tasks
-
-        # ddp script mode uses the same flags as TE
-        # TODO: decouple from TE
-        #if os.environ.get('PL_IN_DDP_SUBPROCESS', False):
-        #    use_torchelastic_ddp = False
-
         cluster_env = self._select_environment()
 
         if self.trainer.use_ddp2:
@@ -227,9 +192,9 @@ class AcceleratorConnector:
         elif self.trainer.distributed_backend is None:
             accelerator_backend = accelerators.CPUAccelerator(self.trainer, cluster_env)
 
-        elif self.trainer.use_ddp: #self.trainer.distributed_backend in ('ddp', 'ddp_spawn'):
+        elif self.trainer.use_ddp:
             spawn = self.trainer.distributed_backend == "ddp_spawn"
-            use_cpu = not self.trainer.gpus is None
+            use_cpu = self.trainer.gpus is None
 
             acc_args = [self.trainer]
             acc_kwargs = {'cluster_environment': cluster_env, 'ddp_plugin': self.trainer.plugin_connector.ddp_plugin}
@@ -251,98 +216,6 @@ class AcceleratorConnector:
             raise MisconfigurationException(
                 f'Trainer(accelerator={self.trainer.distributed_backend} is not a supported backend'
             )
-
-        ## choose the appropriate accelerator backend
-        #if self.trainer.use_ddp2: # Done
-        #    accelerator_backend = accelerators.DDP2Accelerator(
-        #        self.trainer,
-        #        cluster_env,
-        #        self.trainer.plugin_connector.ddp_plugin
-        #    )
-
-        #elif use_ddp_cpu_slurm: # Done
-        #    accelerator_backend = accelerators.DDPCPUHPCAccelerator(
-        #        self.trainer,
-        #        cluster_env,
-        #        self.trainer.plugin_connector.ddp_plugin
-        #    )
-
-        #elif use_slurm_ddp: # Done
-        #    accelerator_backend = accelerators.DDPHPCAccelerator(
-        #        self.trainer,
-        #        cluster_env,
-        #        self.trainer.plugin_connector.ddp_plugin
-        #    )
-
-        #elif use_ddp_cpu_torch_elastic: # Done
-        #    accelerator_backend = accelerators.DDPCPUHPCAccelerator(
-        #        self.trainer,
-        #        cluster_env,
-        #        self.trainer.plugin_connector.ddp_plugin
-        #    )
-
-        #elif use_torchelastic_ddp: # Done
-        #    accelerator_backend = accelerators.DDPHPCAccelerator(
-        #        self.trainer,
-        #        cluster_env,
-        #        self.trainer.plugin_connector.ddp_plugin
-        #    )
-
-        #elif use_ddp_spawn: # Done
-        #    accelerator_backend = accelerators.DDPSpawnAccelerator(
-        #        self.trainer,
-        #        nprocs=self.trainer.num_processes,
-        #        cluster_environment=cluster_env,
-        #        ddp_plugin=self.trainer.plugin_connector.ddp_plugin
-        #    )
-
-        #elif use_ddp_cpu_spawn: # Done
-        #    accelerator_backend = accelerators.DDPCPUSpawnAccelerator(
-        #        self.trainer,
-        #        nprocs=self.trainer.num_processes,
-        #        cluster_environment=cluster_env,
-        #        ddp_plugin=self.trainer.plugin_connector.ddp_plugin
-        #    )
-
-        #elif self.trainer.distributed_backend == "ddp":
-        #    accelerator_backend = accelerators.DDPAccelerator(
-        #        self.trainer,
-        #        cluster_env,
-        #        ddp_plugin=self.trainer.plugin_connector.ddp_plugin
-        #    )
-
-        #elif self.trainer.distributed_backend == "ddp_hpc": # Done
-        #    print("USING accelerators.DDPHPCAccelerator", file=sys.stderr)
-        #    accelerator_backend = accelerators.DDPHPCAccelerator(
-        #        self.trainer,
-        #        cluster_env,
-        #        ddp_plugin=self.trainer.plugin_connector.ddp_plugin
-        #    )
-
-        #elif self.trainer.use_dp:
-        #    accelerator_backend = accelerators.DataParallelAccelerator(self.trainer, cluster_env)
-
-        #elif self.trainer.use_horovod:
-        #    accelerator_backend = accelerators.HorovodAccelerator(self.trainer, cluster_env)
-
-        #elif self.trainer.use_single_gpu:
-        #    accelerator_backend = accelerators.GPUAccelerator(self.trainer, cluster_env)
-
-        #elif self.trainer.use_tpu:
-        #    accelerator_backend = accelerators.TPUAccelerator(self.trainer, cluster_env)
-
-        #elif self.trainer.distributed_backend is None:
-        #    accelerator_backend = accelerators.CPUAccelerator(self.trainer, cluster_env)
-        #else:
-        #    raise MisconfigurationException(
-        #        f'Trainer(accelerator={self.trainer.distributed_backend} is not a supported backend'
-        #    )
-
-        rank = os.environ['JSM_NAMESPACE_RANK']
-        size = os.environ['JSM_NAMESPACE_SIZE']
-
-        rank_id = '%s/%s' % (rank, size)
-        print('select_accelerator %s' % rank_id, "using acclerator type %s, cluster environment type %s" % (type(accelerator_backend), type(cluster_env)), file=sys.stderr)
 
         return accelerator_backend
 
@@ -377,7 +250,7 @@ class AcceleratorConnector:
             elif self.trainer.num_gpus > 1:
                 self.trainer.use_dp = True
 
-        elif self.trainer.distributed_backend in ("ddp", "ddp_spawn", "ddp_hpc"):
+        elif self.trainer.distributed_backend in ("ddp", "ddp_spawn"):
             if self.trainer.num_gpus == 0:
                 if self.trainer.num_nodes > 1 or self.trainer.num_processes > 1:
                     self.trainer.use_ddp = True  # ddp_cpu
@@ -455,31 +328,3 @@ class AcceleratorConnector:
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         all_gpu_ids = ",".join([str(x) for x in range(torch.cuda.device_count())])
         devices = os.environ.get("CUDA_VISIBLE_DEVICES", all_gpu_ids)
-        #log.info(f'LOCAL_RANK: {self.trainer.local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]')
-
-    def determine_local_rank(self):
-        rank_id = "RANK_ID-%s/%s" % (os.environ['JSM_NAMESPACE_RANK'], os.environ['JSM_NAMESPACE_SIZE'])
-        print("determine_local_rank", rank_id, "is_slurm_managing_tasks =", self.trainer.is_slurm_managing_tasks)
-        if self.trainer.is_slurm_managing_tasks:
-            return int(os.environ['SLURM_LOCALID'])
-        return int(os.environ.get('LOCAL_RANK', 0))
-
-    def determine_ddp_node_rank(self):
-        rank_id = "RANK_ID-%s/%s" % (os.environ['JSM_NAMESPACE_RANK'], os.environ['JSM_NAMESPACE_SIZE'])
-        print("determine_ddp_node_rank", rank_id, "is_slurm_managing_tasks =", self.trainer.is_slurm_managing_tasks)
-
-        if self.trainer.is_slurm_managing_tasks:
-            return int(os.environ['SLURM_NODEID'])
-
-        # torchelastic uses the envvar GROUP_RANK, whereas other systems(?) use NODE_RANK.
-        # otherwise use given node rank or default to node rank 0
-        env_vars = ['NODE_RANK', 'GROUP_RANK']
-        node_ids = [(k, os.environ.get(k, None)) for k in env_vars]
-        node_ids = [(k, v) for k, v in node_ids if v is not None]
-        if len(node_ids) == 0:
-            return 0
-        if len(node_ids) > 1:
-            log.warning(f"Multiple environment variables ({node_ids}) defined for node rank. Using the first one.")
-        k, rank = node_ids.pop()
-        rank_zero_info(f"Using environment variable {k} for node rank ({rank}).")
-        return int(rank)

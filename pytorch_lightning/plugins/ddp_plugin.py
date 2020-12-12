@@ -64,11 +64,6 @@ class DDPPlugin(LightningPlugin):
         self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get(
             "find_unused_parameters", True
         )
-        rank = os.environ['JSM_NAMESPACE_RANK']
-        size = os.environ['JSM_NAMESPACE_SIZE']
-
-        rank_id = '%s/%s' % (rank, size)
-        print("LightningDistributedDataParallel", rank_id, device_ids, self._ddp_kwargs, file=sys.stderr)
         model = LightningDistributedDataParallel(
             model,
             device_ids=device_ids,
@@ -89,32 +84,13 @@ class DDPPlugin(LightningPlugin):
 
         torch_backend = "nccl" if trainer.on_gpu else "gloo"
 
-        rank = os.environ['JSM_NAMESPACE_RANK']
-        size = os.environ['JSM_NAMESPACE_SIZE']
-
-        msg = dict(
-            NCCL_SOCKET_IFNAME = os.environ.get('NCCL_SOCKET_IFNAME', "NO_IFNAME"),
-            MASTER_ADDR = os.environ["MASTER_ADDR"],
-            MASTER_PORT = os.environ["MASTER_PORT"],
-            WORLD_SIZE = os.environ["WORLD_SIZE"]
-        )
-        ipg = dict(backend=torch_backend, rank=global_rank, world_size=world_size)
-
-        rank_id = '%s/%s' % (rank, size)
-
-        os.environ['NCCL_SOCKET_IFNAME'] = 'ib0'
-
         if not torch_distrib.is_initialized():
             log.info(
                 f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}"
             )
-            print("init_ddp_connection INITIALIZING %s %s %s" % (rank_id, str(ipg), str(msg)), file=sys.stderr)
             torch_distrib.init_process_group(
                 torch_backend, rank=global_rank, world_size=world_size
             )
-            print("init_ddp_connection FINISHED INITIALIZING %s %s %s" % (rank_id, str(ipg), str(msg)), file=sys.stderr)
-        else:
-            print("init_ddp_connection ALREADY INITIALIZED %s %s %s" % (rank_id, str(ipg), str(msg)), file=sys.stderr)
 
     def on_before_forward(self, model: LightningModule, *args):
         """
