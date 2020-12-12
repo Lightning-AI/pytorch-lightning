@@ -129,6 +129,7 @@ class LSFEnvironment(ClusterEnvironment):
         return int(world_size)
 
     def _get_node_rank(self):
+        """A helper function for getting the node rank"""
         hosts = self._read_hosts()
         count = dict()
         for host in hosts:
@@ -170,7 +171,7 @@ class LSFEnvironment(ClusterEnvironment):
 
     def global_rank(self):
         """
-        World size is read from the environment variable JSM_NAMESPACE_LOCAL_RANK
+        World size is read from the environment variable JSM_NAMESPACE_RANK
         """
         return self._global_rank
 
