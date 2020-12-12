@@ -18,7 +18,7 @@ import os
 import torch
 
 from pytorch_lightning.accelerators.accelerator import NewCPUAccelerator, NewAccelerator, NewGPUAccelerator
-from pytorch_lightning.accelerators.data_parallel import SingleDevicePlugin, DDPPlugin
+from pytorch_lightning.accelerators.data_parallel import SingleDevicePlugin, DDPPlugin, DDPSpawnPlugin
 from pytorch_lightning.accelerators.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.utilities import AMPType, APEX_AVAILABLE, NATIVE_AMP_AVALAIBLE, device_parser
 from pytorch_lightning.utilities import rank_zero_only
@@ -186,6 +186,14 @@ class BackendConnector(object):
                 num_nodes=self.num_nodes,
                 logger=None,
                 cluster_environment=TorchElasticEnvironment(),  # TODO: deterimine this using plugin connector?
+                is_slurm_managing_tasks=False,  # TODO: determine this
+            )
+        elif self.use_ddp and self.distributed_backend == "ddp_spawn":
+            plugin = DDPSpawnPlugin(
+                parallel_device_ids=self.parallel_devices,
+                num_nodes=self.num_nodes,
+                logger=None,
+                cluster_environment=TorchElasticEnvironment(),
                 is_slurm_managing_tasks=False,  # TODO: determine this
             )
         else:
