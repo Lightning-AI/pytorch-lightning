@@ -102,9 +102,8 @@ class PrecisionRecallCurve(Metric):
         self.add_state("target", default=[], dist_reduce_fx=None)
 
         rank_zero_warn(
-            'Metric `PrecisionRecallCurve` will save all targets and'
-            ' predictions in buffer. For large datasets this may lead'
-            ' to large memory footprint.'
+            'Metric `PrecisionRecallCurve` will save all targets and predictions in buffer.'
+            ' For large datasets this may lead to large memory footprint.'
         )
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
