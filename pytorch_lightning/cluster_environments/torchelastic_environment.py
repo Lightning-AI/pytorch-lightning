@@ -19,11 +19,55 @@ from pytorch_lightning.cluster_environments.cluster_environment import ClusterEn
 
 
 class TorchElasticEnvironment(ClusterEnvironment):
+    """An environment for running in an environment managed by Torch Elastic
+
+    This ClusterEnvironment expects that it was invoked from within a job
+    started with the Elastic Launcher.
+
+    This plugin expects the following environment variables:
+
+    MASTER_ADDR
+      fqdn of the host that is running worker with rank 0
+
+    MASTER_PORT
+      port on the MASTER_ADDR that can be used to host the tcp c10d store
+
+    WORLD_SIZE
+      total number of workers in the job
+
+    GROUP_RANK
+      rank of the worker group
+
+    RANK
+      rank of the worker within a worker group
+
+    LOCAL_RANK
+       rank of the worker within a local worker group
+
+    See `Elastic Launch <https://pytorch.org/elastic/latest/distributed.html>` for more details.
+    """
+
+
+    def _read_required(self, envar, target):
+        """A helper for reading required environment variables"""
+        ret = os.environ.get(envar)
+        if ret is None:
+            raise ValueError("Could not find %s -- expected in environment variable %s" % (target, envar))
+        return ret
 
     def __init__(self):
-        super().__init__()
+        self._world_size = self._read_required('WORLD_SIZE', 'world size')
+        self._local_rank = self._read_required('LOCAL_RANK', 'local rank')
+        self._node_rank = self._read_required('GROUP_RANK', 'node rank')
+        self._global_rank = self._read_required('RANK', 'global rank')
+        self._master_address = self._get_master_address()
+        self._master_port = self._get_master_port()
 
-    def master_address(self):
+    def _get_master_address(self):
+        """A helper for reading MASTER_ADDR environment variable
+
+        If not MASTER_POR is not found, returns 127.0.0.1
+        """
         if "MASTER_ADDR" not in os.environ:
             rank_zero_warn(
                 "MASTER_ADDR environment variable is not defined. Set as localhost"
@@ -33,7 +77,11 @@ class TorchElasticEnvironment(ClusterEnvironment):
         master_address = os.environ.get('MASTER_ADDR')
         return master_address
 
-    def master_port(self):
+    def _get_master_port(self):
+        """A helper for reading MASTER_PORT environment variable
+
+        If not MASTER_POR is not found, returns 12910
+        """
         if "MASTER_PORT" not in os.environ:
             rank_zero_warn(
                 "MASTER_PORT environment variable is not defined. Set as 12910"
@@ -44,14 +92,26 @@ class TorchElasticEnvironment(ClusterEnvironment):
         port = os.environ.get('MASTER_PORT')
         return port
 
+    def master_address(self):
+        """Read from environment variable MASTER_ADDR"""
+        return self._master_address
+
+    def master_port(self):
+        """Read from environment variable MASTER_PORT"""
+        return self._master_port
+
     def world_size(self):
-        return int(os.environ.get('WORLD_SIZE'))
+        """Read from environment variable WORLD_SIZE"""
+        return self._world_size
 
     def local_rank(self):
-        return int(os.environ.get('LOCAL_RANK'))
+        """Read from environment variable LOCAL_RANK"""
+        return self._local_rank
 
     def node_rank(self):
-        return int(os.environ.get('GROUP_RANK'))
+        """Read from environment variable GROUP_RANK"""
+        return self._node_rank
 
     def global_rank(self):
-        return int(os.environ['RANK'])
+        """Read from environment variable RANK"""
+        return self._global_rank
