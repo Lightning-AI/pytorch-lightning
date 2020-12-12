@@ -252,6 +252,12 @@ class GradNormTracker:
                                             f' values are `parameters`, `optimizer` and `optimizer+parameters`.')
 
     @staticmethod
+    def check_grad_norm_mode(mode):
+        supported_modes = ['optimizer', 'optimizer+parameters', 'parameters']
+        mode_is_valid = isinstance(mode, str) and mode in supported_modes
+        return mode_is_valid
+
+    @staticmethod
     def norm_name(norm_type):
         return f'grad_{norm_type}_norm'
 

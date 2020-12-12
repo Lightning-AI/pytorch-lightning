@@ -13,6 +13,7 @@
 # limitations under the License.
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
+from pytorch_lightning.trainer.supporters import GradNormTracker
 
 
 class TrainingTricksConnector:
@@ -41,9 +42,9 @@ class TrainingTricksConnector:
         self.trainer.track_grad_norm = float(track_grad_norm)
 
         # gradient norm tracking aggregation mode
-        if not isinstance(track_grad_norm_mode, str) and\
-           not track_grad_norm_mode in ['parameters', 'optimizer', 'optimizer+parameters']:
-            raise MisconfigurationException("track_grad_norm can be an int, a float or 'inf' (infinity norm).")
+        if not GradNormTracker.check_grad_norm_mode(track_grad_norm_mode):
+            raise MisconfigurationException(f'Invalid value=`{self.aggration_mode}` for aggregation_mode. Supported'
+                                            f' values are `parameters`, `optimizer` and `optimizer+parameters`.')
         self.trainer.track_grad_norm_mode = track_grad_norm_mode
 
         # accumulated grads
