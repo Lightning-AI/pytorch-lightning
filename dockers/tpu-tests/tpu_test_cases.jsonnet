@@ -20,6 +20,7 @@ local tputests = base.BaseTest {
 
   command: utils.scriptCommand(
     |||
+      export MKL_THREADING_LAYER=GNU  # todo: drop after new XLA docker is published
       cd pytorch-lightning
       coverage run --source=pytorch_lightning -m pytest pytorch_lightning tests -v --capture=no
       test_exit_code=$?

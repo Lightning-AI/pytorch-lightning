@@ -55,6 +55,7 @@ RUN apt-get update -qq && \
     rm -rf /var/lib/apt/lists/*
 
 ENV \
+    MKL_THREADING_LAYER=GNU \
     PATH="/root/miniconda3/bin:$PATH" \
     LD_LIBRARY_PATH="/root/miniconda3/lib:$LD_LIBRARY_PATH"
 COPY environment.yml environment.yml
