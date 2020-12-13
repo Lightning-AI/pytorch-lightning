@@ -132,3 +132,11 @@ To use Optimizer Sharded Training, refer to :ref:`model-parallelism`.
 Sharded DDP can work across all DDP variants by adding the additional ``--plugins ddp_sharded`` flag.
 
 Refer to the :ref:`distributed computing guide for more details <multi_gpu>`.
+
+
+Sequential Model Parallelism with Checkpointing
+---------------------------------------------------------------------
+PyTorch Lightning integration for Sequential Model Parallelism using `FairScale <https://github.com/facebookresearch/fairscale>`_.
+Sequential Model Parallelism splits a sequential module onto multiple GPUs, reducing peak GPU memory requirements substantially.
+
+For more information, refer to :ref:`sequential-parallelism`.

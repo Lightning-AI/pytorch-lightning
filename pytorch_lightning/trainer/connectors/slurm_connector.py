@@ -54,6 +54,7 @@ class SLURMConnector:
         if self.trainer.is_slurm_managing_tasks:
             rank_zero_info('Multi-processing is handled by Slurm.')
 
+    # todo: the same function as slurm_environment.py `_resolve_root_node_address`
     def resolve_root_node_address(self, root_node):
         if '[' in root_node:
             name, numbers = root_node.split('[', maxsplit=1)
@@ -108,8 +109,8 @@ class SLURMConnector:
         # save
         log.info("bypassing sigterm")
 
+    # todo: this is the same func as slurm_environment.py `master_port`
     def connect_ddp(self, global_rank: int, world_size: int) -> None:
-        """"""
         """
         Sets up environment variables necessary for pytorch distributed communications
         based on slurm environment.

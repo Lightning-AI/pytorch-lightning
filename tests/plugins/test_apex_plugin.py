@@ -34,8 +34,8 @@ def test_amp_choice_default_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
         amp_backend='apex',
         gpus=gpus,
         num_processes=num_processes,
-        distributed_backend=ddp_backend,
-        callbacks=[CB()]
+        accelerator=ddp_backend,
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
@@ -70,9 +70,9 @@ def test_amp_choice_custom_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
         amp_backend='apex',
         gpus=gpus,
         num_processes=num_processes,
-        distributed_backend=ddp_backend,
+        accelerator=ddp_backend,
         plugins=[MyApexPlugin()],
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
