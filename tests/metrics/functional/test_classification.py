@@ -254,12 +254,13 @@ def test_auroc(pred, target, max_fpr, expected):
     pytest.param(None),
     pytest.param(1),
     pytest.param(0.99),
-    pytest.param(0.98),
-    pytest.param(0.8),
+    pytest.param(0.9),
+    pytest.param(0.75),
     pytest.param(0.5),
     pytest.param(0.25),
     pytest.param(0.1),
     pytest.param(0.01),
+    pytest.param(0.001),
 ])
 def test_auroc_with_max_fpr_against_sklearn(max_fpr):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
