@@ -123,3 +123,11 @@ The algorithm in short works by:
    :members: scale_batch_size
 
 .. warning:: Batch size finder is not supported for DDP yet, it is coming soon.
+
+
+Sequential Model Parallelism with Checkpointing
+---------------------------------------------------------------------
+PyTorch Lightning integration for Sequential Model Parallelism using `FairScale <https://github.com/facebookresearch/fairscale>`_.
+Sequential Model Parallelism splits a sequential module onto multiple GPUs, reducing peak GPU memory requirements substantially.
+
+For more information, refer to :ref:`sequential-parallelism`.

@@ -22,70 +22,21 @@ jobs:
       - name: Run isort
         run: isort --settings-path=./pyproject.toml --check-only --diff .
 
-  code-black:
-    name: Check code formatting with Black
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
-      - name: Install Black
-        run: pip install black==19.10b0
-      - name: Run Black
-        run: echo "LGTM"
-        # run black --skip-string-normalization --config=pyproject.toml --check . # TODO, uncomment
-
-  python-types:
-    name: Python static type checking with Pyright
-    runs-on: ubuntu-20.04
-
-    # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 15
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: 3.7
-
-      # Note: This uses an internal pip API and may not always work
-      # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
-      - name: Cache pip
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-extras-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements/extra.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-extras-
-
-      - name: Install dependencies
-        env:
-          HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
-          HOROVOD_WITHOUT_MXNET: 1
-          HOROVOD_WITHOUT_TENSORFLOW: 1
-        run: |
-          # python -m pip install --upgrade --user pip
-          pip install --requirement requirements.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
-          pip install --requirement ./requirements/devel.txt --quiet
-          # pip install tox coverage
-          python --version ; pip --version ; pip list
-        shell: bash
-
-      - name: Set up node
-        uses: actions/setup-node@v1
-        with:
-          node-version: '12'
-
-      - name: Install pyright
-        run: |
-          npm install pyright
-
-      - name: Run type checking
-        run: |
-          $(npm bin)/pyright --project .pyrightconfig.json
+  #code-black:
+  #  name: Check code formatting with Black
+  #  runs-on: ubuntu-20.04
+  #  steps:
+  #    - name: Checkout
+  #      uses: actions/checkout@v2
+  #    - name: Set up Python 3.8
+  #      uses: actions/setup-python@v2
+  #      with:
+  #        python-version: 3.8
+  #    - name: Install Black
+  #      run: pip install black==19.10b0
+  #    - name: Run Black
+  #      run: echo "LGTM"
+  #      run black --skip-string-normalization --config=pyproject.toml --check . # TODO, uncomment
 
   python-pep8:
     name: Python formatting PEP8
@@ -107,3 +58,19 @@ jobs:
       - name: Run checking
         run: |
           flake8 .
+
+  python-typing-mypy:
+    name: Python typing check [mypy]
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install mypy
+        run: |
+          pip install mypy
+          pip list
+      - name: mypy check
+        run: |
+          mypy
