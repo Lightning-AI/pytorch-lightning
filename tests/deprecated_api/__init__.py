@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.metrics.classification.accuracy import Accuracy
-from pytorch_lightning.metrics.classification.average_precision import AveragePrecision
-from pytorch_lightning.metrics.classification.confusion_matrix import ConfusionMatrix
-from pytorch_lightning.metrics.classification.f_beta import FBeta, Fbeta, F1
-from pytorch_lightning.metrics.classification.precision_recall import Precision, Recall
-from pytorch_lightning.metrics.classification.precision_recall_curve import PrecisionRecallCurve
-from pytorch_lightning.metrics.classification.roc import ROC
+"""Test deprecated functionality which will be removed in vX.Y.Z"""
+import sys
+
+
+def _soft_unimport_module(str_module):
+    # once the module is imported  e.g with parsing with pytest it lives in memory
+    if str_module in sys.modules:
+        del sys.modules[str_module]
