@@ -1115,7 +1115,6 @@ def test_dataloaders_load_every_epoch(tmpdir):
 
     model = BoringModel()
 
-    # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=0.3,
@@ -1149,7 +1148,6 @@ def test_dataloaders_load_every_n_epochs(tmpdir):
 
     model = BoringModel()
 
-    # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=0.3,
