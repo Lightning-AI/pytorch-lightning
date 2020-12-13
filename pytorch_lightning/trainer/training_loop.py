@@ -48,6 +48,7 @@ class TrainLoop:
         self.automatic_optimization = True
         self._curr_step_result = None
         self._cur_grad_norm_dict = None
+        self._optimizer_freq_cumsum = None
 
     def on_trainer_init(
         self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps, automatic_optimization
@@ -78,6 +79,12 @@ class TrainLoop:
     def num_optimizers(self):
         num_optimizers = len(self.get_optimizers_iterable())
         return num_optimizers
+
+    @property
+    def optimizer_freq_cumsum(self):
+        if self._optimizer_freq_cumsum is None:
+            self._optimizer_freq_cumsum = np.cumsum(self.trainer.optimizer_frequencies)
+        return self._optimizer_freq_cumsum
 
     def should_skip_training(self):
         if self.trainer.current_epoch >= self.trainer.max_epochs:
@@ -293,12 +300,11 @@ class TrainLoop:
         if batch_idx is None:
             batch_idx = self.trainer.total_batch_idx
 
-        optimizer_freq_cumsum = np.cumsum(self.trainer.optimizer_frequencies)
-        optimizers_loop_length = optimizer_freq_cumsum[-1]
+        optimizers_loop_length = self.optimizer_freq_cumsum[-1]
         current_place_in_loop = batch_idx % optimizers_loop_length
 
         # find optimzier index by looking for the first {item > current_place} in the cumsum list
-        opt_idx = np.argmax(optimizer_freq_cumsum > current_place_in_loop)
+        opt_idx = np.argmax(self.optimizer_freq_cumsum > current_place_in_loop)
         return [[opt_idx, self.trainer.optimizers[opt_idx]]]
 
     def on_after_backward(self, training_step_output, batch_idx, untouched_loss):
@@ -491,7 +497,8 @@ class TrainLoop:
         if using_native_amp and is_lbfgs:
             raise MisconfigurationException(
                 'native PyTorch amp and lbfgs are not compatible.'
-                ' To request, please file a Github issue in PyTorch and tag @mcarilli')
+                ' To request, please file a Github issue in PyTorch and tag @mcarilli'
+            )
 
         # model hook
         model_ref.optimizer_step(
