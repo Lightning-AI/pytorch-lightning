@@ -477,7 +477,7 @@ class TrainLoop:
 
         return training_step_output_for_epoch_end
 
-    def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure, *args, **kwargs):
+    def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):
         model_ref = self.trainer.get_model()
 
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
@@ -491,16 +491,14 @@ class TrainLoop:
 
         # model hook
         model_ref.optimizer_step(
-            epoch=self.trainer.current_epoch,
-            batch_idx=batch_idx,
-            optimizer=optimizer,
-            optimizer_idx=opt_idx,
-            optimizer_closure=train_step_and_backward_closure,
+            self.trainer.current_epoch,
+            batch_idx,
+            optimizer,
+            opt_idx,
+            train_step_and_backward_closure,
             on_tpu=self.trainer.use_tpu and TPU_AVAILABLE,
             using_native_amp=using_native_amp,
             using_lbfgs=is_lbfgs,
-            *args,
-            **kwargs,
         )
 
     def on_before_zero_grad(self, optimizer):
