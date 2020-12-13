@@ -1113,7 +1113,7 @@ def test_dataloaders_load_only_once_no_sanity_check(tmpdir):
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_every_epoch(tmpdir):
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     # logger file to get meta
     trainer = Trainer(
@@ -1147,7 +1147,7 @@ def test_dataloaders_load_every_epoch(tmpdir):
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_every_n_epochs(tmpdir):
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     # logger file to get meta
     trainer = Trainer(
