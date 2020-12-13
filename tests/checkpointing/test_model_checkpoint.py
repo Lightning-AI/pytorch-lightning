@@ -1024,9 +1024,8 @@ def test_hparams_type(tmpdir, hparams_type):
 
 
 def test_model_checkpoint_with_training_epoch_end(tmpdir):
-
     """
-    This test assert ModelCheckpoint a warming is issued when monitor metric is used in training_epoch_end
+    This test ensures ModelCheckpoint issues a warning when the monitor is logged on training_epoch_end
     """
     class TestedModel(BoringModel):
 
