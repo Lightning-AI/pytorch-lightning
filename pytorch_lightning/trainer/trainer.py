@@ -536,8 +536,6 @@ class Trainer(
         # ----------------------------
         # self.accelerator_backend = self.accelerator_connector.select_accelerator()
         self.accelerator_backend.setup(self, model)
-
-        # TODO: is calling pre-training the correct place here @justus?
         self.training_type_plugin.pre_training()
 
         # ----------------------------
@@ -554,15 +552,16 @@ class Trainer(
         # TRAIN
         # ----------------------------
         # hook
+
         self.call_hook("on_fit_start")
 
+        # double dispatch: let the plugin initiate the training/test loop.
         if self.testing:
-            results = self.run_test()
+            self.training_type_plugin.start_testing(self)
         else:
-            results = self.train()
+            self.training_type_plugin.start_training(self)
 
-        # TODO: is calling post training the correct place here @justus?
-        self.training_type_plugin.post_training(results, self.checkpoint_callback.best_model_path)
+        results = self.training_type_plugin.post_training(self.checkpoint_callback.best_model_path)
         self.accelerator_backend.teardown()
 
         # ----------------------------
@@ -583,7 +582,49 @@ class Trainer(
             self._state = TrainerState.FINISHED
         return results or 1
 
+    def pre_training_routine(self):
+        # wait for all to join if on distributed
+        self.accelerator.training_type_plugin.barrier("setup_training")
+
+        # register auto-resubmit when on SLURM
+        self.slurm_connector.register_slurm_signal_handlers()
+
+        # --------------------------
+        # Pre-train
+        # --------------------------
+        # on pretrain routine start
+        ref_model = self.get_model()
+
+        self.on_pretrain_routine_start(ref_model)
+        if self.is_function_implemented("on_pretrain_routine_start"):
+            ref_model.on_pretrain_routine_start()
+
+        # print model summary
+        if self.is_global_zero and self.weights_summary is not None and not self.testing:
+            if self.weights_summary in ModelSummary.MODES:
+                ref_model.summarize(mode=self.weights_summary)
+            else:
+                raise MisconfigurationException("weights_summary can be None, " + ", ".join(ModelSummary.MODES))
+
+        # TODO: what the heck is this
+        # track model now.
+        # if cluster resets state, the model will update with the saved weights
+        # self.trainer.model = model
+
+        # restore training and model before hpc is called
+        self.checkpoint_connector.restore_weights(ref_model)
+
+        # on pretrain routine end
+        self.on_pretrain_routine_end(ref_model)
+        if self.is_function_implemented("on_pretrain_routine_end"):
+            ref_model.on_pretrain_routine_end()
+
     def train(self):
+        self.pre_training_routine()
+
+        if not self.is_global_zero and self.progress_bar_callback is not None:
+            self.progress_bar_callback.disable()
+
         self.run_sanity_check(self.get_model())
 
         # set stage for logging
@@ -752,6 +793,9 @@ class Trainer(
         return outputs
 
     def run_test(self):
+        if not self.is_global_zero and self.progress_bar_callback is not None:
+            self.progress_bar_callback.disable()
+
         # only load test dataloader for testing
         # self.reset_test_dataloader(ref_model)
         with self.profiler.profile("run_test_evaluation"):
