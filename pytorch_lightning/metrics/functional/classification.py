@@ -616,7 +616,7 @@ def auroc(
     def _auroc(pred, target, sample_weight, pos_label, max_fpr):
         if max_fpr is None or max_fpr == 1:
             fpr, tpr, _ = __roc(pred, target, sample_weight, pos_label)
-            return auc(fpr, tpr, reorder=False)
+            return auc(fpr, tpr)
         if max_fpr <= 0 or max_fpr > 1:
             raise ValueError("Expected max_fpr in range (0, 1], got: %r" % max_fpr)
         if LooseVersion(torch.__version__) < LooseVersion('1.6.0'):
@@ -633,7 +633,7 @@ def auroc(
         fpr = torch.cat([fpr[:stop], max_fpr.view(1)])
 
         # Compute partial AUC
-        partial_auc = auc(fpr, tpr, reorder=False)
+        partial_auc = auc(fpr, tpr)
 
         # McClish correction: standardize result to be 0.5 if non-discriminant
         # and 1 if maximal
