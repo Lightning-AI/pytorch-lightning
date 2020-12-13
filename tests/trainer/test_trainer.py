@@ -935,6 +935,7 @@ def test_gradient_clipping(tmpdir):
     """
     Test gradient clipping
     """
+    tutils.reset_seed()
 
     model = EvalModelTemplate()
 
@@ -972,6 +973,7 @@ def test_gradient_clipping_fp16(tmpdir):
     """
     Test gradient clipping with fp16
     """
+    tutils.reset_seed()
 
     model = EvalModelTemplate()
 
@@ -1443,6 +1445,6 @@ def test_trainer_profiler_incorrect_str_arg():
 ))
 def test_trainer_profiler_incorrect_arg_type(profiler):
     with pytest.raises(MisconfigurationException,
-                       match=r"Only None, bool, str and subclasses of `BaseProfiler` "
-                       r"are valid values for `Trainer`'s `profiler` parameter. *"):
+                       match=r"Only None, bool, str and subclasses of `BaseProfiler`"
+                             r" are valid values for `Trainer`'s `profiler` parameter. *"):
         Trainer(profiler=profiler)

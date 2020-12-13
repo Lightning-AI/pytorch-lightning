@@ -5,148 +5,114 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [1.1.0rc2] - 2020-12-02
+## [unreleased.Features] - YYYY-MM-DD
+
+### Added
+
+
+### Changed
+
+
+### Deprecated
+
+
+### Removed
+
+
+### Fixed
+
+
+
+## [unreleased.BugFix] - YYYY-MM-DD
+
+### Added
+
+
+### Changed
+
+
+### Deprecated
+
+
+### Removed
+
+
+### Fixed
+
+- Fixed trainer by default `None` in `DDPAccelerator` ([#4915](https://github.com/PyTorchLightning/pytorch-lightning/pull/4915))
+
+
+- Fixed `LightningOptimizer` exposes optimizer attributes ([#5095](https://github.com/PyTorchLightning/pytorch-lightning/pull/5095))
+
+
+
+## [1.1.0] - 2020-12-09
 
 ### Added
 
 - Added "monitor" key to saved `ModelCheckpoints` ([#4383](https://github.com/PyTorchLightning/pytorch-lightning/pull/4383))
-
-
 - Added `ConfusionMatrix` class interface ([#4348](https://github.com/PyTorchLightning/pytorch-lightning/pull/4348))
-
-
 - Added multiclass AUROC metric ([#4236](https://github.com/PyTorchLightning/pytorch-lightning/pull/4236))
-
-
 - Added global step indexing to the checkpoint name for a better sub-epoch checkpointing experience ([#3807](https://github.com/PyTorchLightning/pytorch-lightning/pull/3807))
-
-
 - Added optimizer hooks in callbacks ([#4379](https://github.com/PyTorchLightning/pytorch-lightning/pull/4379))
-
-
 - Added option to log momentum ([#4384](https://github.com/PyTorchLightning/pytorch-lightning/pull/4384))
-
-
 - Added `current_score` to `ModelCheckpoint.on_save_checkpoint` ([#4721](https://github.com/PyTorchLightning/pytorch-lightning/pull/4721))
-
-
 - Added logging using `self.log` in train and evaluation for epoch end hooks (
     [#4552](https://github.com/PyTorchLightning/pytorch-lightning/pull/4552),
     [#4495](https://github.com/PyTorchLightning/pytorch-lightning/pull/4495),
     [#4439](https://github.com/PyTorchLightning/pytorch-lightning/pull/4439))
     [#4684](https://github.com/PyTorchLightning/pytorch-lightning/pull/4684))
     [#4913](https://github.com/PyTorchLightning/pytorch-lightning/pull/4913))
-
-
 - Added ability for DDP plugin to modify optimizer state saving ([#4675](https://github.com/PyTorchLightning/pytorch-lightning/pull/4675))
-
-
-- Updated `fast_dev_run` to accept integer representing num_batches ([#4629](https://github.com/PyTorchLightning/pytorch-lightning/pull/4629))
-
-
 - Added casting to python types for numpy scalars when logging hparams ([#4647](https://github.com/PyTorchLightning/pytorch-lightning/pull/4647))
-
-
 - Added `prefix` argument in loggers ([#4557](https://github.com/PyTorchLightning/pytorch-lightning/pull/4557))
-
-
 - Added printing of total num of params, trainable and non-trainable params in ModelSummary ([#4521](https://github.com/PyTorchLightning/pytorch-lightning/pull/4521))
-
-
-- Added optimizer refactors ([#4658](https://github.com/PyTorchLightning/pytorch-lightning/pull/4658))
-
-
 - Added `PrecisionRecallCurve, ROC, AveragePrecision` class metric ([#4549](https://github.com/PyTorchLightning/pytorch-lightning/pull/4549))
-
-
 - Added custom `Apex` and `NativeAMP` as `Precision plugins` ([#4355](https://github.com/PyTorchLightning/pytorch-lightning/pull/4355))
-
-
 - Added `DALI MNIST` example ([#3721](https://github.com/PyTorchLightning/pytorch-lightning/pull/3721))
-
-
 - Added `sharded plugin` for DDP for multi-gpu training memory optimizations (
-                            [#4639](https://github.com/PyTorchLightning/pytorch-lightning/pull/4639),
-                            [#4686](https://github.com/PyTorchLightning/pytorch-lightning/pull/4686),
-                            [#4675](https://github.com/PyTorchLightning/pytorch-lightning/pull/4675),
-                            [#4737](https://github.com/PyTorchLightning/pytorch-lightning/pull/4737),
-                            [#4773](https://github.com/PyTorchLightning/pytorch-lightning/pull/4773))
-
-
+    [#4639](https://github.com/PyTorchLightning/pytorch-lightning/pull/4639),
+    [#4686](https://github.com/PyTorchLightning/pytorch-lightning/pull/4686),
+    [#4675](https://github.com/PyTorchLightning/pytorch-lightning/pull/4675),
+    [#4737](https://github.com/PyTorchLightning/pytorch-lightning/pull/4737),
+    [#4773](https://github.com/PyTorchLightning/pytorch-lightning/pull/4773))
 - Added `experiment_id` to the NeptuneLogger ([#3462](https://github.com/PyTorchLightning/pytorch-lightning/pull/3462))
-
-
 - Added `Pytorch Geometric` integration example with Lightning ([#4568](https://github.com/PyTorchLightning/pytorch-lightning/pull/4568))
-
-
 - Added `all_gather` method to `LightningModule` which allows gradient based tensor synchronizations for use-cases such as negative sampling. ([#5012](https://github.com/PyTorchLightning/pytorch-lightning/pull/5012))
-
-
 - Enabled `self.log` in most functions ([#4969](https://github.com/PyTorchLightning/pytorch-lightning/pull/4969))
-
-
 - Added changeable extension variable for `ModelCheckpoint` ([#4977](https://github.com/PyTorchLightning/pytorch-lightning/pull/4977))
 
 
 ### Changed
 
-- Removed `multiclass_roc` and `multiclass_precision_recall_curve`, use `roc` and `precision_recall_curve` instead ([#4549](https://github.com/PyTorchLightning/pytorch-lightning/pull/4549))
-
-
-
 - Tuner algorithms will be skipped if `fast_dev_run=True` ([#3903](https://github.com/PyTorchLightning/pytorch-lightning/pull/3903))
-
-
-
-- WandbLogger does not force wandb `reinit` arg to True anymore and creates a run only when needed ([#4648](https://github.com/PyTorchLightning/pytorch-lightning/pull/4648))
-
-
+- `WandbLogger` does not force wandb `reinit` arg to True anymore and creates a run only when needed ([#4648](https://github.com/PyTorchLightning/pytorch-lightning/pull/4648))
 - Changed `automatic_optimization` to be a model attribute ([#4602](https://github.com/PyTorchLightning/pytorch-lightning/pull/4602))
-
-
 - Changed `Simple Profiler` report to order by percentage time spent + num calls ([#4880](https://github.com/PyTorchLightning/pytorch-lightning/pull/4880))
-
-
 - Simplify optimization Logic ([#4984](https://github.com/PyTorchLightning/pytorch-lightning/pull/4984))
-
-
 - Classification metrics overhaul ([#4837](https://github.com/PyTorchLightning/pytorch-lightning/pull/4837))
+- Updated `fast_dev_run` to accept integer representing num_batches ([#4629](https://github.com/PyTorchLightning/pytorch-lightning/pull/4629))
+- Refactored optimizer ([#4658](https://github.com/PyTorchLightning/pytorch-lightning/pull/4658))
 
 
 ### Deprecated
 
 - Deprecated `prefix` argument in `ModelCheckpoint` ([#4765](https://github.com/PyTorchLightning/pytorch-lightning/pull/4765))
-
-
 - Deprecated the old way of assigning hyper-parameters through `self.hparams = ...` ([#4813](https://github.com/PyTorchLightning/pytorch-lightning/pull/4813))
-
-
 - Deprecated `mode='auto'` from `ModelCheckpoint` and `EarlyStopping` ([#4695](https://github.com/PyTorchLightning/pytorch-lightning/pull/4695))
-
 
 ### Removed
 
 - Removed `reorder` parameter of the `auc` metric ([#5004](https://github.com/PyTorchLightning/pytorch-lightning/pull/5004))
-
-
+- Removed `multiclass_roc` and `multiclass_precision_recall_curve`, use `roc` and `precision_recall_curve` instead ([#4549](https://github.com/PyTorchLightning/pytorch-lightning/pull/4549))
 
 ### Fixed
 
 - Added feature to move tensors to CPU before saving ([#4309](https://github.com/PyTorchLightning/pytorch-lightning/pull/4309))
-
-
 - Fixed `LoggerConnector` to have logged metrics on root device in DP ([#4138](https://github.com/PyTorchLightning/pytorch-lightning/pull/4138))
-
-
 - Auto convert tensors to contiguous format when `gather_all` ([#4907](https://github.com/PyTorchLightning/pytorch-lightning/pull/4907))
-
-
 - Fixed `PYTHONPATH` for ddp test model ([#4528](https://github.com/PyTorchLightning/pytorch-lightning/pull/4528))
-
-
 - Fixed allowing logger to support indexing ([#4595](https://github.com/PyTorchLightning/pytorch-lightning/pull/4595))
-
-
 - Fixed DDP and manual_optimization ([#4976](https://github.com/PyTorchLightning/pytorch-lightning/pull/4976))
 
 
