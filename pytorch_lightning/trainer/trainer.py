@@ -532,6 +532,7 @@ class Trainer(
         # self.accelerator_backend = self.accelerator_connector.select_accelerator()
         self.call_hook("on_before_accelerator_backend_setup", model)
         self.accelerator_backend.setup(self, model)
+        self.train_loop.setup_training(model)
         self.training_type_plugin.pre_training()
 
         # ----------------------------
@@ -541,8 +542,6 @@ class Trainer(
         # self.accelerator_backend.train_loop = self.train
         # self.accelerator_backend.validation_loop = self.run_evaluation
         # self.accelerator_backend.test_loop = self.run_evaluation
-
-        self.train_loop.setup_training(model)
 
         # ----------------------------
         # TRAIN
