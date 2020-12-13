@@ -192,7 +192,6 @@ class BackendConnector(object):
             plugin = DDPSpawnPlugin(
                 parallel_device_ids=self.parallel_devices,
                 num_nodes=self.num_nodes,
-                logger=None,
                 cluster_environment=TorchElasticEnvironment(),
                 is_slurm_managing_tasks=False,  # TODO: determine this
             )
