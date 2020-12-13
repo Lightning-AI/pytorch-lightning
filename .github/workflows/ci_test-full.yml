@@ -30,7 +30,8 @@ jobs:
     - name: Update Pip
       run: |
         # todo: unfreeze PIP after resolving minimal dependencies
-        pip install --quiet "pip==20.1" --upgrade --user  # needed for get pip cacher folder
+        # pip install --quiet "pip==20.1" --upgrade --user  # needed for get pip cacher folder
+        pip install "pip==20.3" -U  # needed for later instalation onnxruntime
 
     # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
     - name: Setup macOS
@@ -57,7 +58,7 @@ jobs:
             req = re.sub(ptn, ver, open(fname).read())
             open(fname, 'w').write(req)
 
-        _req(requirements.txt', r'torch>=[\d\.]+', 'torch>=1.7.1')
+        _req('requirements.txt', r'torch>=[\d\.]+', 'torch>=1.7.1')
         _req('requirements/examples.txt', r'torchvision>=[\d\.]+', 'torchvision>=0.8.2')
         _req('requirements/extra.txt', r'torchtext>=[\d\.]+', 'torchtext>=0.8.1')
       shell: python
