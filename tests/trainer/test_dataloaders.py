@@ -1161,8 +1161,7 @@ def test_dataloaders_load_every_n_epochs(tmpdir):
         reload_dataloaders_every_n_epochs=2,
         max_epochs=3,
     )
-    result = trainer.fit(model)
-
+    trainer.fit(model)
     trainer.test()
 
     assert len(trainer.dev_debugger.val_dataloader_calls) == 3
