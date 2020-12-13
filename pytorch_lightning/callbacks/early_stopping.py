@@ -20,13 +20,18 @@ Monitor a metric and stop training when it stops improving.
 
 """
 import os
+from typing import TYPE_CHECKING, Any, Callable, Dict, List
 
 import numpy as np
 import torch
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn, TPU_AVAILABLE
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.utilities import TPU_AVAILABLE, rank_zero_info, rank_zero_warn
+
+if TYPE_CHECKING:
+    from pytorch_lightning.trainer.trainer import Trainer
 
 
 class EarlyStopping(Callback):
@@ -76,7 +81,7 @@ class EarlyStopping(Callback):
         verbose: bool = False,
         mode: str = 'auto',
         strict: bool = True,
-    ):
+    ) -> None:
         super().__init__()
         self.monitor = monitor
         self.patience = patience
@@ -97,7 +102,7 @@ class EarlyStopping(Callback):
         torch_inf = torch.tensor(np.Inf)
         self.best_score = torch_inf if self.monitor_op == torch.lt else -torch_inf
 
-    def __init_monitor_mode(self):
+    def __init_monitor_mode(self) -> None:
         # TODO: Update with MisconfigurationException when auto mode is removed in v1.3
         if self.mode not in self.mode_dict and self.mode != 'auto':
             if self.verbose > 0:
@@ -111,7 +116,7 @@ class EarlyStopping(Callback):
             rank_zero_warn(
                 "mode='auto' is deprecated in v1.1 and will be removed in v1.3."
                 " Default value for mode with be 'min' in v1.3.",
-                DeprecationWarning
+                DeprecationWarning,
             )
 
             if "acc" in self.monitor or self.monitor.startswith("fmeasure"):
@@ -122,12 +127,14 @@ class EarlyStopping(Callback):
             if self.verbose > 0:
                 rank_zero_info(f'EarlyStopping mode set to {self.mode} for monitoring {self.monitor}.')
 
-    def _validate_condition_metric(self, logs):
+    def _validate_condition_metric(self, logs: Dict[str, Any]) -> bool:
         monitor_val = logs.get(self.monitor)
 
-        error_msg = (f'Early stopping conditioned on metric `{self.monitor}`'
-                     f' which is not available. Pass in or modify your `EarlyStopping` callback to use any of the'
-                     f' following: `{"`, `".join(list(logs.keys()))}`')
+        error_msg = (
+            f'Early stopping conditioned on metric `{self.monitor}`'
+            f' which is not available. Pass in or modify your `EarlyStopping` callback to use any of the'
+            f' following: `{"`, `".join(list(logs.keys()))}`'
+        )
 
         if monitor_val is None:
             if self.strict:
@@ -140,30 +147,30 @@ class EarlyStopping(Callback):
         return True
 
     @property
-    def monitor_op(self):
+    def monitor_op(self) -> Callable:
         return self.mode_dict[self.mode]
 
-    def on_save_checkpoint(self, trainer, pl_module):
+    def on_save_checkpoint(self, trainer: 'Trainer', pl_module: LightningModule) -> Dict[str, Any]:
         return {
             'wait_count': self.wait_count,
             'stopped_epoch': self.stopped_epoch,
             'best_score': self.best_score,
-            'patience': self.patience
+            'patience': self.patience,
         }
 
-    def on_load_checkpoint(self, checkpointed_state):
+    def on_load_checkpoint(self, checkpointed_state: Dict[str, Any]) -> None:
         self.wait_count = checkpointed_state['wait_count']
         self.stopped_epoch = checkpointed_state['stopped_epoch']
         self.best_score = checkpointed_state['best_score']
         self.patience = checkpointed_state['patience']
 
-    def on_validation_end(self, trainer, pl_module):
+    def on_validation_end(self, trainer: 'Trainer', pl_module: LightningModule) -> None:
         if trainer.running_sanity_check:
             return
 
         self._run_early_stopping_check(trainer, pl_module)
 
-    def on_validation_epoch_end(self, trainer, pl_module):
+    def on_validation_epoch_end(self, trainer: 'Trainer', pl_module: LightningModule) -> None:
         if trainer.running_sanity_check:
             return
 
@@ -171,7 +178,7 @@ class EarlyStopping(Callback):
             # turn off early stopping in on_train_epoch_end
             self.based_on_eval_results = True
 
-    def on_train_epoch_end(self, trainer, pl_module, outputs):
+    def on_train_epoch_end(self, trainer: 'Trainer', pl_module: LightningModule, outputs: List[Any]) -> None:
         # disable early stopping in train loop when there's a val loop
         if self.based_on_eval_results:
             return
@@ -186,7 +193,7 @@ class EarlyStopping(Callback):
         if should_check_early_stop:
             self._run_early_stopping_check(trainer, pl_module)
 
-    def _run_early_stopping_check(self, trainer, pl_module):
+    def _run_early_stopping_check(self, trainer: 'Trainer', pl_module: LightningModule) -> None:
         """
         Checks whether the early stopping condition is met
         and if so tells the trainer to stop the training.
