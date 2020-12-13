@@ -741,11 +741,7 @@ class TrainLoop:
 
                     grad_norm_dic = self._cur_grad_norm_dict
                     self._cur_grad_norm_dict = None
-
                     grad_tracker.track_norm(grad_norm_dic, opt_idx)
-
-                    # hook + clear gradients
-                    self.zero_grad_handler(batch_idx, optimizer, opt_idx)
 
                     # update running loss + reset accumulated loss
                     self.update_running_loss()
