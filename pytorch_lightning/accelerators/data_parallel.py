@@ -246,7 +246,6 @@ class DDPPlugin(ParallelPlugin):
             self,
             parallel_device_ids,
             num_nodes=1,
-            logger=None,
             cluster_environment=None,
             is_slurm_managing_tasks=False,
             **kwargs: Dict[str, Any],
@@ -254,7 +253,6 @@ class DDPPlugin(ParallelPlugin):
         super().__init__(parallel_device_ids=parallel_device_ids, cluster_environment=cluster_environment)
         self.interactive_ddp_procs = []
         self.num_nodes = num_nodes
-        self.logger = logger
         self.is_slurm_managing_tasks = is_slurm_managing_tasks
         self.dist = LightningDistributed()
         self._ddp_kwargs = kwargs
@@ -334,8 +332,10 @@ class DDPPlugin(ParallelPlugin):
         os.environ["PL_TRAINER_GPUS"] = ",".join([str(i) for i in self.parallel_device_ids])
         os.environ["PL_IN_DDP_SUBPROCESS"] = "1"
 
-        if self.logger is not None:
-            os.environ["PL_EXP_VERSION"] = str(self.logger.version)
+        print("logger", self.lightning_module.logger)
+        if self.lightning_module.logger is not None:
+            os.environ["PL_EXP_VERSION"] = str(self.lightning_module.logger.version)
+        print("exp", os.environ["PL_EXP_VERSION"])
 
         num_gpus = len(self.parallel_device_ids)
         # TODO: Add num_nodes (pass it in?)
