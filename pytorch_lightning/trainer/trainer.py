@@ -534,7 +534,6 @@ class Trainer(
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
-        # self.accelerator_backend = self.accelerator_connector.select_accelerator()
         self.accelerator_backend.setup(self, model)
         self.train_loop.setup_training(model)
         self.training_type_plugin.pre_training()
