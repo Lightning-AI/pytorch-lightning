@@ -20,12 +20,14 @@ Learning Rate Monitor
 Monitor and logs learning rate for lr schedulers during training.
 
 """
-
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+if TYPE_CHECKING:
+    from pytorch_lightning.trainer.trainer import Trainer
 
 
 class LearningRateMonitor(Callback):
@@ -61,33 +63,32 @@ class LearningRateMonitor(Callback):
             return [optimizer], [lr_scheduler]
 
     """
-    def __init__(self, logging_interval: Optional[str] = None, log_momentum: bool = False):
+    lrs: Dict[str, Any]
+    lr_sch_names: List[str]
+
+    def __init__(self, logging_interval: Optional[str] = None, log_momentum: bool = False) -> None:
         if logging_interval not in (None, 'step', 'epoch'):
-            raise MisconfigurationException(
-                'logging_interval should be `step` or `epoch` or `None`.'
-            )
+            raise MisconfigurationException('logging_interval should be `step` or `epoch` or `None`.')
 
         self.logging_interval = logging_interval
         self.log_momentum = log_momentum
-        self.lrs = None
         self.lr_sch_names = []
 
-    def on_train_start(self, trainer, *args, **kwargs):
+    def on_train_start(self, trainer: 'Trainer', *args: Any, **kwargs: Any) -> None:
         """
         Called before training, determines unique names for all lr
         schedulers in the case of multiple of the same type or in
         the case of multiple parameter groups
         """
         if not trainer.logger:
-            raise MisconfigurationException(
-                'Cannot use LearningRateMonitor callback with Trainer that has no logger.'
-            )
+            raise MisconfigurationException('Cannot use LearningRateMonitor callback with Trainer that has no logger.')
 
         if not trainer.lr_schedulers:
             rank_zero_warn(
                 'You are using LearningRateMonitor callback with models that'
                 ' have no learning rate schedulers. Please see documentation'
-                ' for `configure_optimizers` method.', RuntimeWarning
+                ' for `configure_optimizers` method.',
+                RuntimeWarning,
             )
 
         # Find names for schedulers
@@ -97,7 +98,7 @@ class LearningRateMonitor(Callback):
         self.lrs = {name: [] for name in names}
         self.last_momentum_values = {name + "-momentum": None for name in names}
 
-    def on_train_batch_start(self, trainer, *args, **kwargs):
+    def on_train_batch_start(self, trainer: 'Trainer', *args: Any, **kwargs: Any) -> None:
         if not self._should_log(trainer):
             return
 
@@ -108,7 +109,7 @@ class LearningRateMonitor(Callback):
             if trainer.logger is not None and latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
-    def on_train_epoch_start(self, trainer, *args, **kwargs):
+    def on_train_epoch_start(self, trainer: 'Trainer', *args: Any, **kwargs: Any) -> None:
         if self.logging_interval != 'step':
             interval = 'epoch' if self.logging_interval is None else 'any'
             latest_stat = self._extract_stats(trainer, interval)
@@ -116,7 +117,7 @@ class LearningRateMonitor(Callback):
             if trainer.logger is not None and latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
-    def _extract_stats(self, trainer, interval: str) -> Dict[str, float]:
+    def _extract_stats(self, trainer: 'Trainer', interval: str) -> Dict[str, float]:
         latest_stat = {}
 
         for name, scheduler in zip(self.lr_sch_names, trainer.lr_schedulers):
@@ -138,20 +139,20 @@ class LearningRateMonitor(Callback):
 
         return latest_stat
 
-    def _extract_lr(self, param_group, name: str) -> Dict[str, float]:
+    def _extract_lr(self, param_group: Dict[str, Any], name: str) -> Dict[str, float]:
         lr = param_group.get('lr')
         self.lrs[name].append(lr)
-        return {name: lr}
+        return {name: lr}  # type: ignore
 
-    def _extract_momentum(self, param_group, name: str) -> Dict[str, float]:
+    def _extract_momentum(self, param_group: Dict[str, Any], name: str) -> Dict[str, float]:
         if not self.log_momentum:
             return {}
 
         momentum = param_group.get('momentum')
         self.last_momentum_values[name] = momentum
-        return {name: momentum}
+        return {name: momentum}  # type: ignore
 
-    def _find_names(self, lr_schedulers) -> List[str]:
+    def _find_names(self, lr_schedulers: List[Dict[str, Any]]) -> List[str]:
         # Create uniqe names in the case we have multiple of the same learning
         # rate schduler + multiple parameter groups
         names = []
@@ -184,11 +185,8 @@ class LearningRateMonitor(Callback):
         return names
 
     @staticmethod
-    def _should_log(trainer) -> bool:
-        should_log = (
-            (trainer.global_step + 1) % trainer.log_every_n_steps == 0
-            or trainer.should_stop
-        )
+    def _should_log(trainer: 'Trainer') -> bool:
+        should_log = (trainer.global_step + 1) % trainer.log_every_n_steps == 0 or trainer.should_stop
 
         should_log = should_log and not trainer.fast_dev_run
         return should_log
