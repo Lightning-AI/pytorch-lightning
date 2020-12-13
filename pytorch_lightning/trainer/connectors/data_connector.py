@@ -37,9 +37,11 @@ class DataConnector(object):
             reload_dataloaders_every_n_epochs = reload_dataloaders_every_epoch
             rank_zero_warn("'reload_dataloaders_every_epoch' is deprecated. Use reload_dataloaders_every_n_epochs", DeprecationWarning)
 
-        if reload_dataloaders_every_n_epochs < 0:
-            raise MisconfigurationException("Value of 'reload_dataloaders_every_n_epochs' should be >= 0. "
-                                            f"Got {reload_dataloaders_every_n_epochs}")
+        if not isinstance(reload_dataloaders_every_n_epochs, int) or (reload_dataloaders_every_n_epochs < 0):
+            raise MisconfigurationException(
+                "`reload_dataloaders_every_n_epochs` should be and int >= 0,"
+                f" got {reload_dataloaders_every_n_epochs}."
+            )
 
         self.trainer.should_reload_dl_epoch = bool(reload_dataloaders_every_n_epochs)
         self.trainer.reload_dataloaders_every_n_epochs = reload_dataloaders_every_n_epochs
