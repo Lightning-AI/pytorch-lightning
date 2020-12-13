@@ -19,17 +19,19 @@ GPU Stats Monitor
 Monitor and logs GPU stats during training.
 
 """
-
 import os
 import shutil
 import subprocess
 import time
-from typing import List, Tuple, Dict
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
+
+if TYPE_CHECKING:
+    from pytorch_lightning.trainer.trainer import Trainer
 
 
 class GPUStatsMonitor(Callback):
@@ -72,6 +74,8 @@ class GPUStatsMonitor(Callback):
     - **temperature.memory** – HBM memory temperature, in degrees C.
 
     """
+    _snap_intra_step_time: Optional[float]
+    _snap_inter_step_time: Optional[float]
 
     def __init__(
         self,
@@ -80,8 +84,8 @@ class GPUStatsMonitor(Callback):
         intra_step_time: bool = False,
         inter_step_time: bool = False,
         fan_speed: bool = False,
-        temperature: bool = False
-    ):
+        temperature: bool = False,
+    ) -> None:
         super().__init__()
 
         if shutil.which('nvidia-smi') is None:
@@ -89,20 +93,20 @@ class GPUStatsMonitor(Callback):
                 'Cannot use GPUStatsMonitor callback because NVIDIA driver is not installed.'
             )
 
-        self._log_stats = AttributeDict({
-            'memory_utilization': memory_utilization,
-            'gpu_utilization': gpu_utilization,
-            'intra_step_time': intra_step_time,
-            'inter_step_time': inter_step_time,
-            'fan_speed': fan_speed,
-            'temperature': temperature
-        })
+        self._log_stats = AttributeDict(
+            {
+                'memory_utilization': memory_utilization,
+                'gpu_utilization': gpu_utilization,
+                'intra_step_time': intra_step_time,
+                'inter_step_time': inter_step_time,
+                'fan_speed': fan_speed,
+                'temperature': temperature,
+            }
+        )
 
-    def on_train_start(self, trainer, *args, **kwargs):
+    def on_train_start(self, trainer: 'Trainer', *args: Any, **kwargs: Any) -> None:
         if not trainer.logger:
-            raise MisconfigurationException(
-                'Cannot use GPUStatsMonitor callback with Trainer that has no logger.'
-            )
+            raise MisconfigurationException('Cannot use GPUStatsMonitor callback with Trainer that has no logger.')
 
         if not trainer.on_gpu:
             raise MisconfigurationException(
@@ -110,14 +114,14 @@ class GPUStatsMonitor(Callback):
                 f' since gpus attribute in Trainer is set to {trainer.gpus}.'
             )
 
-        self._gpu_ids = ','.join(map(str, trainer.data_parallel_device_ids))
+        self._gpu_ids = ','.join(map(str, trainer.data_parallel_device_ids))  # type: ignore
 
-    def on_train_epoch_start(self, *args, **kwargs):
+    def on_train_epoch_start(self, *args: Any, **kwargs: Any) -> None:
         self._snap_intra_step_time = None
         self._snap_inter_step_time = None
 
     @rank_zero_only
-    def on_train_batch_start(self, trainer, *args, **kwargs):
+    def on_train_batch_start(self, trainer: 'Trainer', *args: Any, **kwargs: Any) -> None:
         if self._log_stats.intra_step_time:
             self._snap_intra_step_time = time.time()
 
@@ -135,7 +139,7 @@ class GPUStatsMonitor(Callback):
         trainer.logger.log_metrics(logs, step=trainer.global_step)
 
     @rank_zero_only
-    def on_train_batch_end(self, trainer, *args, **kwargs):
+    def on_train_batch_end(self, trainer: 'Trainer', *args: Any, **kwargs: Any) -> None:
         if self._log_stats.inter_step_time:
             self._snap_inter_step_time = time.time()
 
@@ -156,21 +160,21 @@ class GPUStatsMonitor(Callback):
         gpu_query = ','.join(queries)
         format = 'csv,nounits,noheader'
         result = subprocess.run(
-            [shutil.which('nvidia-smi'), f'--query-gpu={gpu_query}', f'--format={format}', f'--id={self._gpu_ids}'],
+            [shutil.which('nvidia-smi'), f'--query-gpu={gpu_query}', f'--format={format}', f'--id={self._gpu_ids}'],  # type: ignore
             encoding="utf-8",
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
-            check=True
+            check=True,
         )
 
         def _to_float(x: str) -> float:
             try:
                 return float(x)
             except ValueError:
-                return 0.
+                return 0.0
 
-        stats = result.stdout.strip().split(os.linesep)
-        stats = [[_to_float(x) for x in s.split(', ')] for s in stats]
+        raw_stats = result.stdout.strip().split(os.linesep)
+        stats = [[_to_float(x) for x in s.split(', ')] for s in raw_stats]
         return stats
 
     @staticmethod
@@ -207,11 +211,8 @@ class GPUStatsMonitor(Callback):
         return stat_keys
 
     @staticmethod
-    def _should_log(trainer) -> bool:
-        should_log = (
-            (trainer.global_step + 1) % trainer.log_every_n_steps == 0
-            or trainer.should_stop
-        )
+    def _should_log(trainer: 'Trainer') -> bool:
+        should_log = (trainer.global_step + 1) % trainer.log_every_n_steps == 0 or trainer.should_stop
 
         should_log = should_log and not trainer.fast_dev_run
         return should_log
