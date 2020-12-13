@@ -338,6 +338,10 @@ class TrainerProperties(ABC):
     def get_model(self):
         # TODO: rename this to lightning_module (see training type plugin)
         # backward compatible
+        return self.lightning_module
+
+    @property
+    def lightning_module(self):
         return self.training_type_plugin.lightning_module
 
     def __getstate__(self):

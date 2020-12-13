@@ -151,39 +151,6 @@ class TrainLoop:
             self.trainer.logger.log_graph(ref_model)
             self.trainer.logger.save()
 
-        # wait for all to join if on distributed
-        self.trainer.accelerator.training_type_plugin.barrier("setup_training")
-
-        # register auto-resubmit when on SLURM
-        self.trainer.slurm_connector.register_slurm_signal_handlers()
-
-        if not self.trainer.is_global_zero and self.trainer.progress_bar_callback is not None:
-            self.trainer.progress_bar_callback.disable()
-
-        # --------------------------
-        # Pre-train
-        # --------------------------
-        # on pretrain routine start
-        self.trainer.on_pretrain_routine_start(ref_model)
-        if self.trainer.is_function_implemented("on_pretrain_routine_start"):
-            ref_model.on_pretrain_routine_start()
-
-        # print model summary
-        if self.trainer.is_global_zero and not self.trainer.testing:
-            ref_model.summarize(mode=self.trainer.weights_summary)
-
-        # track model now.
-        # if cluster resets state, the model will update with the saved weights
-        self.trainer.model = model
-
-        # restore training state and model weights before hpc is called
-        self.trainer.checkpoint_connector.restore_weights(model)
-
-        # on pretrain routine end
-        self.trainer.on_pretrain_routine_end(ref_model)
-        if self.trainer.is_function_implemented("on_pretrain_routine_end"):
-            ref_model.on_pretrain_routine_end()
-
     def on_train_end(self):
         if self._teardown_already_run:
             return
