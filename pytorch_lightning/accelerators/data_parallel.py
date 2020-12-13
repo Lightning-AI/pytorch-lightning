@@ -333,10 +333,8 @@ class DDPPlugin(ParallelPlugin):
         os.environ["PL_TRAINER_GPUS"] = ",".join([str(i) for i in self.parallel_device_ids])
         os.environ["PL_IN_DDP_SUBPROCESS"] = "1"
 
-        print("logger", self.lightning_module.logger)
         if self.lightning_module.logger is not None:
             os.environ["PL_EXP_VERSION"] = str(self.lightning_module.logger.version)
-        print("exp", os.environ["PL_EXP_VERSION"])
 
         num_gpus = len(self.parallel_device_ids)
         # TODO: Add num_nodes (pass it in?)
