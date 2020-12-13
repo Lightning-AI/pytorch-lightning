@@ -35,7 +35,10 @@ class DataConnector(object):
 
         if reload_dataloaders_every_epoch:
             reload_dataloaders_every_n_epochs = int(reload_dataloaders_every_epoch)
-            rank_zero_warn("'reload_dataloaders_every_epoch' is deprecated. Use reload_dataloaders_every_n_epochs", DeprecationWarning)
+            rank_zero_warn(
+                "`reload_dataloaders_every_epoch` is deprecated in v1.2 and will be removed in v1.4."
+                " Please use `reload_dataloaders_every_n_epochs` in Trainer", DeprecationWarning
+            )
 
         if not isinstance(reload_dataloaders_every_n_epochs, int) or (reload_dataloaders_every_n_epochs < 0):
             raise MisconfigurationException(
