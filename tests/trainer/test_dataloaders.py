@@ -1128,10 +1128,6 @@ def test_dataloaders_load_every_epoch(tmpdir):
 
     trainer.test()
 
-    assert len(trainer.dev_debugger.val_dataloader_calls) == 4
-    assert len(trainer.dev_debugger.train_dataloader_calls) == 3
-    assert len(trainer.dev_debugger.test_dataloader_calls) == 1
-
     # verify the sequence
     calls = trainer.dev_debugger.dataloader_sequence_calls
     expected_sequence = [
@@ -1163,10 +1159,6 @@ def test_dataloaders_load_every_n_epochs(tmpdir):
     )
     trainer.fit(model)
     trainer.test()
-
-    assert len(trainer.dev_debugger.val_dataloader_calls) == 3
-    assert len(trainer.dev_debugger.train_dataloader_calls) == 2
-    assert len(trainer.dev_debugger.test_dataloader_calls) == 1
 
     # verify the sequence
     calls = trainer.dev_debugger.dataloader_sequence_calls
