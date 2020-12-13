@@ -160,7 +160,12 @@ class GPUStatsMonitor(Callback):
         gpu_query = ','.join(queries)
         format = 'csv,nounits,noheader'
         result = subprocess.run(
-            [shutil.which('nvidia-smi'), f'--query-gpu={gpu_query}', f'--format={format}', f'--id={self._gpu_ids}'],  # type: ignore
+            [
+                shutil.which('nvidia-smi'),  # type: ignore
+                f'--query-gpu={gpu_query}',
+                f'--format={format}',
+                f'--id={self._gpu_ids}',
+            ],
             encoding="utf-8",
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6

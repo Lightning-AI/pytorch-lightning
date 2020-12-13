@@ -561,7 +561,9 @@ class ModelCheckpoint(Callback):
 
         if accelerator_backend is not None and accelerator_backend.rpc_enabled:
             # RPCPlugin manages saving all model states
-            accelerator_backend.ddp_plugin.rpc_save_model(self._save_model, last_filepath, trainer, pl_module)  # type: ignore
+            accelerator_backend.ddp_plugin.rpc_save_model(  # type: ignore
+                self._save_model, last_filepath, trainer, pl_module
+            )
         else:
             self._save_model(last_filepath, trainer, pl_module)
         if (
