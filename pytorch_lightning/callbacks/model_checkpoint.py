@@ -19,12 +19,11 @@ Model Checkpointing
 Automatically save model checkpoints during training.
 
 """
-
 import os
 import re
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Union
 
 import numpy as np
 import torch
@@ -32,10 +31,14 @@ import yaml
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
+from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+if TYPE_CHECKING:
+    from pytorch_lightning.trainer.trainer import Trainer
 
 
 class ModelCheckpoint(Callback):
@@ -138,6 +141,9 @@ class ModelCheckpoint(Callback):
         trainer.fit(model)
         checkpoint_callback.best_model_path
     """
+    best_k_models: Dict[str, Any]
+    save_function: Optional[Callable]
+    current_score: Optional[torch.Tensor]
 
     CHECKPOINT_JOIN_CHAR = "-"
     CHECKPOINT_NAME_LAST = "last"
@@ -156,7 +162,7 @@ class ModelCheckpoint(Callback):
         prefix: str = "",
         dirpath: Optional[Union[str, Path]] = None,
         filename: Optional[str] = None,
-    ):
+    ) -> None:
         super().__init__()
         self.monitor = monitor
         self.verbose = verbose
@@ -181,27 +187,28 @@ class ModelCheckpoint(Callback):
         if prefix:
             rank_zero_warn(
                 'Argument `prefix` is deprecated in v1.1 and will be removed in v1.3.'
-                ' Please prepend your prefix in `filename` instead.', DeprecationWarning
+                ' Please prepend your prefix in `filename` instead.',
+                DeprecationWarning,
             )
 
         self.__init_monitor_mode(monitor, mode)
         self.__init_ckpt_dir(filepath, dirpath, filename, save_top_k)
         self.__validate_init_configuration()
 
-    def on_pretrain_routine_start(self, trainer, pl_module):
+    def on_pretrain_routine_start(self, trainer: 'Trainer', pl_module: LightningModule) -> None:
         """
         When pretrain routine starts we build the ckpt dir on the fly
         """
         self.__resolve_ckpt_dir(trainer, pl_module)
         self.save_function = trainer.save_checkpoint
 
-    def on_validation_end(self, trainer, pl_module):
+    def on_validation_end(self, trainer: 'Trainer', pl_module: LightningModule) -> None:
         """
         checkpoints can be saved at the end of the val loop
         """
         self.save_checkpoint(trainer, pl_module)
 
-    def on_save_checkpoint(self, trainer, pl_module) -> Dict[str, Any]:
+    def on_save_checkpoint(self, trainer: 'Trainer', pl_module: LightningModule) -> Dict[str, Any]:
         return {
             "monitor": self.monitor,
             "best_model_score": self.best_model_score,
@@ -209,11 +216,11 @@ class ModelCheckpoint(Callback):
             "current_score": self.current_score,
         }
 
-    def on_load_checkpoint(self, checkpointed_state: Dict[str, Any]):
+    def on_load_checkpoint(self, checkpointed_state: Dict[str, Any]) -> None:
         self.best_model_score = checkpointed_state["best_model_score"]
         self.best_model_path = checkpointed_state["best_model_path"]
 
-    def save_checkpoint(self, trainer, pl_module):
+    def save_checkpoint(self, trainer: 'Trainer', pl_module: LightningModule) -> None:
         """
         Performs the main logic around saving a checkpoint.
         This method runs on all ranks, it is the responsibility of `self.save_function`
@@ -252,11 +259,9 @@ class ModelCheckpoint(Callback):
         # Mode 2: save the last checkpoint
         self._save_last_checkpoint(trainer, pl_module, monitor_candidates, filepath)
 
-    def __validate_init_configuration(self):
+    def __validate_init_configuration(self) -> None:
         if self.save_top_k is not None and self.save_top_k < -1:
-            raise MisconfigurationException(
-                f'Invalid value for save_top_k={self.save_top_k}. Must be None or >= -1'
-            )
+            raise MisconfigurationException(f'Invalid value for save_top_k={self.save_top_k}. Must be None or >= -1')
         if self.monitor is None:
             # None: save last epoch, -1: save all epochs, 0: nothing is saved
             if self.save_top_k not in [None, -1, 0]:
@@ -270,9 +275,15 @@ class ModelCheckpoint(Callback):
                     ' You can save the last checkpoint with ModelCheckpoint(save_top_k=None, monitor=None).'
                 )
 
-    def __init_ckpt_dir(self, filepath, dirpath, filename, save_top_k):
+    def __init_ckpt_dir(
+        self,
+        filepath: Optional[str],
+        dirpath: Optional[Union[str, Path]],
+        filename: Optional[str],
+        save_top_k: Optional[int],
+    ) -> None:
         if filepath:
-            if (dirpath or filename):
+            if dirpath or filename:
                 raise MisconfigurationException(
                     'You have set all three path/name inputs which are not feasible.'
                     f' You have to choose either filepath={filepath} OR dirpath={dirpath}'
@@ -281,7 +292,8 @@ class ModelCheckpoint(Callback):
 
             rank_zero_warn(
                 'Argument `filepath` is deprecated in v1.0 and will be removed in v1.2.'
-                ' Please use `dirpath` and `filename` instead.', DeprecationWarning
+                ' Please use `dirpath` and `filename` instead.',
+                DeprecationWarning,
             )
 
             _fs = get_filesystem(filepath)
@@ -310,10 +322,10 @@ class ModelCheckpoint(Callback):
         if dirpath and self._fs.protocol == 'file':
             dirpath = os.path.realpath(dirpath)
 
-        self.dirpath: Union[str, None] = dirpath or None
+        self.dirpath = dirpath or None
         self.filename = filename or None
 
-    def __init_monitor_mode(self, monitor, mode):
+    def __init_monitor_mode(self, monitor: Optional[str], mode: str) -> None:
         torch_inf = torch.tensor(np.Inf)
         mode_dict = {
             "min": (torch_inf, "min"),
@@ -332,7 +344,7 @@ class ModelCheckpoint(Callback):
             rank_zero_warn(
                 "mode='auto' is deprecated in v1.1 and will be removed in v1.3."
                 " Default value for mode with be 'min' in v1.3.",
-                DeprecationWarning
+                DeprecationWarning,
             )
 
             mode_dict['auto'] = (
@@ -344,12 +356,12 @@ class ModelCheckpoint(Callback):
         self.kth_value, self.mode = mode_dict[mode]
 
     @rank_zero_only
-    def _del_model(self, filepath: str):
+    def _del_model(self, filepath: str) -> None:
         if self._fs.exists(filepath):
             self._fs.rm(filepath)
             log.debug(f"Removed checkpoint: {filepath}")
 
-    def _save_model(self, filepath: str, trainer, pl_module):
+    def _save_model(self, filepath: str, trainer: 'Trainer', pl_module: LightningModule) -> None:
         # in debugging, track when we save checkpoints
         trainer.dev_debugger.track_checkpointing_history(filepath)
 
@@ -363,14 +375,14 @@ class ModelCheckpoint(Callback):
         else:
             raise ValueError(".save_function() not set")
 
-    def check_monitor_top_k(self, current) -> bool:
+    def check_monitor_top_k(self, current: Optional[torch.Tensor]) -> bool:
         if current is None:
             return False
 
         if self.save_top_k == -1:
             return True
 
-        less_than_k_models = len(self.best_k_models) < self.save_top_k
+        less_than_k_models = len(self.best_k_models) < self.save_top_k  # type: ignore
         if less_than_k_models:
             return True
 
@@ -383,7 +395,7 @@ class ModelCheckpoint(Callback):
             current = torch.tensor(current)
 
         monitor_op = {"min": torch.lt, "max": torch.gt}[self.mode]
-        return monitor_op(current, self.best_k_models[self.kth_best_model_path]).item()
+        return bool(monitor_op(current, self.best_k_models[self.kth_best_model_path]).item())
 
     @classmethod
     def _format_checkpoint_name(
@@ -414,9 +426,7 @@ class ModelCheckpoint(Callback):
 
         return filename
 
-    def format_checkpoint_name(
-        self, epoch: int, step: int, metrics: Dict[str, Any], ver: Optional[int] = None
-    ) -> str:
+    def format_checkpoint_name(self, epoch: int, step: int, metrics: Dict[str, Any], ver: Optional[int] = None) -> str:
         """Generate a filename according to the defined template.
 
         Example::
@@ -439,15 +449,13 @@ class ModelCheckpoint(Callback):
             'step=0.ckpt'
 
         """
-        filename = self._format_checkpoint_name(
-            self.filename, epoch, step, metrics, prefix=self.prefix
-        )
+        filename = self._format_checkpoint_name(self.filename, epoch, step, metrics, prefix=self.prefix)
         if ver is not None:
             filename = self.CHECKPOINT_JOIN_CHAR.join((filename, f"v{ver}"))
         ckpt_name = f"{filename}{self.FILE_EXTENSION}"
         return os.path.join(self.dirpath, ckpt_name) if self.dirpath else ckpt_name
 
-    def __resolve_ckpt_dir(self, trainer, pl_module):
+    def __resolve_ckpt_dir(self, trainer: 'Trainer', pl_module: LightningModule) -> None:
         """
         Determines model checkpoint save directory at runtime. References attributes from the
         trainer's logger to determine where to save checkpoints.
@@ -479,9 +487,7 @@ class ModelCheckpoint(Callback):
 
             version, name = trainer.accelerator_backend.broadcast((version, trainer.logger.name))
 
-            ckpt_path = os.path.join(
-                save_dir, name, version, "checkpoints"
-            )
+            ckpt_path = os.path.join(save_dir, name, version, "checkpoints")
         else:
             ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")
 
@@ -490,7 +496,7 @@ class ModelCheckpoint(Callback):
         if trainer.is_global_zero:
             self._fs.makedirs(self.dirpath, exist_ok=True)
 
-    def _add_backward_monitor_support(self, trainer):
+    def _add_backward_monitor_support(self, trainer: 'Trainer') -> None:
         metrics = trainer.logger_connector.callback_metrics
 
         # backward compatibility... need to deprecate
@@ -503,7 +509,7 @@ class ModelCheckpoint(Callback):
         if self.save_top_k is None and self.monitor is not None:
             self.save_top_k = 1
 
-    def _validate_monitor_key(self, trainer):
+    def _validate_monitor_key(self, trainer: 'Trainer') -> None:
         metrics = trainer.logger_connector.callback_metrics
 
         # validate metric
@@ -515,7 +521,7 @@ class ModelCheckpoint(Callback):
             )
             raise MisconfigurationException(m)
 
-    def _get_metric_interpolated_filepath_name(self, ckpt_name_metrics: Dict[str, Any], epoch: int, step: int):
+    def _get_metric_interpolated_filepath_name(self, ckpt_name_metrics: Dict[str, Any], epoch: int, step: int) -> str:
         filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics)
         version_cnt = 0
         while self._fs.exists(filepath):
@@ -524,14 +530,16 @@ class ModelCheckpoint(Callback):
             version_cnt += 1
         return filepath
 
-    def _monitor_candidates(self, trainer):
+    def _monitor_candidates(self, trainer: 'Trainer') -> Dict[str, Any]:
         ckpt_name_metrics = deepcopy(trainer.logger_connector.logged_metrics)
         ckpt_name_metrics.update(trainer.logger_connector.callback_metrics)
         ckpt_name_metrics.update(trainer.logger_connector.progress_bar_metrics)
         ckpt_name_metrics.update({"step": trainer.global_step, "epoch": trainer.current_epoch})
         return ckpt_name_metrics
 
-    def _save_last_checkpoint(self, trainer, pl_module, ckpt_name_metrics, filepath):
+    def _save_last_checkpoint(
+        self, trainer: 'Trainer', pl_module: LightningModule, ckpt_name_metrics: Dict[str, Any], filepath: str
+    ) -> None:
         should_save_last = self.monitor is None or self.save_last
         if not should_save_last:
             return
@@ -545,22 +553,22 @@ class ModelCheckpoint(Callback):
                 trainer.current_epoch,
                 trainer.global_step,
                 ckpt_name_metrics,
-                prefix=self.prefix
+                prefix=self.prefix,
             )
-            last_filepath = os.path.join(self.dirpath, f"{last_filepath}{self.FILE_EXTENSION}")
+            last_filepath = os.path.join(self.dirpath, f"{last_filepath}{self.FILE_EXTENSION}")  # type: ignore
 
         accelerator_backend = trainer.accelerator_backend
 
         if accelerator_backend is not None and accelerator_backend.rpc_enabled:
             # RPCPlugin manages saving all model states
-            accelerator_backend.ddp_plugin.rpc_save_model(self._save_model, last_filepath, trainer, pl_module)
+            accelerator_backend.ddp_plugin.rpc_save_model(self._save_model, last_filepath, trainer, pl_module)  # type: ignore
         else:
             self._save_model(last_filepath, trainer, pl_module)
         if (
-                self.last_model_path
-                and self.last_model_path != last_filepath
-                and (self.save_top_k != -1 or self.save_last)
-                and trainer.is_global_zero
+            self.last_model_path
+            and self.last_model_path != last_filepath
+            and (self.save_top_k != -1 or self.save_last)
+            and trainer.is_global_zero
         ):
             self._del_model(self.last_model_path)
         self.last_model_path = last_filepath
@@ -568,8 +576,10 @@ class ModelCheckpoint(Callback):
         if self.monitor is None:
             self.best_model_path = self.last_model_path
 
-    def _save_top_k_checkpoints(self, metrics, trainer, pl_module, filepath):
-        current = metrics.get(self.monitor)
+    def _save_top_k_checkpoints(
+        self, metrics: Dict[str, Any], trainer: 'Trainer', pl_module: LightningModule, filepath: str
+    ) -> None:
+        current = metrics.get(self.monitor)  # type: ignore
         epoch = metrics.get("epoch")
         step = metrics.get("step")
 
@@ -577,13 +587,11 @@ class ModelCheckpoint(Callback):
             current = torch.tensor(current, device=pl_module.device)
 
         if self.check_monitor_top_k(current):
-            self._update_best_and_save(filepath, current, epoch, step, trainer, pl_module)
+            self._update_best_and_save(filepath, current, epoch, step, trainer, pl_module)  # type: ignore
         elif self.verbose:
-            rank_zero_info(
-                f"Epoch {epoch:d}, step {step:d}: {self.monitor} was not in top {self.save_top_k}"
-            )
+            rank_zero_info(f"Epoch {epoch:d}, step {step:d}: {self.monitor} was not in top {self.save_top_k}")
 
-    def _is_valid_monitor_key(self, metrics):
+    def _is_valid_monitor_key(self, metrics: Dict[str, Any]) -> bool:
         return self.monitor in metrics or len(metrics) == 0
 
     def _update_best_and_save(
@@ -592,9 +600,9 @@ class ModelCheckpoint(Callback):
         current: torch.Tensor,
         epoch: int,
         step: int,
-        trainer,
-        pl_module,
-    ):
+        trainer: 'Trainer',
+        pl_module: LightningModule,
+    ) -> None:
         k = len(self.best_k_models) + 1 if self.save_top_k == -1 else self.save_top_k
 
         del_list = []
@@ -614,13 +622,11 @@ class ModelCheckpoint(Callback):
         if len(self.best_k_models) == k:
             # monitor dict has reached k elements
             _op = max if self.mode == "min" else min
-            self.kth_best_model_path = _op(
-                self.best_k_models, key=self.best_k_models.get
-            )
+            self.kth_best_model_path = _op(self.best_k_models, key=self.best_k_models.get)  # type: ignore
             self.kth_value = self.best_k_models[self.kth_best_model_path]
 
         _op = min if self.mode == "min" else max
-        self.best_model_path = _op(self.best_k_models, key=self.best_k_models.get)
+        self.best_model_path = _op(self.best_k_models, key=self.best_k_models.get)  # type: ignore
         self.best_model_score = self.best_k_models[self.best_model_path]
 
         if self.verbose:
@@ -634,13 +640,13 @@ class ModelCheckpoint(Callback):
             if cur_path != filepath:
                 self._del_model(cur_path)
 
-    def to_yaml(self, filepath: Optional[Union[str, Path]] = None):
+    def to_yaml(self, filepath: Optional[Union[str, Path]] = None) -> None:
         """
         Saves the `best_k_models` dict containing the checkpoint
         paths with the corresponding scores to a YAML file.
         """
         best_k = {k: v.item() for k, v in self.best_k_models.items()}
         if filepath is None:
-            filepath = os.path.join(self.dirpath, "best_k_models.yaml")
+            filepath = os.path.join(self.dirpath, "best_k_models.yaml")  # type: ignore
         with self._fs.open(filepath, "w") as fp:
             yaml.dump(best_k, fp)
