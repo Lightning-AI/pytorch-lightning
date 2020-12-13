@@ -250,7 +250,11 @@ class Trainer(
             reload_dataloaders_every_n_epochs: Set with bool or integer to reload dataloaders every n epochs.
                 Default: False
 
-            reload_dataloaders_every_epoch: Deprecated. Please use 'reload_dataloaders_every_n_epochs'
+            reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch.
+
+            .. warning::
+               ``reload_dataloaders_every_epoch`` has been deprecated in v1.2 and will be removed in v1.4.
+               Please use ``reload_dataloaders_every_n_epochs``.
 
             replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this
                 will toggled automatically when DDP is used. By default it will add ``shuffle=True`` for
