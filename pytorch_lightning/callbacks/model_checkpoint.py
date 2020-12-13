@@ -33,6 +33,7 @@ import yaml
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -90,7 +91,7 @@ class ModelCheckpoint(Callback):
             Example::
 
                 # custom path
-                # saves a file like: my/path/epoch=0.ckpt
+                # saves a file like: my/path/epoch=0-step=10.ckpt
                 >>> checkpoint_callback = ModelCheckpoint(dirpath='my/path/')
 
             By default, dirpath is ``None`` and will be set at runtime to the location
@@ -140,6 +141,7 @@ class ModelCheckpoint(Callback):
 
     CHECKPOINT_JOIN_CHAR = "-"
     CHECKPOINT_NAME_LAST = "last"
+    FILE_EXTENSION = ".ckpt"
 
     def __init__(
         self,
@@ -442,7 +444,7 @@ class ModelCheckpoint(Callback):
         )
         if ver is not None:
             filename = self.CHECKPOINT_JOIN_CHAR.join((filename, f"v{ver}"))
-        ckpt_name = f"{filename}.ckpt"
+        ckpt_name = f"{filename}{self.FILE_EXTENSION}"
         return os.path.join(self.dirpath, ckpt_name) if self.dirpath else ckpt_name
 
     def __resolve_ckpt_dir(self, trainer, pl_module):
@@ -545,9 +547,15 @@ class ModelCheckpoint(Callback):
                 ckpt_name_metrics,
                 prefix=self.prefix
             )
-            last_filepath = os.path.join(self.dirpath, f"{last_filepath}.ckpt")
+            last_filepath = os.path.join(self.dirpath, f"{last_filepath}{self.FILE_EXTENSION}")
 
-        self._save_model(last_filepath, trainer, pl_module)
+        accelerator_backend = trainer.accelerator_backend
+
+        if accelerator_backend is not None and accelerator_backend.rpc_enabled:
+            # RPCPlugin manages saving all model states
+            accelerator_backend.ddp_plugin.rpc_save_model(self._save_model, last_filepath, trainer, pl_module)
+        else:
+            self._save_model(last_filepath, trainer, pl_module)
         if (
                 self.last_model_path
                 and self.last_model_path != last_filepath

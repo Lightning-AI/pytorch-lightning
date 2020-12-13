@@ -40,7 +40,7 @@ def test_ddp_choice_default_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
         fast_dev_run=True,
         gpus=gpus,
         num_processes=num_processes,
-        distributed_backend=ddp_backend,
+        accelerator=ddp_backend,
         callbacks=[CB()],
     )
 
@@ -78,7 +78,7 @@ def test_ddp_choice_custom_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
         fast_dev_run=True,
         gpus=gpus,
         num_processes=num_processes,
-        distributed_backend=ddp_backend,
+        accelerator=ddp_backend,
         plugins=[MyDDP()],
         callbacks=[CB()],
     )
@@ -116,7 +116,7 @@ def test_ddp_choice_string_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
         fast_dev_run=True,
         gpus=gpus,
         num_processes=num_processes,
-        distributed_backend=ddp_backend,
+        accelerator=ddp_backend,
         plugins='ddp_sharded',
         callbacks=[CB()],
     )
@@ -147,7 +147,7 @@ def test_ddp_invalid_choice_string_ddp_cpu(tmpdir, ddp_backend, gpus, num_proces
             fast_dev_run=True,
             gpus=gpus,
             num_processes=num_processes,
-            distributed_backend=ddp_backend,
+            accelerator=ddp_backend,
             plugins='invalid',
         )
 
@@ -183,7 +183,7 @@ def test_ddp_invalid_choice_string_and_custom_ddp_cpu(tmpdir, ddp_backend, gpus,
             fast_dev_run=True,
             gpus=gpus,
             num_processes=num_processes,
-            distributed_backend=ddp_backend,
+            accelerator=ddp_backend,
             plugins=['ddp_sharded', MyDDP()],
         )
 
@@ -220,7 +220,7 @@ def test_ddp_choice_custom_ddp_cpu_custom_args(
         fast_dev_run=True,
         gpus=gpus,
         num_processes=num_processes,
-        distributed_backend=ddp_backend,
+        accelerator=ddp_backend,
         plugins=[MyDDP(broadcast_buffers=False, find_unused_parameters=True)],
         callbacks=[CB()],
     )

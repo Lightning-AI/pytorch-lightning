@@ -24,11 +24,10 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
-from pytorch_lightning.accelerators.cpu_accelerator import CPUAccelerator
-from pytorch_lightning.callbacks import Callback, ModelCheckpoint
+from pytorch_lightning.trainer.deprecated_api import DeprecatedDistDeviceAttributes
+from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.plugins.plugin_connector import PluginConnector
@@ -53,11 +52,11 @@ from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.properties import TrainerProperties
-from pytorch_lightning.trainer.states import TrainerState, trainer_state
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.tuning import Tuner
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn, DeviceType
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -78,6 +77,7 @@ class Trainer(
     TrainerLoggingMixin,
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
+    DeprecatedDistDeviceAttributes,
 ):
     @overwrite_by_env_vars
     def __init__(
@@ -99,7 +99,7 @@ class Trainer(
         track_grad_norm: Union[int, float, str] = -1,
         track_grad_norm_mode: str = 'parameters',
         check_val_every_n_epoch: int = 1,
-        fast_dev_run: bool = False,
+        fast_dev_run: Union[int, bool] = False,
         accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
         max_epochs: int = 1000,
         min_epochs: int = 1,
@@ -187,7 +187,8 @@ class Trainer(
 
             distributed_backend: deprecated. Please use 'accelerator'
 
-            fast_dev_run: runs 1 batch of train, test and val to find any bugs (ie: a sort of unit test).
+            fast_dev_run: runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
+                of train, val and test to find any bugs (ie: a sort of unit test).
 
             flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
 
@@ -287,6 +288,8 @@ class Trainer(
                 handle AMP, TPU, accumulated_gradients, etc..
         """
         super().__init__()
+        self._device_type = DeviceType.CPU
+        self._distrib_type = None
 
         # init connectors
         self.dev_debugger = InternalDebugger(self)
@@ -364,7 +367,7 @@ class Trainer(
         )
 
         # init train loop related flags
-        # TODO: deprecate in 1.2.0
+        # TODO: remove in 1.3.0
         if automatic_optimization is None:
             automatic_optimization = True
         else:
@@ -864,7 +867,8 @@ class Trainer(
         model.setup(stage_name)
 
     def _reset_result_and_set_hook_fx_name(self, hook_name):
-        if "batch_start" in hook_name:
+        # on_before_zero_grad is called within training_step
+        if "batch_start" in hook_name or "on_before_zero_grad" in hook_name:
             return True
         model_ref = self.get_model()
         if model_ref is not None:

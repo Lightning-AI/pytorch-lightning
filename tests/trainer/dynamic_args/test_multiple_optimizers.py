@@ -97,11 +97,14 @@ def test_multiple_optimizers_manual(tmpdir):
             optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer, optimizer_2
 
+        @property
+        def automatic_optimization(self) -> bool:
+            return False
+
     model = TestModel()
     model.val_dataloader = None
 
     trainer = Trainer(
-        automatic_optimization=False,
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,

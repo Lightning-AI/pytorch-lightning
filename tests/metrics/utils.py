@@ -21,10 +21,10 @@ THRESHOLD = 0.5
 
 def setup_ddp(rank, world_size):
     """ Setup ddp enviroment """
-    os.environ["MASTER_ADDR"] = 'localhost'
-    os.environ['MASTER_PORT'] = '8088'
+    os.environ["MASTER_ADDR"] = "localhost"
+    os.environ["MASTER_PORT"] = "8088"
 
-    if torch.distributed.is_available() and sys.platform not in ('win32', 'cygwin'):
+    if torch.distributed.is_available() and sys.platform not in ("win32", "cygwin"):
         torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
 
 
@@ -67,23 +67,23 @@ def _class_test(
     check_batch: bool = True,
     atol: float = 1e-8,
 ):
-    """ Utility function doing the actual comparison between lightning class metric
-        and reference metric.
+    """Utility function doing the actual comparison between lightning class metric
+    and reference metric.
 
-        Args:
-            rank: rank of current process
-            worldsize: number of processes
-            preds: torch tensor with predictions
-            target: torch tensor with targets
-            metric_class: lightning metric class that should be tested
-            sk_metric: callable function that is used for comparison
-            dist_sync_on_step: bool, if true will synchronize metric state across
-                processes at each ``forward()``
-            metric_args: dict with additional arguments used for class initialization
-            check_dist_sync_on_step: bool, if true will check if the metric is also correctly
-                calculated per batch per device (and not just at the end)
-            check_batch: bool, if true will check if the metric is also correctly
-                calculated across devices for each batch (and not just at the end)
+    Args:
+        rank: rank of current process
+        worldsize: number of processes
+        preds: torch tensor with predictions
+        target: torch tensor with targets
+        metric_class: lightning metric class that should be tested
+        sk_metric: callable function that is used for comparison
+        dist_sync_on_step: bool, if true will synchronize metric state across
+            processes at each ``forward()``
+        metric_args: dict with additional arguments used for class initialization
+        check_dist_sync_on_step: bool, if true will check if the metric is also correctly
+            calculated per batch per device (and not just at the end)
+        check_batch: bool, if true will check if the metric is also correctly
+            calculated across devices for each batch (and not just at the end)
     """
     # Instanciate lightning metric
     metric = metric_class(compute_on_step=True, dist_sync_on_step=dist_sync_on_step, **metric_args)
@@ -127,17 +127,17 @@ def _functional_test(
     metric_functional: Callable,
     sk_metric: Callable,
     metric_args: dict = {},
-    atol: float = 1e-8
+    atol: float = 1e-8,
 ):
-    """ Utility function doing the actual comparison between lightning functional metric
-        and reference metric.
+    """Utility function doing the actual comparison between lightning functional metric
+    and reference metric.
 
-        Args:
-            preds: torch tensor with predictions
-            target: torch tensor with targets
-            metric_functional: lightning metric functional that should be tested
-            sk_metric: callable function that is used for comparison
-            metric_args: dict with additional arguments used for class initialization
+    Args:
+        preds: torch tensor with predictions
+        target: torch tensor with targets
+        metric_functional: lightning metric functional that should be tested
+        sk_metric: callable function that is used for comparison
+        metric_args: dict with additional arguments used for class initialization
     """
     metric = partial(metric_functional, **metric_args)
 
@@ -150,22 +150,23 @@ def _functional_test(
 
 
 class MetricTester:
-    """ Class used for efficiently run alot of parametrized tests in ddp mode.
-        Makes sure that ddp is only setup once and that pool of processes are
-        used for all tests.
+    """Class used for efficiently run alot of parametrized tests in ddp mode.
+    Makes sure that ddp is only setup once and that pool of processes are
+    used for all tests.
 
-        All tests should subclass from this and implement a new method called
-            `test_metric_name`
-        where the method `self.run_metric_test` is called inside.
+    All tests should subclass from this and implement a new method called
+        `test_metric_name`
+    where the method `self.run_metric_test` is called inside.
     """
+
     atol = 1e-8
 
     def setup_class(self):
-        """ Setup the metric class. This will spawn the pool of workers that are
-            used for metric testing and setup_ddp
+        """Setup the metric class. This will spawn the pool of workers that are
+        used for metric testing and setup_ddp
         """
         try:
-            set_start_method('spawn')
+            set_start_method("spawn")
         except RuntimeError:
             pass
         self.poolSize = NUM_PROCESSES
@@ -183,24 +184,26 @@ class MetricTester:
         target: torch.Tensor,
         metric_functional: Callable,
         sk_metric: Callable,
-        metric_args: dict = {}
+        metric_args: dict = {},
     ):
-        """ Main method that should be used for testing functions. Call this inside
-            testing method
+        """Main method that should be used for testing functions. Call this inside
+        testing method
 
-            Args:
-                preds: torch tensor with predictions
-                target: torch tensor with targets
-                metric_functional: lightning metric class that should be tested
-                sk_metric: callable function that is used for comparison
-                metric_args: dict with additional arguments used for class initialization
+        Args:
+            preds: torch tensor with predictions
+            target: torch tensor with targets
+            metric_functional: lightning metric class that should be tested
+            sk_metric: callable function that is used for comparison
+            metric_args: dict with additional arguments used for class initialization
         """
-        _functional_test(preds=preds,
-                         target=target,
-                         metric_functional=metric_functional,
-                         sk_metric=sk_metric,
-                         metric_args=metric_args,
-                         atol=self.atol)
+        _functional_test(
+            preds=preds,
+            target=target,
+            metric_functional=metric_functional,
+            sk_metric=sk_metric,
+            metric_args=metric_args,
+            atol=self.atol,
+        )
 
     def run_class_metric_test(
         self,
@@ -214,22 +217,22 @@ class MetricTester:
         check_dist_sync_on_step: bool = True,
         check_batch: bool = True,
     ):
-        """ Main method that should be used for testing class. Call this inside testing
-            methods.
+        """Main method that should be used for testing class. Call this inside testing
+        methods.
 
-            Args:
-                ddp: bool, if running in ddp mode or not
-                preds: torch tensor with predictions
-                target: torch tensor with targets
-                metric_class: lightning metric class that should be tested
-                sk_metric: callable function that is used for comparison
-                dist_sync_on_step: bool, if true will synchronize metric state across
-                    processes at each ``forward()``
-                metric_args: dict with additional arguments used for class initialization
-                check_dist_sync_on_step: bool, if true will check if the metric is also correctly
-                    calculated per batch per device (and not just at the end)
-                check_batch: bool, if true will check if the metric is also correctly
-                    calculated across devices for each batch (and not just at the end)
+        Args:
+            ddp: bool, if running in ddp mode or not
+            preds: torch tensor with predictions
+            target: torch tensor with targets
+            metric_class: lightning metric class that should be tested
+            sk_metric: callable function that is used for comparison
+            dist_sync_on_step: bool, if true will synchronize metric state across
+                processes at each ``forward()``
+            metric_args: dict with additional arguments used for class initialization
+            check_dist_sync_on_step: bool, if true will check if the metric is also correctly
+                calculated per batch per device (and not just at the end)
+            check_batch: bool, if true will check if the metric is also correctly
+                calculated across devices for each batch (and not just at the end)
         """
         if ddp:
             if sys.platform == "win32":
