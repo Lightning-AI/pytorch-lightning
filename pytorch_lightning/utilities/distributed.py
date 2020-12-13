@@ -145,7 +145,7 @@ def sync_ddp(
     if group is None:
         group = torch.distributed.group.WORLD
 
-    if reduce_op is None or reduce_op == "sum":
+    if reduce_op is None:
         reduce_op = torch.distributed.ReduceOp.SUM
     elif isinstance(reduce_op, str) and reduce_op in ("avg", "mean"):
         reduce_op = torch.distributed.ReduceOp.SUM

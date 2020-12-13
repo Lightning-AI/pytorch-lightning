@@ -1044,12 +1044,16 @@ def test_model_checkpoint_with_training_epoch_end(tmpdir):
     model = TestedModel()
 
     chk = ModelCheckpoint(monitor='epoch_end_train_loss', save_top_k=-1)
-    with pytest.warns(UserWarning, match="Running first epoch, a MisconfigurationException"):
-        trainer = pl.Trainer(
-            default_root_dir=tmpdir,
-            max_epochs=3,
-            progress_bar_refresh_rate=1,
-            callbacks=[chk],
-        )
-        trainer.current_epoch = 2
-        trainer.fit(model)
+    trainer = pl.Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=4,
+        progress_bar_refresh_rate=1,
+        callbacks=[chk],
+    )
+    trainer.current_epoch = 2
+    trainer.fit(model)
+
+    chks = os.listdir(tmpdir / 'lightning_logs' / 'version_0' / 'checkpoints')
+    assert any(['epoch=4' not in c for c in chks])
+    assert any(['epoch=3' in c for c in chks])
+    assert any(['epoch=2' not in c for c in chks])

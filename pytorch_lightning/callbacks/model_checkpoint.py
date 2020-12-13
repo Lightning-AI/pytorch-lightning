@@ -232,7 +232,8 @@ class ModelCheckpoint(Callback):
             return
 
         self._add_backward_monitor_support(trainer)
-        self._validate_monitor_key(trainer)
+        if not self._validate_monitor_key(trainer):
+            return
 
         # track epoch when ckpt was last checked
         self.last_global_step_saved = global_step
@@ -247,6 +248,7 @@ class ModelCheckpoint(Callback):
         # here we call each mode sequentially
         # Mode 1: save all checkpoints OR only the top k
         if self.save_top_k:
+            print(epoch, global_step)
             self._save_top_k_checkpoints(monitor_candidates, trainer, pl_module, filepath)
 
         # Mode 2: save the last checkpoint
@@ -503,21 +505,21 @@ class ModelCheckpoint(Callback):
         if self.save_top_k is None and self.monitor is not None:
             self.save_top_k = 1
 
-    def _validate_monitor_key(self, trainer):
+    def _validate_monitor_key(self, trainer) -> bool:
         metrics = trainer.logger_connector.callback_metrics
 
         # validate metric
         if self.monitor is not None and not self._is_valid_monitor_key(metrics):
-            m = (
-                f"ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics:"
-                f" {list(metrics.keys())}. "
-            )
             if not trainer.checkpoint_connector._one_training_epoch_completed:
-                m += "Running first epoch, a MisconfigurationException will be raise next epoch"
-                rank_zero_warn(m, UserWarning)
+                return False
             else:
-                m += f"HINT: Did you call self.log('{self.monitor}', tensor) in the LightningModule?"
+                m = (
+                    f"ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics:"
+                    f" {list(metrics.keys())}. "
+                    f"HINT: Did you call self.log('{self.monitor}', tensor) in the LightningModule?"
+                )
                 raise MisconfigurationException(m)
+        return True
 
     def _get_metric_interpolated_filepath_name(self, ckpt_name_metrics: Dict[str, Any], epoch: int, step: int):
         filepath = self.format_checkpoint_name(epoch, step, ckpt_name_metrics)
