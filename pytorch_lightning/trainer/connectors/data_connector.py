@@ -18,7 +18,8 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 class DataConnector(object):
@@ -26,11 +27,15 @@ class DataConnector(object):
     def __init__(self, trainer):
         self.trainer = trainer
 
-    def on_trainer_init(self, check_val_every_n_epoch, reload_dataloaders_every_n_epochs, prepare_data_per_node):
+    def on_trainer_init(self, check_val_every_n_epoch, reload_dataloaders_every_n_epochs, reload_dataloaders_every_epoch, prepare_data_per_node):
         self.trainer.datamodule = None
         self.trainer.prepare_data_per_node = prepare_data_per_node
 
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch
+
+        if reload_dataloaders_every_epoch:
+            reload_dataloaders_every_n_epochs = reload_dataloaders_every_epoch
+            rank_zero_warn("'reload_dataloaders_every_epoch' is deprecated. Use reload_dataloaders_every_n_epochs", DeprecationWarning)
 
         if reload_dataloaders_every_n_epochs < 0:
             raise MisconfigurationException("Value of 'reload_dataloaders_every_n_epochs' should be >= 0. "
