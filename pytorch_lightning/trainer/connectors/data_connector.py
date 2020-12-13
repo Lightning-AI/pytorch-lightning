@@ -34,7 +34,7 @@ class DataConnector(object):
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch
 
         if reload_dataloaders_every_epoch:
-            reload_dataloaders_every_n_epochs = reload_dataloaders_every_epoch
+            reload_dataloaders_every_n_epochs = int(reload_dataloaders_every_epoch)
             rank_zero_warn("'reload_dataloaders_every_epoch' is deprecated. Use reload_dataloaders_every_n_epochs", DeprecationWarning)
 
         if not isinstance(reload_dataloaders_every_n_epochs, int) or (reload_dataloaders_every_n_epochs < 0):
