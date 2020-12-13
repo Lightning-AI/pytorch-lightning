@@ -184,7 +184,6 @@ class BackendConnector(object):
             plugin = DDPPlugin(
                 parallel_device_ids=self.parallel_devices,
                 num_nodes=self.num_nodes,
-                logger=None,
                 cluster_environment=TorchElasticEnvironment(),  # TODO: deterimine this using plugin connector?
                 is_slurm_managing_tasks=False,  # TODO: determine this
             )
