@@ -1,12 +1,14 @@
-from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE
-from tests.base.boring_model import BoringModel
-from pytorch_lightning import Trainer
-import pytest
 import os
 from unittest import mock
-from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
+
+import pytest
 import torch
+
+from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
+from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE
+from tests.base.boring_model import BoringModel
 
 
 @pytest.mark.skipif(not NATIVE_AMP_AVAILABLE, reason="Minimal PT version is set to 1.6")
@@ -35,8 +37,8 @@ def test_amp_choice_default_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
         amp_backend='native',
         gpus=gpus,
         num_processes=num_processes,
-        distributed_backend=ddp_backend,
-        callbacks=[CB()]
+        accelerator=ddp_backend,
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
@@ -71,9 +73,9 @@ def test_amp_choice_custom_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
         amp_backend='native',
         gpus=gpus,
         num_processes=num_processes,
-        distributed_backend=ddp_backend,
+        accelerator=ddp_backend,
         plugins=[MyNativeAMP()],
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
@@ -99,11 +101,11 @@ def test_amp_gradient_unscale(tmpdir):
         limit_test_batches=2,
         limit_val_batches=2,
         amp_backend='native',
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         gpus=2,
         precision=16,
         track_grad_norm=2,
-        log_every_n_steps=1
+        log_every_n_steps=1,
     )
     trainer.fit(model)
 
@@ -128,7 +130,7 @@ def test_amp_gradient_unscale_accumulate_grad_batches(tmpdir):
         limit_test_batches=2,
         limit_val_batches=2,
         amp_backend='native',
-        distributed_backend='ddp_spawn',
+        accelerator='ddp_spawn',
         gpus=2,
         precision=16,
         track_grad_norm=2,
