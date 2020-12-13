@@ -32,7 +32,10 @@ class DataConnector(object):
 
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch
 
-        assert reload_dataloaders_every_n_epochs >= 0
+        if reload_dataloaders_every_n_epochs < 0:
+            raise MisconfigurationException("Value of 'reload_dataloaders_every_n_epochs' should be >= 0. "
+                                            f"Got {reload_dataloaders_every_n_epochs}")
+
         self.trainer.should_reload_dl_epoch = bool(reload_dataloaders_every_n_epochs)
         self.trainer.reload_dataloaders_every_n_epochs = reload_dataloaders_every_n_epochs
         self.trainer._is_data_prepared = False
