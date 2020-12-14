@@ -244,39 +244,6 @@ def test_distributed_backend_set_when_using_tpu(tmpdir, tpu_cores):
     assert Trainer(tpu_cores=tpu_cores).distributed_backend == "tpu"
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-@pl_multi_process_test
-def test_result_obj_on_tpu(tmpdir):
-    seed_everything(1234)
-
-    batches = 5
-    epochs = 2
-
-    model = EvalModelTemplate()
-    model.training_step = model.training_step_result_obj
-    model.training_step_end = None
-    model.training_epoch_end = None
-    model.validation_step = model.validation_step_result_obj
-    model.validation_step_end = None
-    model.validation_epoch_end = None
-    model.test_step = model.test_step_result_obj
-    model.test_step_end = None
-    model.test_epoch_end = None
-
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=epochs,
-        callbacks=[EarlyStopping()],
-        log_every_n_steps=2,
-        limit_train_batches=batches,
-        weights_summary=None,
-        tpu_cores=8
-    )
-
-    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
-
-
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_broadcast_on_tpu():
