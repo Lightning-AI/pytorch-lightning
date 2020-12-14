@@ -110,7 +110,6 @@ class NewAccelerator(object):
         )
 
     def optimizer_step(self, optimizer, current_epoch, batch_idx, opt_idx, lambda_closure):
-        # TODO: Check out if this can be simplified with new LightningOptimizer!
 
         model_ref = self.lightning_module
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
@@ -232,10 +231,29 @@ class NewAccelerator(object):
 
     @property
     def scaler(self):
-        if hasattr(self.precision_plugin, 'scaler'):
+        if hasattr(self.precision_plugin, "scaler"):
             return self.precision_plugin.scaler
 
         return None
+
+    @property
+    def rpc_enabled(self):
+        return self.training_type_plugin.rpc_enabled
+
+    # TODO: Check where this comes from and why it is needed
+    def optimizer_state(self, optimizer: Optimizer) -> dict:
+        """
+        Returns state of an optimizer. Allows for syncing/collating optimizer state from processes in custom
+        plugins.
+        Return:
+            Optimizer state dict
+        """
+        if self.training_type_plugin and hasattr(self.training_type_plugin, "optimizer_state"):
+            return self.training_type_plugin.optimizer_state(optimizer)
+        return optimizer.state_dict()
+
+    def on_save(self, checkpoint):
+        return checkpoint
 
 
 class NewCPUAccelerator(NewAccelerator):
