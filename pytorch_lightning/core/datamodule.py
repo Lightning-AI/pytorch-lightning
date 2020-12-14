@@ -373,7 +373,8 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
             val_dataset: (optional) Dataset or list of Dataset to be used for val_dataloader()
             test_dataset: (optional) Dataset or list of Dataset to be used for test_dataloader()
             batch_size: Batch size to use for each dataloader. Default is 1.
-            num_workers: Number of workers to use for each dataloader, if None, this will be set to the number of CPUs available.
+            num_workers: Number of workers to use for each dataloader, if None, this will be set to the
+                number of CPUs available.
 
         """
         if num_workers is None:
