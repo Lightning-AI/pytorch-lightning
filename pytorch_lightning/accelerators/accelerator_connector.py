@@ -164,7 +164,7 @@ class BackendConnector(object):
 
         elif self.precision == 16:
             if self.amp_type == 'native':
-                if not NATIVE_AMP_AVALAIBLE:
+                if not NATIVE_AMP_AVAILABLE:
                     rank_zero_warn('You have asked for native AMP but your PyTorch version does not support it.'
                                 ' Consider upgrading with `pip install torch>=1.6`.'
                                 ' We will attempt to use NVIDIA Apex for this session.')
