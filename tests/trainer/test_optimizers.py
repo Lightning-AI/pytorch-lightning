@@ -15,7 +15,6 @@ import pytest
 import torch
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.base.boring_model import BoringModel
@@ -177,6 +176,7 @@ def test_reducelronplateau_scheduling(tmpdir):
         frequency=1,
         reduce_on_plateau=True,
         strict=True,
+        name=None,
     ), 'lr scheduler was not correctly converted to dict'
 
 
@@ -215,7 +215,13 @@ def test_optimizer_return_options(enable_pl_optimizer):
     assert len(freq) == 0
     assert optim[0] == opt_a
     assert lr_sched[0] == dict(
-        scheduler=scheduler_a, interval='epoch', frequency=1, reduce_on_plateau=False, monitor=None, strict=True
+        scheduler=scheduler_a,
+        interval='epoch',
+        frequency=1,
+        reduce_on_plateau=False,
+        monitor=None,
+        strict=True,
+        name=None,
     )
 
     # opt tuple of 1 list
@@ -225,7 +231,13 @@ def test_optimizer_return_options(enable_pl_optimizer):
     assert len(freq) == 0
     assert optim[0] == opt_a
     assert lr_sched[0] == dict(
-        scheduler=scheduler_a, interval='epoch', frequency=1, reduce_on_plateau=False, monitor=None, strict=True
+        scheduler=scheduler_a,
+        interval='epoch',
+        frequency=1,
+        reduce_on_plateau=False,
+        monitor=None,
+        strict=True,
+        name=None,
     )
 
     # opt single dictionary
@@ -235,7 +247,13 @@ def test_optimizer_return_options(enable_pl_optimizer):
     assert len(freq) == 0
     assert optim[0] == opt_a
     assert lr_sched[0] == dict(
-        scheduler=scheduler_a, interval='epoch', frequency=1, reduce_on_plateau=False, monitor=None, strict=True
+        scheduler=scheduler_a,
+        interval='epoch',
+        frequency=1,
+        reduce_on_plateau=False,
+        monitor=None,
+        strict=True,
+        name=None,
     )
 
     # opt multiple dictionaries with frequencies
@@ -247,7 +265,13 @@ def test_optimizer_return_options(enable_pl_optimizer):
     assert len(optim) == len(lr_sched) == len(freq) == 2
     assert optim[0] == opt_a
     assert lr_sched[0] == dict(
-        scheduler=scheduler_a, interval='epoch', frequency=1, reduce_on_plateau=False, monitor=None, strict=True
+        scheduler=scheduler_a,
+        interval='epoch',
+        frequency=1,
+        reduce_on_plateau=False,
+        monitor=None,
+        strict=True,
+        name=None,
     )
     assert freq == [1, 5]
 
