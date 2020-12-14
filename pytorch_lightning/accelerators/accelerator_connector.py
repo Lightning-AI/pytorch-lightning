@@ -53,7 +53,6 @@ class BackendConnector(object):
         auto_select_gpus,
         gpus,
         num_nodes,
-        log_gpu_memory,
         sync_batchnorm,
         benchmark,
         replace_sampler_ddp,
@@ -76,7 +75,6 @@ class BackendConnector(object):
         self.auto_select_gpus = auto_select_gpus
         self.gpus = gpus
         self.num_nodes = num_nodes
-        self.log_gpu_memory = log_gpu_memory
         self.sync_batchnorm = sync_batchnorm
         self.benchmark = benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
