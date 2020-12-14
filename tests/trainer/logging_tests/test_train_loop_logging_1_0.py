@@ -783,9 +783,9 @@ def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
             output = self.layer(batch)
             loss = self.loss(batch, output)
             if optimizer_idx == 0 and self.trainer.global_step > 10:
-                self.log("Totally_a_GAN_loss_1", loss, sync_dist=True)
+                self.log("loss_1", loss, sync_dist=True)
             elif optimizer_idx == 1:
-                self.log("Totally_a_GAN_loss_2", loss, sync_dist=True)
+                self.log("loss_2", loss, sync_dist=True)
             return {"loss": loss}
 
         def configure_optimizers(self):
