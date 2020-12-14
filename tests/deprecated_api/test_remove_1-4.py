@@ -198,3 +198,35 @@ def test_v1_4_0_deprecated_lightning_data_parallel():
         dp_model = LightningDataParallel(model, device_ids=[0])
     assert isinstance(dp_model, torch.nn.DataParallel)
     assert isinstance(dp_model.module, LightningParallelModule)
+
+
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
+def test_reload_dataloaders_every_epoch_remove_in_v1_4_0(tmpdir):
+
+    with pytest.deprecated_call(match='will be removed in v1.4'):
+        model = BoringModel()
+
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            limit_train_batches=0.3,
+            limit_val_batches=0.3,
+            reload_dataloaders_every_epoch=True,
+            max_epochs=3,
+        )
+        trainer.fit(model)
+        trainer.test()
+
+        # verify the sequence
+        calls = trainer.dev_debugger.dataloader_sequence_calls
+        expected_sequence = [
+            'val_dataloader',
+            'train_dataloader',
+            'val_dataloader',
+            'train_dataloader',
+            'val_dataloader',
+            'train_dataloader',
+            'val_dataloader',
+            'test_dataloader'
+        ]
+        for call, expected in zip(calls, expected_sequence):
+            assert call['name'] == expected
