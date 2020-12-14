@@ -1,26 +1,30 @@
+from abc import ABC, abstractmethod
 import torch
 from typing import List, Optional, Callable, Any
 
 from pytorch_lightning.metrics import Metric
 from pytorch_lightning.metrics.utils import get_mini_groups
-
+#: get_mini_groups is used to group predictions belonging to the same query
 
 IGNORE_IDX = -100
 
 
-class RetrievalMetric(Metric):
+class RetrievalMetric(Metric, ABC):
     r"""
     Works with binary data. Accepts integer or float predictions from a model output.
 
     Forward accepts
     - ``indexes`` (long tensor): ``(N, ...)``
-    - ``preds`` (float tensor): ``(N, ...)``
+    - ``preds`` (float or int tensor): ``(N, ...)``
     - ``target`` (long or bool tensor): ``(N, ...)``
 
-    `indexes`, `preds` and `target` must have the same dimension.
+    `indexes`, `preds` and `target` must have the same dimension and will be flatten
+    to single dimension once provided.
+
     `indexes` indicate to which query a prediction belongs.
-    Predictions will be first grouped by indexes and then the
-    actual metric will be computed as the mean of the scores over each query.
+    Predictions will be first grouped by indexes. Then the
+    real metric, defined by overriding the `_metric` method, 
+    will be computed as the mean of the scores over each query.
 
     Args:
         compute_on_step:
@@ -50,12 +54,12 @@ class RetrievalMetric(Metric):
 
     def __init__(
         self,
+        query_without_relevant_docs: str = 'skip',
+        exclude: int = IGNORE_IDX,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
-        dist_sync_fn: Callable = None,
-        query_without_relevant_docs: str = 'skip',
-        exclude: int = IGNORE_IDX
+        dist_sync_fn: Callable = None
     ):
         super().__init__(
             compute_on_step=compute_on_step,
@@ -110,8 +114,9 @@ class RetrievalMetric(Metric):
                 )
         return torch.stack(res).mean()
 
+    @abstractmethod
     def _metric(self, group: List[int]) -> torch.Tensor:
         r"""
         Compute a metric over a single group.
+        This method must be overridden by subclasses. 
         """
-        raise NotImplementedError("This method must be overridden by subclasses")
