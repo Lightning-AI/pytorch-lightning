@@ -31,7 +31,7 @@ except ImportError:  # pragma: no-cover
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only
-from pytorch_lightning import _logger as log
+from pytorch_lightning.utilities.warning_utils import WarningCache
 
 
 class WandbLogger(LightningLoggerBase):
@@ -78,7 +78,6 @@ class WandbLogger(LightningLoggerBase):
     """
 
     LOGGER_JOIN_CHAR = '-'
-    WARNING_DISPLAYED = False
 
     def __init__(
         self,
@@ -110,6 +109,7 @@ class WandbLogger(LightningLoggerBase):
         self._kwargs = kwargs
         # logging multiple Trainer on a single W&B run (k-fold, resuming, etc)
         self._step_offset = 0
+        self.warning_cache = WarningCache()
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -161,9 +161,8 @@ class WandbLogger(LightningLoggerBase):
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
         metrics = self._add_prefix(metrics)
-        if not self.WARNING_DISPLAYED and (step is not None and step + self._step_offset < self.experiment.step):
-            log.warning('Trying to log at a previous step. Use `commit=False` when logging metrics manually.')
-            self.WARNING_DISPLAYED = True
+        if step is not None and step + self._step_offset < self.experiment.step:
+            self.warning_cache.warn('Trying to log at a previous step. Use `commit=False` when logging metrics manually.')
         self.experiment.log(metrics, step=(step + self._step_offset) if step is not None else None)
 
     @property
