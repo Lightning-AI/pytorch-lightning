@@ -426,9 +426,11 @@ def test_dm_transfer_batch_to_device(tmpdir):
     assert batch_gpu.samples.device == batch_gpu.targets.device == expected
 
 
-def test_dm_reload_dataloaders_every_epoch(tmpdir):
-    """Test datamodule, where trainer argument
-    reload_dataloaders_every_epoch is set to True/False"""
+def test_dm_reload_dataloaders_every_n_epochs(tmpdir):
+    """
+    Test datamodule, where trainer argument
+    reload_dataloaders_every_n_epochs is set to non negative integer
+    """
     class CustomBoringDataModule(BoringDataModule):
         def __init__(self):
             super().__init__()
@@ -451,9 +453,10 @@ def test_dm_reload_dataloaders_every_epoch(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=2,
-        limit_train_batches=0.01,
-        reload_dataloaders_every_n_epochs=True,
+        max_epochs=3,
+        limit_train_batches=2,
+        reload_dataloaders_every_n_epochs=2,
     )
     results = trainer.fit(model, dm)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert results
