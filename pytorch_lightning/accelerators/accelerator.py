@@ -1,7 +1,7 @@
 from pytorch_lightning.accelerators.data_parallel import ParallelPlugin, TrainingTypePlugin
 from pytorch_lightning.accelerators.base_plugin import Plugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import AMPType, NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE, AMPType
 from typing import Any, Union
 import math
 

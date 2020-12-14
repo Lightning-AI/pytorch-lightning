@@ -21,7 +21,7 @@ from pytorch_lightning.accelerators.accelerator import NewCPUAccelerator, NewAcc
 from pytorch_lightning.accelerators.data_parallel import SingleDevicePlugin, DDPPlugin, DDPSpawnPlugin, \
     DataParallelPlugin
 from pytorch_lightning.accelerators.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
-from pytorch_lightning.utilities import AMPType, APEX_AVAILABLE, NATIVE_AMP_AVALAIBLE, device_parser
+from pytorch_lightning.utilities import AMPType, APEX_AVAILABLE, NATIVE_AMP_AVAILABLE, device_parser
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
