@@ -15,6 +15,7 @@
 """Trainer to automate the training."""
 
 import os
+from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.accelerators.precision import PrecisionPlugin
 import warnings
 from pathlib import Path
