@@ -18,7 +18,8 @@ import os
 import torch
 
 from pytorch_lightning.accelerators.accelerator import NewCPUAccelerator, NewAccelerator, NewGPUAccelerator
-from pytorch_lightning.accelerators.data_parallel import SingleDevicePlugin, DDPPlugin, DDPSpawnPlugin
+from pytorch_lightning.accelerators.data_parallel import SingleDevicePlugin, DDPPlugin, DDPSpawnPlugin, \
+    DataParallelPlugin
 from pytorch_lightning.accelerators.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.utilities import AMPType, APEX_AVAILABLE, NATIVE_AMP_AVALAIBLE, device_parser
 from pytorch_lightning.utilities import rank_zero_only
@@ -94,8 +95,8 @@ class BackendConnector(object):
         # for gpus allow int, string and gpu list
         # if auto_select_gpus and isinstance(gpus, int):
         #     self.trainer.gpus = self.trainer.tuner.pick_multiple_gpus(gpus)
-        self.parallel_devices = device_parser.parse_gpu_ids(self.gpus)
-        self.root_gpu = device_parser.determine_root_gpu_device(self.parallel_devices)
+        self.parallel_device_ids = device_parser.parse_gpu_ids(self.gpus)
+        self.root_gpu = device_parser.determine_root_gpu_device(self.parallel_device_ids)
         # self.root_device = torch.device("cpu")
 
         self.set_distributed_mode()
@@ -139,14 +140,24 @@ class BackendConnector(object):
 
     @property
     def on_gpu(self):
-        return self.parallel_devices and torch.cuda.is_available()
+        return self.parallel_device_ids and torch.cuda.is_available()
 
     @property
     def num_gpus(self) -> int:
-        gpus = self.parallel_devices
+        gpus = self.parallel_device_ids
         if gpus is None:
             return 0
         return len(gpus)
+
+    @property
+    def parallel_devices(self):
+        if self.on_gpu:
+            devices = [torch.device("cuda", i) for i in self.parallel_device_ids]
+        elif self.on_tpu:
+            raise NotImplementedError
+        else:
+            devices = [torch.device("cpu")] * self.num_processes
+        return devices
 
     def select_precision_plugin(self):
         if self.precision == 32:
@@ -180,16 +191,18 @@ class BackendConnector(object):
             raise NotImplementedError('We only support precisions 32 and 16!')
 
     def select_training_type_plugin(self):
-        if self.distributed_backend == "ddp":
+        if self.use_dp and self.distributed_backend == "dp":
+            plugin = DataParallelPlugin(parallel_devices=self.parallel_devices)
+        elif self.use_ddp and self.distributed_backend == "ddp":
             plugin = DDPPlugin(
-                parallel_device_ids=self.parallel_devices,
+                parallel_devices=self.parallel_devices,
                 num_nodes=self.num_nodes,
                 cluster_environment=TorchElasticEnvironment(),  # TODO: deterimine this using plugin connector?
                 is_slurm_managing_tasks=False,  # TODO: determine this
             )
-        elif self.use_ddp and self.distributed_backend == "ddp_spawn":
+        elif self.use_ddp and self.distributed_backend in ("ddp_spawn", "ddp_spawn_cpu", "ddp_cpu"):
             plugin = DDPSpawnPlugin(
-                parallel_device_ids=self.parallel_devices,
+                parallel_devices=self.parallel_devices,
                 num_nodes=self.num_nodes,
                 cluster_environment=TorchElasticEnvironment(),
                 is_slurm_managing_tasks=False,  # TODO: determine this
@@ -279,8 +292,6 @@ class BackendConnector(object):
                     "You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs."
                 )
             self.use_ddp = True
-            self.data_parallel_device_ids = None
-            self.on_gpu = False
 
         # HOROVOD
         elif self.distributed_backend == "horovod":

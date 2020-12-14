@@ -135,7 +135,7 @@ class TrainerProperties(ABC):
 
     @property
     def num_nodes(self):
-        return self.accelerator_connector.num_gpus
+        return self.accelerator_connector.num_nodes
 
     @property
     def num_processes(self):
