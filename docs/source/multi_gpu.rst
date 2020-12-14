@@ -75,8 +75,8 @@ register the tensor as a buffer in your modules's `__init__` method with :meth:`
 
 Remove samplers
 ^^^^^^^^^^^^^^^
-In PyTorch, you must use `torch.nn.DistributedSampler` for multi-node or TPU training. The
-sampler makes sure each GPU sees the appropriate part of your data.
+In PyTorch, you must use `DistributedSampler <https://pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler>`_
+for multi-node or TPU training. The sampler makes sure each GPU sees the appropriate part of your data.
 
 .. testcode::
 
@@ -103,7 +103,7 @@ Lightning adds the correct samplers when needed, so no need to explicitly add sa
     By default it will add ``shuffle=True`` for train sampler and ``shuffle=False`` for val/test sampler.
     ``drop_last`` in DistributedSampler will be set to its default value in PyTorch.
 
-.. note:: You can disable this behavior with `Trainer(replace_sampler_ddp=False)`
+.. note:: You can disable this behavior with ``Trainer(replace_sampler_ddp=False)``
 
 .. note:: For iterable datasets, we don't do this automatically.
 
@@ -233,8 +233,8 @@ Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
 
 .. note::
 
-    When specifying number of gpus as an integer `gpus=k`, setting the trainer flag
-    `auto_select_gpus=True` will automatically help you find `k` gpus that are not
+    When specifying number of gpus as an integer ``gpus=k``, setting the trainer flag
+    ``auto_select_gpus=True`` will automatically help you find ``k`` gpus that are not
     occupied by other processes. This is especially useful when GPUs are configured
     to be in "exclusive mode", such that only one process at a time can access them.
     For more details see the :ref:`Trainer guide <trainer>`.
@@ -597,7 +597,7 @@ Below are the possible configurations we support.
 
 Implement Your Own Distributed (DDP) training
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.plugins.ddp_plugin.DDPPlugin.init_ddp_connection`.
+If you need your own way to init PyTorch DDP you can override: :meth:`pytorch_lightning.plugins.ddp_plugin.DDPPlugin.init_ddp_connection`.
 
 If you also need to use your own DDP implementation, override: :meth:`pytorch_lightning.plugins.ddp_plugin.DDPPlugin.configure_ddp`.
 
@@ -698,9 +698,7 @@ Reference: https://arxiv.org/abs/1811.06965
 
 .. note:: DDPSequentialPlugin is currently supported only for Pytorch 1.6.
 
-To get started, install FairScale through extras using with ``pip install pytorch-lightning["extra"]``
-
-or directly using
+To get started, install FairScale using the command below.
 
 .. code-block:: bash
 
