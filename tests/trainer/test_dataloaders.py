@@ -1154,6 +1154,21 @@ def test_dataloaders_load_every_n_epochs(tmpdir, n):
         assert call['name'] == expected
 
 
+@pytest.mark.parametrize("n", ['test', -1])
+def test_dataloaders_load_every_n_epochs_exception(tmpdir, n):
+
+    with pytest.raises(Exception):
+        model = BoringModel()
+
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            limit_train_batches=0.3,
+            limit_val_batches=0.3,
+            reload_dataloaders_every_n_epochs=n,
+            max_epochs=3,
+        )
+
+
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
 
