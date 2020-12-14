@@ -19,7 +19,6 @@ from tests.metrics.classification.inputs import (
 from tests.metrics.utils import NUM_CLASSES, THRESHOLD, MetricTester
 
 
-
 def _binary_prob_sk_metric(preds, target, average=None):
     sk_preds = (preds.view(-1).numpy() >= THRESHOLD).astype(np.uint8)
     sk_target = target.view(-1).numpy()
