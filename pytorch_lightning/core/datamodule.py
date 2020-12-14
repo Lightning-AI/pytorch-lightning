@@ -158,47 +158,6 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
         self._has_setup_fit = False
         self._has_setup_test = False
 
-    @classmethod
-    def from_datasets(cls, train_dataset=None, val_dataset=None, test_dataset=None, batch_size=1, num_workers=None):
-        if num_workers is None:
-            num_workers = os.cpu_count()
-
-        if num_workers is None:
-            # TODO Should warn?
-            # warnings.warn("could not infer cpu count automatically, setting it to zero")
-            num_workers = 0
-
-        def dataloader(ds, shuffle=False):
-            return DataLoader(
-                ds,
-                batch_size=batch_size,
-                shuffle=shuffle,
-                num_workers=num_workers,
-                pin_memory=True,
-            )
-
-        def train_dataloader():
-            return dataloader(train_dataset, shuffle=True)
-
-        def val_dataloader():
-            if isinstance(val_dataset, list):
-                return [dataloader(ds) for ds in val_dataset]
-            return dataloader(val_dataset)
-
-        def test_dataloader():
-            if isinstance(test_dataset, list):
-                return [dataloader(ds) for ds in test_dataset]
-            return dataloader(test_dataset)
-
-        datamodule = cls()
-        if train_dataset is not None:
-            datamodule.train_dataloader = train_dataloader
-        if val_dataset is not None:
-            datamodule.val_dataloader = val_dataloader
-        if test_dataset is not None:
-            datamodule.test_dataloader = test_dataloader
-        return datamodule
-
     @property
     def train_transforms(self):
         """
@@ -403,3 +362,55 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
             name_type_default.append((arg, arg_types, arg_default))
 
         return name_type_default
+
+    @classmethod
+    def from_datasets(cls, train_dataset=None, val_dataset=None, test_dataset=None, batch_size=1, num_workers=None):
+        r"""
+        Create an instance from torch.utils.data.Dataset.
+
+        Args:
+            train_dataset: (optional) Dataset to be used for train_dataloader()
+            val_dataset: (optional) Dataset or list of Dataset to be used for val_dataloader()
+            test_dataset: (optional) Dataset or list of Dataset to be used for test_dataloader()
+            batch_size: Batch size to use for each dataloader. Default is 1.
+            num_workers: Number of workers to use for each dataloader, if None, this will be set to the number of CPUs available.
+
+        """
+        if num_workers is None:
+            num_workers = os.cpu_count()
+
+        if num_workers is None:
+            # TODO Should warn?
+            # warnings.warn("could not infer cpu count automatically, setting it to zero")
+            num_workers = 0
+
+        def dataloader(ds, shuffle=False):
+            return DataLoader(
+                ds,
+                batch_size=batch_size,
+                shuffle=shuffle,
+                num_workers=num_workers,
+                pin_memory=True,
+            )
+
+        def train_dataloader():
+            return dataloader(train_dataset, shuffle=True)
+
+        def val_dataloader():
+            if isinstance(val_dataset, list):
+                return [dataloader(ds) for ds in val_dataset]
+            return dataloader(val_dataset)
+
+        def test_dataloader():
+            if isinstance(test_dataset, list):
+                return [dataloader(ds) for ds in test_dataset]
+            return dataloader(test_dataset)
+
+        datamodule = cls()
+        if train_dataset is not None:
+            datamodule.train_dataloader = train_dataloader
+        if val_dataset is not None:
+            datamodule.val_dataloader = val_dataloader
+        if test_dataset is not None:
+            datamodule.test_dataloader = test_dataloader
+        return datamodule
