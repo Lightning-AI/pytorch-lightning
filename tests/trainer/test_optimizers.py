@@ -183,6 +183,7 @@ def test_reducelronplateau_scheduling(tmpdir):
         reduce_on_plateau=True,
         strict=True,
         opt_idx=None,
+        name=None,
     ), 'lr scheduler was not correctly converted to dict'
 
 
@@ -228,6 +229,7 @@ def test_optimizer_return_options(enable_pl_optimizer):
         monitor=None,
         strict=True,
         opt_idx=None,
+        name=None,
     )
 
     # opt tuple of 1 list
@@ -244,6 +246,7 @@ def test_optimizer_return_options(enable_pl_optimizer):
         monitor=None,
         strict=True,
         opt_idx=None,
+        name=None,
     )
 
     # opt single dictionary
@@ -260,6 +263,7 @@ def test_optimizer_return_options(enable_pl_optimizer):
         monitor=None,
         strict=True,
         opt_idx=None,
+        name=None,
     )
 
     # opt multiple dictionaries with frequencies
@@ -287,6 +291,7 @@ def test_optimizer_return_options(enable_pl_optimizer):
         monitor=None,
         strict=True,
         opt_idx=1,
+        name=None,
     )
     assert freq == [1, 5]
 
