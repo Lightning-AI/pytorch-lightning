@@ -58,7 +58,7 @@ This will make your code scale to any arbitrary number of GPUs or TPUs with Ligh
         z = torch.Tensor(2, 3)
         z = z.type_as(x)
 
-The :class:`~pytorch_lightning.core.lightning.LightningModule` knows what device it is on. You can access the reference via `self.device`.
+The :class:`~pytorch_lightning.core.lightning.LightningModule` knows what device it is on. You can access the reference via ``self.device``.
 Sometimes it is necessary to store tensors as module attributes. However, if they are not parameters they will
 remain on the CPU even if the module gets moved to a new device. To prevent that and remain device agnostic,
 register the tensor as a buffer in your modules's `__init__` method with :meth:`~torch.nn.Module.register_buffer`.
@@ -99,6 +99,10 @@ Lightning adds the correct samplers when needed, so no need to explicitly add sa
         dataset = MNIST(...)
         return DataLoader(dataset)
 
+.. note::
+    By default it will add ``shuffle=True`` for train sampler and ``shuffle=False`` for val/test sampler.
+    ``drop_last`` in DistributedSampler will be set to its default value in PyTorch.
+
 .. note:: You can disable this behavior with `Trainer(replace_sampler_ddp=False)`
 
 .. note:: For iterable datasets, we don't do this automatically.
@@ -108,7 +112,7 @@ Synchronize validation and test logging
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When running in distributed mode, we have to ensure that the validation and test step logging calls are synchronized across processes.
-This is done by adding `sync_dist=True` to all `self.log` calls in the validation and test step.
+This is done by adding ``sync_dist=True`` to all ``self.log`` calls in the validation and test step.
 This ensures that each GPU worker has the same behaviour when tracking model checkpoints, which is important for later downstream tasks such as testing the best checkpoint across all workers.
 
 Note if you use any built in metrics or custom metrics that use the :ref:`Metrics API <metrics>`, these do not need to be updated and are automatically handled for you.
