@@ -768,7 +768,7 @@ Once you train your model simply call ``.test()``.
 
         --------------------------------------------------------------
         TEST RESULTS
-        {'test_loss': tensor(1.1703, device='cuda:0')}
+        {'test_loss': 1.1703}
         --------------------------------------------------------------
 
 You can also run the test from a saved lightning model
