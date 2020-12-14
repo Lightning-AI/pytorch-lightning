@@ -282,6 +282,7 @@ def test_optimizer_return_options(enable_pl_optimizer):
         monitor=None,
         strict=True,
         opt_idx=0,
+        name=None,
     )
     assert lr_sched[1] == dict(
         scheduler=scheduler_b,
