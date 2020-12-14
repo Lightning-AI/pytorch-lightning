@@ -23,7 +23,7 @@ class RetrievalMetric(Metric, ABC):
 
     `indexes` indicate to which query a prediction belongs.
     Predictions will be first grouped by indexes. Then the
-    real metric, defined by overriding the `_metric` method, 
+    real metric, defined by overriding the `_metric` method,
     will be computed as the mean of the scores over each query.
 
     Args:
@@ -41,7 +41,7 @@ class RetrievalMetric(Metric, ABC):
         query_without_relevant_docs:
             Specify what to do with queries that do not have at least a positive target. Choose from:
 
-            - ``'skip'``: skip those queries (default)
+            - ``'skip'``: skip those queries (default); if all queries are skipped, ``0.0`` is returned
             - ``'error'``: raise a ``ValueError``
             - ``'pos'``: score on those queries is counted as ``1.0``
             - ``'neg'``: score on those queries is counted as ``0.0``
@@ -86,7 +86,7 @@ class RetrievalMetric(Metric, ABC):
             raise ValueError(
                 "Indexes, preds and targets must be of the same shape after preds normalization"
             )
-        
+
         idx = idx.to(dtype=torch.int64).flatten()
         preds = preds.to(dtype=torch.float32).flatten()
         target = target.to(dtype=torch.int64).flatten()
@@ -97,6 +97,8 @@ class RetrievalMetric(Metric, ABC):
 
     def compute(self) -> torch.Tensor:
         res = []
+        device = self.idx.device
+
         for group in get_mini_groups(self.idx):
             if self.target[group].sum() == 0:
                 if self.query_without_relevant_docs == 'error':
@@ -105,14 +107,16 @@ class RetrievalMetric(Metric, ABC):
                         f"a query without positive targets, indexes: {group}"
                     )
                 if self.query_without_relevant_docs == 'pos':
-                    res.append(torch.tensor(1.0))
+                    res.append(torch.tensor(1.0, device=device))
                 elif self.query_without_relevant_docs == 'neg':
-                    res.append(torch.tensor(0.0))
+                    res.append(torch.tensor(0.0, device=device))
             else:
                 res.append(
                     self._metric(group)
                 )
-        return torch.stack(res).mean()
+        if len(res) > 0:
+            return torch.stack(res).mean()
+        return torch.tensor(0.0, device=device)
 
     @abstractmethod
     def _metric(self, group: List[int]) -> torch.Tensor:
