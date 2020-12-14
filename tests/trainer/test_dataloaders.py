@@ -1173,7 +1173,7 @@ def test_dataloaders_load_every_n_epochs(tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_dataloaders_load_every_epoch_depreciated(tmpdir):
+def test_dataloaders_load_every_epoch_deprecated(tmpdir):
 
     model = BoringModel()
 
