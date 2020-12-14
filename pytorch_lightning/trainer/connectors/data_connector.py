@@ -42,7 +42,7 @@ class DataConnector(object):
 
         if not isinstance(reload_dataloaders_every_n_epochs, int) or (reload_dataloaders_every_n_epochs < 0):
             raise MisconfigurationException(
-                "`reload_dataloaders_every_n_epochs` should be and int >= 0,"
+                "`reload_dataloaders_every_n_epochs` should be an int >= 0,"
                 f" got {reload_dataloaders_every_n_epochs}."
             )
 
