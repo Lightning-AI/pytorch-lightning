@@ -1157,7 +1157,7 @@ def test_dataloaders_load_every_n_epochs(tmpdir, n):
 @pytest.mark.parametrize("n", ['test', -1])
 def test_dataloaders_load_every_n_epochs_exception(tmpdir, n):
 
-    with pytest.raises(Exception):
+    with pytest.raises(MisconfigurationException):
         model = BoringModel()
 
         trainer = Trainer(
