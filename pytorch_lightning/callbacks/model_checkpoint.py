@@ -512,12 +512,11 @@ class ModelCheckpoint(Callback):
             if not trainer.checkpoint_connector._one_training_epoch_completed:
                 return False
             else:
-                m = (
+                raise MisconfigurationException(
                     f"ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics:"
                     f" {list(metrics.keys())}. "
                     f"HINT: Did you call self.log('{self.monitor}', tensor) in the LightningModule?"
                 )
-                raise MisconfigurationException(m)
         return True
 
     def _get_metric_interpolated_filepath_name(self, ckpt_name_metrics: Dict[str, Any], epoch: int, step: int):
