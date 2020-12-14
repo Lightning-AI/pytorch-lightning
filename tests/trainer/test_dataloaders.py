@@ -1158,8 +1158,6 @@ def test_dataloaders_load_every_n_epochs(tmpdir, n):
 def test_dataloaders_load_every_n_epochs_exception(tmpdir, n):
 
     with pytest.raises(MisconfigurationException):
-        model = BoringModel()
-
         trainer = Trainer(
             default_root_dir=tmpdir,
             limit_train_batches=0.3,
