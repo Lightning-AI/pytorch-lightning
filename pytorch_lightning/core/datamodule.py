@@ -177,15 +177,15 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
                 pin_memory=True,
             )
 
-        def train_dataloader(self):
+        def train_dataloader():
             return dataloader(train_dataset, shuffle=True)
 
-        def val_dataloader(self):
+        def val_dataloader():
             if isinstance(val_dataset, list):
                 return [dataloader(ds) for ds in val_dataset]
             return dataloader(val_dataset)
 
-        def test_dataloader(self):
+        def test_dataloader():
             if isinstance(test_dataset, list):
                 return [dataloader(ds) for ds in test_dataset]
             return dataloader(test_dataset)

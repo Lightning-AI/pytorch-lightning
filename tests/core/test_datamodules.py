@@ -375,7 +375,6 @@ def test_full_loop_dp(tmpdir):
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires multi-GPU machine")
 def test_dm_transfer_batch_to_device(tmpdir):
     class CustomBatch:
-
         def __init__(self, data):
             self.samples = data[0]
             self.targets = data[1]
@@ -411,7 +410,6 @@ def test_dm_transfer_batch_to_device(tmpdir):
 
 
 class CustomMNISTDataModule(LightningDataModule):
-
     def __init__(self, data_dir: str = "./"):
         super().__init__()
         self.data_dir = data_dir
@@ -422,9 +420,7 @@ class CustomMNISTDataModule(LightningDataModule):
 
     def setup(self, stage: Optional[str] = None):
 
-        mnist_full = TrialMNIST(
-            root=self.data_dir, train=True, num_samples=64, download=True
-        )
+        mnist_full = TrialMNIST(root=self.data_dir, train=True, num_samples=64, download=True)
         self.mnist_train, self.mnist_val = random_split(mnist_full, [128, 64])
         self.dims = self.mnist_train[0][0].shape
 
@@ -456,3 +452,36 @@ def test_dm_reload_dataloaders_every_epoch(tmpdir):
         reload_dataloaders_every_epoch=True,
     )
     trainer.fit(model, dm)
+
+
+class DummyDS(torch.utils.data.Dataset):
+    def __getitem__(self, index):
+        return 1
+
+    def __len__(self):
+        return 100
+
+
+def test_dm_init_from_datasets(tmpdir):
+
+    train_ds = DummyDS()
+    valid_ds = DummyDS()
+    test_ds = DummyDS()
+
+    valid_dss = [DummyDS(), DummyDS()]
+    test_dss = [DummyDS(), DummyDS()]
+
+    dm = LightningDataModule.from_datasets(train_ds, batch_size=4, num_workers=0)
+    assert torch.all(next(iter(dm.train_dataloader())) == torch.ones(4))
+    assert dm.val_dataloader() is None
+    assert dm.test_dataloader() is None
+
+    dm = LightningDataModule.from_datasets(train_ds, valid_ds, test_ds, batch_size=4, num_workers=0)
+    assert torch.all(next(iter(dm.val_dataloader())) == torch.ones(4))
+    assert torch.all(next(iter(dm.test_dataloader())) == torch.ones(4))
+
+    dm = LightningDataModule.from_datasets(train_ds, valid_dss, test_dss, batch_size=4, num_workers=0)
+    assert torch.all(next(iter(dm.val_dataloader()[0])) == torch.ones(4))
+    assert torch.all(next(iter(dm.val_dataloader()[1])) == torch.ones(4))
+    assert torch.all(next(iter(dm.test_dataloader()[0])) == torch.ones(4))
+    assert torch.all(next(iter(dm.test_dataloader()[1])) == torch.ones(4))
