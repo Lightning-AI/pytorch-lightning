@@ -55,6 +55,8 @@ class TrainerProperties(ABC):
     model: LightningModule
     data_parallel_device_ids: Optional[List[int]]
     _progress_bar_callback: ProgressBarBase
+    current_epoch: int
+    reload_dataloaders_every_n_epochs: int
     limit_val_batches: int
     _default_root_dir: str
     _weights_save_path: str
@@ -194,6 +196,15 @@ class TrainerProperties(ABC):
         ref_model = self.get_model()
         ref_model = cast(LightningModule, ref_model)
         return dict(**ref_model.get_progress_bar_dict(), **self.logger_connector.progress_bar_metrics)
+
+    @property
+    def should_reload_dl_epoch(self) -> bool:
+        """ Check if dataloader should be reloaded in the current epoch. """
+        reload_dl_every_n_epochs = self.reload_dataloaders_every_n_epochs
+        if reload_dl_every_n_epochs and (not self.current_epoch % reload_dl_every_n_epochs):
+            return True
+        else:
+            return False
 
     @property
     def disable_validation(self) -> bool:
