@@ -206,13 +206,9 @@ class HookResultStore:
                     # TODO: How to start training in middle of epoch
                     opt_outputs = epoch_metrics[opt_idx]
 
-                    num_batch_idx = len(self._internals[dl_idx][num_opt_idx]) - 1
-                    assert num_batch_idx >= 0
-                    batch_indexes = self._internals[dl_idx][num_opt_idx].keys()
-
                     # reduce across time first
                     time_reduced_outputs = []
-                    for batch_idx in batch_indexes:
+                    for batch_idx in opt_outputs.keys():
                         tbptt_outs = opt_outputs[batch_idx]
                         tbptt_outs = tbptt_outs[0].__class__.reduce_across_time(tbptt_outs)
                         if len(tbptt_outs) > 1:

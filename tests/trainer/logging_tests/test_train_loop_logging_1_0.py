@@ -771,3 +771,34 @@ def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
     trainer.fit(model)
     assert model.epoch_end_called
     assert model.on_train_epoch_end_called
+
+
+def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
+    """
+    This tests ensures reduction works in un-balanced logging settings
+    """
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx, optimizer_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            if optimizer_idx == 0 and self.trainer.global_step > 10:
+                self.log("Totally_a_GAN_loss_1", loss, sync_dist=True)
+            elif optimizer_idx == 1:
+                self.log("Totally_a_GAN_loss_2", loss, sync_dist=True)
+            return {"loss": loss}
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            optimizer2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            return [optimizer, optimizer2]
+
+    model = TestModel()
+    model.training_epoch_end = None
+
+    # Initialize a trainer
+    trainer = pl.Trainer(
+        max_epochs=2,
+    )
+
+    trainer.fit(model)
