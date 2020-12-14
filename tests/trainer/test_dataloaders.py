@@ -1155,37 +1155,6 @@ def test_dataloaders_load_every_n_epochs(tmpdir, n):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_dataloaders_load_every_epoch_deprecated(tmpdir):
-
-    model = BoringModel()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=0.3,
-        limit_val_batches=0.3,
-        reload_dataloaders_every_epoch=True,
-        max_epochs=3,
-    )
-    trainer.fit(model)
-    trainer.test()
-
-    # verify the sequence
-    calls = trainer.dev_debugger.dataloader_sequence_calls
-    expected_sequence = [
-        'val_dataloader',
-        'train_dataloader',
-        'val_dataloader',
-        'train_dataloader',
-        'val_dataloader',
-        'train_dataloader',
-        'val_dataloader',
-        'test_dataloader'
-    ]
-    for call, expected in zip(calls, expected_sequence):
-        assert call['name'] == expected
-
-
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
 
     model = EvalModelTemplate()
