@@ -1110,8 +1110,8 @@ def test_dataloaders_load_only_once_no_sanity_check(tmpdir):
         assert call['name'] == expected
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_dataloaders_load_every_epoch(tmpdir):
+@pytest.mark.parametrize("n", [1, 2])
+def test_dataloaders_load_every_n_epochs(tmpdir, n):
 
     model = BoringModel()
 
@@ -1119,7 +1119,7 @@ def test_dataloaders_load_every_epoch(tmpdir):
         default_root_dir=tmpdir,
         limit_train_batches=0.3,
         limit_val_batches=0.3,
-        reload_dataloaders_every_n_epochs=True,
+        reload_dataloaders_every_n_epochs=n,
         max_epochs=3,
     )
     trainer.fit(model)
@@ -1129,45 +1129,27 @@ def test_dataloaders_load_every_epoch(tmpdir):
 
     # verify the sequence
     calls = trainer.dev_debugger.dataloader_sequence_calls
-    expected_sequence = [
-        'val_dataloader',
-        'train_dataloader',
-        'val_dataloader',
-        'train_dataloader',
-        'val_dataloader',
-        'train_dataloader',
-        'val_dataloader',
-        'test_dataloader'
-    ]
-    for call, expected in zip(calls, expected_sequence):
-        assert call['name'] == expected
+    if n == 1:
+        expected_sequence = [
+            'val_dataloader',
+            'train_dataloader',
+            'val_dataloader',
+            'train_dataloader',
+            'val_dataloader',
+            'train_dataloader',
+            'val_dataloader',
+            'test_dataloader'
+        ]
+    elif n == 2:
+        expected_sequence = [
+            'val_dataloader',
+            'train_dataloader',
+            'val_dataloader',
+            'train_dataloader',
+            'val_dataloader',
+            'test_dataloader'
+        ]
 
-
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_dataloaders_load_every_n_epochs(tmpdir):
-
-    model = BoringModel()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=0.3,
-        limit_val_batches=0.3,
-        reload_dataloaders_every_n_epochs=2,
-        max_epochs=3,
-    )
-    trainer.fit(model)
-    trainer.test()
-
-    # verify the sequence
-    calls = trainer.dev_debugger.dataloader_sequence_calls
-    expected_sequence = [
-        'val_dataloader',
-        'train_dataloader',
-        'val_dataloader',
-        'train_dataloader',
-        'val_dataloader',
-        'test_dataloader'
-    ]
     for call, expected in zip(calls, expected_sequence):
         assert call['name'] == expected
 
