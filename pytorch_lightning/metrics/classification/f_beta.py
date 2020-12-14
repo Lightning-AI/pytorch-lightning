@@ -220,9 +220,9 @@ class F1(FBeta):
         process_group: Optional[Any] = None,
     ):
         if beta != 1.0:
-            rank_zero_warn(f'The `beta={beta}` is used but it will not have any effect.')
+            rank_zero_warn(f'The `beta={beta}` parameter is unused and will not have any effect.')
         if multilabel is not False:
-            rank_zero_warn(f'The `multilabel={multilabel}` is used but it will not have any effect.')
+            rank_zero_warn(f'The `multilabel={multilabel}` parameter is unused and will not have any effect.')
 
         super().__init__(
             num_classes=num_classes,

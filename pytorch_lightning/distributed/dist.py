@@ -48,9 +48,9 @@ class LightningDistributed:
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())
         length_tensor = torch.tensor([len(data)]).long().to(self.device)
-        _ = self._broadcast(length_tensor, src=0, group=group)
+        self._broadcast(length_tensor, src=0, group=group)
         data_tensor = torch.ByteTensor(data).to(self.device)
-        _ = self._broadcast(data_tensor, src=0, group=group)
+        self._broadcast(data_tensor, src=0, group=group)
 
     def _receive(self, group=WORLD):
         length_tensor = torch.tensor([0]).long().to(self.device)

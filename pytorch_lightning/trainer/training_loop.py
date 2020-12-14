@@ -647,7 +647,6 @@ class TrainLoop:
         grad_norm_dic = {}
 
         # bookkeeping
-        # using_results_obj = False
         self.trainer.hiddens = None
 
         # track all outputs across time and num of optimizers

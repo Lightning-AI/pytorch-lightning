@@ -74,7 +74,6 @@ def bleu_score(
     assert len(translate_corpus) == len(reference_corpus)
     numerator = torch.zeros(n_gram)
     denominator = torch.zeros(n_gram)
-    # precision_scores = torch.zeros(n_gram)
     c = 0.0
     r = 0.0
 

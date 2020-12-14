@@ -188,7 +188,6 @@ def stat_scores_multiple_classes(
 
         tps = torch.zeros((num_classes + 1,), device=pred.device)
         fps = torch.zeros((num_classes + 1,), device=pred.device)
-        # tns = torch.zeros((num_classes + 1,), device=pred.device)
         fns = torch.zeros((num_classes + 1,), device=pred.device)
         sups = torch.zeros((num_classes + 1,), device=pred.device)
 
