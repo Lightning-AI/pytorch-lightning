@@ -157,7 +157,7 @@ class LearningRateMonitor(Callback):
         names = []
         for scheduler in lr_schedulers:
             sch = scheduler['scheduler']
-            if 'name' in scheduler:
+            if scheduler['name'] is not None:
                 name = scheduler['name']
             else:
                 opt_name = 'lr-' + sch.optimizer.__class__.__name__
