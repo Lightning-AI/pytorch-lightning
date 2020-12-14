@@ -86,7 +86,6 @@ class TrainingTypePlugin(Plugin, ABC):
         return int(os.environ.get('LOCAL_RANK', 0))
 
     def determine_node_rank(self):
-
         # torchelastic uses the envvar GROUP_RANK, whereas other systems(?) use NODE_RANK.
         # otherwise use given node rank or default to node rank 0
         env_vars = ['NODE_RANK', 'GROUP_RANK']
@@ -160,9 +159,9 @@ class SingleDevicePlugin(TrainingTypePlugin):
 
 
 class ParallelPlugin(TrainingTypePlugin, ABC):
-    def __init__(self, parallel_device_ids, cluster_environment=None):
+    def __init__(self, parallel_devices: List[torch.device], cluster_environment=None):
         super().__init__()
-        self.parallel_device_ids = parallel_device_ids
+        self.parallel_devices = parallel_devices
         self.local_rank = 0
         self.world_size = 1
         self.cluster_environment = cluster_environment
@@ -178,7 +177,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
 
     @property
     def on_gpu(self):
-        return self.parallel_device_ids and torch.cuda.is_available()
+        return self.root_device.type == "cuda" and torch.cuda.is_available()
 
     @abstractmethod
     def setup(self, model):
@@ -211,8 +210,9 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
 
 
 class DataParallelPlugin(ParallelPlugin):
+
     def setup(self, model):
-        self._model = LightningDataParallel(model, self.parallel_device_ids)
+        self._model = LightningDataParallel(model, self.parallel_devices)
 
     def reduce(self, output):
         if isinstance(output, Result):
@@ -225,11 +225,15 @@ class DataParallelPlugin(ParallelPlugin):
 
     @property
     def root_device(self):
-        return torch.device("cuda", self.parallel_device_ids[0])
+        return self.parallel_devices[0]
 
     @property
     def lightning_module(self):
         return self._model.module
+
+    def model_to_device(self):
+        # no need to do anything when model is wrapped in torch.nn.DataParallel
+        pass
 
     def barrier(self, *args, **kwargs):
         pass
@@ -244,13 +248,13 @@ class DDPPlugin(ParallelPlugin):
 
     def __init__(
             self,
-            parallel_device_ids,
+            parallel_devices,
             num_nodes=1,
             cluster_environment=None,
             is_slurm_managing_tasks=False,
             **kwargs: Dict[str, Any],
     ) -> None:
-        super().__init__(parallel_device_ids=parallel_device_ids, cluster_environment=cluster_environment)
+        super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         self.interactive_ddp_procs = []
         self.num_nodes = num_nodes
         self.is_slurm_managing_tasks = is_slurm_managing_tasks
@@ -258,11 +262,11 @@ class DDPPlugin(ParallelPlugin):
         self._ddp_kwargs = kwargs
         self._has_spawned_children = False
         self.task_idx = None
-        self.num_processes = len(parallel_device_ids)
+        self.num_processes = len(parallel_devices)
 
     @property
     def root_device(self):
-        return torch.device("cuda", self.parallel_device_ids[self.local_rank])
+        return self.parallel_devices[self.local_rank]
 
     def determine_local_rank(self):
         if self.is_slurm_managing_tasks:
@@ -327,22 +331,20 @@ class DDPPlugin(ParallelPlugin):
         # when the trainer script was called the device has already been scoped by the time
         # code reaches this point. so, to call the scripts, we need to leave cuda visible devices alone
         # but forward the GPUs selected via environment variables
-        if self.parallel_device_ids is None:
+        if self.parallel_devices is None:
             raise MisconfigurationException("you selected (distribute_backend = ddp) but did not set Trainer(gpus=?)")
 
-        os.environ["PL_TRAINER_GPUS"] = ",".join([str(i) for i in self.parallel_device_ids])
+        os.environ["PL_TRAINER_GPUS"] = ",".join([str(device.index) for device in self.parallel_devices])
         os.environ["PL_IN_DDP_SUBPROCESS"] = "1"
 
         if self.lightning_module.logger is not None:
             os.environ["PL_EXP_VERSION"] = str(self.lightning_module.logger.version)
 
-        num_gpus = len(self.parallel_device_ids)
-        # TODO: Add num_nodes (pass it in?)
+        num_gpus = len(self.parallel_devices)
         os.environ["WORLD_SIZE"] = f"{num_gpus * self.num_nodes}"
 
         self.interactive_ddp_procs = []
 
-        # TODO: Add num_processes (pass it in?)
         for local_rank in range(1, self.num_processes):
             env_copy = os.environ.copy()
             env_copy["LOCAL_RANK"] = f"{local_rank}"
@@ -388,6 +390,8 @@ class DDPPlugin(ParallelPlugin):
         )
 
     def determine_ddp_device_ids(self):
+        if self.root_device.type == "cpu":
+            return None
         return [self.root_device.index]
 
     def init_ddp_connection(self, global_rank: int, world_size: int) -> None:
@@ -456,9 +460,8 @@ class DDPPlugin(ParallelPlugin):
         return self.dist.broadcast(obj)
 
     def model_to_device(self):
-        # TODO: Can we easily make this a property that falls back here?
-        # self.trainer.root_gpu = self.trainer.data_parallel_device_ids[self.trainer.local_rank]
-        torch.cuda.set_device(self.root_device)
+        if self.root_device.type == "cuda":
+            torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 
     def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
@@ -473,25 +476,25 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def __init__(
         self,
-        parallel_device_ids,
+        parallel_devices,
         num_nodes=1,
         cluster_environment=None,
         is_slurm_managing_tasks=False,
         proc_offset=0,
         **kwargs: Dict[str, Any]
     ):
-        super().__init__(parallel_device_ids=parallel_device_ids, cluster_environment=cluster_environment)
+        super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         self.num_nodes = num_nodes
         self.is_slurm_managing_tasks = is_slurm_managing_tasks
         self.proc_offset = proc_offset
         self._ddp_kwargs = kwargs
         self.dist = LightningDistributed()
-        self.num_processes = len(parallel_device_ids)
+        self.num_processes = len(parallel_devices)
         self.mp_queue = None
 
     @property
     def root_device(self):
-        return torch.device("cuda", self.parallel_device_ids[self.local_rank])
+        return self.parallel_devices[self.local_rank]
 
     @property
     def lightning_module(self):
@@ -570,6 +573,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def post_training(self, best_model_path):
         # clean up memory
+        # TODO: move this to gpu accelerator
         torch.cuda.empty_cache()
 
         # restore main state with best weights
@@ -602,7 +606,9 @@ class DDPSpawnPlugin(ParallelPlugin):
             torch_distrib.init_process_group(torch_backend, rank=global_rank, world_size=world_size)
 
     def determine_ddp_device_ids(self):
-        return [self.root_device]
+        if self.root_device.type == "cpu":
+            return None
+        return [self.root_device.index]
 
     def transfer_distrib_spawn_state_on_fit_end(self, results):
         # TODO: is there a better way than accessing callback through model -> trainer -> callback?
@@ -655,7 +661,8 @@ class DDPSpawnPlugin(ParallelPlugin):
         return self.dist.broadcast(obj)
 
     def model_to_device(self):
-        torch.cuda.set_device(self.root_device)
+        if self.root_device.type == "cuda":
+            torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 
     def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
