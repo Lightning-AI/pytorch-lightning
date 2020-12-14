@@ -92,7 +92,7 @@ jobs:
       - image: circleci/python:3.7
     environment:
       - XLA_VER: 1.7
-      - MAX_CHECKS: 360
+      - MAX_CHECKS: 650
       - CHECK_SPEEP: 5
     steps:
       - checkout
