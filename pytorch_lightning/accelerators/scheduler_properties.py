@@ -1,7 +1,7 @@
 from torch import optim
 
 
-def reinit_scheduler_properties(self, optimizers: list, schedulers: list):
+def reinit_scheduler_properties(optimizers: list, schedulers: list):
         # Reinitialize optimizer.step properties added by schedulers
         for scheduler in schedulers:
             scheduler = scheduler['scheduler']
