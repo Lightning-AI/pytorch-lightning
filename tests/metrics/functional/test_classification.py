@@ -20,7 +20,6 @@ from pytorch_lightning.metrics.functional.classification import (
     auroc,
     multiclass_auroc,
     auc,
-    iou,
 )
 from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve
 from pytorch_lightning.metrics.utils import to_onehot, get_num_classes, to_categorical
