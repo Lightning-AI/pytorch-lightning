@@ -30,12 +30,14 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
 class LoggerConnector:
-    def __init__(self, trainer):
+
+    def __init__(self, trainer, log_gpu_memory):
         self.trainer = trainer
-        self._callback_metrics = MetricsHolder()
-        self._evaluation_callback_metrics = MetricsHolder(to_float=True)
-        self._logged_metrics = MetricsHolder()
-        self._progress_bar_metrics = MetricsHolder()
+        self.log_gpu_memory = log_gpu_memory
+        self.callback_metrics = {}
+        self.evaluation_callback_metrics = {}
+        self.logged_metrics = {}
+        self.progress_bar_metrics = {}
         self.eval_loop_results = []
         self._cached_results = {stage: EpochResultStore(trainer, stage) for stage in LoggerStages}
         self._callback_hook_validator = CallbackHookNameValidator()
@@ -219,8 +221,13 @@ class LoggerConnector:
                 and global_step for the rest.
         """
         # add gpu memory
+<<<<<<< HEAD
         if self.trainer._device_type == DeviceType.GPU and self.trainer.log_gpu_memory:
             mem_map = memory.get_memory_profile(self.trainer.log_gpu_memory)
+=======
+        if self.trainer.on_gpu and self.log_gpu_memory:
+            mem_map = memory.get_memory_profile(self.log_gpu_memory)
+>>>>>>> move "log_gpu_memory" to logger connector
             metrics.update(mem_map)
 
         # add norms

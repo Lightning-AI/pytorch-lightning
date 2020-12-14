@@ -333,7 +333,6 @@ class Trainer(
             auto_select_gpus,
             gpus,
             num_nodes,
-            log_gpu_memory,
             sync_batchnorm,
             benchmark,
             replace_sampler_ddp,
@@ -342,7 +341,7 @@ class Trainer(
             amp_backend,
             amp_level,
         )
-        self.logger_connector = LoggerConnector(self)
+        self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self.model_connector = ModelConnector(self)
         # self.precision_connector = PrecisionConnector(self)
         self.callback_connector = CallbackConnector(self)
@@ -387,22 +386,6 @@ class Trainer(
         self.training_tricks_connector.on_trainer_init(
             gradient_clip_val, track_grad_norm, accumulate_grad_batches, truncated_bptt_steps, terminate_on_nan
         )
-
-        # init accelerator related flags
-        # self.accelerator_connector.on_trainer_init(
-        #     num_processes,
-        #     tpu_cores,
-        #     accelerator,
-        #     distributed_backend,
-        #     auto_select_gpus,
-        #     gpus,
-        #     num_nodes,
-        #     log_gpu_memory,
-        #     sync_batchnorm,
-        #     benchmark,
-        #     replace_sampler_ddp,
-        #     deterministic,
-        # )
 
         # init train loop related flags
         # TODO: remove in 1.3.0
