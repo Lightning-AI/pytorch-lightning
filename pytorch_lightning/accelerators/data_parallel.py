@@ -481,13 +481,11 @@ class DDPSpawnPlugin(ParallelPlugin):
         num_nodes=1,
         cluster_environment=None,
         is_slurm_managing_tasks=False,
-        proc_offset=0,
         **kwargs: Dict[str, Any]
     ):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         self.num_nodes = num_nodes
         self.is_slurm_managing_tasks = is_slurm_managing_tasks
-        self.proc_offset = proc_offset
         self._ddp_kwargs = kwargs
         self.dist = LightningDistributed()
         self.num_processes = len(parallel_devices)
@@ -518,18 +516,17 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.world_size = self.num_nodes * self.num_processes
 
     def start_training(self, trainer):
-        mp.spawn(self.new_process, nprocs=self.num_processes, args=(self.mp_queue, trainer, self.model, self.proc_offset,))
+        mp.spawn(self.new_process, nprocs=self.num_processes, args=(trainer,))
 
     def start_testing(self, trainer):
-        mp.spawn(self.new_process, nprocs=self.num_processes, args=(self.mp_queue, trainer, self.model, self.proc_offset,))
+        mp.spawn(self.new_process, nprocs=self.num_processes, args=(trainer, ))
 
-    def new_process(self, process_idx, mp_queue, trainer, model, proc_offset):
+    def new_process(self, process_idx, trainer):
         # TODO: check if needed
         seed = os.environ.get("PL_GLOBAL_SEED")
         if seed is not None:
             seed_everything(int(seed))
 
-        process_idx = process_idx + proc_offset
         self.set_world_ranks(process_idx)
 
         # set warning rank
