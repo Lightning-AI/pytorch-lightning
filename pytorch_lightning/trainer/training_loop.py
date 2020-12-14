@@ -105,8 +105,8 @@ class TrainLoop:
         self.trainer.call_hook("on_train_start")
 
     def setup_fit(self, model, train_dataloader, val_dataloaders, datamodule):
-        # bind logger and other properties
-        self.trainer.model_connector.copy_trainer_model_properties(model)
+        # # bind logger and other properties
+        # self.trainer.model_connector.copy_trainer_model_properties(model)
 
         # clean hparams
         if hasattr(model, "hparams"):
