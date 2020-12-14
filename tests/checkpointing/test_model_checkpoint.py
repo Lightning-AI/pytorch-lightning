@@ -1038,11 +1038,10 @@ def test_model_checkpoint_with_training_epoch_end(tmpdir):
         def training_epoch_end(self, outputs) -> None:
             avg_loss = torch.stack([x["loss"] for x in outputs]).mean()
             self.log('epoch_end_train_loss', avg_loss)
-            self.log('gb_step', self.global_step)
 
     model = TestedModel()
 
-    chk = ModelCheckpoint(monitor='epoch_end_train_loss', save_top_k=-1)
+    chk = ModelCheckpoint(dirpath=tmpdir, monitor='epoch_end_train_loss', save_top_k=-1)
     trainer = pl.Trainer(
         default_root_dir=tmpdir,
         max_epochs=4,
@@ -1052,7 +1051,7 @@ def test_model_checkpoint_with_training_epoch_end(tmpdir):
     trainer.current_epoch = 2
     trainer.fit(model)
 
-    chks = os.listdir(tmpdir / 'lightning_logs' / 'version_0' / 'checkpoints')
-    assert any(['epoch=4' not in c for c in chks])
-    assert any(['epoch=3' in c for c in chks])
-    assert any(['epoch=2' not in c for c in chks])
+    chks = os.listdir(tmpdir)
+    assert 'epoch=4.ckpt' not in chks
+    assert 'epoch=3.ckpt' not in chks
+    assert 'epoch=2.ckpt' not in chks

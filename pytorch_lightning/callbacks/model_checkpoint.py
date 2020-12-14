@@ -248,7 +248,6 @@ class ModelCheckpoint(Callback):
         # here we call each mode sequentially
         # Mode 1: save all checkpoints OR only the top k
         if self.save_top_k:
-            print(epoch, global_step)
             self._save_top_k_checkpoints(monitor_candidates, trainer, pl_module, filepath)
 
         # Mode 2: save the last checkpoint
