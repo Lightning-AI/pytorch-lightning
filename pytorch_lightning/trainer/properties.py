@@ -203,8 +203,8 @@ class TrainerProperties(ABC):
         reload_dl_every_n_epochs = self.reload_dataloaders_every_n_epochs
         if reload_dl_every_n_epochs and (not self.current_epoch % reload_dl_every_n_epochs):
             return True
-        else:
-            return False
+
+        return False
 
     @property
     def disable_validation(self) -> bool:
