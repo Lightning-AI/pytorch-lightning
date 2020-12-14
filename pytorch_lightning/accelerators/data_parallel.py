@@ -119,6 +119,10 @@ class TrainingTypePlugin(Plugin, ABC):
         # double dispatch to initiate the test loop
         return trainer.run_test()
 
+    @property
+    def rpc_enabled(self):
+        return False
+
 
 class SingleDevicePlugin(TrainingTypePlugin):
     def __init__(self, device):
