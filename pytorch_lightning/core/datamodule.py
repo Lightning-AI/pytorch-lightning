@@ -364,7 +364,7 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
         return name_type_default
 
     @classmethod
-    def from_datasets(cls, train_dataset=None, val_dataset=None, test_dataset=None, batch_size=1, num_workers=None):
+    def from_datasets(cls, train_dataset: Optional[Dataset]=None, val_dataset: Optional[Union[Dataset, List[Dataset]]]=None, test_dataset: Optional[Union[Dataset, List[Dataset]]]=None, batch_size:int=1, num_workers:Optional[int]=None):
         r"""
         Create an instance from torch.utils.data.Dataset.
 
