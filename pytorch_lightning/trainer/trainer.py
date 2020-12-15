@@ -677,7 +677,7 @@ class Trainer(
 
         # If multiple val dataloaders are present, validation_step should have dataloader_idx argument
         if using_val_step:
-            num_val_dataloaders = len(ref_model.val_dataloader.dataloader)
+            num_val_dataloaders = len(ref_model.val_dataloader())
             sig_val_step = signature(ref_model.validation_step)
             num_val_step_args = len(sig_val_step.parameters)
             if num_val_dataloaders > 1 and num_val_step_args < 3:
