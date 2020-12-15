@@ -771,3 +771,28 @@ def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
     trainer.fit(model)
     assert model.epoch_end_called
     assert model.on_train_epoch_end_called
+
+
+def test_metric_are_properly_reduced(tmpdir):
+    class TestingModel(BoringModel):
+        def __init__(self, *args, **kwargs):
+            super().__init__()
+            self.acc = pl.metrics.Accuracy()
+
+        def training_step(self, batch, batch_idx):
+            self.acc(torch.rand(1, 3, device=self.device), torch.randint(0, 2, (1,), device=self.device))
+            self.log('train_acc', self.acc, on_step=True, on_epoch=True)
+            return super().training_step(batch, batch_idx)
+
+
+        def validation_step(self, batch, batch_idx):
+            self.acc(torch.rand(1, 3, device=self.device), torch.randint(0, 2, (1,), device=self.device))
+            self.log('val_acc', self.acc, on_step=True, on_epoch=True)
+            return super().validation_step(batch, batch_idx)
+
+    model = TestingModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        gpus=1,
+        max_epochs=1)
+    trainer.fit(model)
