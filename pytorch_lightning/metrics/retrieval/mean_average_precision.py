@@ -43,7 +43,7 @@ class RetrievalMAP(RetrievalMetric):
             - ``'neg'``: score on those queries is counted as ``0.0``
 
         exclude:
-            Do not take into account predictions where the target is equal to this value. default: -100
+            Do not take into account predictions where the target is equal to this value. default -100
 
     Example:
         >>> from pytorch_lightning.metrics import RetrievalMAP

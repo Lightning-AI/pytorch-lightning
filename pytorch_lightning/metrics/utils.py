@@ -128,7 +128,7 @@ def get_mini_groups(idx: torch.Tensor) -> List[torch.Tensor]:
         >>> indexes = torch.tensor([0, 0, 0, 1, 1, 1, 1])
         >>> groups = get_mini_groups(indexes)
         >>> groups
-        [torch.tensor([0, 1, 2]), torch.tensor([3, 4, 5, 6])]
+        [tensor([0, 1, 2]), tensor([3, 4, 5, 6])]
     """
 
     indexes = dict()
