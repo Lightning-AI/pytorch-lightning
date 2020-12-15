@@ -12,9 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import sys
 
 import matplotlib.pylab as plt
 import pandas as pd
+
+from pytorch_lightning import PROJECT_ROOT
+
+sys.path += [PROJECT_ROOT]
 
 from benchmarks.test_basic_parity import vanilla_loop, lightning_loop
 from tests.base.models import ParityModuleRNN, ParityModuleMNIST
