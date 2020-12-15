@@ -1,0 +1,62 @@
+# Configuration for probot-auto-merge - https://github.com/bobvanderlinden/probot-auto-merge
+
+# Whether an out-of-date pull request is automatically updated.
+# It does so by merging its base on top of the head of the pull request.
+# This is the equivalent of clicking the 'Update branch' button.
+# This is useful for repositories where protected branches are used and the option
+# 'Require branches to be up to date before merging' is enabled.
+# Note: this only works when the branch of the pull request resides in the same repository as
+#       the pull request itself.
+updateBranch: true
+# Whether the pull request branch is automatically deleted.
+# This is the equivalent of clicking the 'Delete branch' button shown on merged pull requests.
+# Note: this only works when the branch of the pull request resides in the same repository as
+#       the pull request itself.
+deleteBranchAfterMerge: true
+reportStatus: true
+
+# The minimum number of reviews from each association that approve the pull request before
+# doing an automatic merge. For more information about associations see:
+# https://developer.github.com/v4/enum/commentauthorassociation/
+minApprovals:
+  COLLABORATOR: 3
+# The maximum number of reviews from each association that request changes to the pull request.
+# Setting this number higher than 0 will allow automatic merging while changes are still requested.
+# Requested changes from associations not defined in this list are ignored for automatic merging.
+maxRequestedChanges:
+  NONE: 0
+
+# Automatic merges will be blocked if there is a match between the regular expression and title
+blockingTitleRegex: '\bwip\b'
+
+# Automatic merges will be blocked if there is a match between the regular expression and body
+blockingBodyRegex: '\bDo not merge\b'
+
+# Will merge whenever the above conditions are met, but also
+# the owner has approved or merge label was added.
+rules:
+- minApprovals:
+    OWNER: 1
+
+# In what way a pull request needs to be merged. This can be:
+# * merge: creates a merge commit, combining the commits from the pull request on top of
+#   the base of the pull request (default)
+# * rebase: places the commits from the pull request individually on top of the base of the pull request
+# * squash: combines all changes from the pull request into a single commit and places the commit on top
+#   of the base of the pull request
+# For more information see https://help.github.com/articles/about-pull-request-merges/
+mergeMethod: squash
+
+# Optionally specify the merge commit message format. The following template
+# tags are supported:
+# * {title}: The pull request title at the moment it is merged
+# * {body}: The pull request body at the moment it is merged
+# * {number}: The pull request number
+# * {branch}: The name of the source branch
+# * {commits}: A list of merged commits
+# When this option is not set, the merge commit message is controlled by
+# GitHub and uses a combination of the title of the pull request when it was
+# opened (note that later changes to the title are ignored) and a list of
+# commits.
+# This settings is ignored when `mergeMethod` is set to `rebase`.
+mergeCommitMessage: "{title} (#{number})"
