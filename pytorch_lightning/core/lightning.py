@@ -1396,7 +1396,7 @@ class LightningModule(
         if running_train_loss is not None:
             avg_training_loss = running_train_loss.cpu().item()
         elif self.trainer.train_loop.automatic_optimization:
-            avg_training_loss = float('NaN)
+            avg_training_loss = float('NaN')
 
         tqdm_dict = {}
         if avg_training_loss is not None:
