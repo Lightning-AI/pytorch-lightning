@@ -37,10 +37,13 @@ def _main():
             lightning = lightning_loop(cls_model, num_epochs=NUM_EPOCHS, num_runs=NUM_RUNS)
 
             df_time = pd.DataFrame({'vanilla PT': vanilla['durations'], 'PT Lightning': lightning['durations']})
+            df_time /= NUM_RUNS
             df_time.to_csv(os.path.join(PATH_HERE, f'dump-times_{cls_model.__name__}.csv'))
         # todo
-        df_time.plot(ax=axarr[i], kind='hist')
+        df_time.plot.hist(ax=axarr[i], bins=12, alpha=0.5)
 
+    path_fig = os.path.join(PATH_HERE, 'figure-times.svg')
+    fig.savefig(path_fig)
 
 if __name__ == '__main__':
     _main()

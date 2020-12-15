@@ -51,10 +51,10 @@ def vanilla_loop(cls_model, num_runs=10, num_epochs=10):
     """
     Returns an array with the last loss from each epoch for each run
     """
-    device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
     hist_losses = []
     hist_durations = []
 
+    device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
     torch.backends.cudnn.deterministic = True
     for i in tqdm(range(num_runs), desc=f'Vanilla PT with {cls_model.__name__}'):
         time_start = time.perf_counter()
