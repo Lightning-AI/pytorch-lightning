@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 
 import matplotlib.pylab as plt
 import pandas as pd
@@ -21,6 +22,7 @@ from tests.base.models import ParityModuleRNN, ParityModuleMNIST
 NUM_EPOCHS = 20
 NUM_RUNS = 50
 MODEL_CLASSES = (ParityModuleRNN, ParityModuleMNIST)
+PATH_HERE = os.path.dirname(__file__)
 
 
 def _main():
@@ -30,7 +32,8 @@ def _main():
         vanilla = vanilla_loop(cls_model, num_epochs=NUM_EPOCHS, num_runs=NUM_RUNS)
         lightning = lightning_loop(cls_model, num_epochs=NUM_EPOCHS, num_runs=NUM_RUNS)
 
-        df_time = pd.DataFrame({'vanilla PT': vanilla['durations'], 'PT Lightning': lightning['durations']})
+        df_time = pd.DataFrame({'vanilla PT': vanilla['durations'], 'PT Lightning': lightning['durations']}).T
+        df_time.to_csv(os.path.join(PATH_HERE, f'dump-times_{cls_model.__name__}.csv'))
         # todo
         df_time.plot(ax=axarr[i], kind='hist')
 
