@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
 import types
 from typing import Any, Callable, Optional
 from weakref import proxy
@@ -58,11 +57,34 @@ class LightningOptimizer:
         else:
             self.__class__ = type("Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
 
-        self._trainer = None
         self._optimizer = optimizer
+        self._trainer = None
         self._accumulate_grad_batches = accumulate_grad_batches
-        self._support_closure = 'closure' in inspect.signature(optimizer.step).parameters
         self._optimizer_idx = None
+
+    @property
+    def defaults(self):
+        return self._optimizer.defaults
+
+    @defaults.setter
+    def defaults(self, defaults):
+        self._optimizer.defaults = defaults
+
+    @property
+    def state(self):
+        return self._optimizer.state
+
+    @state.setter
+    def state(self, state):
+        self._optimizer.state = state
+
+    @property
+    def param_groups(self):
+        return self._optimizer.param_groups
+
+    @param_groups.setter
+    def param_groups(self, param_groups):
+        self._optimizer.param_groups = param_groups
 
     @property
     def accumulate_grad_batches(self):
@@ -111,11 +133,7 @@ class LightningOptimizer:
 
         else:
             with trainer.profiler.profile(profiler_name):
-                if self._support_closure:
-                    optimizer.step(closure=closure, *args, **kwargs)
-                else:
-                    closure()
-                    optimizer.step(*args, **kwargs)
+                optimizer.step(closure=closure, *args, **kwargs)
 
         accelerator_backend = trainer.accelerator_backend
         if accelerator_backend is not None and accelerator_backend.rpc_enabled:
