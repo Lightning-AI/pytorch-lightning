@@ -27,22 +27,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Add a notebook example to reach a quick baseline of ~94% accuracy on CIFAR10 using Resnet in Lightning ([#4818](https://github.com/PyTorchLightning/pytorch-lightning/pull/4818)
-- Add Google Colab badges ([#5111](https://github.com/PyTorchLightning/pytorch-lightning/pull/5111)
 
 ### Changed
 
-- Update usage of deprecated profiler ([#5010](https://github.com/PyTorchLightning/pytorch-lightning/pull/5010)
-- Update usage of deprecated automatic_optimization ([#5011](https://github.com/PyTorchLightning/pytorch-lightning/pull/5011)
 - Simplify accelerator steps ([#5015](https://github.com/PyTorchLightning/pytorch-lightning/pull/5015)
-- Split tests for deprecated api ([#5071](https://github.com/PyTorchLightning/pytorch-lightning/pull/5071)
-- Improve some tests ([#5049](https://github.com/PyTorchLightning/pytorch-lightning/pull/5049)
 - Refactor load in checkpoint connector ([#4593](https://github.com/PyTorchLightning/pytorch-lightning/pull/4593)
 
 ### Removed
 
-- Drop duplicate metrics (#5014) ([#5014](https://github.com/PyTorchLightning/pytorch-lightning/pull/5014)
+- Drop duplicate metrics ([#5014](https://github.com/PyTorchLightning/pytorch-lightning/pull/5014)
 - Remove beta arg from F1 class and functional ([#5076](https://github.com/PyTorchLightning/pytorch-lightning/pull/5076)
-- Drop unused test with results API ([#5058](https://github.com/PyTorchLightning/pytorch-lightning/pull/5058)
 
 ### Fixed
 
@@ -54,9 +48,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Add deprecated metric utility functions back to functional (
     [#5067](https://github.com/PyTorchLightning/pytorch-lightning/pull/5067),
     [#5068](https://github.com/PyTorchLightning/pytorch-lightning/pull/5068))
-- Allow any input in to_onnx and to_torchscript ([#4378](https://github.com/PyTorchLightning/pytorch-lightning/pull/4378)
-- Do not warn when the name key is used in the lr_scheduler dict ([#5057](https://github.com/PyTorchLightning/pytorch-lightning/pull/5057)
-- Fix hanging metrics tests ([#5134](https://github.com/PyTorchLightning/pytorch-lightning/pull/5134)
+- Allow any input in `to_onnx` and `to_torchscript` ([#4378](https://github.com/PyTorchLightning/pytorch-lightning/pull/4378)
+- Do not warn when the name key is used in the `lr_scheduler` dict ([#5057](https://github.com/PyTorchLightning/pytorch-lightning/pull/5057)
 
 
 ## [1.1.0] - 2020-12-09
