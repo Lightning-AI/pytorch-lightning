@@ -27,6 +27,7 @@ def get_warnings(recwarn):
     recwarn.clear()
     return warnings_text
 
+
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
 def test_wandb_logger_init(wandb, recwarn):
     """Verify that basic functionality of wandb logger works.
