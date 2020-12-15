@@ -17,6 +17,7 @@ import time
 import numpy as np
 import pytest
 import torch
+from tqdm import tqdm
 
 from pytorch_lightning import seed_everything, Trainer
 import tests.base.develop_utils as tutils
@@ -55,7 +56,7 @@ def vanilla_loop(cls_model, num_runs=10, num_epochs=10):
     hist_durations = []
 
     torch.backends.cudnn.deterministic = True
-    for i in range(num_runs):
+    for i in tqdm(range(num_runs), desc=f'Vanilla PT with {cls_model.__name__}'):
         time_start = time.perf_counter()
 
         # set seed
@@ -101,7 +102,7 @@ def lightning_loop(cls_model, num_runs=10, num_epochs=10):
     hist_losses = []
     hist_durations = []
 
-    for i in range(num_runs):
+    for i in tqdm(range(num_runs), desc=f'PT Lightning with {cls_model.__name__}'):
         time_start = time.perf_counter()
 
         # set seed
