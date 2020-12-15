@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 import torch
 
+from pytorch_lightning import seed_everything, Trainer
 import tests.base.develop_utils as tutils
-from pytorch_lightning import Trainer, seed_everything
 from tests.base.models import ParityModuleMNIST, ParityModuleRNN
 
 
