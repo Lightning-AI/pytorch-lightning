@@ -815,4 +815,4 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         'on_train_batch_end': 4,
         'on_epoch_end': 5,
         'on_train_epoch_end': 6}
-    print(trainer.callback_metrics)
+    assert trainer.callback_metrics == expected
