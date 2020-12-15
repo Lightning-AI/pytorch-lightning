@@ -19,7 +19,7 @@ class RetrievalMAP(RetrievalMetric):
 
     `indexes`, `preds` and `target` must have the same dimension.
     `indexes` indicate to which query a prediction belongs.
-    Predictions will be first grouped by indexes and then MAP will be computed as the mean 
+    Predictions will be first grouped by indexes and then MAP will be computed as the mean
     of the Average Precisions over each query.
 
     Args:

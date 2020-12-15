@@ -121,7 +121,7 @@ def get_mini_groups(idx: torch.Tensor) -> List[torch.Tensor]:
         idx: a `torch.Tensor` of integers
 
     Return:
-        A list of integer `torch.Tensor`s 
+        A list of integer `torch.Tensor`s
 
     Example:
 

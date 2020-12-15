@@ -29,7 +29,7 @@ def test_against_sklearn(sklearn_metric, torch_metric):
             )
             pl = torch_metric(torch.tensor(a, device=device), torch.tensor(b, device=device))
 
-            # `torch_metric`s return 0 when no label is True 
+            # `torch_metric`s return 0 when no label is True
             # while `sklearn.average_precision_score` returns NaN
             if math.isnan(sk):
                 assert pl == 0

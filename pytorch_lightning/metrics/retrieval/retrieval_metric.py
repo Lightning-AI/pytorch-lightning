@@ -122,5 +122,5 @@ class RetrievalMetric(Metric, ABC):
     def _metric(self, group: List[int]) -> torch.Tensor:
         r"""
         Compute a metric over a single group.
-        This method must be overridden by subclasses. 
+        This method must be overridden by subclasses.
         """
