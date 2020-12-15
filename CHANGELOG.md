@@ -50,7 +50,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Add deprecated metric utility functions back to functional (
     [#5067](https://github.com/PyTorchLightning/pytorch-lightning/pull/5067),
     [#5068](https://github.com/PyTorchLightning/pytorch-lightning/pull/5068))
-- Allow any input in to_onnx and to_torchscript ([#4378](https://github.com/PyTorchLightning/pytorch-lightning/pull/4378)
+- Allow any input in `to_onnx` and `to_torchscript` ([#4378](https://github.com/PyTorchLightning/pytorch-lightning/pull/4378)
 - Do not warn when the name key is used in the lr_scheduler dict ([#5057](https://github.com/PyTorchLightning/pytorch-lightning/pull/5057)
 
 
