@@ -329,7 +329,7 @@ def test_tbptt_cpu_model(tmpdir):
             super().__init__(*args, **kwargs)
             self.test_hidden = None
             self.batch_size = batch_size
-            self.layer = torch.nn.Linear(in_features, out_features)            
+            self.layer = torch.nn.Linear(in_features, out_features)
 
         def training_step(self, batch, batch_idx, hiddens):
             assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
