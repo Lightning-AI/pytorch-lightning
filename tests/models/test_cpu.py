@@ -198,8 +198,6 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
 def test_running_test_after_fitting(tmpdir):
     """Verify test() on fitted model."""
     class ModelTrainValTest(BoringModel):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
 
         def validation_epoch_end(self, outputs) -> None:
             val_loss = torch.stack([x["x"] for x in outputs]).mean()
