@@ -53,8 +53,9 @@ class RetrievalMAP(RetrievalMetric):
 
         >>> map = RetrievalMAP()
         >>> map(indexes, preds, target)
+        tensor(0.7500)
         >>> map.compute()
-        tensor(0.75)
+        tensor(0.7500)
     """
 
     def _metric(self, group: List[int]) -> torch.Tensor:
