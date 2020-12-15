@@ -40,7 +40,7 @@ def _main():
             df_time /= NUM_RUNS
             df_time.to_csv(os.path.join(PATH_HERE, f'dump-times_{cls_model.__name__}.csv'))
         # todo
-        df_time.plot.hist(ax=axarr[i], bins=12, alpha=0.5)
+        df_time.plot.hist(ax=axarr[i], bins=12, alpha=0.5, title=cls_model.__name__, legend=True)
 
     path_fig = os.path.join(PATH_HERE, 'figure-times.svg')
     fig.savefig(path_fig)
