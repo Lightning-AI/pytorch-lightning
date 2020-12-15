@@ -99,8 +99,6 @@ def test_cpu_slurm_save_load(enable_pl_optimizer, tmpdir):
 @pytest.mark.parametrize("enable_pl_optimizer", [False, True])
 def test_early_stopping_cpu_model(enable_pl_optimizer, tmpdir):
     class ModelTrainVal(BoringModel):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
 
         def validation_epoch_end(self, outputs) -> None:
             val_loss = torch.stack([x["x"] for x in outputs]).mean()
