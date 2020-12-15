@@ -29,11 +29,15 @@ def _main():
     fig, axarr = plt.subplots(nrows=len(MODEL_CLASSES))
 
     for i, cls_model in enumerate(MODEL_CLASSES):
-        vanilla = vanilla_loop(cls_model, num_epochs=NUM_EPOCHS, num_runs=NUM_RUNS)
-        lightning = lightning_loop(cls_model, num_epochs=NUM_EPOCHS, num_runs=NUM_RUNS)
+        path_csv = os.path.join(PATH_HERE, f'dump-times_{cls_model.__name__}.csv')
+        if os.path.isfile(path_csv):
+            df_time = pd.read_csv(path_csv)
+        else:
+            vanilla = vanilla_loop(cls_model, num_epochs=NUM_EPOCHS, num_runs=NUM_RUNS)
+            lightning = lightning_loop(cls_model, num_epochs=NUM_EPOCHS, num_runs=NUM_RUNS)
 
-        df_time = pd.DataFrame({'vanilla PT': vanilla['durations'], 'PT Lightning': lightning['durations']}).T
-        df_time.to_csv(os.path.join(PATH_HERE, f'dump-times_{cls_model.__name__}.csv'))
+            df_time = pd.DataFrame({'vanilla PT': vanilla['durations'], 'PT Lightning': lightning['durations']})
+            df_time.to_csv(os.path.join(PATH_HERE, f'dump-times_{cls_model.__name__}.csv'))
         # todo
         df_time.plot(ax=axarr[i], kind='hist')
 
