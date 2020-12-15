@@ -50,6 +50,7 @@ def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
 
     # Initialize a trainer
     trainer = pl.Trainer(
+        default_root_dir=tmpdir,
         max_epochs=1,
     )
 
