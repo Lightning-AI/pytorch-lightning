@@ -62,6 +62,8 @@ _GROUP_AVAILABLE = platform.system() != 'Windows' and _module_available('torch.d
 _FAIRSCALE_PIPE_AVAILABLE = _FAIRSCALE_AVAILABLE and LooseVersion(torch.__version__) >= LooseVersion("1.6.0")
 _BOLTS_AVAILABLE = _module_available('pl_bolts')
 
+DDP_JOIN_AND_REBUILD_BUCKETS_AVAILABLE = LooseVersion(torch.__version__) >= LooseVersion("1.7.0")
+
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
 FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps
 FLOAT64_EPSILON = numpy.finfo(numpy.float64).eps
