@@ -26,18 +26,23 @@ def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
     """
     class TestModel(BoringModel):
 
+        loss_1 = []
+        loss_2 = []
+
         def training_step(self, batch, batch_idx, optimizer_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)
             if optimizer_idx == 0 and self.trainer.global_step > 10:
-                self.log("loss_1", loss, sync_dist=True)
+                self.log("loss_1", loss, on_epoch=True, prog_bar=True)
+                self.loss_1.append(loss.detach().clone())
             elif optimizer_idx == 1:
-                self.log("loss_2", loss, sync_dist=True)
+                self.log("loss_2", loss, on_epoch=True, prog_bar=True)
+                self.loss_2.append(loss.detach().clone())
             return {"loss": loss}
 
         def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            optimizer2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.001)
+            optimizer2 = torch.optim.SGD(self.layer.parameters(), lr=0.001)
             return [optimizer, optimizer2]
 
     model = TestModel()
@@ -45,7 +50,12 @@ def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
 
     # Initialize a trainer
     trainer = pl.Trainer(
-        max_epochs=2,
+        max_epochs=1,
     )
 
     trainer.fit(model)
+
+    assert torch.equal(trainer.callback_metrics["loss_2_step"], model.loss_2[-1])
+    assert torch.equal(trainer.callback_metrics["loss_1_step"], model.loss_1[-1])
+    assert torch.equal(trainer.callback_metrics["loss_2_epoch"], torch.stack(model.loss_2).mean())
+    assert torch.equal(trainer.callback_metrics["loss_1_epoch"], torch.stack(model.loss_1).mean())
