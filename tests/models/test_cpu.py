@@ -243,8 +243,6 @@ def test_running_test_after_fitting(tmpdir):
 def test_running_test_no_val(tmpdir):
     """Verify `test()` works on a model with no `val_loader`."""
     class ModelTrainTest(BoringModel):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
 
         def val_loader(self):
             pass
