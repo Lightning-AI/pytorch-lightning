@@ -30,7 +30,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Update usage of deprecated automatic_optimization ([#5011](https://github.com/PyTorchLightning/pytorch-lightning/pull/5011)
 - Simplify accelerator steps ([#5015](https://github.com/PyTorchLightning/pytorch-lightning/pull/5015)
 - Refactor load in checkpoint connector ([#4593](https://github.com/PyTorchLightning/pytorch-lightning/pull/4593)
 
