@@ -22,8 +22,13 @@ from pytorch_lightning.loggers import WandbLogger
 from tests.base import EvalModelTemplate, BoringModel
 
 
+def get_warnings(recwarn):
+    warnings_text = '\n'.join(str(w.message) for w in recwarn.list)
+    recwarn.clear()
+    return warnings_text
+
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
-def test_wandb_logger_init(wandb, caplog):
+def test_wandb_logger_init(wandb, recwarn):
     """Verify that basic functionality of wandb logger works.
     Wandb doesn't work well with pytest so we have to mock it out here."""
 
@@ -64,17 +69,15 @@ def test_wandb_logger_init(wandb, caplog):
     wandb.init().watch.assert_called_once_with('model', log='log', log_freq=10)
 
     # verify warning for logging at a previous step
-    assert 'Trying to log at a previous step' not in caplog.text
-    caplog.clear()
+    assert 'Trying to log at a previous step' not in get_warnings(recwarn)
     # current step from wandb should be 6 (last logged step)
     logger.experiment.step = 6
     # logging at step 2 should raise a warning (step_offset is still 3)
     logger.log_metrics({'acc': 1.0}, step=2)
-    assert 'Trying to log at a previous step' in caplog.text
-    caplog.clear()
+    assert 'Trying to log at a previous step' in get_warnings(recwarn)
     # logging again at step 2 should not display again the same warning
     logger.log_metrics({'acc': 1.0}, step=2)
-    assert 'Trying to log at a previous step' not in caplog.text
+    assert 'Trying to log at a previous step' not in get_warnings(recwarn)
 
     assert logger.name == wandb.init().project_name()
     assert logger.version == wandb.init().id
