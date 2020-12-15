@@ -35,4 +35,4 @@ def test_tensor_running_accum_reset():
     assert accum.memory is None
     assert accum.current_idx == 0
     assert accum.last_idx is None
-    assert accum.rotated == False
+    assert not accum.rotated
