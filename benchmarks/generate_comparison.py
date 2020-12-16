@@ -41,7 +41,15 @@ def _main():
             df_time /= NUM_RUNS
             df_time.to_csv(os.path.join(PATH_HERE, f'dump-times_{cls_model.__name__}.csv'))
         # todo: add also relative X-axis ticks to see both: relative and absolute time differences
-        df_time.plot.hist(ax=axarr[i], bins=20, alpha=0.5, title=cls_model.__name__, legend=True, grid=True)
+        df_time.plot.hist(
+            ax=axarr[i],
+            bins=20,
+            alpha=0.5,
+            title=cls_model.__name__,
+            legend=True,
+            grid=True,
+        )
+        axarr[i].set(xlabel='time [seconds]')
 
     path_fig = os.path.join(PATH_HERE, f'figure-parity-times{FIGURE_EXTENSION}')
     fig.tight_layout()
