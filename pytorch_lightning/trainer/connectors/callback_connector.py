@@ -34,7 +34,7 @@ class CallbackConnector:
             weights_save_path,
             resume_from_checkpoint
     ):
-        self.trainer.resume_from_checkpoint = resume_from_checkpoint
+        self.trainer.resume_from_checkpoint = str(resume_from_checkpoint)
 
         # init folder paths for checkpoint + weights save callbacks
         self.trainer._default_root_dir = default_root_dir or os.getcwd()

@@ -1334,7 +1334,8 @@ resume_from_checkpoint
 
 |
 
-To resume training from a specific checkpoint pass in the path here.
+To resume training from a specific checkpoint pass in the path here. If resuming from a mid-epoch
+checkpoint, training will start from the beginning of the next epoch.
 
 .. testcode::
 
