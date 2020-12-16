@@ -16,8 +16,8 @@ import os
 import matplotlib.pylab as plt
 import pandas as pd
 
-from benchmarks.test_basic_parity import vanilla_loop, lightning_loop
-from tests.base.models import ParityModuleRNN, ParityModuleMNIST
+from benchmarks.test_basic_parity import lightning_loop, vanilla_loop
+from tests.base.models import ParityModuleMNIST, ParityModuleRNN
 
 NUM_EPOCHS = 20
 NUM_RUNS = 50
