@@ -153,6 +153,7 @@ class TensorBoardLogger(LightningLoggerBase):
 
         Args:
             params: :class:`~argparse.Namespace` containing the hyperparameters
+            metrics: Dictionary with metric names as keys and measured quantities as values 
         """
 
         params = self._convert_params(params)
