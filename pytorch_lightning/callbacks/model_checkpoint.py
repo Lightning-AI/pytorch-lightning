@@ -20,6 +20,7 @@ Automatically save model checkpoints during training.
 
 """
 
+import numbers
 import os
 import re
 from copy import deepcopy
@@ -32,6 +33,7 @@ import yaml
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -551,8 +553,11 @@ class ModelCheckpoint(Callback):
         epoch = metrics.get("epoch")
         step = metrics.get("step")
 
-        if not isinstance(current, torch.Tensor) and current is not None:
-            current = torch.tensor(current, device=pl_module.device)
+        if current is not None:
+            if isinstance(current, Metric):
+                current = current.compute()
+            elif isinstance(current, numbers.Number):
+                current = torch.tensor(current, device=pl_module.device, dtype=torch.float)
 
         if self.check_monitor_top_k(current):
             self._update_best_and_save(current, epoch, step, trainer, pl_module, metrics)

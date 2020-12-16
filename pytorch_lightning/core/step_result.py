@@ -371,7 +371,10 @@ class Result(Dict):
             dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx)
 
             if options['forked']:
-                result[dl_key] = self[k]
+                if isinstance(self[k], Metric):
+                    result[dl_key] = self[k].compute().detach()
+                else:
+                    result[dl_key] = self[k]
 
         return result
 
