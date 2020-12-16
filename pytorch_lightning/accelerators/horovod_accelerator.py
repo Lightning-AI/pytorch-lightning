@@ -20,10 +20,10 @@ from torch.optim.lr_scheduler import _LRScheduler
 from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
-from pytorch_lightning.utilities import HOROVOD_AVAILABLE, AMPType
+from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
-if HOROVOD_AVAILABLE:
+if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
 
 

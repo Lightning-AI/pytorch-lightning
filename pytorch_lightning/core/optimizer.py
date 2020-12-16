@@ -17,10 +17,10 @@ from weakref import proxy
 
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.utilities import TPU_AVAILABLE
+from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if TPU_AVAILABLE:
+if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
 
 
