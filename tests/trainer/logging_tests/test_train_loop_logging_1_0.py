@@ -26,8 +26,8 @@ import torch
 from torch.utils.data import Dataset
 
 import pytorch_lightning as pl
-from pytorch_lightning import Trainer, callbacks
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning import callbacks, Trainer
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
 from tests.base.deterministic_model import DeterministicModel
@@ -817,3 +817,48 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         'on_epoch_end': 5,
         'on_train_epoch_end': 6}
     assert trainer.callback_metrics == expected
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
+def test_metric_are_properly_reduced(tmpdir):
+    class TestingModel(BoringModel):
+        def __init__(self, *args, **kwargs):
+            super().__init__()
+            self.train_acc = pl.metrics.Accuracy()
+            self.val_acc = pl.metrics.Accuracy()
+
+        def training_step(self, batch, batch_idx):
+            self.train_acc(torch.rand(1, 3, device=self.device), torch.randint(0, 2, (1,), device=self.device))
+            self.log('train_acc', self.train_acc, on_step=True, on_epoch=True)
+            return super().training_step(batch, batch_idx)
+
+        def validation_step(self, batch, batch_idx):
+            preds = torch.tensor(0, device=self.device)
+            targets = torch.tensor(1, device=self.device)
+            if batch_idx < 8:
+                targets = preds
+            self.val_acc(preds, targets)
+            self.log('val_acc', self.val_acc, on_step=True, on_epoch=True)
+            return super().validation_step(batch, batch_idx)
+
+    early_stop = EarlyStopping(monitor='val_acc', mode='max')
+
+    checkpoint = ModelCheckpoint(
+        monitor='val_acc',
+        save_last=True,
+        save_top_k=2,
+        mode='max',
+    )
+
+    model = TestingModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        gpus=1,
+        max_epochs=2,
+        limit_train_batches=5,
+        limit_val_batches=32,
+        callbacks=[early_stop, checkpoint])
+    trainer.fit(model)
+
+    assert trainer.callback_metrics["val_acc"] == 8 / 32.
+    assert "train_acc" in trainer.callback_metrics

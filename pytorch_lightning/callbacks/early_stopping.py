@@ -199,8 +199,11 @@ class EarlyStopping(Callback):
         # when in dev debugging
         trainer.dev_debugger.track_early_stopping_history(self, current)
 
-        if not isinstance(current, torch.Tensor):
-            current = torch.tensor(current, device=pl_module.device)
+        if current is not None:
+            if isinstance(current, Metric):
+                current = current.compute()
+            elif isinstance(current, numbers.Number):
+                current = torch.tensor(current, device=pl_module.device, dtype=torch.float)
 
         if trainer.use_tpu and _TPU_AVAILABLE:
             current = current.cpu()
