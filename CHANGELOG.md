@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Added `max_fpr` parameter to `auroc` metric for computing partial auroc metric ([#3790](https://github.com/PyTorchLightning/pytorch-lightning/pull/3790))
 
 ### Changed
 
@@ -58,8 +59,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Enabled `self.log` in most functions ([#4969](https://github.com/PyTorchLightning/pytorch-lightning/pull/4969))
 - Added changeable extension variable for `ModelCheckpoint` ([#4977](https://github.com/PyTorchLightning/pytorch-lightning/pull/4977))
 
-
-- Added `max_fpr` parameter to `auroc` metric for computing partial auroc metric ([#3790](https://github.com/PyTorchLightning/pytorch-lightning/pull/3790))
 
 ### Changed
 
