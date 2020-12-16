@@ -16,7 +16,7 @@ import torch
 import pytest
 from tests.base.boring_model import BoringModel, RandomDataset
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities import APEX_AVAILABLE
+from pytorch_lightning.utilities import _APEX_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 

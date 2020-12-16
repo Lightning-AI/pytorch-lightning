@@ -26,9 +26,9 @@ sys.path = os.getenv('PYTHONPATH').split(':') + sys.path
 
 from pytorch_lightning import Trainer  # noqa: E402
 from pytorch_lightning.callbacks import ModelCheckpoint  # noqa: E402
-from pytorch_lightning.utilities import HOROVOD_AVAILABLE  # noqa: E402
+from pytorch_lightning.utilities import _HOROVOD_AVAILABLE  # noqa: E402
 
-if HOROVOD_AVAILABLE:
+if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd  # noqa: E402
 else:
     print('You requested to import Horovod which is missing or not supported for your OS.')

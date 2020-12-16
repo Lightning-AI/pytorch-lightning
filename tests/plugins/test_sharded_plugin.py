@@ -8,8 +8,8 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins.sharded_native_amp_plugin import ShardedNativeAMPPlugin
-from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin, FAIRSCALE_AVAILABLE
-from pytorch_lightning.utilities import NATIVE_AMP_AVAILABLE, APEX_AVAILABLE
+from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin, _FAIRSCALE_AVAILABLE
+from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, _APEX_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel
 
@@ -30,7 +30,7 @@ from tests.base.boring_model import BoringModel
     ["ddp_backend", "gpus", "num_processes"],
     [("ddp_cpu", None, None), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
 )
-@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_choice_sharded(tmpdir, ddp_backend, gpus, num_processes):
     """
         Test to ensure that plugin is correctly chosen
@@ -55,8 +55,8 @@ def test_ddp_choice_sharded(tmpdir, ddp_backend, gpus, num_processes):
         trainer.fit(model)
 
 
-@pytest.mark.skipif(not APEX_AVAILABLE, reason="test requires apex")
-@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
+@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_invalid_apex_sharded(tmpdir):
     """
         Test to ensure that we raise an error when we try to use apex and sharded
@@ -91,8 +91,8 @@ def test_invalid_apex_sharded(tmpdir):
     ["ddp_backend", "gpus", "num_processes"],
     [("ddp_cpu", None, None), ("ddp", 2, 0), ("ddp2", 2, 0), ("ddp_spawn", 2, 0)],
 )
-@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
-@pytest.mark.skipif(not NATIVE_AMP_AVAILABLE, reason="Requires native AMP")
+@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="Requires native AMP")
 def test_ddp_choice_sharded_amp(tmpdir, ddp_backend, gpus, num_processes):
     """
         Test to ensure that plugin native amp plugin is correctly chosen when using sharded
@@ -121,7 +121,7 @@ def test_ddp_choice_sharded_amp(tmpdir, ddp_backend, gpus, num_processes):
 
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_checkpoint_cpu(tmpdir):
     """
         Test to ensure that checkpoint is saved correctly
@@ -147,7 +147,7 @@ def test_ddp_sharded_plugin_checkpoint_cpu(tmpdir):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_checkpoint_multi_gpu(tmpdir):
     """
         Test to ensure that checkpoint is saved correctly when using multiple GPUs
@@ -174,7 +174,7 @@ def test_ddp_sharded_plugin_checkpoint_multi_gpu(tmpdir):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_finetune(tmpdir):
     """
         Test to ensure that we can save and restart training (simulate fine-tuning)
@@ -200,7 +200,7 @@ def test_ddp_sharded_plugin_finetune(tmpdir):
 
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
     """
         Test to ensure that resuming from checkpoint works
@@ -234,7 +234,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_resume_from_checkpoint_downsize_gpus(tmpdir):
     """
         Test to ensure that resuming from checkpoint works when downsizing number of GPUS
@@ -268,7 +268,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_downsize_gpus(tmpdir):
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
     """
         Test to ensure that resuming from checkpoint works when going from GPUs- > CPU
@@ -300,7 +300,7 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
 
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_test(tmpdir):
     """
         Test to ensure we can use test without fit
@@ -318,7 +318,7 @@ def test_ddp_sharded_plugin_test(tmpdir):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(not FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
+@pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 def test_ddp_sharded_plugin_test_multigpu(tmpdir):
     """
         Test to ensure we can use test without fit

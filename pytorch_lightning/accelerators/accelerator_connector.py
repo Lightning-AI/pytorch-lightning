@@ -15,17 +15,17 @@ import os
 
 import torch
 
-from pytorch_lightning.utilities import HOROVOD_AVAILABLE
+from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
 from pytorch_lightning import _logger as log
 from pytorch_lightning import accelerators
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.cluster_environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.cluster_environments.torchelastic_environment import TorchElasticEnvironment
-from pytorch_lightning.utilities import device_parser, rank_zero_only, TPU_AVAILABLE
+from pytorch_lightning.utilities import device_parser, rank_zero_only, _TPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if HOROVOD_AVAILABLE:
+if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
 
 
@@ -348,7 +348,7 @@ class AcceleratorConnector:
 
         rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self.trainer.on_gpu}')
         num_cores = self.trainer.tpu_cores if self.trainer.tpu_cores is not None else 0
-        rank_zero_info(f'TPU available: {TPU_AVAILABLE}, using: {num_cores} TPU cores')
+        rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_cores} TPU cores')
 
         if torch.cuda.is_available() and not self.trainer.on_gpu:
             rank_zero_warn('GPU available but not used. Set the --gpus flag when calling the script.')
@@ -365,7 +365,7 @@ class AcceleratorConnector:
 
     def check_horovod(self):
         """Raises a `MisconfigurationException` if the Trainer is not configured correctly for Horovod."""
-        if not HOROVOD_AVAILABLE:
+        if not _HOROVOD_AVAILABLE:
             raise MisconfigurationException(
                 'Requested `accelerator="horovod"`, but Horovod is not installed.'
                 'Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]'
