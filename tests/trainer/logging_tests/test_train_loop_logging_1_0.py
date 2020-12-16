@@ -806,4 +806,5 @@ def test_metric_are_properly_reduced(tmpdir):
         max_epochs=1)
     trainer.fit(model)
 
-    import pdb; pdb.set_trace()
+    assert "val_acc" in trainer.callback_metrics
+    assert "train_acc" in trainer.callback_metrics
