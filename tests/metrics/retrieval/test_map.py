@@ -46,6 +46,7 @@ def test_against_sklearn(sklearn_metric, torch_class_metric):
 
                     # compute sk metric with multiple iterations using the base `sklearn_metric`
                     sk_results = []
+                    kwargs = {'device': device, 'dtype': torch.float32}
                     for b, a in zip(target, preds):
                         res = sklearn_metric(b, a)
 
@@ -54,20 +55,20 @@ def test_against_sklearn(sklearn_metric, torch_class_metric):
                                 pass
                             elif behaviour == 'pos':
                                 sk_results.append(
-                                    torch.tensor(1.0, device=device)
+                                    torch.tensor(1.0, **kwargs)
                                 )
                             else:
                                 sk_results.append(
-                                    torch.tensor(0.0, device=device)
+                                    torch.tensor(0.0, **kwargs)
                                 )
                         else:
                             sk_results.append(
-                                torch.tensor(res, device=device)
+                                torch.tensor(res, **kwargs)
                             )
                     if len(sk_results) > 0:
                         sk_results = torch.stack(sk_results).mean()
                     else:
-                        sk_results = torch.tensor(0.0, device=device)
+                        sk_results = torch.tensor(0.0, **kwargs)
 
                     indexes = torch.cat([torch.tensor(i) for i in indexes])
                     preds = torch.cat([torch.tensor(p) for p in preds])

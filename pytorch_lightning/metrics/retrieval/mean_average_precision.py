@@ -58,8 +58,6 @@ class RetrievalMAP(RetrievalMetric):
         tensor(0.7500)
     """
 
-    def _metric(self, group: List[int]) -> torch.Tensor:
-        _preds = self.preds[group]
-        _target = self.target[group]
-        valid_indexes = _target != self.exclude
-        return retrieval_average_precision(_preds[valid_indexes], _target[valid_indexes])
+    def _metric(self, preds: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        valid_indexes = target != self.exclude
+        return retrieval_average_precision(preds[valid_indexes], target[valid_indexes])
