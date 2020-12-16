@@ -94,6 +94,7 @@ class TrainerOptimizersMixin(ABC):
         lr_schedulers = []
         default_config = {
             'scheduler': None,
+            'name': None,  # no custom name
             'interval': 'epoch',  # after epoch is over
             'frequency': 1,  # every epoch/batch
             'reduce_on_plateau': False,  # most often not ReduceLROnPlateau scheduler
