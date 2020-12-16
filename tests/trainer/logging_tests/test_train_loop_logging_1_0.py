@@ -18,6 +18,7 @@ Tests to ensure that the training loop works with a dict (1.0)
 import collections
 import itertools
 import os
+import platform
 from unittest import mock
 
 import numpy as np
@@ -687,6 +688,7 @@ def test_logging_sync_dist_true_cpu(tmpdir):
         def training_step(self, batch, batch_idx):
             acc = self.step(batch[0])
             self.log('foo', torch.tensor(fake_result), on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='sum')
+            self.log('foo_2', 2, on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='sum')
             return acc
 
         def validation_step(self, batch, batch_idx):
@@ -706,7 +708,44 @@ def test_logging_sync_dist_true_cpu(tmpdir):
     trainer.fit(model)
 
     assert trainer.logged_metrics['foo'] == fake_result
+    assert trainer.logged_metrics['foo_2'] == 2
     assert trainer.logged_metrics['bar'] == fake_result
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
+def test_logging_sync_dist_true_ddp(tmpdir):
+    """
+    Tests to ensure that the sync_dist flag works with ddp
+    """
+    class TestLoggingSyncDistModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            acc = self.step(batch[0])
+            self.log('foo', 1, on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='SUM')
+            return acc
+
+        def validation_step(self, batch, batch_idx):
+            self.training_step_called = True
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log('bar', 2, on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='AVG')
+            return {"x": loss}
+
+    model = TestLoggingSyncDistModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=2,
+        weights_summary=None,
+        accelerator="ddp",
+        gpus=2,
+    )
+    trainer.fit(model)
+
+    assert trainer.logged_metrics['foo'] == 2
+    assert trainer.logged_metrics['bar'] == 2
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
