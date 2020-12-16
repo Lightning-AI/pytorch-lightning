@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-import threading
 from functools import partial, wraps
 from http.server import SimpleHTTPRequestHandler
+import sys
+import threading
 
 import pytest
 import torch.multiprocessing as mp
