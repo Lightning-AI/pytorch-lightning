@@ -110,11 +110,11 @@ The algorithm in short works by:
     2. Iteratively until convergence or maximum number of tries `max_trials` (default 25) has been reached:
         - Call `fit()` method of trainer. This evaluates `steps_per_trial` (default 3) number of
           training steps. Each training step can trigger an OOM error if the tensors
-          (training batch, weights, gradients ect.) allocated during the steps have a
+          (training batch, weights, gradients, etc.) allocated during the steps have a
           too large memory footprint.
         - If an OOM error is encountered, decrease batch size else increase it.
-          How much the batch size is increased/decreased is determined by the choosen
-          stratrgy.
+          How much the batch size is increased/decreased is determined by the chosen
+          strategy.
     3. The found batch size is saved to either `model.batch_size` or `model.hparams.batch_size`
     4. Restore the initial state of model and trainer
 
@@ -123,3 +123,11 @@ The algorithm in short works by:
    :members: scale_batch_size
 
 .. warning:: Batch size finder is not supported for DDP yet, it is coming soon.
+
+
+Sequential Model Parallelism with Checkpointing
+---------------------------------------------------------------------
+PyTorch Lightning integration for Sequential Model Parallelism using `FairScale <https://github.com/facebookresearch/fairscale>`_.
+Sequential Model Parallelism splits a sequential module onto multiple GPUs, reducing peak GPU memory requirements substantially.
+
+For more information, refer to :ref:`sequential-parallelism`.
