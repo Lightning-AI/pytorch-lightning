@@ -778,16 +778,21 @@ def test_metric_are_properly_reduced(tmpdir):
     class TestingModel(BoringModel):
         def __init__(self, *args, **kwargs):
             super().__init__()
-            self.acc = pl.metrics.Accuracy()
+            self.train_acc = pl.metrics.Accuracy()
+            self.val_acc = pl.metrics.Accuracy()
 
         def training_step(self, batch, batch_idx):
-            self.acc(torch.rand(1, 3, device=self.device), torch.randint(0, 2, (1,), device=self.device))
-            self.log('train_acc', self.acc, on_step=True, on_epoch=True)
+            self.train_acc(torch.rand(1, 3, device=self.device), torch.randint(0, 2, (1,), device=self.device))
+            self.log('train_acc', self.train_acc, on_step=True, on_epoch=True)
             return super().training_step(batch, batch_idx)
 
         def validation_step(self, batch, batch_idx):
-            self.acc(torch.rand(1, 3, device=self.device), torch.randint(0, 2, (1,), device=self.device))
-            self.log('val_acc', self.acc, on_step=True, on_epoch=True)
+            preds = torch.tensor(0, device=self.device)
+            targets = torch.tensor(1, device=self.device)
+            if batch_idx < 8:
+                targets = preds
+            self.val_acc(preds, targets)
+            self.log('val_acc', self.val_acc, on_step=True, on_epoch=True)
             return super().validation_step(batch, batch_idx)
 
     early_stop = EarlyStopping(monitor='val_acc', mode='max')
@@ -795,7 +800,7 @@ def test_metric_are_properly_reduced(tmpdir):
     checkpoint = ModelCheckpoint(
         monitor='val_acc',
         save_last=True,
-        save_top_k=5,
+        save_top_k=2,
         mode='max',
     )
 
@@ -804,8 +809,10 @@ def test_metric_are_properly_reduced(tmpdir):
         default_root_dir=tmpdir,
         gpus=1,
         max_epochs=2,
+        limit_train_batches=5,
+        limit_val_batches=32,
         callbacks=[early_stop, checkpoint])
     trainer.fit(model)
 
-    assert "val_acc" in trainer.callback_metrics
+    assert trainer.callback_metrics["val_acc"] == 8 / 32.
     assert "train_acc" in trainer.callback_metrics
