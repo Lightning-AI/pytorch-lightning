@@ -21,6 +21,12 @@ from pytorch_lightning.core.step_result import Result
 
 
 class LoggerStages(str, Enum):
+    """ Train/validation/test phase in each training step.
+
+    >>> # you can math the type with string
+    >>> LoggerStages.TRAIN == 'train'
+    True
+    """
     TRAIN = "train"
     VAL = "validation"
     TEST = "test"
@@ -35,7 +41,7 @@ class LoggerStages(str, Enum):
         raise RuntimeError(f"Invalid stage {stage_or_testing} of type {type(stage_or_testing)} given")
 
 
-class ResultStoreType(Enum):
+class ResultStoreType(str, Enum):
     INSIDE_BATCH_TRAIN_LOOP = "inside_batch_train_loop"
     OUTSIDE_BATCH_TRAIN_LOOP = "outside_batch_train_loop"
 
@@ -339,7 +345,9 @@ class EpochResultStore:
             self._internals[fx_name].append(hook_result, dataloader_idx=dataloader_idx, extra_info=extra_info)
 
             # update logged_metrics, progress_bar_metrics, callback_metrics
-            self.update_logger_connector()
+
+            if "epoch_end" in fx_name:
+                self.update_logger_connector()
 
             self.reset_model()
 
@@ -355,18 +363,19 @@ class EpochResultStore:
         logger_connector = self.trainer.logger_connector
 
         callback_metrics = {}
-        is_train = self._stage == LoggerStages.TRAIN
+        batch_pbar_metrics = {}
+        batch_log_metrics = {}
+        is_train = self._stage in LoggerStages.TRAIN.value
 
         if not self._has_batch_loop_finished:
             # get pbar
             batch_pbar_metrics = self.get_latest_batch_pbar_metrics()
             logger_connector.add_progress_bar_metrics(batch_pbar_metrics)
+            batch_log_metrics = self.get_latest_batch_log_metrics()
 
             if is_train:
                 # Only log and add to callback epoch step during evaluation, test.
-                batch_log_metrics = self.get_latest_batch_log_metrics()
                 logger_connector.logged_metrics.update(batch_log_metrics)
-
                 callback_metrics.update(batch_pbar_metrics)
                 callback_metrics.update(batch_log_metrics)
         else:
@@ -392,6 +401,9 @@ class EpochResultStore:
         # update callback_metrics
         logger_connector.callback_metrics.update(callback_metrics)
         logger_connector.callback_metrics.pop("epoch", None)
+
+        batch_pbar_metrics.pop("debug_epoch", None)
+        return batch_pbar_metrics, batch_log_metrics
 
     def run_batch_from_func_name(self, func_name) -> Dict:
         results = [getattr(hook_result, func_name) for hook_result in self._internals.values()]

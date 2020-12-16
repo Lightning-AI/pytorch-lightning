@@ -22,14 +22,14 @@ import tests.base.develop_pipelines as tpipes
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.utilities import TPU_AVAILABLE
+from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.base.datasets import TrialMNIST
 from tests.base.develop_utils import pl_multi_process_test
 
 
-if TPU_AVAILABLE:
+if _TPU_AVAILABLE:
     import torch_xla
     import torch_xla.distributed.xla_multiprocessing as xmp
     SERIAL_EXEC = xmp.MpSerialExecutor()
@@ -43,7 +43,7 @@ def _serial_train_loader():
     return DataLoader(_LARGER_DATASET, batch_size=32)
 
 
-@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_model_tpu_cores_1(tmpdir):
     """Make sure model trains on TPU."""
@@ -61,7 +61,7 @@ def test_model_tpu_cores_1(tmpdir):
 
 
 @pytest.mark.parametrize('tpu_core', [1, 5])
-@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_model_tpu_index(tmpdir, tpu_core):
     """Make sure model trains on TPU."""
@@ -79,7 +79,7 @@ def test_model_tpu_index(tmpdir, tpu_core):
     assert torch_xla._XLAC._xla_get_default_device() == f'xla:{tpu_core}'
 
 
-@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_model_tpu_cores_8(tmpdir):
     """Make sure model trains on TPU."""
@@ -100,7 +100,7 @@ def test_model_tpu_cores_8(tmpdir):
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
 
-@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_model_16bit_tpu_cores_1(tmpdir):
     """Make sure model trains on TPU."""
@@ -120,7 +120,7 @@ def test_model_16bit_tpu_cores_1(tmpdir):
 
 
 @pytest.mark.parametrize('tpu_core', [1, 5])
-@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_model_16bit_tpu_index(tmpdir, tpu_core):
     """Make sure model trains on TPU."""
@@ -140,7 +140,7 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
     assert os.environ.get('XLA_USE_BF16') == str(1), "XLA_USE_BF16 was not set in environment variables"
 
 
-@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_model_16bit_tpu_cores_8(tmpdir):
     """Make sure model trains on TPU."""
@@ -162,7 +162,7 @@ def test_model_16bit_tpu_cores_8(tmpdir):
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
 
-@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_model_tpu_early_stop(tmpdir):
     """Test if single TPU core training works"""
@@ -179,7 +179,7 @@ def test_model_tpu_early_stop(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_tpu_grad_norm(tmpdir):
     """Test if grad_norm works on TPU."""
@@ -197,7 +197,7 @@ def test_tpu_grad_norm(tmpdir):
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
 
-@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_dataloaders_passed_to_fit(tmpdir):
     """Test if dataloaders passed to trainer works on TPU"""
@@ -217,7 +217,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
     ['tpu_cores', 'expected_tpu_id'],
     [pytest.param(1, None), pytest.param(8, None), pytest.param([1], 1), pytest.param([8], 8)],
 )
-@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires missing TPU")
+@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires missing TPU")
 def test_tpu_id_to_be_as_expected(tpu_cores, expected_tpu_id):
     """Test if trainer.tpu_id is set as expected"""
     assert Trainer(tpu_cores=tpu_cores).tpu_id == expected_tpu_id
@@ -229,7 +229,7 @@ def test_tpu_misconfiguration():
         Trainer(tpu_cores=[1, 8])
 
 
-@pytest.mark.skipif(TPU_AVAILABLE, reason="test requires missing TPU")
+@pytest.mark.skipif(_TPU_AVAILABLE, reason="test requires missing TPU")
 def test_exception_when_no_tpu_found(tmpdir):
     """Test if exception is thrown when xla devices are not available"""
 
@@ -238,46 +238,13 @@ def test_exception_when_no_tpu_found(tmpdir):
 
 
 @pytest.mark.parametrize('tpu_cores', [1, 8, [1]])
-@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
 def test_distributed_backend_set_when_using_tpu(tmpdir, tpu_cores):
     """Test if distributed_backend is set to `tpu` when tpu_cores is not None"""
     assert Trainer(tpu_cores=tpu_cores).distributed_backend == "tpu"
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-@pl_multi_process_test
-def test_result_obj_on_tpu(tmpdir):
-    seed_everything(1234)
-
-    batches = 5
-    epochs = 2
-
-    model = EvalModelTemplate()
-    model.training_step = model.training_step_result_obj
-    model.training_step_end = None
-    model.training_epoch_end = None
-    model.validation_step = model.validation_step_result_obj
-    model.validation_step_end = None
-    model.validation_epoch_end = None
-    model.test_step = model.test_step_result_obj
-    model.test_step_end = None
-    model.test_epoch_end = None
-
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=epochs,
-        callbacks=[EarlyStopping()],
-        log_every_n_steps=2,
-        limit_train_batches=batches,
-        weights_summary=None,
-        tpu_cores=8
-    )
-
-    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
-
-
-@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_broadcast_on_tpu():
     """ Checks if an object from the master process is broadcasted to other processes correctly"""
@@ -307,7 +274,7 @@ def test_broadcast_on_tpu():
         pytest.param(10, None, True),
     ],
 )
-@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
     if error_expected:
@@ -324,7 +291,7 @@ def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
     pytest.param("--tpu_cores=1,",
                  {'tpu_cores': '1,'})
 ])
-@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_tpu_cores_with_argparse(cli_args, expected):
     """Test passing tpu_cores in command line"""

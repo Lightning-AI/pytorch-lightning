@@ -19,10 +19,10 @@ from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.precision_plugin import PrecisionPlugin
-from pytorch_lightning.utilities import APEX_AVAILABLE, AMPType
+from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 
-if APEX_AVAILABLE:
+if _APEX_AVAILABLE:
     from apex import amp
 
 
@@ -137,5 +137,9 @@ class ApexPlugin(PrecisionPlugin):
         # TODO: pass the closure to the step ASAP
         with trainer.profiler.profile("closure"):
             closure()
+
+        if not self.trainer.train_loop.automatic_optimization:
+            trainer.call_hook("on_after_backward")
+
         with trainer.profiler.profile("optimizer_step"):
             optimizer.step()

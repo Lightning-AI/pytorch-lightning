@@ -28,6 +28,17 @@ jobs:
         python setup.py sdist bdist_wheel
         ls -lh dist/
 
+    - name: Upload to release
+      if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: dist/*
+        tag: ${{ github.ref }}
+        asset_name: packages
+        overwrite: false
+        file_glob: true
+
     - name: Delay releasing
       if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
       uses: juliangruber/sleep-action@v1

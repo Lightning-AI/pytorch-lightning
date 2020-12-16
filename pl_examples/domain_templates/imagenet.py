@@ -210,7 +210,7 @@ def main(args: Namespace) -> None:
     if args.seed is not None:
         pl.seed_everything(args.seed)
 
-    if args.distributed_backend == 'ddp':
+    if args.accelerator == 'ddp':
         # When using a single GPU per process and per
         # DistributedDataParallel, we need to divide the batch size
         # ourselves based on the total number of GPUs we have
@@ -237,7 +237,7 @@ def run_cli():
                                help='seed for initializing training.')
     parser = ImageNetLightningModel.add_model_specific_args(parent_parser)
     parser.set_defaults(
-        profiler=True,
+        profiler="simple",
         deterministic=True,
         max_epochs=90,
     )

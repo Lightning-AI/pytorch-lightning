@@ -1,5 +1,5 @@
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.utilities import APEX_AVAILABLE
+from pytorch_lightning.utilities import _APEX_AVAILABLE
 from tests.base.boring_model import BoringModel
 from pytorch_lightning import Trainer
 import pytest
@@ -8,7 +8,7 @@ from unittest import mock
 from pytorch_lightning.plugins.apex import ApexPlugin
 
 
-@pytest.mark.skipif(not APEX_AVAILABLE, reason="test requires apex")
+@pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
 @mock.patch.dict(os.environ, {
     "CUDA_VISIBLE_DEVICES": "0,1",
     "SLURM_NTASKS": "2",
@@ -34,15 +34,15 @@ def test_amp_choice_default_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
         amp_backend='apex',
         gpus=gpus,
         num_processes=num_processes,
-        distributed_backend=ddp_backend,
-        callbacks=[CB()]
+        accelerator=ddp_backend,
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
 
-@pytest.mark.skipif(not APEX_AVAILABLE, reason="test requires apex")
+@pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
 @mock.patch.dict(os.environ, {
     "CUDA_VISIBLE_DEVICES": "0,1",
     "SLURM_NTASKS": "2",
@@ -70,9 +70,9 @@ def test_amp_choice_custom_ddp_cpu(tmpdir, ddp_backend, gpus, num_processes):
         amp_backend='apex',
         gpus=gpus,
         num_processes=num_processes,
-        distributed_backend=ddp_backend,
+        accelerator=ddp_backend,
         plugins=[MyApexPlugin()],
-        callbacks=[CB()]
+        callbacks=[CB()],
     )
 
     with pytest.raises(SystemExit):

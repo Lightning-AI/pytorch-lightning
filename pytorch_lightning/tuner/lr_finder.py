@@ -137,7 +137,7 @@ def lr_find(
 
     """
     if trainer.fast_dev_run:
-        rank_zero_warn('Skipping learning rate finder since `fast_dev_run=True`', UserWarning)
+        rank_zero_warn('Skipping learning rate finder since fast_dev_run is enabled.', UserWarning)
         return
 
     save_path = os.path.join(trainer.default_root_dir, 'lr_find_temp_model.ckpt')
