@@ -42,7 +42,7 @@ class TensorBoardLogger(LightningLoggerBase):
 
     Implemented using :class:`~torch.utils.tensorboard.SummaryWriter`. Logs are saved to
     ``os.path.join(save_dir, name, version)``. This is the default logger in Lightning, it comes
-    preinstalled. 
+    preinstalled.
 
     Example:
         >>> from pytorch_lightning import Trainer
@@ -147,10 +147,10 @@ class TensorBoardLogger(LightningLoggerBase):
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace],
                         metrics: Optional[Dict[str, Any]] = None) -> None:
         """
-        Record hyperparameters. Tensorboard logs with and without saved hyperparameters 
-        are incompatible, the hyperparameters are then not displayed in the Tensorboard. 
+        Record hyperparameters. Tensorboard logs with and without saved hyperparameters
+        are incompatible, the hyperparameters are then not displayed in the Tensorboard.
         Please delete or move the previously saved logs to display the new ones with hyperparameters.
-                    
+
         Args:
             params: :class:`~argparse.Namespace` containing the hyperparameters
         """
