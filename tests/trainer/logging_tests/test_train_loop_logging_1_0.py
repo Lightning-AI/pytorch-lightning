@@ -27,7 +27,7 @@ from torch.utils.data import Dataset
 
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer, callbacks
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
 from tests.base.deterministic_model import DeterministicModel
@@ -773,6 +773,7 @@ def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
     assert model.on_train_epoch_end_called
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
 def test_metric_are_properly_reduced(tmpdir):
     class TestingModel(BoringModel):
         def __init__(self, *args, **kwargs):
@@ -781,14 +782,22 @@ def test_metric_are_properly_reduced(tmpdir):
 
         def training_step(self, batch, batch_idx):
             self.acc(torch.rand(1, 3, device=self.device), torch.randint(0, 2, (1,), device=self.device))
-            self.log('train_acc', self.acc, on_step=True, on_epoch=True)
+            self.log('train_acc', self.acc, on_step=False, on_epoch=True)
             return super().training_step(batch, batch_idx)
-
 
         def validation_step(self, batch, batch_idx):
             self.acc(torch.rand(1, 3, device=self.device), torch.randint(0, 2, (1,), device=self.device))
-            self.log('val_acc', self.acc, on_step=True, on_epoch=True)
+            self.log('val_acc', self.acc, on_step=False, on_epoch=True)
             return super().validation_step(batch, batch_idx)
+
+    early_stop = EarlyStopping(monitor='val_acc', mode='max')
+
+    checkpoint = ModelCheckpoint(
+        monitor='val_acc',
+        save_last=True,
+        save_top_k=5,
+        mode='max',
+    )
 
     model = TestingModel()
     trainer = Trainer(
@@ -796,3 +805,5 @@ def test_metric_are_properly_reduced(tmpdir):
         gpus=1,
         max_epochs=1)
     trainer.fit(model)
+
+    import pdb; pdb.set_trace()
