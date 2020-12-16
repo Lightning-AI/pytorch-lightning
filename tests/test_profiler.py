@@ -13,8 +13,8 @@
 # limitations under the License.
 
 import os
-import time
 from pathlib import Path
+import time
 
 import numpy as np
 import pytest
