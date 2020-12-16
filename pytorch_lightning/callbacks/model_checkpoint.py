@@ -20,10 +20,10 @@ Automatically save model checkpoints during training.
 
 """
 
-import os
-import re
 from copy import deepcopy
+import os
 from pathlib import Path
+import re
 from typing import Any, Dict, Optional, Union
 
 import numpy as np
@@ -32,8 +32,8 @@ import yaml
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
+from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -207,11 +207,14 @@ class ModelCheckpoint(Callback):
             "best_model_score": self.best_model_score,
             "best_model_path": self.best_model_path,
             "current_score": self.current_score,
+            "dirpath": self.dirpath
         }
 
     def on_load_checkpoint(self, checkpointed_state: Dict[str, Any]):
         self.best_model_score = checkpointed_state["best_model_score"]
         self.best_model_path = checkpointed_state["best_model_path"]
+        if "dirpath" in checkpointed_state:
+            self.dirpath = checkpointed_state["dirpath"]
 
     def save_checkpoint(self, trainer, pl_module):
         """
