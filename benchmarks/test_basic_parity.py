@@ -30,7 +30,7 @@ from tests.base.models import ParityModuleMNIST, ParityModuleRNN
     (ParityModuleMNIST, 0.25),  # todo: lower this thr
 ])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-def test_pytorch_parity(tmpdir, cls_model, max_diff, num_epochs: int = 4, num_runs: int = 3):
+def test_pytorch_parity(tmpdir, cls_model, max_diff: float, num_epochs: int = 4, num_runs: int = 3):
     """
     Verify that the same  pytorch and lightning models achieve the same results
     """
