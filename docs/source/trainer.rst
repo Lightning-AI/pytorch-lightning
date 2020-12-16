@@ -619,7 +619,7 @@ will need to be set up to use remote filepaths.
 
 distributed_backend
 ^^^^^^^^^^^^^^^^^^^
-This has been renamed ``accelerator``.
+Deprecated: This has been renamed ``accelerator``.
 
 fast_dev_run
 ^^^^^^^^^^^^
@@ -1100,7 +1100,7 @@ as you request.
 Your effective batch size is batch_size * total tpu cores.
 
 .. note::
-    No need to add a `DistributedSampler <https://pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler>`_,
+    No need to add a :class:`~torch.utils.data.distributed.DistributedSampler`,
     Lightning automatically does it for you.
 
 This parameter can be either 1 or 8.

@@ -75,7 +75,7 @@ register the tensor as a buffer in your modules's ``__init__`` method with :meth
 
 Remove samplers
 ^^^^^^^^^^^^^^^
-In PyTorch, you must use `DistributedSampler <https://pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler>`_
+In PyTorch, you must use :class:`~torch.utils.data.distributed.DistributedSampler`
 for multi-node or TPU training. The sampler makes sure each GPU sees the appropriate part of your data.
 
 .. testcode::
@@ -101,7 +101,7 @@ Lightning adds the correct samplers when needed, so no need to explicitly add sa
 
 .. note::
     By default it will add ``shuffle=True`` for train sampler and ``shuffle=False`` for val/test sampler.
-    ``drop_last`` in DistributedSampler will be set to its default value in PyTorch.
+    ``drop_last`` in :class:`~torch.utils.data.distributed.DistributedSampler` will be set to its default value in PyTorch.
 
 .. note:: You can disable this behavior with ``Trainer(replace_sampler_ddp=False)``
 
@@ -262,12 +262,12 @@ Distributed modes
 -----------------
 Lightning allows multiple ways of training
 
-- Data Parallel (`accelerator='dp'`) (multiple-gpus, 1 machine)
-- DistributedDataParallel (`accelerator='ddp'`) (multiple-gpus across many machines (python script based)).
-- DistributedDataParallel (`accelerator='ddp_spawn'`) (multiple-gpus across many machines (spawn based)).
-- DistributedDataParallel 2 (`accelerator='ddp2'`) (DP in a machine, DDP across machines).
-- Horovod (`accelerator='horovod'`) (multi-machine, multi-gpu, configured at runtime)
-- TPUs (`tpu_cores=8|x`) (tpu or TPU pod)
+- Data Parallel (``accelerator='dp'``) (multiple-gpus, 1 machine)
+- DistributedDataParallel (``accelerator='ddp'``) (multiple-gpus across many machines (python script based)).
+- DistributedDataParallel (``accelerator='ddp_spawn'``) (multiple-gpus across many machines (spawn based)).
+- DistributedDataParallel 2 (``accelerator='ddp2'``) (DP in a machine, DDP across machines).
+- Horovod (``accelerator='horovod'``) (multi-machine, multi-gpu, configured at runtime)
+- TPUs (``tpu_cores=8|x``) (tpu or TPU pod)
 
 .. note::
     If you request multiple GPUs or nodes without setting a mode, DDP will be automatically used.
@@ -279,7 +279,7 @@ For a deeper understanding of what Lightning is doing, feel free to read this
 
 Data Parallel
 ^^^^^^^^^^^^^
-`DataParallel <https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel>`_ (DP) splits a batch across k GPUs.
+:class:`~torch.nn.DataParallel` (DP) splits a batch across k GPUs.
 That is, if you have a batch of 32 and use DP with 2 gpus, each GPU will process 16 samples,
 after which the root node will aggregate the results.
 
@@ -293,7 +293,7 @@ after which the root node will aggregate the results.
 
 Distributed Data Parallel
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-`DistributedDataParallel <https://pytorch.org/docs/stable/nn.html#distributeddataparallel>`_ (DDP) works as follows:
+:class:`~torch.nn.parallel.DistributedDataParallel` (DDP) works as follows:
 
 1. Each GPU across each node gets its own process.
 
@@ -580,26 +580,26 @@ not allow 16-bit and DP training. We tried to get this to work, but it's an issu
 
 Below are the possible configurations we support.
 
-+-------+---------+----+-----+---------+------------------------------------------------------------+
-| 1 GPU | 1+ GPUs | DP | DDP | 16-bit  | command                                                    |
-+=======+=========+====+=====+=========+============================================================+
-| Y     |         |    |     |         | `Trainer(gpus=1)`                                          |
-+-------+---------+----+-----+---------+------------------------------------------------------------+
-| Y     |         |    |     | Y       | `Trainer(gpus=1, precision=16)`                            |
-+-------+---------+----+-----+---------+------------------------------------------------------------+
-|       | Y       | Y  |     |         | `Trainer(gpus=k, accelerator='dp')`                        |
-+-------+---------+----+-----+---------+------------------------------------------------------------+
-|       | Y       |    | Y   |         | `Trainer(gpus=k, accelerator='ddp')`                       |
-+-------+---------+----+-----+---------+------------------------------------------------------------+
-|       | Y       |    | Y   | Y       | `Trainer(gpus=k, accelerator='ddp', precision=16)`         |
-+-------+---------+----+-----+---------+------------------------------------------------------------+
++-------+---------+----+-----+--------+------------------------------------------------------------+
+| 1 GPU | 1+ GPUs | DP | DDP | 16-bit | command                                                    |
++=======+=========+====+=====+========+============================================================+
+| Y     |         |    |     |        | `Trainer(gpus=1)`                                          |
++-------+---------+----+-----+--------+------------------------------------------------------------+
+| Y     |         |    |     | Y      | `Trainer(gpus=1, precision=16)`                            |
++-------+---------+----+-----+--------+------------------------------------------------------------+
+|       | Y       | Y  |     |        | `Trainer(gpus=k, accelerator='dp')`                        |
++-------+---------+----+-----+--------+------------------------------------------------------------+
+|       | Y       |    | Y   |        | `Trainer(gpus=k, accelerator='ddp')`                       |
++-------+---------+----+-----+--------+------------------------------------------------------------+
+|       | Y       |    | Y   | Y      | `Trainer(gpus=k, accelerator='ddp', precision=16)`         |
++-------+---------+----+-----+--------+------------------------------------------------------------+
 
 
 Implement Your Own Distributed (DDP) training
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you need your own way to init PyTorch DDP you can override: :meth:`pytorch_lightning.plugins.ddp_plugin.DDPPlugin.init_ddp_connection`.
+If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.plugins.ddp_plugin.DDPPlugin.init_ddp_connection`.
 
-If you also need to use your own DDP implementation, override: :meth:`pytorch_lightning.plugins.ddp_plugin.DDPPlugin.configure_ddp`.
+If you also need to use your own DDP implementation, override :meth:`pytorch_lightning.plugins.ddp_plugin.DDPPlugin.configure_ddp`.
 
 
 ----------
