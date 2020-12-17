@@ -76,8 +76,7 @@ def measure_loops(cls_model, kind, num_runs=10, num_epochs=10):
     hist_durations = []
     hist_memory = []
 
-    device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
-    assert device == 'cuda'
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     torch.backends.cudnn.deterministic = True
     for i in tqdm(range(num_runs), desc=f'{kind} with {cls_model.__name__}'):
         gc.collect()
@@ -109,6 +108,7 @@ def measure_loops(cls_model, kind, num_runs=10, num_epochs=10):
 
 
 def vanilla_loop(cls_model, idx, device: str = 'cuda', num_epochs=10):
+    device = torch.device(device)
     # set seed
     seed_everything(idx)
 
