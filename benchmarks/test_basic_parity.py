@@ -75,6 +75,15 @@ def test_pytorch_parity(
     assert_parity_relative(lightning['memory'], vanilla['memory'], max_diff=max_diff_memory)
 
 
+def _hook_memory():
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
+        used_memory = torch.cuda.max_memory_allocated()
+    else:
+        used_memory = np.nan
+    return used_memory
+
+
 def measure_loops(cls_model, kind, num_runs=10, num_epochs=10):
     """
     Returns an array with the last loss from each epoch for each run
@@ -83,11 +92,11 @@ def measure_loops(cls_model, kind, num_runs=10, num_epochs=10):
     hist_durations = []
     hist_memory = []
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device_type = "cuda" if torch.cuda.is_available() else "cpu"
     torch.backends.cudnn.deterministic = True
     for i in tqdm(range(num_runs), desc=f'{kind} with {cls_model.__name__}'):
         gc.collect()
-        if device == 'cuda':
+        if device_type == 'cuda':
             torch.cuda.empty_cache()
             torch.cuda.reset_max_memory_cached()
             torch.cuda.reset_max_memory_allocated()
@@ -98,18 +107,13 @@ def measure_loops(cls_model, kind, num_runs=10, num_epochs=10):
         time_start = time.perf_counter()
 
         _loop = lightning_loop if kind == "PT Lightning" else vanilla_loop
-        final_loss = _loop(cls_model, idx=i, device=device, num_epochs=num_epochs)
+        final_loss, used_memory = _loop(cls_model, idx=i, device_type=device_type, num_epochs=num_epochs)
 
         time_end = time.perf_counter()
-        if device == 'cuda':
-            torch.cuda.synchronize()
-            max_memory = torch.cuda.max_memory_allocated()
-        else:
-            max_memory = 0
 
         hist_losses.append(final_loss)
         hist_durations.append(time_end - time_start)
-        hist_memory.append(max_memory)
+        hist_memory.append(used_memory)
 
     return {
         'losses': hist_losses,
@@ -118,8 +122,8 @@ def measure_loops(cls_model, kind, num_runs=10, num_epochs=10):
     }
 
 
-def vanilla_loop(cls_model, idx, device: str = 'cuda', num_epochs=10):
-    device = torch.device(device)
+def vanilla_loop(cls_model, idx, device_type: str = 'cuda', num_epochs=10):
+    device = torch.device(device_type)
     # set seed
     seed_everything(idx)
 
@@ -147,10 +151,10 @@ def vanilla_loop(cls_model, idx, device: str = 'cuda', num_epochs=10):
         # track last epoch loss
         epoch_losses.append(loss.item())
 
-    return epoch_losses[-1]
+    return epoch_losses[-1], _hook_memory()
 
 
-def lightning_loop(cls_model, idx, device: str = 'cuda', num_epochs=10):
+def lightning_loop(cls_model, idx, device_type: str = 'cuda', num_epochs=10):
     seed_everything(idx)
 
     model = cls_model()
@@ -160,7 +164,7 @@ def lightning_loop(cls_model, idx, device: str = 'cuda', num_epochs=10):
         max_epochs=num_epochs if idx > 0 else 1,
         progress_bar_refresh_rate=0,
         weights_summary=None,
-        gpus=1 if device == 'cuda' else 0,
+        gpus=1 if device_type == 'cuda' else 0,
         checkpoint_callback=False,
         deterministic=True,
         logger=False,
@@ -168,4 +172,4 @@ def lightning_loop(cls_model, idx, device: str = 'cuda', num_epochs=10):
     )
     trainer.fit(model)
 
-    return trainer.train_loop.running_loss.last().item()
+    return trainer.train_loop.running_loss.last().item(), _hook_memory()
