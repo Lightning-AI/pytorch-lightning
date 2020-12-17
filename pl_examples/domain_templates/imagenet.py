@@ -50,6 +50,12 @@ from pytorch_lightning.core import LightningModule
 
 
 class ImageNetLightningModel(LightningModule):
+    """
+    >>> ImageNetLightningModel(data_path='missing')  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    ImageNetLightningModel(
+      (model): ResNet(...)
+    )
+    """
     # pull out resnet names from torchvision models
     MODEL_NAMES = sorted(
         name for name in models.__dict__
@@ -58,14 +64,14 @@ class ImageNetLightningModel(LightningModule):
 
     def __init__(
             self,
-            arch: str,
-            pretrained: bool,
-            lr: float,
-            momentum: float,
-            weight_decay: int,
             data_path: str,
-            batch_size: int,
-            workers: int,
+            arch: str = 'resnet18',
+            pretrained: bool = False,
+            lr: float = 0.1,
+            momentum: float = 0.9,
+            weight_decay: float = 1e-4,
+            batch_size: int = 4,
+            workers: int = 2,
             **kwargs,
     ):
         super().__init__()

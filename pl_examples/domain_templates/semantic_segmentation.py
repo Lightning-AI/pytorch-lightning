@@ -142,15 +142,17 @@ class SegModel(pl.LightningModule):
 
     Adam optimizer is used along with Cosine Annealing learning rate scheduler.
     """
-
-    def __init__(self,
-                 data_path: str,
-                 batch_size: int,
-                 lr: float,
-                 num_layers: int,
-                 features_start: int,
-                 bilinear: bool, **kwargs):
-        super().__init__()
+    def __init__(
+            self,
+            data_path: str,
+            batch_size: int = 4,
+            lr: float = 1e-3,
+            num_layers: int = 3,
+            features_start: int = 64,
+            bilinear: bool = False,
+            **kwargs,
+    ):
+        super().__init__(**kwargs)
         self.data_path = data_path
         self.batch_size = batch_size
         self.lr = lr
@@ -204,6 +206,18 @@ class SegModel(pl.LightningModule):
     def val_dataloader(self):
         return DataLoader(self.validset, batch_size=self.batch_size, shuffle=False)
 
+    @staticmethod
+    def add_model_specific_args(parent_parser):  # pragma: no-cover
+        parser = ArgumentParser(parents=[parent_parser])
+        parser.add_argument("--data_path", type=str, help="path where dataset is stored")
+        parser.add_argument("--batch_size", type=int, default=16, help="size of the batches")
+        parser.add_argument("--lr", type=float, default=0.001, help="adam: learning rate")
+        parser.add_argument("--num_layers", type=int, default=5, help="number of layers on u-net")
+        parser.add_argument("--features_start", type=float, default=64, help="number of features in first layer")
+        parser.add_argument("--bilinear", action='store_true', default=False,
+                            help="whether to use bilinear interpolation or transposed")
+        return parser
+
 
 def main(hparams: Namespace):
     # ------------------------
@@ -224,14 +238,7 @@ def main(hparams: Namespace):
     # ------------------------
     # 3 INIT TRAINER
     # ------------------------
-    trainer = pl.Trainer(
-        gpus=hparams.gpus,
-        logger=logger,
-        max_epochs=hparams.epochs,
-        accumulate_grad_batches=hparams.grad_batches,
-        accelerator=hparams.accelerator,
-        precision=16 if hparams.use_amp else 32,
-    )
+    trainer = pl.Trainer.from_argparse_args(hparams)
 
     # ------------------------
     # 5 START TRAINING
@@ -242,21 +249,7 @@ def main(hparams: Namespace):
 if __name__ == '__main__':
     cli_lightning_logo()
     parser = ArgumentParser()
-    parser.add_argument("--data_path", type=str, help="path where dataset is stored")
-    parser.add_argument("--gpus", type=int, default=-1, help="number of available GPUs")
-    parser.add_argument('--distributed-backend', type=str, default='dp', choices=('dp', 'ddp', 'ddp2'),
-                        help='supports three options dp, ddp, ddp2')
-    parser.add_argument('--use_amp', action='store_true', help='if true uses 16 bit precision')
-    parser.add_argument("--batch_size", type=int, default=4, help="size of the batches")
-    parser.add_argument("--lr", type=float, default=0.001, help="adam: learning rate")
-    parser.add_argument("--num_layers", type=int, default=5, help="number of layers on u-net")
-    parser.add_argument("--features_start", type=float, default=64, help="number of features in first layer")
-    parser.add_argument("--bilinear", action='store_true', default=False,
-                        help="whether to use bilinear interpolation or transposed")
-    parser.add_argument("--grad_batches", type=int, default=1, help="number of batches to accumulate")
-    parser.add_argument("--epochs", type=int, default=20, help="number of epochs to train")
-    parser.add_argument("--log_wandb", action='store_true', help="log training on Weights & Biases")
-
+    parser = SegModel.add_model_specific_args(parser)
     hparams = parser.parse_args()
 
     main(hparams)

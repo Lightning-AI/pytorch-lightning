@@ -55,6 +55,12 @@ class Flatten(nn.Module):
 
 
 class LitResnet(pl.LightningModule):
+    """
+    >>> LitResnet()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    LitResnet(
+      (sequential_module): Sequential(...)
+    )
+    """
     def __init__(self, lr=0.05, batch_size=32, manual_optimization=False):
         super().__init__()
 
