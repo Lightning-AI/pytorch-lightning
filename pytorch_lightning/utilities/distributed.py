@@ -15,14 +15,14 @@
 import os
 import warnings
 from functools import wraps
+from typing import Any, Optional, Union
 
 import torch
+
 from pytorch_lightning import _logger as log
-from typing import Union, Optional, Any
 
 if torch.distributed.is_available():
-    from torch.distributed import ReduceOp
-    from torch.distributed import group
+    from torch.distributed import ReduceOp, group
 else:
     class ReduceOp:
         SUM = None
@@ -145,15 +145,14 @@ def sync_ddp(
     if group is None:
         group = torch.distributed.group.WORLD
 
-    if reduce_op is None:
-        reduce_op = torch.distributed.ReduceOp.SUM
-    elif isinstance(reduce_op, str) and reduce_op in ("avg", "mean"):
-        reduce_op = torch.distributed.ReduceOp.SUM
+    op = reduce_op if isinstance(reduce_op, ReduceOp) else ReduceOp.SUM
+
+    if isinstance(reduce_op, str) and reduce_op.lower() in ("avg", "mean"):
         divide_by_world_size = True
 
     # sync all processes before reduction
     torch.distributed.barrier(group=group)
-    torch.distributed.all_reduce(result, op=reduce_op, group=group, async_op=False)
+    torch.distributed.all_reduce(result, op=op, group=group, async_op=False)
 
     if divide_by_world_size:
         result = result / torch.distributed.get_world_size(group)

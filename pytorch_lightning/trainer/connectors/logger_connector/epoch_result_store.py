@@ -91,11 +91,13 @@ class HookResultStore:
         random_key = list(result.keys())[-1]
         return result["meta"][random_key]["dataloader_idx"] is not None
 
-    def get_latest_from_func_name(self, latest_result, func_name: str, *args, **kwargs) -> Dict:
+    def get_latest_from_func_name(self, latest_result_opt, func_name: str, *args, **kwargs) -> Dict:
         results = {}
-        add_dataloader_idx = self.check_dataloader_idx(latest_result)
-        func = getattr(latest_result, func_name)
-        results.update(func(*args, add_dataloader_idx=add_dataloader_idx, **kwargs))
+        for opt_idx in latest_result_opt:
+            latest_result = latest_result_opt[opt_idx]
+            add_dataloader_idx = self.check_dataloader_idx(latest_result)
+            func = getattr(latest_result, func_name)
+            results.update(func(*args, add_dataloader_idx=add_dataloader_idx, **kwargs))
         return results
 
     def run_latest_batch_metrics_with_func_name(self, func_name, *args, **kwargs) -> List[Dict]:
@@ -156,6 +158,7 @@ class HookResultStore:
         assert isinstance(result, Result)
         if dataloader_idx is None:
             dataloader_idx = 0
+
         if extra_info is None:
             extra_info = {}
 
@@ -166,6 +169,7 @@ class HookResultStore:
             if dataloader_idx not in self._internals:
                 self._internals[dataloader_idx] = {}
                 self._internals_reduced[dataloader_idx] = defaultdict(dict)
+                self._latest_ref[dataloader_idx] = {}
 
             # extract infos
             opt_idx = extra_info["opt_idx"]
@@ -173,7 +177,7 @@ class HookResultStore:
 
             self._append_to_structure(self._internals[dataloader_idx], opt_idx, batch_idx, result)
 
-            self._latest_ref[dataloader_idx] = result
+            self._latest_ref[dataloader_idx][opt_idx] = result
 
         # [dataloader_idx] is a list
         else:
@@ -181,7 +185,11 @@ class HookResultStore:
             self._internals.setdefault(dataloader_idx, [])
             self._internals[dataloader_idx].append(result)
 
-            self._latest_ref[dataloader_idx] = result
+            if dataloader_idx not in self._latest_ref:
+                self._latest_ref[dataloader_idx] = {}
+                self._latest_ref[dataloader_idx][0] = {}
+
+            self._latest_ref[dataloader_idx][0] = result
 
     def auto_reduce_results_on_epoch_end(self) -> None:
         """
@@ -206,13 +214,9 @@ class HookResultStore:
                     # TODO: How to start training in middle of epoch
                     opt_outputs = epoch_metrics[opt_idx]
 
-                    num_batch_idx = len(self._internals[dl_idx][num_opt_idx]) - 1
-                    assert num_batch_idx >= 0
-                    batch_indexes = self._internals[dl_idx][num_opt_idx].keys()
-
                     # reduce across time first
                     time_reduced_outputs = []
-                    for batch_idx in batch_indexes:
+                    for batch_idx in opt_outputs.keys():
                         tbptt_outs = opt_outputs[batch_idx]
                         tbptt_outs = tbptt_outs[0].__class__.reduce_across_time(tbptt_outs)
                         if len(tbptt_outs) > 1:
