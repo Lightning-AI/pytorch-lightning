@@ -436,7 +436,7 @@ def test_lightning_optimizer_automatic_optimization_make_optimizer_step_2(tmpdir
         assert sgd_zero_grad.call_count == 5
 
 
-@pytest.mark.parametrize('accumulate_grad_batches', [1, 2])
+@pytest.mark.parametrize('accumulate_grad_batches', [1])
 def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batches):
     """
     Test training with accumulated gradients with and within enable_pl_optimizer reaches the same weights
@@ -446,13 +446,12 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
 
     class TestBoringModel(BoringModel):
 
-        losses = []
-        grads = []
-        on_before_zero_grad_count = 0
-
         def __init__(self, optimizer_name):
             super().__init__()
             self._optimizer_name = optimizer_name
+            self.losses = []
+            self.grads = []
+            self.on_before_zero_grad_count = 0
 
         def on_before_zero_grad(self, optimizer):
             self.on_before_zero_grad_count += 1
@@ -471,15 +470,16 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
 
     TestBoringModel.training_epoch_end = None
 
-    max_epochs = 1
+    max_epochs = 2
     limit_train_batches = 8
+    expected_batches = max_epochs * limit_train_batches
     limit_val_batches = 0
 
     def train(enable_pl_optimizer, override=False, mock=False):
         seed_everything(42)
         if override:
             # Note: global_step counts training_loop.optimizer_step
-            expected_global_step = (max_epochs * limit_train_batches)
+            expected_global_step = (expected_batches)
 
             class TestModel(TestBoringModel):
                 grad_checked = False
@@ -499,7 +499,7 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
             model = TestModel("SGD")
             initial_weights["override"] = model.layer.weight.clone()
         else:
-            expected_global_step = (max_epochs * limit_train_batches) // accumulate_grad_batches
+            expected_global_step = (expected_batches) // accumulate_grad_batches
             if enable_pl_optimizer:
                 model = TestBoringModel("Adam" if mock else "SGD")
                 initial_weights["after"] = model.layer.weight.clone()
@@ -523,6 +523,7 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
     after = train(True)
 
     assert torch.equal(initial_weights["before"], initial_weights["after"])
+    assert len(before.losses) == len(before.grads) == expected_batches
     assert before.losses == after.losses
     assert before.on_before_zero_grad_count == after.on_before_zero_grad_count
 
@@ -543,8 +544,8 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
     for b_grad, o_grad in zip(before.grads, override.grads):
         assert torch.equal(b_grad, o_grad), 'Grad parameters are different'
 
-    # for b_w, o_w in zip(before.parameters(), override.parameters()):
-    #    assert torch.equal(b_w, o_w), 'Model parameters are different'
+    for b_w, o_w in zip(before.parameters(), override.parameters()):
+        assert torch.equal(b_w, o_w), 'Model parameters are different'
 
     with patch("torch.optim.SGD.step") as mock_sdg_step, \
          patch("torch.optim.Adam.step") as mock_adam_step, \
@@ -557,8 +558,8 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
         after = train(True, mock=True)
         override = train(False, override=True, mock=True)
 
-    assert mock_sdg_step.call_count == (limit_train_batches // accumulate_grad_batches)
-    assert mock_sdg_zero_grad.call_count == (limit_train_batches // accumulate_grad_batches)
+    assert mock_sdg_step.call_count == (expected_batches // accumulate_grad_batches)
+    assert mock_sdg_zero_grad.call_count == (expected_batches // accumulate_grad_batches)
     assert mock_sdg_step.call_count == mock_adam_step.call_count
     assert mock_sdg_step.call_count == mock_adam_step.call_count
     assert mock_sdg_zero_grad.call_count == mock_adam_zero_grad.call_count
