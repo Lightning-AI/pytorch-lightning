@@ -447,19 +447,20 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
 
         losses = []
         grads = []
+        on_before_zero_grad_count = 0
 
         def __init__(self, optimizer_name):
             super().__init__()
             self._optimizer_name = optimizer_name
 
         def on_before_zero_grad(self, optimizer):
+            self.on_before_zero_grad_count += 1
             if self.layer.weight.grad is not None:
                 self.grads.append(self.layer.weight.grad.clone())
 
         def configure_optimizers(self):
             optimizer = getattr(torch.optim, self._optimizer_name)(self.layer.parameters(), lr=0.1)
-            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
-            return [optimizer], [lr_scheduler]
+            return optimizer
 
         def training_step(self, batch, batch_idx):
             output = self.layer(batch)
@@ -469,8 +470,8 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
 
     TestBoringModel.training_epoch_end = None
 
-    max_epochs = 2
-    limit_train_batches = 8
+    max_epochs = 1
+    limit_train_batches = 2
     limit_val_batches = 0
 
     def train(enable_pl_optimizer, override=False, mock=False):
@@ -490,6 +491,7 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
                         assert torch.abs(self.layer.weight.grad).sum() > 0
                     if batch_nb % accumulate_grad_batches == 0:
                         optimizer.step(closure)
+                        print("NORMAL UPDATE")
 
             model = TestModel("SGD")
             initial_weights["override"] = model.layer.weight.clone()
@@ -516,11 +518,13 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
 
     before = train(False)
     after = train(True)
-    assert initial_weights["before"] == initial_weights["after"]
 
+    assert torch.equal(initial_weights["before"], initial_weights["after"])
     assert before.losses == after.losses
+    assert before.on_before_zero_grad_count == after.on_before_zero_grad_count
 
     for b_grad, a_grad in zip(before.grads, after.grads):
+        assert torch.abs(b_grad).sum() > 0
         assert torch.equal(b_grad, a_grad), 'Grad parameters are different'
 
     for b_w, a_w  in zip(before.parameters(), after.parameters()):
@@ -528,16 +532,13 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
 
     override = train(False, override=True)
 
-    assert initial_weights["before"] == initial_weights["override"]
-
+    assert torch.equal(initial_weights["before"], initial_weights["override"])
     assert override.grad_checked
     assert override.losses == before.losses
+    assert (override.on_before_zero_grad_count // accumulate_grad_batches) == before.on_before_zero_grad_count
 
-    for b_grad, o_grad in zip(before.grads, override.grads):
-        assert torch.abs(b_grad).sum() > 0
-        assert torch.equal(b_grad, o_grad), 'Grad parameters are different'
-
-    import pdb; pdb.set_trace()
+    # for b_grad, o_grad in zip(before.grads, override.grads):
+    #    assert torch.equal(b_grad, o_grad), 'Grad parameters are different'
 
     for b_w, o_w in zip(before.parameters(), override.parameters()):
         assert torch.equal(b_w, o_w), 'Model parameters are different'

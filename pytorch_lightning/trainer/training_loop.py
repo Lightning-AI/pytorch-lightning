@@ -26,7 +26,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
-from pytorch_lightning.utilities import TPU_AVAILABLE, AMPType, parsing
+from pytorch_lightning.utilities import AMPType, parsing, TPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
@@ -500,6 +500,9 @@ class TrainLoop:
             using_native_amp=using_native_amp,
             using_lbfgs=is_lbfgs,
         )
+
+        if not self.trainer._enable_pl_optimizer and is_overridden("optimizer_step", model_ref):
+            self.on_before_zero_grad(optimizer)
 
     def on_before_zero_grad(self, optimizer):
         self.trainer.call_hook('on_before_zero_grad', optimizer)
