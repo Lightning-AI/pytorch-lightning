@@ -486,12 +486,14 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
                 def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure,
                                    on_tpu=False, using_native_amp=False, using_lbfgs=False):
                     assert not isinstance(optimizer, LightningOptimizer)
-                    if self.layer.weight.grad is not None:
-                        self.grad_checked = True
-                        assert torch.abs(self.layer.weight.grad).sum() > 0
                     if batch_nb % accumulate_grad_batches == 0:
                         optimizer.step(closure)
-                        print("NORMAL UPDATE")
+                        if self.layer.weight.grad is not None:
+                            self.grad_checked = True
+                            assert torch.abs(self.layer.weight.grad).sum() > 0
+                        optimizer.zero_grad()
+                        if self.layer.weight.grad is not None:
+                            assert torch.abs(self.layer.weight.grad).sum() == 0
 
             model = TestModel("SGD")
             initial_weights["override"] = model.layer.weight.clone()
@@ -537,19 +539,28 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
     assert override.losses == before.losses
     assert (override.on_before_zero_grad_count // accumulate_grad_batches) == before.on_before_zero_grad_count
 
-    # for b_grad, o_grad in zip(before.grads, override.grads):
-    #    assert torch.equal(b_grad, o_grad), 'Grad parameters are different'
+    for b_grad, o_grad in zip(before.grads, override.grads):
+        assert torch.equal(b_grad, o_grad), 'Grad parameters are different'
 
-    for b_w, o_w in zip(before.parameters(), override.parameters()):
-        assert torch.equal(b_w, o_w), 'Model parameters are different'
+    #import pdb; pdb.set_trace()
+
+    # for b_w, o_w in zip(before.parameters(), override.parameters()):
+    #    assert torch.equal(b_w, o_w), 'Model parameters are different'
 
     with patch("torch.optim.SGD.step") as mock_sdg_step, \
          patch("torch.optim.Adam.step") as mock_adam_step, \
-         patch("torch.optim.AdamW.step") as mock_adamw_step:
+         patch("torch.optim.AdamW.step") as mock_adamw_step, \
+         patch("torch.optim.SGD.zero_grad") as mock_sdg_zero_grad, \
+         patch("torch.optim.Adam.zero_grad") as mock_adam_zero_grad, \
+         patch("torch.optim.AdamW.zero_grad") as mock_adamw_zero_grad:
 
         before = train(False, mock=True)
         after = train(True, mock=True)
         override = train(False, override=True, mock=True)
 
+    assert mock_sdg_step.call_count == (limit_train_batches // accumulate_grad_batches)
+    assert mock_sdg_zero_grad.call_count == (limit_train_batches // accumulate_grad_batches)
     assert mock_sdg_step.call_count == mock_adam_step.call_count
     assert mock_sdg_step.call_count == mock_adam_step.call_count
+    assert mock_sdg_zero_grad.call_count == mock_adam_zero_grad.call_count
+    assert mock_sdg_zero_grad.call_count == mock_adamw_zero_grad.call_count
