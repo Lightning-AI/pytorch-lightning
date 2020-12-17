@@ -370,7 +370,7 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
         val_dataset: Optional[Union[Dataset, List[Dataset]]] = None,
         test_dataset: Optional[Union[Dataset, List[Dataset]]] = None,
         batch_size: int = 1,
-        num_workers: Optional[int] = None,
+        num_workers: int = 0,
     ):
         r"""
         Create an instance from torch.utils.data.Dataset.
@@ -384,14 +384,6 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
                 number of CPUs available.
 
         """
-        if num_workers is None:
-            num_workers = os.cpu_count()
-
-        if num_workers is None:
-            # TODO Should warn?
-            # warnings.warn("could not infer cpu count automatically, setting it to zero")
-            num_workers = 0
-
         def dataloader(ds, shuffle=False):
             return DataLoader(
                 ds,
