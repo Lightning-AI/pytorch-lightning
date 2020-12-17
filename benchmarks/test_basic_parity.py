@@ -19,7 +19,7 @@ import pytest
 import torch
 from tqdm import tqdm
 
-from pytorch_lightning import seed_everything, Trainer, LightningModule
+from pytorch_lightning import LightningModule, seed_everything, Trainer
 from tests.base.models import ParityModuleMNIST, ParityModuleRNN
 
 
@@ -65,7 +65,6 @@ def test_pytorch_parity(
     print(f"Losses are for... \n vanilla: {vanilla['losses']} \n lightning: {lightning['losses']}")
     for pl_out, pt_out in zip(lightning['losses'], vanilla['losses']):
         np.testing.assert_almost_equal(pl_out, pt_out, 5)
-
 
     # drop the first run for initialize dataset (download & filter)
     assert_parity_absolute(
