@@ -37,6 +37,12 @@ Un-balanced logging properly supported ([#5119](https://github.com/PyTorchLightn
 Fix hanging in DDP HPC accelerators ([#5157](https://github.com/PyTorchLightning/pytorch-lightning/pull/5157)
 
 
+Fix saved filename in ModelCheckpoint if it already exists ([#4861](https://github.com/PyTorchLightning/pytorch-lightning/pull/4861)
+
+
+Fix reset TensorRunningAccum ([#5106](https://github.com/PyTorchLightning/pytorch-lightning/pull/5106)
+
+
 ## [1.1.1] - 2020-12-15
 
 ### Added
