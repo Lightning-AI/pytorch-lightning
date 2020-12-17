@@ -527,7 +527,7 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
         assert torch.abs(b_grad).sum() > 0
         assert torch.equal(b_grad, a_grad), 'Grad parameters are different'
 
-    for b_w, a_w  in zip(before.parameters(), after.parameters()):
+    for b_w, a_w in zip(before.parameters(), after.parameters()):
         assert torch.equal(b_w, a_w), 'Model parameters are different'
 
     override = train(False, override=True)
