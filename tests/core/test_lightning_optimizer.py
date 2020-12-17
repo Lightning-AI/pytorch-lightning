@@ -24,6 +24,7 @@ from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.model_utils import is_overridden
 from tests.base.boring_model import BoringModel, RandomDataset, RandomDictDataset, RandomDictStringDataset
 
 
@@ -455,7 +456,7 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
 
         def on_before_zero_grad(self, optimizer):
             self.on_before_zero_grad_count += 1
-            if self.layer.weight.grad is not None:
+            if self.layer.weight.grad is not None and not is_overridden("optimizer_step", self):
                 self.grads.append(self.layer.weight.grad.clone())
 
         def configure_optimizers(self):
@@ -471,7 +472,7 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
     TestBoringModel.training_epoch_end = None
 
     max_epochs = 1
-    limit_train_batches = 2
+    limit_train_batches = 8
     limit_val_batches = 0
 
     def train(enable_pl_optimizer, override=False, mock=False):
@@ -487,14 +488,14 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
                                    on_tpu=False, using_native_amp=False, using_lbfgs=False):
                     assert not isinstance(optimizer, LightningOptimizer)
                     if batch_nb % accumulate_grad_batches == 0:
-                        optimizer.step(closure)
-                        if self.layer.weight.grad is not None:
-                            self.grad_checked = True
-                            assert torch.abs(self.layer.weight.grad).sum() > 0
+                        closure()
+                        self.grad_checked = True
+                        assert torch.abs(self.layer.weight.grad).sum() > 0
+                        self.grads.append(self.layer.weight.grad.clone())
+                        optimizer.step()
                         optimizer.zero_grad()
-                        if self.layer.weight.grad is not None:
+                        if not mock:
                             assert torch.abs(self.layer.weight.grad).sum() == 0
-
             model = TestModel("SGD")
             initial_weights["override"] = model.layer.weight.clone()
         else:
@@ -541,8 +542,6 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
 
     for b_grad, o_grad in zip(before.grads, override.grads):
         assert torch.equal(b_grad, o_grad), 'Grad parameters are different'
-
-    #import pdb; pdb.set_trace()
 
     # for b_w, o_w in zip(before.parameters(), override.parameters()):
     #    assert torch.equal(b_w, o_w), 'Model parameters are different'
