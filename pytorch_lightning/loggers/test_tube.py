@@ -32,7 +32,6 @@ else:
     Experiment = None
 
 
-
 class TestTubeLogger(LightningLoggerBase):
     r"""
     Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format
