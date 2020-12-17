@@ -30,7 +30,7 @@ import numpy as np
 import torch
 import yaml
 
-from pytorch_lightning import _logger as log, Trainer
+from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
@@ -653,7 +653,7 @@ class ModelCheckpoint(Callback):
         with self._fs.open(filepath, "w") as fp:
             yaml.dump(best_k, fp)
 
-    def file_exists(self, filepath: Union[str, Path], trainer: Trainer) -> bool:
+    def file_exists(self, filepath: Union[str, Path], trainer) -> bool:
         """
         Checks if a file exists on rank 0 and broadcasts the result to all other ranks, preventing
         the internal state to diverge between ranks.
