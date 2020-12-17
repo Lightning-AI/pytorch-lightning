@@ -39,6 +39,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - `enable_pl_optimizer=False` by default to temporarily fix AMP issues ([#5163](https://github.com/PyTorchLightning/pytorch-lightning/pull/5163)
 
+
 ### Fixed
 
 - Metric reduction with Logging ([#5150](https://github.com/PyTorchLightning/pytorch-lightning/pull/5150)
