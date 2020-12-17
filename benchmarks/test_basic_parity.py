@@ -23,22 +23,22 @@ from pytorch_lightning import seed_everything, Trainer
 from tests.base.models import ParityModuleMNIST, ParityModuleRNN
 
 
-def assert_speed_parity_absolute(pl_times, pt_times, nb_epochs, max_diff: float = 0.55):
+def assert_parity_relative(pl_values, pt_values, norm_by: float = 1, max_diff: float = 0.1):
     # assert speeds
-    diffs = np.asarray(pl_times) - np.asarray(pt_times)
+    diffs = np.asarray(pl_values) - np.asarray(pt_values)
     # norm by vanilla time
-    diffs = diffs / nb_epochs
-    assert np.alltrue(diffs < max_diff), \
-        f"lightning {diffs} was slower than PT (threshold {max_diff})"
+    diffs = diffs / norm_by
+    # relative to mean reference value
+    diffs = diffs / np.mean(pt_values)
+    assert np.alltrue(diffs < max_diff), f"Lightning {diffs} was worse than vanilla PT (threshold {max_diff})"
 
 
-def assert_memory_parity_relative(pl_memory, pt_memory, max_diff: float = 0.1):
+def assert_parity_absolute(pl_values, pt_values, norm_by: float = 1, max_diff: float = 0.55):
     # assert speeds
-    diffs = np.asarray(pl_memory) - np.asarray(pt_memory)
+    diffs = np.asarray(pl_values) - np.asarray(pt_values)
     # norm by vanilla time
-    diffs = diffs / np.mean(pl_memory)
-    assert np.alltrue(diffs < max_diff), \
-        f"lightning {diffs} takes more memory than PT (threshold {max_diff})"
+    diffs = diffs / norm_by
+    assert np.alltrue(diffs < max_diff), f"Lightning {diffs} was worse than vanilla PT (threshold {max_diff})"
 
 
 # ParityModuleMNIST runs with num_workers=1
@@ -60,12 +60,12 @@ def test_pytorch_parity(tmpdir, cls_model, max_diff_speed: float, max_diff_memor
         np.testing.assert_almost_equal(pl_out, pt_out, 5)
 
 
-    # the first run initialize dataset (download & filter)
-    assert_speed_parity_absolute(
-        lightning['durations'][1:], vanilla['durations'][1:], nb_epochs=num_epochs, max_diff=max_diff_speed
+    # drop the first run for initialize dataset (download & filter)
+    assert_parity_absolute(
+        lightning['durations'][1:], vanilla['durations'][1:], norm_by=num_epochs, max_diff=max_diff_speed
     )
 
-    assert_memory_parity_relative(lightning['memory'], vanilla['memory'], max_diff=max_diff_memory)
+    assert_parity_relative(lightning['memory'], vanilla['memory'], max_diff=max_diff_memory)
 
 
 def measure_loops(cls_model, kind, num_runs=10, num_epochs=10):
