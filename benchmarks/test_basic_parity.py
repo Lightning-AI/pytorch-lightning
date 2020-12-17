@@ -86,12 +86,8 @@ def measure_loops(cls_model, kind, num_runs=10, num_epochs=10):
 
         time_start = time.perf_counter()
 
-        if kind == "Vanilla PT":
-            final_loss = vanilla_loop(cls_model, idx=i, device=device, num_epochs=num_epochs)
-        elif kind == "PT Lightning":
-            final_loss = lightning_loop(cls_model, idx=i, device=device, num_epochs=num_epochs)
-        else:
-            raise ValueError(f"Unsupported loop '{kind}'.")
+        _loop = lightning_loop if kind == "PT Lightning" else vanilla_loop
+        final_loss = _loop(cls_model, idx=i, device=device, num_epochs=num_epochs)
 
         time_end = time.perf_counter()
         if device == 'cuda':
