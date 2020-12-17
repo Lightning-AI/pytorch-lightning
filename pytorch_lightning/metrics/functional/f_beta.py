@@ -151,6 +151,4 @@ def f1(
         >>> f1(preds, target, num_classes=3)
         tensor(0.3333)
     """
-    if beta != 1.0:
-        rank_zero_warn(f'The `beta={beta}` parameter is unused and will not have any effect.')
     return fbeta(preds, target, num_classes, 1.0, threshold, average, multilabel)
