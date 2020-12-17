@@ -825,7 +825,7 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
                     retain_graph = num_backward != backward_idx # noqa E225
                     self.manual_backward(loss_1, opt, retain_graph=retain_graph)
 
-            opt.step(1, closure=optimizer_closure, something="new")
+            opt.step(closure=optimizer_closure)
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
@@ -855,7 +855,7 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
     )
 
     trainer.fit(model)
-    expected_calls = [call(1, closure=ANY, something="new") for s in range(2)]
+    expected_calls = [call(closure=ANY) for s in range(2)]
     step_mock.assert_has_calls(expected_calls)
 
 
@@ -902,7 +902,7 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
             if batch_idx % 4 == 0 :
                 # Note: Set make_optimizer_step to True or it will use by default
                 # Trainer(accumulate_grad_batches=x)
-                opt_dis.step(closure=dis_closure, make_optimizer_step=True, optim='adam')
+                opt_dis.step(closure=dis_closure, make_optimizer_step=True)
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
@@ -935,8 +935,7 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
     trainer.fit(model)
     expected_calls = [call(closure=ANY, optim='sgd') for s in range(4)]
     mock_sgd_step.assert_has_calls(expected_calls)
-
-    expected_calls = [call(closure=ANY, optim='adam') for s in range(2)]
+    expected_calls = [call(closure=ANY) for s in range(2)]
     mock_adam_step.assert_has_calls(expected_calls)
 
 

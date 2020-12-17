@@ -22,6 +22,7 @@ import re
 import tempfile
 from abc import ABC
 from argparse import Namespace
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 import torch
@@ -278,6 +279,7 @@ class LightningModule(
                 sync_dist_group,
                 accelerator.sync_tensor,
                 self._current_dataloader_idx,
+                self.device,
             )
 
     def log_dict(
@@ -989,7 +991,7 @@ class LightningModule(
             - List or Tuple - List of optimizers.
             - Two lists - The first list has multiple optimizers, the second a list of LR schedulers (or lr_dict).
             - Dictionary, with an 'optimizer' key, and (optionally) a 'lr_scheduler'
-              key which value is a single LR scheduler or lr_dict.
+              key whose value is a single LR scheduler or lr_dict.
             - Tuple of dictionaries as described, with an optional 'frequency' key.
             - None - Fit will run without any optimizer.
 
@@ -1001,21 +1003,22 @@ class LightningModule(
             In the former case, all optimizers will operate on the given batch in each optimization step.
             In the latter, only one optimizer will operate on the given batch at every step.
 
-            The lr_dict is a dictionary which contains scheduler and its associated configuration.
-            It has five keys. The default configuration is shown below.
+            The lr_dict is a dictionary which contains the scheduler and its associated configuration.
+            The default configuration is shown below.
 
             .. code-block:: python
 
                 {
-                    'scheduler': lr_scheduler, # The LR schduler
+                    'scheduler': lr_scheduler, # The LR scheduler instance (required)
                     'interval': 'epoch', # The unit of the scheduler's step size
                     'frequency': 1, # The frequency of the scheduler
                     'reduce_on_plateau': False, # For ReduceLROnPlateau scheduler
                     'monitor': 'val_loss', # Metric for ReduceLROnPlateau to monitor
-                    'strict': True # Whether to crash the training if `monitor` is not found
+                    'strict': True, # Whether to crash the training if `monitor` is not found
+                    'name': None, # Custom name for LearningRateMonitor to use
                 }
 
-            If user only provides LR schedulers, then their configuration will set to default as shown above.
+            Only the ``scheduler`` key is required, the rest will be set to the defaults above.
 
         Examples:
             .. code-block:: python
@@ -1170,7 +1173,6 @@ class LightningModule(
 
     def optimizer_step(
         self,
-        *args,
         epoch: int = None,
         batch_idx: int = None,
         optimizer: Optimizer = None,
@@ -1179,7 +1181,6 @@ class LightningModule(
         on_tpu: bool = None,
         using_native_amp: bool = None,
         using_lbfgs: bool = None,
-        **kwargs,
     ) -> None:
         r"""
         Override this method to adjust the default way the
@@ -1254,7 +1255,7 @@ class LightningModule(
         if not isinstance(optimizer, LightningOptimizer):
             # wraps into LightingOptimizer only for running step
             optimizer = LightningOptimizer.to_lightning_optimizer(optimizer, self.trainer)
-        optimizer.step(closure=optimizer_closure, *args, **kwargs)
+        optimizer.step(closure=optimizer_closure)
 
     def optimizer_zero_grad(
         self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int
@@ -1392,12 +1393,15 @@ class LightningModule(
         """
         # call .item() only once but store elements without graphs
         running_train_loss = self.trainer.train_loop.running_loss.mean()
-        avg_training_loss = (
-            running_train_loss.cpu().item()
-            if running_train_loss is not None
-            else float("NaN")
-        )
-        tqdm_dict = {"loss": "{:.3g}".format(avg_training_loss)}
+        avg_training_loss = None
+        if running_train_loss is not None:
+            avg_training_loss = running_train_loss.cpu().item()
+        elif self.trainer.train_loop.automatic_optimization:
+            avg_training_loss = float('NaN')
+
+        tqdm_dict = {}
+        if avg_training_loss is not None:
+            tqdm_dict["loss"] = f"{avg_training_loss:.3g}"
 
         if self.trainer.truncated_bptt_steps is not None:
             tqdm_dict["split_idx"] = self.trainer.split_idx
@@ -1532,12 +1536,19 @@ class LightningModule(
         else:
             self._hparams = hp
 
-    def to_onnx(self, file_path: str, input_sample: Optional[Tensor] = None, **kwargs):
-        """Saves the model in ONNX format
+    @torch.no_grad()
+    def to_onnx(
+        self,
+        file_path: Union[str, Path],
+        input_sample: Optional[Any] = None,
+        **kwargs,
+    ):
+        """
+        Saves the model in ONNX format
 
         Args:
-            file_path: The path of the file the model should be saved to.
-            input_sample: A sample of an input tensor for tracing.
+            file_path: The path of the file the onnx model should be saved to.
+            input_sample: An input for tracing. Default: None (Use self.example_input_array)
             **kwargs: Will be passed to torch.onnx.export function.
 
         Example:
@@ -1556,31 +1567,32 @@ class LightningModule(
             ...     os.path.isfile(tmpfile.name)
             True
         """
+        mode = self.training
 
-        if isinstance(input_sample, Tensor):
-            input_data = input_sample
-        elif self.example_input_array is not None:
-            input_data = self.example_input_array
-        else:
-            if input_sample is not None:
+        if input_sample is None:
+            if self.example_input_array is None:
                 raise ValueError(
-                    f"Received `input_sample` of type {type(input_sample)}. Expected type is `Tensor`"
+                    "Could not export to ONNX since neither `input_sample` nor"
+                    " `model.example_input_array` attribute is set."
                 )
-            raise ValueError(
-                "Could not export to ONNX since neither `input_sample` nor"
-                " `model.example_input_array` attribute is set."
-            )
-        input_data = input_data.to(self.device)
+            input_sample = self.example_input_array
+
+        input_sample = self.transfer_batch_to_device(input_sample)
+
         if "example_outputs" not in kwargs:
             self.eval()
-            with torch.no_grad():
-                kwargs["example_outputs"] = self(input_data)
+            kwargs["example_outputs"] = self(input_sample)
 
-        torch.onnx.export(self, input_data, file_path, **kwargs)
+        torch.onnx.export(self, input_sample, file_path, **kwargs)
+        self.train(mode)
 
+    @torch.no_grad()
     def to_torchscript(
-        self, file_path: Optional[str] = None, method: Optional[str] = 'script',
-            example_inputs: Optional[Union[torch.Tensor, Tuple[torch.Tensor]]] = None, **kwargs
+        self,
+        file_path: Optional[Union[str, Path]] = None,
+        method: Optional[str] = 'script',
+        example_inputs: Optional[Any] = None,
+        **kwargs,
     ) -> Union[ScriptModule, Dict[str, ScriptModule]]:
         """
         By default compiles the whole model to a :class:`~torch.jit.ScriptModule`.
@@ -1592,7 +1604,7 @@ class LightningModule(
         Args:
             file_path: Path where to save the torchscript. Default: None (no file saved).
             method: Whether to use TorchScript's script or trace method. Default: 'script'
-            example_inputs: Tensor to be used to do tracing when method is set to 'trace'.
+            example_inputs: An input to be used to do tracing when method is set to 'trace'.
               Default: None (Use self.example_input_array)
             **kwargs: Additional arguments that will be passed to the :func:`torch.jit.script` or
               :func:`torch.jit.trace` function.
@@ -1626,21 +1638,27 @@ class LightningModule(
             This LightningModule as a torchscript, regardless of whether file_path is
             defined or not.
         """
-
         mode = self.training
-        with torch.no_grad():
-            if method == 'script':
-                torchscript_module = torch.jit.script(self.eval(), **kwargs)
-            elif method == 'trace':
-                # if no example inputs are provided, try to see if model has example_input_array set
-                if example_inputs is None:
-                    example_inputs = self.example_input_array
-                # automatically send example inputs to the right device and use trace
-                example_inputs = self.transfer_batch_to_device(example_inputs, device=self.device)
-                torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
-            else:
-                raise ValueError(f"The 'method' parameter only supports 'script' or 'trace', but value given was:"
-                                 f"{method}")
+
+        if method == 'script':
+            torchscript_module = torch.jit.script(self.eval(), **kwargs)
+        elif method == 'trace':
+            # if no example inputs are provided, try to see if model has example_input_array set
+            if example_inputs is None:
+                if self.example_input_array is None:
+                    raise ValueError(
+                        'Choosing method=`trace` requires either `example_inputs`'
+                        ' or `model.example_input_array` to be defined'
+                    )
+                example_inputs = self.example_input_array
+
+            # automatically send example inputs to the right device and use trace
+            example_inputs = self.transfer_batch_to_device(example_inputs)
+            torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
+        else:
+            raise ValueError("The 'method' parameter only supports 'script' or 'trace',"
+                             f" but value given was: {method}")
+
         self.train(mode)
 
         if file_path is not None:
