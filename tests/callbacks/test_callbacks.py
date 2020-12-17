@@ -33,6 +33,8 @@ def test_trainer_callback_system(torch_save):
         limit_train_batches=3,
         limit_test_batches=2,
         progress_bar_refresh_rate=0,
+        # todo: enabled since internally we wrap the model for optimizer step, this should be fixed
+        enable_pl_optimizer=True
     )
 
     # no call yet
