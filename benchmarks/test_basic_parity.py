@@ -82,6 +82,10 @@ def measure_loops(cls_model, kind, num_runs=10, num_epochs=10):
         gc.collect()
         if device == 'cuda':
             torch.cuda.empty_cache()
+            torch.cuda.reset_max_memory_cached()
+            torch.cuda.reset_max_memory_allocated()
+            torch.cuda.reset_accumulated_memory_stats()
+            torch.cuda.reset_peak_memory_stats()
         time.sleep(1)
 
         time_start = time.perf_counter()
@@ -92,7 +96,7 @@ def measure_loops(cls_model, kind, num_runs=10, num_epochs=10):
         time_end = time.perf_counter()
         if device == 'cuda':
             torch.cuda.synchronize()
-            max_memory = torch.cuda.max_memory_allocated() / 2 ** 20
+            max_memory = torch.cuda.max_memory_allocated()
         else:
             max_memory = 0
 
