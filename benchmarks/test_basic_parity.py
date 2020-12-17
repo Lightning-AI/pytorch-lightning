@@ -19,7 +19,7 @@ import pytest
 import torch
 from tqdm import tqdm
 
-from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning import seed_everything, Trainer, LightningModule
 from tests.base.models import ParityModuleMNIST, ParityModuleRNN
 
 
@@ -47,7 +47,14 @@ def assert_parity_absolute(pl_values, pt_values, norm_by: float = 1, max_diff: f
     (ParityModuleMNIST, 0.25, 0.0),  # todo: lower this thr
 ])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-def test_pytorch_parity(tmpdir, cls_model, max_diff_speed: float, max_diff_memory: float, num_epochs: int = 4, num_runs: int = 3):
+def test_pytorch_parity(
+        tmpdir,
+        cls_model: LightningModule,
+        max_diff_speed: float,
+        max_diff_memory: float,
+        num_epochs: int = 7,
+        num_runs: int = 3,
+):
     """
     Verify that the same  pytorch and lightning models achieve the same results
     """
