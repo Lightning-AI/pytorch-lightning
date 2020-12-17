@@ -30,7 +30,7 @@ def assert_parity_relative(pl_values, pt_values, norm_by: float = 1, max_diff: f
     diffs = diffs / norm_by
     # relative to mean reference value
     diffs = diffs / np.mean(pt_values)
-    assert np.alltrue(diffs < max_diff), f"Lightning diff {diffs} was worse than vanilla PT (threshold {max_diff})"
+    assert np.mean(diffs) < max_diff, f"Lightning diff {diffs} was worse than vanilla PT (threshold {max_diff})"
 
 
 def assert_parity_absolute(pl_values, pt_values, norm_by: float = 1, max_diff: float = 0.55):
@@ -38,7 +38,7 @@ def assert_parity_absolute(pl_values, pt_values, norm_by: float = 1, max_diff: f
     diffs = np.asarray(pl_values) - np.mean(pt_values)
     # norm by event count
     diffs = diffs / norm_by
-    assert np.alltrue(diffs < max_diff), f"Lightning {diffs} was worse than vanilla PT (threshold {max_diff})"
+    assert np.mean(diffs) < max_diff, f"Lightning {diffs} was worse than vanilla PT (threshold {max_diff})"
 
 
 # ParityModuleMNIST runs with num_workers=1
@@ -52,7 +52,7 @@ def test_pytorch_parity(
         cls_model: LightningModule,
         max_diff_speed: float,
         max_diff_memory: float,
-        num_epochs: int = 7,
+        num_epochs: int = 4,
         num_runs: int = 3,
 ):
     """
