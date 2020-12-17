@@ -435,36 +435,107 @@ def test_lightning_optimizer_automatic_optimization_make_optimizer_step_2(tmpdir
         assert sgd_zero_grad.call_count == 5
 
 
-@pytest.mark.parametrize('accumulate_grad_batches', [1, 2])
+@pytest.mark.parametrize('accumulate_grad_batches', [1])
 def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batches):
     """
     Test training with accumulated gradients with and within enable_pl_optimizer reaches the same weights
     """
+    class TestBoringModel(BoringModel):
+
+        losses = []
+        grads = []
+
+        def __init__(self, optimizer_name):
+            super().__init__()
+            self._optimizer_name = optimizer_name
+
+        def on_before_zero_grad(self, optimizer):
+            if self.layer.weight.grad is not None:
+                self.grads.append(self.layer.weight.grad.clone())
+
+        def configure_optimizers(self):
+            optimizer = getattr(torch.optim, self._optimizer_name)(self.layer.parameters(), lr=0.1)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+            return [optimizer], [lr_scheduler]
+
+        def training_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.losses.append(loss)
+            return {"loss": loss}
+
+    TestBoringModel.training_epoch_end = None
 
     max_epochs = 2
-    limit_train_batches = 4
+    limit_train_batches = 8
     limit_val_batches = 0
-    expected_global_step = (max_epochs * limit_train_batches) // accumulate_grad_batches
 
-    def train(enable_pl_optimizer):
+    def train(enable_pl_optimizer, override=False, mock=False):
         seed_everything(42)
-        # model
-        model = BoringModel()
+        if override:
+            # Note: global_step counts training_loop.optimizer_step
+            expected_global_step = (max_epochs * limit_train_batches)
+
+            class TestModel(TestBoringModel):
+                grad_checked = False
+
+                def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure,
+                                   on_tpu=False, using_native_amp=False, using_lbfgs=False):
+                    assert not isinstance(optimizer, LightningOptimizer)
+                    if self.layer.weight.grad is not None:
+                        self.grad_checked = True
+                        assert torch.abs(self.layer.weight.grad).sum() > 0
+                    if batch_nb % accumulate_grad_batches == 0:
+                        optimizer.step(closure)
+
+            model = TestModel("SGD")
+        else:
+            expected_global_step = (max_epochs * limit_train_batches) // accumulate_grad_batches
+            if enable_pl_optimizer:
+                model = TestBoringModel("Adam" if mock else "SGD")
+            else:
+                model = TestBoringModel("AdamW" if mock else "SGD")
         trainer = Trainer(
             default_root_dir=tmpdir,
             max_epochs=max_epochs,
             limit_train_batches=limit_train_batches,
             limit_val_batches=limit_val_batches,
             enable_pl_optimizer=enable_pl_optimizer,
-            accumulate_grad_batches=accumulate_grad_batches
+            accumulate_grad_batches=accumulate_grad_batches if not override else 1
         )
         trainer.fit(model)
         assert trainer.global_step == expected_global_step
+        if override and not mock:
+            assert model.grad_checked
         return model
 
     before = train(False)
     after = train(True)
 
-    # Assert model parameters are identical after fit
-    for before, after in zip(before.parameters(), after.parameters()):
-        assert torch.equal(before, after), 'Model parameters are different'
+    assert before.losses == after.losses
+
+    for b, a in zip(before.grads, after.grads):
+        assert torch.equal(b, a), 'Grad parameters are different'
+
+    for b, a in zip(before.parameters(), after.parameters()):
+        assert torch.equal(b, a), 'Model parameters are different'
+
+    override = train(False, override=True)
+    assert override.losses == before.losses
+
+    for b, o in zip(before.grads, override.grads):
+        assert torch.equal(b, o), 'Grad parameters are different'
+
+    for o, b in zip(override.parameters(), before.parameters()):
+        assert torch.equal(o, b), 'Model parameters are different'
+
+    with patch("torch.optim.SGD.step") as mock_sdg_step, \
+         patch("torch.optim.Adam.step") as mock_adam_step, \
+         patch("torch.optim.AdamW.step") as mock_adamw_step:
+
+        before = train(False, mock=True)
+        after = train(True, mock=True)
+        override = train(False, override=True, mock=True)
+
+    assert mock_sdg_step.call_count == mock_adam_step.call_count
+    assert mock_sdg_step.call_count == mock_adam_step.call_count
