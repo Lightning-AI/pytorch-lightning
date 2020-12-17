@@ -437,7 +437,6 @@ def test_lightning_optimizer_automatic_optimization_make_optimizer_step_2(tmpdir
 
 @pytest.mark.parametrize('accumulate_grad_batches', [1, 2])
 def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batches):
-
     """
     Test training with accumulated gradients with and within enable_pl_optimizer reaches the same weights
     """
@@ -445,35 +444,26 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
     max_epochs = 2
     limit_train_batches = 4
     limit_val_batches = 0
+    expected_global_step = (max_epochs * limit_train_batches) // accumulate_grad_batches
 
-    seed_everything(42)
-    # model
-    before = BoringModel()
-    trainer = Trainer(
-        default_root_dir=os.getcwd(),
-        max_epochs=max_epochs,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=limit_val_batches,
-        weights_summary=None,
-        enable_pl_optimizer=True,
-        accumulate_grad_batches=accumulate_grad_batches
-    )
-    trainer.fit(before)
-    assert trainer.global_step == (8 // accumulate_grad_batches)
-    seed_everything(42)
-    # model
-    after = BoringModel()
-    trainer = Trainer(
-        default_root_dir=os.getcwd(),
-        max_epochs=max_epochs,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=limit_val_batches,
-        weights_summary=None,
-        enable_pl_optimizer=False,
-        accumulate_grad_batches=accumulate_grad_batches
-    )
-    trainer.fit(after)
-    assert trainer.global_step == (8 // accumulate_grad_batches)
+    def train(enable_pl_optimizer):
+        seed_everything(42)
+        # model
+        model = BoringModel()
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=max_epochs,
+            limit_train_batches=limit_train_batches,
+            limit_val_batches=limit_val_batches,
+            enable_pl_optimizer=enable_pl_optimizer,
+            accumulate_grad_batches=accumulate_grad_batches
+        )
+        trainer.fit(model)
+        assert trainer.global_step == expected_global_step
+        return model
+
+    before = train(False)
+    after = train(True)
 
     # Assert model parameters are identical after fit
     for before, after in zip(before.parameters(), after.parameters()):
