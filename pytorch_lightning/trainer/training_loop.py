@@ -112,6 +112,9 @@ class TrainLoop:
         # check that model is configured correctly
         self.trainer.config_validator.verify_loop_configurations(model)
 
+        # attach model log function to callback
+        self.trainer.callback_connector.attach_model_logging_functions(model)
+
     def setup_training(self, model: LightningModule):
         """Sanity check a few things before starting actual training.
 

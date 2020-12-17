@@ -103,3 +103,8 @@ class CallbackConnector:
 
     def _trainer_has_checkpoint_callbacks(self):
         return len(self.trainer.checkpoint_callbacks) > 0
+
+    def attach_model_logging_functions(self, model):
+        for callback in self.trainer.callbacks:
+            callback.log = model.log
+            callback.log_dict = model.log_dict
