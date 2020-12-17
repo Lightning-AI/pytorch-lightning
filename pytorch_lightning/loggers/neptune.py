@@ -26,11 +26,13 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only, _module_available
 
-NEPTUNE_AVAILABLE = _module_available("neptune")
+_NEPTUNE_AVAILABLE = _module_available("neptune")
 
-if NEPTUNE_AVAILABLE:
+if _NEPTUNE_AVAILABLE:
     import neptune
     from neptune.experiments import Experiment as NeptuneExperiment
+else:
+    neptune = None  # needed for test mocks, these tests shall be updated
 
 
 class NeptuneLogger(LightningLoggerBase):
@@ -184,7 +186,7 @@ class NeptuneLogger(LightningLoggerBase):
         prefix: str = '',
         **kwargs
     ):
-        if not NEPTUNE_AVAILABLE:
+        if not neptune:
             raise ImportError('You want to use `neptune` logger which is not installed yet,'
                               ' install it with `pip install neptune-client`.')
         super().__init__()

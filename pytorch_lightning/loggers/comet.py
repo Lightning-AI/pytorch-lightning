@@ -29,9 +29,9 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experi
 from pytorch_lightning.utilities import rank_zero_only, _module_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-COMET_AVAILABLE = _module_available("comet_ml")
+_COMET_AVAILABLE = _module_available("comet_ml")
 
-if COMET_AVAILABLE:
+if _COMET_AVAILABLE:
     import comet_ml
     from comet_ml import ExistingExperiment as CometExistingExperiment
     from comet_ml import Experiment as CometExperiment
@@ -42,6 +42,8 @@ if COMET_AVAILABLE:
     except ImportError:  # pragma: no-cover
         # For more information, see: https://www.comet.ml/docs/python-sdk/releases/#release-300
         from comet_ml.papi import API  # pragma: no-cover
+else:
+    comet_ml = None  # needed for test mocks, these tests shall be updated
 
 
 class CometLogger(LightningLoggerBase):
@@ -126,7 +128,7 @@ class CometLogger(LightningLoggerBase):
         prefix: str = '',
         **kwargs
     ):
-        if not COMET_AVAILABLE:
+        if not comet_ml:
             raise ImportError(
                 "You want to use `comet_ml` logger which is not installed yet,"
                 " install it with `pip install comet-ml`."

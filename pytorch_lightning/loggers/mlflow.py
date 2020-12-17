@@ -26,10 +26,13 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn, _module_available
 
-MLFLOW_AVAILABLE = _module_available("mlflow")
+_MLFLOW_AVAILABLE = _module_available("mlflow")
 
-if MLFLOW_AVAILABLE:
+if _MLFLOW_AVAILABLE:
+    import mlflow
     from mlflow.tracking import MlflowClient
+else:
+    mlflow = None
 
 
 LOCAL_FILE_URI_PREFIX = "file:"
@@ -90,7 +93,7 @@ class MLFlowLogger(LightningLoggerBase):
         save_dir: Optional[str] = './mlruns',
         prefix: str = '',
     ):
-        if not MLFLOW_AVAILABLE:
+        if not mlflow:
             raise ImportError('You want to use `mlflow` logger which is not installed yet,'
                               ' install it with `pip install mlflow`.')
         super().__init__()

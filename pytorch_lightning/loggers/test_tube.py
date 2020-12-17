@@ -24,9 +24,9 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experi
 from pytorch_lightning.utilities import _module_available
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
 
-TESTTUBE_AVAILABLE = _module_available("test_tube")
+_TESTTUBE_AVAILABLE = _module_available("test_tube")
 
-if TESTTUBE_AVAILABLE:
+if _TESTTUBE_AVAILABLE:
     from test_tube import Experiment as TTExperiment
 
 
@@ -89,7 +89,7 @@ class TestTubeLogger(LightningLoggerBase):
         log_graph: bool = False,
         prefix: str = '',
     ):
-        if not TESTTUBE_AVAILABLE:
+        if not _TESTTUBE_AVAILABLE:
             raise ImportError('You want to use `test_tube` logger which is not installed yet,'
                               ' install it with `pip install test-tube`.')
         super().__init__()
