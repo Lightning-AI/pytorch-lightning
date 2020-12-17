@@ -14,6 +14,7 @@
 import os
 from unittest.mock import patch
 
+import numpy as np
 import pytest
 import torch
 import torch.nn as nn
@@ -470,9 +471,10 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
 
     TestBoringModel.training_epoch_end = None
 
-    max_epochs = 2
-    limit_train_batches = 8
+    max_epochs = np.random.randint(1, 3)
+    limit_train_batches = np.random.randint(11, 27)
     expected_batches = max_epochs * limit_train_batches
+    is_divisible = limit_train_batches % accumulate_grad_batches == 0
     limit_val_batches = 0
 
     def train(enable_pl_optimizer, override=False, mock=False):
@@ -526,7 +528,10 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
             accumulate_grad_batches=accumulate_grad_batches if not override else 1
         )
         trainer.fit(model)
-        assert trainer.global_step == expected_global_step
+        if is_divisible:
+            assert trainer.global_step == expected_global_step
+        else:
+            assert trainer.global_step == expected_global_step + 1
         return model
 
     before = train(False)
@@ -534,7 +539,10 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
 
     assert torch.equal(initial_weights["before"], initial_weights["after"])
     assert len(before.losses) == expected_batches
-    assert len(before.grads) == (expected_batches // accumulate_grad_batches)
+    if is_divisible:
+        assert len(before.grads) == (expected_batches // accumulate_grad_batches)
+    else:
+        assert len(before.grads) == (expected_batches // accumulate_grad_batches) + 1
     assert before.losses == after.losses
     assert before.on_before_zero_grad_count == after.on_before_zero_grad_count
 
