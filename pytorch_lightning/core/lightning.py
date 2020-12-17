@@ -279,6 +279,7 @@ class LightningModule(
                 sync_dist_group,
                 accelerator.sync_tensor,
                 self._current_dataloader_idx,
+                self.device,
             )
 
     def log_dict(
@@ -990,7 +991,7 @@ class LightningModule(
             - List or Tuple - List of optimizers.
             - Two lists - The first list has multiple optimizers, the second a list of LR schedulers (or lr_dict).
             - Dictionary, with an 'optimizer' key, and (optionally) a 'lr_scheduler'
-              key which value is a single LR scheduler or lr_dict.
+              key whose value is a single LR scheduler or lr_dict.
             - Tuple of dictionaries as described, with an optional 'frequency' key.
             - None - Fit will run without any optimizer.
 
@@ -1002,21 +1003,22 @@ class LightningModule(
             In the former case, all optimizers will operate on the given batch in each optimization step.
             In the latter, only one optimizer will operate on the given batch at every step.
 
-            The lr_dict is a dictionary which contains scheduler and its associated configuration.
-            It has five keys. The default configuration is shown below.
+            The lr_dict is a dictionary which contains the scheduler and its associated configuration.
+            The default configuration is shown below.
 
             .. code-block:: python
 
                 {
-                    'scheduler': lr_scheduler, # The LR schduler
+                    'scheduler': lr_scheduler, # The LR scheduler instance (required)
                     'interval': 'epoch', # The unit of the scheduler's step size
                     'frequency': 1, # The frequency of the scheduler
                     'reduce_on_plateau': False, # For ReduceLROnPlateau scheduler
                     'monitor': 'val_loss', # Metric for ReduceLROnPlateau to monitor
-                    'strict': True # Whether to crash the training if `monitor` is not found
+                    'strict': True, # Whether to crash the training if `monitor` is not found
+                    'name': None, # Custom name for LearningRateMonitor to use
                 }
 
-            If user only provides LR schedulers, then their configuration will set to default as shown above.
+            Only the ``scheduler`` key is required, the rest will be set to the defaults above.
 
         Examples:
             .. code-block:: python
@@ -1391,12 +1393,15 @@ class LightningModule(
         """
         # call .item() only once but store elements without graphs
         running_train_loss = self.trainer.train_loop.running_loss.mean()
-        avg_training_loss = (
-            running_train_loss.cpu().item()
-            if running_train_loss is not None
-            else float("NaN")
-        )
-        tqdm_dict = {"loss": "{:.3g}".format(avg_training_loss)}
+        avg_training_loss = None
+        if running_train_loss is not None:
+            avg_training_loss = running_train_loss.cpu().item()
+        elif self.trainer.train_loop.automatic_optimization:
+            avg_training_loss = float('NaN')
+
+        tqdm_dict = {}
+        if avg_training_loss is not None:
+            tqdm_dict["loss"] = f"{avg_training_loss:.3g}"
 
         if self.trainer.truncated_bptt_steps is not None:
             tqdm_dict["split_idx"] = self.trainer.split_idx
