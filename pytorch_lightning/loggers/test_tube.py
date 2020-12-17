@@ -27,7 +27,10 @@ from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_wa
 _TESTTUBE_AVAILABLE = _module_available("test_tube")
 
 if _TESTTUBE_AVAILABLE:
-    from test_tube import Experiment as TTExperiment
+    from test_tube import Experiment
+else:
+    Experiment = None
+
 
 
 class TestTubeLogger(LightningLoggerBase):
@@ -89,7 +92,7 @@ class TestTubeLogger(LightningLoggerBase):
         log_graph: bool = False,
         prefix: str = '',
     ):
-        if not _TESTTUBE_AVAILABLE:
+        if Experiment is None:
             raise ImportError('You want to use `test_tube` logger which is not installed yet,'
                               ' install it with `pip install test-tube`.')
         super().__init__()
@@ -105,7 +108,7 @@ class TestTubeLogger(LightningLoggerBase):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> "TTExperiment":
+    def experiment(self) -> "Experiment":
         r"""
 
         Actual TestTube object. To use TestTube features in your
@@ -119,7 +122,7 @@ class TestTubeLogger(LightningLoggerBase):
         if self._experiment is not None:
             return self._experiment
 
-        self._experiment = TTExperiment(
+        self._experiment = Experiment(
             save_dir=self.save_dir,
             name=self._name,
             debug=self.debug,
