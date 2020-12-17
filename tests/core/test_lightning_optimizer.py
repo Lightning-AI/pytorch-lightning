@@ -440,6 +440,9 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
     """
     Test training with accumulated gradients with and within enable_pl_optimizer reaches the same weights
     """
+
+    initial_weights = {}
+
     class TestBoringModel(BoringModel):
 
         losses = []
@@ -489,12 +492,16 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
                         optimizer.step(closure)
 
             model = TestModel("SGD")
+            initial_weights["override"] = model.layer.weight.clone()
         else:
             expected_global_step = (max_epochs * limit_train_batches) // accumulate_grad_batches
             if enable_pl_optimizer:
                 model = TestBoringModel("Adam" if mock else "SGD")
+                initial_weights["after"] = model.layer.weight.clone()
             else:
                 model = TestBoringModel("AdamW" if mock else "SGD")
+                initial_weights["before"] = model.layer.weight.clone()
+
         trainer = Trainer(
             default_root_dir=tmpdir,
             max_epochs=max_epochs,
@@ -509,6 +516,7 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
 
     before = train(False)
     after = train(True)
+    assert initial_weights["before"] == initial_weights["after"]
 
     assert before.losses == after.losses
 
@@ -519,6 +527,9 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
         assert torch.equal(b_w, a_w), 'Model parameters are different'
 
     override = train(False, override=True)
+
+    assert initial_weights["before"] == initial_weights["override"]
+
     assert override.grad_checked
     assert override.losses == before.losses
 
@@ -526,8 +537,10 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
         assert torch.abs(b_grad).sum() > 0
         assert torch.equal(b_grad, o_grad), 'Grad parameters are different'
 
-    #for b_w, o_w in zip(before.parameters(), override.parameters()):
-    #    assert torch.equal(b_w, o_w), 'Model parameters are different'
+    import pdb; pdb.set_trace()
+
+    for b_w, o_w in zip(before.parameters(), override.parameters()):
+        assert torch.equal(b_w, o_w), 'Model parameters are different'
 
     with patch("torch.optim.SGD.step") as mock_sdg_step, \
          patch("torch.optim.Adam.step") as mock_adam_step, \
