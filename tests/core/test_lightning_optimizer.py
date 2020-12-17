@@ -20,7 +20,7 @@ import torch.nn as nn
 from torch.optim import Adam, Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -433,3 +433,48 @@ def test_lightning_optimizer_automatic_optimization_make_optimizer_step_2(tmpdir
 
         assert adam_zero_grad.call_count == 20
         assert sgd_zero_grad.call_count == 5
+
+
+@pytest.mark.parametrize('accumulate_grad_batches', [1, 2])
+def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batches):
+
+    """
+    Test training with accumulated gradients with and within enable_pl_optimizer reaches the same weights
+    """
+
+    max_epochs = 2
+    limit_train_batches = 4
+    limit_val_batches = 0
+
+    seed_everything(42)
+    # model
+    before = BoringModel()
+    trainer = Trainer(
+        default_root_dir=os.getcwd(),
+        max_epochs=max_epochs,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=limit_val_batches,
+        weights_summary=None,
+        enable_pl_optimizer=True,
+        accumulate_grad_batches=accumulate_grad_batches
+    )
+    trainer.fit(before)
+    assert trainer.global_step == (8 // accumulate_grad_batches)
+    seed_everything(42)
+    # model
+    after = BoringModel()
+    trainer = Trainer(
+        default_root_dir=os.getcwd(),
+        max_epochs=max_epochs,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=limit_val_batches,
+        weights_summary=None,
+        enable_pl_optimizer=False,
+        accumulate_grad_batches=accumulate_grad_batches
+    )
+    trainer.fit(after)
+    assert trainer.global_step == (8 // accumulate_grad_batches)
+
+    # Assert model parameters are identical after fit
+    for before, after in zip(before.parameters(), after.parameters()):
+        assert torch.equal(before, after), 'Model parameters are different'
