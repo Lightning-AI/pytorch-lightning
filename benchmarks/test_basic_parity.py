@@ -25,18 +25,18 @@ from tests.base.models import ParityModuleMNIST, ParityModuleRNN
 
 def assert_parity_relative(pl_values, pt_values, norm_by: float = 1, max_diff: float = 0.1):
     # assert speeds
-    diffs = np.asarray(pl_values) - np.asarray(pt_values)
+    diffs = np.asarray(pl_values) - np.mean(pt_values)
     # norm by vanilla time
     diffs = diffs / norm_by
     # relative to mean reference value
     diffs = diffs / np.mean(pt_values)
-    assert np.alltrue(diffs < max_diff), f"Lightning {diffs} was worse than vanilla PT (threshold {max_diff})"
+    assert np.alltrue(diffs < max_diff), f"Lightning diff {diffs} was worse than vanilla PT (threshold {max_diff})"
 
 
 def assert_parity_absolute(pl_values, pt_values, norm_by: float = 1, max_diff: float = 0.55):
     # assert speeds
-    diffs = np.asarray(pl_values) - np.asarray(pt_values)
-    # norm by vanilla time
+    diffs = np.asarray(pl_values) - np.mean(pt_values)
+    # norm by event count
     diffs = diffs / norm_by
     assert np.alltrue(diffs < max_diff), f"Lightning {diffs} was worse than vanilla PT (threshold {max_diff})"
 
