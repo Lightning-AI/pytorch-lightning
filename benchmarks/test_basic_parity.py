@@ -55,8 +55,10 @@ def test_pytorch_parity(tmpdir, cls_model, max_diff_speed: float, max_diff_memor
     vanilla = measure_loops(cls_model, kind="Vanilla PT", num_epochs=num_epochs, num_runs=num_runs)
 
     # make sure the losses match exactly  to 5 decimal places
+    print(f"Losses are for... \n vanilla: {vanilla['losses']} \n lightning: {lightning['losses']}")
     for pl_out, pt_out in zip(lightning['losses'], vanilla['losses']):
         np.testing.assert_almost_equal(pl_out, pt_out, 5)
+
 
     # the first run initialize dataset (download & filter)
     assert_speed_parity_absolute(
@@ -77,10 +79,10 @@ def measure_loops(cls_model, kind, num_runs=10, num_epochs=10):
     device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
     torch.backends.cudnn.deterministic = True
     for i in tqdm(range(num_runs), desc=f'{kind} with {cls_model.__name__}'):
+        gc.collect()
         if device == 'cuda':
-            gc.collect()
             torch.cuda.empty_cache()
-            time.sleep(10)
+        time.sleep(1)
 
         time_start = time.perf_counter()
 
