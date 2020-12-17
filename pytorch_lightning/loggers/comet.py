@@ -43,7 +43,13 @@ if _COMET_AVAILABLE:
         # For more information, see: https://www.comet.ml/docs/python-sdk/releases/#release-300
         from comet_ml.papi import API  # pragma: no-cover
 else:
-    comet_ml = None  # needed for test mocks, these tests shall be updated
+    # needed for test mocks, these tests shall be updated
+    comet_ml = None
+    CometExperiment = None
+    CometExistingExperiment = None
+    CometOfflineExperiment = None
+    API = None
+    generate_guid = None
 
 
 class CometLogger(LightningLoggerBase):
