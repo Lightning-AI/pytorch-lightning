@@ -437,8 +437,13 @@ def test_lightning_optimizer_automatic_optimization_make_optimizer_step_2(tmpdir
         assert sgd_zero_grad.call_count == 5
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@pytest.mark.parametrize(["precision", "amp_backend"], [
+    pytest.param(16, "native"),
+    pytest.param(32, "native"),
+])
 @pytest.mark.parametrize('accumulate_grad_batches', [1])
-def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batches):
+def test_parity_training_lightning_optimizer(tmpdir, amp_backend, precision, accumulate_grad_batches):
     """
     Test training with accumulated gradients with and within enable_pl_optimizer reaches the same weights
     """
@@ -466,13 +471,16 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
         def training_step(self, batch, batch_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)
-            self.losses.append(loss)
+            self.losses.append(loss.detach().item())
             return {"loss": loss}
 
     TestBoringModel.training_epoch_end = None
 
     max_epochs = np.random.randint(1, 3)
     limit_train_batches = np.random.randint(11, 27)
+
+    print(max_epochs, limit_train_batches)
+
     expected_batches = max_epochs * limit_train_batches
     is_divisible = limit_train_batches % accumulate_grad_batches == 0
     limit_val_batches = 0
@@ -503,7 +511,15 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
                     self.grad_checked = True
                     assert torch.abs(self.layer.weight.grad).sum() > 0
                     self.grads.append(self.layer.weight.grad.clone())
-                    optimizer.step()
+
+                    if using_native_amp:
+                        self.trainer.scaler.step(optimizer)
+                        if mock:
+                            optimizer.step()
+                        self.trainer.scaler.update()
+                    else:
+                        optimizer.step()
+
                     optimizer.zero_grad()
                     if not mock:
                         assert torch.abs(self.layer.weight.grad).sum() == 0
@@ -525,7 +541,10 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
             limit_train_batches=limit_train_batches,
             limit_val_batches=limit_val_batches,
             enable_pl_optimizer=enable_pl_optimizer,
-            accumulate_grad_batches=accumulate_grad_batches if not override else 1
+            accumulate_grad_batches=accumulate_grad_batches if not override else 1,
+            amp_backend=amp_backend,
+            precision=precision,
+            gpus=1
         )
         trainer.fit(model)
         if is_divisible:
@@ -539,15 +558,18 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
 
     assert torch.equal(initial_weights["before"], initial_weights["after"])
     assert len(before.losses) == expected_batches
+
     if is_divisible:
         assert len(before.grads) == (expected_batches // accumulate_grad_batches)
     else:
         assert len(before.grads) == (expected_batches // accumulate_grad_batches) + 1
-    assert before.losses == after.losses
+
+    assert not torch.FloatTensor(before.losses).isnan().any()
+
+    assert torch.equal(torch.FloatTensor(before.losses), torch.FloatTensor(after.losses))
     assert before.on_before_zero_grad_count == after.on_before_zero_grad_count
 
     for b_grad, a_grad in zip(before.grads, after.grads):
-        assert torch.abs(b_grad).sum() > 0
         assert torch.equal(b_grad, a_grad), 'Grad parameters are different'
 
     for b_w, a_w in zip(before.parameters(), after.parameters()):
@@ -557,7 +579,7 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
 
     assert torch.equal(initial_weights["before"], initial_weights["override"])
     assert override.grad_checked
-    # assert override.losses == before.losses
+    assert override.losses == before.losses
     assert (override.on_before_zero_grad_count // accumulate_grad_batches) == before.on_before_zero_grad_count
 
     for b_grad, o_grad in zip(before.grads, override.grads):
@@ -566,20 +588,22 @@ def test_reproducible_training_lightning_optimizer(tmpdir, accumulate_grad_batch
     for b_w, o_w in zip(before.parameters(), override.parameters()):
         assert torch.equal(b_w, o_w), 'Model parameters are different'
 
-    with patch("torch.optim.SGD.step") as mock_sdg_step, \
-         patch("torch.optim.Adam.step") as mock_adam_step, \
-         patch("torch.optim.AdamW.step") as mock_adamw_step, \
-         patch("torch.optim.SGD.zero_grad") as mock_sdg_zero_grad, \
-         patch("torch.optim.Adam.zero_grad") as mock_adam_zero_grad, \
-         patch("torch.optim.AdamW.zero_grad") as mock_adamw_zero_grad:
+    if precision == 32:
 
-        before = train(False, mock=True)
-        after = train(True, mock=True)
-        override = train(False, override=True, mock=True)
+        with patch("torch.optim.SGD.step") as mock_sdg_step, \
+             patch("torch.optim.Adam.step") as mock_adam_step, \
+             patch("torch.optim.AdamW.step") as mock_adamw_step, \
+             patch("torch.optim.SGD.zero_grad") as mock_sdg_zero_grad, \
+             patch("torch.optim.Adam.zero_grad") as mock_adam_zero_grad, \
+             patch("torch.optim.AdamW.zero_grad") as mock_adamw_zero_grad:
 
-    assert mock_sdg_step.call_count == (expected_batches // accumulate_grad_batches)
-    assert mock_sdg_zero_grad.call_count == (expected_batches // accumulate_grad_batches)
-    assert mock_sdg_step.call_count == mock_adam_step.call_count
-    assert mock_sdg_step.call_count == mock_adam_step.call_count
-    assert mock_sdg_zero_grad.call_count == mock_adam_zero_grad.call_count
-    assert mock_sdg_zero_grad.call_count == mock_adamw_zero_grad.call_count
+            before = train(False, mock=True)
+            after = train(True, mock=True)
+            override = train(False, override=True, mock=True)
+
+        assert mock_sdg_step.call_count == (expected_batches // accumulate_grad_batches)
+        assert mock_sdg_zero_grad.call_count == (expected_batches // accumulate_grad_batches)
+        assert mock_sdg_step.call_count == mock_adam_step.call_count
+        assert mock_sdg_step.call_count == mock_adam_step.call_count
+        assert mock_sdg_zero_grad.call_count == mock_adam_zero_grad.call_count
+        assert mock_sdg_zero_grad.call_count == mock_adamw_zero_grad.call_count
