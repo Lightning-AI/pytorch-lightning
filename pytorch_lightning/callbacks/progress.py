@@ -172,33 +172,25 @@ class ProgressBar(ProgressBarBase):
     r"""
     This is the default progress bar used by Lightning. It prints to `stdout` using the
     :mod:`tqdm` package and shows up to four different bars:
-
     - **sanity check progress:** the progress during the sanity check run
-    - **main progress:** shows training + validation progress combined. It also accounts for
-      multiple validation runs during training when
-      :paramref:`~pytorch_lightning.trainer.trainer.Trainer.val_check_interval` is used.
-    - **validation progress:** only visible during validation;
-      shows total progress over all validation datasets.
+    - **main progress:** show total progress over max_epochs, updated every epoch.
+    - **train progress:** show training progress, updated every training batch.
+    - **validation progress:** show validation progress, updated every validating batch;
+      shows total progress over all validation datasets. It will check mutiple times if :paramref:
+      `~pytorch_lightning.trainer.trainer.Trainer.val_check_interval` is used.
     - **test progress:** only active when testing; shows total progress over all test datasets.
-
     For infinite datasets, the progress bar never ends.
-
     If you want to customize the default ``tqdm`` progress bars used by Lightning, you can override
     specific methods of the callback class and pass your custom implementation to the
     :class:`~pytorch_lightning.trainer.trainer.Trainer`:
-
     Example::
-
         class LitProgressBar(ProgressBar):
-
             def init_validation_tqdm(self):
                 bar = super().init_validation_tqdm()
                 bar.set_description('running validation ...')
                 return bar
-
         bar = LitProgressBar()
         trainer = Trainer(callbacks=[bar])
-
     Args:
         refresh_rate:
             Determines at which rate (in number of batches) the progress bars get updated.
@@ -213,7 +205,6 @@ class ProgressBar(ProgressBarBase):
             together. This corresponds to
             :paramref:`~pytorch_lightning.trainer.trainer.Trainer.process_position` in the
             :class:`~pytorch_lightning.trainer.trainer.Trainer`.
-
     """
     def __init__(self, refresh_rate: int = 1, process_position: int = 0):
         super().__init__()
@@ -221,6 +212,7 @@ class ProgressBar(ProgressBarBase):
         self._process_position = process_position
         self._enabled = True
         self.main_progress_bar = None
+        self.train_progress_bar = None
         self.val_progress_bar = None
         self.test_progress_bar = None
 
@@ -228,6 +220,7 @@ class ProgressBar(ProgressBarBase):
         # can't pickle the tqdm objects
         state = self.__dict__.copy()
         state['main_progress_bar'] = None
+        state['train_progress_bar'] = None
         state['val_progress_bar'] = None
         state['test_progress_bar'] = None
         return state
@@ -258,7 +251,7 @@ class ProgressBar(ProgressBarBase):
         """ Override this to customize the tqdm bar for the validation sanity run. """
         bar = tqdm(
             desc='Validation sanity check',
-            position=(2 * self.process_position),
+            position=(3 * self.process_position),
             disable=self.is_disabled,
             leave=False,
             dynamic_ncols=True,
@@ -266,12 +259,24 @@ class ProgressBar(ProgressBarBase):
         )
         return bar
 
+    def init_main_tqdm(self) -> tqdm:
+        """ Override this to customize the tqdm bar for Main progress bar. """
+        bar = tqdm(
+            desc='Main progress bar',
+            position=(3 * self.process_position),
+            disable=self.is_disabled,
+            leave=True,
+            dynamic_ncols=True,
+            file=sys.stdout,
+            smoothing=0,
+        )
+        return bar
+
     def init_train_tqdm(self) -> tqdm:
         """ Override this to customize the tqdm bar for training. """
         bar = tqdm(
             desc='Training',
-            initial=self.train_batch_idx,
-            position=(2 * self.process_position),
+            position=(3 * self.process_position + 1),
             disable=self.is_disabled,
             leave=True,
             dynamic_ncols=True,
@@ -284,9 +289,9 @@ class ProgressBar(ProgressBarBase):
         """ Override this to customize the tqdm bar for validation. """
         bar = tqdm(
             desc='Validating',
-            position=(2 * self.process_position + 1),
+            position=(3 * self.process_position + 2),
             disable=self.is_disabled,
-            leave=False,
+            leave=True,
             dynamic_ncols=True,
             file=sys.stdout
         )
@@ -296,7 +301,7 @@ class ProgressBar(ProgressBarBase):
         """ Override this to customize the tqdm bar for testing. """
         bar = tqdm(
             desc='Testing',
-            position=(2 * self.process_position),
+            position=(3 * self.process_position),
             disable=self.is_disabled,
             leave=True,
             dynamic_ncols=True,
@@ -308,57 +313,59 @@ class ProgressBar(ProgressBarBase):
         super().on_sanity_check_start(trainer, pl_module)
         self.val_progress_bar = self.init_sanity_tqdm()
         self.val_progress_bar.total = convert_inf(sum(trainer.num_sanity_val_batches))
-        self.main_progress_bar = tqdm(disable=True)  # dummy progress bar
 
     def on_sanity_check_end(self, trainer, pl_module):
         super().on_sanity_check_end(trainer, pl_module)
-        self.main_progress_bar.close()
         self.val_progress_bar.close()
 
     def on_train_start(self, trainer, pl_module):
         super().on_train_start(trainer, pl_module)
-        self.main_progress_bar = self.init_train_tqdm()
+        self.main_progress_bar = self.init_main_tqdm()
+        self.train_progress_bar = self.init_train_tqdm()
+        self.val_progress_bar = self.init_validation_tqdm()
+        self.main_progress_bar.total = convert_inf(trainer.max_epochs)
 
     def on_epoch_start(self, trainer, pl_module):
         super().on_epoch_start(trainer, pl_module)
-        total_train_batches = self.total_train_batches
-        total_val_batches = self.total_val_batches
-        if total_train_batches != float('inf') and not trainer.fast_dev_run:
-            # val can be checked multiple times per epoch
-            val_checks_per_epoch = total_train_batches // trainer.val_check_batch
-            total_val_batches = total_val_batches * val_checks_per_epoch
-        total_batches = total_train_batches + total_val_batches
-        if not self.main_progress_bar.disable:
-            self.main_progress_bar.reset(convert_inf(total_batches))
         self.main_progress_bar.set_description(f'Epoch {trainer.current_epoch}')
+        self.train_progress_bar.reset(convert_inf(self.total_train_batches))
+        
+        # check validation multiple times, if trainer.val_check_batch is set
+        self.val_checks_per_epoch = self.total_train_batches // trainer.val_check_batch
+        self.val_checks = 0
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-        if self._should_update(self.train_batch_idx, self.total_train_batches + self.total_val_batches):
-            self._update_bar(self.main_progress_bar)
+        if self._should_update(self.train_batch_idx, self.total_train_batches):
+            self._update_bar(self.train_progress_bar)
             self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
 
     def on_validation_start(self, trainer, pl_module):
-        super().on_validation_start(trainer, pl_module)
-        if not trainer.running_sanity_check:
-            self._update_bar(self.main_progress_bar)  # fill up remaining
-            self.val_progress_bar = self.init_validation_tqdm()
-            self.val_progress_bar.total = convert_inf(self.total_val_batches)
+        super().on_validation_start(trainer, pl_module) 
+        if not trainer.running_sanity_check: 
+            # always reset val_progress_bar if val_checks is less than val_checks_per_epoch
+            if self.val_checks < self.val_checks_per_epoch:
+                self.val_progress_bar.reset(convert_inf(self.total_val_batches)) 
+                self.val_checks+=1
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         if self._should_update(self.val_batch_idx, self.total_val_batches):
             self._update_bar(self.val_progress_bar)
-            self._update_bar(self.main_progress_bar)
 
     def on_validation_end(self, trainer, pl_module):
         super().on_validation_end(trainer, pl_module)
-        self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
-        self.val_progress_bar.close()
+        if not trainer.running_sanity_check:
+            self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
+            
+    def on_epoch_end(self, trainer, pl_module):
+        self._update_bar(self.main_progress_bar)
 
     def on_train_end(self, trainer, pl_module):
         super().on_train_end(trainer, pl_module)
         self.main_progress_bar.close()
+        self.train_progress_bar.close()
+        self.val_progress_bar.close()
 
     def on_test_start(self, trainer, pl_module):
         super().on_test_start(trainer, pl_module)
