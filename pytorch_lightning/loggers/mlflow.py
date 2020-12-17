@@ -33,6 +33,7 @@ if _MLFLOW_AVAILABLE:
     from mlflow.tracking import MlflowClient
 else:
     mlflow = None
+    MlflowClient = None
 
 
 LOCAL_FILE_URI_PREFIX = "file:"
