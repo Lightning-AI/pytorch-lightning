@@ -22,6 +22,8 @@
 import os
 import torch
 from torch.utils.data import Dataset
+
+from pl_examples import cli_lightning_logo
 from pytorch_lightning import Trainer, LightningModule
 
 
@@ -137,4 +139,5 @@ def run_test():
 
 
 if __name__ == '__main__':
+    cli_lightning_logo()
     run_test()

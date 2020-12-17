@@ -19,6 +19,7 @@ import torch
 from torch.nn import functional as F
 
 import pytorch_lightning as pl
+from pl_examples import cli_lightning_logo
 from pl_examples.basic_examples.mnist_datamodule import MNISTDataModule
 
 
@@ -103,4 +104,5 @@ def cli_main():
 
 
 if __name__ == '__main__':
+    cli_lightning_logo()
     cli_main()
