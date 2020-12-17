@@ -88,3 +88,7 @@ jobs:
     - script: |
         python -m pytest benchmarks pl_examples -v --maxfail=2 --durations=0
       displayName: 'Testing: extended'
+
+    - script: |
+        bash pl_examples/run_ddp-example.sh
+      displayName: 'Examples'
