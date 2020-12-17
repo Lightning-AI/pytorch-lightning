@@ -34,8 +34,8 @@ def test_pytorch_parity(tmpdir, cls_model, max_diff: float, num_epochs: int = 4,
     """
     Verify that the same  pytorch and lightning models achieve the same results
     """
-    lightning = lightning_loop(cls_model, num_runs, num_epochs)
-    vanilla = vanilla_loop(cls_model, num_runs, num_epochs)
+    lightning = measure_loops(cls_model, kind="PT Lightning", num_epochs=num_epochs, num_runs=num_runs)
+    vanilla = measure_loops(cls_model, kind="Vanilla PT", num_epochs=num_epochs, num_runs=num_runs)
 
     # make sure the losses match exactly  to 5 decimal places
     for pl_out, pt_out in zip(lightning['losses'], vanilla['losses']):
@@ -47,7 +47,7 @@ def test_pytorch_parity(tmpdir, cls_model, max_diff: float, num_epochs: int = 4,
     )
 
 
-def vanilla_loop(cls_model, num_runs=10, num_epochs=10):
+def measure_loops(cls_model, kind, num_runs=10, num_epochs=10):
     """
     Returns an array with the last loss from each epoch for each run
     """
@@ -56,81 +56,74 @@ def vanilla_loop(cls_model, num_runs=10, num_epochs=10):
 
     device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
     torch.backends.cudnn.deterministic = True
-    for i in tqdm(range(num_runs), desc=f'Vanilla PT with {cls_model.__name__}'):
+    for i in tqdm(range(num_runs), desc=f'{kind} with {cls_model.__name__}'):
         time_start = time.perf_counter()
 
-        # set seed
-        seed = i
-        seed_everything(seed)
-
-        # init model parts
-        model = cls_model()
-        dl = model.train_dataloader()
-        optimizer = model.configure_optimizers()
-
-        # model to GPU
-        model = model.to(device)
-
-        epoch_losses = []
-        # as the first run is skipped, no need to run it long
-        for epoch in range(num_epochs if i > 0 else 1):
-
-            # run through full training set
-            for j, batch in enumerate(dl):
-                batch = [x.to(device) for x in batch]
-                loss_dict = model.training_step(batch, j)
-                loss = loss_dict['loss']
-                loss.backward()
-                optimizer.step()
-                optimizer.zero_grad()
-
-            # track last epoch loss
-            epoch_losses.append(loss.item())
+        if kind == "Vanilla PT":
+            final_loss = vanilla_loop(cls_model, idx=i, device='cuda', num_epochs=num_epochs)
+        elif kind == "PT Lightning":
+            final_loss = lightning_loop(cls_model, idx=i, device=None, num_epochs=num_epochs)
+        else:
+            raise ValueError(f"Unsupported loop '{kind}'.")
 
         time_end = time.perf_counter()
         hist_durations.append(time_end - time_start)
 
-        hist_losses.append(epoch_losses[-1])
-
-    return {
-        'losses': hist_losses,
-        'durations': hist_durations,
-    }
-
-
-def lightning_loop(cls_model, num_runs=10, num_epochs=10):
-    hist_losses = []
-    hist_durations = []
-
-    for i in tqdm(range(num_runs), desc=f'PT Lightning with {cls_model.__name__}'):
-        time_start = time.perf_counter()
-
-        # set seed
-        seed = i
-        seed_everything(seed)
-
-        model = cls_model()
-        # init model parts
-        trainer = Trainer(
-            # as the first run is skipped, no need to run it long
-            max_epochs=num_epochs if i > 0 else 1,
-            progress_bar_refresh_rate=0,
-            weights_summary=None,
-            gpus=1,
-            checkpoint_callback=False,
-            deterministic=True,
-            logger=False,
-            replace_sampler_ddp=False,
-        )
-        trainer.fit(model)
-
-        final_loss = trainer.train_loop.running_loss.last().item()
         hist_losses.append(final_loss)
 
-        time_end = time.perf_counter()
-        hist_durations.append(time_end - time_start)
-
     return {
         'losses': hist_losses,
         'durations': hist_durations,
     }
+
+
+def vanilla_loop(cls_model, idx, device = 'cuda', num_epochs=10):
+    # set seed
+    seed_everything(idx)
+
+    # init model parts
+    model = cls_model()
+    dl = model.train_dataloader()
+    optimizer = model.configure_optimizers()
+
+    # model to GPU
+    model = model.to(device)
+
+    epoch_losses = []
+    # as the first run is skipped, no need to run it long
+    for epoch in range(num_epochs if idx > 0 else 1):
+
+        # run through full training set
+        for j, batch in enumerate(dl):
+            batch = [x.to(device) for x in batch]
+            loss_dict = model.training_step(batch, j)
+            loss = loss_dict['loss']
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+
+        # track last epoch loss
+        epoch_losses.append(loss.item())
+
+    return epoch_losses[-1]
+
+
+def lightning_loop(cls_model, idx, device=None, num_epochs=10):
+    seed_everything(idx)
+
+    model = cls_model()
+    # init model parts
+    trainer = Trainer(
+        # as the first run is skipped, no need to run it long
+        max_epochs=num_epochs if idx > 0 else 1,
+        progress_bar_refresh_rate=0,
+        weights_summary=None,
+        gpus=1,
+        checkpoint_callback=False,
+        deterministic=True,
+        logger=False,
+        replace_sampler_ddp=False,
+    )
+    trainer.fit(model)
+
+    return trainer.train_loop.running_loss.last().item()
