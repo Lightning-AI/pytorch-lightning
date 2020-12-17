@@ -8,7 +8,7 @@ local tputests = base.BaseTest {
   mode: 'postsubmit',
   configMaps: [],
 
-  timeout: 900, # 15 minutes, in seconds.
+  timeout: 1800, # 30 minutes, in seconds.
 
   image: std.extVar('image'),
   imageTag: std.extVar('image-tag'),
