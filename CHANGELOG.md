@@ -34,6 +34,8 @@ Support number for logging with `sync_dist=True` ([#5080](https://github.com/PyT
 Un-balanced logging properly supported ([#5119](https://github.com/PyTorchLightning/pytorch-lightning/pull/5119)
 
 
+Fix hanging in DDP HPC accelerators ([#5157](https://github.com/PyTorchLightning/pytorch-lightning/pull/5157)
+
 
 ## [1.1.1] - 2020-12-15
 
