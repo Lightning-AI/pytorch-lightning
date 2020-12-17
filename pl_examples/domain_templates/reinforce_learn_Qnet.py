@@ -53,13 +53,19 @@ class DQN(nn.Module):
     """
     Simple MLP network
 
-    Args:
-        obs_size: observation/state size of the environment
-        n_actions: number of discrete actions available in the environment
-        hidden_size: size of hidden layers
+    >>> DQN(10, 5)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    DQN(
+      (net): Sequential(...)
+    )
     """
 
     def __init__(self, obs_size: int, n_actions: int, hidden_size: int = 128):
+        """
+        Args:
+            obs_size: observation/state size of the environment
+            n_actions: number of discrete actions available in the environment
+            hidden_size: size of hidden layers
+        """
         super(DQN, self).__init__()
         self.net = nn.Sequential(
             nn.Linear(obs_size, hidden_size),
@@ -81,11 +87,15 @@ class ReplayBuffer:
     """
     Replay Buffer for storing past experiences allowing the agent to learn from them
 
-    Args:
-        capacity: size of the buffer
+    >>> ReplayBuffer(5)  # doctest: +ELLIPSIS
+    <...reinforce_learn_Qnet.ReplayBuffer object at ...>
     """
 
     def __init__(self, capacity: int) -> None:
+        """
+        Args:
+            capacity: size of the buffer
+        """
         self.buffer = deque(maxlen=capacity)
 
     def __len__(self) -> int:
@@ -113,12 +123,16 @@ class RLDataset(IterableDataset):
     Iterable Dataset containing the ExperienceBuffer
     which will be updated with new experiences during training
 
-    Args:
-        buffer: replay buffer
-        sample_size: number of experiences to sample at a time
+    >>> RLDataset(ReplayBuffer(5))  # doctest: +ELLIPSIS
+    <...reinforce_learn_Qnet.RLDataset object at ...>
     """
 
     def __init__(self, buffer: ReplayBuffer, sample_size: int = 200) -> None:
+        """
+        Args:
+            buffer: replay buffer
+            sample_size: number of experiences to sample at a time
+        """
         self.buffer = buffer
         self.sample_size = sample_size
 
@@ -132,12 +146,18 @@ class Agent:
     """
     Base Agent class handling the interaction with the environment
 
-    Args:
-        env: training environment
-        replay_buffer: replay buffer storing experiences
+    >>> env = gym.make("CartPole-v0")
+    >>> buffer = ReplayBuffer(10)
+    >>> Agent(env, buffer)  # doctest: +ELLIPSIS
+    <...reinforce_learn_Qnet.Agent object at ...>
     """
 
     def __init__(self, env: gym.Env, replay_buffer: ReplayBuffer) -> None:
+        """
+        Args:
+            env: training environment
+            replay_buffer: replay buffer storing experiences
+        """
         self.env = env
         self.replay_buffer = replay_buffer
         self.reset()
@@ -204,20 +224,34 @@ class Agent:
 
 
 class DQNLightning(pl.LightningModule):
-    """ Basic DQN Model """
+    """ Basic DQN Model
 
-    def __init__(self,
-                 replay_size,
-                 warm_start_steps: int,
-                 gamma: float,
-                 eps_start: int,
-                 eps_end: int,
-                 eps_last_frame: int,
-                 sync_rate,
-                 lr: float,
-                 episode_length,
-                 batch_size, **kwargs) -> None:
-        super().__init__()
+    >>> DQNLightning(env="CartPole-v0")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    DQNLightning(
+      (net): DQN(
+        (net): Sequential(...)
+      )
+      (target_net): DQN(
+        (net): Sequential(...)
+      )
+    )
+    """
+    def __init__(
+            self,
+            env: str,
+            replay_size: int = 200,
+            warm_start_steps: int = 200,
+            gamma: float = 0.99,
+            eps_start: float = 1.0,
+            eps_end: float = 0.01,
+            eps_last_frame: int = 200,
+            sync_rate: int = 10,
+            lr: float = 1e-2,
+            episode_length: int = 50,
+            batch_size: int = 4,
+            **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
         self.replay_size = replay_size
         self.warm_start_steps = warm_start_steps
         self.gamma = gamma
@@ -229,7 +263,7 @@ class DQNLightning(pl.LightningModule):
         self.episode_length = episode_length
         self.batch_size = batch_size
 
-        self.env = gym.make(self.env)
+        self.env = gym.make(env)
         obs_size = self.env.observation_space.shape[0]
         n_actions = self.env.action_space.n
 
@@ -302,8 +336,7 @@ class DQNLightning(pl.LightningModule):
             Training loss and log metrics
         """
         device = self.get_device(batch)
-        epsilon = max(self.eps_end, self.eps_start -
-                      self.global_step + 1 / self.eps_last_frame)
+        epsilon = max(self.eps_end, self.eps_start - self.global_step + 1 / self.eps_last_frame)
 
         # step through environment with agent
         reward, done = self.agent.play_step(self.net, epsilon, device)
@@ -349,6 +382,30 @@ class DQNLightning(pl.LightningModule):
         """Retrieve device currently being used by minibatch"""
         return batch[0].device.index if self.on_gpu else 'cpu'
 
+    @staticmethod
+    def add_model_specific_args(parent_parser):  # pragma: no-cover
+        parser = argparse.ArgumentParser(parents=[parent_parser])
+        parser.add_argument("--batch_size", type=int, default=16, help="size of the batches")
+        parser.add_argument("--lr", type=float, default=1e-2, help="learning rate")
+        parser.add_argument("--env", type=str, default="CartPole-v0", help="gym environment tag")
+        parser.add_argument("--gamma", type=float, default=0.99, help="discount factor")
+        parser.add_argument("--sync_rate", type=int, default=10,
+                            help="how many frames do we update the target network")
+        parser.add_argument("--replay_size", type=int, default=1000,
+                            help="capacity of the replay buffer")
+        parser.add_argument("--warm_start_size", type=int, default=1000,
+                            help="how many samples do we use to fill our buffer at the start of training")
+        parser.add_argument("--eps_last_frame", type=int, default=1000,
+                            help="what frame should epsilon stop decaying")
+        parser.add_argument("--eps_start", type=float, default=1.0, help="starting value of epsilon")
+        parser.add_argument("--eps_end", type=float, default=0.01, help="final value of epsilon")
+        parser.add_argument("--episode_length", type=int, default=200, help="max length of an episode")
+        parser.add_argument("--max_episode_reward", type=int, default=200,
+                            help="max episode reward in the environment")
+        parser.add_argument("--warm_start_steps", type=int, default=1000,
+                            help="max episode reward in the environment")
+        return parser
+
 
 def main(args) -> None:
     model = DQNLightning(**vars(args))
@@ -368,26 +425,7 @@ if __name__ == '__main__':
     np.random.seed(0)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--batch_size", type=int, default=16, help="size of the batches")
-    parser.add_argument("--lr", type=float, default=1e-2, help="learning rate")
-    parser.add_argument("--env", type=str, default="CartPole-v0", help="gym environment tag")
-    parser.add_argument("--gamma", type=float, default=0.99, help="discount factor")
-    parser.add_argument("--sync_rate", type=int, default=10,
-                        help="how many frames do we update the target network")
-    parser.add_argument("--replay_size", type=int, default=1000,
-                        help="capacity of the replay buffer")
-    parser.add_argument("--warm_start_size", type=int, default=1000,
-                        help="how many samples do we use to fill our buffer at the start of training")
-    parser.add_argument("--eps_last_frame", type=int, default=1000,
-                        help="what frame should epsilon stop decaying")
-    parser.add_argument("--eps_start", type=float, default=1.0, help="starting value of epsilon")
-    parser.add_argument("--eps_end", type=float, default=0.01, help="final value of epsilon")
-    parser.add_argument("--episode_length", type=int, default=200, help="max length of an episode")
-    parser.add_argument("--max_episode_reward", type=int, default=200,
-                        help="max episode reward in the environment")
-    parser.add_argument("--warm_start_steps", type=int, default=1000,
-                        help="max episode reward in the environment")
-
+    parser = DQNLightning.add_model_specific_args(parser)
     args = parser.parse_args()
 
     main(args)

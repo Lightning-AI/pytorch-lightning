@@ -31,6 +31,13 @@ else:
 
 
 class LitAutoEncoder(pl.LightningModule):
+    """
+    >>> LitAutoEncoder()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    LitAutoEncoder(
+      (encoder): ...
+      (decoder): ...
+    )
+    """
 
     def __init__(self):
         super().__init__()
