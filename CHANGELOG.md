@@ -55,8 +55,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Refactor load in checkpoint connector ([#4593](https://github.com/PyTorchLightning/pytorch-lightning/pull/4593)
 - Fixed the saved filename in `ModelCheckpoint` when it already exists ([#4861](https://github.com/PyTorchLightning/pytorch-lightning/pull/4861))
 
-
-=======
 ### Removed
 
 - Drop duplicate metrics ([#5014](https://github.com/PyTorchLightning/pytorch-lightning/pull/5014)
