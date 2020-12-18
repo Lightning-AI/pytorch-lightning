@@ -163,7 +163,7 @@ def parity_automatic_train_with_one_optimizer(ctx):
         accumulate_grad_batches=accumulate_grad_batches if not ctx["vanilla"] else 1,
         amp_backend=ctx["amp_backend"],
         precision=ctx["precision"],
-        gpus=1
+        gpus=1 if ctx["device"] == 'cuda' else 0,
     )
     trainer.fit(model)
 
@@ -174,13 +174,13 @@ def parity_automatic_train_with_one_optimizer(ctx):
 ################## TESTS ##################     # noqa E266
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@pytest.mark.parametrize(["precision", "amp_backend"], [
-    pytest.param(16, "native"),
-    pytest.param(32, "native"),
+@pytest.mark.parametrize(["precision", "amp_backend", "device"], [
+    pytest.param(16, "native", "cuda",
+                 marks=pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")),
+    pytest.param(32, "native", "cpu"),
 ])
-@pytest.mark.parametrize('accumulate_grad_batches', [1, 2])
-def test_parity_automatic_training_with_one_optimizer(tmpdir, amp_backend, precision, accumulate_grad_batches):
+@pytest.mark.parametrize('accumulate_grad_batches', [1])
+def test_parity_automatic_training_with_one_optimizer(tmpdir, amp_backend, precision, device, accumulate_grad_batches):
     """
     Test training with accumulated gradients with and within enable_pl_optimizer reaches the same weights
     """
@@ -188,21 +188,23 @@ def test_parity_automatic_training_with_one_optimizer(tmpdir, amp_backend, preci
     if accumulate_grad_batches > 1:
         accumulate_grad_batches = np.random.randint(2, accumulate_grad_batches + 1)
 
-    ctx = {}
-    ctx["tmpdir"] = tmpdir
-    ctx["accumulate_grad_batches"] = accumulate_grad_batches
-    ctx["amp_backend"] = amp_backend
-    ctx["precision"] = precision
-    ctx["using_amp"] = (amp_backend in ["native"]) and precision == 16
-    ctx["max_epochs"] = np.random.randint(1, 3)
-    ctx["limit_train_batches"] = np.random.randint(11, 27)
+    ctx = dict(
+        tmpdir=tmpdir,
+        accumulate_grad_batches=accumulate_grad_batches,
+        amp_backend=amp_backend,
+        precision=precision,
+        using_amp=(amp_backend in ["native"]) and precision == 16,
+        max_epochs=np.random.randint(1, 3),
+        limit_train_batches=np.random.randint(11, 27),
+        limit_val_batches=0,
+        initial_weights={},
+        enable_pl_optimizer=True,
+        mocked=False,
+        vanilla=False,
+        device=device,
+    )
     expected_batches = ctx["max_epochs"] * ctx["limit_train_batches"]
     ctx["expected_batches"] = expected_batches
-    ctx["limit_val_batches"] = 0
-    ctx["initial_weights"] = {}
-    ctx["enable_pl_optimizer"] = True
-    ctx["mocked"] = False
-    ctx["vanilla"] = False
 
     model_wi_pl_optimizer = parity_automatic_train_with_one_optimizer(ctx)
 
