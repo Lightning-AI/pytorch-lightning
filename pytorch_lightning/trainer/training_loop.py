@@ -489,6 +489,10 @@ class TrainLoop:
                 'native PyTorch amp and lbfgs are not compatible.'
                 ' To request, please file a Github issue in PyTorch and tag @mcarilli')
 
+        if not isinstance(optimizer, LightningOptimizer):
+            # wraps into LightingOptimizer only for running step
+            optimizer = LightningOptimizer.to_lightning_optimizer(optimizer, self.trainer)
+
         # model hook
         model_ref.optimizer_step(
             self.trainer.current_epoch,
@@ -500,9 +504,6 @@ class TrainLoop:
             using_native_amp=using_native_amp,
             using_lbfgs=is_lbfgs,
         )
-
-        if not self.trainer._enable_pl_optimizer and is_overridden("optimizer_step", model_ref):
-            self.on_before_zero_grad(optimizer)
 
     def on_before_zero_grad(self, optimizer):
         self.trainer.call_hook('on_before_zero_grad', optimizer)
