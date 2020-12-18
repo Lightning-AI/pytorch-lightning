@@ -23,6 +23,7 @@ from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 from torch.nn.parallel._functions import Gather
 
+from pytorch_lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities.warning_utils import WarningCache
 
@@ -149,6 +150,28 @@ class LightningDataParallel(DataParallel):
 
     def parallel_apply(self, replicas, inputs, kwargs):
         return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
+
+
+class LightningDistributedWrapper(torch.nn.Module):
+
+    def __init__(self, lightning_module: LightningModule):
+        super().__init__()
+        self.module = lightning_module
+
+    def forward(self, *inputs, **kwargs):
+        if self.module.training:
+            output = self.module.training_step(*inputs[0], **kwargs[0])
+            fx_called = 'training_step'
+        elif self.module.testing:
+            output = self.module.test_step(*inputs[0], **kwargs[0])
+            fx_called = 'test_step'
+        else:
+            output = self.module.validation_step(*inputs[0], **kwargs[0])
+            fx_called = 'validation_step'
+
+        if output is None:
+            warn_missing_output(f'{fx_called} returned None. Did you forget to return an output')
+        return output
 
 
 class LightningDistributedDataParallel(DistributedDataParallel):
