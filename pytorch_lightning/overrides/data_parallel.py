@@ -166,9 +166,10 @@ class LightningDistributedWrapper(torch.nn.Module):
         else:
             output = self.module.validation_step(*inputs[0], **kwargs[0])
             fx_called = 'validation_step'
-
         if output is None:
-            warn_missing_output(f'{fx_called} returned None. Did you forget to return an output')
+            warn_missing_output(f'{fx_called} returned None. Did you forget to return an output?')
+        elif self.module.use_dp or self.module.use_ddp2:
+            auto_squeeze_dim_zeros(output)
         return output
 
 
