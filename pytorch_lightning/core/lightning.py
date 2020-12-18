@@ -295,7 +295,6 @@ class LightningModule(
         sync_dist: bool = False,
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
-        prefix: str = ''
     ):
         """
         Log a dictonary of values at once
@@ -318,11 +317,10 @@ class LightningModule(
             sync_dist: if True, reduces the metric across GPUs/TPUs
             sync_dist_op: the op to sync across GPUs/TPUs
             sync_dist_group: the ddp group:
-            prefix: string to append in front of each dictionary key (seperated by underscore)
         """
         for k, v in dictionary.items():
             self.log(
-                name=prefix + '_' + k if prefix != '' else k,
+                name=k,
                 value=v,
                 prog_bar=prog_bar,
                 logger=logger,

@@ -335,8 +335,6 @@ class MetricCollection(nn.ModuleDict):
         {'micro_recall': tensor(0.1250), 'macro_recall': tensor(0.1111)}
 
     """
-    blacklist_keys = ['train', 'eval', 'forward']
-
     def __init__(self, metrics):
         super().__init__()
         if isinstance(metrics, dict):
@@ -345,7 +343,6 @@ class MetricCollection(nn.ModuleDict):
                 if not isinstance(metric, Metric):
                     raise ValueError(f'Value {metric} belonging to key {name}'
                                      ' is not an instance of `pl.metrics.Metric`')
-                self._check_valid_key(name)
                 self[name] = metric
         elif isinstance(metrics, (tuple, list)):
             for metric in metrics:
@@ -355,15 +352,9 @@ class MetricCollection(nn.ModuleDict):
                 name = metric.__class__.__name__
                 if name in self:
                     raise ValueError(f'Encountered two metrics both named {name}')
-                self._check_valid_key(name)
                 self[name] = metric
         else:
             raise ValueError('Unknown input to MetricCollection.')
-
-    def _check_valid_key(self, name):
-        if name in self.blacklist_keys:
-            raise ValueError(f'Cannot assign metric to key {name} as it is reserved'
-                             ' for internal use.')
 
     def _filter_kwargs(self, metric, **kwargs):
         """ filter kwargs such that they match the update signature of the metric """

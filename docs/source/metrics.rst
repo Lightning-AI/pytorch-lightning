@@ -129,9 +129,9 @@ This metrics API is independent of PyTorch Lightning. Metrics can directly be us
     Metrics contain internal states that keep track of the data seen so far.
     Do not mix metric states across training, validation and testing.
     It is highly recommended to re-initialize the metric per mode as
-    shown in the examples above. For easy initializing the same metric multiplet
+    shown in the examples above. For easy initializing the same metric multiply
     times, the ``.clone()`` method can be used:
-    
+
     .. code-block:: python
 
         def __init__(self):
@@ -207,9 +207,6 @@ In this case the `MetricCollection` class may come in handy. It accepts a sequen
 of metrics and wraps theses into a single callable metric class, with the same
 interface as any other metric.
 
-.. note::
-    It is expected that all metrics in the collection have the same call signature
-
 Example:
 
 .. code-block:: python
@@ -249,6 +246,12 @@ inside your LightningModule
         self.valid_metrics(logits, y)
         # use log_dict instead of log
         self.log_dict(self.valid_metrics, on_step=True, on_epoch=True, prefix='val')
+
+.. note::
+
+    `MetricCollection` as default assumes that all the metrics in the collection
+    have the same call signature. If this is not the case, input that should be
+    given to different metrics can given as keyword arguments to the collection.
 
 .. autoclass:: pytorch_lightning.metrics.MetricCollection
     :noindex:
