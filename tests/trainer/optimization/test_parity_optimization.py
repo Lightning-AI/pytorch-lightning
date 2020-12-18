@@ -45,7 +45,7 @@ For both automatic / manual optimization
 ################## MODULES ##################   # noqa E266
 
 
-class BaseParityAutomatiocOptimizationModel(BoringModel):
+class BaseParityAutomaticOptimizationModel(BoringModel):
 
     def __init__(self, optimizer_name, mocked=False):
         super().__init__()
@@ -54,6 +54,7 @@ class BaseParityAutomatiocOptimizationModel(BoringModel):
         self.grads = []
         self.on_before_zero_grad_count = 0
         self.mocked = mocked
+        self.grad_checked = False
 
     def on_before_zero_grad(self, optimizer):
         self.on_before_zero_grad_count += 1
@@ -72,8 +73,7 @@ class BaseParityAutomatiocOptimizationModel(BoringModel):
         return {"loss": loss}
 
 
-class AutomatiocOptimizationNativeModel(BaseParityAutomatiocOptimizationModel):
-    grad_checked = False
+class AutomatiocOptimizationNativeModel(BaseParityAutomaticOptimizationModel):
 
     def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure,
                        on_tpu=False, using_native_amp=False, using_lbfgs=False):
@@ -85,6 +85,8 @@ class AutomatiocOptimizationNativeModel(BaseParityAutomatiocOptimizationModel):
         if should_accumulate(self.trainer):
             return
 
+        print(current_epoch, batch_nb)
+
         self.grad_checked = True
         assert torch.abs(self.layer.weight.grad).sum() > 0
         self.on_before_zero_grad(optimizer)
@@ -95,8 +97,7 @@ class AutomatiocOptimizationNativeModel(BaseParityAutomatiocOptimizationModel):
             assert torch.abs(self.layer.weight.grad).sum() == 0
 
 
-class AutomatiocOptimizationVanillaAMPNativeModel(BaseParityAutomatiocOptimizationModel):
-    grad_checked = False
+class AutomatiocOptimizationVanillaAMPNativeModel(BaseParityAutomaticOptimizationModel):
 
     def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure,
                        on_tpu=False, using_native_amp=False, using_lbfgs=False):
@@ -144,14 +145,18 @@ def test_parity_training_lightning_optimizer_one_optimizer(tmpdir, amp_backend, 
     """
     Test training with accumulated gradients with and within enable_pl_optimizer reaches the same weights
     """
-
+    # prepare arguments
     if accumulate_grad_batches > 1:
-        accumulate_grad_batches = np.random.randint(1, accumulate_grad_batches)
+        accumulate_grad_batches = np.random.randint(2, accumulate_grad_batches + 1)
 
     using_amp = (amp_backend in ["native"]) and precision == 16
-
+    max_epochs = np.random.randint(1, 3)
+    limit_train_batches = np.random.randint(11, 27)
+    expected_batches = max_epochs * limit_train_batches
+    limit_val_batches = 0
     initial_weights = {}
 
+    # train function
     def parity_train_with_one_optimizer(enable_pl_optimizer, vanilla=False, mocked=False):
         seed_everything(42)
         if vanilla:
@@ -165,10 +170,10 @@ def test_parity_training_lightning_optimizer_one_optimizer(tmpdir, amp_backend, 
         else:
             expected_global_step = (expected_batches) // accumulate_grad_batches
             if enable_pl_optimizer:
-                model = BaseParityAutomatiocOptimizationModel("Adam" if mocked else "SGD", mocked=mocked)
+                model = BaseParityAutomaticOptimizationModel("Adam" if mocked else "SGD", mocked=mocked)
                 initial_weights["model_wi_pl_optimizer"] = model.layer.weight.clone()
             else:
-                model = BaseParityAutomatiocOptimizationModel("AdamW" if mocked else "SGD", mocked=mocked)
+                model = BaseParityAutomaticOptimizationModel("AdamW" if mocked else "SGD", mocked=mocked)
                 initial_weights["model_wo_pl_optimizer"] = model.layer.weight.clone()
 
         model.training_epoch_end = None
@@ -189,11 +194,7 @@ def test_parity_training_lightning_optimizer_one_optimizer(tmpdir, amp_backend, 
         assert np.abs(trainer.global_step - expected_global_step) <= 2
         return model
 
-    max_epochs = np.random.randint(1, 3)
-    limit_train_batches = np.random.randint(11, 27)
-
-    expected_batches = max_epochs * limit_train_batches
-    limit_val_batches = 0
+    # assertions
 
     model_wo_pl_optimizer = parity_train_with_one_optimizer(False)
     model_wi_pl_optimizer = parity_train_with_one_optimizer(True)
