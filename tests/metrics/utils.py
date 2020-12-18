@@ -10,6 +10,7 @@ import torch
 from torch.multiprocessing import Pool, set_start_method
 
 from pytorch_lightning.metrics import Metric
+from pytorch_lightning.utilities.distributed import all_except_rank_zero
 
 NUM_PROCESSES = 2
 NUM_BATCHES = 10
@@ -23,7 +24,7 @@ def setup_ddp(rank, world_size):
     """ Setup ddp enviroment """
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = "8088"
-    os.environ["LOCAL_RANK"] = f"{rank}"
+    all_except_rank_zero.rank = rank
 
     if torch.distributed.is_available() and sys.platform not in ("win32", "cygwin"):
         torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
