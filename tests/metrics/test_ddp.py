@@ -107,3 +107,9 @@ def _test_running_accumulation(rank, worldsize):
 
     running_metric.reset()
     assert running_metric.x == torch.tensor(0.), "metric state should have been reset"
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
+def test_running_accumulation():
+    """ Test that disabling automatic reset on compute works in ddp"""
+    torch.multiprocessing.spawn(_test_running_accumulation, args=(2,), nprocs=2)
