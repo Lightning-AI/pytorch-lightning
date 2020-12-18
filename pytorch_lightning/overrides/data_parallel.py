@@ -159,13 +159,13 @@ class LightningDistributedWrapper(torch.nn.Module):
 
     def forward(self, *inputs, **kwargs):
         if self.module.training:
-            output = self.module.training_step(*inputs[0], **kwargs[0])
+            output = self.module.training_step(*inputs, **kwargs)
             fx_called = 'training_step'
         elif self.module.testing:
-            output = self.module.test_step(*inputs[0], **kwargs[0])
+            output = self.module.test_step(*inputs, **kwargs)
             fx_called = 'test_step'
         else:
-            output = self.module.validation_step(*inputs[0], **kwargs[0])
+            output = self.module.validation_step(*inputs, **kwargs)
             fx_called = 'validation_step'
         if output is None:
             warn_missing_output(f'{fx_called} returned None. Did you forget to return an output?')
