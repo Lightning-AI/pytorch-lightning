@@ -21,7 +21,6 @@ from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning import _logger as log
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_PIPE_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -137,7 +136,7 @@ class DDPSequentialPlugin(RPCPlugin):
                 self._infer_model_balance(trainer)
             self._assert_valid_model_balance(trainer)
 
-    def on_before_manual_backward(self, model: LightningDistributedDataParallel, output: Any):
+    def on_before_manual_backward(self, model: DistributedDataParallel, output: Any):
         pass
 
     def _infer_model_balance(self, trainer):
