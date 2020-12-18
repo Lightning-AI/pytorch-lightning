@@ -21,6 +21,7 @@ import torch
 from torch.cuda._utils import _get_device_index
 from torch.nn import DataParallel
 from torch.nn.parallel._functions import Gather
+from typing import Any
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
@@ -160,17 +161,13 @@ class LightningDistributedWrapper(torch.nn.Module):
     def forward(self, *inputs, **kwargs):
         if self.module.training:
             output = self.module.training_step(*inputs, **kwargs)
-            fx_called = 'training_step'
+            warn_if_output_is_none(output, "training_step")
         elif self.module.testing:
             output = self.module.test_step(*inputs, **kwargs)
-            fx_called = 'test_step'
+            warn_if_output_is_none(output, "test_step")
         else:
             output = self.module.validation_step(*inputs, **kwargs)
-            fx_called = 'validation_step'
-        if output is None:
-            warn_missing_output(f'{fx_called} returned None. Did you forget to return an output?')
-        elif self.module.use_dp or self.module.use_ddp2:
-            auto_squeeze_dim_zeros(output)
+            warn_if_output_is_none(output, "validation_step")
         return output
 
 #
@@ -242,6 +239,11 @@ class LightningDistributedWrapper(torch.nn.Module):
 #
 #     def reducer_reset_hooks(self):
 #         self._reducer_prepared_for_backwards = False
+
+
+def warn_if_output_is_none(output: Any, method_name: str) -> None:
+    if output is None:
+        warning_cache.warn(f'Your {method_name} returned None. Did you forget to return an output?')
 
 
 def warn_missing_output(fx_called):
