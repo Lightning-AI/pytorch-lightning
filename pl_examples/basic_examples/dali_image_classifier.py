@@ -23,7 +23,7 @@ from torch.nn import functional as F
 from torch.utils.data import random_split
 
 import pytorch_lightning as pl
-from pl_examples import TORCHVISION_AVAILABLE, DALI_AVAILABLE
+from pl_examples import TORCHVISION_AVAILABLE, DALI_AVAILABLE, cli_lightning_logo
 
 if TORCHVISION_AVAILABLE:
     from torchvision.datasets.mnist import MNIST
@@ -217,4 +217,5 @@ def cli_main():
 
 
 if __name__ == "__main__":
+    cli_lightning_logo()
     cli_main()
