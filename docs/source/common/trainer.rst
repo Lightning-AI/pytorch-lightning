@@ -1264,7 +1264,7 @@ Note:
     - This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
 reload_dataloaders_every_n_epochs
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. raw:: html
 
@@ -1284,7 +1284,7 @@ Set to a postive integer to reload dataloaders every n epochs.
         for batch in train_loader:
             ...
 
-    # if positive integer
+    # if a positive integer
     for epoch in epochs:
         if not epoch % reload_dataloaders_every_n_epochs:
             train_loader = model.train_dataloader()

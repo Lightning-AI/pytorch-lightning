@@ -369,7 +369,7 @@ class DataHooks:
         Return:
             Single PyTorch :class:`~torch.utils.data.DataLoader`.
 
-        The dataloader you return will not be called every n epochs unless you set
+        The dataloader you return will not be reloaded unless you set
         :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_n_epochs` to
         a positive integer.
 
@@ -415,7 +415,7 @@ class DataHooks:
         r"""
         Implement one or multiple PyTorch DataLoaders for testing.
 
-        The dataloader you return will not be called every n epochs unless you set
+        The dataloader you return will not be reloaded unless you set
         :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_n_epochs` to
         a postive integer.
 
@@ -476,7 +476,7 @@ class DataHooks:
         r"""
         Implement one or multiple PyTorch DataLoaders for validation.
 
-        The dataloader you return will not be called every n epochs unless you set
+        The dataloader you return will not be reloaded unless you set
         :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_n_epochs` to
         a positive integer.
 
