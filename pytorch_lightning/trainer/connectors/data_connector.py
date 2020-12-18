@@ -17,9 +17,9 @@ from typing import List, Optional, Union
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.datamodule import LightningDataModule
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_utils import is_overridden
-from pytorch_lightning.utilities import rank_zero_warn
 
 
 class DataConnector(object):
