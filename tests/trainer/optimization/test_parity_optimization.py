@@ -259,7 +259,7 @@ class BaseParityGANAutomatiocOptimizationModel(BasicGAN):
         self.losses = []
         self.grads = {}
         self.on_before_zero_grad_count = 0
-        self.mocked = False
+        self.mocked = mocked
         self.gen_optim = gen_optim
         self.dis_optim = dis_optim
         self.lr_gen = lr_gen
