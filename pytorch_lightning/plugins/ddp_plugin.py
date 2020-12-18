@@ -3,11 +3,12 @@ from contextlib import contextmanager
 from typing import Any, Dict, List, Optional, Union
 
 import torch.distributed as torch_distrib
+from torch.nn.parallel import DistributedDataParallel
 from torch.optim import Optimizer
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
+from pytorch_lightning.overrides.data_parallel import LightningDistributedWrapper
 from pytorch_lightning.plugins.plugin import LightningPlugin
 
 
@@ -35,7 +36,7 @@ class DDPPlugin(LightningPlugin):
 
     def configure_ddp(
             self, model: LightningModule, device_ids: List[int]
-    ) -> LightningDistributedDataParallel:
+    ) -> DistributedDataParallel:
         """
         Pass through all customizations from constructor to `LightningDistributedDataParallel`.
         Override to define a custom DDP implementation.
@@ -63,8 +64,8 @@ class DDPPlugin(LightningPlugin):
         self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get(
             "find_unused_parameters", True
         )
-        model = LightningDistributedDataParallel(
-            model,
+        model = DistributedDataParallel(
+            module=LightningDistributedWrapper(model),
             device_ids=device_ids,
             **self._ddp_kwargs,
         )
@@ -120,7 +121,7 @@ class DDPPlugin(LightningPlugin):
 
     def get_model_from_plugin(
             self,
-            model: Union[LightningDistributedDataParallel, LightningModule]
+            model: Union[DistributedDataParallel, LightningModule]
     ) -> LightningModule:
         """
         Override to modify returning base :class:`LightningModule`
@@ -136,12 +137,14 @@ class DDPPlugin(LightningPlugin):
         Returns: Reference :class:`LightningModule` within parallel wrapper.
 
         """
-        if isinstance(model, LightningDistributedDataParallel):
-            return model.module
+        if isinstance(model, DistributedDataParallel):
+            model = model.module
+        if isinstance(model, LightningDistributedWrapper):
+            model = model.module
         return model
 
     @contextmanager
-    def block_backward_sync(self, model: LightningDistributedDataParallel):
+    def block_backward_sync(self, model: DistributedDataParallel):
         """
         Blocks ddp sync gradients behaviour on backwards pass.
         This is useful for skipping sync when accumulating gradients, reducing communication overhead
@@ -149,10 +152,10 @@ class DDPPlugin(LightningPlugin):
         """
         yield model.no_sync()
 
-    def on_before_manual_backward(self, model: LightningDistributedDataParallel, output: Any):
+    def on_before_manual_backward(self, model: DistributedDataParallel, output: Any):
         model.reducer_prepare_for_backwards(output)
 
-    def on_after_manual_backward(self, model: LightningDistributedDataParallel):
+    def on_after_manual_backward(self, model: DistributedDataParallel):
         model.reducer_reset_hooks()
 
     def distributed_sampler_kwargs(self, distributed_sampler_kwargs):
