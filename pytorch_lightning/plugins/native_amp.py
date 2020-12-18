@@ -16,7 +16,6 @@ from typing import Union
 import torch
 from torch.optim import Optimizer
 
-from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.precision_plugin import PrecisionPlugin
 
 
@@ -51,13 +50,6 @@ class NativeAMPPlugin(PrecisionPlugin):
         # once backward has been applied, release graph
         closure_loss = closure_loss.detach()
 
-        # unscale gradient to allow analyze within `on_after_backward`
-        if not self.trainer.train_loop.should_accumulate() and automatic_optimization:
-            if isinstance(optimizer, LightningOptimizer):
-                self.trainer.scaler.unscale_(optimizer._optimizer)
-            else:
-                self.trainer.scaler.unscale_(optimizer)
-
         return closure_loss
 
     def clip_gradients(self, grad_clip_val: Union[int, float], optimizer: Optimizer, norm_type: float):
@@ -74,9 +66,8 @@ class NativeAMPPlugin(PrecisionPlugin):
         with trainer.profiler.profile("closure"):
             closure()
 
-        if not self.trainer.train_loop.automatic_optimization:
-            trainer.scaler.unscale_(optimizer)
-            trainer.call_hook("on_after_backward")
+        trainer.scaler.unscale_(optimizer)
+        trainer.call_hook("on_after_backward")
 
         with trainer.profiler.profile("optimizer_step"):
             trainer.scaler.step(optimizer)
