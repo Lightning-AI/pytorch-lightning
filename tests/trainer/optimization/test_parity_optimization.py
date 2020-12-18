@@ -11,23 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
+from collections import Callable
+from typing import Optional
 from unittest.mock import patch
 
 import numpy as np
 import pytest
 import torch
-import torch.nn as nn
-from torch.optim import Adam, Optimizer
+from torch.optim import Optimizer
 
-import pytorch_lightning as pl
-from pytorch_lightning import LightningModule, seed_everything, Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.model_utils import is_overridden
-from tests.base.boring_model import BoringModel, RandomDataset, RandomDictDataset, RandomDictStringDataset
-from tests.base.models import BasicGAN
+from tests.base.boring_model import BoringModel
 
 """
 TODO:
@@ -37,6 +32,7 @@ For both automatic / manual optimization
     - Random accumulated_grad_batches (bug)
     - Multiple optimizers
 """
+
 
 ##################################################
 # TESTING AUTOMATIC OPTIMIZATION - ONE OPTIMIZER #
@@ -75,13 +71,25 @@ class BaseParityAutomaticOptimizationModel(BoringModel):
 
 class AutomatiocOptimizationNativeModel(BaseParityAutomaticOptimizationModel):
 
-    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure,
-                       on_tpu=False, using_native_amp=False, using_lbfgs=False):
+    def optimizer_step(
+            self,
+            epoch: int = None,
+            batch_idx: int = None,
+            optimizer: Optimizer = None,
+            optimizer_idx: int = None,
+            optimizer_closure: Optional[Callable] = None,
+            on_tpu: bool = None,
+            using_native_amp: bool = None,
+            using_lbfgs: bool = None,
+    ) -> None:
+        """
+        Override the optimizer step to define manual optimizer steps, as we use LightningOptimizer wrapper as standard
+        """
         # Getting the un-wrapped optimizer
         optimizer = optimizer._optimizer
         assert not isinstance(optimizer, LightningOptimizer)
 
-        closure()
+        optimizer_closure()
         if should_accumulate(self.trainer):
             return
 
@@ -97,13 +105,25 @@ class AutomatiocOptimizationNativeModel(BaseParityAutomaticOptimizationModel):
 
 class AutomatiocOptimizationVanillaAMPNativeModel(BaseParityAutomaticOptimizationModel):
 
-    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure,
-                       on_tpu=False, using_native_amp=False, using_lbfgs=False):
+    def optimizer_step(
+            self,
+            epoch: int = None,
+            batch_idx: int = None,
+            optimizer: Optimizer = None,
+            optimizer_idx: int = None,
+            optimizer_closure: Optional[Callable] = None,
+            on_tpu: bool = None,
+            using_native_amp: bool = None,
+            using_lbfgs: bool = None,
+    ) -> None:
+        """
+        Override the optimizer step to define manual optimizer steps, as we use LightningOptimizer wrapper as standard
+        """
         # Getting the un-wrapped optimizer
         optimizer = optimizer._optimizer
         assert not isinstance(optimizer, LightningOptimizer)
 
-        closure()
+        optimizer_closure()
         if should_accumulate(self.trainer):
             return
 
@@ -120,6 +140,7 @@ class AutomatiocOptimizationVanillaAMPNativeModel(BaseParityAutomaticOptimizatio
 
         if not self.mocked:
             assert torch.abs(self.layer.weight.grad).sum() == 0
+
 
 ################## HELPERS ##################   # noqa E266
 
@@ -231,7 +252,9 @@ def test_parity_automatic_training_with_one_optimizer(tmpdir, amp_backend, preci
     assert torch.equal(ctx["initial_weights"]["model_wo_pl_optimizer"], ctx["initial_weights"]["vanilla_model"])
     assert vanilla_model.grad_checked
     assert vanilla_model.losses == model_wo_pl_optimizer.losses
-    assert (vanilla_model.on_before_zero_grad_count // accumulate_grad_batches) == model_wo_pl_optimizer.on_before_zero_grad_count
+
+    vanilla_model_zero_count = vanilla_model.on_before_zero_grad_count // accumulate_grad_batches
+    assert (vanilla_model_zero_count) == model_wo_pl_optimizer.on_before_zero_grad_count
 
     for b_grad, o_grad in zip(model_wo_pl_optimizer.grads, vanilla_model.grads):
         assert torch.equal(b_grad, o_grad), 'Grad parameters are different'
@@ -241,14 +264,12 @@ def test_parity_automatic_training_with_one_optimizer(tmpdir, amp_backend, preci
 
     # 16-bit with AMP Native needs to adapted as it uses trainer.scaler.step(optimizer)
     if precision == 32:
-
         with patch("torch.optim.SGD.step") as mock_sdg_step, \
-             patch("torch.optim.Adam.step") as mock_adam_step, \
-             patch("torch.optim.AdamW.step") as mock_adamw_step, \
-             patch("torch.optim.SGD.zero_grad") as mock_sdg_zero_grad, \
-             patch("torch.optim.Adam.zero_grad") as mock_adam_zero_grad, \
-             patch("torch.optim.AdamW.zero_grad") as mock_adamw_zero_grad:
-
+                patch("torch.optim.Adam.step") as mock_adam_step, \
+                patch("torch.optim.AdamW.step") as mock_adamw_step, \
+                patch("torch.optim.SGD.zero_grad") as mock_sdg_zero_grad, \
+                patch("torch.optim.Adam.zero_grad") as mock_adam_zero_grad, \
+                patch("torch.optim.AdamW.zero_grad") as mock_adamw_zero_grad:
             ctx["mocked"] = True
             parity_automatic_train_with_one_optimizer(ctx)
             ctx["vanilla"] = False
