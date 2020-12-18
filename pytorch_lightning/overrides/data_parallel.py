@@ -20,10 +20,9 @@ from itertools import chain
 import torch
 from torch.cuda._utils import _get_device_index
 from torch.nn import DataParallel
-from torch.nn.parallel import DistributedDataParallel
 from torch.nn.parallel._functions import Gather
 
-from pytorch_lightning import LightningModule
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities.warning_utils import WarningCache
 
