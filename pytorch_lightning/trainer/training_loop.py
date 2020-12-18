@@ -505,9 +505,6 @@ class TrainLoop:
             using_lbfgs=is_lbfgs,
         )
 
-        if not self.trainer._enable_pl_optimizer and is_overridden("optimizer_step", model_ref):
-            self.on_before_zero_grad(optimizer)
-
     def on_before_zero_grad(self, optimizer):
         self.trainer.call_hook('on_before_zero_grad', optimizer)
 

@@ -57,7 +57,7 @@ class BaseParityAutomatiocOptimizationModel(BoringModel):
 
     def on_before_zero_grad(self, optimizer):
         self.on_before_zero_grad_count += 1
-        if self.layer.weight.grad is not None and not is_overridden("optimizer_step", self):
+        if self.layer.weight.grad is not None:
             self.grads.append(self.layer.weight.grad.clone())
 
     def configure_optimizers(self):
@@ -87,7 +87,7 @@ class AutomatiocOptimizationNativeModel(BaseParityAutomatiocOptimizationModel):
 
         self.grad_checked = True
         assert torch.abs(self.layer.weight.grad).sum() > 0
-        self.grads.append(self.layer.weight.grad.clone())
+        self.on_before_zero_grad(optimizer)
         optimizer.step()
         optimizer.zero_grad()
 
@@ -110,7 +110,7 @@ class AutomatiocOptimizationVanillaAMPNativeModel(BaseParityAutomatiocOptimizati
 
         self.grad_checked = True
         assert 0 < torch.abs(self.layer.weight.grad).sum()
-        self.grads.append(self.layer.weight.grad.clone())
+        self.on_before_zero_grad(optimizer)
         self.trainer.scaler.step(optimizer)
 
         if self.mocked:
