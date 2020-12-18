@@ -69,3 +69,41 @@ def _test_non_contiguous_tensors(rank, worldsize):
 def test_non_contiguous_tensors():
     """ Test that gather_all operation works for non contiguous tensors """
     torch.multiprocessing.spawn(_test_non_contiguous_tensors, args=(2,), nprocs=2)
+
+
+def _test_running_accumulation(rank, worldsize):
+    class RunningMetric(Metric):
+        def __init__(self):
+            super().__init__(auto_reset_on_compute=False)
+            self.add_state("x", torch.tensor(0.0), dist_reduce_fx="sum")
+
+        def update(self, x):
+            self.x += x
+
+        def compute(self):
+            return self.x
+
+    running_metric = RunningMetric()
+
+    for _ in range(2):
+        _ = running_metric(1.0)
+    acc_val = running_metric.compute()
+
+    assert acc_val == 4.0, "wrong accumulation of metric states"
+    if rank == 0:
+        assert running_metric.x != torch.tensor(0.)
+    else:
+        assert running_metric.x == torch.tensor(0.)
+
+    for _ in range(2):
+        val = running_metric(1.0)
+    acc_val = running_metric.compute()
+
+    assert acc_val == 8.0, "wrong accumulation of metric states"
+    if rank == 0:
+        assert running_metric.x != torch.tensor(0.)
+    else:
+        assert running_metric.x == torch.tensor(0.)
+
+    running_metric.reset()
+    assert running_metric.x == torch.tensor(0.), "metric state should have been reset"

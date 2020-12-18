@@ -22,7 +22,7 @@ from torch import nn
 
 from pytorch_lightning.metrics.utils import _flatten, dim_zero_cat, dim_zero_mean, dim_zero_sum
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.distributed import gather_all_tensors
+from pytorch_lightning.utilities.distributed import gather_all_tensors, all_except_rank_zero
 
 
 class Metric(nn.Module, ABC):
@@ -56,6 +56,9 @@ class Metric(nn.Module, ABC):
         dist_sync_fn:
             Callback that performs the allgather operation on the metric state. When `None`, DDP
             will be used to perform the allgather. default: None
+        auto_reset_on_compute:
+            Specify if ``reset()`` should be automatically called after each ``compute()``.
+            Disable to calculate running accumulated metrics.
     """
     def __init__(
         self,
@@ -63,6 +66,7 @@ class Metric(nn.Module, ABC):
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
         dist_sync_fn: Callable = None,
+        auto_reset_on_compute: bool = True
     ):
         super().__init__()
 
@@ -70,12 +74,14 @@ class Metric(nn.Module, ABC):
         self.compute_on_step = compute_on_step
         self.process_group = process_group
         self.dist_sync_fn = dist_sync_fn
+        self.auto_reset_on_compute = auto_reset_on_compute
         self._to_sync = True
 
         self.update = self._wrap_update(self.update)
         self.compute = self._wrap_compute(self.compute)
         self._computed = None
         self._forward_cache = None
+        self._internal_reset = False
 
         # initialize state
         self._defaults = {}
@@ -217,6 +223,7 @@ class Metric(nn.Module, ABC):
                 self._sync_dist(dist_sync_fn)
 
             self._computed = compute(*args, **kwargs)
+            self._internal_reset = self._to_sync
             self.reset()
 
             return self._computed
@@ -238,16 +245,25 @@ class Metric(nn.Module, ABC):
         """
         pass
 
-    def reset(self):
-        """
-        This method automatically resets the metric state variables to their default value.
-        """
+    def _reset_to_default(self):
+        """ reset metric state to their default values """
         for attr, default in self._defaults.items():
             current_val = getattr(self, attr)
             if isinstance(current_val, torch.Tensor):
                 setattr(self, attr, deepcopy(default).to(current_val.device))
             else:
                 setattr(self, attr, deepcopy(default))
+
+    def reset(self):
+        """
+        This method automatically resets the metric state variables to their default value.
+        """
+        if self.auto_reset_on_compute or not self._internal_reset:
+            reset_fn = self._reset_to_default
+        else:
+            reset_fn = all_except_rank_zero(self._reset_to_default)
+        reset_fn()
+        self._internal_reset = False
 
     def __getstate__(self):
         # ignore update and compute functions for pickling

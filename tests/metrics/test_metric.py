@@ -178,3 +178,40 @@ def test_state_dict(tmpdir):
     assert metric.state_dict() == OrderedDict(x=0)
     metric.persistent(False)
     assert metric.state_dict() == OrderedDict()
+
+
+def test_running_accumulation(tmpdir):
+    class RunningMetric(Metric):
+        def __init__(self):
+            super().__init__(auto_reset_on_compute=False)
+            self.add_state("x", torch.tensor(0.0), dist_reduce_fx="sum")
+
+        def update(self, x):
+            self.x += x
+
+        def compute(self):
+            return self.x
+
+    running_metric = RunningMetric()
+
+    vals = []
+    for _ in range(2):
+        val = running_metric(torch.rand(1).squeeze())
+        vals.append(val)
+    acc_val = running_metric.compute()
+
+    assert sum(vals) == acc_val, "wrong accumulation of metric states"
+    assert running_metric.x != torch.tensor(0.), "metric state should not have been reset"
+
+    for _ in range(2):
+        val = running_metric(torch.rand(1).squeeze())
+        vals.append(val)
+    acc_val = running_metric.compute()
+
+    assert sum(vals) == acc_val, "wrong accumulation of metric states"
+    assert running_metric.x != torch.tensor(0.), "metric state should not have been reset"
+
+    running_metric.reset()
+    assert running_metric.x == torch.tensor(0.), "metric state should have been reset"
+
+

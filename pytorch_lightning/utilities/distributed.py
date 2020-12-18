@@ -41,8 +41,19 @@ def rank_zero_only(fn):
     return wrapped_fn
 
 
+def all_except_rank_zero(fn):
+
+    @wraps(fn)
+    def wrapped_fn(*args, **kwargs):
+        if all_except_rank_zero.rank != 0:
+            return fn(*args, **kwargs)
+
+    return wrapped_fn
+
+
 # add the attribute to the function but don't overwrite in case Trainer has already set it
 rank_zero_only.rank = getattr(rank_zero_only, 'rank', int(os.environ.get('LOCAL_RANK', 0)))
+all_except_rank_zero.rank = getattr(all_except_rank_zero, 'rank', int(os.environ.get('LOCAL_RANK', 0)))
 
 
 def _warn(*args, **kwargs):
