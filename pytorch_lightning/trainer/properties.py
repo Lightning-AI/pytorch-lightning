@@ -182,7 +182,7 @@ class TrainerProperties(ABC):
     @property
     def progress_bar_dict(self) -> dict:
         """ Read-only for progress bar metrics. """
-        ref_model = self.model if not self.data_parallel else self.model.module
+        ref_model = self.get_model()
         ref_model = cast(LightningModule, ref_model)
         return dict(**ref_model.get_progress_bar_dict(), **self.logger_connector.progress_bar_metrics)
 
