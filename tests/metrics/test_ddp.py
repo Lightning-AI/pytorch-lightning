@@ -72,6 +72,8 @@ def test_non_contiguous_tensors():
 
 
 def _test_running_accumulation(rank, worldsize):
+    setup_ddp(rank, worldsize)
+
     class RunningMetric(Metric):
         def __init__(self):
             super().__init__(auto_reset_on_compute=False)
