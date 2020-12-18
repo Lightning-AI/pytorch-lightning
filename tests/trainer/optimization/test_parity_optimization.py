@@ -85,8 +85,6 @@ class AutomatiocOptimizationNativeModel(BaseParityAutomaticOptimizationModel):
         if should_accumulate(self.trainer):
             return
 
-        print(current_epoch, batch_nb)
-
         self.grad_checked = True
         assert torch.abs(self.layer.weight.grad).sum() > 0
         self.on_before_zero_grad(optimizer)
