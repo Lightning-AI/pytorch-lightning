@@ -179,7 +179,7 @@ def parity_automatic_train_with_one_optimizer(ctx):
     pytest.param(16, "native"),
     pytest.param(32, "native"),
 ])
-@pytest.mark.parametrize('accumulate_grad_batches', [1])
+@pytest.mark.parametrize('accumulate_grad_batches', [1, 2])
 def test_parity_automatic_training_with_one_optimizer(tmpdir, amp_backend, precision, accumulate_grad_batches):
     """
     Test training with accumulated gradients with and within enable_pl_optimizer reaches the same weights
