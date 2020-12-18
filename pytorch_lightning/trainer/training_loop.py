@@ -85,6 +85,18 @@ class TrainLoop:
         if self.trainer.limit_train_batches == 0:
             return True
 
+        if isinstance(self.trainer.limit_train_batches, float):
+            from math import ceil
+            batches_per_epoch = len(self.trainer.train_dataloader)
+            limit_train_batches = self.trainer.limit_train_batches
+            accumulate_grad_batches = self.trainer.accumulation_scheduler.get_scheduled_value(self.trainer)
+            if self.trainer.train_dataloader.drop_last:
+                batches_per_epoch = int(limit_train_batches * batches_per_epoch / accumulate_grad_batches)
+            else:
+                batches_per_epoch = ceil(limit_train_batches * batches_per_epoch / accumulate_grad_batches)
+            if batches_per_epoch == 0:
+                return True
+
         return False
 
     def on_train_start(self):
