@@ -130,6 +130,47 @@ def should_accumulate(trainer):
     return not (accumulation_done or is_final_batch)
 
 
+# train function
+def parity_automatic_train_with_one_optimizer(ctx):
+    seed_everything(42)
+    expected_batches = ctx["expected_batches"]
+    accumulate_grad_batches = ctx["accumulate_grad_batches"]
+    if ctx["vanilla"]:
+        # Note: global_step counts training_loop.optimizer_step
+        expected_global_step = expected_batches
+        if ctx["using_amp"]:
+            model = AutomatiocOptimizationVanillaAMPNativeModel("SGD", mocked=ctx["mocked"])
+        else:
+            model = AutomatiocOptimizationNativeModel("SGD", mocked=ctx["mocked"])
+        ctx["initial_weights"]["vanilla_model"] = model.layer.weight.clone()
+    else:
+        expected_global_step = (expected_batches) // accumulate_grad_batches
+        if ctx["enable_pl_optimizer"]:
+            model = BaseParityAutomaticOptimizationModel("Adam" if ctx["mocked"] else "SGD", mocked=ctx["mocked"])
+            ctx["initial_weights"]["model_wi_pl_optimizer"] = model.layer.weight.clone()
+        else:
+            model = BaseParityAutomaticOptimizationModel("AdamW" if ctx["mocked"] else "SGD", mocked=ctx["mocked"])
+            ctx["initial_weights"]["model_wo_pl_optimizer"] = model.layer.weight.clone()
+
+    model.training_epoch_end = None
+
+    trainer = Trainer(
+        default_root_dir=ctx["tmpdir"],
+        max_epochs=ctx["max_epochs"],
+        limit_train_batches=ctx["limit_train_batches"],
+        limit_val_batches=ctx["limit_val_batches"],
+        enable_pl_optimizer=ctx["enable_pl_optimizer"],
+        accumulate_grad_batches=accumulate_grad_batches if not ctx["vanilla"] else 1,
+        amp_backend=ctx["amp_backend"],
+        precision=ctx["precision"],
+        gpus=1
+    )
+    trainer.fit(model)
+
+    assert np.abs(trainer.global_step - expected_global_step) <= 2
+    return model
+
+
 ################## TESTS ##################     # noqa E266
 
 
@@ -139,7 +180,7 @@ def should_accumulate(trainer):
     pytest.param(32, "native"),
 ])
 @pytest.mark.parametrize('accumulate_grad_batches', [1])
-def test_parity_training_lightning_optimizer_one_optimizer(tmpdir, amp_backend, precision, accumulate_grad_batches):
+def test_parity_automatic_training_with_one_optimizer(tmpdir, amp_backend, precision, accumulate_grad_batches):
     """
     Test training with accumulated gradients with and within enable_pl_optimizer reaches the same weights
     """
@@ -147,57 +188,29 @@ def test_parity_training_lightning_optimizer_one_optimizer(tmpdir, amp_backend, 
     if accumulate_grad_batches > 1:
         accumulate_grad_batches = np.random.randint(2, accumulate_grad_batches + 1)
 
-    using_amp = (amp_backend in ["native"]) and precision == 16
-    max_epochs = np.random.randint(1, 3)
-    limit_train_batches = np.random.randint(11, 27)
-    expected_batches = max_epochs * limit_train_batches
-    limit_val_batches = 0
-    initial_weights = {}
+    ctx = {}
+    ctx["tmpdir"] = tmpdir
+    ctx["accumulate_grad_batches"] = accumulate_grad_batches
+    ctx["amp_backend"] = amp_backend
+    ctx["precision"] = precision
+    ctx["using_amp"] = (amp_backend in ["native"]) and precision == 16
+    ctx["max_epochs"] = np.random.randint(1, 3)
+    ctx["limit_train_batches"] = np.random.randint(11, 27)
+    expected_batches = ctx["max_epochs"] * ctx["limit_train_batches"]
+    ctx["expected_batches"] = expected_batches
+    ctx["limit_val_batches"] = 0
+    ctx["initial_weights"] = {}
+    ctx["enable_pl_optimizer"] = True
+    ctx["mocked"] = False
+    ctx["vanilla"] = False
 
-    # train function
-    def parity_train_with_one_optimizer(enable_pl_optimizer, vanilla=False, mocked=False):
-        seed_everything(42)
-        if vanilla:
-            # Note: global_step counts training_loop.optimizer_step
-            expected_global_step = expected_batches
-            if using_amp:
-                model = AutomatiocOptimizationVanillaAMPNativeModel("SGD", mocked=mocked)
-            else:
-                model = AutomatiocOptimizationNativeModel("SGD", mocked=mocked)
-            initial_weights["vanilla_model"] = model.layer.weight.clone()
-        else:
-            expected_global_step = (expected_batches) // accumulate_grad_batches
-            if enable_pl_optimizer:
-                model = BaseParityAutomaticOptimizationModel("Adam" if mocked else "SGD", mocked=mocked)
-                initial_weights["model_wi_pl_optimizer"] = model.layer.weight.clone()
-            else:
-                model = BaseParityAutomaticOptimizationModel("AdamW" if mocked else "SGD", mocked=mocked)
-                initial_weights["model_wo_pl_optimizer"] = model.layer.weight.clone()
+    model_wi_pl_optimizer = parity_automatic_train_with_one_optimizer(ctx)
 
-        model.training_epoch_end = None
-
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            max_epochs=max_epochs,
-            limit_train_batches=limit_train_batches,
-            limit_val_batches=limit_val_batches,
-            enable_pl_optimizer=enable_pl_optimizer,
-            accumulate_grad_batches=accumulate_grad_batches if not vanilla else 1,
-            amp_backend=amp_backend,
-            precision=precision,
-            gpus=1
-        )
-        trainer.fit(model)
-
-        assert np.abs(trainer.global_step - expected_global_step) <= 2
-        return model
+    ctx["enable_pl_optimizer"] = False
+    model_wo_pl_optimizer = parity_automatic_train_with_one_optimizer(ctx)
 
     # assertions
-
-    model_wo_pl_optimizer = parity_train_with_one_optimizer(False)
-    model_wi_pl_optimizer = parity_train_with_one_optimizer(True)
-
-    assert torch.equal(initial_weights["model_wo_pl_optimizer"], initial_weights["model_wi_pl_optimizer"])
+    assert torch.equal(ctx["initial_weights"]["model_wo_pl_optimizer"], ctx["initial_weights"]["model_wi_pl_optimizer"])
     assert len(model_wo_pl_optimizer.losses) == expected_batches
 
     assert np.abs(len(model_wo_pl_optimizer.grads) - (expected_batches // accumulate_grad_batches)) <= 2
@@ -212,9 +225,10 @@ def test_parity_training_lightning_optimizer_one_optimizer(tmpdir, amp_backend, 
     for b_w, a_w in zip(model_wo_pl_optimizer.parameters(), model_wi_pl_optimizer.parameters()):
         assert torch.equal(b_w, a_w), 'Model parameters are different'
 
-    vanilla_model = parity_train_with_one_optimizer(False, vanilla=True)
+    ctx["vanilla"] = True
+    vanilla_model = parity_automatic_train_with_one_optimizer(ctx)
 
-    assert torch.equal(initial_weights["model_wo_pl_optimizer"], initial_weights["vanilla_model"])
+    assert torch.equal(ctx["initial_weights"]["model_wo_pl_optimizer"], ctx["initial_weights"]["vanilla_model"])
     assert vanilla_model.grad_checked
     assert vanilla_model.losses == model_wo_pl_optimizer.losses
     assert (vanilla_model.on_before_zero_grad_count // accumulate_grad_batches) == model_wo_pl_optimizer.on_before_zero_grad_count
@@ -235,9 +249,12 @@ def test_parity_training_lightning_optimizer_one_optimizer(tmpdir, amp_backend, 
              patch("torch.optim.Adam.zero_grad") as mock_adam_zero_grad, \
              patch("torch.optim.AdamW.zero_grad") as mock_adamw_zero_grad:
 
-            parity_train_with_one_optimizer(False, mocked=True)
-            parity_train_with_one_optimizer(True, mocked=True)
-            parity_train_with_one_optimizer(False, vanilla=True, mocked=True)
+            ctx["mocked"] = True
+            parity_automatic_train_with_one_optimizer(ctx)
+            ctx["vanilla"] = False
+            parity_automatic_train_with_one_optimizer(ctx)
+            ctx["enable_pl_optimizer"] = True
+            parity_automatic_train_with_one_optimizer(ctx)
 
         assert mock_sdg_step.call_count == (expected_batches // accumulate_grad_batches)
         assert mock_sdg_zero_grad.call_count == (expected_batches // accumulate_grad_batches)
@@ -251,34 +268,10 @@ def test_parity_training_lightning_optimizer_one_optimizer(tmpdir, amp_backend, 
 ###############################################
 
 
-class BaseParityGANAutomatiocOptimizationModel(BasicGAN):
-
-    def __init__(self, gen_optim="Adam", dis_optim="Adam", mocked=False, lr_gen=0.1, lr_dis=0.1):
-        super().__init__()
-        self.losses = []
-        self.grads = {}
-        self.on_before_zero_grad_count = 0
-        self.mocked = mocked
-        self.gen_optim = gen_optim
-        self.dis_optim = dis_optim
-        self.lr_gen = lr_gen
-        self.lr_dis = lr_dis
-
-    def on_before_zero_grad(self, optimizer):
-        self.on_before_zero_grad_count += 1
-        if self.layer.weight.grad is not None and not is_overridden("optimizer_step", self):
-            self.grads.append(self.layer.weight.grad.clone())
-
-    def configure_optimizers(self):
-        lr = self.learning_rate
-        opt_g = getattr(torch.optim, self.gen_optim)(self.generator.parameters(), lr=self.lr_gen)
-        opt_d = getattr(torch.optim, self.dis_optim)(self.discriminator.parameters(), lr=self.lr_dis)
-        return [opt_g, opt_d], []
-
-
 ########################################################
 # TESTING AUTOMATIC OPTIMIZATION - MULTIPLE OPTIMIZERS #
 ########################################################
+
 
 ####################################################
 # TESTING MANUAL OPTIMIZATION - MULTIPLE OPTIMIZER #
