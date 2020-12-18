@@ -66,10 +66,10 @@ def test_lightning_optimizer_and_no_lightning_optimizer_equality_check_optim_cal
         amp_backend,
         gpus,
         accumulate_grad_batches):
-    with patch("torch.optim.SGD.step") as mock_sdg_step, \
+    with patch("torch.optim.SGD.step") as mock_sgd_step, \
             patch("torch.optim.Adam.step") as mock_adam_step, \
             patch("torch.optim.AdamW.step") as mock_adamw_step, \
-            patch("torch.optim.SGD.zero_grad") as mock_sdg_zero_grad, \
+            patch("torch.optim.SGD.zero_grad") as mock_sgd_zero_grad, \
             patch("torch.optim.Adam.zero_grad") as mock_adam_zero_grad, \
             patch("torch.optim.AdamW.zero_grad") as mock_adamw_zero_grad:
         max_epochs = 2
@@ -88,12 +88,12 @@ def test_lightning_optimizer_and_no_lightning_optimizer_equality_check_optim_cal
         )
 
         expected_num_batches = max_epochs * limit_train_batches
-        assert mock_sdg_step.call_count == (expected_num_batches // accumulate_grad_batches)
-        assert mock_sdg_zero_grad.call_count == (expected_num_batches // accumulate_grad_batches)
-        assert mock_sdg_step.call_count == mock_adam_step.call_count
-        assert mock_sdg_step.call_count == mock_adam_step.call_count
-        assert mock_sdg_zero_grad.call_count == mock_adam_zero_grad.call_count
-        assert mock_sdg_zero_grad.call_count == mock_adamw_zero_grad.call_count
+        assert mock_sgd_step.call_count == (expected_num_batches // accumulate_grad_batches)
+        assert mock_sgd_zero_grad.call_count == (expected_num_batches // accumulate_grad_batches)
+        assert mock_sgd_step.call_count == mock_adam_step.call_count
+        assert mock_sgd_step.call_count == mock_adam_step.call_count
+        assert mock_sgd_zero_grad.call_count == mock_adam_zero_grad.call_count
+        assert mock_sgd_zero_grad.call_count == mock_adamw_zero_grad.call_count
 
 
 def run_lightning_optimizer_equality(
@@ -114,7 +114,7 @@ def run_lightning_optimizer_equality(
         **trainer_kwargs,
     )
 
-    no_pl_optimizer_initial_model_weights, no_pl_optimizer_modelr = train_specific_optimizer_model(
+    no_pl_optimizer_initial_model_weights, no_pl_optimizer_model = train_specific_optimizer_model(
         expected_global_step=expected_global_step,
         optimizer_is_mocked=optimizer_is_mocked,
         enable_pl_optimizer=False,  # Disable pl optimizer
@@ -132,7 +132,7 @@ def run_lightning_optimizer_equality(
         pl_optimizer_initial_model_weights=pl_optimizer_initial_model_weights,
         pl_optimizer_model=pl_optimizer_model,
         no_pl_optimizer_initial_model_weights=no_pl_optimizer_initial_model_weights,
-        no_pl_optimizer_model=no_pl_optimizer_modelr,
+        no_pl_optimizer_model=no_pl_optimizer_model,
         pure_pytorch_optimizer_initial_model_weights=pure_pytorch_optimizer_initial_model_weights,
         pure_pytorch_optimizer_model=pure_pytorch_optimizer_model,
         expected_num_batches=expected_num_batches
