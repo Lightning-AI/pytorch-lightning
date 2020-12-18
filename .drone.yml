@@ -36,8 +36,7 @@ steps:
     - pip install -r ./requirements/devel.txt --upgrade-strategy only-if-needed -v --no-cache-dir
     - pip install git+https://${AUTH_TOKEN}@github.com/PyTorchLightning/lightning-dtrun.git@v0.0.2 -v --no-cache-dir
     # when Image has defined CUDa version we can switch to this package spec "nvidia-dali-cuda${CUDA_VERSION%%.*}0"
-    # todo: temprarl fix till https://github.com/PyTorchLightning/pytorch-lightning/pull/4922 is resolved
-    - pip install --extra-index-url https://developer.download.nvidia.com/compute/redist "nvidia-dali-cuda100<0.27" --upgrade-strategy only-if-needed
+    - pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda100 --upgrade-strategy only-if-needed
     - pip list
     - python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=25 # --flake8
     # Running special tests
