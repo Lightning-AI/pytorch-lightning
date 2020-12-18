@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from functools import singledispatch
 
 import torch
+
 from pytorch_lightning import Trainer
-from tests.base import BoringModel
+from tests.base import BoringModel, EvalModelTemplate
 from tests.base.develop_utils import get_default_logger, load_model_from_checkpoint, reset_seed
 
 
@@ -59,10 +59,6 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None,
     logger = get_default_logger(save_dir, version=version)
     trainer_options.update(logger=logger)
 
-    # TODO: DEPRECATED option
-    if "checkpoint_callback" not in trainer_options:
-        trainer_options.update(checkpoint_callback=True)
-
     trainer = Trainer(**trainer_options)
     initial_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
     result = trainer.fit(model)
@@ -99,8 +95,16 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None,
         trainer.checkpoint_connector.hpc_load(checkpoint_path, on_gpu=on_gpu)
 
 
-@singledispatch
-def run_prediction(trained_model, dataloader, dp=False, min_acc=0.50):
+def run_prediction(trained_model, dataloader, dp=False, min_acc=0.25):
+    if isinstance(trained_model, BoringModel):
+        return _boring_model_run_prediction(trained_model, dataloader, dp, min_acc)
+    elif isinstance(trained_model, EvalModelTemplate):
+        return _eval_model_template_run_prediction(trained_model, dataloader, dp, min_acc)
+    else:
+        raise NotImplementedError(f"prediction is not supported for class {trained_model.__class__}")
+
+
+def _eval_model_template_run_prediction(trained_model, dataloader, dp=False, min_acc=0.50):
     # run prediction on 1 batch
     batch = next(iter(dataloader))
     x, y = batch
@@ -128,8 +132,7 @@ def run_prediction(trained_model, dataloader, dp=False, min_acc=0.50):
     assert acc >= min_acc, f"This model is expected to get > {min_acc} in test set (it got {acc})"
 
 
-@run_prediction.register(BoringModel)
-def _(trained_model, dataloader, dp=False, min_acc=0.25):
+def _boring_model_run_prediction(trained_model, dataloader, dp=False, min_acc=0.25):
     # run prediction on 1 batch
     batch = next(iter(dataloader))
     with torch.no_grad():
