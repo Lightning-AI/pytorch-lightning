@@ -256,7 +256,8 @@ class LoggerConnector:
             print('-' * 80)
             for result_idx, results in enumerate(self.eval_loop_results):
                 print(f'DATALOADER:{result_idx} TEST RESULTS')
-                pprint({k: v.tolist() if isinstance(v, torch.Tensor) else v for k, v in results.items()})
+                convert = lambda x: x.item() if x.numel()==1 else x.tolist()
+                pprint({k: convert(v) if isinstance(v, torch.Tensor) else v for k, v in results.items()})
                 print('-' * 80)
 
         results = self.eval_loop_results
