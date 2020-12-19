@@ -104,7 +104,8 @@ def test_lightning_optimizer_and_no_lightning_optimizer_equality_check_optim_cal
 
 def run_lightning_optimizer_equality(
         optimizer_is_mocked=False,
-        **trainer_kwargs):
+        **trainer_kwargs
+    ):
     trainer_kwargs = {
         "limit_val_batches": 0,
         **trainer_kwargs
