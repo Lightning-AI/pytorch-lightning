@@ -145,7 +145,7 @@ def test_lightning_optimizer_and_no_lightning_optimizer_equality(
         accumulate_grad_batches = np.random.randint(1, accumulate_grad_batches)
 
     vanilla_model_cls = ManualOptimizationPurePytorchAMPOptimizerModel if precision == 16 \
-        else ManualOptimizationPurePytorchOptimizerModel,
+        else ManualOptimizationPurePytorchOptimizerModel
 
     run_lightning_optimizer_equality(
         BaseParityManualOptimizationModel,
@@ -173,7 +173,7 @@ def test_lightning_optimizer_and_no_lightning_optimizer_equality_check_optim_cal
         accumulate_grad_batches):
 
     vanilla_model_cls = ManualOptimizationPurePytorchAMPOptimizerModel if precision == 16 \
-        else ManualOptimizationPurePytorchOptimizerModel,
+        else ManualOptimizationPurePytorchOptimizerModel
 
     with patch("torch.optim.SGD.step") as mock_sgd_step, \
             patch("torch.optim.Adam.step") as mock_adam_step, \

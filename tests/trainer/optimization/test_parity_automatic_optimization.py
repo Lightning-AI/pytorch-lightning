@@ -180,7 +180,7 @@ def test_lightning_optimizer_and_no_lightning_optimizer_equality(
         accumulate_grad_batches = np.random.randint(1, accumulate_grad_batches)
 
     vanilla_model_cls = AutomaticOptimizationPurePytorchAMPOptimizerModel if precision == 16 \
-        else AutomaticOptimizationPurePytorchOptimizerModel,
+        else AutomaticOptimizationPurePytorchOptimizerModel
 
     run_lightning_optimizer_equality(
         BaseParityAutomaticOptimizationModel,
@@ -207,7 +207,7 @@ def test_lightning_optimizer_and_no_lightning_optimizer_equality_check_optim_cal
         accumulate_grad_batches):
 
     vanilla_model_cls = AutomaticOptimizationPurePytorchAMPOptimizerModel if precision == 16 \
-        else AutomaticOptimizationPurePytorchOptimizerModel,
+        else AutomaticOptimizationPurePytorchOptimizerModel
 
     with patch("torch.optim.SGD.step") as mock_sgd_step, \
             patch("torch.optim.Adam.step") as mock_adam_step, \
