@@ -19,7 +19,7 @@ import torch.nn.functional as F
 from pytorch_lightning.metrics.utils import _check_same_shape
 
 
-def _image_gradients_update(img: torch.Tensor, device: torch.device) -> torch.Tensor:
+def _image_gradients_validate(img: torch.Tensor, device: torch.device) -> torch.Tensor:
 
     if not isinstance(img, torch.Tensor):
         raise TypeError(f"`img` expects a value of <torch.Tensor> type but got {type(img)}")
@@ -54,13 +54,14 @@ def image_gradients(img: torch.Tensor, device: torch.device) -> Tuple[torch.Tens
     Args:
         img: input image tensor
         device: device type
+
     Return:
         Tuple of the gradients i.e (dy, dx) of shape [BATCH_SIZE, CHANNELS, HEIGHT, WIDTH]
 
     Example:
-        >>> image = torch.arange(0, 1*1*5*5, dtype=torch.float32, device=device)
-        >>> image = torch.reshape(image, (BATCH_SIZE, CHANNELS, HEIGHT, WIDTH))
-        >>> dy, dx = image_gradients(image, device)
+        >>> image = torch.arange(0, 1*1*5*5, dtype=torch.float32, device=torch.device('cuda'))
+        >>> image = torch.reshape(image, (1, 1, 5, 5))
+        >>> dy, dx = image_gradients(image, torch.device('cuda'))
         >>> dy[0, 0, :, :]
         tensor(
             [[5. 5. 5. 5. 5.]
@@ -74,7 +75,6 @@ def image_gradients(img: torch.Tensor, device: torch.device) -> Tuple[torch.Tens
            by the TF implementation. The values are organized such that the gradient of
            [I(x+1, y)-[I(x, y)]] are at the (x, y) location
     """
-    _image_gradients_update(img, device)
-    dy, dx = _compute_image_gradients(img, device)
+    _image_gradients_validate(img, device)
 
-    return dy, dx
+    return _compute_image_gradients(img, device)
