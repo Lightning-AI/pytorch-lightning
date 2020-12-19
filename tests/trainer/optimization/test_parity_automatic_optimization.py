@@ -305,7 +305,8 @@ def assert_model_equality(
         pure_pytorch_optimizer_initial_model_weights,
         pure_pytorch_optimizer_model,
         expected_num_batches,
-        precision):
+        precision,
+):
 
     assert torch.equal(pl_optimizer_initial_model_weights, no_pl_optimizer_initial_model_weights)
     assert torch.equal(pl_optimizer_initial_model_weights, pure_pytorch_optimizer_initial_model_weights)
@@ -338,7 +339,8 @@ def train_specific_optimizer_model(
         enable_pl_optimizer=False,
         optimizer_is_mocked=False,
         replace_optimizer_step_with_pure_pytorch=False,
-        **trainer_kwargs):
+        **trainer_kwargs,
+):
 
     seed_everything(42)
     trainer_kwargs = deepcopy(trainer_kwargs)
