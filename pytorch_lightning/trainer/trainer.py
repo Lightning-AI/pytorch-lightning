@@ -594,6 +594,8 @@ class Trainer(
                 if batch is None:
                     continue
 
+                batch.to("cuda")
+
                 # stop short when running on limited batches
                 if batch_idx >= dl_max_batches:
                     break

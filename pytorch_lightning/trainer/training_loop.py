@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os
 from contextlib import contextmanager
 from copy import copy, deepcopy
 
@@ -550,6 +550,8 @@ class TrainLoop:
         dataloader_idx = 0
         should_check_val = False
         for batch_idx, (batch, is_last_batch) in train_dataloader:
+
+            batch.to("cuda")
 
             self.trainer.batch_idx = batch_idx
 
