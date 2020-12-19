@@ -150,7 +150,7 @@ def test_multi_cpu_model_ddp(enable_pl_optimizer, tmpdir):
     )
 
     model = BoringModel()
-    tpipes.run_model_test(trainer_options, model, on_gpu=False, min_acc=0.20)
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, min_acc=0.05)
 
 
 def test_lbfgs_cpu_model(tmpdir):
