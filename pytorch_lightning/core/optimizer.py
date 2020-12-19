@@ -281,6 +281,7 @@ class LightningOptimizer:
             with self._trainer.profiler.profile(f"closure_{self._optimizer_idx}"):
                 with self._trainer.train_loop.block_ddp_sync_behaviour():
                     closure()
+                    print("ACCUMULATE", self._trainer._trainer, self._trainer.get_model().layer.weight.grad)
 
     def __repr__(self):
         groups = [
