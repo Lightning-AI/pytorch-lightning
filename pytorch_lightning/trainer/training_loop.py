@@ -551,8 +551,6 @@ class TrainLoop:
         should_check_val = False
         for batch_idx, (batch, is_last_batch) in train_dataloader:
 
-            batch.to("cuda")
-
             self.trainer.batch_idx = batch_idx
 
             # ------------------------------------

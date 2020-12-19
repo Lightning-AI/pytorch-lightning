@@ -74,6 +74,8 @@ class DDPHPCAccelerator(Accelerator):
 
     def model_to_device(self, model):
         model.cuda(self.trainer.root_gpu)
+        for param in model.parameters():
+            param = param.cuda(self.trainer.root_gpu)
 
     def get_device_ids(self):
         device_ids = [self.trainer.root_gpu]

@@ -107,7 +107,7 @@ class DDPPlugin(LightningPlugin):
             model: Model to train.
         Returns: args moved to correct device if needed.
         """
-        return args
+        return model.transfer_batch_to_device(args, model.trainer.root_gpu)
 
     def optimizer_state(self, optimizer: Optimizer) -> dict:
         return optimizer.state_dict()
