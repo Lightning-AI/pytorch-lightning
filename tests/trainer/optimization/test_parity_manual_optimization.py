@@ -24,7 +24,7 @@ from torch.optim import Optimizer
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from tests.base.boring_model import BoringModel
-from tests.trainer.optimization.test_parity_manual_optimization import should_accumulate
+from tests.trainer.optimization.test_parity_automatic_optimization import should_accumulate
 
 """
 TODO:
@@ -40,7 +40,7 @@ For both Manual / manual optimization
     pytest.param(32, "native", 0),
     pytest.param(16, "native", 1, marks=pytest.mark.skipif(not torch.cuda.is_available(), reason='Requires GPU')),
 ])
-@pytest.mark.parametrize('accumulate_grad_batches', [1, 2])
+@pytest.mark.parametrize('accumulate_grad_batches', [2])
 def test_lightning_optimizer_and_no_lightning_optimizer_equality(
         tmpdir,
         precision,
@@ -255,6 +255,7 @@ class BaseParityManualOptimizationModel(BoringModel):
         output = self.layer(batch)
         loss = self.loss(batch, output)
         self.losses.append(loss.detach().item())
+        self.manual_backward(loss, opt)
         opt.step()
 
 
@@ -262,13 +263,13 @@ class ManualOptimizationPurePytorchOptimizerModel(BaseParityManualOptimizationMo
 
     def training_step(self, batch, batch_idx):
         optimizer = self.optimizers()
-        if not isinstance(optimizer, LightningOptimizer):
-            optimizer = LightningOptimizer.to_lightning_optimizer(optimizer, self.trainer)
+        
         output = self.layer(batch)
         loss = self.loss(batch, output)
         self.losses.append(loss.detach().item())
         loss /= float(self.accumulate_grad_batches)
         loss.backward()
+
         if should_accumulate(self.trainer, self.accumulate_grad_batches):
             return
 
@@ -291,16 +292,13 @@ class ManualOptimizationPurePytorchAMPOptimizerModel(BaseParityManualOptimizatio
 
     def training_step(self, batch, batch_idx):
         optimizer = self.optimizers()
-
-        if not isinstance(optimizer, LightningOptimizer):
-            optimizer = LightningOptimizer.to_lightning_optimizer(optimizer, self.trainer)
-
         with torch.cuda.amp.autocast():
             output = self.layer(batch)
             loss = self.loss(batch, output)
             self.losses.append(loss.detach().item())
             loss /= float(self.accumulate_grad_batches)
             loss = self.scaler.scale(loss)
+            loss.backward()
 
         if should_accumulate(self.trainer, self.accumulate_grad_batches):
             return
