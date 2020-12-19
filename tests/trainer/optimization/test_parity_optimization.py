@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import Callable
+from copy import deepcopy
 from typing import Optional
 from unittest.mock import patch
-from copy import deepcopy
 
 import numpy as np
 import pytest
@@ -128,7 +128,7 @@ def run_lightning_optimizer_equality(
         **trainer_kwargs,
     )
 
-    if not optimizer_is_mocked: 
+    if not optimizer_is_mocked:
 
         assert_model_equality(
             pl_optimizer_initial_model_weights=pl_optimizer_initial_model_weights,
@@ -151,7 +151,7 @@ def assert_model_equality(
         pure_pytorch_optimizer_model,
         expected_num_batches,
         precision):
-        
+
     assert torch.equal(pl_optimizer_initial_model_weights, no_pl_optimizer_initial_model_weights)
     assert torch.equal(pl_optimizer_initial_model_weights, pure_pytorch_optimizer_initial_model_weights)
     assert len(pl_optimizer_model.losses) == expected_num_batches
@@ -165,14 +165,8 @@ def assert_model_equality(
     for pytorch_grad, no_pl_optim_grad, pl_optim_grad in zip(pure_pytorch_optimizer_model.grads,
                                                              no_pl_optimizer_model.grads,
                                                              pl_optimizer_model.grads):
-        #no_pl_optim_grad[torch.isinf(no_pl_optim_grad)] = 0
-        #no_pl_optim_grad[torch.isinf(no_pl_optim_grad)] = 0
-        #pl_optim_grad[torch.isinf(pl_optim_grad)] = 0
-        try:
-            assert torch.equal(no_pl_optim_grad, pl_optim_grad), 'Grad parameters are different'
-            assert torch.equal(pytorch_grad, no_pl_optim_grad), 'Grad parameters are different'
-        except:
-            import pdb; pdb.set_trace()
+        assert torch.equal(no_pl_optim_grad, pl_optim_grad), 'Grad parameters are different'
+        assert torch.equal(pytorch_grad, no_pl_optim_grad), 'Grad parameters are different'
 
     for pytorch_weight, no_pl_optim_weight, pl_optim_weight in zip(pure_pytorch_optimizer_model.parameters(),
                                                                    no_pl_optimizer_model.parameters(),
@@ -195,15 +189,14 @@ def train_specific_optimizer_model(
 
     if trainer_kwargs["precision"] == 16 and replace_optimizer_step_with_pure_pytorch:
         model_cls = AutomaticOptimizationPurePytorchAMPOptimizerModel
-    
+
     else:
         model_cls = AutomaticOptimizationPurePytorchOptimizerModel if replace_optimizer_step_with_pure_pytorch \
             else BaseParityAutomaticOptimizationModel
-    
+
         if optimizer_is_mocked and not replace_optimizer_step_with_pure_pytorch:
             optimizer_cls = torch.optim.AdamW if enable_pl_optimizer else torch.optim.Adam
 
-    
     model = model_cls(
         optimizer_cls=optimizer_cls,
         optimizer_is_mocked=optimizer_is_mocked,
@@ -265,7 +258,7 @@ class AutomaticOptimizationPurePytorchOptimizerModel(BaseParityAutomaticOptimiza
         output = self.layer(batch)
         loss = self.loss(batch, output)
         self.losses.append(loss.detach().item())
-        loss /= float(self.accumulate_grad_batches) 
+        loss /= float(self.accumulate_grad_batches)
         return {"loss": loss}
 
     def optimizer_step(
@@ -288,14 +281,14 @@ class AutomaticOptimizationPurePytorchOptimizerModel(BaseParityAutomaticOptimiza
 
         optimizer_closure()
         assert self.trainer.accumulate_grad_batches == 1
-        
+
         if should_accumulate(self.trainer, self.accumulate_grad_batches):
             return
 
         self.grad_checked = True
         assert torch.abs(self.layer.weight.grad).sum() > 0
         optimizer.step()
-        
+
         self.on_before_zero_grad_count += 1
         optimizer.zero_grad()
 
@@ -304,7 +297,6 @@ class AutomaticOptimizationPurePytorchOptimizerModel(BaseParityAutomaticOptimiza
 
 
 class AutomaticOptimizationPurePytorchAMPOptimizerModel(BaseParityAutomaticOptimizationModel):
-
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -315,7 +307,7 @@ class AutomaticOptimizationPurePytorchAMPOptimizerModel(BaseParityAutomaticOptim
             output = self.layer(batch)
             loss = self.loss(batch, output)
             self.losses.append(loss.detach().item())
-            loss /= float(self.accumulate_grad_batches) 
+            loss /= float(self.accumulate_grad_batches)
             loss = self.scaler.scale(loss)
             return {"loss": loss}
 
@@ -339,7 +331,7 @@ class AutomaticOptimizationPurePytorchAMPOptimizerModel(BaseParityAutomaticOptim
 
         optimizer_closure()
         assert self.trainer.accumulate_grad_batches == 1
-        
+
         if should_accumulate(self.trainer, self.accumulate_grad_batches):
             return
 
