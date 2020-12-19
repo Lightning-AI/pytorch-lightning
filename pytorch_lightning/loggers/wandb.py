@@ -31,6 +31,7 @@ except ImportError:  # pragma: no-cover
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities.warning_utils import WarningCache
 
 
 class WandbLogger(LightningLoggerBase):
@@ -65,6 +66,9 @@ class WandbLogger(LightningLoggerBase):
         from pytorch_lightning import Trainer
         wandb_logger = WandbLogger()
         trainer = Trainer(logger=wandb_logger)
+
+    Note: When logging manually through `wandb.log` or `trainer.logger.experiment.log`,
+    make sure to use `commit=False` so the logging step does not increase.
 
     See Also:
         - `Tutorial <https://app.wandb.ai/cayush/pytorchlightning/reports/
@@ -103,8 +107,9 @@ class WandbLogger(LightningLoggerBase):
         self._log_model = log_model
         self._prefix = prefix
         self._kwargs = kwargs
-        # logging multiple Trainer on a single W&B run (k-fold, etc)
+        # logging multiple Trainer on a single W&B run (k-fold, resuming, etc)
         self._step_offset = 0
+        self.warning_cache = WarningCache()
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -134,6 +139,8 @@ class WandbLogger(LightningLoggerBase):
             self._experiment = wandb.init(
                 name=self._name, dir=self._save_dir, project=self._project, anonymous=self._anonymous,
                 id=self._id, resume='allow', **self._kwargs) if wandb.run is None else wandb.run
+            # offset logging step when resuming a run
+            self._step_offset = self._experiment.step
             # save checkpoints in wandb dir to upload on W&B servers
             if self._log_model:
                 self._save_dir = self._experiment.dir
@@ -154,6 +161,8 @@ class WandbLogger(LightningLoggerBase):
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
         metrics = self._add_prefix(metrics)
+        if step is not None and step + self._step_offset < self.experiment.step:
+            self.warning_cache.warn('Trying to log at a previous step. Use `commit=False` when logging metrics manually.')
         self.experiment.log(metrics, step=(step + self._step_offset) if step is not None else None)
 
     @property
