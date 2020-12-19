@@ -161,7 +161,7 @@ def assert_model_equality(
     assert len(pl_optimizer_model.losses) == expected_num_batches
     assert pure_pytorch_optimizer_model.grad_checked
     assert pure_pytorch_optimizer_model.losses == no_pl_optimizer_model.losses
-    assert not torch.FloatTensor(no_pl_optimizer_model.losses).isnan().any()
+    assert not torch.isnan(torch.FloatTensor(no_pl_optimizer_model.losses)).any()
 
     assert torch.equal(torch.FloatTensor(no_pl_optimizer_model.losses), torch.FloatTensor(pl_optimizer_model.losses))
     assert no_pl_optimizer_model.on_before_zero_grad_count == pl_optimizer_model.on_before_zero_grad_count
