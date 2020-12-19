@@ -98,10 +98,8 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None,
 def run_prediction(trained_model, dataloader, dp=False, min_acc=0.25):
     if isinstance(trained_model, BoringModel):
         return _boring_model_run_prediction(trained_model, dataloader, dp, min_acc)
-    elif isinstance(trained_model, EvalModelTemplate):
-        return _eval_model_template_run_prediction(trained_model, dataloader, dp, min_acc)
     else:
-        raise NotImplementedError(f"prediction is not supported for class {trained_model.__class__}")
+        return _eval_model_template_run_prediction(trained_model, dataloader, dp, min_acc)
 
 
 def _eval_model_template_run_prediction(trained_model, dataloader, dp=False, min_acc=0.50):
