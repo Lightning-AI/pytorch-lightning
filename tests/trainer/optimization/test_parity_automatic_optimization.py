@@ -70,7 +70,8 @@ def test_lightning_optimizer_and_no_lightning_optimizer_equality_check_optim_cal
         precision,
         amp_backend,
         gpus,
-        accumulate_grad_batches):
+        accumulate_grad_batches
+    ):
     with patch("torch.optim.SGD.step") as mock_sgd_step, \
             patch("torch.optim.Adam.step") as mock_adam_step, \
             patch("torch.optim.AdamW.step") as mock_adamw_step, \
