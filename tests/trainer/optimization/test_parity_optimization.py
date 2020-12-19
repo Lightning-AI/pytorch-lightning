@@ -80,8 +80,8 @@ def test_lightning_optimizer_and_no_lightning_optimizer_equality_check_optim_cal
             default_root_dir=tmpdir,
             optimizer_is_mocked=True,
             accumulate_grad_batches=accumulate_grad_batches,
-            max_epochs=2,
-            limit_train_batches=10,
+            max_epochs=max_epochs,
+            limit_train_batches=limit_train_batches,
             amp_backend=amp_backend,
             precision=precision,
             gpus=gpus
@@ -98,10 +98,10 @@ def test_lightning_optimizer_and_no_lightning_optimizer_equality_check_optim_cal
 
 def run_lightning_optimizer_equality(
         optimizer_is_mocked=False,
-        **train_kwargs):
+        **trainer_kwargs):
     trainer_kwargs = {
         "limit_val_batches": 0,
-        **train_kwargs
+        **trainer_kwargs
     }
     expected_num_batches = trainer_kwargs["max_epochs"] * trainer_kwargs["limit_train_batches"]
     accumulate_grad_batches = trainer_kwargs["accumulate_grad_batches"]
@@ -128,15 +128,17 @@ def run_lightning_optimizer_equality(
         **trainer_kwargs,
     )
 
-    assert_model_equality(
-        pl_optimizer_initial_model_weights=pl_optimizer_initial_model_weights,
-        pl_optimizer_model=pl_optimizer_model,
-        no_pl_optimizer_initial_model_weights=no_pl_optimizer_initial_model_weights,
-        no_pl_optimizer_model=no_pl_optimizer_model,
-        pure_pytorch_optimizer_initial_model_weights=pure_pytorch_optimizer_initial_model_weights,
-        pure_pytorch_optimizer_model=pure_pytorch_optimizer_model,
-        expected_num_batches=expected_num_batches
-    )
+    if not optimizer_is_mocked: 
+
+        assert_model_equality(
+            pl_optimizer_initial_model_weights=pl_optimizer_initial_model_weights,
+            pl_optimizer_model=pl_optimizer_model,
+            no_pl_optimizer_initial_model_weights=no_pl_optimizer_initial_model_weights,
+            no_pl_optimizer_model=no_pl_optimizer_model,
+            pure_pytorch_optimizer_initial_model_weights=pure_pytorch_optimizer_initial_model_weights,
+            pure_pytorch_optimizer_model=pure_pytorch_optimizer_model,
+            expected_num_batches=expected_num_batches
+        )
 
 
 def assert_model_equality(
@@ -147,6 +149,7 @@ def assert_model_equality(
         pure_pytorch_optimizer_initial_model_weights,
         pure_pytorch_optimizer_model,
         expected_num_batches):
+        
     assert torch.equal(pl_optimizer_initial_model_weights, no_pl_optimizer_initial_model_weights)
     assert torch.equal(pl_optimizer_initial_model_weights, pure_pytorch_optimizer_initial_model_weights)
     assert len(pl_optimizer_model.losses) == expected_num_batches
@@ -179,14 +182,23 @@ def train_specific_optimizer_model(
         **trainer_kwargs):
     seed_everything(42)
 
+    optimizer_cls = torch.optim.SGD
+
     if trainer_kwargs["precision"] == 16 and replace_optimizer_step_with_pure_pytorch:
         model_cls = AutomaticOptimizationPurePytorchAMPOptimizerModel
+    
     else:
         model_cls = AutomaticOptimizationPurePytorchOptimizerModel if replace_optimizer_step_with_pure_pytorch \
             else BaseParityAutomaticOptimizationModel
+    
+        if optimizer_is_mocked and not replace_optimizer_step_with_pure_pytorch:
+            optimizer_cls = torch.optim.AdamW if enable_pl_optimizer else torch.optim.Adam
+
+    
     model = model_cls(
-        optimizer_cls=torch.optim.AdamW if optimizer_is_mocked else torch.optim.SGD,
-        optimizer_is_mocked=optimizer_is_mocked
+        optimizer_cls=optimizer_cls,
+        optimizer_is_mocked=optimizer_is_mocked,
+        accumulate_grad_batches=trainer_kwargs["accumulate_grad_batches"],
     )
 
     initial_weights = model.layer.weight.clone()
@@ -204,7 +216,7 @@ def train_specific_optimizer_model(
 
 class BaseParityAutomaticOptimizationModel(BoringModel):
 
-    def __init__(self, optimizer_cls, optimizer_is_mocked=False):
+    def __init__(self, optimizer_cls, optimizer_is_mocked=False, accumulate_grad_batches=None):
         super().__init__()
         self.optimizer_cls = optimizer_cls
         self.losses = []
@@ -212,6 +224,7 @@ class BaseParityAutomaticOptimizationModel(BoringModel):
         self.on_before_zero_grad_count = 0
         self.optimizer_is_mocked = optimizer_is_mocked
         self.grad_checked = False
+        self.accumulate_grad_batches = accumulate_grad_batches
 
     def on_before_zero_grad(self, optimizer):
         self.on_before_zero_grad_count += 1
@@ -251,7 +264,7 @@ class AutomaticOptimizationPurePytorchOptimizerModel(BaseParityAutomaticOptimiza
         assert not isinstance(optimizer, LightningOptimizer)
 
         optimizer_closure()
-        if should_accumulate(self.trainer):
+        if should_accumulate(self.trainer, self.accumulate_grad_batches):
             return
 
         self.grad_checked = True
@@ -285,7 +298,7 @@ class AutomaticOptimizationPurePytorchAMPOptimizerModel(BaseParityAutomaticOptim
         assert not isinstance(optimizer, LightningOptimizer)
 
         optimizer_closure()
-        if should_accumulate(self.trainer):
+        if should_accumulate(self.trainer, self.accumulate_grad_batches):
             return
 
         self.grad_checked = True
@@ -303,7 +316,7 @@ class AutomaticOptimizationPurePytorchAMPOptimizerModel(BaseParityAutomaticOptim
             assert torch.abs(self.layer.weight.grad).sum() == 0
 
 
-def should_accumulate(trainer):
+def should_accumulate(trainer, accumulate_grad_batches):
     accumulation_done = (trainer.batch_idx + 1) == trainer.num_training_batches
-    is_final_batch = (trainer.batch_idx + 1) % trainer.accumulate_grad_batches == 0
+    is_final_batch = (trainer.batch_idx + 1) % accumulate_grad_batches == 0
     return not (accumulation_done or is_final_batch)
