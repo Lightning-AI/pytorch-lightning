@@ -40,13 +40,17 @@ For both Manual / manual optimization
     pytest.param(32, "native", 0),
     pytest.param(16, "native", 1, marks=pytest.mark.skipif(not torch.cuda.is_available(), reason='Requires GPU')),
 ])
-@pytest.mark.parametrize('accumulate_grad_batches', [2])
+@pytest.mark.parametrize('accumulate_grad_batches', [1, 7])
 def test_lightning_optimizer_and_no_lightning_optimizer_equality(
         tmpdir,
         precision,
         amp_backend,
         gpus,
         accumulate_grad_batches):
+
+    if accumulate_grad_batches > 1:
+        accumulate_grad_batches = np.random.randint(1, accumulate_grad_batches)
+
     run_lightning_optimizer_equality(
         precision=precision,
         default_root_dir=tmpdir,
@@ -68,6 +72,7 @@ def test_lightning_optimizer_and_no_lightning_optimizer_equality_check_optim_cal
         amp_backend,
         gpus,
         accumulate_grad_batches):
+
     with patch("torch.optim.SGD.step") as mock_sgd_step, \
             patch("torch.optim.Adam.step") as mock_adam_step, \
             patch("torch.optim.AdamW.step") as mock_adamw_step, \
