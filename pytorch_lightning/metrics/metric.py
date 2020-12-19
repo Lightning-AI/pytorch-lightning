@@ -57,8 +57,8 @@ class Metric(nn.Module, ABC):
             Callback that performs the allgather operation on the metric state. When `None`, DDP
             will be used to perform the allgather. default: None
         auto_reset_on_compute:
-            Specify if ``reset()`` should be automatically called after each ``compute()``.
-            Disable to calculate running accumulated metrics.
+            Specify if ``reset()`` should be called automatically after each ``compute()``.
+            Disabling it allows for calculate running accumulated metrics. default: True
     """
     def __init__(
         self,

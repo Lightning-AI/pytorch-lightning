@@ -57,6 +57,12 @@ class ExplainedVariance(Metric):
             before returning the value at the step. default: False
         process_group:
             Specify the process group on which synchronization is called. default: None (which selects the entire world)
+        dist_sync_fn:
+            Callback that performs the allgather operation on the metric state. When `None`, DDP
+            will be used to perform the allgather. default: None
+        auto_reset_on_compute:
+            Specify if ``reset()`` should be called automatically after each ``compute()``.
+            Disabling it allows for calculate running accumulated metrics. default: True
 
     Example:
 
@@ -81,12 +87,14 @@ class ExplainedVariance(Metric):
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
         dist_sync_fn: Callable = None,
+        auto_reset_on_compute: bool = True
     ):
         super().__init__(
             compute_on_step=compute_on_step,
             dist_sync_on_step=dist_sync_on_step,
             process_group=process_group,
             dist_sync_fn=dist_sync_fn,
+            auto_reset_on_compute=auto_reset_on_compute
         )
         allowed_multioutput = ('raw_values', 'uniform_average', 'variance_weighted')
         if multioutput not in allowed_multioutput:
