@@ -196,6 +196,8 @@ class DDPSpawnAccelerator(Accelerator):
         self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
     def init_device(self, process_idx, is_master):
+        # Todo: required argument `process_idx` is not used
+        # Todo: required argument `is_master` is not used
         gpu_idx = self.trainer.data_parallel_device_ids[self.trainer.local_rank]
         self.trainer.root_gpu = gpu_idx
         torch.cuda.set_device(self.trainer.root_gpu)

@@ -43,6 +43,7 @@ class DDPCPUHPCAccelerator(DDPHPCAccelerator):
         self.nickname = 'ddp_cpu'
 
     def model_to_device(self, model, process_idx):
+        # Todo: required argument `process_idx` is not used
         model.cpu()
 
     def get_device_ids(self):
