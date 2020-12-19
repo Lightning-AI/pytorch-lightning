@@ -1,0 +1,318 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+from collections import Callable
+from copy import deepcopy
+from typing import Optional
+from unittest.mock import patch
+
+import numpy as np
+import pytest
+import torch
+from torch.optim import Optimizer
+
+from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning.core.optimizer import LightningOptimizer
+from tests.base.boring_model import BoringModel
+from tests.trainer.optimization.test_parity_manual_optimization import should_accumulate
+
+"""
+TODO:
+For both Manual / manual optimization
+    - Test dp, ddp, ddp2
+    - Apex
+    - Random accumulated_grad_batches (bug)
+    - Multiple optimizers
+"""
+
+
+@pytest.mark.parametrize(["precision", "amp_backend", "gpus"], [
+    pytest.param(32, "native", 0),
+    pytest.param(16, "native", 1, marks=pytest.mark.skipif(not torch.cuda.is_available(), reason='Requires GPU')),
+])
+@pytest.mark.parametrize('accumulate_grad_batches', [1, 2])
+def test_lightning_optimizer_and_no_lightning_optimizer_equality(
+        tmpdir,
+        precision,
+        amp_backend,
+        gpus,
+        accumulate_grad_batches):
+    run_lightning_optimizer_equality(
+        precision=precision,
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=5,
+        accumulate_grad_batches=accumulate_grad_batches,
+        amp_backend=amp_backend,
+        gpus=gpus
+    )
+
+
+@pytest.mark.parametrize(["precision", "amp_backend", "gpus"], [
+    pytest.param(32, "native", 0),
+])
+@pytest.mark.parametrize('accumulate_grad_batches', [1])
+def test_lightning_optimizer_and_no_lightning_optimizer_equality_check_optim_calls(
+        tmpdir,
+        precision,
+        amp_backend,
+        gpus,
+        accumulate_grad_batches):
+    with patch("torch.optim.SGD.step") as mock_sgd_step, \
+            patch("torch.optim.Adam.step") as mock_adam_step, \
+            patch("torch.optim.AdamW.step") as mock_adamw_step, \
+            patch("torch.optim.SGD.zero_grad") as mock_sgd_zero_grad, \
+            patch("torch.optim.Adam.zero_grad") as mock_adam_zero_grad, \
+            patch("torch.optim.AdamW.zero_grad") as mock_adamw_zero_grad:
+        max_epochs = 2
+        limit_train_batches = 10
+
+        # Run equality test using Lightning Optimizer
+        run_lightning_optimizer_equality(
+            default_root_dir=tmpdir,
+            optimizer_is_mocked=True,
+            accumulate_grad_batches=accumulate_grad_batches,
+            max_epochs=max_epochs,
+            limit_train_batches=limit_train_batches,
+            amp_backend=amp_backend,
+            precision=precision,
+            gpus=gpus
+        )
+
+        expected_num_batches = max_epochs * limit_train_batches
+        assert mock_sgd_step.call_count == (expected_num_batches // accumulate_grad_batches)
+        assert mock_sgd_zero_grad.call_count == (expected_num_batches // accumulate_grad_batches)
+        assert mock_sgd_step.call_count == mock_adam_step.call_count
+        assert mock_sgd_step.call_count == mock_adam_step.call_count
+        assert mock_sgd_zero_grad.call_count == mock_adam_zero_grad.call_count
+        assert mock_sgd_zero_grad.call_count == mock_adamw_zero_grad.call_count
+
+
+def run_lightning_optimizer_equality(
+        optimizer_is_mocked=False,
+        **trainer_kwargs):
+    trainer_kwargs = {
+        "limit_val_batches": 0,
+        **trainer_kwargs
+    }
+    expected_num_batches = trainer_kwargs["max_epochs"] * trainer_kwargs["limit_train_batches"]
+    accumulate_grad_batches = trainer_kwargs["accumulate_grad_batches"]
+
+    pl_optimizer_initial_model_weights, pl_optimizer_model = train_specific_optimizer_model(
+        expected_num_batches=expected_num_batches,
+        optimizer_is_mocked=optimizer_is_mocked,
+        enable_pl_optimizer=True,
+        **trainer_kwargs,
+    )
+
+    no_pl_optimizer_initial_model_weights, no_pl_optimizer_model = train_specific_optimizer_model(
+        expected_num_batches=expected_num_batches,
+        optimizer_is_mocked=optimizer_is_mocked,
+        enable_pl_optimizer=False,  # Disable pl optimizer
+        **trainer_kwargs,
+    )
+
+    pure_pytorch_optimizer_initial_model_weights, pure_pytorch_optimizer_model = train_specific_optimizer_model(
+        expected_num_batches=expected_num_batches,
+        optimizer_is_mocked=optimizer_is_mocked,
+        replace_optimizer_step_with_pure_pytorch=True,
+        **trainer_kwargs,
+    )
+
+    if not optimizer_is_mocked:
+
+        assert_model_equality(
+            pl_optimizer_initial_model_weights=pl_optimizer_initial_model_weights,
+            pl_optimizer_model=pl_optimizer_model,
+            no_pl_optimizer_initial_model_weights=no_pl_optimizer_initial_model_weights,
+            no_pl_optimizer_model=no_pl_optimizer_model,
+            pure_pytorch_optimizer_initial_model_weights=pure_pytorch_optimizer_initial_model_weights,
+            pure_pytorch_optimizer_model=pure_pytorch_optimizer_model,
+            expected_num_batches=expected_num_batches,
+            precision=trainer_kwargs["precision"]
+        )
+
+
+def assert_model_equality(
+        pl_optimizer_initial_model_weights,
+        pl_optimizer_model,
+        no_pl_optimizer_initial_model_weights,
+        no_pl_optimizer_model,
+        pure_pytorch_optimizer_initial_model_weights,
+        pure_pytorch_optimizer_model,
+        expected_num_batches,
+        precision):
+
+    assert torch.equal(pl_optimizer_initial_model_weights, no_pl_optimizer_initial_model_weights)
+    assert torch.equal(pl_optimizer_initial_model_weights, pure_pytorch_optimizer_initial_model_weights)
+    assert len(pl_optimizer_model.losses) == expected_num_batches
+    assert pure_pytorch_optimizer_model.grad_checked
+    assert pure_pytorch_optimizer_model.losses == no_pl_optimizer_model.losses
+    assert not torch.FloatTensor(no_pl_optimizer_model.losses).isnan().any()
+
+    assert torch.equal(torch.FloatTensor(no_pl_optimizer_model.losses), torch.FloatTensor(pl_optimizer_model.losses))
+    assert no_pl_optimizer_model.on_before_zero_grad_count == pl_optimizer_model.on_before_zero_grad_count
+
+    for pytorch_grad, no_pl_optim_grad, pl_optim_grad in zip(pure_pytorch_optimizer_model.grads,
+                                                             no_pl_optimizer_model.grads,
+                                                             pl_optimizer_model.grads):
+        assert torch.equal(no_pl_optim_grad, pl_optim_grad), 'Grad parameters are different'
+        assert torch.equal(pytorch_grad, no_pl_optim_grad), 'Grad parameters are different'
+
+    for pytorch_weight, no_pl_optim_weight, pl_optim_weight in zip(pure_pytorch_optimizer_model.parameters(),
+                                                                   no_pl_optimizer_model.parameters(),
+                                                                   pl_optimizer_model.parameters()):
+        assert torch.equal(no_pl_optim_weight, pl_optim_weight), 'Model parameters are different'
+        assert torch.equal(pytorch_weight, no_pl_optim_weight), 'Model parameters are different'
+
+
+# train function
+def train_specific_optimizer_model(
+        expected_num_batches,
+        enable_pl_optimizer=False,
+        optimizer_is_mocked=False,
+        replace_optimizer_step_with_pure_pytorch=False,
+        **trainer_kwargs):
+    seed_everything(42)
+    trainer_kwargs = deepcopy(trainer_kwargs)
+
+    optimizer_cls = torch.optim.SGD
+
+    if trainer_kwargs["precision"] == 16 and replace_optimizer_step_with_pure_pytorch:
+        model_cls = ManualOptimizationPurePytorchAMPOptimizerModel
+
+    else:
+        model_cls = ManualOptimizationPurePytorchOptimizerModel if replace_optimizer_step_with_pure_pytorch \
+            else BaseParityManualOptimizationModel
+
+        if optimizer_is_mocked and not replace_optimizer_step_with_pure_pytorch:
+            optimizer_cls = torch.optim.AdamW if enable_pl_optimizer else torch.optim.Adam
+
+    model = model_cls(
+        optimizer_cls=optimizer_cls,
+        optimizer_is_mocked=optimizer_is_mocked,
+        accumulate_grad_batches=trainer_kwargs["accumulate_grad_batches"],
+    )
+
+    if replace_optimizer_step_with_pure_pytorch:
+        # When running pure vanilla training, accumulate_grad_batches should be 1.
+        trainer_kwargs["accumulate_grad_batches"] = 1
+        trainer_kwargs["precision"] = 32
+
+    expected_global_step = expected_num_batches // trainer_kwargs["accumulate_grad_batches"]
+
+    initial_weights = model.layer.weight.clone()
+    model.training_epoch_end = None
+
+    trainer_kwargs["automatic_optimization"] = False
+
+    trainer = Trainer(
+        enable_pl_optimizer=enable_pl_optimizer,
+        **trainer_kwargs
+    )
+    trainer.fit(model)
+
+    assert np.abs(trainer.global_step - expected_global_step) <= 2
+    return initial_weights, model
+
+
+class BaseParityManualOptimizationModel(BoringModel):
+
+    def __init__(self, optimizer_cls, optimizer_is_mocked=False, accumulate_grad_batches=None):
+        super().__init__()
+        self.optimizer_cls = optimizer_cls
+        self.losses = []
+        self.grads = []
+        self.on_before_zero_grad_count = 0
+        self.optimizer_is_mocked = optimizer_is_mocked
+        self.grad_checked = False
+        self.accumulate_grad_batches = accumulate_grad_batches
+
+    def on_before_zero_grad(self, optimizer):
+        self.on_before_zero_grad_count += 1
+        if self.layer.weight.grad is not None:
+            self.grads.append(self.layer.weight.grad.clone())
+
+    def configure_optimizers(self):
+        optimizer = self.optimizer_cls(self.layer.parameters(), lr=0.1)
+        assert isinstance(optimizer, Optimizer)
+        return optimizer
+
+    def training_step(self, batch, batch_idx):
+        opt = self.optimizers()
+        if not isinstance(opt, LightningOptimizer):
+            opt = LightningOptimizer.to_lightning_optimizer(opt, self.trainer)
+        output = self.layer(batch)
+        loss = self.loss(batch, output)
+        self.losses.append(loss.detach().item())
+        opt.step()
+
+
+class ManualOptimizationPurePytorchOptimizerModel(BaseParityManualOptimizationModel):
+
+    def training_step(self, batch, batch_idx):
+        optimizer = self.optimizers()
+        if not isinstance(optimizer, LightningOptimizer):
+            optimizer = LightningOptimizer.to_lightning_optimizer(optimizer, self.trainer)
+        output = self.layer(batch)
+        loss = self.loss(batch, output)
+        self.losses.append(loss.detach().item())
+        loss /= float(self.accumulate_grad_batches)
+        loss.backward()
+        if should_accumulate(self.trainer, self.accumulate_grad_batches):
+            return
+
+        self.grad_checked = True
+        assert torch.abs(self.layer.weight.grad).sum() > 0
+        optimizer.step()
+
+        self.on_before_zero_grad_count += 1
+        optimizer.zero_grad()
+
+        if not self.optimizer_is_mocked:
+            assert torch.abs(self.layer.weight.grad).sum() == 0
+
+
+class ManualOptimizationPurePytorchAMPOptimizerModel(BaseParityManualOptimizationModel):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.scaler = torch.cuda.amp.GradScaler()
+
+    def training_step(self, batch, batch_idx):
+        optimizer = self.optimizers()
+
+        if not isinstance(optimizer, LightningOptimizer):
+            optimizer = LightningOptimizer.to_lightning_optimizer(optimizer, self.trainer)
+
+        with torch.cuda.amp.autocast():
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.losses.append(loss.detach().item())
+            loss /= float(self.accumulate_grad_batches)
+            loss = self.scaler.scale(loss)
+
+        if should_accumulate(self.trainer, self.accumulate_grad_batches):
+            return
+
+        self.scaler.unscale_(optimizer)
+        self.grad_checked = True
+
+        assert torch.abs(self.layer.weight.grad).sum() > 0
+        self.scaler.step(optimizer)
+        self.scaler.update()
+        self.on_before_zero_grad_count += 1
+        optimizer.zero_grad()
+
+        if not self.optimizer_is_mocked:
+            assert torch.abs(self.layer.weight.grad).sum() == 0
