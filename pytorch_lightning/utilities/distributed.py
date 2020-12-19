@@ -206,6 +206,6 @@ def all_gather_ddp_if_available(
         if sync_grads:
             return AllGatherGrad.apply(tensor, group)
         else:
-            with torch.no_grad:
+            with torch.no_grad():
                 return AllGatherGrad.apply(tensor, group)
     return tensor
