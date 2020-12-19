@@ -70,8 +70,8 @@ def test_lightning_optimizer_and_no_lightning_optimizer_equality_check_optim_cal
         precision,
         amp_backend,
         gpus,
-        accumulate_grad_batches
-    ):
+        accumulate_grad_batches):
+
     with patch("torch.optim.SGD.step") as mock_sgd_step, \
             patch("torch.optim.Adam.step") as mock_adam_step, \
             patch("torch.optim.AdamW.step") as mock_adamw_step, \
@@ -104,8 +104,8 @@ def test_lightning_optimizer_and_no_lightning_optimizer_equality_check_optim_cal
 
 def run_lightning_optimizer_equality(
         optimizer_is_mocked=False,
-        **trainer_kwargs
-    ):
+        **trainer_kwargs):
+
     trainer_kwargs = {
         "limit_val_batches": 0,
         **trainer_kwargs
@@ -188,6 +188,7 @@ def train_specific_optimizer_model(
         optimizer_is_mocked=False,
         replace_optimizer_step_with_pure_pytorch=False,
         **trainer_kwargs):
+
     seed_everything(42)
     trainer_kwargs = deepcopy(trainer_kwargs)
 
