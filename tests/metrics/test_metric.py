@@ -213,5 +213,3 @@ def test_running_accumulation(tmpdir):
 
     running_metric.reset()
     assert running_metric.x == torch.tensor(0.), "metric state should have been reset"
-
-
