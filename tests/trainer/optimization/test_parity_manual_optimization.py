@@ -263,7 +263,6 @@ class ManualOptimizationPurePytorchOptimizerModel(BaseParityManualOptimizationMo
 
     def training_step(self, batch, batch_idx):
         optimizer = self.optimizers()
-        
         output = self.layer(batch)
         loss = self.loss(batch, output)
         self.losses.append(loss.detach().item())
