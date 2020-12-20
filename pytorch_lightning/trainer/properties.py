@@ -27,7 +27,7 @@ from pytorch_lightning.trainer.connectors.checkpoint_connector import Checkpoint
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, _TPU_AVAILABLE, argparse_utils
+from pytorch_lightning.utilities import _HOROVOD_AVAILABLE, _TPU_AVAILABLE, argparse
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.model_utils import is_overridden
 
@@ -150,19 +150,19 @@ class TrainerProperties(ABC):
 
     @classmethod
     def from_argparse_args(cls: Type['_T'], args: Union[Namespace, ArgumentParser], **kwargs) -> '_T':
-        return argparse_utils.from_argparse_args(cls, args, **kwargs)
+        return argparse.from_argparse_args(cls, args, **kwargs)
 
     @classmethod
     def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
-        return argparse_utils.parse_argparser(cls, arg_parser)
+        return argparse.parse_argparser(cls, arg_parser)
 
     @classmethod
     def match_env_arguments(cls) -> Namespace:
-        return argparse_utils.parse_env_variables(cls)
+        return argparse.parse_env_variables(cls)
 
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
-        return argparse_utils.add_argparse_args(cls, parent_parser)
+        return argparse.add_argparse_args(cls, parent_parser)
 
     @property
     def num_gpus(self) -> int:
