@@ -573,11 +573,12 @@ class TrainLoop:
             self.trainer.checkpoint_connector.has_trained = True
 
             # max steps reached, end training
-            if self.trainer.max_steps is not None and self.trainer.max_steps == self.trainer.global_step + 1:
-                accumulation_done = self._accumulated_batches_reached()
-                # Ensure accumulation across batches has completed before breaking loop
-                if accumulation_done:
-                    break
+            if (
+                self.trainer.max_steps is not None
+                and self.trainer.max_steps == self.trainer.global_step + 1
+                and self._accumulated_batches_reached()
+            ):
+                break
 
             # end epoch early
             # stop when the flag is changed or we've gone past the amount
@@ -588,7 +589,7 @@ class TrainLoop:
             self.trainer.total_batch_idx += 1
 
             # stop epoch if we limited the number of training batches
-            if (batch_idx + 1) >= self.trainer.num_training_batches:
+            if self._num_training_batches_reached():
                 break
 
             # progress global step according to grads progress
