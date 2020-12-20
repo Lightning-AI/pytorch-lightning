@@ -58,7 +58,12 @@ class CallbackConnector:
             return self.trainer.resume_from_checkpoint
         checkpoint_callbacks = self.trainer.checkpoint_callbacks[0]
         if os.path.exists(checkpoint_callbacks.best_model_path):
-            return checkpoint_callbacks.best_model_path
+            resume_from_checkpoint_options = [
+                checkpoint_callbacks.best_model_path,
+                self.trainer.resume_from_checkpoint
+            ]
+            resume_from_checkpoint_options.sort()
+            return resume_from_checkpoint_options[-1]
         return self.trainer.resume_from_checkpoint
 
     def configure_checkpoint_callbacks(self, checkpoint_callback: Union[ModelCheckpoint, bool]):

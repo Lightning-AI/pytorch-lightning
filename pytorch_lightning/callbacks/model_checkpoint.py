@@ -21,10 +21,8 @@ Automatically save model checkpoints during training.
 """
 
 
-import numbers
-import os
-import re
 from copy import deepcopy
+import numbers
 import os
 from pathlib import Path
 import re
