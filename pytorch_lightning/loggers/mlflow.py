@@ -31,8 +31,10 @@ LOCAL_FILE_URI_PREFIX = "file:"
 
 # TODO: there is something sick in the imports...
 try:
+    import mlflow
     from mlflow.tracking import MlflowClient
 except ImportError:
+    mlflow = None
     MlflowClient = None
     # just in case...
     _MLFLOW_AVAILABLE = False
@@ -93,7 +95,7 @@ class MLFlowLogger(LightningLoggerBase):
         save_dir: Optional[str] = './mlruns',
         prefix: str = '',
     ):
-        if not MlflowClient:
+        if not mlflow:
             raise ImportError('You want to use `mlflow` logger which is not installed yet,'
                               ' install it with `pip install mlflow`.')
         super().__init__()
