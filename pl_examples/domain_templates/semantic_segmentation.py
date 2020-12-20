@@ -32,27 +32,17 @@ DEFAULT_VOID_LABELS = (0, 1, 2, 3, 4, 5, 6, 9, 10, 14, 15, 16, 18, 29, 30, -1)
 DEFAULT_VALID_LABELS = (7, 8, 11, 12, 13, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33)
 
 
-def _create_synth_Cityscapes_dataset(path_dir):
+def _create_synth_kitti_dataset(path_dir: str, image_dims: tuple = (1024, 512)):
     """Create synthetic dataset with random images, just to simulate that the dataset have been already downloaded."""
-    non_existing_citites = ['dummy_kitti_1', 'dummy_kitti_2']
-    fine_labels_dir = Path(path_dir) / 'gtFine'
-    images_dir = Path(path_dir) / 'leftImg8bit'
-    dataset_splits = ['train', 'val', 'test']
-
-    for split in dataset_splits:
-        for city in non_existing_citites:
-            (images_dir / split / city).mkdir(parents=True)
-            (fine_labels_dir / split / city).mkdir(parents=True)
-            base_name = str(uuid.uuid4())
-            image_name = f'{base_name}_leftImg8bit.png'
-            instance_target_name = f'{base_name}_gtFine_instanceIds.png'
-            semantic_target_name = f'{base_name}_gtFine_labelIds.png'
-            Image.new('RGB', (2048, 1024)).save(
-                images_dir / split / city / image_name)
-            Image.new('L', (2048, 1024)).save(
-                fine_labels_dir / split / city / instance_target_name)
-            Image.new('L', (2048, 1024)).save(
-                fine_labels_dir / split / city / semantic_target_name)
+    path_dir_images = os.path.join(path_dir, KITTI.IMAGE_PATH)
+    path_dir_masks = os.path.join(path_dir, KITTI.MASK_PATH)
+    for p_dir in (path_dir_images, path_dir_masks):
+        os.makedirs(p_dir, exist_ok=True)
+    for i in range(3):
+        path_img = os.path.join(path_dir_images, f'dummy_kitti_{i}.png')
+        Image.new('RGB', image_dims).save(path_img)
+        path_mask = os.path.join(path_dir_masks, f'dummy_kitti_{i}.png')
+        Image.new('L', image_dims).save(path_mask)
 
 
 class KITTI(Dataset):
@@ -77,7 +67,11 @@ class KITTI(Dataset):
     encoded using `encode_segmap`, and given `transform` (if any) are applied to the image only
     (mask does not usually require transforms, but they can be implemented in a similar way).
 
-    >>> KITTI()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    >>> from pl_examples import DATASETS_PATH
+    >>> dataset_path = os.path.join(DATASETS_PATH, "Kitti")
+    >>> _create_synth_kitti_dataset(dataset_path, image_dims=(1024, 512))
+    >>> KITTI(dataset_path, 'train')  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    <...semantic_segmentation.KITTI object at ...>
     """
     IMAGE_PATH = os.path.join('training', 'image_2')
     MASK_PATH = os.path.join('training', 'semantic')
@@ -167,7 +161,22 @@ class SegModel(pl.LightningModule):
 
     Adam optimizer is used along with Cosine Annealing learning rate scheduler.
 
-    >>> SegModel()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    >>> from pl_examples import DATASETS_PATH
+    >>> dataset_path = os.path.join(DATASETS_PATH, "Kitti")
+    >>> _create_synth_kitti_dataset(dataset_path, image_dims=(1024, 512))
+    >>> SegModel(dataset_path)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    SegModel(
+      (net): UNet(
+        (layers): ModuleList(
+          (0): DoubleConv(...)
+          (1): Down(...)
+          (2): Down(...)
+          (3): Up(...)
+          (4): Up(...)
+          (5): Conv2d(64, 19, kernel_size=(1, 1), stride=(1, 1))
+        )
+      )
+    )
     """
     def __init__(
             self,
