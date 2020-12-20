@@ -255,7 +255,6 @@ class ModelCheckpoint(Callback):
         This method runs on all ranks, it is the responsibility of `self.save_function`
         to handle correct behaviour in distributed training, i.e., saving only on rank 0.
         """
-        epoch = trainer.current_epoch
         global_step = trainer.global_step
 
         if not self.should_save(trainer, is_last=is_last):
@@ -376,13 +375,13 @@ class ModelCheckpoint(Callback):
             self._fs.rm(filepath)
             log.debug(f"Removed checkpoint: {filepath}")
 
-    @rank_zero_only
     def _save_model(self, filepath: str, trainer, pl_module):
         # in debugging, track when we save checkpoints
         trainer.dev_debugger.track_checkpointing_history(filepath)
 
         # make paths
-        self._fs.makedirs(os.path.dirname(filepath), exist_ok=True)
+        if trainer.is_global_zero:
+            self._fs.makedirs(os.path.dirname(filepath), exist_ok=True)
 
         # delegate the saving to the trainer
         if self.save_function is not None:

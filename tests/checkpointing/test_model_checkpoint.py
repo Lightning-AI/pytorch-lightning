@@ -167,11 +167,11 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
         super().on_train_end(trainer, pl_module)
         assert self.best_model_path
         assert self.best_model_score
-        assert self.on_save_checkpoint_count == self.expected_count
+        assert self.on_save_checkpoint_count == self.expected_count, (self.on_save_checkpoint_count, self.expected_count)
         if trainer.is_global_zero:
-            assert torch.save.call_count == self.expected_count
+            assert torch.save.call_count == self.expected_count, (torch.save.call_count, self.expected_count)
         else:
-            assert torch.save.call_count == 0
+            assert torch.save.call_count == 0, torch.save.call_count
 
 
 @pytest.mark.skipif(
