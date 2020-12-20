@@ -1,55 +1,56 @@
 name: Nightly events
 
 # https://jasonet.co/posts/scheduled-actions/
+# https://github.community/t/distinct-job-for-each-schedule/17811/2
 on:
   schedule:
-    # At the end of every day
-    - cron: "0 0 * * *"
+    - cron: "0 0 * * 1-6" # 00:00 UTC MON-SAT
+    - cron: "0 0 * * 0" # 00:00 UTC SUN
 
 # based on https://github.com/pypa/gh-action-pypi-publish
 jobs:
-
   pypi-release:
     runs-on: ubuntu-20.04
 
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
-      with:
-        python-version: 3.7
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
 
-    - name: Install dependencies
-      run: >-
-        python -m pip install --user --upgrade setuptools wheel
+      - name: Install dependencies
+        run: >-
+          python -m pip install --user --upgrade setuptools wheel
 
-    - name: Build packages
-      run: |
-        python .github/prepare-nightly_version.py
-        python setup.py sdist bdist_wheel
-        ls -lh dist/
+      - name: Build packages
+        run: |
+          python .github/prepare-nightly_version.py
+          python setup.py sdist bdist_wheel
+          ls -lh dist/
 
-    - name: Delay releasing
-      if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
-      uses: juliangruber/sleep-action@v1
-      with:
-        time: 5m
+      - name: Delay releasing
+        if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+        uses: juliangruber/sleep-action@v1
+        with:
+          time: 5m
 
-      # We do this, since failures on test.pypi aren't that bad
-    - name: Publish to Test PyPI
-      uses: pypa/gh-action-pypi-publish@v1.4.1
-      with:
-        user: __token__
-        password: ${{ secrets.test_pypi_password }}
-        repository_url: https://test.pypi.org/legacy/
-        verbose: true
+        # We do this, since failures on test.pypi aren't that bad
+      - name: Publish to Test PyPI
+        uses: pypa/gh-action-pypi-publish@v1.4.1
+        with:
+          user: __token__
+          password: ${{ secrets.test_pypi_password }}
+          repository_url: https://test.pypi.org/legacy/
+          verbose: true
 
   docker-XLA:
+    if: contains(github.event.schedule, "0 0 * * 0")
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
         python_version: [3.6, 3.7]
-        xla_version: [1.6, 1.7]  # todo: , "nightly"
+        xla_version: [1.6, 1.7] # todo: , "nightly"
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -70,14 +71,13 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             XLA_VERSION=${{ matrix.xla_version }}
-          cache-from: pytorchlightning/pytorch_lightning:base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
-          cache-to: type=inline
           file: dockers/base-xla/Dockerfile
           push: true
           tags: pytorchlightning/pytorch_lightning:base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
         timeout-minutes: 55
 
   docker-cuda-conda:
+    if: contains(github.event.schedule, "0 0 * * 0")
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -120,8 +120,6 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
-          cache-from: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
-          cache-to: type=inline
           file: dockers/base-cuda/Dockerfile
           push: true
           tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
@@ -136,8 +134,6 @@ jobs:
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             PYTORCH_CHANNEL=${{ steps.extend.outputs.CHANNEL }}
             CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
-          cache-from: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
-          cache-to: type=inline
           file: dockers/base-conda/Dockerfile
           push: true
           tags: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
