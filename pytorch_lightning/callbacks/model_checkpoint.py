@@ -245,8 +245,7 @@ class ModelCheckpoint(Callback):
         )
         # already saved at the last step
         should_skip = self.last_global_step_saved == global_step
-        # used in this scenario:
-        # tests.checkpointing.test_model_checkpoint.test_checkpoint_repeated_strategy_extended
+        # it is true after forward-backward pass
         has_trained = trainer.checkpoint_connector.has_trained
         return should_save and not should_skip and has_trained
 
