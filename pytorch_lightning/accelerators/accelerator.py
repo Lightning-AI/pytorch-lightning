@@ -75,7 +75,6 @@ class Accelerator(object):
         model = self.trainer.get_model()
         if model is not None:
             return model.transfer_batch_to_device(batch, device)
-        print("HERE")
         return move_data_to_device(batch, device)
 
     def training_step_end(self, output):
