@@ -16,7 +16,7 @@ import os
 import pickle
 import platform
 from unittest import mock
-from unittest.mock import ANY, call
+from unittest.mock import ANY
 
 import pytest
 
@@ -31,7 +31,7 @@ from pytorch_lightning.loggers import (
     WandbLogger,
 )
 from pytorch_lightning.loggers.base import DummyExperiment
-from tests.base import BoringModel, EvalModelTemplate
+from tests.base import EvalModelTemplate
 from tests.loggers.test_comet import _patch_comet_atexit
 from tests.loggers.test_mlflow import mock_mlflow_run_creation
 

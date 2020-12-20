@@ -27,9 +27,8 @@ import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.horovod_accelerator import HorovodAccelerator
-from pytorch_lightning.core.step_result import EvalResult, Result, TrainResult
 from pytorch_lightning.metrics.classification.accuracy import Accuracy
-from pytorch_lightning.utilities import _APEX_AVAILABLE, _NATIVE_AMP_AVAILABLE, _HOROVOD_AVAILABLE, _module_available
+from pytorch_lightning.utilities import _APEX_AVAILABLE, _NATIVE_AMP_AVAILABLE, _HOROVOD_AVAILABLE
 from tests.base import EvalModelTemplate
 from tests.base.boring_model import BoringModel
 from tests.base.models import BasicGAN

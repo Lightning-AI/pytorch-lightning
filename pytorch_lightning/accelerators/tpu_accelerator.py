@@ -24,7 +24,6 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator, ReduceOp
 from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities import (
     _TPU_AVAILABLE,
     move_data_to_device,

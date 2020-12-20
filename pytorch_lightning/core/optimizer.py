@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import types
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 from weakref import proxy
 
 from torch.optim.optimizer import Optimizer
