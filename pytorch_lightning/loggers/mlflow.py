@@ -34,6 +34,8 @@ try:
     from mlflow.tracking import MlflowClient
 except ImportError:
     MlflowClient = None
+    # just in case...
+    _MLFLOW_AVAILABLE = False
 
 
 class MLFlowLogger(LightningLoggerBase):
