@@ -170,7 +170,8 @@ def test_lightning_optimizer_and_no_lightning_optimizer_equality_check_optim_cal
         precision,
         amp_backend,
         gpus,
-        accumulate_grad_batches):
+        accumulate_grad_batches,
+):
 
     vanilla_model_cls = ManualOptimizationPurePytorchAMPOptimizerModel if precision == 16 \
         else ManualOptimizationPurePytorchOptimizerModel

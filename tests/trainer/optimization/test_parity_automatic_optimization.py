@@ -25,14 +25,12 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from tests.base.boring_model import BoringModel
 
-"""
-TODO:
-For both automatic / manual optimization
-    - Test dp, ddp, ddp2
-    - Apex
-    - Random accumulated_grad_batches (bug)
-    - Multiple optimizers
-"""
+# TODO:
+# For both automatic / manual optimization
+#     - Test dp, ddp, ddp2
+#     - Apex
+#     - Random accumulated_grad_batches (bug)
+#     - Multiple optimizers
 
 
 class BaseParityAutomaticOptimizationModel(BoringModel):
@@ -174,7 +172,8 @@ def test_lightning_optimizer_and_no_lightning_optimizer_equality(
         precision,
         amp_backend,
         gpus,
-        accumulate_grad_batches):
+        accumulate_grad_batches,
+):
 
     if accumulate_grad_batches > 1:
         accumulate_grad_batches = np.random.randint(1, accumulate_grad_batches)
@@ -204,7 +203,8 @@ def test_lightning_optimizer_and_no_lightning_optimizer_equality_check_optim_cal
         precision,
         amp_backend,
         gpus,
-        accumulate_grad_batches):
+        accumulate_grad_batches,
+):
 
     vanilla_model_cls = AutomaticOptimizationPurePytorchAMPOptimizerModel if precision == 16 \
         else AutomaticOptimizationPurePytorchOptimizerModel
@@ -246,7 +246,8 @@ def run_lightning_optimizer_equality(
         lightning_model_cls,
         vanilla_model_cls,
         optimizer_is_mocked=False,
-        **trainer_kwargs):
+        **trainer_kwargs,
+):
 
     trainer_kwargs = {
         "limit_val_batches": 0,
@@ -304,7 +305,8 @@ def assert_model_equality(
         pure_pytorch_optimizer_initial_model_weights,
         pure_pytorch_optimizer_model,
         expected_num_batches,
-        precision):
+        precision,
+):
 
     assert torch.equal(pl_optimizer_initial_model_weights, no_pl_optimizer_initial_model_weights)
     assert torch.equal(pl_optimizer_initial_model_weights, pure_pytorch_optimizer_initial_model_weights)
@@ -337,7 +339,8 @@ def train_specific_optimizer_model(
         enable_pl_optimizer=False,
         optimizer_is_mocked=False,
         replace_optimizer_step_with_pure_pytorch=False,
-        **trainer_kwargs):
+        **trainer_kwargs,
+):
 
     seed_everything(42)
     trainer_kwargs = deepcopy(trainer_kwargs)
