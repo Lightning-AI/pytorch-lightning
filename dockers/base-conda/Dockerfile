@@ -45,7 +45,8 @@ RUN apt-get update -qq && \
     && \
 
 # Install conda and python.
-# NOTE new Conda does not forward the exit status... https://github.com/conda/conda/issues/8385
+# NOTE new Conda does not forward the exit status
+# https://github.com/conda/conda/issues/8385 has been fixed.
     curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-${CONDA_VERSION}-Linux-x86_64.sh  && \
     chmod +x ~/miniconda.sh && \
     ~/miniconda.sh -b && \
