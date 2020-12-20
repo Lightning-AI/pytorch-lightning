@@ -5,9 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [unreleased.BugFix] - YYYY-MM-DD
+## [1.1.2rc1] - 2020-12-17
 
 ### Added
+
+- Support number for logging with `sync_dist=True` ([#5080](https://github.com/PyTorchLightning/pytorch-lightning/pull/5080)
 
 
 ### Changed
@@ -18,20 +20,60 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
+- `enable_pl_optimizer=False` by default to temporarily fix AMP issues ([#5163](https://github.com/PyTorchLightning/pytorch-lightning/pull/5163)
+
+
+### Fixed
+
+- Metric reduction with Logging ([#5150](https://github.com/PyTorchLightning/pytorch-lightning/pull/5150)
+
+
+- Remove nan loss in manual optimization ([#5121](https://github.com/PyTorchLightning/pytorch-lightning/pull/5121)
+
+
+- Un-balanced logging properly supported ([#5119](https://github.com/PyTorchLightning/pytorch-lightning/pull/5119)
+
+
+- Fix hanging in DDP HPC accelerators ([#5157](https://github.com/PyTorchLightning/pytorch-lightning/pull/5157)
+
+
+- Fix saved filename in `ModelCheckpoint` if it already exists ([#4861](https://github.com/PyTorchLightning/pytorch-lightning/pull/4861)
+
+
+- Fix reset `TensorRunningAccum` ([#5106](https://github.com/PyTorchLightning/pytorch-lightning/pull/5106)
+
+
+## [1.1.1] - 2020-12-15
+
+### Added
+
+- Add a notebook example to reach a quick baseline of ~94% accuracy on CIFAR10 using Resnet in Lightning ([#4818](https://github.com/PyTorchLightning/pytorch-lightning/pull/4818)
+
+### Changed
+
+- Simplify accelerator steps ([#5015](https://github.com/PyTorchLightning/pytorch-lightning/pull/5015)
+- Refactor load in checkpoint connector ([#4593](https://github.com/PyTorchLightning/pytorch-lightning/pull/4593)
+- Fixed the saved filename in `ModelCheckpoint` when it already exists ([#4861](https://github.com/PyTorchLightning/pytorch-lightning/pull/4861))
+
+### Removed
+
+- Drop duplicate metrics ([#5014](https://github.com/PyTorchLightning/pytorch-lightning/pull/5014)
+- Remove beta arg from F1 class and functional ([#5076](https://github.com/PyTorchLightning/pytorch-lightning/pull/5076)
 
 ### Fixed
 
 - Fixed trainer by default `None` in `DDPAccelerator` ([#4915](https://github.com/PyTorchLightning/pytorch-lightning/pull/4915))
-
-
-- Fixed `LightningOptimizer` exposes optimizer attributes ([#5095](https://github.com/PyTorchLightning/pytorch-lightning/pull/5095))
-
-
-- Fixed the saved filename in `ModelCheckpoint` when it already exists ([#4861](https://github.com/PyTorchLightning/pytorch-lightning/pull/4861))
-
-
+- Fixed `LightningOptimizer` to expose optimizer attributes ([#5095](https://github.com/PyTorchLightning/pytorch-lightning/pull/5095))
 - Do not warn when the `name` key is used in the `lr_scheduler` dict ([#5057](https://github.com/PyTorchLightning/pytorch-lightning/pull/5057))
+- Check if optimizer supports closure ([#4981](https://github.com/PyTorchLightning/pytorch-lightning/pull/4981)
+- Extend LightningOptimizer to exposure underlying Optimizer attributes + update doc ([#5095](https://github.com/PyTorchLightning/pytorch-lightning/pull/5095)
+- Add deprecated metric utility functions back to functional (
+    [#5067](https://github.com/PyTorchLightning/pytorch-lightning/pull/5067),
+    [#5068](https://github.com/PyTorchLightning/pytorch-lightning/pull/5068))
+- Allow any input in `to_onnx` and `to_torchscript` ([#4378](https://github.com/PyTorchLightning/pytorch-lightning/pull/4378)
+- Do not warn when the name key is used in the `lr_scheduler` dict ([#5057](https://github.com/PyTorchLightning/pytorch-lightning/pull/5057)
 
+- Fixed `DDPHPCAccelerator` hangs in DDP construction by calling `init_device` ([#5157](https://github.com/PyTorchLightning/pytorch-lightning/pull/5157))
 
 
 ## [1.1.0] - 2020-12-09
