@@ -24,7 +24,7 @@ import torch.nn as nn
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only, _module_available
-from pytorch_lightning.utilities.warning import WarningCache
+from pytorch_lightning.utilities.warnings import WarningCache
 
 _WANDB_AVAILABLE = _module_available("wandb")
 
