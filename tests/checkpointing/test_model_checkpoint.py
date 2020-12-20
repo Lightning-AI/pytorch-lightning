@@ -269,7 +269,12 @@ def test_model_checkpoint_file_extension(tmpdir):
     """
 
     model = LogInTwoMethods()
-    model_checkpoint = ModelCheckpointExtensionTest(monitor='early_stop_on', dirpath=tmpdir, save_top_k=1, save_last=True)
+    model_checkpoint = ModelCheckpointExtensionTest(
+        monitor='early_stop_on',
+        dirpath=tmpdir,
+        save_top_k=1,
+        save_last=True,
+    )
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[model_checkpoint],

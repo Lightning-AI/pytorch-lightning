@@ -18,7 +18,10 @@ import torch
 
 from pytorch_lightning.metrics.functional.average_precision import average_precision as __ap
 from pytorch_lightning.metrics.functional.f_beta import fbeta as __fb, f1 as __f1
-from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve, precision_recall_curve as __prc
+from pytorch_lightning.metrics.functional.precision_recall_curve import (
+    _binary_clf_curve,
+    precision_recall_curve as __prc
+)
 from pytorch_lightning.metrics.functional.roc import roc as __roc
 from pytorch_lightning.metrics.utils import (
     to_categorical as __tc,
@@ -821,7 +824,8 @@ def precision_recall_curve(
     """
     Computes precision-recall pairs for different thresholds.
 
-    .. warning :: Deprecated in favor of :func:`~pytorch_lightning.metrics.functional.precision_recall_curve.precision_recall_curve`
+    .. warning :: Deprecated in favor of
+     :func:`~pytorch_lightning.metrics.functional.precision_recall_curve.precision_recall_curve`
     """
     rank_zero_warn(
         "This `precision_recall_curve` was deprecated in v1.1.0 in favor of"
@@ -841,7 +845,8 @@ def multiclass_precision_recall_curve(
     """
     Computes precision-recall pairs for different thresholds given a multiclass scores.
 
-    .. warning :: Deprecated in favor of :func:`~pytorch_lightning.metrics.functional.precision_recall_curve.precision_recall_curve`
+    .. warning :: Deprecated in favor of
+     :func:`~pytorch_lightning.metrics.functional.precision_recall_curve.precision_recall_curve`
     """
     rank_zero_warn(
         "This `multiclass_precision_recall_curve` was deprecated in v1.1.0 in favor of"
@@ -863,7 +868,8 @@ def average_precision(
     """
     Compute average precision from prediction scores.
 
-    .. warning :: Deprecated in favor of :func:`~pytorch_lightning.metrics.functional.average_precision.average_precision`
+    .. warning :: Deprecated in favor of
+     :func:`~pytorch_lightning.metrics.functional.average_precision.average_precision`
     """
     rank_zero_warn(
         "This `average_precision` was deprecated in v1.1.0 in favor of"

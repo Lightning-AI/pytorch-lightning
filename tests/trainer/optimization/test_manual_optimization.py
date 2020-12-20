@@ -942,7 +942,8 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
 @patch("torch.optim.Adam.step")
 @patch("torch.optim.SGD.step")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest")
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
 def test_step_with_optimizer_closure_with_different_frequencies_ddp(mock_sgd_step, mock_adam_step, tmpdir):
     """
     Tests that `step` works with optimizer_closure and different accumulated_gradient frequency
