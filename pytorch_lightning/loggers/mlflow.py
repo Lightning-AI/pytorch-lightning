@@ -27,16 +27,13 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experi
 from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn, _module_available
 
 _MLFLOW_AVAILABLE = _module_available("mlflow")
-
-if _MLFLOW_AVAILABLE:
-    import mlflow
-    from mlflow.tracking import MlflowClient
-else:
-    mlflow = None
-    MlflowClient = None
-
-
 LOCAL_FILE_URI_PREFIX = "file:"
+
+# TODO: there is something sick in the imports...
+try:
+    from mlflow.tracking import MlflowClient
+except ImportError:
+    MlflowClient = None
 
 
 class MLFlowLogger(LightningLoggerBase):
@@ -94,7 +91,7 @@ class MLFlowLogger(LightningLoggerBase):
         save_dir: Optional[str] = './mlruns',
         prefix: str = '',
     ):
-        if not mlflow:
+        if not MlflowClient:
             raise ImportError('You want to use `mlflow` logger which is not installed yet,'
                               ' install it with `pip install mlflow`.')
         super().__init__()
