@@ -324,13 +324,13 @@ that are included with NeMo:
 - `Language Modeling (BERT Pretraining) <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/nlp/01_Pretrained_Language_Models_for_Downstream_Tasks.ipynb>`_
 - `Question Answering <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/nlp/Question_Answering_Squad.ipynb>`_
 - `Text Classification <https://github.com/NVIDIA/NeMo/tree/v1.0.0b1/examples/nlp/text_classification>`_ (including Sentiment Analysis)
-- `Token Classifcation <https://github.com/NVIDIA/NeMo/tree/v1.0.0b1/examples/nlp/token_classification>`_ (including Named Entity Recognition)
+- `Token Classification <https://github.com/NVIDIA/NeMo/tree/v1.0.0b1/examples/nlp/token_classification>`_ (including Named Entity Recognition)
 - `Punctuation and Capitalization <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/nlp/Punctuation_and_Capitalization.ipynb>`_
 
 Named Entity Recognition (NER)
 ------------------------------
 
-NER (or more generally token classifcation) is the NLP task of detecting and classifying key information (entities) in text.
+NER (or more generally token classification) is the NLP task of detecting and classifying key information (entities) in text.
 This task is very popular in Healthcare and Finance. In finance, for example, it can be important to identify
 geographical, geopolitical, organizational, persons, events, and natural phenomenon entities.
 See this `NER notebook <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/nlp/Token_Classification_Named_Entity_Recognition.ipynb>`_
@@ -435,7 +435,7 @@ Hydra makes every aspect of the NeMo model, including the PyTorch Lightning Trai
 Tokenizers
 ----------
 
-Tokenization is the process of converting natural langauge text into integer arrays 
+Tokenization is the process of converting natural language text into integer arrays 
 which can be used for machine learning.
 For NLP tasks, tokenization is an essential part of data preprocessing. 
 NeMo supports all BERT-like model tokenizers from 
@@ -462,7 +462,7 @@ Much of the state-of-the-art in natural language processing is achieved
 by fine-tuning pretrained language models on the downstream task. 
 
 With NeMo, you can either `pretrain <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/examples/nlp/language_modeling/bert_pretraining.py>`_ 
-a BERT model on your data or use a pretrained lanugage model from `HuggingFace Transformers <https://github.com/huggingface/transformers>`_  
+a BERT model on your data or use a pretrained language model from `HuggingFace Transformers <https://github.com/huggingface/transformers>`_  
 or `NVIDIA Megatron-LM <https://github.com/NVIDIA/Megatron-LM>`_.
 
 To see the list of language models available in NeMo:

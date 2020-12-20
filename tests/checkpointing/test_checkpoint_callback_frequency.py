@@ -129,7 +129,7 @@ def test_top_k(save_mock, tmpdir, k, epochs, val_check_interval, expected):
 
     model = TestModel()
     trainer = Trainer(
-        checkpoint_callback=callbacks.ModelCheckpoint(dirpath=tmpdir, monitor='my_loss', save_top_k=k),
+        callbacks=[callbacks.ModelCheckpoint(dirpath=tmpdir, monitor='my_loss', save_top_k=k)],
         default_root_dir=tmpdir,
         max_epochs=epochs,
         weights_summary=None,
