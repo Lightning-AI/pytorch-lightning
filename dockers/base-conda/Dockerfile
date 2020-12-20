@@ -29,7 +29,7 @@ FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel-ubuntu18.04
 ARG PYTHON_VERSION=3.7
 ARG PYTORCH_VERSION=1.6
 ARG PYTORCH_CHANNEL=pytorch
-ARG CONDA_VERSION=4.7.12
+ARG CONDA_VERSION=latest
 
 SHELL ["/bin/bash", "-c"]
 
@@ -75,7 +75,8 @@ ENV CONDA_ENV=lightning
 COPY environment.yml environment.yml
 
 # conda init
-RUN conda create -y --name $CONDA_ENV cudatoolkit=${CUDA_VERSION} && \
+# sometimes conda fails to detect gpu PT version, so install it from here
+RUN conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} cudatoolkit=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} && \
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages
     # replace channel to nigtly if needed, fix PT version and remove Horovod as it will be installe later
