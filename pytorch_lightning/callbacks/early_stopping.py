@@ -89,6 +89,7 @@ class EarlyStopping(Callback):
         self.stopped_epoch = 0
         self.mode = mode
         self.warned_result_obj = False
+        self._last_global_step_called = -1
         # Indicates, if eval results are used as basis for early stopping
         # It is set to False initially and overwritten, if eval results have been validated
         self.based_on_eval_results = False
@@ -163,6 +164,10 @@ class EarlyStopping(Callback):
         if trainer.running_sanity_check:
             return
 
+        if self._last_global_step_called == trainer.global_step:
+            return
+
+        self._last_global_step_called = trainer.global_step
         self._run_early_stopping_check(trainer, pl_module)
 
     def on_validation_epoch_end(self, trainer, pl_module):
