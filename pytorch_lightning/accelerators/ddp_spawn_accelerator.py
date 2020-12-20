@@ -202,8 +202,6 @@ class DDPSpawnAccelerator(Accelerator):
 
     def model_to_device(self, model):
         model.cuda(self.trainer.root_gpu)
-        for param in model.parameters():
-            param = param.cuda(self.trainer.root_gpu)
 
     def get_device_ids(self):
         device_ids = [self.trainer.root_gpu]
@@ -219,7 +217,7 @@ class DDPSpawnAccelerator(Accelerator):
         return self._step(args)
 
     def _step(self, args):
-        args = self.ddp_plugin.on_before_forward(self.trainer.get_model(), *args)
+        args = self.batch_to_device(args, self.trainer.get_model().device)
         if self.trainer.amp_backend == AMPType.NATIVE:
             with torch.cuda.amp.autocast():
                 output = self.trainer.model(*args)

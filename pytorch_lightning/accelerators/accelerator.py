@@ -24,6 +24,8 @@ from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.parsing import AttributeDict
+from pytorch_lightning.utilities.model_utils import is_overridden
+
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
@@ -73,6 +75,7 @@ class Accelerator(object):
         model = self.trainer.get_model()
         if model is not None:
             return model.transfer_batch_to_device(batch, device)
+        print("HERE")
         return move_data_to_device(batch, device)
 
     def training_step_end(self, output):

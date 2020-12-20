@@ -108,6 +108,8 @@ def move_data_to_device(batch: Any, device: torch.device):
     """
 
     def batch_to(data):
+        kwargs = dict(non_blocking=True) if isinstance(data, torch.Tensor) else {}
+
         # try to move torchtext data first
         if TORCHTEXT_AVAILABLE and isinstance(data, Batch):
 
@@ -120,7 +122,6 @@ def move_data_to_device(batch: Any, device: torch.device):
                 setattr(device_data, field, device_field)
             return device_data
 
-        kwargs = dict(non_blocking=True) if isinstance(data, torch.Tensor) else {}
         return data.to(device, **kwargs)
 
     dtype = (TransferableDataType, Batch) if TORCHTEXT_AVAILABLE else TransferableDataType
