@@ -169,7 +169,8 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
         assert self.best_model_score
         assert self.on_save_checkpoint_count == self.expected_count
         if trainer.is_global_zero:
-            assert torch.save.call_count == self.expected_count
+            # twice the calls expected because ddp broadast also uses torch.save
+            assert torch.save.call_count == self.expected_count * 2
         else:
             assert torch.save.call_count == 0
 
