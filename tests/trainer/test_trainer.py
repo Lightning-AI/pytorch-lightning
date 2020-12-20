@@ -440,6 +440,8 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, ex
         trainer.current_epoch = i
         trainer.global_step = i
         trainer.logger_connector.callback_metrics = {"checkpoint_on": torch.tensor(loss)}
+        # after forward-backward `has_trained` is set, this condition is also checked
+        trainer.checkpoint_connector.has_trained = True
         checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
     file_lists = set(os.listdir(tmpdir))
