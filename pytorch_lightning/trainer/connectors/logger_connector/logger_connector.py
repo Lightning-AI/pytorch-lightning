@@ -55,6 +55,7 @@ class LoggerConnector:
         )
 
     def on_evaluation_batch_start(self, testing, batch, dataloader_idx, num_dataloaders):
+        # Todo: required argument `testing` is not used
         model = self.trainer.get_model()
         # set dataloader_idx only if multiple ones
         model._current_dataloader_idx = dataloader_idx if num_dataloaders > 1 else None
@@ -167,8 +168,9 @@ class LoggerConnector:
             metrics (dict): Metric values
             grad_norm_dic (dict): Gradient norms
             step (int): Step for which metrics should be logged. Default value corresponds to `self.global_step`
-            log_train_step_metrics (bool): Used to track if log_metrics function is being called in during training steps.
-                In training steps, we will log metrics on step: total_nb_idx (for accumulated gradients) and global_step for the rest.
+            log_train_step_metrics (bool): Used to track if `log_metrics` function is being called in during training
+                steps. In training steps, we will log metrics on step: `total_nb_idx` (for accumulated gradients)
+                and global_step for the rest.
         """
         # add gpu memory
         if self.trainer.on_gpu and self.trainer.log_gpu_memory:
@@ -216,6 +218,7 @@ class LoggerConnector:
         self.__process_eval_epoch_end_results_and_log_legacy(deprecated_eval_results, test_mode)
 
     def evaluation_epoch_end(self, testing):
+        # Todo: required argument `testing` is not used
         # reset dataloader idx
         model_ref = self.trainer.get_model()
         model_ref._current_dataloader_idx = None
@@ -397,7 +400,7 @@ class LoggerConnector:
             sample_obj = opt_idx_outputs[0][0] if isinstance(opt_idx_outputs[0], list) else opt_idx_outputs[0]
             is_result_obj = len(epoch_output) > 0 and isinstance(sample_obj, Result)
             is_1_0_result = is_result_obj and 'extra' in sample_obj
-        except IndexError as e:
+        except IndexError:
             is_result_obj = False
             is_1_0_result = False
 

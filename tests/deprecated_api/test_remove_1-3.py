@@ -21,7 +21,6 @@ import torch
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.profiler.profilers import PassThroughProfiler, SimpleProfiler
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def test_tbd_remove_in_v1_3_0(tmpdir):

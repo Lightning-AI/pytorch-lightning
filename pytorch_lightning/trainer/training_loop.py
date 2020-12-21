@@ -17,12 +17,10 @@ from copy import copy, deepcopy
 
 import numpy as np
 import torch
-import torch.distributed as torch_distrib
 
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
@@ -111,6 +109,9 @@ class TrainLoop:
 
         # check that model is configured correctly
         self.trainer.config_validator.verify_loop_configurations(model)
+
+        # attach model log function to callback
+        self.trainer.callback_connector.attach_model_logging_functions(model)
 
     def setup_training(self, model: LightningModule):
         """Sanity check a few things before starting actual training.
@@ -644,7 +645,6 @@ class TrainLoop:
         grad_norm_dic = {}
 
         # bookkeeping
-        using_results_obj = False
         self.trainer.hiddens = None
 
         # track all outputs across time and num of optimizers

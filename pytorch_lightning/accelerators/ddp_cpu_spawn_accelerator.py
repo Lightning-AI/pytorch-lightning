@@ -26,7 +26,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
 from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
-from pytorch_lightning.utilities import _HYDRA_AVAILABLE, AMPType
+from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import (
     all_gather_ddp_if_available,
     find_free_network_port,
@@ -34,10 +34,6 @@ from pytorch_lightning.utilities.distributed import (
     rank_zero_warn,
     sync_ddp_if_available,
 )
-
-if _HYDRA_AVAILABLE:
-    from hydra.core.hydra_config import HydraConfig
-    from hydra.utils import get_original_cwd, to_absolute_path
 
 
 class DDPCPUSpawnAccelerator(Accelerator):
@@ -213,6 +209,7 @@ class DDPCPUSpawnAccelerator(Accelerator):
         self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
     def model_to_device(self, model, process_idx):
+        # Todo: required argument `process_idx` is not used
         model.cpu()
 
     def get_device_ids(self):
@@ -227,6 +224,7 @@ class DDPCPUSpawnAccelerator(Accelerator):
         self.trainer.model = model
 
     def transfer_distrib_spawn_state_on_fit_end(self, model, mp_queue, results):
+        # Todo: required argument `model` is not used
         # track the best model path
         best_model_path = None
         if self.trainer.checkpoint_callback is not None:

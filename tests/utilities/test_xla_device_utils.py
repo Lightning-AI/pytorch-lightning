@@ -19,11 +19,9 @@ import pytorch_lightning.utilities.xla_device_utils as xla_utils
 from pytorch_lightning.utilities import _XLA_AVAILABLE, _TPU_AVAILABLE
 from tests.base.develop_utils import pl_multi_process_test
 
-if _XLA_AVAILABLE:
-    import torch_xla.core.xla_model as xm
 
-
-# lets hope that in or env we have installed XLA only for TPU devices, otherwise, it is testing in the cycle "if I am true test that I am true :D"
+# lets hope that in or env we have installed XLA only for TPU devices, otherwise,
+#  it is testing in the cycle "if I am true test that I am true :D"
 @pytest.mark.skipif(_XLA_AVAILABLE, reason="test requires torch_xla to be absent")
 def test_tpu_device_absence():
     """Check tpu_device_exists returns None when torch_xla is not available"""

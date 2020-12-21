@@ -147,7 +147,6 @@ def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
 
     Examples:
         >>> import argparse
-        >>> import pprint
         >>> from pytorch_lightning import Trainer
         >>> parser = argparse.ArgumentParser()
         >>> parser = Trainer.add_argparse_args(parser)

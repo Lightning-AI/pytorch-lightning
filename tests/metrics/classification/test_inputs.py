@@ -22,6 +22,8 @@ from tests.metrics.utils import NUM_BATCHES, BATCH_SIZE, NUM_CLASSES, EXTRA_DIM,
 torch.manual_seed(42)
 
 # Some additional inputs to test on
+_ml_prob_half = Input(_ml_prob.preds.half(), _ml_prob.target)
+
 _mc_prob_2cls_preds = rand(NUM_BATCHES, BATCH_SIZE, 2)
 _mc_prob_2cls_preds /= _mc_prob_2cls_preds.sum(dim=2, keepdim=True)
 _mc_prob_2cls = Input(_mc_prob_2cls_preds, randint(high=2, size=(NUM_BATCHES, BATCH_SIZE)))
@@ -133,6 +135,8 @@ def _mlmd_prob_to_mc_preds_tr(x):
         (_mdmc_prob_many_dims, None, None, 2, "multi-dim multi-class", _top2_rshp2, _onehot_rshp1),
         ###########################
         # Test some special cases
+        # Make sure that half precision works, i.e. is converted to full precision
+        (_ml_prob_half, None, None, None, "multi-label", lambda x: _ml_preds_tr(x.float()), _rshp1),
         # Binary as multiclass
         (_bin, None, None, None, "multi-class", _onehot2, _onehot2),
         # Binary probs as multiclass
