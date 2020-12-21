@@ -61,13 +61,11 @@ def image_gradients(img: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         >>> image = torch.reshape(image, (1, 1, 5, 5))
         >>> dy, dx = image_gradients(image)
         >>> dy[0, 0, :, :]
-        tensor(
-            [[5. 5. 5. 5. 5.]
-            [5. 5. 5. 5. 5.]
-            [5. 5. 5. 5. 5.]
-            [5. 5. 5. 5. 5.]
-            [0. 0. 0. 0. 0.]]
-        )
+        tensor([[5. 5. 5. 5. 5.],
+            [5. 5. 5. 5. 5.],
+            [5. 5. 5. 5. 5.],
+            [5. 5. 5. 5. 5.],
+            [0. 0. 0. 0. 0.]])
 
     Notes: The implementation follows the 1-step finite difference method as followed
            by the TF implementation. The values are organized such that the gradient of
