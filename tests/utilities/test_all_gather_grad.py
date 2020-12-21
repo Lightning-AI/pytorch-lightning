@@ -1,6 +1,7 @@
 import os
-import pytest
 import sys
+
+import pytest
 import torch
 
 from pytorch_lightning import Trainer, seed_everything
@@ -57,8 +58,8 @@ def test_all_gather_properly_works(tmpdir):
         def training_epoch_end(self, outputs) -> None:
             self.training_epoch_end_called = True
             losses = torch.stack([x["loss"] for x in outputs])
-            gathered_loss = self.all_gather(
-                {"losses": losses, 
+            gathered_loss = self.all_gather({
+                "losses": losses,
                 "losses_list": [losses, losses]
             })
             assert gathered_loss["losses_list"][0].numel() == 2 * len(losses)
