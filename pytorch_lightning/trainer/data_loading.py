@@ -29,11 +29,9 @@ from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_utils import is_overridden
 
-from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
+from pytorch_lightning.utilities.xla_device_utils import _TPU_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.trainer.supporters import CombinedLoader
-
-TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 
 
 class TrainerDataLoadingMixin(ABC):

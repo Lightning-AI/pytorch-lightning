@@ -77,7 +77,7 @@ For more details please have a look at :attr:`~pytorch_lightning.trainer.trainer
             # pass loaders as a dict. This will create batches like this:
             # {'a': batch from loader_a, 'b': batch from loader_b}
             loaders = {'a': loader_a,
-                      'b': loader_b}
+                       'b': loader_b}
 
             # OR: 
             # pass loaders as sequence. This will create batches like this:
