@@ -25,7 +25,7 @@ import pytest
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from pytorch_lightning import Trainer, callbacks, seed_everything
+from pytorch_lightning import callbacks, seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -907,3 +907,45 @@ def test_progress_bar_dict_contains_values_on_test_epoch_end(tmpdir):
     trainer.test(model)
     assert model.epoch_end_called
     assert model.on_test_epoch_end_called
+
+
+def test_results_from_test_only_contains_test_callback_metrics(tmpdir):
+
+    """
+    When running trainer.test(), it should contains only the test related metrics
+    """
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            output = super().training_step(batch, batch_idx)
+            self.log("train_loss", output["loss"], on_step=True, prog_bar=True)
+            return output
+
+        def validation_step(self, batch, batch_idx):
+            output = super().validation_step(batch, batch_idx)
+            self.log("val_loss", output["x"], on_step=True, prog_bar=True)
+            return output
+
+        def test_step(self, batch, batch_idx):
+            output = super().test_step(batch, batch_idx)
+            self.log("test_loss", output["y"], on_step=True, prog_bar=True)
+            return output
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        checkpoint_callback=False,
+        logger=False,
+        weights_summary=None,
+        progress_bar_refresh_rate=0,
+    )
+    model = TestModel()
+    trainer.fit(model)
+    results = trainer.test(model)
+    expected_callback_metrics = {'test_loss_epoch', 'val_loss_epoch', 'val_loss', 'train_loss', 'test_loss'}
+    assert set(trainer.callback_metrics) == expected_callback_metrics
+    assert set(results[0]) == {'test_loss_epoch', 'test_loss'}
