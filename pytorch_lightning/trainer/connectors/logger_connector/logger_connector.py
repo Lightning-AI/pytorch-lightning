@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 from copy import deepcopy
+import numbers
+import os
 from pprint import pprint
-from typing import Iterable, Union
+from typing import Any, Iterable, Union
 
 import torch
 
@@ -23,22 +24,47 @@ from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
 from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore, LoggerStages
+from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
 from pytorch_lightning.utilities import flatten_dict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_utils import is_overridden
 
 
 class LoggerConnector:
+
+    METRICS_HOLDERS = ['callback_metrics', 'evaluation_callback_metrics', 'logged_metrics', 'progress_bar_metrics']
+
     def __init__(self, trainer):
         self.trainer = trainer
-        self.callback_metrics = {}
-        self.evaluation_callback_metrics = {}
-        self.logged_metrics = {}
-        self.progress_bar_metrics = {}
+        self._callback_metrics = MetricsHolder()
+        self._evaluation_callback_metrics = MetricsHolder()
+        self._logged_metrics = MetricsHolder()
+        self._progress_bar_metrics = MetricsHolder()
         self.eval_loop_results = []
         self._cached_results = {stage: EpochResultStore(trainer, stage) for stage in LoggerStages}
         self._callback_hook_validator = CallbackHookNameValidator()
         self._current_stage = None
+
+    def __getattr__(self, key: str) -> Any:
+        try:
+            if key in self.METRICS_HOLDERS:
+                metrics_holder = getattr(self, f"_{key}", None)
+                metrics_holder.convert(
+                    self.trainer.use_tpu,
+                    self.trainer.get_model().device
+                )
+                return metrics_holder.metrics
+            else:
+                return self[key]
+        except KeyError:
+            return None
+
+    def __setattr__(self, key: str, val: Any):
+        if key in self.METRICS_HOLDERS:
+            metrics_holder = getattr(self, f"_{key}", None)
+            metrics_holder.reset(val)
+        else:
+            self.__dict__[key] = val
 
     @property
     def cached_results(self) -> Union[EpochResultStore, None]:
