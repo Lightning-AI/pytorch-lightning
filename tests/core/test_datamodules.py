@@ -23,7 +23,6 @@ import torch.nn.functional as F
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
@@ -457,9 +456,14 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
             batch.targets = batch.targets.to(device)
             return batch
 
+<<<<<<< HEAD
     dm = CurrentTestDM()
     model = BoringModel()
 
+=======
+    model = BoringModel()
+    dm = CurrentTestDM()
+>>>>>>> pep and BoringModel
     batch = CustomBatch((torch.zeros(5, 32), torch.ones(5, 1, dtype=torch.long)))
 
     trainer = Trainer(gpus=1)
