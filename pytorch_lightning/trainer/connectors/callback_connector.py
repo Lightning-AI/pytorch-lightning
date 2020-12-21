@@ -14,9 +14,10 @@
 import os
 from typing import Union
 
-from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBar, ProgressBarBase
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.model_utils import at_least_one_overriden
 
 
 class CallbackConnector:
@@ -106,5 +107,11 @@ class CallbackConnector:
 
     def attach_model_logging_functions(self, model):
         for callback in self.trainer.callbacks:
+            if at_least_one_overriden(["log", "log_dict"], callback, Callback):
+                rank_zero_warn(
+                    "Functions `log` and `log_dict` are protected functions and would be dynamically overriden."
+                    " Please, rename your callback functions.",
+                    UserWarning
+                )
             callback.log = model.log
             callback.log_dict = model.log_dict

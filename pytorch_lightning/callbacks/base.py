@@ -178,3 +178,19 @@ class Callback(abc.ABC):
         Called after optimizer.step() and before optimizer.zero_grad().
         """
         pass
+
+    def log(self, *_, **__):
+        """
+        This function is a placeholder. Don't override this function.
+        When using Lightning Trainer, the log function from
+        the model will be attached to this callback.
+        """
+        raise NotImplementedError
+
+    def log_dict(self, *_, **__):
+        """
+        This function is a placeholder. Don't override this function.
+        When using Lightning Trainer, the log_dict function from
+        the model will be attached to this callback.
+        """
+        raise NotImplementedError

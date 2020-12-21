@@ -798,22 +798,26 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
             self.log("on_train_epoch_end", 6)
             self.callback_metrics = trainer.logger_connector.callback_metrics
 
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        max_epochs=1,
-        weights_summary=None,
-        callbacks=[LoggingCallback()]
-    )
-    trainer.fit(model)
+        def log_dict(self, *_, **__):
+            pass
 
-    expected = {
-        'on_train_start': 1,
-        'on_train_epoch_start': 2,
-        'on_batch_end': 3,
-        'on_train_batch_end': 4,
-        'on_epoch_end': 5,
-        'on_train_epoch_end': 6}
-    assert trainer.callback_metrics == expected
+    with pytest.warns(UserWarning, match="Functions `log` and `log_dict` are protected functions"):
+        model = BoringModel()
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            limit_train_batches=1,
+            limit_val_batches=1,
+            max_epochs=1,
+            weights_summary=None,
+            callbacks=[LoggingCallback()]
+        )
+        trainer.fit(model)
+
+        expected = {
+            'on_train_start': 1,
+            'on_train_epoch_start': 2,
+            'on_batch_end': 3,
+            'on_train_batch_end': 4,
+            'on_epoch_end': 5,
+            'on_train_epoch_end': 6}
+        assert trainer.callback_metrics == expected
