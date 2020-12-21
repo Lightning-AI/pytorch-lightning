@@ -14,7 +14,7 @@
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
 class ConfigValidator(object):

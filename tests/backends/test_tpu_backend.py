@@ -16,7 +16,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
+from pytorch_lightning.utilities.xla_device import XLADeviceUtils
 from tests.base.boring_model import BoringModel
 from tests.base.develop_utils import pl_multi_process_test
 
