@@ -14,7 +14,7 @@
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from typing import Union
-from pytorch_lightning.utilities import rank_zero_warn, rank_zero_info
+from pytorch_lightning.utilities import rank_zero_info
 
 
 class DebuggingConnector:

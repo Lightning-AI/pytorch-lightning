@@ -84,7 +84,8 @@ class ExternalSourcePipeline(Pipeline):
 
 class DALIClassificationLoader(DALIClassificationIterator):
     """
-    This class extends DALI's original DALIClassificationIterator with the __len__() function so that we can call len() on it
+    This class extends DALI's original `DALIClassificationIterator` with the `__len__()` function
+     so that we can call `len()` on it
     """
 
     def __init__(

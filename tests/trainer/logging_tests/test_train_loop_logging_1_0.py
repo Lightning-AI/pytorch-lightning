@@ -520,7 +520,8 @@ def test_log_works_in_train_callback(tmpdir):
         def make_logging(self, pl_module: pl.LightningModule, func_name, func_idx,
                          on_steps=[], on_epochs=[], prob_bars=[]):
             self.funcs_called_count[func_name] += 1
-            for idx, (on_step, on_epoch, prog_bar) in enumerate(list(itertools.product(*[on_steps, on_epochs, prob_bars]))):
+            iterate = list(itertools.product(*[on_steps, on_epochs, prob_bars]))
+            for idx, (on_step, on_epoch, prog_bar) in enumerate(iterate):
                 # run logging
                 custom_func_name = f"{func_idx}_{idx}_{func_name}"
                 pl_module.log(custom_func_name, self.count * func_idx, on_step=on_step,
