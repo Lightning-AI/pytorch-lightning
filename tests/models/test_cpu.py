@@ -237,10 +237,11 @@ def test_running_test_after_fitting(tmpdir):
 
 
 def test_running_test_no_val(tmpdir):
-    """Verify `test()` works on a model with no `val_loader`."""
+    """Verify `test()` works on a model with no `val_dataloader`. It performs
+    train and test only"""
     class ModelTrainTest(BoringModel):
 
-        def val_loader(self):
+        def val_dataloader(self):
             pass
 
         def test_epoch_end(self, outputs) -> None:
