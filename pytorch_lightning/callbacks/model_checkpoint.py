@@ -580,12 +580,6 @@ class ModelCheckpoint(Callback):
         epoch = metrics.get("epoch")
         step = metrics.get("step")
 
-        if current is not None:
-            if isinstance(current, Metric):
-                current = current.compute()
-            elif isinstance(current, numbers.Number):
-                current = torch.tensor(current, device=pl_module.device, dtype=torch.float)
-
         if self.check_monitor_top_k(current):
             self._update_best_and_save(current, epoch, step, trainer, pl_module, metrics)
         elif self.verbose:

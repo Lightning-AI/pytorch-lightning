@@ -280,6 +280,7 @@ class LightningModule(
                 accelerator.sync_tensor,
                 self._current_dataloader_idx,
                 self.device,
+                self.trainer.use_tpu,
             )
 
     def log_dict(

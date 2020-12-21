@@ -28,7 +28,7 @@ import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.utilities import TPU_AVAILABLE, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
 
 
 class EarlyStopping(Callback):
@@ -202,15 +202,6 @@ class EarlyStopping(Callback):
 
         # when in dev debugging
         trainer.dev_debugger.track_early_stopping_history(self, current)
-
-        if current is not None:
-            if isinstance(current, Metric):
-                current = current.compute()
-            elif isinstance(current, numbers.Number):
-                current = torch.tensor(current, device=pl_module.device, dtype=torch.float)
-
-        if trainer.use_tpu and TPU_AVAILABLE:
-            current = current.cpu()
 
         if self.monitor_op(current - self.min_delta, self.best_score):
             self.best_score = current

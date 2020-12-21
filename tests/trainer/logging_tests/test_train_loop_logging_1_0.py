@@ -847,7 +847,7 @@ def test_metric_are_properly_reduced(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         gpus=1,
-        max_epochs=2,
+        max_epochs=3,
         limit_train_batches=5,
         limit_val_batches=32,
         callbacks=[early_stop, checkpoint])

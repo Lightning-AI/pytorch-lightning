@@ -24,6 +24,7 @@ from torch import Tensor
 
 from pytorch_lightning.metrics import Metric
 from pytorch_lightning.utilities.distributed import sync_ddp_if_available
+from pytorch_lightning.utilities import TPU_AVAILABLE
 
 
 class Result(Dict):
@@ -129,6 +130,7 @@ class Result(Dict):
         sync_fn: Callable = None,
         dataloader_idx: Optional[int] = None,
         device: torch.device = None,
+        use_tpu: bool = False,
     ):
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
@@ -144,6 +146,9 @@ class Result(Dict):
             else:
                 value = torch.tensor(value, device=device, dtype=torch.float)
             value = sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
+
+        if use_tpu and TPU_AVAILABLE:
+            value = value.cpu()
 
         if 'meta' not in self:
             self.__setitem__('meta', {})
