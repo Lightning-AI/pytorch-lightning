@@ -215,8 +215,7 @@ class ModelCheckpoint(Callback):
     def on_load_checkpoint(self, checkpointed_state: Dict[str, Any]):
         self.best_model_score = checkpointed_state["best_model_score"]
         self.best_model_path = checkpointed_state["best_model_path"]
-        if "dirpath" in checkpointed_state:
-            self.dirpath = checkpointed_state["dirpath"]
+        self.dirpath = checkpointed_state.get("dirpath", self.dirpath)
 
     def save_checkpoint(self, trainer, pl_module):
         """
