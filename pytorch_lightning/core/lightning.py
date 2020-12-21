@@ -1126,7 +1126,6 @@ class LightningModule(
 
         # backward
         self._running_manual_backward = True
-        loss /= self.trainer.accumulate_grad_batches
         self.trainer.train_loop.backward(loss, optimizer, -1, *args, **kwargs)
         self._running_manual_backward = False
 

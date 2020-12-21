@@ -834,6 +834,8 @@ class TrainLoop:
 
         # backward can be called manually in the training loop
         if isinstance(result, torch.Tensor):
+            # scale loss under accumulate_grad_batches > 1 and manual_backward
+            result = self.scale_closure_loss(result)
             self.trainer.accelerator_backend.backward(result, optimizer, opt_idx, *args, **kwargs)
         else:
             result.closure_loss = self.trainer.accelerator_backend.backward(
@@ -978,3 +980,9 @@ class TrainLoop:
 
         # reset for next set of accumulated grads
         self.accumulated_loss.reset()
+
+    def scale_closure_loss(self, loss: torch.Tensor) -> torch.Tensor:
+        model_ref = self.trainer.get_model()
+        if model_ref._running_manual_backward:
+            loss /= self.trainer.accumulate_grad_batches
+        return loss
