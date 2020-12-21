@@ -85,7 +85,7 @@ RUN python -c "fname = 'environment.yml' ; req = open(fname).read().replace('pyt
     conda env create --file environment.yml && \
     conda init bash && \
     source activate $CONDA_ENV && \
-    conda install pytorch=${PYTORCH_VERSION} cudatoolkit=${CUDA_VERSION} -c {PYTORCH_CHANNEL} && \
+    conda install pytorch=${PYTORCH_VERSION} cudatoolkit=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} && \
     source deactivate && \
     conda clean -ya && \
     rm environment.yml
