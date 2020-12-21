@@ -14,17 +14,17 @@
 
 """[Train, Eval]Result for easier logging, checkpointing, early stopping, epoch-wise reduction."""
 
+from copy import copy
 import numbers
 import os
-from copy import copy
 from typing import Any, Callable, Dict, Iterable, List, MutableMapping, Optional, Sequence, Tuple, Union
 
 import torch
 from torch import Tensor
 
 from pytorch_lightning.metrics import Metric
-from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 from pytorch_lightning.utilities import TPU_AVAILABLE
+from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 
 
 class Result(Dict):
@@ -146,9 +146,6 @@ class Result(Dict):
             else:
                 value = torch.tensor(value, device=device, dtype=torch.float)
             value = sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
-
-        if use_tpu and TPU_AVAILABLE:
-            value = value.cpu()
 
         if 'meta' not in self:
             self.__setitem__('meta', {})
