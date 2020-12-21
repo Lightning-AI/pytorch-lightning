@@ -234,14 +234,14 @@ class ModelCheckpoint(Callback):
         global_step = trainer.global_step
         should_save = not (
             # negative conditions
-            self.save_top_k == 0 or
-            self.period < 1 or
-            (epoch + 1) % self.period or
-            # don't save anything during sanity check
-            trainer.running_sanity_check
+            self.save_top_k == 0
+            or self.period < 1
+            or (epoch + 1) % self.period
+            or trainer.running_sanity_check
         ) or (
             # positive conditions
-            is_last and self.save_last  # user required to save the last model
+            is_last
+            and self.save_last  # user required to save the last model
         )
         # already saved at the last step
         should_skip = self.last_global_step_saved == global_step
