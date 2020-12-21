@@ -19,17 +19,15 @@ import torch.nn.functional as F
 from pytorch_lightning.metrics.utils import _check_same_shape
 
 
-def _image_gradients_validate(img: torch.Tensor, device: torch.device) -> torch.Tensor:
+def _image_gradients_validate(img: torch.Tensor) -> torch.Tensor:
 
     if not isinstance(img, torch.Tensor):
         raise TypeError(f"`img` expects a value of <torch.Tensor> type but got {type(img)}")
-    if not isinstance(device, torch.device):
-        raise TypeError(f"`device` expects a value of <torch.device> type but got {type(device)}")
     if img.ndim != 3 and img.ndim != 4:
         raise RuntimeError(f"`img` expects a 3D or 4D tensor but got {img.ndim}D tensor")
 
 
-def _compute_image_gradients(img: torch.Tensor, device: torch.device) -> Tuple[torch.Tensor, torch.Tensor]:
+def _compute_image_gradients(img: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 
     batch_size, channels, height, width = img.shape
 
@@ -37,17 +35,17 @@ def _compute_image_gradients(img: torch.Tensor, device: torch.device) -> Tuple[t
     dx = img[..., :, 1:] - img[..., :, :-1]
 
     shapey = [batch_size, channels, 1, width]
-    dy = torch.cat([dy, torch.zeros(shapey, device=device, dtype=img.dtype)], dim=2)
+    dy = torch.cat([dy, torch.zeros(shapey, device=img.device, dtype=img.dtype)], dim=2)
     dy = dy.view(img.shape)
 
     shapex = [batch_size, channels, height, 1]
-    dx = torch.cat([dx, torch.zeros(shapex, device=device, dtype=img.dtype)], dim=3)
+    dx = torch.cat([dx, torch.zeros(shapex, device=img.device, dtype=img.dtype)], dim=3)
     dx = dx.view(img.shape)
 
     return dy, dx
 
 
-def image_gradients(img: torch.Tensor, device: torch.device) -> Tuple[torch.Tensor, torch.Tensor]:
+def image_gradients(img: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Computes the gradients of a given Image
 
@@ -59,9 +57,9 @@ def image_gradients(img: torch.Tensor, device: torch.device) -> Tuple[torch.Tens
         Tuple of the gradients i.e (dy, dx) of shape [BATCH_SIZE, CHANNELS, HEIGHT, WIDTH]
 
     Example:
-        >>> image = torch.arange(0, 1*1*5*5, dtype=torch.float32, device=torch.device('cuda'))
+        >>> image = torch.arange(0, 1*1*5*5, dtype=torch.float32)
         >>> image = torch.reshape(image, (1, 1, 5, 5))
-        >>> dy, dx = image_gradients(image, torch.device('cuda'))
+        >>> dy, dx = image_gradients(image)
         >>> dy[0, 0, :, :]
         tensor(
             [[5. 5. 5. 5. 5.]
@@ -75,6 +73,6 @@ def image_gradients(img: torch.Tensor, device: torch.device) -> Tuple[torch.Tens
            by the TF implementation. The values are organized such that the gradient of
            [I(x+1, y)-[I(x, y)]] are at the (x, y) location
     """
-    _image_gradients_validate(img, device)
+    _image_gradients_validate(img)
 
-    return _compute_image_gradients(img, device)
+    return _compute_image_gradients(img)

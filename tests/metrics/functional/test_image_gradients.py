@@ -22,7 +22,7 @@ def test_invalid_input_device_type():
 
     device = "cpu"
 
-    image = torch.arange(0, BATCH_SIZE * HEIGHT * WIDTH * CHANNELS, dtype=torch.float32, device=device)
+    image = torch.arange(0, BATCH_SIZE * HEIGHT * WIDTH * CHANNELS, dtype=torch.float32)
     image = torch.reshape(image, (HEIGHT, WIDTH))
 
     with pytest.raises(TypeError):
@@ -40,13 +40,11 @@ def test_invalid_input_ndims():
     WIDTH = 5
     CHANNELS = 1
 
-    device = torch.device("cpu")
-
-    image = torch.arange(0, BATCH_SIZE * HEIGHT * WIDTH * CHANNELS, dtype=torch.float32, device=device)
+    image = torch.arange(0, BATCH_SIZE * HEIGHT * WIDTH * CHANNELS, dtype=torch.float32)
     image = torch.reshape(image, (HEIGHT, WIDTH))
 
     with pytest.raises(RuntimeError):
-        image_gradients(image, device)
+        image_gradients(image)
 
 
 def test_multi_batch_image_gradients():
@@ -60,9 +58,7 @@ def test_multi_batch_image_gradients():
     WIDTH = 5
     CHANNELS = 1
 
-    device = torch.device("cpu")
-
-    single_channel_img = torch.arange(0, 1 * HEIGHT * WIDTH * CHANNELS, dtype=torch.float32, device=device)
+    single_channel_img = torch.arange(0, 1 * HEIGHT * WIDTH * CHANNELS, dtype=torch.float32)
     single_channel_img = torch.reshape(single_channel_img, (CHANNELS, HEIGHT, WIDTH))
     image = torch.stack([single_channel_img for _ in range(BATCH_SIZE)], dim=0)
 
@@ -84,7 +80,7 @@ def test_multi_batch_image_gradients():
     true_dy = torch.Tensor(true_dy)
     true_dx = torch.Tensor(true_dx)
 
-    dy, dx = image_gradients(image, device)
+    dy, dx = image_gradients(image)
 
     for batch_id in range(BATCH_SIZE):
         assert torch.allclose(dy[batch_id, 0, :, :], true_dy)
@@ -104,7 +100,7 @@ def test_image_gradients():
 
     device = torch.device("cpu")
 
-    image = torch.arange(0, BATCH_SIZE * HEIGHT * WIDTH * CHANNELS, dtype=torch.float32, device=device)
+    image = torch.arange(0, BATCH_SIZE * HEIGHT * WIDTH * CHANNELS, dtype=torch.float32)
     image = torch.reshape(image, (BATCH_SIZE, CHANNELS, HEIGHT, WIDTH))
 
     true_dy = [
@@ -126,7 +122,7 @@ def test_image_gradients():
     true_dy = torch.Tensor(true_dy)
     true_dx = torch.Tensor(true_dx)
 
-    dy, dx = image_gradients(image, device=device)
+    dy, dx = image_gradients(image)
 
     assert torch.allclose(dy, true_dy), "dy fails test"
     assert torch.allclose(dx, true_dx), "dx fails tests"
