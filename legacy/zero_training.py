@@ -37,7 +37,7 @@ class RandomDataset(Dataset):
         return self.len
 
 
-class BoringModel(pl.LightningModule):
+class DummyModel(pl.LightningModule):
 
     def __init__(self):
         super().__init__()
@@ -87,7 +87,7 @@ def main_train(dir_path, max_epochs: int = 5):
         max_epochs=max_epochs,
     )
 
-    model = BoringModel()
+    model = DummyModel()
     trainer.fit(model)
 
 

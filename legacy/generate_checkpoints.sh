@@ -28,6 +28,9 @@ do
 
   python "$LEGACY_PATH/zero_training.py"
 
+  mv ${LEGACY_PATH}/checkpoints/${ver}/lightning_logs/version_0/checkpoints/*.ckpt ${LEGACY_PATH}/checkpoints/${ver}/
+  rm -rf ${LEGACY_PATH}/checkpoints/${ver}/lightning_logs
+
   deactivate
   # clear env
   rm -rf $ENV_PATH
