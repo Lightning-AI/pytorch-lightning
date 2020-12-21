@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import numbers
-from typing import Any, Dict
+from typing import Any
 
 import torch
 
@@ -62,7 +62,7 @@ class MetricsHolder:
         if current is not None:
             if isinstance(current, Metric):
                 current = current.compute()
-            
+
             elif isinstance(current, numbers.Number):
                 if device is None:
                     current = torch.tensor(current, dtype=torch.float)

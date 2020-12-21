@@ -26,7 +26,7 @@ import torch
 from torch.utils.data import Dataset
 
 import pytorch_lightning as pl
-from pytorch_lightning import callbacks, Trainer
+from pytorch_lightning import Trainer, callbacks
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
@@ -740,6 +740,7 @@ def test_logging_sync_dist_true_gpu(tmpdir):
 
     assert trainer.logged_metrics['foo'] == fake_result
     assert trainer.logged_metrics['bar'] == fake_result
+
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
 def test_metric_are_properly_reduced(tmpdir):
