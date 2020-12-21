@@ -123,12 +123,6 @@ class Accuracy(Metric):
         self.top_k = top_k
         self.subset_accuracy = subset_accuracy
 
-        if top_k is not None and top_k <= 0:
-            raise ValueError("The `top_k` should be an integer larger than 1.")
-        self.top_k = top_k
-
-        self.subset_accuracy = subset_accuracy
-
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
         Update state with predictions and targets. See :ref:`metrics:Input types` for more information
