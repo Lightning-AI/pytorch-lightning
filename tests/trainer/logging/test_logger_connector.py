@@ -268,7 +268,9 @@ def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, m
 
 def test_call_back_validator(tmpdir):
 
-    funcs_name = sorted([f for f in dir(Callback) if not f.startswith('_')])
+    # empty functions which will be dynamically replaced in `.setup_fit` function
+    placeholders = ["log", "log_dict"]
+    funcs_name = sorted([f for f in dir(Callback) if (not f.startswith('_') and f not in placeholders)])
 
     callbacks_func = [
         'on_after_backward',
