@@ -29,7 +29,7 @@ FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel-ubuntu18.04
 ARG PYTHON_VERSION=3.7
 ARG PYTORCH_VERSION=1.6
 ARG PYTORCH_CHANNEL=pytorch
-ARG CONDA_VERSION=latest
+ARG CONDA_VERSION=4.7.12
 
 SHELL ["/bin/bash", "-c"]
 
@@ -45,8 +45,7 @@ RUN apt-get update -qq && \
     && \
 
 # Install conda and python.
-# NOTE new Conda does not forward the exit status
-# https://github.com/conda/conda/issues/8385 has been fixed.
+# NOTE new Conda does not forward the exit status... https://github.com/conda/conda/issues/8385
     curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-${CONDA_VERSION}-Linux-x86_64.sh  && \
     chmod +x ~/miniconda.sh && \
     ~/miniconda.sh -b && \
