@@ -51,7 +51,8 @@ class LightningOptimizer:
 
         # For Horovod
         if hasattr(optimizer, "skip_synchronize"):
-            self.__class__ = type("Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__.__bases__[0]), {})
+            self.__class__ = type("Lightning" + optimizer.__class__.__name__,
+                                  (self.__class__, optimizer.__class__.__bases__[0]), {})
             self.skip_synchronize = optimizer.skip_synchronize
             self.synchronize = optimizer.synchronize
         else:

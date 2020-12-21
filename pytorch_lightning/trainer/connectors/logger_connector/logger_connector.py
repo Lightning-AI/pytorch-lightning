@@ -168,8 +168,9 @@ class LoggerConnector:
             metrics (dict): Metric values
             grad_norm_dic (dict): Gradient norms
             step (int): Step for which metrics should be logged. Default value corresponds to `self.global_step`
-            log_train_step_metrics (bool): Used to track if log_metrics function is being called in during training steps.
-                In training steps, we will log metrics on step: total_nb_idx (for accumulated gradients) and global_step for the rest.
+            log_train_step_metrics (bool): Used to track if `log_metrics` function is being called in during training
+                steps. In training steps, we will log metrics on step: `total_nb_idx` (for accumulated gradients)
+                and global_step for the rest.
         """
         # add gpu memory
         if self.trainer.on_gpu and self.trainer.log_gpu_memory:
