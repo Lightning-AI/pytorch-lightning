@@ -185,7 +185,7 @@ class Callback(abc.ABC):
         When using Lightning Trainer, the log function from
         the model will be attached to this callback.
         """
-        raise NotImplementedError
+        pass
 
     def log_dict(self, *_, **__):
         """
