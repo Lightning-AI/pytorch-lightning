@@ -37,8 +37,8 @@ class LoggerConnector:
     def __init__(self, trainer):
         self.trainer = trainer
         self._callback_metrics = MetricsHolder()
-        self._evaluation_callback_metrics = MetricsHolder()
-        self._logged_metrics = MetricsHolder()
+        self._evaluation_callback_metrics = MetricsHolder(to_float=True)
+        self._logged_metrics = MetricsHolder(to_float=True)
         self._progress_bar_metrics = MetricsHolder()
         self.eval_loop_results = []
         self._cached_results = {stage: EpochResultStore(trainer, stage) for stage in LoggerStages}
@@ -178,10 +178,10 @@ class LoggerConnector:
         if len(pbar_metrics_tmp) > 0:
             self.add_progress_bar_metrics(pbar_metrics_tmp)
 
-        self.callback_metrics.update(callback_metrics_tmp)
+        self._callback_metrics.update(callback_metrics_tmp)
 
         # save legacy log metrics
-        self.logged_metrics.update(logged_metrics_tmp)
+        self._logged_metrics.update(logged_metrics_tmp)
         self.cached_results.legacy_batch_log_metrics.update(logged_metrics_tmp)
 
     def log_metrics(self, metrics, grad_norm_dic, step=None, log_train_step_metrics=False):
@@ -233,7 +233,7 @@ class LoggerConnector:
             if isinstance(v, torch.Tensor):
                 v = v.item()
 
-            self.progress_bar_metrics[k] = v
+            self._progress_bar_metrics.metrics[k] = v
 
         self.trainer.dev_debugger.track_pbar_metrics_history(metrics)
 
@@ -298,11 +298,11 @@ class LoggerConnector:
         if using_eval_result:
             if isinstance(eval_results, list):
                 for eval_result in eval_results:
-                    self.trainer.logger_connector.callback_metrics.update(eval_result.callback_metrics)
-                    self.trainer.logger_connector.evaluation_callback_metrics.update(eval_result.callback_metrics)
+                    self.trainer.logger_connector._callback_metrics.update(eval_result.callback_metrics)
+                    self.trainer.logger_connector._evaluation_callback_metrics.update(eval_result.callback_metrics)
             else:
-                self.trainer.logger_connector.callback_metrics.update(eval_results.callback_metrics)
-                self.trainer.logger_connector.evaluation_callback_metrics.update(eval_results.callback_metrics)
+                self.trainer.logger_connector._callback_metrics.update(eval_results.callback_metrics)
+                self.trainer.logger_connector._evaluation_callback_metrics.update(eval_results.callback_metrics)
         else:
             flat = {}
             if isinstance(eval_results, list):
@@ -317,8 +317,8 @@ class LoggerConnector:
                     if 'val_loss' in flat:
                         flat['checkpoint_on'] = flat['val_loss']
                         flat['early_stop_on'] = flat['val_loss']
-                    self.trainer.logger_connector.callback_metrics.update(flat)
-                    self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
+                    self.trainer.logger_connector._callback_metrics.update(flat)
+                    self.trainer.logger_connector._evaluation_callback_metrics.update(flat)
             else:
                 # with a scalar return, auto set it to "val_loss" for callbacks
                 if isinstance(eval_results, torch.Tensor):
@@ -330,8 +330,8 @@ class LoggerConnector:
                 if 'val_loss' in flat:
                     flat['checkpoint_on'] = flat['val_loss']
                     flat['early_stop_on'] = flat['val_loss']
-                self.trainer.logger_connector.callback_metrics.update(flat)
-                self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
+                self.trainer.logger_connector._callback_metrics.update(flat)
+                self.trainer.logger_connector._evaluation_callback_metrics.update(flat)
 
     def __process_eval_epoch_end_results_and_log_legacy_update(self, prog_bar_metrics, log_metrics, callback_metrics):
         # eval loop returns all metrics
@@ -347,8 +347,8 @@ class LoggerConnector:
         # track metrics for callbacks (all prog bar, logged and callback metrics)
         callback_metrics.update(log_metrics)
         callback_metrics.update(prog_bar_metrics)
-        self.trainer.logger_connector.callback_metrics.update(callback_metrics)
-        self.trainer.logger_connector.evaluation_callback_metrics.update(callback_metrics)
+        self.trainer.logger_connector._callback_metrics.update(callback_metrics)
+        self.trainer.logger_connector._evaluation_callback_metrics.update(callback_metrics)
 
         if len(dataloader_result_metrics) > 0:
             self.eval_loop_results.append(dataloader_result_metrics)
@@ -458,15 +458,15 @@ class LoggerConnector:
         # add the metrics to the loggers and callbacks
         if epoch_log_metrics and len(epoch_log_metrics) > 0:
             self.log_metrics(epoch_log_metrics, {})
-            self.callback_metrics.update(epoch_log_metrics)
+            self._callback_metrics.update(epoch_log_metrics)
 
         # add metrics to callbacks
-        self.callback_metrics.update(epoch_callback_metrics)
+        self._callback_metrics.update(epoch_callback_metrics)
 
         # add metrics to progress_bar and callbacks
         if len(epoch_progress_bar_metrics) > 0:
             self.add_progress_bar_metrics(epoch_progress_bar_metrics)
-            self.callback_metrics.update(epoch_progress_bar_metrics)
+            self._callback_metrics.update(epoch_progress_bar_metrics)
 
         # reset epoch loop result for next epoch
         self.cached_results.reset()
@@ -622,4 +622,4 @@ class LoggerConnector:
                 grad_norm_dic = {}
             if len(batch_log_metrics) > 0 or len(grad_norm_dic) > 0:
                 self.log_metrics(batch_log_metrics, grad_norm_dic, log_train_step_metrics=True)
-                self.callback_metrics.update(batch_log_metrics)
+                self._callback_metrics.update(batch_log_metrics)
