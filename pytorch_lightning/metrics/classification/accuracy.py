@@ -52,7 +52,7 @@ class Accuracy(Metric):
             Should be left at default (``None``) for all other types of inputs.
         subset_accuracy:
             Whether to compute subset accuracy for multi-label and multi-dimensional
-            multi-class inputs (has no effect for other input types). Default: `False`
+            multi-class inputs (has no effect for other input types).
 
             For multi-label inputs, if the parameter is set to `True`, then all labels for
             each sample must be correctly predicted for the sample to count as correct. If it
@@ -66,7 +66,7 @@ class Accuracy(Metric):
             ``preds = preds.flatten()`` and same for ``target``). Note that the ``top_k`` parameter
             still applies in both cases, if set.
         compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False. default: True
+            Forward only calls ``update()`` and return None if this is set to False.
         dist_sync_on_step:
             Synchronize metric state across processes at each ``forward()``
             before returning the value at the step. default: False
