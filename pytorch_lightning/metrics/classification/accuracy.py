@@ -36,14 +36,14 @@ class Accuracy(Metric):
     For multi-label and multi-dimensional multi-class inputs, this metric computes the "global"
     accuracy by default, which counts all labels or sub-samples separately. This can be
     changed to subset accuracy (which requires all labels or sub-samples in the sample to
-    be correctly predicted) by setting `subset_accuracy=True`.
+    be correctly predicted) by setting ``subset_accuracy=True``.
 
     Accepts all input types listed in :ref:`metrics:Input types`.
 
     Args:
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            `(0,1)` predictions, in the case of binary or multi-label inputs. Default: `0.5`
+            `(0,1)` predictions, in the case of binary or multi-label inputs.
         top_k:
             Number of highest probability predictions considered to find the correct label, relevant
             only for (multi-dimensional) multi-class inputs with probability predictions. The
@@ -52,7 +52,7 @@ class Accuracy(Metric):
             Should be left at default (``None``) for all other types of inputs.
         subset_accuracy:
             Whether to compute subset accuracy for multi-label and multi-dimensional
-            multi-class inputs (has no effect for other input types). Default: `False`
+            multi-class inputs (has no effect for other input types).
 
             For multi-label inputs, if the parameter is set to `True`, then all labels for
             each sample must be correctly predicted for the sample to count as correct. If it
@@ -66,7 +66,7 @@ class Accuracy(Metric):
             ``preds = preds.flatten()`` and same for ``target``). Note that the ``top_k`` parameter
             still applies in both cases, if set.
         compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False. default: True
+            Forward only calls ``update()`` and return None if this is set to False.
         dist_sync_on_step:
             Synchronize metric state across processes at each ``forward()``
             before returning the value at the step. default: False
@@ -115,7 +115,13 @@ class Accuracy(Metric):
 
         if not 0 <= threshold <= 1:
             raise ValueError("The `threshold` should lie in the [0,1] interval.")
+
+        if top_k is not None and top_k <= 0:
+            raise ValueError("The `top_k` should be an integer larger than 1.")
+
         self.threshold = threshold
+        self.top_k = top_k
+        self.subset_accuracy = subset_accuracy
 
         if top_k is not None and top_k <= 0:
             raise ValueError("The `top_k` should be an integer larger than 1.")
@@ -130,7 +136,7 @@ class Accuracy(Metric):
 
         Args:
             preds: Predictions from model (probabilities, or labels)
-            target: Ground truth values
+            target: Ground truth labels
         """
 
         correct, total = _accuracy_update(

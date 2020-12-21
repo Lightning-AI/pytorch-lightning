@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import math
 from typing import List, Tuple, Union
 
 import torch
@@ -19,10 +18,10 @@ from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.precision_plugin import PrecisionPlugin
-from pytorch_lightning.utilities import APEX_AVAILABLE, AMPType
+from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 
-if APEX_AVAILABLE:
+if _APEX_AVAILABLE:
     from apex import amp
 
 

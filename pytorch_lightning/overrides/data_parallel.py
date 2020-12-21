@@ -155,6 +155,7 @@ class LightningDistributedDataParallel(DistributedDataParallel):
     """
     Override the forward call in lightning so it goes to training and validation step respectively
     """
+    PREPARE_FOR_BACKWARDS = True
 
     def parallel_apply(self, replicas, inputs, kwargs):
         return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
@@ -165,6 +166,7 @@ class LightningDistributedDataParallel(DistributedDataParallel):
         fx_called: str = ''
 
         if self.device_ids:
+
             inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)
             if len(self.device_ids) == 1:
                 # --------------
@@ -195,7 +197,7 @@ class LightningDistributedDataParallel(DistributedDataParallel):
             else:
                 output = self.module.validation_step(*inputs, **kwargs)
 
-        if not self._reducer_prepared_for_backwards:
+        if not self._reducer_prepared_for_backwards and self.PREPARE_FOR_BACKWARDS:
             self.reducer_prepare_for_backwards(output)
 
         if output is None:
@@ -255,7 +257,6 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
 
     def _worker(i, module, input, kwargs, device=None):
         torch.set_grad_enabled(grad_enabled)
-        fx_called: str = ''
         if device is None:
             device = get_a_var(input).get_device()
         try:

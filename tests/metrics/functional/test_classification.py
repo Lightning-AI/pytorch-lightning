@@ -15,13 +15,13 @@ from pytorch_lightning.metrics.functional.classification import (
     stat_scores_multiple_classes,
     precision,
     recall,
-    _binary_clf_curve,
     dice_score,
     auroc,
     multiclass_auroc,
     auc,
     iou,
 )
+from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve
 from pytorch_lightning.metrics.utils import to_onehot, get_num_classes, to_categorical
 
 
@@ -150,7 +150,8 @@ def test_stat_scores(pred, target, expected_tp, expected_fp, expected_tn, expect
     pytest.param(to_onehot(torch.tensor([0., 2., 4., 4.])), torch.tensor([0., 4., 3., 4.]), 'elementwise_mean',
                  torch.tensor(0.4), torch.tensor(0.4), torch.tensor(2.8), torch.tensor(0.4), torch.tensor(0.8))
 ])
-def test_stat_scores_multiclass(pred, target, reduction, expected_tp, expected_fp, expected_tn, expected_fn, expected_support):
+def test_stat_scores_multiclass(pred, target, reduction,
+                                expected_tp, expected_fp, expected_tn, expected_fn, expected_support):
     tp, fp, tn, fn, sup = stat_scores_multiple_classes(pred, target, reduction=reduction)
 
     assert torch.allclose(torch.tensor(expected_tp).to(tp), tp)
@@ -186,7 +187,7 @@ def test_binary_clf_curve(sample_weight, pos_label, exp_shape):
     if sample_weight is not None:
         sample_weight = torch.ones_like(pred) * sample_weight
 
-    fps, tps, thresh = _binary_clf_curve(pred, target, sample_weight, pos_label)
+    fps, tps, thresh = _binary_clf_curve(preds=pred, target=target, sample_weights=sample_weight, pos_label=pos_label)
 
     assert isinstance(tps, torch.Tensor)
     assert isinstance(fps, torch.Tensor)

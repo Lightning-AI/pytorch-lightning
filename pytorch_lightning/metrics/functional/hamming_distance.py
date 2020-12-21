@@ -17,7 +17,9 @@ import torch
 from pytorch_lightning.metrics.classification.helpers import _input_format_classification
 
 
-def _hamming_distance_update(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5) -> Tuple[torch.Tensor, int]:
+def _hamming_distance_update(
+    preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5
+) -> Tuple[torch.Tensor, int]:
     preds, target, _ = _input_format_classification(preds, target, threshold=threshold)
 
     correct = (preds == target).sum()
@@ -49,9 +51,11 @@ def hamming_distance(preds: torch.Tensor, target: torch.Tensor, threshold: float
     Accepts all input types listed in :ref:`metrics:Input types`.
 
     Args:
+        preds: Predictions from model
+        target: Ground truth
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
+            (0,1) predictions, in the case of binary or multi-label inputs.
 
     Example:
 

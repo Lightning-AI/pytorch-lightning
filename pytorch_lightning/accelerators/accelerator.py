@@ -11,20 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from contextlib import contextmanager
-from enum import Enum
 from typing import Any, Optional, Union
 
 import torch
-import torch.distributed as torch_distrib
 from torch.optim import Optimizer
 
+from pytorch_lightning.cluster_environments import ClusterEnvironment
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
+from pytorch_lightning.plugins.rpc_plugin import RPCPlugin
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
 
 if torch.distributed.is_available():
@@ -36,7 +33,10 @@ else:
 
 class Accelerator(object):
 
-    def __init__(self, trainer=None, cluster_environment=None, ddp_plugin=None):
+    def __init__(self,
+                 trainer: Optional = None,
+                 cluster_environment: Optional[ClusterEnvironment] = None,
+                 ddp_plugin: Optional[DDPPlugin] = None):
         self.trainer = trainer
         self.nickname = None
         self.cluster_environment = cluster_environment
@@ -175,6 +175,20 @@ class Accelerator(object):
         """
         raise NotImplementedError()
 
+    def all_gather(self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False):
+        """
+        Function to gather a tensor from several distributed processes
+
+        Args:
+            tensor: tensor of shape (batch, ...)
+            group: the process group to gather results from. Defaults to all processes (world)
+            sync_grads: flag that allows users to synchronize gradients for all_gather op
+
+        Return:
+            A tensor of shape (world_size, batch, ...)
+        """
+        raise NotImplementedError()
+
     def optimizer_state(self, optimizer: Optimizer) -> dict:
         """
         Returns state of an optimizer. Allows for syncing/collating optimizer state from processes in custom
@@ -222,6 +236,18 @@ class Accelerator(object):
     def on_save(self, checkpoint):
         return checkpoint
 
+    @property
+    def rpc_enabled(self):
+        return self.ddp_plugin is not None and isinstance(self.ddp_plugin, RPCPlugin)
+
+    @property
+    def distributed_sampler_kwargs(self):
+        raise NotImplementedError
+
+    @property
+    def require_distributed_sampler(self):
+        raise NotImplementedError
+
     @contextmanager
     def block_ddp_plugin_sync_behaviour(self):
         """
@@ -231,16 +257,3 @@ class Accelerator(object):
         """
         cm = self.ddp_plugin.block_backward_sync(self.trainer.model) if self.ddp_plugin else None
         yield cm
-
-
-# TODO: allow user to compare with string even internaly we shall use these Enum to prevent typos...
-class BackendType(Enum):
-    DP = 'dp'
-    DDP = 'ddp'
-    DDP2 = 'ddp2'
-    DDP_SPAWN = 'ddp_spawn'
-    # decuple distrib and device
-    DDP_CPU = 'ddp_cpu'
-    HOROVOD = 'horovod'
-    # this is rather device
-    TPU = 'tpu'

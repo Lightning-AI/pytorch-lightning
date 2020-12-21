@@ -15,7 +15,7 @@
 from pytorch_lightning import _logger as log
 from pytorch_lightning.plugins.apex import ApexPlugin
 from pytorch_lightning.plugins.native_amp import NativeAMPPlugin
-from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVAILABLE, AMPType, rank_zero_warn
+from pytorch_lightning.utilities import _APEX_AVAILABLE, _NATIVE_AMP_AVAILABLE, AMPType, rank_zero_warn
 
 
 class PrecisionConnector:
@@ -48,7 +48,7 @@ class PrecisionConnector:
         amp_type = amp_type.lower()
         assert amp_type in ('native', 'apex'), f'Unsupported amp type {amp_type}'
         if amp_type == 'native':
-            if not NATIVE_AMP_AVAILABLE:
+            if not _NATIVE_AMP_AVAILABLE:
                 rank_zero_warn('You have asked for native AMP but your PyTorch version does not support it.'
                                ' Consider upgrading with `pip install torch>=1.6`.'
                                ' We will attempt to use NVIDIA Apex for this session.')
@@ -59,7 +59,7 @@ class PrecisionConnector:
                 self.backend = NativeAMPPlugin(self.trainer)
 
         if amp_type == 'apex':
-            if not APEX_AVAILABLE:
+            if not _APEX_AVAILABLE:
                 rank_zero_warn('You have asked for Apex AMP but you have not installed it yet.'
                                ' Install apex first using this guide: https://github.com/NVIDIA/apex#linux')
             else:

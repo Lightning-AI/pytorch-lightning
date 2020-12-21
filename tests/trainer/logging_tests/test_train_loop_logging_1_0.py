@@ -27,6 +27,7 @@ from torch.utils.data import Dataset
 
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer, callbacks
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
 from tests.base.deterministic_model import DeterministicModel
@@ -88,7 +89,7 @@ def test__training_step__log(tmpdir):
         max_epochs=2,
         log_every_n_steps=1,
         weights_summary=None,
-        checkpoint_callback=callbacks.ModelCheckpoint(monitor='l_se')
+        callbacks=[ModelCheckpoint(monitor='l_se')],
     )
     trainer.fit(model)
 
@@ -519,7 +520,8 @@ def test_log_works_in_train_callback(tmpdir):
         def make_logging(self, pl_module: pl.LightningModule, func_name, func_idx,
                          on_steps=[], on_epochs=[], prob_bars=[]):
             self.funcs_called_count[func_name] += 1
-            for idx, (on_step, on_epoch, prog_bar) in enumerate(list(itertools.product(*[on_steps, on_epochs, prob_bars]))):
+            iterate = list(itertools.product(*[on_steps, on_epochs, prob_bars]))
+            for idx, (on_step, on_epoch, prog_bar) in enumerate(iterate):
                 # run logging
                 custom_func_name = f"{func_idx}_{idx}_{func_name}"
                 pl_module.log(custom_func_name, self.count * func_idx, on_step=on_step,
@@ -770,3 +772,48 @@ def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
     trainer.fit(model)
     assert model.epoch_end_called
     assert model.on_train_epoch_end_called
+
+
+def test_logging_in_callbacks_with_log_function(tmpdir):
+    """
+    Tests ensure self.log can be used directly in callbacks.
+    """
+    class LoggingCallback(callbacks.Callback):
+        def on_train_start(self, trainer, pl_module):
+            self.log("on_train_start", 1)
+
+        def on_train_epoch_start(self, trainer, pl_module):
+            self.log("on_train_epoch_start", 2)
+
+        def on_batch_end(self, trainer, pl_module):
+            self.log("on_batch_end", 3)
+
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+            self.log("on_train_batch_end", 4)
+
+        def on_epoch_end(self, trainer, pl_module):
+            self.log("on_epoch_end", 5)
+
+        def on_train_epoch_end(self, trainer, pl_module, outputs):
+            self.log("on_train_epoch_end", 6)
+            self.callback_metrics = trainer.logger_connector.callback_metrics
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=1,
+        weights_summary=None,
+        callbacks=[LoggingCallback()]
+    )
+    trainer.fit(model)
+
+    expected = {
+        'on_train_start': 1,
+        'on_train_epoch_start': 2,
+        'on_batch_end': 3,
+        'on_train_batch_end': 4,
+        'on_epoch_end': 5,
+        'on_train_epoch_end': 6}
+    assert trainer.callback_metrics == expected

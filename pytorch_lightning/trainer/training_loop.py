@@ -17,16 +17,14 @@ from copy import copy, deepcopy
 
 import numpy as np
 import torch
-import torch.distributed as torch_distrib
 
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
-from pytorch_lightning.utilities import TPU_AVAILABLE, AMPType, parsing
+from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
@@ -111,6 +109,9 @@ class TrainLoop:
 
         # check that model is configured correctly
         self.trainer.config_validator.verify_loop_configurations(model)
+
+        # attach model log function to callback
+        self.trainer.callback_connector.attach_model_logging_functions(model)
 
     def setup_training(self, model: LightningModule):
         """Sanity check a few things before starting actual training.
@@ -215,10 +216,14 @@ class TrainLoop:
         # TODO bake this logic into the checkpoint callback
         if should_save and self.trainer.checkpoint_connector.has_trained:
             checkpoint_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
+
             if is_last and any(c.save_last for c in checkpoint_callbacks):
                 rank_zero_info("Saving latest checkpoint...")
+
             model = self.trainer.get_model()
-            [cb.on_validation_end(self.trainer, model) for cb in checkpoint_callbacks]
+
+            for callback in checkpoint_callbacks:
+                callback.on_validation_end(self.trainer, model)
 
     def on_train_epoch_start(self, epoch):
 
@@ -473,7 +478,7 @@ class TrainLoop:
 
         return training_step_output_for_epoch_end
 
-    def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure, *args, **kwargs):
+    def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):
         model_ref = self.trainer.get_model()
 
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
@@ -487,16 +492,14 @@ class TrainLoop:
 
         # model hook
         model_ref.optimizer_step(
-            epoch=self.trainer.current_epoch,
-            batch_idx=batch_idx,
-            optimizer=optimizer,
-            optimizer_idx=opt_idx,
-            optimizer_closure=train_step_and_backward_closure,
-            on_tpu=self.trainer.use_tpu and TPU_AVAILABLE,
+            self.trainer.current_epoch,
+            batch_idx,
+            optimizer,
+            opt_idx,
+            train_step_and_backward_closure,
+            on_tpu=self.trainer.use_tpu and _TPU_AVAILABLE,
             using_native_amp=using_native_amp,
             using_lbfgs=is_lbfgs,
-            *args,
-            **kwargs,
         )
 
     def on_before_zero_grad(self, optimizer):
@@ -642,7 +645,6 @@ class TrainLoop:
         grad_norm_dic = {}
 
         # bookkeeping
-        using_results_obj = False
         self.trainer.hiddens = None
 
         # track all outputs across time and num of optimizers
@@ -908,7 +910,7 @@ class TrainLoop:
     def save_loggers_on_train_batch_end(self):
         # when loggers should save to disk
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
-        if should_flush_logs or self.trainer.fast_dev_run:
+        if should_flush_logs or self.trainer.fast_dev_run is True:
             if self.trainer.is_global_zero and self.trainer.logger is not None:
                 self.trainer.logger.save()
 

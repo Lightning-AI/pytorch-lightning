@@ -5,16 +5,12 @@ on Cora Dataset using pytorch-lightning. This example will also demonstrate how 
 model can be easily torch-scripted, thanks to Pytorch Geometric.
 """
 # python imports
-import os
 import os.path as osp
-import sys
-from functools import partial
 from collections import namedtuple
 from argparse import ArgumentParser
 from typing import List, Optional, NamedTuple
 
 # thrid parties libraries
-import numpy as np
 from torch import nn
 import torch
 from torch import Tensor
@@ -32,7 +28,6 @@ from pytorch_lightning.metrics import Accuracy
 try:
     # Pytorch Geometric imports
     from torch_geometric.nn import DNAConv, MessagePassing
-    from torch_geometric.data import DataLoader
     from torch_geometric.datasets import Planetoid
     import torch_geometric.transforms as T
     from torch_geometric.data import NeighborSampler

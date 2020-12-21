@@ -14,12 +14,11 @@
 
 from abc import ABC
 import inspect
-from typing import Union, Iterable, Mapping
+from typing import Union, Mapping
 
 import torch
 
-from pytorch_lightning.core import memory
-from pytorch_lightning.loggers import TensorBoardLogger, LightningLoggerBase, LoggerCollection
+from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 

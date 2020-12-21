@@ -349,6 +349,7 @@ class ModelCheckpoint(Callback):
             log.debug(f"Removed checkpoint: {filepath}")
 
     def _save_model(self, filepath: str, trainer, pl_module):
+        # Todo: required argument `pl_module` is not used
         # in debugging, track when we save checkpoints
         trainer.dev_debugger.track_checkpointing_history(filepath)
 
@@ -460,6 +461,7 @@ class ModelCheckpoint(Callback):
         The base path gets extended with logger name and version (if these are available)
         and subfolder "checkpoints".
         """
+        # Todo: required argument `pl_module` is not used
         if self.dirpath is not None:
             return  # short circuit
 
@@ -548,7 +550,13 @@ class ModelCheckpoint(Callback):
             )
             last_filepath = os.path.join(self.dirpath, f"{last_filepath}{self.FILE_EXTENSION}")
 
-        self._save_model(last_filepath, trainer, pl_module)
+        accelerator_backend = trainer.accelerator_backend
+
+        if accelerator_backend is not None and accelerator_backend.rpc_enabled:
+            # RPCPlugin manages saving all model states
+            accelerator_backend.ddp_plugin.rpc_save_model(self._save_model, last_filepath, trainer, pl_module)
+        else:
+            self._save_model(last_filepath, trainer, pl_module)
         if (
                 self.last_model_path
                 and self.last_model_path != last_filepath

@@ -1,6 +1,19 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import os
 from contextlib import contextmanager
-from typing import Any, Dict, List, Union, Optional
+from typing import Any, Dict, List, Union
 
 import torch.distributed as torch_distrib
 from torch.optim import Optimizer
@@ -78,6 +91,7 @@ class DDPPlugin(LightningPlugin):
             world_size: int,
             is_slurm_managing_tasks: bool = True,
     ) -> None:
+        # Todo: required argument `is_slurm_managing_tasks` is not used
         os.environ["MASTER_ADDR"] = str(cluster_environment.master_address())
         os.environ["MASTER_PORT"] = str(cluster_environment.master_port())
         os.environ["WORLD_SIZE"] = str(cluster_environment.world_size())
@@ -111,6 +125,12 @@ class DDPPlugin(LightningPlugin):
 
     def optimizer_state(self, optimizer: Optimizer) -> dict:
         return optimizer.state_dict()
+
+    def on_after_setup_optimizers(self, trainer):
+        """
+        Called after optimizers have been set-up. This is useful for doing any configuration options in RPC, or
+        state sharding.
+        """
 
     def get_model_from_plugin(
             self,
@@ -148,3 +168,15 @@ class DDPPlugin(LightningPlugin):
 
     def on_after_manual_backward(self, model: LightningDistributedDataParallel):
         model.reducer_reset_hooks()
+
+    def distributed_sampler_kwargs(self, distributed_sampler_kwargs):
+        return distributed_sampler_kwargs
+
+    @property
+    def data_parallel_group(self):
+        """
+        Return the group that this process exists in. By default, this is the world size.
+        Useful for when additional parallel groups have been created, to select certain processes.
+        Returns: The ProcessGroup this process exists in.
+        """
+        return torch_distrib.group.WORLD

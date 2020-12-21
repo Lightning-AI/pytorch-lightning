@@ -85,36 +85,36 @@ class TestAccuracies(MetricTester):
         )
 
 
-l1to4 = [0.1, 0.2, 0.3, 0.4]
-l1to4t3 = np.array([l1to4, l1to4, l1to4])
-l1to4t3_mc = [l1to4t3.T, l1to4t3.T, l1to4t3.T]
+_l1to4 = [0.1, 0.2, 0.3, 0.4]
+_l1to4t3 = np.array([_l1to4, _l1to4, _l1to4])
+_l1to4t3_mc = [_l1to4t3.T, _l1to4t3.T, _l1to4t3.T]
 
 # The preds in these examples always put highest probability on class 3, second highest on class 2,
 # third highest on class 1, and lowest on class 0
-topk_preds_mc = torch.tensor([l1to4t3, l1to4t3]).float()
-topk_target_mc = torch.tensor([[1, 2, 3], [2, 1, 0]])
+_topk_preds_mc = torch.tensor([_l1to4t3, _l1to4t3]).float()
+_topk_target_mc = torch.tensor([[1, 2, 3], [2, 1, 0]])
 
 # This is like for MC case, but one sample in each batch is sabotaged with 0 class prediction :)
-topk_preds_mdmc = torch.tensor([l1to4t3_mc, l1to4t3_mc]).float()
-topk_target_mdmc = torch.tensor([[[1, 1, 0], [2, 2, 2], [3, 3, 3]], [[2, 2, 0], [1, 1, 1], [0, 0, 0]]])
+_topk_preds_mdmc = torch.tensor([_l1to4t3_mc, _l1to4t3_mc]).float()
+_topk_target_mdmc = torch.tensor([[[1, 1, 0], [2, 2, 2], [3, 3, 3]], [[2, 2, 0], [1, 1, 1], [0, 0, 0]]])
 
 
 # Replace with a proper sk_metric test once sklearn 0.24 hits :)
 @pytest.mark.parametrize(
     "preds, target, exp_result, k, subset_accuracy",
     [
-        (topk_preds_mc, topk_target_mc, 1 / 6, 1, False),
-        (topk_preds_mc, topk_target_mc, 3 / 6, 2, False),
-        (topk_preds_mc, topk_target_mc, 5 / 6, 3, False),
-        (topk_preds_mc, topk_target_mc, 1 / 6, 1, True),
-        (topk_preds_mc, topk_target_mc, 3 / 6, 2, True),
-        (topk_preds_mc, topk_target_mc, 5 / 6, 3, True),
-        (topk_preds_mdmc, topk_target_mdmc, 1 / 6, 1, False),
-        (topk_preds_mdmc, topk_target_mdmc, 8 / 18, 2, False),
-        (topk_preds_mdmc, topk_target_mdmc, 13 / 18, 3, False),
-        (topk_preds_mdmc, topk_target_mdmc, 1 / 6, 1, True),
-        (topk_preds_mdmc, topk_target_mdmc, 2 / 6, 2, True),
-        (topk_preds_mdmc, topk_target_mdmc, 3 / 6, 3, True),
+        (_topk_preds_mc, _topk_target_mc, 1 / 6, 1, False),
+        (_topk_preds_mc, _topk_target_mc, 3 / 6, 2, False),
+        (_topk_preds_mc, _topk_target_mc, 5 / 6, 3, False),
+        (_topk_preds_mc, _topk_target_mc, 1 / 6, 1, True),
+        (_topk_preds_mc, _topk_target_mc, 3 / 6, 2, True),
+        (_topk_preds_mc, _topk_target_mc, 5 / 6, 3, True),
+        (_topk_preds_mdmc, _topk_target_mdmc, 1 / 6, 1, False),
+        (_topk_preds_mdmc, _topk_target_mdmc, 8 / 18, 2, False),
+        (_topk_preds_mdmc, _topk_target_mdmc, 13 / 18, 3, False),
+        (_topk_preds_mdmc, _topk_target_mdmc, 1 / 6, 1, True),
+        (_topk_preds_mdmc, _topk_target_mdmc, 2 / 6, 2, True),
+        (_topk_preds_mdmc, _topk_target_mdmc, 3 / 6, 3, True),
     ],
 )
 def test_topk_accuracy(preds, target, exp_result, k, subset_accuracy):
@@ -125,34 +125,3 @@ def test_topk_accuracy(preds, target, exp_result, k, subset_accuracy):
 
     assert topk.compute() == exp_result
 
-    # Test functional
-    total_samples = target.shape[0] * target.shape[1]
-
-    preds = preds.view(total_samples, 4, -1)
-    target = target.view(total_samples, -1)
-
-    assert accuracy(preds, target, top_k=k, subset_accuracy=subset_accuracy) == exp_result
-
-
-# Only MC and MDMC with probs input type should be accepted for top_k
-@pytest.mark.parametrize(
-    "preds, target",
-    [
-        (_binary_prob_inputs.preds, _binary_prob_inputs.target),
-        (_binary_inputs.preds, _binary_inputs.target),
-        (_multilabel_prob_inputs.preds, _multilabel_prob_inputs.target),
-        (_multilabel_inputs.preds, _multilabel_inputs.target),
-        (_multiclass_inputs.preds, _multiclass_inputs.target),
-        (_multidim_multiclass_inputs.preds, _multidim_multiclass_inputs.target),
-        (_multilabel_multidim_prob_inputs.preds, _multilabel_multidim_prob_inputs.target),
-        (_multilabel_multidim_inputs.preds, _multilabel_multidim_inputs.target),
-    ],
-)
-def test_topk_accuracy_wrong_input_types(preds, target):
-    topk = Accuracy(top_k=1)
-
-    with pytest.raises(ValueError):
-        topk(preds[0], target[0])
-
-    with pytest.raises(ValueError):
-        accuracy(preds[0], target[0], top_k=1)

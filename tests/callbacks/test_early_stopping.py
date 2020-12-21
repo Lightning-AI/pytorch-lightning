@@ -56,8 +56,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     early_stop_callback = EarlyStoppingTestRestore()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        checkpoint_callback=checkpoint_callback,
-        callbacks=[early_stop_callback],
+        callbacks=[early_stop_callback, checkpoint_callback],
         num_sanity_val_steps=0,
         max_epochs=4,
     )
@@ -214,11 +213,14 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, mi
     IF `min_steps` was set to a higher value than the `trainer.global_step` when `early_stopping` is being triggered,
     THEN the trainer should continue until reaching `trainer.global_step` == `min_steps`, and stop.
 
-    IF `min_epochs` resulted in a higher number of steps than the `trainer.global_step` when `early_stopping` is being triggered,
-    THEN the trainer should continue until reaching `trainer.global_step` == `min_epochs * len(train_dataloader)`, and stop.
+    IF `min_epochs` resulted in a higher number of steps than the `trainer.global_step`
+        when `early_stopping` is being triggered,
+    THEN the trainer should continue until reaching
+        `trainer.global_step` == `min_epochs * len(train_dataloader)`, and stop.
     This test validate this expected behaviour
 
-    IF both `min_epochs` and `min_steps` are provided and higher than the `trainer.global_step` when `early_stopping` is being triggered,
+    IF both `min_epochs` and `min_steps` are provided and higher than the `trainer.global_step`
+        when `early_stopping` is being triggered,
     THEN the highest between `min_epochs * len(train_dataloader)` and `min_steps` would be reached.
 
     Caviat: IF min_steps is divisible by len(train_dataloader), then it will do min_steps + len(train_dataloader)

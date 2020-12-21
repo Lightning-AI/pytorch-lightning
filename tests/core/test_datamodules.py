@@ -20,7 +20,7 @@ import pytest
 import torch
 from torch.utils.data import DataLoader, random_split
 
-from pytorch_lightning import LightningDataModule, Trainer, seed_everything
+from pytorch_lightning import LightningDataModule, Trainer
 from tests.base import EvalModelTemplate
 from tests.base.datasets import TrialMNIST
 from tests.base.datamodules import TrialMNISTDataModule
@@ -243,11 +243,12 @@ def test_dm_checkpoint_save(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=3,
         weights_summary=None,
-        checkpoint_callback=ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on')
+        callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor='early_stop_on')],
     )
 
     # fit model
     result = trainer.fit(model, dm)
+    assert result
     checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
     checkpoint = torch.load(checkpoint_path)
     assert dm.__class__.__name__ in checkpoint
@@ -356,7 +357,7 @@ def test_full_loop_dp(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=3,
         weights_summary=None,
-        distributed_backend='dp',
+        accelerator='dp',
         gpus=2,
         deterministic=True,
     )

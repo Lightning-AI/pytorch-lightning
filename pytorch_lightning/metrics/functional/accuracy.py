@@ -67,16 +67,16 @@ def accuracy(
     For multi-label and multi-dimensional multi-class inputs, this metric computes the "global"
     accuracy by default, which counts all labels or sub-samples separately. This can be
     changed to subset accuracy (which requires all labels or sub-samples in the sample to
-    be correctly predicted) by setting `subset_accuracy=True`.
+    be correctly predicted) by setting ``subset_accuracy=True``.
 
     Accepts all input types listed in :ref:`metrics:Input types`.
 
     Args:
         preds: Predictions from model (probabilities, or labels)
-        target: Ground truth values
+        target: Ground truth labels
         threshold:
             Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs. Default: 0.5
+            `(0,1)` predictions, in the case of binary or multi-label inputs.
         top_k:
             Number of highest probability predictions considered to find the correct label, relevant
             only for (multi-dimensional) multi-class inputs with probability predictions. The
@@ -85,7 +85,7 @@ def accuracy(
             Should be left at default (``None``) for all other types of inputs.
         subset_accuracy:
             Whether to compute subset accuracy for multi-label and multi-dimensional
-            multi-class inputs (has no effect for other input types). Default: `False`
+            multi-class inputs (has no effect for other input types).
 
             For multi-label inputs, if the parameter is set to `True`, then all labels for
             each sample must be correctly predicted for the sample to count as correct. If it
