@@ -1069,7 +1069,7 @@ def test_step_with_misconfiguraiton_error_when_overriding_optimizer_zero_grad(tm
         model.training_epoch_end = None
 
         limit_train_batches = 8
-        trainer = Trainer(
+        Trainer(
             default_root_dir=tmpdir,
             limit_train_batches=limit_train_batches,
             limit_val_batches=2,
