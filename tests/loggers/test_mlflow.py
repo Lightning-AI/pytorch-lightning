@@ -21,6 +21,7 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import MLFlowLogger
+from pytorch_lightning.utilities import _module_available
 from tests.base import EvalModelTemplate
 
 
@@ -120,7 +121,7 @@ def test_mlflow_log_dir(client, mlflow, tmpdir):
 
 def test_mlflow_logger_dirs_creation(tmpdir):
     """ Test that the logger creates the folders and files in the right place. """
-    if not importlib.util.find_spec('mlflow'):
+    if not _module_available('mlflow'):
         pytest.xfail("test for explicit file creation requires mlflow dependency to be installed.")
 
     assert not os.listdir(tmpdir)

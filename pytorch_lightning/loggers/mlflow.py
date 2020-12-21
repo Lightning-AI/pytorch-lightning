@@ -26,18 +26,17 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn, _module_available
 
-_MLFLOW_AVAILABLE = _module_available("mlflow")
+
 LOCAL_FILE_URI_PREFIX = "file:"
 
-# TODO: there is something sick in the imports...
-try:
+
+_MLFLOW_AVAILABLE = _module_available("mlflow")
+if _MLFLOW_AVAILABLE:
     import mlflow
     from mlflow.tracking import MlflowClient
-except ImportError:
+else:
     mlflow = None
     MlflowClient = None
-    # just in case...
-    _MLFLOW_AVAILABLE = False
 
 
 class MLFlowLogger(LightningLoggerBase):
