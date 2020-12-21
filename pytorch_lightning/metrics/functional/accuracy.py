@@ -23,6 +23,9 @@ def _accuracy_update(
 
     preds, target, mode = _input_format_classification(preds, target, threshold=threshold, top_k=top_k)
 
+    if mode == "multi-label" and top_k:
+        raise ValueError("You can not use the `top_k` parameter to calculate accuracy for multi-label inputs.")
+
     if mode == "binary" or (mode == "multi-label" and subset_accuracy):
         correct = (preds == target).all(dim=1).sum()
         total = torch.tensor(target.shape[0], device=target.device)
@@ -112,9 +115,6 @@ def accuracy(
         >>> accuracy(preds, target, top_k=2)
         tensor(0.6667)
     """
-
-    if top_k is not None and top_k <= 0:
-        raise ValueError("The `top_k` should be an integer larger than 1.")
 
     correct, total = _accuracy_update(preds, target, threshold, top_k, subset_accuracy)
     return _accuracy_compute(correct, total)

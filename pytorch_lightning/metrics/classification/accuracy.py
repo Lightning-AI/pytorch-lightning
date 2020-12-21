@@ -116,8 +116,9 @@ class Accuracy(Metric):
         if not 0 <= threshold <= 1:
             raise ValueError("The `threshold` should lie in the [0,1] interval.")
 
-        if top_k is not None and top_k <= 0:
-            raise ValueError("The `top_k` should be an integer larger than 1.")
+        if top_k is not None:
+            if not isinstance(top_k, int) or top_k <= 0:
+                raise ValueError(f"The `top_k` should be an integer larger than 0, got {top_k}")
 
         self.threshold = threshold
         self.top_k = top_k

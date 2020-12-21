@@ -181,13 +181,19 @@ def _check_num_classes_ml(num_classes: int, is_multiclass: bool, implied_classes
 
 
 def _check_top_k(top_k: int, case: str, implied_classes: int, is_multiclass: Optional[bool], preds_float: bool):
-    if "multi-class" not in case or not preds_float:
-        raise ValueError(
-            "You have set `top_k` above 1, but your data is not (multi-dimensional) multi-class"
-            " with probability predictions."
-        )
+    if case == "binary":
+        raise ValueError("You can not use `top_k` parameter with binary data.")
+    if not isinstance(top_k, int) or top_k <= 0:
+        raise ValueError("The `top_k` has to be an integer larger than 0.")
+    if not preds_float:
+        raise ValueError("You have set `top_k`, but you do not have probability predictions.")
     if is_multiclass is False:
         raise ValueError("If you set `is_multiclass=False`, you can not set `top_k`.")
+    if case == "multi-label" and is_multiclass == True:
+        raise ValueError(
+            "If you want to transform multi-label data to 2 class multi-dimensional"
+            "multi-class data using `is_multiclass=True`, you can not use `top_k`."
+        )
     if top_k >= implied_classes:
         raise ValueError("The `top_k` has to be strictly smaller than the `C` dimension of `preds`.")
 
@@ -410,6 +416,9 @@ def _input_format_classification(
     if preds.dtype == torch.float16:
         preds = preds.float()
 
+    # Let threshold default to 0.5 if not set
+    threshold = 0.5 if threshold is None else threshold
+
     case = _check_classification_inputs(
         preds,
         target,
@@ -419,21 +428,22 @@ def _input_format_classification(
         top_k=top_k,
     )
 
-    top_k = top_k if top_k else 1
-
-    if case in ["binary", "multi-label"]:
+    if case in ["binary", "multi-label"] and not top_k:
         preds = (preds >= threshold).int()
         num_classes = num_classes if not is_multiclass else 2
+
+    if case == "multi-label" and top_k:
+        preds = select_topk(preds, top_k)
 
     if "multi-class" in case or is_multiclass:
         if preds.is_floating_point():
             num_classes = preds.shape[1]
-            preds = select_topk(preds, top_k)
+            preds = select_topk(preds, top_k or 1)
         else:
             num_classes = num_classes if num_classes else max(preds.max(), target.max()) + 1
-            preds = to_onehot(preds, max(2,num_classes))
+            preds = to_onehot(preds, max(2, num_classes))
 
-        target = to_onehot(target, max(2,num_classes))
+        target = to_onehot(target, max(2, num_classes))
 
         if is_multiclass is False:
             preds, target = preds[:, 1, ...], target[:, 1, ...]
