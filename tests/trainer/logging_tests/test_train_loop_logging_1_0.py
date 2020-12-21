@@ -24,13 +24,13 @@ from unittest import mock
 import numpy as np
 import pytest
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import DataLoader, Dataset
 
 import pytorch_lightning as pl
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
-from tests.base.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
+from tests.base.boring_model import BoringModel, RandomDataset, RandomDictDataset, RandomDictStringDataset
 from tests.base.deterministic_model import DeterministicModel
 
 
@@ -855,3 +855,44 @@ def test_metric_are_properly_reduced(tmpdir):
 
     assert trainer.callback_metrics["val_acc"] == 8 / 32.
     assert "train_acc" in trainer.callback_metrics
+
+
+def test_error_message_are_properly_printed(tmpdir):
+
+    class SimulateTransformError(object):
+        def __init__(self, generator_len):
+            self.generator = self.num_gen(generator_len)
+
+        def num_gen(self, generator_len):
+            for i in range(generator_len):
+                yield i
+
+        def __call__(self, sample):
+            idx = next(self.generator)
+            if idx >= 1:
+                raise ConnectionRefusedError("Checking it works out")
+            return sample
+
+    class ErrorRandomDataset(RandomDataset):
+        def __init__(self, size, num_samples):
+            super().__init__(size, num_samples)
+            self.transform = SimulateTransformError(10)
+
+        def __getitem__(self, index):
+            data = self.data[index]
+            data = self.transform(data)
+            return self.data[index]
+
+    train = ErrorRandomDataset(32, 64)
+    train = DataLoader(train, batch_size=32)
+
+    model = BoringModel()
+    model.training_epoch_end = None
+    model.validation_epoch_end = None
+
+    trainer = pl.Trainer(
+        max_epochs=1,
+    )
+
+    with pytest.raises(ConnectionRefusedError, match="Checking it works out"):
+        trainer.fit(model, train, train)
