@@ -190,7 +190,7 @@ def test_apply_batch_transfer_handler(model_getter_mock):
     assert model.transfer_batch_to_device_hook_rank == 1
     assert model.on_after_batch_transfer_hook_rank == 2
     assert batch_gpu.samples.device == batch_gpu.targets.device == expected_device
-    assert torch.allclose(batch_gpu.samples.cpu(), torch.ones(5, 28))
+    assert torch.allclose(batch_gpu.samples.cpu(), torch.ones(5, 32))
     assert torch.allclose(batch_gpu.targets.cpu(), torch.ones(5, 1, dtype=torch.long) * 2)
 
 

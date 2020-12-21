@@ -484,7 +484,7 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
     assert dm.transfer_batch_to_device_hook_rank == 1
     assert dm.on_after_batch_transfer_hook_rank == 2
     assert batch_gpu.samples.device == batch_gpu.targets.device == expected_device
-    assert torch.allclose(batch_gpu.samples.cpu(), torch.ones(5, 28))
+    assert torch.allclose(batch_gpu.samples.cpu(), torch.ones(5, 32))
     assert torch.allclose(batch_gpu.targets.cpu(), torch.ones(5, 1, dtype=torch.long) * 2)
 
 
