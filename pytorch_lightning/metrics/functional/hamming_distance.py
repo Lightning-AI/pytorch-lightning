@@ -17,7 +17,9 @@ import torch
 from pytorch_lightning.metrics.classification.helpers import _input_format_classification
 
 
-def _hamming_distance_update(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5) -> Tuple[torch.Tensor, int]:
+def _hamming_distance_update(
+    preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5
+) -> Tuple[torch.Tensor, int]:
     preds, target, _ = _input_format_classification(preds, target, threshold=threshold)
 
     correct = (preds == target).sum()
