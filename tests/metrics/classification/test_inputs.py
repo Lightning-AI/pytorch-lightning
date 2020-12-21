@@ -190,7 +190,7 @@ def test_default_threshold():
     preds_default, target_default, _ = _input_format_classification(_ml_prob.preds[0], _ml_prob.target[0]) 
     preds, target, _ = _input_format_classification(_ml_prob.preds[0], _ml_prob.target[0], threshold=0.5)
 
-    assert torch.equal(preds_default, preds
+    assert torch.equal(preds_default, preds)
     assert torch.equal(target_default, target)
 
 # Test that threshold is correctly applied
