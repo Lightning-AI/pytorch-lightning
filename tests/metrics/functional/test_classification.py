@@ -3,7 +3,6 @@ from functools import partial
 import pytest
 import torch
 from sklearn.metrics import (
-    accuracy_score as sk_accuracy,
     jaccard_score as sk_jaccard_score,
     precision_score as sk_precision,
     recall_score as sk_recall,
@@ -14,7 +13,6 @@ from pytorch_lightning import seed_everything
 from pytorch_lightning.metrics.functional.classification import (
     stat_scores,
     stat_scores_multiple_classes,
-    accuracy,
     precision,
     recall,
     dice_score,
@@ -28,7 +26,6 @@ from pytorch_lightning.metrics.utils import to_onehot, get_num_classes, to_categ
 
 
 @pytest.mark.parametrize(['sklearn_metric', 'torch_metric', 'only_binary'], [
-    pytest.param(sk_accuracy, accuracy, False, id='accuracy'),
     pytest.param(partial(sk_jaccard_score, average='macro'), iou, False, id='iou'),
     pytest.param(partial(sk_precision, average='micro'), precision, False, id='precision'),
     pytest.param(partial(sk_recall, average='micro'), recall, False, id='recall'),
@@ -162,39 +159,6 @@ def test_stat_scores_multiclass(pred, target, reduction,
     assert torch.allclose(torch.tensor(expected_tn).to(tn), tn)
     assert torch.allclose(torch.tensor(expected_fn).to(fn), fn)
     assert torch.allclose(torch.tensor(expected_support).to(sup), sup)
-
-
-def test_multilabel_accuracy():
-    # Dense label indicator matrix format
-    y1 = torch.tensor([[0, 1, 1], [1, 0, 1]])
-    y2 = torch.tensor([[0, 0, 1], [1, 0, 1]])
-
-    assert torch.allclose(accuracy(y1, y2, class_reduction='none'), torch.tensor([2 / 3, 1.]))
-    assert torch.allclose(accuracy(y1, y1, class_reduction='none'), torch.tensor([1., 1.]))
-    assert torch.allclose(accuracy(y2, y2, class_reduction='none'), torch.tensor([1., 1.]))
-    assert torch.allclose(accuracy(y2, torch.logical_not(y2), class_reduction='none'), torch.tensor([0., 0.]))
-    assert torch.allclose(accuracy(y1, torch.logical_not(y1), class_reduction='none'), torch.tensor([0., 0.]))
-
-    # num_classes does not match extracted number from input we expect a warning
-    with pytest.warns(RuntimeWarning,
-                      match=r'You have set .* number of classes which is'
-                            r' different from predicted (.*) and'
-                            r' target (.*) number of classes'):
-        _ = accuracy(y2, torch.zeros_like(y2), num_classes=3)
-
-
-def test_accuracy():
-    pred = torch.tensor([0, 1, 2, 3])
-    target = torch.tensor([0, 1, 2, 2])
-    acc = accuracy(pred, target)
-
-    assert acc.item() == 0.75
-
-    pred = torch.tensor([0, 1, 2, 2])
-    target = torch.tensor([0, 1, 1, 3])
-    acc = accuracy(pred, target)
-
-    assert acc.item() == 0.50
 
 
 @pytest.mark.parametrize(['pred', 'target', 'expected_prec', 'expected_rec'], [
