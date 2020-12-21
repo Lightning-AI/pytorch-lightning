@@ -85,36 +85,36 @@ class TestAccuracies(MetricTester):
         )
 
 
-l1to4 = [0.1, 0.2, 0.3, 0.4]
-l1to4t3 = np.array([l1to4, l1to4, l1to4])
-l1to4t3_mc = [l1to4t3.T, l1to4t3.T, l1to4t3.T]
+_l1to4 = [0.1, 0.2, 0.3, 0.4]
+_l1to4t3 = np.array([_l1to4, _l1to4, _l1to4])
+_l1to4t3_mc = [_l1to4t3.T, _l1to4t3.T, _l1to4t3.T]
 
 # The preds in these examples always put highest probability on class 3, second highest on class 2,
 # third highest on class 1, and lowest on class 0
-topk_preds_mc = torch.tensor([l1to4t3, l1to4t3]).float()
-topk_target_mc = torch.tensor([[1, 2, 3], [2, 1, 0]])
+_topk_preds_mc = torch.tensor([_l1to4t3, _l1to4t3]).float()
+_topk_target_mc = torch.tensor([[1, 2, 3], [2, 1, 0]])
 
 # This is like for MC case, but one sample in each batch is sabotaged with 0 class prediction :)
-topk_preds_mdmc = torch.tensor([l1to4t3_mc, l1to4t3_mc]).float()
-topk_target_mdmc = torch.tensor([[[1, 1, 0], [2, 2, 2], [3, 3, 3]], [[2, 2, 0], [1, 1, 1], [0, 0, 0]]])
+_topk_preds_mdmc = torch.tensor([_l1to4t3_mc, _l1to4t3_mc]).float()
+_topk_target_mdmc = torch.tensor([[[1, 1, 0], [2, 2, 2], [3, 3, 3]], [[2, 2, 0], [1, 1, 1], [0, 0, 0]]])
 
 
 # Replace with a proper sk_metric test once sklearn 0.24 hits :)
 @pytest.mark.parametrize(
     "preds, target, exp_result, k, subset_accuracy",
     [
-        (topk_preds_mc, topk_target_mc, 1 / 6, 1, False),
-        (topk_preds_mc, topk_target_mc, 3 / 6, 2, False),
-        (topk_preds_mc, topk_target_mc, 5 / 6, 3, False),
-        (topk_preds_mc, topk_target_mc, 1 / 6, 1, True),
-        (topk_preds_mc, topk_target_mc, 3 / 6, 2, True),
-        (topk_preds_mc, topk_target_mc, 5 / 6, 3, True),
-        (topk_preds_mdmc, topk_target_mdmc, 1 / 6, 1, False),
-        (topk_preds_mdmc, topk_target_mdmc, 8 / 18, 2, False),
-        (topk_preds_mdmc, topk_target_mdmc, 13 / 18, 3, False),
-        (topk_preds_mdmc, topk_target_mdmc, 1 / 6, 1, True),
-        (topk_preds_mdmc, topk_target_mdmc, 2 / 6, 2, True),
-        (topk_preds_mdmc, topk_target_mdmc, 3 / 6, 3, True),
+        (_topk_preds_mc, _topk_target_mc, 1 / 6, 1, False),
+        (_topk_preds_mc, _topk_target_mc, 3 / 6, 2, False),
+        (_topk_preds_mc, _topk_target_mc, 5 / 6, 3, False),
+        (_topk_preds_mc, _topk_target_mc, 1 / 6, 1, True),
+        (_topk_preds_mc, _topk_target_mc, 3 / 6, 2, True),
+        (_topk_preds_mc, _topk_target_mc, 5 / 6, 3, True),
+        (_topk_preds_mdmc, _topk_target_mdmc, 1 / 6, 1, False),
+        (_topk_preds_mdmc, _topk_target_mdmc, 8 / 18, 2, False),
+        (_topk_preds_mdmc, _topk_target_mdmc, 13 / 18, 3, False),
+        (_topk_preds_mdmc, _topk_target_mdmc, 1 / 6, 1, True),
+        (_topk_preds_mdmc, _topk_target_mdmc, 2 / 6, 2, True),
+        (_topk_preds_mdmc, _topk_target_mdmc, 3 / 6, 3, True),
     ],
 )
 def test_topk_accuracy(preds, target, exp_result, k, subset_accuracy):
