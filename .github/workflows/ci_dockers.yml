@@ -8,17 +8,25 @@ on: # Trigger the workflow on push or pull request, but only for the master bran
     paths:
       - "dockers/**"
       - "!dockers/README.md"
-      - "requirements/*"
+      - "requirements/*.txt"
       - "environment.yml"
       - "requirements.txt"
+      - ".github/workflows/ci_dockers.yml"
+      - ".github/workflows/nightly.yml"
+      - ".github/workflows/release-docker.yml"
+      - "setup.py"
   pull_request:
     branches: [master, "release/*"]
     paths:
       - "dockers/**"
       - "!dockers/README.md"
-      - "requirements/*"
+      - "requirements/*.txt"
       - "environment.yml"
       - "requirements.txt"
+      - ".github/workflows/ci_dockers.yml"
+      - ".github/workflows/nightly.yml"
+      - ".github/workflows/release-docker.yml"
+      - "setup.py"
 
 jobs:
   build-PL:
