@@ -1,6 +1,5 @@
 import torch
 import pytest
-import torch.nn.functional as F
 
 from pytorch_lightning.metrics.functional.image_gradients import image_gradients
 
@@ -97,8 +96,6 @@ def test_image_gradients():
     HEIGHT = 5
     WIDTH = 5
     CHANNELS = 1
-
-    device = torch.device("cpu")
 
     image = torch.arange(0, BATCH_SIZE * HEIGHT * WIDTH * CHANNELS, dtype=torch.float32)
     image = torch.reshape(image, (BATCH_SIZE, CHANNELS, HEIGHT, WIDTH))
