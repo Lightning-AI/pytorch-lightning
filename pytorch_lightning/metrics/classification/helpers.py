@@ -189,7 +189,7 @@ def _check_top_k(top_k: int, case: str, implied_classes: int, is_multiclass: Opt
         raise ValueError("You have set `top_k`, but you do not have probability predictions.")
     if is_multiclass is False:
         raise ValueError("If you set `is_multiclass=False`, you can not set `top_k`.")
-    if case == "multi-label" and is_multiclass == True:
+    if case == "multi-label" and is_multiclass:
         raise ValueError(
             "If you want to transform multi-label data to 2 class multi-dimensional"
             "multi-class data using `is_multiclass=True`, you can not use `top_k`."

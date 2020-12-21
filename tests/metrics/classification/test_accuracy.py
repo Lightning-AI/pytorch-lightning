@@ -124,4 +124,3 @@ def test_topk_accuracy(preds, target, exp_result, k, subset_accuracy):
         topk(preds[batch], target[batch])
 
     assert topk.compute() == exp_result
-

@@ -24,7 +24,6 @@ from pytorch_lightning.metrics.functional.classification import (  # noqa: F401
     precision,
     precision_recall,
     recall,
-    iou,
     stat_scores_multiple_classes,
     to_categorical,
     to_onehot,
