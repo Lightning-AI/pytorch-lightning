@@ -26,7 +26,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
-from pytorch_lightning.utilities import TPU_AVAILABLE, AMPType, parsing
+from pytorch_lightning.utilities import AMPType, parsing, TPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
@@ -549,6 +549,7 @@ class TrainLoop:
         train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         dataloader_idx = 0
         should_check_val = False
+        is_last_batch = False
         for batch_idx, (batch, is_last_batch) in train_dataloader:
 
             self.trainer.batch_idx = batch_idx
@@ -622,7 +623,7 @@ class TrainLoop:
             self.increment_accumulated_grad_global_step()
 
         # epoch end hook
-        self.run_on_epoch_end_hook(epoch_output)
+        self.run_on_epoch_end_hook(epoch_output, is_last_batch)
 
         # log epoch metrics
         self.trainer.logger_connector.log_train_epoch_end_metrics(
@@ -849,7 +850,9 @@ class TrainLoop:
             # update lr
             self.trainer.optimizer_connector.update_learning_rates(interval="step", monitor_metrics=monitor_metrics)
 
-    def run_on_epoch_end_hook(self, epoch_output):
+    def run_on_epoch_end_hook(self, epoch_output, is_last_batch):
+        if not is_last_batch:
+            rank_zero_warn("`StopIteration` was raised in your DataLoader", UserWarning)
         # inform logger the batch loop has finished
         self.trainer.logger_connector.on_train_epoch_end()
 

@@ -870,7 +870,7 @@ def test_error_message_are_properly_printed(tmpdir):
         def __call__(self, sample):
             idx = next(self.generator)
             if idx >= 1:
-                raise ConnectionRefusedError("Checking it works out")
+                raise StopIteration("Raise Limit")
             return sample
 
     class ErrorRandomDataset(RandomDataset):
@@ -894,5 +894,5 @@ def test_error_message_are_properly_printed(tmpdir):
         max_epochs=1,
     )
 
-    with pytest.raises(ConnectionRefusedError, match="Checking it works out"):
+    with pytest.warns(UserWarning, match="`StopIteration` was raised in your DataLoader"):
         trainer.fit(model, train, train)
