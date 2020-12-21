@@ -11,17 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pickle
-from argparse import ArgumentParser
-from typing import Optional
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
-import torch
 from torch.optim import SGD, Adam
-from torch.utils.data import DataLoader, random_split
 
-from pytorch_lightning import LightningDataModule, Trainer, seed_everything
+from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel
 

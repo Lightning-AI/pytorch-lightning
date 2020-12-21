@@ -15,7 +15,6 @@
 # import m2r
 import builtins
 import glob
-import inspect
 import os
 import shutil
 import sys

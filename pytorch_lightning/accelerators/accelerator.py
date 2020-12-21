@@ -15,7 +15,6 @@ from contextlib import contextmanager
 from typing import Any, Optional, Union
 
 import torch
-import torch.distributed as torch_distrib
 from torch.optim import Optimizer
 
 from pytorch_lightning.cluster_environments import ClusterEnvironment

@@ -23,7 +23,7 @@ import tempfile
 from abc import ABC
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -37,13 +37,10 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
-
-if _TPU_AVAILABLE:
-    import torch_xla.core.xla_model as xm
 
 
 class LightningModule(
@@ -1455,7 +1452,6 @@ class LightningModule(
             args: single object of `dict`, `NameSpace` or `OmegaConf`
              or string names or argumenst from class `__init__`
 
-        >>> from collections import OrderedDict
         >>> class ManuallyArgsModel(LightningModule):
         ...     def __init__(self, arg1, arg2, arg3):
         ...         super().__init__()

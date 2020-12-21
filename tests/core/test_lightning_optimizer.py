@@ -14,17 +14,13 @@
 import os
 from unittest.mock import patch
 
-import pytest
 import torch
-import torch.nn as nn
 from torch.optim import Adam, Optimizer
 
-import pytorch_lightning as pl
-from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning import Trainer
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base.boring_model import BoringModel, RandomDataset, RandomDictDataset, RandomDictStringDataset
+from tests.base.boring_model import BoringModel
 
 
 def test_lightning_optimizer(tmpdir):
