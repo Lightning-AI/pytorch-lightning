@@ -24,11 +24,13 @@ from abc import ABC
 from argparse import Namespace
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from functools import partial
 
 import torch
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
@@ -41,6 +43,7 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
+from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available
 
 
 class LightningModule(
@@ -363,7 +366,7 @@ class LightningModule(
 
         return on_epoch
 
-    def all_gather(self, tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False):
+    def all_gather(self, data: Union[torch.Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False):
         r"""
         Allows users to call ``self.all_gather()`` from the LightningModule, thus making
         the ```all_gather``` operation accelerator agnostic.
@@ -379,8 +382,14 @@ class LightningModule(
         Return:
             A tensor of shape (world_size, batch, ...)
         """
-        return self.trainer.accelerator_backend.all_gather(tensor, group=group, sync_grads=sync_grads)
+        if self.trainer.accelerator_backend is not None:
+            all_gather = self.trainer.accelerator_backend.all_gather
+        else:
+            all_gather = all_gather_ddp_if_available
 
+        all_gather = partial(all_gather, group=group, sync_grads=sync_grads)
+        return apply_to_collection(data, torch.Tensor, all_gather)
+        
     def forward(self, *args, **kwargs):
         r"""
         Same as :meth:`torch.nn.Module.forward()`, however in Lightning you want this to define

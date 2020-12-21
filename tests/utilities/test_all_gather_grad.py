@@ -3,7 +3,9 @@ import pytest
 import sys
 import torch
 
+from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.utilities import AllGatherGrad
+from tests.base.boring_model import BoringModel
 
 
 def setup_ddp(rank, world_size):
@@ -41,3 +43,43 @@ def _test_all_gather_ddp(rank, world_size):
 def test_all_gather_ddp():
     world_size = 3
     torch.multiprocessing.spawn(_test_all_gather_ddp, args=(world_size,), nprocs=world_size)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
+                    reason="test should be run outside of pytest")
+def test_all_gather_properly_works(tmpdir):
+
+    class TestModel(BoringModel):
+
+        training_epoch_end_called = False
+
+        def training_epoch_end(self, outputs) -> None:
+            self.training_epoch_end_called = True
+            losses = torch.stack([x["loss"] for x in outputs])
+            gathered_loss = self.all_gather(
+                {"losses": losses, 
+                "losses_list": [losses, losses]
+            })
+            assert gathered_loss["losses_list"][0].numel() == 2 * len(losses)
+            assert gathered_loss["losses"].numel() == 2 * len(losses)
+
+    seed_everything(42)
+
+    model = TestModel()
+
+    limit_train_batches = 8
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=2,
+        max_epochs=1,
+        log_every_n_steps=1,
+        accumulate_grad_batches=2,
+        enable_pl_optimizer=True,
+        gpus=2,
+        accelerator="ddp",
+    )
+
+    trainer.fit(model)
+    assert model.training_epoch_end_called

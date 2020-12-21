@@ -23,6 +23,7 @@ from typing import Union, Optional, Any
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
     from torch.distributed import group
+    WORLD = group.WORLD
 else:
     class ReduceOp:
         SUM = None
@@ -203,10 +204,13 @@ def all_gather_ddp_if_available(
     Return:
         A tensor of shape (world_size, batch, ...)
     """
+    if group is None:
+        group = torch.distributed.group.WORLD
+
     if torch.distributed.is_available() and torch.distributed.is_initialized():
         if sync_grads:
             return AllGatherGrad.apply(tensor, group)
         else:
-            with torch.no_grad:
+            with torch.no_grad():
                 return AllGatherGrad.apply(tensor, group)
     return tensor
