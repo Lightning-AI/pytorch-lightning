@@ -53,6 +53,9 @@ class MetricsHolder:
         if isinstance(current, torch.Tensor):
             current = float(current.item())
 
+        elif isinstance(current, int):
+            current = float(current)
+
         return current
 
     def _convert_to_tensor(self, current: Any, use_tpu: bool, device: torch.device):

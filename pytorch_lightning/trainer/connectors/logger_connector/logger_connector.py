@@ -32,43 +32,64 @@ from pytorch_lightning.utilities.model_utils import is_overridden
 
 class LoggerConnector:
 
-    METRICS_HOLDERS = ['callback_metrics', 'evaluation_callback_metrics', 'logged_metrics', 'progress_bar_metrics']
-
     def __init__(self, trainer):
         self.trainer = trainer
         self._callback_metrics = MetricsHolder()
-        self._evaluation_callback_metrics = MetricsHolder(to_float=True)
-        self._logged_metrics = MetricsHolder(to_float=True)
+        self._evaluation_callback_metrics = MetricsHolder()
+        self._logged_metrics = MetricsHolder()
         self._progress_bar_metrics = MetricsHolder()
         self.eval_loop_results = []
         self._cached_results = {stage: EpochResultStore(trainer, stage) for stage in LoggerStages}
         self._callback_hook_validator = CallbackHookNameValidator()
         self._current_stage = None
 
-    def __getattr__(self, key: str) -> Any:
-        try:
-            if key in self.METRICS_HOLDERS:
-                metrics_holder = getattr(self, f"_{key}", None)
-                metrics_holder.convert(
-                    self.trainer.use_tpu,
-                    self.trainer.get_model().device
-                )
-                return metrics_holder.metrics
-            else:
-                return self[key]
-        except KeyError:
-            return None
+    @property
+    def callback_metrics(self):
+        return self.get_metrics("callback_metrics")
 
-    def __setattr__(self, key: str, val: Any):
-        if key in self.METRICS_HOLDERS:
-            metrics_holder = getattr(self, f"_{key}", None)
-            metrics_holder.reset(val)
-        else:
-            self.__dict__[key] = val
+    @callback_metrics.setter
+    def callback_metrics(self, callback_metrics):
+        self.set_metrics("callback_metrics", callback_metrics)
 
     @property
-    def cached_results(self) -> Union[EpochResultStore, None]:
+    def evaluation_callback_metrics(self):
+        return self.get_metrics("evaluation_callback_metrics")
+
+    @evaluation_callback_metrics.setter
+    def evaluation_callback_metrics(self, evaluation_callback_metrics):
+        self.set_metrics("evaluation_callback_metrics", evaluation_callback_metrics)
+
+    @property
+    def logged_metrics(self):
+        return self.get_metrics("logged_metrics")
+
+    @logged_metrics.setter
+    def logged_metrics(self, logged_metrics):
+        self.set_metrics("logged_metrics", logged_metrics)
+
+    @property
+    def progress_bar_metrics(self):
+        return self.get_metrics("progress_bar_metrics")
+
+    @progress_bar_metrics.setter
+    def progress_bar_metrics(self, progress_bar_metrics):
+        self.set_metrics("progress_bar_metrics", progress_bar_metrics)
+
+    @property
+    def cached_results(self):
         return self._cached_results.get(self._current_stage)    # type: ignore
+
+    def get_metrics(self, key):
+        metrics_holder = getattr(self, f"_{key}", None)
+        metrics_holder.convert(
+            self.trainer.use_tpu,
+            self.trainer.get_model().device
+        )
+        return metrics_holder.metrics
+
+    def set_metrics(self, key: str, val: Any):
+        metrics_holder = getattr(self, f"_{key}", None)
+        metrics_holder.reset(val)
 
     def set_stage(self, stage_or_testing: Union[str, bool], reset: bool = False) -> None:
         self._current_stage = LoggerStages.determine_stage(stage_or_testing)

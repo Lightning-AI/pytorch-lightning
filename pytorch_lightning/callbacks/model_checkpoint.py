@@ -606,8 +606,7 @@ class ModelCheckpoint(Callback):
             del_filepath = self.kth_best_model_path
             self.best_k_models.pop(del_filepath)
 
-        # do not save nan, replace with +/- inf
-        if torch.isnan(current):
+        if isinstance(current, torch.Tensor) and torch.isnan(current):
             current = torch.tensor(float('inf' if self.mode == "min" else '-inf'))
 
         filepath = self._get_metric_interpolated_filepath_name(ckpt_name_metrics, epoch, step, del_filepath)
