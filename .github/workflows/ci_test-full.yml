@@ -104,12 +104,10 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-
 
-    - id: install-aws-cli
-      uses: unfor19/install-aws-cli-action@v1
-      with:
-        version: 2.0.30
-    - run: |
-        aws s3 cp  --acl public-read --recursive s3://pl-public-data/legacy/checkpoints/ legacy/checkpoints/
+    - name: Sync S3
+      run: |
+        python -m pip install awscli
+        aws s3 cp --recursive s3://pl-public-data/legacy/checkpoints/ legacy/checkpoints/ #  --acl public-read
         ls -l legacy/checkpoints/
 
     - name: Install dependencies
