@@ -46,6 +46,7 @@ jobs:
     - name: Setup Windows
       if: runner.os == 'windows'
       run: |
+        choco install wget --no-progress
         # remove Horovod from requirements
         fname = 'requirements/extra.txt'
         lines = [line for line in open(fname).readlines() if not line.startswith('horovod')]
@@ -109,7 +110,7 @@ jobs:
       run: |
         cd legacy
         wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip
-        unzip checkpoints.zip
+        unzip -o checkpoints.zip
         ls -l checkpoints/
 
     - name: Install dependencies

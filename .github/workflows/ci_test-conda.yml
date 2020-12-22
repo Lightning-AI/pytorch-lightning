@@ -42,7 +42,7 @@ jobs:
       run: |
         cd legacy
         wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip
-        unzip checkpoints.zip
+        unzip -o checkpoints.zip
         ls -l checkpoints/
 
     - name: Tests
