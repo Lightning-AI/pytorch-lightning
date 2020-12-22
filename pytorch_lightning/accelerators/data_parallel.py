@@ -195,6 +195,14 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
     def is_global_zero(self) -> bool:
         return self.global_rank == 0
 
+    @property
+    def distributed_sampler_kwargs(self):
+        distributed_sampler_kwargs = dict(
+            num_replicas=len(self.parallel_devices),
+            rank=self.global_rank
+        )
+        return distributed_sampler_kwargs
+
     @staticmethod
     def configure_sync_batchnorm(model: LightningModule) -> LightningModule:
         """
@@ -272,6 +280,19 @@ class DDPPlugin(ParallelPlugin):
     def root_device(self):
         return self.parallel_devices[self.local_rank]
 
+    @property
+    def lightning_module(self):
+        # the model may not be wrapped with DistributedDataParallel if calling this too early
+        return getattr(self._model, "module", self._model)
+
+    @property
+    def distributed_sampler_kwargs(self):
+        distributed_sampler_kwargs = dict(
+            num_replicas=(self.num_nodes * self.num_processes),
+            rank=self.global_rank
+        )
+        return distributed_sampler_kwargs
+
     def determine_local_rank(self):
         if self.is_slurm_managing_tasks:
             return int(os.environ['SLURM_LOCALID'])
@@ -293,11 +314,6 @@ class DDPPlugin(ParallelPlugin):
 
         # set the task idx
         self.task_idx = int(os.environ["LOCAL_RANK"])
-
-    @property
-    def lightning_module(self):
-        # the model may not be wrapped with DistributedDataParallel if calling this too early
-        return getattr(self._model, "module", self._model)
 
     def _call_children_scripts(self):
 
@@ -503,6 +519,14 @@ class DDPSpawnPlugin(ParallelPlugin):
     def lightning_module(self):
         # the model may not be wrapped with DistributedDataParallel if calling this too early
         return getattr(self._model, "module", self._model)
+
+    @property
+    def distributed_sampler_kwargs(self):
+        distributed_sampler_kwargs = dict(
+            num_replicas=(self.num_nodes * self.num_processes),
+            rank=self.global_rank
+        )
+        return distributed_sampler_kwargs
 
     def setup(self, model):
         self._model = model
