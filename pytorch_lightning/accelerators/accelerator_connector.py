@@ -59,7 +59,6 @@ class BackendConnector(object):
         precision,
         amp_type, 
         amp_level,
-        is_slurm_managing_tasks,
     ):
 
         # initialization
@@ -82,7 +81,7 @@ class BackendConnector(object):
         self.precision = precision
         self.amp_type = None if amp_type is None else amp_type.lower()
         self.amp_level = amp_level
-        self.is_slurm_managing_tasks = is_slurm_managing_tasks
+        self.is_slurm_managing_tasks = False
 
         # init the default rank if exists
         # we need to call this here or NVIDIA flags and other messaging in init will show on all ranks
@@ -99,6 +98,7 @@ class BackendConnector(object):
         # self.root_device = torch.device("cpu")
 
         self.set_distributed_mode()
+        self.configure_slurm_ddp()
 
         # todo: select accelerator based on trainer flags
         self.accelerator = self.select_accelerator()
@@ -347,3 +347,39 @@ class BackendConnector(object):
     def has_horovodrun():
         """Returns True if running with `horovodrun` using Gloo or OpenMPI."""
         return "OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ
+
+    def configure_slurm_ddp(self):
+        # extract SLURM flag vars
+        # whenever we have the correct number of tasks, we let slurm manage processes
+        # otherwise we launch the required number of processes
+        if self.use_ddp or self.use_ddp2:
+            num_requested_gpus = self.num_gpus * self.num_nodes
+            num_slurm_tasks = 0
+            try:
+                num_slurm_tasks = int(os.environ['SLURM_NTASKS'])
+                self.is_slurm_managing_tasks = num_slurm_tasks == num_requested_gpus
+
+                # enable slurm cpu
+                if num_requested_gpus == 0:
+                    self.is_slurm_managing_tasks = num_slurm_tasks == self.num_processes
+
+                # in interactive mode we don't manage tasks
+                job_name = os.environ['SLURM_JOB_NAME']
+                if job_name == 'bash':
+                    self.is_slurm_managing_tasks = False
+
+            except Exception:
+                # likely not on slurm, so set the slurm managed flag to false
+                self.is_slurm_managing_tasks = False
+
+        # used for tests only, set this flag to simulate slurm managing a task
+        try:
+            should_fake = int(os.environ['FAKE_SLURM_MANAGING_TASKS'])
+            if should_fake:
+                self.is_slurm_managing_tasks = True
+        except Exception:
+            pass
+
+        # notify user the that slurm is managing tasks
+        if self.is_slurm_managing_tasks:
+            rank_zero_info('Multi-processing is handled by Slurm.')
