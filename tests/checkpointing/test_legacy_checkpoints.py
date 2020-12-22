@@ -24,7 +24,9 @@ LEGACY_CHECKPOINTS_PATH = os.path.join(LEGACY_PATH, 'checkpoints')
 CHECKPOINT_EXTENSION = ".ckpt"
 
 
-@pytest.mark.parametrize("pl_version", ["1.0.0", "1.0.1", "1.0.2"])
+@pytest.mark.parametrize("pl_version", [
+    "0.10.0", "1.0.0", "1.0.1", "1.0.2", "1.0.3", "1.0.4", "1.0.5", "1.0.6", "1.0.7", "1.0.8"
+])
 def test_resume_legacy_checkpoints(tmpdir, pl_version):
     path_dir = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
 

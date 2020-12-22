@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # todo: take this from argument
-VERSIONS=("1.0.0" "1.0.1" "1.0.2")
+VERSIONS=("0.10.0" "1.0.0" "1.0.1" "1.0.2" "1.0.3" "1.0.4" "1.0.5" "1.0.6" "1.0.7" "1.0.8")
 
 LEGACY_PATH="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 

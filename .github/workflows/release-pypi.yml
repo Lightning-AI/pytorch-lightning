@@ -62,5 +62,14 @@ jobs:
         user: __token__
         password: ${{ secrets.pypi_password }}
 
+    # todo: generate checkpoint to this version
     # todo: upload checkpoint to legacy
     # https://github.com/marketplace/actions/upload-s3
+    # aws s3 sync legacy/checkpoints/ s3://pl-public-data/legacy/checkpoints/
+
+    #- name: Configure AWS credentials
+    #  uses: aws-actions/configure-aws-credentials@v1
+    #  with:
+    #    aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    #    aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
+    #    aws-region: us-east-1
