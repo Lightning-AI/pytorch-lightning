@@ -150,16 +150,19 @@ class NewAccelerator(object):
 
         if grad_clip_val <= 0:
             return
-        self._clip_gradients(optimizer, grad_clip_val)
 
         model = self.lightning_module
 
         # TODO: Change this. Probably to isinstance(self.precision_plugin, MixedPrecisionPlugin) and self.precision_plugin.backend == AMPType.APEX
+
+        # if self.trainer.amp_backend == AMPType.APEX:
+        #     parameters = self.precision_plugin.master_params(optimizer)
+        # else:
+        #     parameters = model.parameters()
+
+        # TODO
         #  ... or we call master_params() and in the default plugin we return the model.parameters()
-        if self.trainer.amp_backend == AMPType.APEX:
-            parameters = self.precision_plugin.master_params(optimizer)
-        else:
-            parameters = model.parameters()
+        parameters = self.precision_plugin.master_params(optimizer)
 
         max_norm = grad_clip_val
         norm_type = float(2.0)

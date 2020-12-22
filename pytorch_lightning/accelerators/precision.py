@@ -112,6 +112,9 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         self.backend = AMPType.APEX
         self.amp_level = amp_level
 
+    def master_params(self, optimizer):
+        return amp.master_params(optimizer)
+
     def connect(self, model, optimizers, lr_schedulers):
         model, optimizers = self.configure_apex(amp, model, optimizers, self.amp_level)
         reinit_scheduler_properties(optimizers, lr_schedulers)
