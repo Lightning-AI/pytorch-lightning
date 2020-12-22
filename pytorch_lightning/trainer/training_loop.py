@@ -18,6 +18,7 @@ from copy import copy, deepcopy
 import numpy as np
 import torch
 
+from pytorch_lightning.accelerators.data_parallel import ParallelPlugin
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
@@ -719,8 +720,8 @@ class TrainLoop:
         Returns: context manager with sync behaviour off
 
         """
-        if self.trainer.accelerator_backend is not None and self.automatic_optimization:
-            yield self.trainer.accelerator_backend.block_ddp_plugin_sync_behaviour()
+        if isinstance(self.trainer.training_type_plugin, ParallelPlugin) is not None and self.automatic_optimization:
+            yield self.trainer.training_type_plugin.block_backward_sync()
         else:
             yield None
 
