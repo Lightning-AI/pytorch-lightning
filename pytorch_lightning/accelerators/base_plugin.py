@@ -15,7 +15,7 @@ class Plugin(object):
     def pre_training(self):
         pass
 
-    def post_training(self, best_model_path):
+    def post_training(self):
         pass
 
     @contextlib.contextmanager

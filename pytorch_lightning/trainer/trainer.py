@@ -542,7 +542,7 @@ class Trainer(
         else:
             self.training_type_plugin.start_training(self)
 
-        results = self.training_type_plugin.post_training(self.checkpoint_callback.best_model_path)
+        results = self.training_type_plugin.post_training()
         self.accelerator_backend.teardown()
 
         # ----------------------------
@@ -902,8 +902,9 @@ class Trainer(
                     f"specify a path for a checkpoint .test(ckpt_path=PATH)"
                 )
                 return {}
+
             if self.accelerator_backend is not None and not self._device_type == DeviceType.TPU:
-                self.accelerator_backend.barrier()
+                self.training_type_plugin.barrier()
 
             ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt["state_dict"])

@@ -64,6 +64,7 @@ class TrainerProperties(ABC):
     _default_root_dir: str
     _weights_save_path: str
     accelerator_backend: NewAccelerator
+    accelerator_connector: BackendConnector
 
     @property
     def accelerator(self):
@@ -138,6 +139,14 @@ class TrainerProperties(ABC):
     @property
     def num_processes(self):
         return self.accelerator_connector.num_processes
+
+    @property
+    def root_gpu(self):
+        return self.accelerator_connector.root_gpu
+
+    @property
+    def data_parallel_device_ids(self):
+        return self.accelerator_connector.parallel_device_ids
 
     @property
     def log_dir(self):
