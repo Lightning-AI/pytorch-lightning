@@ -43,7 +43,7 @@ Scale your models, not the boilerplate.**
 ---
 
 ## NEWS
-[Dec 2020 - Read about how Facebook uses Lightning to standardize across teams for research and production](https://ai.facebook.com/blog/reengineering-facebook-ais-deep-learning-platforms-for-interoperability)
+[Dec 2020 - Read about how Facebook uses Lightning to standardize deep learning across research and production teams](https://ai.facebook.com/blog/reengineering-facebook-ais-deep-learning-platforms-for-interoperability)
 
 ---
 
