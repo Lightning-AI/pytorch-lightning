@@ -43,6 +43,7 @@ else:
 class TrainingTypePlugin(Plugin, ABC):
     def __init__(self):
         self._model = None
+        self._results = None
         self.global_rank = 0
 
     @property
@@ -76,6 +77,7 @@ class TrainingTypePlugin(Plugin, ABC):
     def broadcast(self, obj: object, src: int = 0) -> object:
         raise NotImplementedError
 
+    # TODO method this is currently unused
     def set_nvidia_flags(self, is_slurm_managing_tasks, device_ids):
         if device_ids is None:
             return
@@ -115,17 +117,26 @@ class TrainingTypePlugin(Plugin, ABC):
     def lightning_module(self):
         return self._model
 
-    def start_training(self, trainer):
-        # double dispatch to initiate the training loop
-        return trainer.train()
-
-    def start_testing(self, trainer):
-        # double dispatch to initiate the test loop
-        return trainer.run_test()
+    @property
+    def results(self):
+        """
+        The results of the last training/testing run will be cached here.
+        In distributed training, we make sure to transfer the results to the appropriate master process.
+        """
+        # TODO: improve these docs
+        return self._results
 
     @property
     def rpc_enabled(self):
         return False
+
+    def start_training(self, trainer):
+        # double dispatch to initiate the training loop
+        self._results = trainer.train()
+
+    def start_testing(self, trainer):
+        # double dispatch to initiate the test loop
+        self._results = trainer.run_test()
 
 
 class SingleDevicePlugin(TrainingTypePlugin):
@@ -597,12 +608,10 @@ class DDPSpawnPlugin(ParallelPlugin):
     def post_training(self):
         # restore main state with best weights
         best_path = self.mp_queue.get()
-        results = self.mp_queue.get()
         last_path = self.mp_queue.get()
-
+        self._results = self.mp_queue.get()
         # recover the weights of the processes trained in the children
         self.__recover_child_process_weights(best_path, last_path)
-        return results
 
     def configure_ddp(self):
         # if unset, default `find_unused_parameters` `True`

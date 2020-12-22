@@ -542,8 +542,9 @@ class Trainer(
         else:
             self.training_type_plugin.start_training(self)
 
-        results = self.training_type_plugin.post_training()
+        self.training_type_plugin.post_training()
         self.accelerator_backend.teardown()
+        results = self.training_type_plugin.results
 
         # ----------------------------
         # POST-Training CLEAN UP
