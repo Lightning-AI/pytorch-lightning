@@ -42,6 +42,11 @@ Scale your models, not the boilerplate.**
 
 ---
 
+## NEWS
+[Dec 2020 - Read about how Facebook uses Lightning to standardize across teams for research and production](https://ai.facebook.com/blog/reengineering-facebook-ais-deep-learning-platforms-for-interoperability)
+
+---
+
 ## PyTorch Lightning is just organized PyTorch
 Lightning disentangles PyTorch code to decouple the science from the engineering.
 ![PT to PL](docs/source/_images/general/pl_quick_start_full_compressed.gif)
