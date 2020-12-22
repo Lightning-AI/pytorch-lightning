@@ -720,7 +720,7 @@ class TrainLoop:
         Returns: context manager with sync behaviour off
 
         """
-        if isinstance(self.trainer.training_type_plugin, ParallelPlugin) is not None and self.automatic_optimization:
+        if isinstance(self.trainer.training_type_plugin, ParallelPlugin) and self.automatic_optimization:
             yield self.trainer.training_type_plugin.block_backward_sync()
         else:
             yield None
