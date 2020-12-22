@@ -45,6 +45,7 @@ RUN apt-get update -qq && \
         cmake \
         git \
         wget \
+        unzip \
         ca-certificates \
         software-properties-common \
     && \
