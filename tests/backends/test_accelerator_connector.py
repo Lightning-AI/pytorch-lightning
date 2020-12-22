@@ -17,8 +17,10 @@ from unittest import mock
 
 import pytest
 
-from pytorch_lightning import accelerators, Trainer
-from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning import Trainer, accelerators
+from pytorch_lightning.accelerators.accelerator import NewCPUAccelerator
+from pytorch_lightning.accelerators.data_parallel import SingleDevicePlugin
+from pytorch_lightning.accelerators.old.accelerator import Accelerator
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.cluster_environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
 from pytorch_lightning.utilities import DistributedType
@@ -28,7 +30,8 @@ from tests.base.boring_model import BoringModel
 def test_accelerator_choice_cpu(tmpdir):
     class CB(Callback):
         def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator_backend, accelerators.CPUAccelerator)
+            assert isinstance(trainer.accelerator_backend, NewCPUAccelerator)
+            assert isinstance(trainer.accelerator_backend.training_type_plugin, SingleDevicePlugin)
             assert isinstance(trainer.accelerator_backend.cluster_environment, TorchElasticEnvironment)
 
     model = BoringModel()

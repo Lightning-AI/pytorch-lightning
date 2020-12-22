@@ -13,7 +13,6 @@
 # limitations under the License.
 from typing import Union
 
-from pytorch_lightning import accelerators
 import os
 import torch
 
@@ -59,7 +58,8 @@ class BackendConnector(object):
         deterministic,
         precision,
         amp_type, 
-        amp_level
+        amp_level,
+        is_slurm_managing_tasks,
     ):
 
         # initialization
@@ -82,6 +82,7 @@ class BackendConnector(object):
         self.precision = precision
         self.amp_type = None if amp_type is None else amp_type.lower()
         self.amp_level = amp_level
+        self.is_slurm_managing_tasks = is_slurm_managing_tasks
 
         # init the default rank if exists
         # we need to call this here or NVIDIA flags and other messaging in init will show on all ranks
@@ -110,12 +111,6 @@ class BackendConnector(object):
         # init flags for SLURM+DDP to work
         self.world_size = 1
         self.interactive_ddp_procs = []
-
-        # link up SLURM
-        # TODO: this should be taken out of here... but depends too much on DDP
-        # self.slurm_connector.on_trainer_init(self.num_nodes)
-        # self.node_rank = self.determine_ddp_node_rank()
-        # self.local_rank = self.determine_local_rank()
         self.global_rank = 0
 
         # NVIDIA setup
@@ -182,28 +177,26 @@ class BackendConnector(object):
                     log.info('Using APEX 16bit precision.')
                     self.amp_type = AMPType.APEX
                     return ApexMixedPrecisionPlugin(self.amp_level)
-
-
-        
         else:
             raise NotImplementedError('We only support precisions 32 and 16!')
 
     def select_training_type_plugin(self):
+        cluster_environment = self.select_cluster_environment()
         if self.use_dp and self.distributed_backend == "dp":
             plugin = DataParallelPlugin(parallel_devices=self.parallel_devices)
         elif self.use_ddp and self.distributed_backend == "ddp":
             plugin = DDPPlugin(
                 parallel_devices=self.parallel_devices,
                 num_nodes=self.num_nodes,
-                cluster_environment=TorchElasticEnvironment(),  # TODO: deterimine this using plugin connector?
-                is_slurm_managing_tasks=False,  # TODO: determine this
+                cluster_environment=cluster_environment,
+                is_slurm_managing_tasks=self.is_slurm_managing_tasks,
             )
         elif self.use_ddp and self.distributed_backend in ("ddp_spawn", "ddp_spawn_cpu", "ddp_cpu"):
             plugin = DDPSpawnPlugin(
                 parallel_devices=self.parallel_devices,
                 num_nodes=self.num_nodes,
-                cluster_environment=TorchElasticEnvironment(),
-                is_slurm_managing_tasks=False,  # TODO: determine this
+                cluster_environment=cluster_environment,
+                is_slurm_managing_tasks=self.is_slurm_managing_tasks,
             )
         else:
             # TODO: cover all other cases
@@ -224,6 +217,23 @@ class BackendConnector(object):
             precision_plugin=self.select_precision_plugin(),
             training_type_plugin=self.select_training_type_plugin(),
         )
+
+    def select_cluster_environment(self):
+        # TODO: support the cloud environment set by the plugin connector!
+        # if self.trainer.plugin_connector.cloud_environment:
+        #     env = self.trainer.plugin_connector.cloud_environment
+        # elif self.is_slurm_managing_tasks:
+        if self.is_slurm_managing_tasks:
+            env = SLURMEnvironment()
+        elif self._is_using_torchelastic():
+            env = TorchElasticEnvironment()
+        else:
+            env = TorchElasticEnvironment()
+        return env
+
+    def _is_using_torchelastic(self):
+        te_flags_passed = 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ)
+        return te_flags_passed
 
     def set_distributed_mode(self):
 
