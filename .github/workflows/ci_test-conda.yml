@@ -38,6 +38,18 @@ jobs:
         # Look to see if there is a cache hit for the corresponding requirements file
         key: pl-dataset
 
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
+        aws-region: us-east-1
+
+    - name: Copy files from S3
+      run: |
+        aws s3 cp --recursive s3://pl-public-data/legacy/checkpoints/ legacy/checkpoints/ #  --acl public-read
+        ls -lR legacy/checkpoints/
+
     - name: Tests
       run: |
         # NOTE: run coverage on tests does not propagare faler status for Win, https://github.com/nedbat/coveragepy/issues/1003

@@ -114,7 +114,7 @@ jobs:
     - name: Copy files from S3
       run: |
         aws s3 cp --recursive s3://pl-public-data/legacy/checkpoints/ legacy/checkpoints/ #  --acl public-read
-        ls -l legacy/checkpoints/
+        ls -lR legacy/checkpoints/
 
     - name: Install dependencies
       env:
