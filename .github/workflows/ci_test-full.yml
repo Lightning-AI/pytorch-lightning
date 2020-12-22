@@ -104,16 +104,12 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-
 
-    - name: S3 Sync
-      # aws s3 cp --recursive s3://pl-public-data/legacy/checkpoints/ legacy/checkpoints/
-      uses: ItsKarma/aws-cli@v1.70.0
+    - id: install-aws-cli
+      uses: unfor19/install-aws-cli-action@v1
       with:
-        args: s3 cp --acl public-read --recursive s3://pl-public-data/legacy/checkpoints/ legacy/checkpoints/
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY_ID }}
-        AWS_DEFAULT_REGION: "us-east-1"
+        version: 2.0.30
     - run: |
+        aws s3 cp  --acl public-read --recursive s3://pl-public-data/legacy/checkpoints/ legacy/checkpoints/
         ls -l legacy/checkpoints/
 
     - name: Install dependencies
