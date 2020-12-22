@@ -190,6 +190,7 @@ class BackendConnector(object):
                 num_nodes=self.num_nodes,
                 cluster_environment=cluster_environment,
                 is_slurm_managing_tasks=self.is_slurm_managing_tasks,
+                sync_batchnorm=self.sync_batchnorm,
             )
         elif self.use_ddp and self.distributed_backend in ("ddp_spawn", "ddp_spawn_cpu", "ddp_cpu"):
             plugin = DDPSpawnPlugin(
@@ -197,6 +198,7 @@ class BackendConnector(object):
                 num_nodes=self.num_nodes,
                 cluster_environment=cluster_environment,
                 is_slurm_managing_tasks=self.is_slurm_managing_tasks,
+                sync_batchnorm=self.sync_batchnorm,
             )
         else:
             # TODO: cover all other cases

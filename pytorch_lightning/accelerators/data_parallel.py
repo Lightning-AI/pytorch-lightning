@@ -288,12 +288,14 @@ class DDPPlugin(ParallelPlugin):
             num_nodes=1,
             cluster_environment=None,
             is_slurm_managing_tasks=False,
+            sync_batchnorm=False,
             **kwargs: Dict[str, Any],
     ) -> None:
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         self.interactive_ddp_procs = []
         self.num_nodes = num_nodes
         self.is_slurm_managing_tasks = is_slurm_managing_tasks
+        self.sync_batchnorm = sync_batchnorm
         self.dist = LightningDistributed()
         self._ddp_kwargs = kwargs
         self._has_spawned_children = False
@@ -481,7 +483,8 @@ class DDPPlugin(ParallelPlugin):
         self.dist.rank = self.global_rank
         self.dist.device = self.root_device
 
-        self.model = self.configure_sync_batchnorm(self.model)
+        if self.sync_batchnorm:
+            self.model = self.configure_sync_batchnorm(self.model)
 
         # move the model to the correct device
         self.model_to_device()
@@ -522,11 +525,13 @@ class DDPSpawnPlugin(ParallelPlugin):
         num_nodes=1,
         cluster_environment=None,
         is_slurm_managing_tasks=False,
+        sync_batchnorm=False,
         **kwargs: Dict[str, Any]
     ):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         self.num_nodes = num_nodes
         self.is_slurm_managing_tasks = is_slurm_managing_tasks
+        self.sync_batchnorm = sync_batchnorm
         self._ddp_kwargs = kwargs
         self.dist = LightningDistributed()
         self.num_processes = len(parallel_devices)
@@ -601,7 +606,8 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.dist.rank = self.global_rank
         self.dist.device = self.root_device
 
-        self.model = self.configure_sync_batchnorm(self.model)
+        if self.sync_batchnorm:
+            self.model = self.configure_sync_batchnorm(self.model)
 
         # move the model to the correct device
         self.model_to_device()
