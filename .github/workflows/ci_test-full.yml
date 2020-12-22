@@ -105,16 +105,14 @@ jobs:
           ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-
 
     - name: S3 Sync
-      uses: caffco/s3-glob-sync-github-action@v1.0.0
+      # aws s3 cp --recursive s3://pl-public-data/legacy/checkpoints/ legacy/checkpoints/
+      uses: ItsKarma/aws-cli@v1.70.0
       with:
-        prefix: my-prefix
-        bucket_name: pl-public-data
-        endpoint: pl-public-data.s3.amazonaws.com
-        region: us-east-1
-        access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        secret_access_key: ${{ secrets.AWS_SECRET_KEY_ID }}
-        mode: download
-        destination_folder: legacy/checkpoints
+        args: s3 cp --acl public-read --recursive s3://pl-public-data/legacy/checkpoints/ legacy/checkpoints/
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY_ID }}
+        AWS_DEFAULT_REGION: "us-east-1"
     - run: |
         ls -l legacy/checkpoints/
 
