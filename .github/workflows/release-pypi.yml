@@ -61,3 +61,6 @@ jobs:
       with:
         user: __token__
         password: ${{ secrets.pypi_password }}
+
+    # todo: upload checkpoint to legacy
+    # https://github.com/marketplace/actions/upload-s3
