@@ -104,6 +104,12 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-
 
+    - uses: chrislennon/action-aws-cli@v1.1
+    # All commands after this point have access to the AWS CLI
+    - run: |
+        aws s3 cp --recursive s3://pl-public-data/legacy/checkpoints/ legacy/checkpoints/
+        ls -l legacy/checkpoints/
+
     - name: Install dependencies
       env:
         # MAKEFLAGS: "-j2"

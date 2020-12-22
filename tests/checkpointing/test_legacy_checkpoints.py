@@ -28,6 +28,7 @@ CHECKPOINT_EXTENSION = ".ckpt"
 def test_resume_legacy_checkpoints(tmpdir, pl_version):
     path_dir = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
 
+    # todo: make this as mock, so it is cleaner...
     orig_sys_paths = list(sys.path)
     sys.path.insert(0, path_dir)
     from zero_training import DummyModel
