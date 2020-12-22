@@ -41,7 +41,7 @@ steps:
     - pip list
     # get legacy checkpoints
     - wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip -P legacy/
-    - unzip legacy/checkpoints.zip -d legacy/
+    - unzip -o legacy/checkpoints.zip -d legacy/
     - ls -l legacy/checkpoints/
     # testing...
     - python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=25 # --flake8
