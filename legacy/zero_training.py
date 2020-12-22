@@ -18,11 +18,7 @@ from torch.utils.data import Dataset
 
 import pytorch_lightning as pl
 
-
 PATH_LEGACY = os.path.dirname(__file__)
-
-import sys
-print (sys.path)
 
 
 class RandomDataset(Dataset):
