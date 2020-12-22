@@ -109,5 +109,5 @@ jobs:
       run: |
         aws s3 sync legacy/checkpoints/ s3://pl-public-data/legacy/checkpoints/
         cd legacy
-        zip -r legacy-checkpoints.zip checkpoints
+        zip -r checkpoints.zip checkpoints
         aws s3 cp checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
