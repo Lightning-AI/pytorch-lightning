@@ -366,7 +366,10 @@ class LightningModule(
 
         return on_epoch
 
-    def all_gather(self, data: Union[torch.Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False):
+    def all_gather(self, 
+                   data: Union[torch.Tensor, Dict, List, Tuple], 
+                   group: Optional[Any] = None, 
+                   sync_grads: bool = False):
         r"""
         Allows users to call ``self.all_gather()`` from the LightningModule, thus making
         the ```all_gather``` operation accelerator agnostic.
