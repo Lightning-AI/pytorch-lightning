@@ -34,23 +34,16 @@ jobs:
       # todo this probably does not work with docker images, rather cache dockers
       uses: actions/cache@v2
       with:
-        path: Datasets # This path is specific to Ubuntu
-        # Look to see if there is a cache hit for the corresponding requirements file
+        path: Datasets
         key: pl-dataset
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
-        aws-region: us-east-1
-
-    - name: Copy files from S3
+    - name: Pull checkpoints from S3
+      # todo: consider adding coma caching, but ATM all models have less then 100KB
       run: |
-        pip install awscli
-        # todo: consider adding coma caching, but ATM all models have less then 100KB
-        aws s3 cp --recursive s3://pl-public-data/legacy/checkpoints/ legacy/checkpoints/ #  --acl public-read
-        ls -l legacy/checkpoints/
+        cd legacy
+        wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip
+        unzip checkpoints.zip
+        ls -l checkpoints/
 
     - name: Tests
       run: |

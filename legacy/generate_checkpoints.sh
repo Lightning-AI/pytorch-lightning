@@ -1,7 +1,6 @@
 #!/bin/bash
-
-# todo: take this from argument
-VERSIONS=("0.10.0" "1.0.0" "1.0.1" "1.0.2" "1.0.3" "1.0.4" "1.0.5" "1.0.6" "1.0.7" "1.0.8")
+# Sample call:
+#  bash generate_checkpoints.sh 1.0.2 1.0.3 1.0.4
 
 LEGACY_PATH="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 
@@ -11,7 +10,8 @@ pip install virtualenv "torch==1.5" --quiet --no-cache-dir
 
 ENV_PATH="$LEGACY_PATH/vEnv"
 
-for ver in "${VERSIONS[@]}"
+# iterate over all arguments assuming that each argument is version
+for ver in "$@"
 do
 	echo "processing version: $ver"
 	# mkdir "$LEGACY_PATH/$ver"
