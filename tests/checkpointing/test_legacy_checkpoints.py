@@ -26,12 +26,12 @@ CHECKPOINT_EXTENSION = ".ckpt"
 
 @pytest.mark.parametrize("pl_version", ["1.0.0", "1.0.1", "1.0.2"])
 def test_resume_legacy_checkpoints(tmpdir, pl_version):
+    path_dir = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
 
     orig_sys_paths = list(sys.path)
-    sys.path.insert(0, LEGACY_PATH)
+    sys.path.insert(0, path_dir)
     from zero_training import DummyModel
 
-    path_dir = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
     path_ckpts = sorted(glob.glob(os.path.join(path_dir, f'*{CHECKPOINT_EXTENSION}')))
     assert path_ckpts, 'No checkpoints found in folder "%s"' % path_dir
     path_ckpt = path_ckpts[-1]
@@ -41,6 +41,7 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version):
     result = trainer.fit(model)
     assert result
 
+    # todo
     # model = DummyModel()
     # trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, resume_from_checkpoint=path_ckpt)
     # result = trainer.fit(model)

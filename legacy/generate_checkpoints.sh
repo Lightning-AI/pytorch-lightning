@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# todo: take this from argument
 VERSIONS=("1.0.0" "1.0.1" "1.0.2")
 
 LEGACY_PATH="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
@@ -27,6 +28,7 @@ do
   pip list | grep torch
 
   python "$LEGACY_PATH/zero_training.py"
+  cp "$LEGACY_PATH/zero_training.py" ${LEGACY_PATH}/checkpoints/${ver}
 
   mv ${LEGACY_PATH}/checkpoints/${ver}/lightning_logs/version_0/checkpoints/*.ckpt ${LEGACY_PATH}/checkpoints/${ver}/
   rm -rf ${LEGACY_PATH}/checkpoints/${ver}/lightning_logs
