@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 import re
+from contextlib import contextmanager
+
 from pytorch_lightning.utilities.cloud_io import atomic_save, load as pl_load
 from pytorch_lightning.accelerators.base_plugin import Plugin
 
@@ -20,7 +22,6 @@ from pytorch_lightning.utilities.distributed import find_free_network_port, rank
 import numpy as np
 import torch.distributed as torch_distrib
 from pytorch_lightning import _logger as log
-import contextlib
 import torch.multiprocessing as mp
 from pytorch_lightning.utilities.distributed import sync_ddp_if_available, rank_zero_warn, rank_zero_info
 
@@ -230,6 +231,18 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         """
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
         return model
+
+    @contextmanager
+    def block_backward_sync(self):
+        """
+        Blocks ddp sync gradients behaviour on backwards pass.
+        This is useful for skipping sync when accumulating gradients, reducing communication overhead
+        Returns: context manager with sync behaviour off
+        """
+        if isinstance(self.model, LightningDistributedDataParallel):
+            yield self.model.no_sync()
+        else:
+            yield None
 
 
 class DataParallelPlugin(ParallelPlugin):
