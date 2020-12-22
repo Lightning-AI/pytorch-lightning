@@ -162,6 +162,7 @@ def test_determine_root_gpu_device(gpus, expected_root_gpu):
     pytest.param(-1, list(range(PRETEND_N_OF_GPUS)), id="-1 - use all gpus"),
     pytest.param([0], [0]),
     pytest.param([1, 3], [1, 3]),
+    pytest.param((1, 3), [1, 3]),
     pytest.param('0', [0]),
     pytest.param('3', [3]),
     pytest.param('1, 3', [1, 3]),
@@ -181,7 +182,6 @@ def test_parse_gpu_ids(mocked_device_count, gpus, expected_gpu_ids):
     pytest.param([-1]),
     pytest.param([None]),
     pytest.param(['0']),
-    pytest.param((0, 1)),
 ])
 def test_parse_gpu_fail_on_unsupported_inputs(mocked_device_count, gpus):
     with pytest.raises(MisconfigurationException):
