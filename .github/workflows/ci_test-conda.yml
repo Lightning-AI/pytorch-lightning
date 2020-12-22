@@ -40,6 +40,7 @@ jobs:
     - name: Pull checkpoints from S3
       # todo: consider adding coma caching, but ATM all models have less then 100KB
       run: |
+        apt-get install -y wget
         cd legacy
         wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip
         unzip -o checkpoints.zip
