@@ -48,7 +48,7 @@ jobs:
     - name: Copy files from S3
       run: |
         aws s3 cp --recursive s3://pl-public-data/legacy/checkpoints/ legacy/checkpoints/ #  --acl public-read
-        ls -lR legacy/checkpoints/
+        ls -l legacy/checkpoints/
 
     - name: Tests
       run: |
