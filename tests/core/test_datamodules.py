@@ -20,7 +20,6 @@ import pytest
 import torch
 
 from pytorch_lightning import LightningDataModule, Trainer
-from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerState
 from tests.base import BoringDataModule, BoringModel
@@ -419,7 +418,6 @@ def test_dm_transfer_batch_to_device(tmpdir):
 
     model.transfer_batch_to_device = dm.transfer_batch_to_device
 
-    trainer.accelerator_backend = GPUAccelerator(trainer)
     batch_gpu = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
     expected = torch.device('cuda', 0)
     assert dm.hook_called

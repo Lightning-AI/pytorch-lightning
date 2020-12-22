@@ -284,4 +284,10 @@ class NewGPUAccelerator(NewAccelerator):
             torch.cuda.empty_cache()
 
 
-# TODO: Add NewTPUAccelerator
+# TODO: Complete the TPUAccelerator
+class NewTPUAccelerator(NewAccelerator):
+    def setup(self, trainer, model):
+        raise NotImplementedError
+
+    def on_train_start(self):
+        raise NotImplementedError

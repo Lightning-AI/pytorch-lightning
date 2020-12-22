@@ -19,8 +19,8 @@ import pytest
 from torch.utils.data import DataLoader
 
 import tests.base.develop_pipelines as tpipes
-from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import TPUAccelerator
+from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning.accelerators.accelerator import NewTPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _TPU_AVAILABLE
@@ -250,9 +250,9 @@ def test_broadcast_on_tpu():
     """ Checks if an object from the master process is broadcasted to other processes correctly"""
     def test_broadcast(rank):
         trainer = Trainer(tpu_cores=8)
-        backend = TPUAccelerator(trainer)
+        assert isinstance(trainer.accelerator_backend, NewTPUAccelerator)
         obj = ("ver_0.5", "logger_name", rank)
-        result = backend.broadcast(obj)
+        result = trainer.accelerator_backend.broadcast(obj)
         assert result == ("ver_0.5", "logger_name", 0)
 
     xmp.spawn(test_broadcast, nprocs=8, start_method='fork')
