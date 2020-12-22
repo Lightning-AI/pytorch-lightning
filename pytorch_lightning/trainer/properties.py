@@ -365,8 +365,9 @@ class TrainerProperties(ABC):
     @property
     def distributed_sampler_kwargs(self):
         if self.accelerator_backend is not None:
-            return self.accelerator_backend.distributed_sampler_kwargs
+            return self.training_type_plugin.distributed_sampler_kwargs
 
+        # TODO: make sure the cases below are handled by the training_type_plugin
         if self._device_type == DeviceType.TPU:
             kwargs = dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
 
