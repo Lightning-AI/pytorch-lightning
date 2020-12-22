@@ -467,9 +467,6 @@ class DDPPlugin(ParallelPlugin):
         self.barrier()
 
     def post_training(self, best_model_path):
-        with torch.cuda.device(self.root_device):
-            torch.cuda.empty_cache()
-
         if "WORLD_SIZE" in os.environ:
             del os.environ["WORLD_SIZE"]
 
@@ -598,10 +595,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.transfer_distrib_spawn_state_on_fit_end(results)
 
     def post_training(self, best_model_path):
-        # clean up memory
-        with torch.cuda.device(self.root_device):
-            torch.cuda.empty_cache()
-
         # restore main state with best weights
         best_path = self.mp_queue.get()
         results = self.mp_queue.get()
