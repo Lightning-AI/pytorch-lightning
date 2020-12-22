@@ -610,6 +610,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         best_path = self.mp_queue.get()
         last_path = self.mp_queue.get()
         self._results = self.mp_queue.get()
+
         # recover the weights of the processes trained in the children
         self.__recover_child_process_weights(best_path, last_path)
 
@@ -644,9 +645,6 @@ class DDPSpawnPlugin(ParallelPlugin):
 
         if self.global_rank == 0 and self.mp_queue is not None:
             rank_zero_warn('cleaning up ddp environment...')
-            # todo, pass complete checkpoint as state dictionary
-            self.mp_queue.put(best_model_path)
-            self.mp_queue.put(results)
 
             # save the last weights
             last_path = None
@@ -654,7 +652,11 @@ class DDPSpawnPlugin(ParallelPlugin):
             if not self.lightning_module.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
                 atomic_save(self.lightning_module.state_dict(), last_path)
+
+            # todo, pass complete checkpoint as state dictionary
+            self.mp_queue.put(best_model_path)
             self.mp_queue.put(last_path)
+            self.mp_queue.put(results)
 
     def __recover_child_process_weights(self, best_path, last_path):
         # TODO: is there a better way than accessing callback through model -> trainer -> callback?
