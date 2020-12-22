@@ -114,6 +114,8 @@ From Conda
 conda install pytorch-lightning -c conda-forge
 ```
 
+<!-- following section will be skipped from PyPI description -->
+
 #### Install bleeding-edge - future 1.2
 
 the actual status of 1.2 [nightly] is following:
@@ -132,6 +134,8 @@ or nightly from testing PyPI
 ```bash
 pip install -iU https://test.pypi.org/simple/ pytorch-lightning
 ```
+
+<!-- end skipping PyPI description -->
 
 ### Step 1: Add these imports
 
