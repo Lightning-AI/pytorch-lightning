@@ -33,6 +33,11 @@ from pytorch_lightning.metrics.utils import (
 )
 from pytorch_lightning.utilities import rank_zero_warn
 
+try:
+    from torchvision.ops import box_iou
+except ModuleNotFoundError:  # pragma: no-cover
+    box_iou = None
+
 
 def to_onehot(
         tensor: torch.Tensor,
@@ -652,6 +657,9 @@ def mean_average_precision(
     Returns:
         mean of the average precision for each class in object detection task.
     """
+    if box_iou is None:
+        raise ImportError('You want to use `torchvision` which is not installed yet,'
+                              ' install it with `pip install torchvision`.')
     average_precisions = torch.zeros(num_classes)
     for c in range(num_classes):
         c_pred = [p for p in pred if p[1] == c]
@@ -672,7 +680,7 @@ def mean_average_precision(
             best_iou = 0
             best_target_idx = 0
             for j, t in enumerate(ground_truths):
-                curr_iou = object_detection_iou(p[None, 3:], t[None, 2:])
+                curr_iou = box_iou(p[None, 3:], t[None, 2:])
                 if curr_iou > best_iou:
                     best_iou = curr_iou
                     best_target_idx = j
@@ -693,27 +701,6 @@ def mean_average_precision(
         average_precision = -torch.sum((recall[1:] - recall[:-1]) * precision[:-1])
         average_precisions[c] = average_precision
     return torch.mean(average_precisions)
-
-
-def object_detection_iou(pred_bbox, target_bbox):
-    """
-    Computes the Intersection of Union.
-
-    Args:
-        pred_bbox: an Nx4 Tensor where each row is a bounding box [x_min, y_min, x_max, y_max]
-        target_bbox: an Nx4 Tensor where each row is a bounding box [x_min, y_min, x_max, y_max]
-    Returns:
-        the IoU metric
-    """
-    x_min = torch.max(pred_bbox[:, 0], target_bbox[:, 0])
-    y_min = torch.max(pred_bbox[:, 1], target_bbox[:, 1])
-    x_max = torch.min(pred_bbox[:, 2], target_bbox[:, 2])
-    y_max = torch.min(pred_bbox[:, 3], target_bbox[:, 3])
-    intersection = (x_max - x_min).clamp(min=0) * (y_max - y_min).clamp(min=0)
-    pred_area = (pred_bbox[:, 2] - pred_bbox[:, 0]) * (pred_bbox[:, 3] - pred_bbox[:, 1])
-    target_area = (target_bbox[:, 2] - target_bbox[:, 0]) * (target_bbox[:, 3] - target_bbox[:, 1])
-    union = pred_area + target_area - intersection
-    return torch.true_divide(intersection, union)
 
 
 def dice_score(
