@@ -108,6 +108,10 @@ jobs:
       uses: ItsKarma/aws-cli@v1.70.0
       with:
         args: s3 cp --recursive s3://pl-public-data/legacy/checkpoints/ legacy/checkpoints/
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY_ID }}
+        AWS_DEFAULT_REGION: "us-east-1"
     - run: |
         ls -l legacy/checkpoints/
 
