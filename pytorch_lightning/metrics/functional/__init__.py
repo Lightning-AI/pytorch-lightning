@@ -13,7 +13,6 @@
 # limitations under the License.
 from pytorch_lightning.metrics.functional.average_precision import average_precision  # noqa: F401
 from pytorch_lightning.metrics.functional.classification import (  # noqa: F401
-    accuracy,
     auc,
     auroc,
     dice_score,
@@ -32,8 +31,10 @@ from pytorch_lightning.metrics.functional.classification import (  # noqa: F401
 )
 from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matrix  # noqa: F401
 # TODO: unify metrics between class and functional, add below
+from pytorch_lightning.metrics.functional.accuracy import accuracy  # noqa: F401
 from pytorch_lightning.metrics.functional.explained_variance import explained_variance  # noqa: F401
 from pytorch_lightning.metrics.functional.f_beta import fbeta, f1  # noqa: F401
+from pytorch_lightning.metrics.functional.hamming_distance import hamming_distance  # noqa: F401
 from pytorch_lightning.metrics.functional.mean_absolute_error import mean_absolute_error  # noqa: F401
 from pytorch_lightning.metrics.functional.mean_squared_error import mean_squared_error  # noqa: F401
 from pytorch_lightning.metrics.functional.mean_squared_log_error import mean_squared_log_error  # noqa: F401
