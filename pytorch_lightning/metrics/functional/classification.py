@@ -659,7 +659,7 @@ def mean_average_precision(
     """
     if box_iou is None:
         raise ImportError('You want to use `torchvision` which is not installed yet,'
-                              ' install it with `pip install torchvision`.')
+                          ' install it with `pip install torchvision`.')
     average_precisions = torch.zeros(num_classes)
     for c in range(num_classes):
         c_pred = [p for p in pred if p[1] == c]
