@@ -26,20 +26,21 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 class PluginConnector:
 
-    def __init__(self, trainer):
+    def __init__(self, trainer, plugins: Optional[Union[str, list]]):
         self.trainer = trainer
-        self.plugins = []
+        self.plugins = plugins or []
         self.ddp_plugin = DDPPlugin()
         self.cloud_environment = None
-
-    def on_trainer_init(self, plugins: Optional[Union[str, list]]):
-        self.plugins = plugins
-        if self.plugins is None:
-            self.plugins = []
+        self.amp_plugin = NativeAMPPlugin(trainer)
+        self.apex_plugin = ApexPlugin(trainer)
         self.plugins = self._convert_str_custom_plugins(self.plugins)
-        self.plugins = self._append_required_plugins(self.plugins)
-        self.__attach_ddp()
+        # TODO: do we need this?
+        #self self.plugins = self._append_required_plugins(self.plugins)
         self.__attach_cluster()
+        # TODO: attach training_type_plugin
+
+    def on_trainer_init(self):
+        self.__attach_ddp()
         self.__attach_amp()
         self.__attach_apex()
 

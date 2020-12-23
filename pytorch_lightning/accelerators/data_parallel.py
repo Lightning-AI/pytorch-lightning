@@ -339,7 +339,7 @@ class DDPPlugin(ParallelPlugin):
             self._call_children_scripts()
 
         # set the task idx
-        self.task_idx = int(os.environ["LOCAL_RANK"])
+        self.task_idx = self.cluster_environment.local_rank()
 
     def _call_children_scripts(self):
 
@@ -721,3 +721,5 @@ class DDPSpawnPlugin(ParallelPlugin):
 
 
 # TODO: DDP2 (?), HOROVOD DDP AND HPC DDP
+class DDP2Plugin(DDPPlugin):
+    pass
