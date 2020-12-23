@@ -857,7 +857,7 @@ def test_metric_are_properly_reduced(tmpdir):
     assert "train_acc" in trainer.callback_metrics
 
 
-def test_error_message_are_properly_printed(tmpdir):
+def test_stop_iteration_are_being_warned(tmpdir):
 
     class SimulateTransformError(object):
         def __init__(self, generator_len):
@@ -894,5 +894,13 @@ def test_error_message_are_properly_printed(tmpdir):
         max_epochs=1,
     )
 
-    with pytest.warns(UserWarning, match="`StopIteration` was raised in your DataLoader"):
-        trainer.fit(model, train, train)
+    # Pytorch Dataloader doesn't behave the same way
+    # on each platform with a `StopIteration` error
+    if platform.system() != "Windows":
+        with pytest.warns(UserWarning, match="`StopIteration` was raised in your DataLoader"):
+            trainer.fit(model, train, train)
+    else:
+        try:
+            trainer.fit(model, train, train)
+        except StopIteration as e:
+            assert "`StopIteration` was raised in your DataLoader" in str(e)
