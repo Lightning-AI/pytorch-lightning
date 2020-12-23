@@ -546,7 +546,7 @@ def auroc(
         target: torch.Tensor,
         sample_weight: Optional[Sequence] = None,
         pos_label: int = 1.,
-        max_fpr: float = None
+        max_fpr: float = None,
 ) -> torch.Tensor:
     """
     Compute Area Under the Receiver Operating Characteristic Curve (ROC AUC) from prediction scores
@@ -556,8 +556,8 @@ def auroc(
         target: ground-truth labels
         sample_weight: sample weights
         pos_label: the label for the positive class
-        max_fpr: If not `None`, calculates standardized partial AUC over the
-            range [0, max_fpr]. Should be a float between 0 and 1 (Default: None)
+        max_fpr: If not ``None``, calculates standardized partial AUC over the
+            range [0, max_fpr]. Should be a float between 0 and 1.
 
     Return:
         Tensor containing ROCAUC score
@@ -578,10 +578,10 @@ def auroc(
         if max_fpr is None or max_fpr == 1:
             fpr, tpr, _ = __roc(pred, target, sample_weight, pos_label)
             return auc(fpr, tpr)
-        if max_fpr <= 0 or max_fpr > 1:
-            raise ValueError("Expected max_fpr in range (0, 1], got: %r" % max_fpr)
+        if not (isinstance(max_fpr, float) and 0 < max_fpr <= 1):
+            raise ValueError(f"`max_fpr` should be a float in range (0, 1], got: {max_fpr}")
         if LooseVersion(torch.__version__) < LooseVersion('1.6.0'):
-            raise RuntimeError('`max_fpr` argument requires `torch.bucketize` which '
+            raise RuntimeError('`max_fpr` argument requires `torch.bucketize` which'
                                ' is not available below PyTorch version 1.6')
 
         fpr, tpr, _ = __roc(pred, target, sample_weight, pos_label)
