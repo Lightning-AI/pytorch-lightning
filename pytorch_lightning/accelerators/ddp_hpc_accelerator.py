@@ -14,8 +14,8 @@
 from typing import Any, List, Optional, Union
 
 import torch
-import torch.distributed as torch_distrib
 import torch.distributed as dist
+import torch.distributed as torch_distrib
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import _logger as log
@@ -121,6 +121,7 @@ class DDPHPCAccelerator(Accelerator):
         """
         # determine which process we are and world size
         self.set_world_ranks(process_idx)
+        self.init_device(process_idx)
 
         # toggle prog bar
         if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:

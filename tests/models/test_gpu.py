@@ -18,14 +18,13 @@ import pytest
 import torch
 from torchtext.data import Batch, Dataset, Example, Field, LabelField
 
-import tests.base.develop_pipelines as tpipes
-import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator
-
+import tests.base.develop_pipelines as tpipes
+import tests.base.develop_utils as tutils
 
 PRETEND_N_OF_GPUS = 16
 
@@ -47,7 +46,7 @@ def test_multi_gpu_none_backend(tmpdir):
     tpipes.run_model_test(trainer_options, model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.parametrize('gpus', [1, [0], [1]])
 def test_single_gpu_model(tmpdir, gpus):
     """Make sure single GPU works (DP mode)."""

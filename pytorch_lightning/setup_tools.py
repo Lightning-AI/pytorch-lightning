@@ -14,12 +14,12 @@
 # limitations under the License.
 import os
 import re
-import warnings
 from typing import Iterable, List
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+import warnings
 
-from pytorch_lightning import PROJECT_ROOT, __homepage__, __version__
+from pytorch_lightning import __homepage__, __version__, PROJECT_ROOT
 
 _PATH_BADGES = os.path.join('.', 'docs', 'source', '_images', 'badges')
 # badge to download

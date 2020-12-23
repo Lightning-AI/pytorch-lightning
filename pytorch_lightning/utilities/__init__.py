@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """General utilities"""
-import importlib
-import platform
 from distutils.version import LooseVersion
 from enum import Enum
+import importlib
+import platform
 from typing import Union
 
 import numpy
@@ -66,6 +66,7 @@ _RPC_AVAILABLE = platform.system() != 'Windows' and _module_available('torch.dis
 _GROUP_AVAILABLE = platform.system() != 'Windows' and _module_available('torch.distributed.group')
 _FAIRSCALE_PIPE_AVAILABLE = _FAIRSCALE_AVAILABLE and LooseVersion(torch.__version__) >= LooseVersion("1.6.0")
 _BOLTS_AVAILABLE = _module_available('pl_bolts')
+_HAS_WANDB = _module_available('wandb')
 
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
 FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps

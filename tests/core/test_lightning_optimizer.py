@@ -25,7 +25,6 @@ from tests.base.boring_model import BoringModel
 
 def test_lightning_optimizer(tmpdir):
     """
-    Test that optimizer are correctly wrapped by our LightningOptimizer
     """
     class TestModel(BoringModel):
         def configure_optimizers(self):

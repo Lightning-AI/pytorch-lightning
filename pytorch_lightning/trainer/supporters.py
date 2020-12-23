@@ -16,8 +16,9 @@ import os
 from typing import Optional
 
 import torch
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 from torch import Tensor
+
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 
 class TensorRunningAccum(object):
@@ -49,7 +50,7 @@ class TensorRunningAccum(object):
 
     def reset(self) -> None:
         """Empty the accumulator."""
-        self = TensorRunningAccum(self.window_length)
+        self.__init__(self.window_length)
 
     def last(self):
         """Get the last added element."""

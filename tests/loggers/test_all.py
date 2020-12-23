@@ -20,7 +20,6 @@ from unittest.mock import ANY
 
 import pytest
 
-import tests.base.develop_utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers import (
     CometLogger,
@@ -31,9 +30,14 @@ from pytorch_lightning.loggers import (
     WandbLogger,
 )
 from pytorch_lightning.loggers.base import DummyExperiment
+from pytorch_lightning.utilities import _HAS_WANDB
 from tests.base import EvalModelTemplate
+import tests.base.develop_utils as tutils
 from tests.loggers.test_comet import _patch_comet_atexit
 from tests.loggers.test_mlflow import mock_mlflow_run_creation
+
+if _HAS_WANDB:
+    import wandb
 
 
 def _get_logger_args(logger_class, save_dir):
@@ -74,7 +78,9 @@ def test_loggers_fit_test_all(tmpdir, monkeypatch):
     with mock.patch('pytorch_lightning.loggers.test_tube.Experiment'):
         _test_loggers_fit_test(tmpdir, TestTubeLogger)
 
-    with mock.patch('pytorch_lightning.loggers.wandb.wandb'):
+    with mock.patch('pytorch_lightning.loggers.wandb.wandb') as wandb:
+        wandb.run = None
+        wandb.init().step = 0
         _test_loggers_fit_test(tmpdir, WandbLogger)
 
 
@@ -368,5 +374,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     # WandB
     with mock.patch('pytorch_lightning.loggers.wandb.wandb'):
         logger = _instantiate_logger(WandbLogger, save_idr=tmpdir, prefix=prefix)
+        wandb.run = None
+        wandb.init().step = 0
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.log.assert_called_once_with({'tmp-test': 1.0}, step=0)

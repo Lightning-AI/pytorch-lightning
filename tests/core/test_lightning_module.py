@@ -14,7 +14,7 @@
 from unittest.mock import patch
 
 import pytest
-from torch.optim import SGD, Adam
+from torch.optim import Adam, SGD
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -70,16 +70,12 @@ def test_automatic_optimization_num_calls(enable_pl_optimizer, tmpdir):
                     if batch_idx % 2 == 0:
                         assert isinstance(optimizer, SGD)
                         optimizer.step(closure=optimizer_closure)
-                        if not enable_pl_optimizer:
-                            optimizer.zero_grad()
 
                 # update discriminator opt every 4 steps
                 if optimizer_idx == 1:
                     if batch_idx % 4 == 0:
                         assert isinstance(optimizer, Adam)
                         optimizer.step(closure=optimizer_closure)
-                        if not enable_pl_optimizer:
-                            optimizer.zero_grad()
 
         model = TestModel()
         model.training_epoch_end = None

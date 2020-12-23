@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Computer vision example on Transfer Learning.
 
 This computer vision example illustrates how one could fine-tune a pre-trained
@@ -25,20 +38,20 @@ import argparse
 from collections import OrderedDict
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Optional, Generator, Union
+from typing import Generator, Optional, Union
 
 import torch
-import torch.nn.functional as F
 from torch import optim
 from torch.nn import Module
+import torch.nn.functional as F
 from torch.optim.lr_scheduler import MultiStepLR
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
-from torchvision import models
-from torchvision import transforms
+from torchvision import models, transforms
 from torchvision.datasets import ImageFolder
 from torchvision.datasets.utils import download_and_extract_archive
 
+from pl_examples import cli_lightning_logo
 import pytorch_lightning as pl
 from pytorch_lightning import _logger as log
 
@@ -145,20 +158,30 @@ def _unfreeze_and_add_param_group(module: Module,
 class TransferLearningModel(pl.LightningModule):
     """Transfer Learning with pre-trained ResNet50.
 
-    Args:
-        hparams: Model hyperparameters
-        dl_path: Path where the data will be downloaded
+    >>> with TemporaryDirectory(dir='.') as tmp_dir:
+    ...     TransferLearningModel(tmp_dir)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    TransferLearningModel(
+      (feature_extractor): Sequential(...)
+      (fc): Sequential(...)
+    )
     """
-    def __init__(self,
-                 dl_path: Union[str, Path],
-                 backbone: str = 'resnet50',
-                 train_bn: bool = True,
-                 milestones: tuple = (5, 10),
-                 batch_size: int = 8,
-                 lr: float = 1e-2,
-                 lr_scheduler_gamma: float = 1e-1,
-                 num_workers: int = 6, **kwargs) -> None:
-        super().__init__()
+    def __init__(
+            self,
+            dl_path: Union[str, Path],
+            backbone: str = 'resnet50',
+            train_bn: bool = True,
+            milestones: tuple = (5, 10),
+            batch_size: int = 8,
+            lr: float = 1e-2,
+            lr_scheduler_gamma: float = 1e-1,
+            num_workers: int = 6,
+            **kwargs,
+    ) -> None:
+        """
+        Args:
+            dl_path: Path where the data will be downloaded
+        """
+        super().__init__(**kwargs)
         self.dl_path = dl_path
         self.backbone = backbone
         self.train_bn = train_bn
@@ -451,4 +474,5 @@ def get_args() -> argparse.Namespace:
 
 
 if __name__ == '__main__':
+    cli_lightning_logo()
     main(get_args())

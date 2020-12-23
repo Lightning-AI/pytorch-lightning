@@ -11,29 +11,29 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from argparse import Namespace
 import os
+from pathlib import Path
 import pickle
 import platform
 import re
-from argparse import Namespace
-from pathlib import Path
 from unittest import mock
 from unittest.mock import Mock
 
 import cloudpickle
+from omegaconf import Container, OmegaConf
 import pytest
 import torch
 import yaml
-from omegaconf import Container, OmegaConf
 
 import pytorch_lightning as pl
-import tests.base.develop_utils as tutils
-from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import BoringModel
+import tests.base.develop_utils as tutils
 
 
 class LogInTwoMethods(BoringModel):
@@ -943,3 +943,42 @@ def test_hparams_type(tmpdir, hparams_type):
     else:
         # make sure it's not AttributeDict
         assert type(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY]) == hparams_type
+
+
+@pytest.mark.parametrize('max_epochs', [3, 4])
+@pytest.mark.parametrize(
+    'save_top_k, expected',
+    [
+        (1, ['curr_epoch.ckpt']),
+        (2, ['curr_epoch.ckpt', 'curr_epoch-v0.ckpt']),
+    ]
+)
+def test_model_checkpoint_file_already_exists(tmpdir, max_epochs, save_top_k, expected):
+    """
+    Test that version is added to filename if required and it already exists in dirpath.
+    """
+    model_checkpoint = ModelCheckpoint(
+        dirpath=tmpdir,
+        filename='curr_epoch',
+        save_top_k=save_top_k,
+        monitor='epoch',
+        mode='max',
+    )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[model_checkpoint],
+        max_epochs=max_epochs,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        logger=None,
+        weights_summary=None,
+        progress_bar_refresh_rate=0,
+    )
+
+    model = BoringModel()
+    trainer.fit(model)
+    ckpt_files = os.listdir(tmpdir)
+    assert set(ckpt_files) == set(expected)
+
+    epochs_in_ckpt_files = [pl_load(os.path.join(tmpdir, f))['epoch'] - 1 for f in ckpt_files]
+    assert sorted(epochs_in_ckpt_files) == list(range(max_epochs - save_top_k, max_epochs))
