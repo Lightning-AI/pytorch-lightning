@@ -101,6 +101,7 @@ class LightningOptimizer:
                 self._optimizer_idx = opt_idx
                 break
 
+    @classmethod
     def to_lightning_optimizer(cls, optimizer, opt_idx, trainer):
         if trainer.amp_backend == AMPType.APEX:
             optimizer = cls(optimizer)
